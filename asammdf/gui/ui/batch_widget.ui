@@ -24,7 +24,7 @@
        <enum>QTabWidget::West</enum>
       </property>
       <property name="currentIndex">
-       <number>7</number>
+       <number>3</number>
       </property>
       <property name="documentMode">
        <bool>false</bool>
@@ -458,8 +458,15 @@
           <property name="bottomMargin">
            <number>5</number>
           </property>
-          <item row="10" column="1">
-           <widget class="QComboBox" name="mat_format"/>
+          <item row="2" column="0">
+           <widget class="QCheckBox" name="single_time_base">
+            <property name="text">
+             <string>Single time base</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QComboBox" name="export_type"/>
           </item>
           <item row="6" column="0">
            <widget class="QCheckBox" name="use_display_names">
@@ -468,15 +475,15 @@
             </property>
            </widget>
           </item>
-          <item row="10" column="0">
+          <item row="11" column="1">
+           <widget class="QComboBox" name="mat_format"/>
+          </item>
+          <item row="11" column="0">
            <widget class="QLabel" name="label_18">
             <property name="text">
              <string>.mat format</string>
             </property>
            </widget>
-          </item>
-          <item row="0" column="1">
-           <widget class="QComboBox" name="export_type"/>
           </item>
           <item row="3" column="0">
            <widget class="QCheckBox" name="time_from_zero">
@@ -485,12 +492,63 @@
             </property>
            </widget>
           </item>
-          <item row="2" column="0">
-           <widget class="QCheckBox" name="single_time_base">
+          <item row="7" column="0">
+           <widget class="QCheckBox" name="reduce_memory_usage">
             <property name="text">
-             <string>Single time base</string>
+             <string>Reduce  memory usage</string>
             </property>
            </widget>
+          </item>
+          <item row="15" column="1">
+           <widget class="QPushButton" name="export_btn">
+            <property name="text">
+             <string>Export</string>
+            </property>
+            <property name="icon">
+             <iconset resource="resource.qrc">
+              <normaloff>:/export.png</normaloff>:/export.png</iconset>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QDoubleSpinBox" name="export_raster">
+            <property name="suffix">
+             <string>s</string>
+            </property>
+            <property name="decimals">
+             <number>6</number>
+            </property>
+           </widget>
+          </item>
+          <item row="14" column="1">
+           <spacer name="verticalSpacer_5">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="9" column="0">
+           <widget class="QLabel" name="label_20">
+            <property name="text">
+             <string>Compression</string>
+            </property>
+           </widget>
+          </item>
+          <item row="10" column="0">
+           <widget class="QLabel" name="label_19">
+            <property name="text">
+             <string>Empty channels</string>
+            </property>
+           </widget>
+          </item>
+          <item row="9" column="1">
+           <widget class="QComboBox" name="export_compression"/>
           </item>
           <item row="1" column="0" colspan="2">
            <widget class="Line" name="line_11">
@@ -498,6 +556,9 @@
              <enum>Qt::Horizontal</enum>
             </property>
            </widget>
+          </item>
+          <item row="12" column="1">
+           <widget class="QComboBox" name="oned_as"/>
           </item>
           <item row="0" column="0">
            <widget class="QLabel" name="label_21">
@@ -513,26 +574,6 @@
             </property>
            </widget>
           </item>
-          <item row="11" column="1">
-           <widget class="QComboBox" name="oned_as"/>
-          </item>
-          <item row="9" column="1">
-           <widget class="QComboBox" name="empty_channels"/>
-          </item>
-          <item row="12" column="0" colspan="2">
-           <widget class="Line" name="line_10">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-           </widget>
-          </item>
-          <item row="11" column="0">
-           <widget class="QLabel" name="label_16">
-            <property name="text">
-             <string>.mat oned_as</string>
-            </property>
-           </widget>
-          </item>
           <item row="5" column="0" colspan="2">
            <widget class="Line" name="line_9">
             <property name="orientation">
@@ -540,63 +581,29 @@
             </property>
            </widget>
           </item>
-          <item row="9" column="0">
-           <widget class="QLabel" name="label_19">
-            <property name="text">
-             <string>Empty channels</string>
+          <item row="13" column="0" colspan="2">
+           <widget class="Line" name="line_10">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
             </property>
            </widget>
           </item>
-          <item row="8" column="1">
-           <widget class="QComboBox" name="export_compression"/>
+          <item row="10" column="1">
+           <widget class="QComboBox" name="empty_channels"/>
+          </item>
+          <item row="12" column="0">
+           <widget class="QLabel" name="label_16">
+            <property name="text">
+             <string>.mat oned_as</string>
+            </property>
+           </widget>
           </item>
           <item row="8" column="0">
-           <widget class="QLabel" name="label_20">
+           <widget class="QCheckBox" name="time_as_date">
             <property name="text">
-             <string>Compression</string>
+             <string>Time as date</string>
             </property>
            </widget>
-          </item>
-          <item row="4" column="1">
-           <widget class="QDoubleSpinBox" name="export_raster">
-            <property name="suffix">
-             <string>s</string>
-            </property>
-            <property name="decimals">
-             <number>6</number>
-            </property>
-           </widget>
-          </item>
-          <item row="7" column="0">
-           <widget class="QCheckBox" name="reduce_memory_usage">
-            <property name="text">
-             <string>Reduce  memory usage</string>
-            </property>
-           </widget>
-          </item>
-          <item row="14" column="1">
-           <widget class="QPushButton" name="export_btn">
-            <property name="text">
-             <string>Export</string>
-            </property>
-            <property name="icon">
-             <iconset resource="resource.qrc">
-              <normaloff>:/export.png</normaloff>:/export.png</iconset>
-            </property>
-           </widget>
-          </item>
-          <item row="13" column="1">
-           <spacer name="verticalSpacer_5">
-            <property name="orientation">
-             <enum>Qt::Vertical</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>20</width>
-              <height>40</height>
-             </size>
-            </property>
-           </spacer>
           </item>
          </layout>
         </item>
@@ -1045,13 +1052,6 @@
            <string>CSV</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_10">
-           <item row="6" column="1" colspan="3">
-            <widget class="Line" name="line_13">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-            </widget>
-           </item>
            <item row="1" column="1">
             <widget class="QCheckBox" name="time_from_zero_can">
              <property name="text">
@@ -1059,30 +1059,38 @@
              </property>
             </widget>
            </item>
-           <item row="2" column="1">
-            <widget class="QCheckBox" name="ignore_invalid_signals_csv">
-             <property name="toolTip">
-              <string>checks if all samples are eauql to the maximum teoretical signal value</string>
-             </property>
-             <property name="text">
-              <string>Ignore invalid signals</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="1">
+           <item row="4" column="1">
             <widget class="QLabel" name="label_28">
              <property name="text">
               <string>Raster</string>
              </property>
             </widget>
            </item>
-           <item row="3" column="2" colspan="2">
+           <item row="7" column="1" colspan="3">
+            <widget class="Line" name="line_13">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="2" colspan="2">
             <widget class="QDoubleSpinBox" name="export_raster_can">
              <property name="suffix">
               <string>s</string>
              </property>
              <property name="decimals">
               <number>6</number>
+             </property>
+            </widget>
+           </item>
+           <item row="8" column="1" colspan="3">
+            <widget class="QPushButton" name="extract_can_csv_btn">
+             <property name="text">
+              <string>Export to CSV         </string>
+             </property>
+             <property name="icon">
+              <iconset resource="resource.qrc">
+               <normaloff>:/csv.png</normaloff>:/csv.png</iconset>
              </property>
             </widget>
            </item>
@@ -1093,24 +1101,30 @@
              </property>
             </widget>
            </item>
-           <item row="4" column="1">
+           <item row="3" column="1">
+            <widget class="QCheckBox" name="ignore_invalid_signals_csv">
+             <property name="toolTip">
+              <string>checks if all samples are eauql to the maximum teoretical signal value</string>
+             </property>
+             <property name="text">
+              <string>Ignore invalid signals</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="2" colspan="2">
+            <widget class="QComboBox" name="empty_channels_can"/>
+           </item>
+           <item row="5" column="1">
             <widget class="QLabel" name="label_29">
              <property name="text">
               <string>Empty channels</string>
              </property>
             </widget>
            </item>
-           <item row="4" column="2" colspan="2">
-            <widget class="QComboBox" name="empty_channels_can"/>
-           </item>
-           <item row="7" column="1" colspan="3">
-            <widget class="QPushButton" name="extract_can_csv_btn">
+           <item row="2" column="1">
+            <widget class="QCheckBox" name="can_time_as_date">
              <property name="text">
-              <string>Export to CSV         </string>
-             </property>
-             <property name="icon">
-              <iconset resource="resource.qrc">
-               <normaloff>:/csv.png</normaloff>:/csv.png</iconset>
+              <string>Time as date</string>
              </property>
             </widget>
            </item>

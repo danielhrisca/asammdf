@@ -60,6 +60,7 @@ from .blocks import v2_v3_constants as v23c
 
 
 logger = logging.getLogger("asammdf")
+LOCAL_TIMEZONE = datetime.now(timezone.utc).astimezone().tzinfo
 
 
 __all__ = ["MDF", "SUPPORTED_VERSIONS"]
@@ -982,6 +983,12 @@ class MDF(object):
               * for ``hfd5`` : "gzip", "lzf" or "szip"
               * for ``mat`` : bool
 
+            * time_as_date (False) : bool
+              export time as local timezone datetimee; only valid for CSV export
+
+              .. versionadded:: 5.8.0
+
+
         """
 
         from time import perf_counter as pc
@@ -1005,6 +1012,7 @@ class MDF(object):
         oned_as = kargs.get("oned_as", "row")
         reduce_memory_usage = kargs.get("reduce_memory_usage", False)
         compression = kargs.get("compression", "")
+        time_as_date = kargs.get("time_as_date", False)
 
         if compression == 'SNAPPY':
             try:
@@ -1315,6 +1323,16 @@ class MDF(object):
 
         elif fmt == "csv":
 
+            if time_as_date:
+                index = (
+                    pd.to_datetime(self.signals.index + self.start, unit='s')
+                    .tz_localize('UTC')
+                    .tz_convert(LOCAL_TIMEZONE)
+                    .astype(str)
+                )
+                df.index = index
+                df.index.name = 'time'
+
             if single_time_base:
                 filename = filename.with_suffix(".csv")
                 message = f'Writing csv export to file "{filename}"'
@@ -1381,6 +1399,16 @@ class MDF(object):
                         use_display_names=use_display_names,
                         reduce_memory_usage=reduce_memory_usage,
                     )
+
+                    if time_as_date:
+                        index = (
+                            pd.to_datetime(self.signals.index + self.start, unit='s')
+                            .tz_localize('UTC')
+                            .tz_convert(LOCAL_TIMEZONE)
+                            .astype(str)
+                        )
+                        df.index = index
+                        df.index.name = 'time'
 
                     with open(group_csv_name, "w", newline="") as csvfile:
                         writer = csv.writer(csvfile)
@@ -3301,7 +3329,9 @@ class MDF(object):
             searching for minimum dtype that can reprezent the values found
             in integer columns; default *False*
         raw (False) : bool
-            the dataframe will contain the raw channel values (new in asammdf 5.7.0)
+            the dataframe will contain the raw channel values
+
+            .. versionadded:: 5.7.0
 
         Returns
         -------
@@ -3438,7 +3468,9 @@ class MDF(object):
             searching for minimum dtype that can reprezent the values found
             in integer columns; default *False*
         raw (False) : bool
-            the columns will contain the raw values (new in asammdf 5.7.0)
+            the columns will contain the raw values
+
+            .. versionadded:: 5.7.0
 
         Returns
         -------
@@ -3637,7 +3669,8 @@ class MDF(object):
             output file version
         ignore_invalid_signals (False) : bool
             ignore signals that have all samples equal to their maximum value
-            (new in *asammdf 5.7.0*)
+
+            .. versionadded:: 5.7.0
 
         Returns
         -------

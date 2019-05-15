@@ -474,6 +474,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         oned_as = self.oned_as.currentText()
         reduce_memory_usage = self.reduce_memory_usage.checkState() == QtCore.Qt.Checked
         compression = self.export_compression.currentText()
+        time_as_date = self.time_as_date.checkState() == QtCore.Qt.Checked
 
         count = self.files_list.count()
 
@@ -544,6 +545,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 "oned_as": oned_as,
                 "reduce_memory_usage": reduce_memory_usage,
                 "compression": compression,
+                "time_as_date": time_as_date,
             }
 
             mdf = run_thread_with_progress(
@@ -799,6 +801,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         time_from_zero = self.time_from_zero_can.checkState() == QtCore.Qt.Checked
         empty_channels = self.empty_channels_can.currentText()
         raster = self.export_raster.value()
+        time_as_date = self.can_time_as_date.checkState() == QtCore.Qt.Checked
 
         count = self.files_list.count()
 
@@ -874,6 +877,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 "time_from_zero": time_from_zero,
                 "empty_channels": empty_channels,
                 "raster": raster,
+                "time_as_date": time_as_date,
             }
 
             run_thread_with_progress(
