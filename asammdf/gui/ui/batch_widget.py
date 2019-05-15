@@ -624,4 +624,4 @@ class Ui_batch_widget(object):
 
 
 from asammdf.gui.widgets.list import MinimalListWidget
-import resource_rc
+from . import resource_rc
