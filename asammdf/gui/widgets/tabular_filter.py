@@ -2,6 +2,7 @@
 
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
+import pandas as pd
 
 from ..ui import resource_rc as resource_rc
 from ..ui.tabular_filter import Ui_TabularFilter
@@ -112,6 +113,17 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
                 self._target = f'b"{target}"'
             elif kind == 'U':
                 self._target = f'"{target}"'
+            elif kind == 'M':
+                try:
+                    pd.Timestamp(target)
+                except:
+                    QtWidgets.QMessageBox.warning(
+                        None,
+                        "Wrong target value",
+                        f'Datetime {column_name} requires a correct pandas Timestamp literal',
+                    )
+                else:
+                    self._target = target
 
     def to_config(self):
         info = {

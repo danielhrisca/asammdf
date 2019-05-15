@@ -46,11 +46,12 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
 class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
     add_channels_request = QtCore.pyqtSignal(list)
 
-    def __init__(self, signals=None, *args, **kwargs):
+    def __init__(self, signals=None, start=0, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
         self.signals_descr = {}
+        self.start = start
 
         if signals is None:
             self.signals = pd.DataFrame()
@@ -77,11 +78,14 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
             self.signals = signals
 
+        self._original_index = self.signals.index.values
+
         self.build(self.signals)
 
         self.add_filter_btn.clicked.connect(self.add_filter)
         self.apply_filters_btn.clicked.connect(self.apply_filters)
         self.sort.stateChanged.connect(self.sorting_changed)
+        self.time_as_date.stateChanged.connect(self.time_as_date_changed)
 
     def add_filter(self, event=None):
         filter_widget = TabularFilter(
@@ -121,7 +125,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                 continue
 
             target = filter._target
-            if not target:
+            if target is None:
                 continue
 
             if filters:
@@ -147,9 +151,15 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                     filters.append('!=')
                     filters.append(column_name)
             else:
-                filters.append(column_name)
-                filters.append(op)
-                filters.append(str(target))
+                if column_name == df.index.name and df.index.dtype.kind == 'M':
+                    Timestamp = pd.Timestamp
+                    filters.append(column_name)
+                    filters.append(op)
+                    filters.append(f'@Timestamp("{target}")')
+                else:
+                    filters.append(column_name)
+                    filters.append(op)
+                    filters.append(str(target))
 
         if filters:
             try:
@@ -248,3 +258,26 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             self.tree.header().setSortIndicator(0, QtCore.Qt.AscendingOrder)
             self.tree.setSortingEnabled(False)
 
+    def time_as_date_changed(self, state):
+        count = self.filters.count()
+
+        if state == QtCore.Qt.Checked:
+            for i in range(count):
+                filter = self.filters.itemWidget(self.filters.item(i))
+                filter.dtype_kind[0] = 'M'
+                filter._target = None
+                filter.validate_target()
+            self.signals.index = pd.to_datetime(self.signals.index + self.start, unit='s')
+        else:
+            for i in range(count):
+                filter = self.filters.itemWidget(self.filters.item(i))
+                filter.dtype_kind[0] = 'f'
+                filter._target = None
+                filter.validate_target()
+            self.signals.index = self._original_index
+        self.signals.index.name = 'time'
+
+        if self.query.toPlainText():
+            self.apply_filters()
+        else:
+            self.build(self.signals)

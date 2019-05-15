@@ -1479,7 +1479,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             self.set_subplots_link(self.subplots_link)
 
         elif window_type == 'Tabular':
-            numeric = Tabular(signals)
+            numeric = Tabular(signals, start=self.mdf.header.start_time.timestamp())
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
@@ -1812,7 +1812,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             ]
             signals = self.mdf.select(signals_, dataframe=True)
 
-            tabular = Tabular(signals)
+            tabular = Tabular(signals, start=self.mdf.header.start_time.timestamp())
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
