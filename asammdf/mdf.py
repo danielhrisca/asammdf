@@ -1334,7 +1334,7 @@ class MDF(object):
 
             if time_as_date:
                 index = (
-                    pd.to_datetime(self.signals.index + self.start, unit='s')
+                    pd.to_datetime(df.index + self.header.start_time.timestamp(), unit='s')
                     .tz_localize('UTC')
                     .tz_convert(LOCAL_TIMEZONE)
                     .astype(str)
