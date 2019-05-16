@@ -169,7 +169,6 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
         if filters:
             try:
-                print(df.index.values[0], ts)
                 new_df = df.query(' '.join(filters))
             except:
                 logger.exception(f'Failed to apply filter for tabular window: {" ".join(filters)}')
