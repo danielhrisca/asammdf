@@ -3007,7 +3007,7 @@ class MDF(object):
             else:
                 for signal in signals:
                     conversion = signal.conversion
-                    if conversion and ignore_value2text_conversions:
+                    if conversion:
                         signal.samples = conversion.convert(signal.samples)
                     signal.raw = False
                     signal.conversion = None
