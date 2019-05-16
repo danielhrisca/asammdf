@@ -948,18 +948,30 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 iterator += 1
 
     def compute_cut_hints(self):
-        # TODO : use master channel physical min and max values
-        times = []
-        groups_nr = len(self.mdf.groups)
-        for i in range(groups_nr):
-            master = self.mdf.get_master(i)
-            if len(master):
-                times.append(master[0])
-                times.append(master[-1])
-            QtWidgets.QApplication.processEvents()
+        t_min = []
+        t_max = []
+        for i, group in enumerate(self.mdf.groups):
+            cycles_nr = group.channel_group.cycles_nr
+            if cycles_nr:
+                master_min = self.mdf.get_master(
+                    i,
+                    record_offset=0,
+                    record_count=1,
+                )
+                if len(master_min):
+                    t_min.append(master_min[0])
+                self.mdf._master_channel_cache.clear()
+                master_max = self.mdf.get_master(
+                    i,
+                    record_offset=cycles_nr-1,
+                    record_count=1,
+                )
+                if len(master_max):
+                    t_max.append(master_max[0])
+                self.mdf._master_channel_cache.clear()
 
-        if len(times):
-            time_range = min(times), max(times)
+        if t_min:
+            time_range = t_min, t_max
 
             self.cut_start.setRange(*time_range)
             self.cut_stop.setRange(*time_range)
