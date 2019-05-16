@@ -1141,6 +1141,27 @@ class Signal(object):
             )
         return result
 
+    def copy(self):
+        """ copy all attributes to a new Signal """
+        return Signal(
+            self.samples.copy(),
+            self.timestamps.copy(),
+            self.unit,
+            self.name,
+            self.conversion,
+            self.comment,
+            self.raw,
+            self.master_metadata,
+            self.display_name,
+            self.attachment,
+            self.source,
+            self.bit_count,
+            self.stream_sync,
+            invalidation_bits=self.invalidation_bits.copy()
+            if self.invalidation_bits is not None
+            else None,
+            encoding=self.encoding,
+        )
 
 
 if __name__ == "__main__":
