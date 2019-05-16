@@ -2,8 +2,6 @@
 from datetime import datetime
 from functools import partial, reduce
 import json
-from threading import Thread
-from time import sleep
 from pathlib import Path
 import os
 
@@ -16,7 +14,6 @@ import pyqtgraph as pg
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
-from PyQt5 import uic
 
 from ..ui import resource_rc as resource_rc
 from ..ui.file_widget import Ui_file_widget
@@ -662,25 +659,32 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         viewbox = None
         if subplots_link:
             for i, mdi in enumerate(self.mdi_area.subWindowList()):
-                plt = mdi.widget()
-                if isinstance(plt, Plot):
+                widget = mdi.widget()
+                if isinstance(widget, Plot):
                     if viewbox is None:
-                        viewbox = plt.plot.viewbox
+                        viewbox = widget.plot.viewbox
                     else:
-                        plt.plot.viewbox.setXLink(viewbox)
-                    plt.cursor_moved_signal.connect(self.set_cursor)
-                    plt.cursor_removed_signal.connect(self.remove_cursor)
+                        widget.plot.viewbox.setXLink(viewbox)
+                    widget.cursor_moved_signal.connect(self.set_cursor)
+                    widget.cursor_removed_signal.connect(self.remove_cursor)
+                elif isinstance(widget, Numeric):
+                    widget.timestamp_changed_signal.connect(self.set_cursor)
         else:
             for mdi in self.mdi_area.subWindowList():
-                plt = mdi.widget()
-                if isinstance(plt, Plot):
-                    plt.plot.viewbox.setXLink(None)
+                widget = mdi.widget()
+                if isinstance(widget, Plot):
+                    widget.plot.viewbox.setXLink(None)
                     try:
-                        plt.cursor_moved_signal.disconnect(self.set_cursor)
+                        widget.cursor_moved_signal.disconnect(self.set_cursor)
                     except:
                         pass
                     try:
-                        plt.cursor_removed_signal.disconnect(self.remove_cursor)
+                        widget.cursor_removed_signal.disconnect(self.remove_cursor)
+                    except:
+                        pass
+                elif isinstance(widget, Numeric):
+                    try:
+                        widget.timestamp_changed_signal.disconnect(self.set_cursor)
                     except:
                         pass
 
@@ -688,12 +692,14 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         if self._cursor_source is None:
             self._cursor_source = widget
             for mdi in self.mdi_area.subWindowList():
-                plt = mdi.widget()
-                if isinstance(plt, Plot) and plt is not widget:
-                    if plt.plot.cursor1 is None:
+                wid = mdi.widget()
+                if isinstance(wid, Plot) and wid is not widget:
+                    if wid.plot.cursor1 is None:
                         event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_C, QtCore.Qt.NoModifier)
-                        plt.plot.keyPressEvent(event)
-                    plt.plot.cursor1.setPos(pos)
+                        wid.plot.keyPressEvent(event)
+                    wid.plot.cursor1.setPos(pos)
+                elif isinstance(wid, Numeric) and wid is not widget:
+                    wid.timestamp.setValue(pos)
             self._cursor_source = None
 
     def remove_cursor(self, widget):
@@ -1423,6 +1429,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             self._window_counter += 1
 
             numeric.add_channels_request.connect(partial(self.add_new_channels, widget=numeric))
+            if self.subplots_link:
+                numeric.timestamp_changed_signal.connect(self.set_cursor)
 
         elif window_type == 'Plot':
             plot = Plot([], False)

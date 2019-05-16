@@ -40,6 +40,7 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
 
 class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
     add_channels_request = QtCore.pyqtSignal(list)
+    timestamp_changed_signal = QtCore.pyqtSignal(object, float)
 
     def __init__(self, signals, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -111,6 +112,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             self.timestamp_slider.setValue(val)
 
         self._update_values(stamp)
+
+        self.timestamp_changed_signal.emit(self, stamp)
 
     def _timestamp_slider_changed(self, stamp):
         factor = stamp / 9999

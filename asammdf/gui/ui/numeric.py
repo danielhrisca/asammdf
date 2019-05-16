@@ -53,7 +53,7 @@ class Ui_NumericDisplay(object):
         self.timestamp_slider.setOrientation(QtCore.Qt.Horizontal)
         self.timestamp_slider.setInvertedAppearance(False)
         self.timestamp_slider.setInvertedControls(False)
-        self.timestamp_slider.setTickPosition(QtWidgets.QSlider.TicksAbove)
+        self.timestamp_slider.setTickPosition(QtWidgets.QSlider.NoTicks)
         self.timestamp_slider.setTickInterval(1)
         self.timestamp_slider.setObjectName("timestamp_slider")
         self.verticalLayout.addWidget(self.timestamp_slider)
