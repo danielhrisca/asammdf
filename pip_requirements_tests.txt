@@ -8,3 +8,5 @@ canmatrix
 pandas
 numexpr
 wheel
+lxml
+cChardet
