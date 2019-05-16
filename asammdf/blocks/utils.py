@@ -17,7 +17,7 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 from struct import pack
 
-import anmatrix.formats.dbc.load as dbc_load
+import canmatrix.formats.dbc.load as dbc_load
 import canmatrix.formats.arxml.load as arxml_load
 from numpy import where, arange, interp
 import numpy as np
