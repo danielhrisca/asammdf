@@ -1585,7 +1585,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             w.setSystemMenu(menu)
 
             numeric.add_channels_request.connect(partial(self.add_new_channels, widget=numeric))
-        elif window_info['type'] == 'Numeric':
+
+        elif window_info['type'] == 'Plot':
             measured_signals = [
                 (None, *self.mdf.whereis(channel['name'])[0])
                 for channel in window_info['configuration']['channels']
@@ -1844,7 +1845,9 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                     tabular.add_filter()
                     filter = tabular.filters.itemWidget(tabular.filters.item(filter_count))
                     filter.enabled.setCheckState(
-                        QtCore.Qt.Checked if filter_info['enabled'] else QtCore.Qt.Unchecked
+                        QtCore.Qt.Checked
+                        if filter_info['enabled']
+                        else QtCore.Qt.Unchecked
                     )
                     filter.relation.setCurrentText(filter_info['relation'])
                     filter.column.setCurrentText(filter_info['column'])
@@ -1857,8 +1860,16 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             if filter_count and window_info['configuration']['filtered']:
                 tabular.apply_filters()
 
+            tabular.time_as_date.setCheckState(
+                QtCore.Qt.Checked
+                if window_info['configuration']['time_as_date']
+                else QtCore.Qt.Unchecked
+            )
+
             tabular.sort.setCheckState(
-                QtCore.Qt.Checked if window_info['configuration']['sorted'] else QtCore.Qt.Unchecked
+                QtCore.Qt.Checked
+                if window_info['configuration']['sorted']
+                else QtCore.Qt.Unchecked
             )
 
             menu = w.systemMenu()

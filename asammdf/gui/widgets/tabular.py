@@ -257,7 +257,8 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             'filters': [
                 self.filters.itemWidget(self.filters.item(i)).to_config()
                 for i in range(count)
-            ]
+            ],
+            'time_as_date': self.time_as_date.checkState() == QtCore.Qt.Checked,
         }
 
         return config
