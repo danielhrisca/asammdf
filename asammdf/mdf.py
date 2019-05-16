@@ -2762,9 +2762,18 @@ class MDF(object):
             mdf._callback = mdf._mdf._callback = self._callback
         return mdf
 
-    def select(self, channels, dataframe=False, record_offset=0, raw=False, copy_master=True):
+    def select(
+        self,
+        channels,
+        record_offset=0,
+        raw=False,
+        copy_master=True,
+    ):
         """ retrieve the channels listed in *channels* argument as *Signal*
         objects
+
+        .. note:: the *dataframe* argument was removed in version 5.8.0
+                  use the ``to_dataframe`` method instead
 
         Parameters
         ----------
@@ -2775,8 +2784,7 @@ class MDF(object):
                 * (channel name, group index, channel index) list or tuple
                 * (channel name, group index) list or tuple
                 * (None, group index, channel index) list or tuple
-        dataframe : bool
-            return pandas dataframe instead of list of Signals; default *False*
+
         record_offset : int
             record number offset; optimization to get the last part of signal samples
         raw : bool
@@ -2784,11 +2792,6 @@ class MDF(object):
         copy_master : bool
             option to get a new timestamps array for each selected Signal or to
             use a shared array for channels of the same channel group; default *True*
-
-        dataframe: bool
-            return a pandas DataFrame instead of a list of *Signals*; in this
-            case the signals will be interpolated using the union of all
-            timestamps
 
         Returns
         -------
@@ -2990,44 +2993,7 @@ class MDF(object):
                 raw = False
                 signal.conversion = None
 
-        if dataframe:
-
-            interpolation_mode = self._integer_interpolation
-            times = [s.timestamps for s in signals]
-            master = reduce(np.union1d, times).flatten().astype(np.float64)
-            signals = [
-                s.interp(master, interpolation_mode=interpolation_mode)
-                for s in signals
-            ]
-
-            df = pd.DataFrame()
-
-            df["time"] = pd.Series(master, index=np.arange(len(master)))
-
-            df.set_index('time', inplace=True)
-
-            used_names = UniqueDB()
-            used_names.get_unique_name("time")
-
-            for k, sig in enumerate(signals):
-                # byte arrays
-                if len(sig.samples.shape) > 1:
-                    channel_name = used_names.get_unique_name(sig.name)
-                    df[channel_name] = pd.Series(list(sig.samples), index=master)
-
-                # arrays and structures
-                elif sig.samples.dtype.names:
-                    for name, series in components(sig.samples, sig.name, used_names, master=master):
-                        df[name] = series
-
-                # scalars
-                else:
-                    channel_name = used_names.get_unique_name(sig.name)
-                    df[channel_name] = pd.Series(sig.samples, index=master)
-
-            return df
-        else:
-            return signals
+        return signals
 
     def whereis(self, channel):
         """ get ocurrences of channel name in the file
@@ -3308,11 +3274,16 @@ class MDF(object):
     def get_group(
         self,
         index,
+        channels=None,
         raster=None,
-        time_from_zero=False,
+        time_from_zero=True,
+        empty_channels="skip",
+        keep_arrays=False,
         use_display_names=False,
+        time_as_date=False,
         reduce_memory_usage=False,
         raw=False,
+        ignore_value2text_conversions=False,
     ):
         """ get channel group as pandas DataFrames. If there are multiple
         occurences for the same channel name, then a counter will be used to
@@ -3333,92 +3304,52 @@ class MDF(object):
 
             .. versionadded:: 5.7.0
 
+        ignore_value2text_conversions (False) : bool
+            valid only for the channels that have value to text conversions and
+            if *raw=False*. If this is True then the raw numeric values will be
+            used, and the coonverison will not be applied.
+
+            .. versionadded:: 5.8.0
+
+        keep_arrays : bool
+            keep arrays and structure channels as well as the
+            component channels. If *True* this can be very slow. If *False*
+            only the component channels are saved, and their names will be
+            prefixed with the parent channel.
+
+            .. versionadded:: 5.8.0
+
+        empty_channels : str
+            behaviour for channels without samples; the options are *skip* or
+            *zeros*; default is *skip*
+
+            .. versionadded:: 5.8.0
+
         Returns
         -------
         df : pandas.DataFrame
 
         """
 
-        interpolation_mode = self._integer_interpolation
-
-        df = pd.DataFrame()
-        master = self.get_master(index, copy_master=False)
-
-        if raster and len(master):
-            if len(master) > 1:
-                num = float(np.float32((master[-1] - master[0]) / raster))
-                if num.is_integer():
-                    master = np.linspace(master[0], master[-1], int(num))
-                else:
-                    master = np.arange(master[0], master[-1], raster, dtype=np.float64)
-
-        df["time"] = pd.Series(master, index=np.arange(len(master)))
-
-        df.set_index('time', inplace=True)
-
-        used_names = UniqueDB()
-        used_names.get_unique_name("time")
-
         included_channels = self._included_channels(index)
 
-        signals = [
-            self.get(group=index, index=idx, copy_master=False, raw=raw)
-            for idx in included_channels
+        channels = [
+            (None, index, ch_index)
+            for ch_index in included_channels
         ]
 
-        if raster and len(master):
-            signals = [
-                sig.interp(master, interpolation_mode=interpolation_mode)
-                for sig in signals
-            ]
-
-        for sig in signals:
-            # byte arrays
-            if len(sig.samples.shape) > 1:
-
-                if use_display_names:
-                    channel_name = sig.display_name or sig.name
-                else:
-                    channel_name = sig.name
-
-                channel_name = used_names.get_unique_name(channel_name)
-
-                df[channel_name] = pd.Series(list(sig.samples), index=master)
-
-            # arrays and structures
-            elif sig.samples.dtype.names:
-                for name, series in components(sig.samples, sig.name, used_names, master=master):
-                    df[name] = series
-
-            # scalars
-            else:
-                if use_display_names:
-                    channel_name = sig.display_name or sig.name
-                else:
-                    channel_name = sig.name
-
-                channel_name = used_names.get_unique_name(channel_name)
-
-                if sig.samples.dtype.kind in 'SU':
-                    unique = np.unique(sig.samples)
-                    if len(sig.samples) / len(unique) >= 2:
-                        df[channel_name] = pd.Series(sig.samples, index=master, dtype="category")
-                    else:
-                        df[channel_name] = pd.Series(sig.samples, index=master)
-                else:
-                    if reduce_memory_usage:
-                        sig.samples = downcast(sig.samples)
-                    df[channel_name] = pd.Series(sig.samples, index=master)
-
-            if use_display_names:
-                channel_name = sig.display_name or sig.name
-            else:
-                channel_name = sig.name
-
-        if time_from_zero and len(master):
-            df.set_index(df.index - df.index[0], inplace=True)
-
-        return df
+        return self.to_dataframe(
+            channels=channels,
+            raster=raster,
+            time_from_zero=time_from_zero,
+            empty_channels="skip",
+            keep_arrays=False,
+            use_display_names=use_display_names,
+            time_as_date=time_as_date,
+            reduce_memory_usage=reduce_memory_usage,
+            raw=raw,
+            ignore_value2text_conversions=ignore_value2text_conversions,
+        )
 
     def to_dataframe(
         self,
@@ -3431,6 +3362,7 @@ class MDF(object):
         time_as_date=False,
         reduce_memory_usage=False,
         raw=False,
+        ignore_value2text_conversions=False,
     ):
         """ generate pandas DataFrame
 
@@ -3472,6 +3404,14 @@ class MDF(object):
 
             .. versionadded:: 5.7.0
 
+        ignore_value2text_conversions (False) : bool
+            valid only for the channels that have value to text conversions and
+            if *raw=False*. If this is True then the raw numeric values will be
+            used, and the coonverison will not be applied.
+
+            .. versionadded:: 5.8.0
+
+
         Returns
         -------
         dataframe : pandas.DataFrame
@@ -3489,6 +3429,7 @@ class MDF(object):
                 time_as_date=time_as_date,
                 reduce_memory_usage=reduce_memory_usage,
                 raw=raw,
+                ignore_value2text_conversions=ignore_value2text_conversions,
             )
 
         df = pd.DataFrame()
@@ -3544,8 +3485,9 @@ class MDF(object):
             signals = [[] for _ in included_channels]
             invalidation_bits = [[] for _ in included_channels]
             timestamps = []
+            conversions = []
 
-            for fragment in data:
+            for idx, fragment in enumerate(data):
                 if dtypes.itemsize:
                     grp.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
                 else:
@@ -3558,10 +3500,13 @@ class MDF(object):
                         data=fragment,
                         samples_only=True,
                         ignore_invalidation_bits=True,
-                        raw=raw,
+                        raw=True,
                     )
                     signals[k].append(signal[0])
                     invalidation_bits[k].append(signal[1])
+
+                    if idx == 0:
+                        conversions.append(signal.conversion)
 
                 timestamps.append(
                     self.get_master(
@@ -3575,6 +3520,24 @@ class MDF(object):
 
             if len(timestamps):
                 signals = [np.concatenate(parts) for parts in signals]
+
+                if not raw:
+                    if ignore_value2text_conversions:
+                        if self.version < '4.00':
+                            text_conversion = 11
+                        else:
+                            text_conversion = 7
+                        signals = [
+                            conversion.convert(signal)
+                            if conversion and conversion.conversion_type < text_conversion
+                            else signal
+                            for signal, conversion in zip(signals, conversions)
+                        ]
+                    else:
+                        signals = [
+                            conversion.convert(signal) if conversion else signal
+                            for signal, conversion in zip(signals, conversions)
+                        ]
 
                 timestamps = np.concatenate(timestamps)
                 for idx, parts in enumerate(invalidation_bits):
