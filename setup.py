@@ -86,6 +86,8 @@ setup(
                       'wheel',
                       'canmatrix',
                       'natsort',
+                      'lxml',
+                      'cChardet',
                      ],
 
     # List additional groups of dependencies here (e.g. development

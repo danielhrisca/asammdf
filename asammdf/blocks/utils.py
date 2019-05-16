@@ -19,6 +19,7 @@ from struct import pack
 
 from canmatrix.dbc import load as dbc_load
 from canmatrix.arxml import load as arxml_load
+from cchardet import detect
 from numpy import where, arange, interp
 import numpy as np
 from numpy.core.records import fromarrays
@@ -206,19 +207,8 @@ def get_text_v3(address, stream, mapped=False):
     try:
         text = text_bytes.strip(b" \r\t\n\0").decode("latin-1")
     except UnicodeDecodeError as err:
-        try:
-            from cchardet import detect
-
-            encoding = detect(text_bytes)["encoding"]
-            text = text_bytes.strip(b" \r\t\n\0").decode(encoding)
-        except ImportError:
-            logger.warning(
-                'Unicode exception occured and "cChardet" package is '
-                'not installed. Mdf version 3 expects "latin-1" '
-                "strings and this package may detect if a different"
-                " encoding was used"
-            )
-            raise err
+        encoding = detect(text_bytes)["encoding"]
+        text = text_bytes.strip(b" \r\t\n\0").decode(encoding)
 
     return text
 
@@ -253,19 +243,8 @@ def get_text_v4(address, stream, mapped=False):
     try:
         text = text_bytes.strip(b" \r\t\n\0").decode("utf-8")
     except UnicodeDecodeError as err:
-        try:
-            from cchardet import detect
-
-            encoding = detect(text_bytes)["encoding"]
-            text = text_bytes.decode(encoding).strip(" \r\t\n\0")
-        except ImportError:
-            logger.warning(
-                'Unicode exception occured and "cChardet" package is '
-                'not installed. Mdf version 4 expects "utf-8" '
-                "strings and this package may detect if a different"
-                " encoding was used"
-            )
-            raise err
+        encoding = detect(text_bytes)["encoding"]
+        text = text_bytes.decode(encoding).strip(" \r\t\n\0")
 
     return text
 
@@ -1548,27 +1527,16 @@ def load_can_database(file, contents=None):
                 key="db",
             )["db"]
         except UnicodeDecodeError:
-            try:
-                from cchardet import detect
+            encoding = detect(contents)["encoding"]
+            contents = contents.decode(
+                encoding
+            )
+            dbc = loads(
+                contents,
+                importType=import_type,
+                import_type=import_type,
+                key="db",
+                encoding=encoding,
+            )["db"]
 
-                encoding = detect(contents)["encoding"]
-                contents = contents.decode(
-                    encoding
-                )
-                dbc = loads(
-                    contents,
-                    importType=import_type,
-                    import_type=import_type,
-                    key="db",
-                    encoding=encoding,
-                )["db"]
-            except ImportError:
-                message = (
-                    "Unicode exception occured while processing the database "
-                    f'"{file}" and "cChardet" package is '
-                    'not installed. Mdf version 4 expects "utf-8" '
-                    "strings and this package may detect if a different"
-                    " encoding was used"
-                )
-                logger.warning(message)
     return dbc
