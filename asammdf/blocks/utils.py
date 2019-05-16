@@ -17,8 +17,8 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 from struct import pack
 
-import canmatrix.dbc.load as dbc_load
-import canmatrix.arxml.load as arxml_load
+from canmatrix.dbc import load as dbc_load
+from canmatrix.arxml import load as arxml_load
 from numpy import where, arange, interp
 import numpy as np
 from numpy.core.records import fromarrays
