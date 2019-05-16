@@ -12,7 +12,6 @@ from struct import unpack
 from shutil import copy
 from pathlib import Path
 
-from canmatrix.formats import loads
 import canmatrix
 import numpy as np
 from numpy.core.defchararray import encode, decode
@@ -46,6 +45,7 @@ from .blocks.utils import (
     extract_mux,
     csv_int2hex,
     csv_bytearray2hex,
+    load_can_database
 )
 
 from .blocks.v2_v3_blocks import HeaderBlock as HeaderV3
@@ -3686,44 +3686,11 @@ class MDF(object):
 
         valid_dbc_files = []
         for dbc_name in dbc_files:
-            dbc_name = Path(dbc_name)
-
-            if dbc_name.exists() and dbc_name.suffix.lower() in ('.dbc', '.arxml'):
-                import_type = dbc_name.suffix.lower().strip('.')
-                contents = dbc_name.read_bytes()
-                try:
-                    dbc = loads(
-                        contents,
-                        import_type=import_type,
-                        key="db",
-                    )["db"]
-                    valid_dbc_files.append(dbc)
-                except UnicodeDecodeError:
-                    try:
-                        from cchardet import detect
-
-                        encoding = detect(contents)["encoding"]
-                        contents = contents.decode(
-                            encoding
-                        )
-                        dbc = loads(
-                            contents,
-                            importType=import_type,
-                            import_type=import_type,
-                            key="db",
-                            encoding=encoding,
-                        )["db"]
-                        valid_dbc_files.append(dbc)
-                    except ImportError:
-                        message = (
-                            "Unicode exception occured while processing the database "
-                            f'"{dbc_name}" and "cChardet" package is '
-                            'not installed. Mdf version 4 expects "utf-8" '
-                            "strings and this package may detect if a different"
-                            " encoding was used"
-                        )
-                        logger.warning(message)
-                        continue
+            dbc = load_can_database(dbc_name)
+            if dbc is None:
+                continue
+            else:
+                valid_dbc_files.append(dbc)
 
         count = sum(
             1

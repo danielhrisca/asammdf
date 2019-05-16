@@ -17,6 +17,8 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 from struct import pack
 
+import anmatrix.formats.dbc.load as dbc_load
+import canmatrix.formats.arxml.load as arxml_load
 from numpy import where, arange, interp
 import numpy as np
 from numpy.core.records import fromarrays
@@ -1527,3 +1529,46 @@ def pandas_query_compatible(name):
     else:
         name = f'{name}__'
     return name
+
+
+def load_can_database(file, contents=None):
+    file = Path(file)
+
+    dbc = None
+
+    if file.exists() and file.suffix.lower() in ('.dbc', '.arxml'):
+        import_type = file.suffix.lower().strip('.')
+        loads = dbc_load if import_type == 'dbc' else arxml_load
+        if contents is None:
+            contents = file.read_bytes()
+        try:
+            dbc = loads(
+                contents,
+                import_type=import_type,
+                key="db",
+            )["db"]
+        except UnicodeDecodeError:
+            try:
+                from cchardet import detect
+
+                encoding = detect(contents)["encoding"]
+                contents = contents.decode(
+                    encoding
+                )
+                dbc = loads(
+                    contents,
+                    importType=import_type,
+                    import_type=import_type,
+                    key="db",
+                    encoding=encoding,
+                )["db"]
+            except ImportError:
+                message = (
+                    "Unicode exception occured while processing the database "
+                    f'"{file}" and "cChardet" package is '
+                    'not installed. Mdf version 4 expects "utf-8" '
+                    "strings and this package may detect if a different"
+                    " encoding was used"
+                )
+                logger.warning(message)
+    return dbc

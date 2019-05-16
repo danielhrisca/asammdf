@@ -48,7 +48,6 @@ from numpy import (
 )
 
 from numpy.core.records import fromarrays, fromstring
-from canmatrix.formats import loads
 import canmatrix
 from pandas import DataFrame
 
@@ -83,6 +82,7 @@ from .utils import (
     Group,
     DataBlockInfo,
     extract_can_signal,
+    load_can_database,
 )
 from .v4_blocks import (
     AttachmentBlock,
@@ -503,17 +503,7 @@ class MDF4(object):
                 if attachment and attachment[0] and attachment[1].name.lower().endswith(("dbc", "arxml")):
                     attachment, at_name = attachment
 
-                    import_type = "dbc" if at_name.name.lower().endswith("dbc") else "arxml"
-                    try:
-                        string = attachment.decode('utf-8')
-                    except UnicodeDecodeError:
-                        from cchardet import detect
-
-                        encoding = detect(attachment)["encoding"]
-                        string = attachment.decode(encoding)
-                    db = loads(
-                        string, importType=import_type, import_type=import_type, key="db"
-                    )["db"]
+                    db = load_can_database(at_name, attachment)
 
                     try:
                         board_units = set(bu.name for bu in db.boardUnits)
@@ -899,41 +889,14 @@ class MDF4(object):
                                 if at_name.name.lower().endswith("dbc")
                                 else "arxml"
                             )
-                            try:
-                                attachment_string = attachment.decode("utf-8")
-                                self._dbc_cache[attachment_addr] = loads(
-                                    attachment_string,
-                                    importType=import_type,
-                                    import_type=import_type,
-                                    key="db",
-                                )["db"]
-                                grp.CAN_database = True
-                            except UnicodeDecodeError:
-                                try:
-                                    from cchardet import detect
 
-                                    encoding = detect(attachment)["encoding"]
-                                    attachment_string = attachment.decode(
-                                        encoding
-                                    )
-                                    self._dbc_cache[attachment_addr] = loads(
-                                        attachment_string,
-                                        importType=import_type,
-                                        import_type=import_type,
-                                        key="db",
-                                        encoding=encoding,
-                                    )["db"]
-                                    grp.CAN_database = True
-                                except ImportError:
-                                    message = (
-                                        "Unicode exception occured while processing the database "
-                                        f'attachment "{at_name}" and "cChardet" package is '
-                                        'not installed. Mdf version 4 expects "utf-8" '
-                                        "strings and this package may detect if a different"
-                                        " encoding was used"
-                                    )
-                                    logger.warning(message)
-                                    grp.CAN_database = False
+                            dbc = load_can_database(at_name, attachment)
+                            if dbc is None:
+                                grp.CAN_database = False
+                            else:
+                                self._dbc_cache[attachment_addr] = dbc
+                                grp.CAN_database = True
+
                     else:
                         grp.CAN_database = True
                 else:
@@ -4995,41 +4958,15 @@ class MDF4(object):
                 logger.exception(message)
                 raise MdfException(message)
             else:
-                import_type = "dbc" if database.lower().endswith("dbc") else "arxml"
-                with open(database, "rb") as db:
-                    db_string = db.read()
+                db_string = Path(database).read_bytes()
                 md5_sum = md5(db_string).digest()
 
                 if md5_sum in self._external_dbc_cache:
                     db = self._external_dbc_cache[md5_sum]
                 else:
-                    try:
-                        db_string = db_string.decode("utf-8")
-                        db = self._external_dbc_cache[md5_sum] = loads(
-                            db_string, importType=import_type, import_type=import_type, key="db"
-                        )["db"]
-                    except UnicodeDecodeError:
-                        try:
-                            from cchardet import detect
-
-                            encoding = detect(db_string)["encoding"]
-                            db_string = db_string.decode(encoding)
-                            db = self._dbc_cache[md5_sum] = loads(
-                                db_string,
-                                importType=import_type,
-                                import_type=import_type,
-                                key="db",
-                                encoding=encoding,
-                            )["db"]
-                        except ImportError:
-                            message = (
-                                "Unicode exception occured while processing the database "
-                                f'attachment "{database}" and "cChardet" package is '
-                                'not installed. Mdf version 4 expects "utf-8" '
-                                "strings and this package may detect if a different"
-                                " encoding was used"
-                            )
-                            logger.warning(message)
+                    db = load_can_database(database, db_string)
+                    if db is None:
+                        raise MdfException('failed to load database')
 
         name_ = name.split(".")
 
