@@ -2768,6 +2768,7 @@ class MDF(object):
         record_offset=0,
         raw=False,
         copy_master=True,
+        ignore_value2text_conversions=False,
     ):
         """ retrieve the channels listed in *channels* argument as *Signal*
         objects
@@ -2792,6 +2793,12 @@ class MDF(object):
         copy_master : bool
             option to get a new timestamps array for each selected Signal or to
             use a shared array for channels of the same channel group; default *True*
+        ignore_value2text_conversions (False) : bool
+            valid only for the channels that have value to text conversions and
+            if *raw=False*. If this is True then the raw numeric values will be
+            used, and the conversion will not be applied.
+
+            .. versionadded:: 5.8.0
 
         Returns
         -------
@@ -2986,12 +2993,24 @@ class MDF(object):
                 signal.timestamps = signal.timestamps.copy()
 
         if not raw:
-            for signal in signals:
-                conversion = signal.conversion
-                if conversion:
-                    signal.samples = conversion.convert(signal.samples)
-                raw = False
-                signal.conversion = None
+            if ignore_value2text_conversions:
+                if self.version < '4.00':
+                    text_conversion = 11
+                else:
+                    text_conversion = 7
+                for signal in signals:
+                    conversion = signal.conversion
+                    if conversion and conversion.converion_type < text_conversion:
+                        signal.samples = conversion.convert(signal.samples)
+                    signal.raw = False
+                    signal.conversion = None
+            else:
+                for signal in signals:
+                    conversion = signal.conversion
+                    if conversion and ignore_value2text_conversions:
+                        signal.samples = conversion.convert(signal.samples)
+                    signal.raw = False
+                    signal.conversion = None
 
         return signals
 
