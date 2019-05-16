@@ -769,7 +769,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                     iterator += 1
 
             if dlg.add_window_request:
-                options = ["New plot window", "New numeric window"] + [
+                options = ["New plot window", "New numeric window", "New tabular window"] + [
                     mdi.windowTitle()
                     for mdi in self.mdi_area.subWindowList()
                 ]
@@ -787,12 +787,14 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                         self.add_window(['Plot', sorted(names)])
                     elif index == 1:
                         self.add_window(['Numeric', sorted(names)])
+                    elif index == 2:
+                        self.add_window(['Tabular', sorted(names)])
                     else:
                         widgets = [
                             mdi.widget()
                             for mdi in self.mdi_area.subWindowList()
                         ]
-                        widget = widgets[index-2]
+                        widget = widgets[index-3]
                         self.add_new_channels(names, widget)
 
     def save_channel_list(self, event=None, file_name=None):
