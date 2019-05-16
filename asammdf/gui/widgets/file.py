@@ -1364,7 +1364,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             signals_ = names
 
         if window_type == 'Tabular':
-            signals = self.mdf.select(signals_, dataframe=True)
+            signals = self.mdf.to_dataframe(channels=signals_)
         else:
 
             signals = self.mdf.select(signals_)
