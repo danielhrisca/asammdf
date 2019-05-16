@@ -919,7 +919,7 @@ class MDF(object):
             out._callback = out._mdf._callback = self._callback
         return out
 
-    def export(self, fmt, filename=None, **kargs):
+    def export(self, fmt, filename=None, **kwargs):
         """ export *MDF* to other formats. The *MDF* file name is used is
         available, else the *filename* argument must be provided.
 
@@ -988,6 +988,13 @@ class MDF(object):
 
               .. versionadded:: 5.8.0
 
+            * ignore_value2text_conversions (False) : bool
+              valid only for the channels that have value to text conversions and
+              if *raw=False*. If this is True then the raw numeric values will be
+              used, and the conversion will not be applied.
+
+              .. versionadded:: 5.8.0
+
 
         """
 
@@ -1003,16 +1010,17 @@ class MDF(object):
             logger.warning(message)
             return
 
-        single_time_base = kargs.get("single_time_base", False)
-        raster = kargs.get("raster", 0)
-        time_from_zero = kargs.get("time_from_zero", True)
-        use_display_names = kargs.get("use_display_names", True)
-        empty_channels = kargs.get("empty_channels", "skip")
-        format = kargs.get("format", "5")
-        oned_as = kargs.get("oned_as", "row")
-        reduce_memory_usage = kargs.get("reduce_memory_usage", False)
-        compression = kargs.get("compression", "")
-        time_as_date = kargs.get("time_as_date", False)
+        single_time_base = kwargs.get("single_time_base", False)
+        raster = kwargs.get("raster", 0)
+        time_from_zero = kwargs.get("time_from_zero", True)
+        use_display_names = kwargs.get("use_display_names", True)
+        empty_channels = kwargs.get("empty_channels", "skip")
+        format = kwargs.get("format", "5")
+        oned_as = kwargs.get("oned_as", "row")
+        reduce_memory_usage = kwargs.get("reduce_memory_usage", False)
+        compression = kwargs.get("compression", "")
+        time_as_date = kwargs.get("time_as_date", False)
+        ignore_value2text_conversions = kwargs.get("ignore_value2text_conversions", False)
 
         if compression == 'SNAPPY':
             try:
@@ -1076,6 +1084,7 @@ class MDF(object):
                 use_display_names=use_display_names,
                 empty_channels=empty_channels,
                 reduce_memory_usage=reduce_memory_usage,
+                ignore_value2text_conversions=ignore_value2text_conversions,
             )
             units = OrderedDict()
             comments = OrderedDict()
@@ -1398,6 +1407,7 @@ class MDF(object):
                         time_from_zero=time_from_zero,
                         use_display_names=use_display_names,
                         reduce_memory_usage=reduce_memory_usage,
+                        ignore_value2text_conversions=ignore_value2text_conversions,
                     )
 
                     if time_as_date:
@@ -1472,6 +1482,7 @@ class MDF(object):
 
                     channels = self.select(
                         [(None, i, idx) for idx in included_channels]
+                        ignore_value2text_conversions=ignore_value2text_conversions,
                     )
 
                     for j, sig in zip(included_channels, channels):

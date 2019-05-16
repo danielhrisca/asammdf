@@ -84,40 +84,31 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         submenu.addActions(search_option.actions())
         menu.addMenu(submenu)
 
-        # search mode menu
-        search_option = QtWidgets.QActionGroup(self)
+        # sub plots
+        subplot_action = QtWidgets.QAction('Sub-plots', menu)
+        subplot_action.setCheckable(True)
 
-        for option in ("Disabled", "Enabled"):
+        state = self._settings.value('subplots', False, type=bool)
+        subplot_action.toggled.connect(self.set_subplot_option)
+        subplot_action.triggered.connect(self.set_subplot_option)
+        subplot_action.setChecked(state)
+        menu.addAction(subplot_action)
 
-            action = QtWidgets.QAction(option, menu)
-            action.setCheckable(True)
-            search_option.addAction(action)
-            action.triggered.connect(partial(self.set_subplot_option, option))
+        # Link sub-plots X-axis
+        subplot_action = QtWidgets.QAction('Link sub-plots X-axis', menu)
+        subplot_action.setCheckable(True)
+        state = self._settings.value('subplots_link', False, type=bool)
+        subplot_action.toggled.connect(self.set_subplot_link_option)
+        subplot_action.setChecked(state)
+        menu.addAction(subplot_action)
 
-            if option == self._settings.value('subplots', "Disabled"):
-                action.setChecked(True)
-
-        submenu = QtWidgets.QMenu("Sub-plots", self.menubar)
-        submenu.addActions(search_option.actions())
-        menu.addMenu(submenu)
-
-
-        # search mode menu
-        search_option = QtWidgets.QActionGroup(self)
-
-        for option in ("Disabled", "Enabled"):
-
-            action = QtWidgets.QAction(option, menu)
-            action.setCheckable(True)
-            search_option.addAction(action)
-            action.triggered.connect(partial(self.set_subplot_link_option, option))
-
-            if option == self._settings.value('subplots_link', "Disabled"):
-                action.setChecked(True)
-
-        submenu = QtWidgets.QMenu("Link sub-plots X-axis", self.menubar)
-        submenu.addActions(search_option.actions())
-        menu.addMenu(submenu)
+        # Link sub-plots X-axis
+        subplot_action = QtWidgets.QAction('Ignore value2text conversions', menu)
+        subplot_action.setCheckable(True)
+        state = self._settings.value('ignore_value2text_conversions', False, type=bool)
+        subplot_action.toggled.connect(self.set_ignore_value2text_conversions_option)
+        subplot_action.setChecked(state)
+        menu.addAction(subplot_action)
 
         # search mode menu
         plot_background_option = QtWidgets.QActionGroup(self)
@@ -339,7 +330,7 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         menu.addActions(open_group.actions())
 
         self.with_dots = self._settings.value('dots', False, type=bool)
-        self.batch = BatchWidget()
+        self.batch = BatchWidget(self.ignore_value2text_conversions)
         self.stackedWidget.addWidget(self.batch)
         self.stackedWidget.setCurrentIndex(0)
         self.setWindowTitle(f'asammdf {libversion} - Single files')
@@ -399,9 +390,9 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             self.files.widget(i).search_field.set_search_option(option)
             self.files.widget(i).filter_field.set_search_option(option)
 
-    def set_subplot_option(self, option):
-        self.subplots = option == 'Enabled'
-        self._settings.setValue('subplots', option)
+    def set_subplot_option(self, state):
+        self.subplots = state
+        self._settings.setValue('subplots', state)
 
     def set_plot_background(self, option):
         self._settings.setValue('plot_background', option)
@@ -560,13 +551,23 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Highlight, brush)
             app.setPalette(palette)
 
-    def set_subplot_link_option(self, option):
-        self.subplots_link = option == 'Enabled'
-        self._settings.setValue('subplots_link', option)
+    def set_subplot_link_option(self, state):
+        self.subplots_link = state
+        self._settings.setValue('subplots_link', state)
         count = self.files.count()
 
         for i in range(count):
             self.files.widget(i).set_subplots_link(self.subplots_link)
+
+    def set_ignore_value2text_conversions_option(self, state):
+        self.ignore_value2text_conversions = state
+        self._settings.setValue('ignore_value2text_conversions', state)
+        count = self.files.count()
+
+        for i in range(count):
+            self.files.widget(i).ignore_value2text_conversions = state
+        self.batch.ignore_value2text_conversions = ignore_value2text_conversions
+
 
     def update_progress(self, current_index, max_index):
         self.progress = current_index, max_index
@@ -601,7 +602,14 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         index = self.files.count()
 
         try:
-            widget = FileWidget(file_name, self.with_dots, self.subplots, self.subplots_link, self)
+            widget = FileWidget(
+                file_name,
+                self.with_dots,
+                self.subplots,
+                self.subplots_link,
+                self.ignore_value2text_conversions,
+                self,
+            )
             widget.search_field.set_search_option(self.match)
             widget.filter_field.set_search_option(self.match)
         except:

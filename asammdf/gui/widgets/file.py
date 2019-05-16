@@ -39,7 +39,16 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
     open_new_file = QtCore.pyqtSignal(str)
 
-    def __init__(self, file_name, with_dots, subplots=False, subplots_link=False, *args, **kwargs):
+    def __init__(
+        self,
+        file_name,
+        with_dots,
+        subplots=False,
+        subplots_link=False,
+        ignore_value2text_conversions=False,
+        *args,
+        **kwargs,
+    ):
 
         super().__init__(*args, **kwargs)
         self.setupUi(self)
@@ -48,6 +57,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         file_name = Path(file_name)
         self.subplots = subplots
         self.subplots_link = subplots_link
+        self.ignore_value2text_conversions = ignore_value2text_conversions
         self._viewbox = pg.ViewBox()
         self._viewbox.setXRange(0, 10)
 
@@ -1384,10 +1394,16 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             signals_ = names
 
         if window_type == 'Tabular':
-            signals = self.mdf.to_dataframe(channels=signals_)
+            signals = self.mdf.to_dataframe(
+                channels=signals_,
+                ignore_value2text_conversions=self.ignore_value2text_conversions,
+            )
         else:
 
-            signals = self.mdf.select(signals_)
+            signals = self.mdf.select(
+                signals_,
+                ignore_value2text_conversions=self.ignore_value2text_conversions,
+            )
 
             for sig, sig_ in zip(signals, signals_):
                 sig.group_index = sig_[1]
@@ -1550,7 +1566,10 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 for name in window_info['configuration']['channels']
                 if name in self.mdf
             ]
-            signals = self.mdf.select(signals_)
+            signals = self.mdf.select(
+                signals_,
+                ignore_value2text_conversions=self.ignore_value2text_conversions,
+            )
 
             for sig, sig_ in zip(signals, signals_):
                 sig.group_index = sig_[1]
@@ -1616,7 +1635,10 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             ]
             measured_signals = {
                 sig.name: sig
-                for sig in self.mdf.select(measured_signals)
+                for sig in self.mdf.select(
+                    measured_signals,
+                    ignore_value2text_conversions=self.ignore_value2text_conversions,
+                )
             }
 
             for signal in measured_signals.values():
@@ -1835,7 +1857,10 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 for name in window_info['configuration']['channels']
                 if name in self.mdf
             ]
-            signals = self.mdf.select(signals_, dataframe=True)
+            signals = self.mdf.to_dataframe(
+                channels=signals_,
+                ignore_value2text_conversions=self.ignore_value2text_conversions,
+            )
 
             tabular = Tabular(signals, start=self.mdf.header.start_time.timestamp())
 
@@ -2241,6 +2266,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 "empty_channels": empty_channels,
                 "raster": raster,
                 "time_as_date": time_as_date,
+                "ignore_value2text_conversions": self.ignore_value2text_conversions,
             }
 
             run_thread_with_progress(

@@ -25,10 +25,12 @@ from .list import MinimalListWidget
 
 class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, ignore_value2text_conversions=False, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
         self.setupUi(self)
+
+        self.ignore_value2text_conversions = ignore_value2text_conversions
 
         self.progress = None
         self.files_list = MinimalListWidget()
@@ -546,6 +548,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 "reduce_memory_usage": reduce_memory_usage,
                 "compression": compression,
                 "time_as_date": time_as_date,
+                "ignore_value2text_conversions": self.ignore_value2text_conversions,
             }
 
             mdf = run_thread_with_progress(
@@ -878,6 +881,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 "empty_channels": empty_channels,
                 "raster": raster,
                 "time_as_date": time_as_date,
+                "ignore_value2text_conversions": self.ignore_value2text_conversions,
             }
 
             run_thread_with_progress(
