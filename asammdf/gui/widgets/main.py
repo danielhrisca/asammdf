@@ -27,6 +27,12 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self._settings = QtCore.QSettings()
         self._light_palette = self.palette()
 
+        self.ignore_value2text_conversions = self._settings.value('ignore_value2text_conversions', False, type=bool)
+
+        self.batch = BatchWidget(self.ignore_value2text_conversions)
+        self.stackedWidget.addWidget(self.batch)
+        self.stackedWidget.setCurrentIndex(0)
+
         self.progress = None
 
         self.files.tabCloseRequested.connect(self.close_file)
@@ -105,9 +111,8 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         # Link sub-plots X-axis
         subplot_action = QtWidgets.QAction('Ignore value2text conversions', menu)
         subplot_action.setCheckable(True)
-        state = self._settings.value('ignore_value2text_conversions', False, type=bool)
         subplot_action.toggled.connect(self.set_ignore_value2text_conversions_option)
-        subplot_action.setChecked(state)
+        subplot_action.setChecked(self.ignore_value2text_conversions)
         menu.addAction(subplot_action)
 
         # search mode menu
@@ -330,9 +335,6 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         menu.addActions(open_group.actions())
 
         self.with_dots = self._settings.value('dots', False, type=bool)
-        self.batch = BatchWidget(self.ignore_value2text_conversions)
-        self.stackedWidget.addWidget(self.batch)
-        self.stackedWidget.setCurrentIndex(0)
         self.setWindowTitle(f'asammdf {libversion} - Single files')
 
         if files:
@@ -566,7 +568,7 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         for i in range(count):
             self.files.widget(i).ignore_value2text_conversions = state
-        self.batch.ignore_value2text_conversions = ignore_value2text_conversions
+        self.batch.ignore_value2text_conversions = state
 
 
     def update_progress(self, current_index, max_index):

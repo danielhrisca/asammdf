@@ -1481,7 +1481,7 @@ class MDF(object):
                         included_channels.add(master_index)
 
                     channels = self.select(
-                        [(None, i, idx) for idx in included_channels]
+                        [(None, i, idx) for idx in included_channels],
                         ignore_value2text_conversions=ignore_value2text_conversions,
                     )
 
