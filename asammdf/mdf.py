@@ -3307,7 +3307,7 @@ class MDF(object):
         ignore_value2text_conversions (False) : bool
             valid only for the channels that have value to text conversions and
             if *raw=False*. If this is True then the raw numeric values will be
-            used, and the coonverison will not be applied.
+            used, and the conversion will not be applied.
 
             .. versionadded:: 5.8.0
 
@@ -3407,7 +3407,7 @@ class MDF(object):
         ignore_value2text_conversions (False) : bool
             valid only for the channels that have value to text conversions and
             if *raw=False*. If this is True then the raw numeric values will be
-            used, and the coonverison will not be applied.
+            used, and the conversion will not be applied.
 
             .. versionadded:: 5.8.0
 
@@ -3506,7 +3506,7 @@ class MDF(object):
                     invalidation_bits[k].append(signal[1])
 
                     if idx == 0:
-                        conversions.append(signal.conversion)
+                        conversions.append(grp.channels[index].conversion)
 
                 timestamps.append(
                     self.get_master(
