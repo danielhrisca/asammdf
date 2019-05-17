@@ -30,7 +30,7 @@ setup(
 
     description='ASAM MDF measurement data file parser',
     long_description=long_description,
-    long_description_content_type='text/markdown',
+    long_description_content_type=r'text/markdown',
 
     # The project's main homepage.
     url='https://github.com/danielhrisca/asammdf',

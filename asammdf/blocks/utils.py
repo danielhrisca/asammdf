@@ -17,8 +17,13 @@ from tempfile import TemporaryDirectory
 from pathlib import Path
 from struct import pack
 
-from canmatrix.dbc import load as dbc_load
-from canmatrix.arxml import load as arxml_load
+try:
+    from canmatrix.dbc import load as dbc_load
+    from canmatrix.arxml import load as arxml_load
+except ModuleNotFoundError:
+    from canmatrix.formats.dbc import load as dbc_load
+    from canmatrix.formats.arxml import load as arxml_load
+
 from cchardet import detect
 from numpy import where, arange, interp
 import numpy as np
