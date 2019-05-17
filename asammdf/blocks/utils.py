@@ -8,6 +8,7 @@ import string
 import xml.etree.ElementTree as ET
 import re
 import subprocess
+from io import BytesIO
 
 from collections import namedtuple
 from functools import partial
@@ -1525,12 +1526,13 @@ def load_can_database(file, contents=None):
         loads = dbc_load if import_type == 'dbc' else arxml_load
         if contents is None:
             contents = file.read_bytes()
+        contents = BytesIO(contents)
         try:
             dbc = loads(
                 contents,
                 import_type=import_type,
                 key="db",
-            )["db"]
+            )
         except UnicodeDecodeError:
             encoding = detect(contents)["encoding"]
             contents = contents.decode(
@@ -1542,6 +1544,6 @@ def load_can_database(file, contents=None):
                 import_type=import_type,
                 key="db",
                 encoding=encoding,
-            )["db"]
+            )
 
     return dbc
