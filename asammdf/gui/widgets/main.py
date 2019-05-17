@@ -393,6 +393,8 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             self.files.widget(i).filter_field.set_search_option(option)
 
     def set_subplot_option(self, state):
+        if isinstance(state, str):
+            state = True if state == 'true' else False
         self.subplots = state
         self._settings.setValue('subplots', state)
 
@@ -554,6 +556,8 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             app.setPalette(palette)
 
     def set_subplot_link_option(self, state):
+        if isinstance(state, str):
+            state = True if state == 'true' else False
         self.subplots_link = state
         self._settings.setValue('subplots_link', state)
         count = self.files.count()
@@ -562,6 +566,8 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             self.files.widget(i).set_subplots_link(self.subplots_link)
 
     def set_ignore_value2text_conversions_option(self, state):
+        if isinstance(state, str):
+            state = True if state == 'true' else False
         self.ignore_value2text_conversions = state
         self._settings.setValue('ignore_value2text_conversions', state)
         count = self.files.count()
@@ -569,7 +575,6 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         for i in range(count):
             self.files.widget(i).ignore_value2text_conversions = state
         self.batch.ignore_value2text_conversions = state
-
 
     def update_progress(self, current_index, max_index):
         self.progress = current_index, max_index
