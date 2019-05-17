@@ -8,13 +8,13 @@ environment:
     # The list here is complete (excluding Python 2.6, which
     # isn't covered by this document) at the time of writing.
 
-    - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu1804
-    - PYTHON: "C:\\Python36"
-      PY: "36"
-    - PYTHON: "C:\\Python37"
-      PY: "37"
-    - PYTHON: "C:\\Python36-x64"
-      PY: "36-x64"
+    #- APPVEYOR_BUILD_WORKER_IMAGE: ubuntu1804
+    #- PYTHON: "C:\\Python36"
+    #  PY: "36"
+    #- PYTHON: "C:\\Python37"
+    #  PY: "37"
+    #- PYTHON: "C:\\Python36-x64"
+    #  PY: "36-x64"
     - PYTHON: "C:\\Python37-x64"
       PY: "37-x64"
 
