@@ -1332,20 +1332,20 @@ class MDF(object):
 
         elif fmt == "csv":
 
-            if time_as_date:
-                index = (
-                    pd.to_datetime(df.index + self.header.start_time.timestamp(), unit='s')
-                    .tz_localize('UTC')
-                    .tz_convert(LOCAL_TIMEZONE)
-                    .astype(str)
-                )
-                df.index = index
-                df.index.name = 'time'
-
             if single_time_base:
                 filename = filename.with_suffix(".csv")
                 message = f'Writing csv export to file "{filename}"'
                 logger.info(message)
+
+                if time_as_date:
+                    index = (
+                        pd.to_datetime(df.index + self.header.start_time.timestamp(), unit='s')
+                        .tz_localize('UTC')
+                        .tz_convert(LOCAL_TIMEZONE)
+                        .astype(str)
+                    )
+                    df.index = index
+                    df.index.name = 'time'
 
                 with open(filename, "w", newline="") as csvfile:
                     writer = csv.writer(csvfile)
