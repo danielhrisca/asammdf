@@ -311,7 +311,7 @@ FMT_CONVERSION_COMMON = FMT_CONVERSION_NONE = "<2s2H2d20s2H"
 FMT_CONVERSION_COMMON_SHORT = "<H2d20s2H"
 CONVERSION_COMMON_SHORT_uf = struct.Struct(FMT_CONVERSION_COMMON_SHORT).unpack_from
 
-KEYS_CONVESION_NONE = (
+KEYS_CONVERSION_NONE = (
     "id",
     "block_len",
     "range_flag",
@@ -323,7 +323,7 @@ KEYS_CONVESION_NONE = (
 )
 
 FMT_CONVERSION_FORMULA = "<2s2H2d20s2H{}s"
-KEYS_CONVESION_FORMULA = (
+KEYS_CONVERSION_FORMULA = (
     "id",
     "block_len",
     "range_flag",
@@ -336,7 +336,7 @@ KEYS_CONVESION_FORMULA = (
 )
 
 FMT_CONVERSION_LINEAR = "<2s2H2d20s2H2d"
-KEYS_CONVESION_LINEAR = (
+KEYS_CONVERSION_LINEAR = (
     "id",
     "block_len",
     "range_flag",
@@ -350,7 +350,7 @@ KEYS_CONVESION_LINEAR = (
 )
 
 FMT_CONVERSION_POLY_RAT = "<2s2H2d20s2H6d"
-KEYS_CONVESION_POLY_RAT = (
+KEYS_CONVERSION_POLY_RAT = (
     "id",
     "block_len",
     "range_flag",
@@ -368,7 +368,7 @@ KEYS_CONVESION_POLY_RAT = (
 )
 
 FMT_CONVERSION_EXPO_LOGH = "<2s2H2d20s2H7d"
-KEYS_CONVESION_EXPO_LOGH = (
+KEYS_CONVERSION_EXPO_LOGH = (
     "id",
     "block_len",
     "range_flag",
