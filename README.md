@@ -161,6 +161,8 @@ asammdf uses the following libraries
 * pandas : for DataFrame export
 * canmatrix : to handle CAN bus logging measurements
 * natsort
+* cChardet : to detect non-standard unicode encodings
+* lxml : for canmatrix arxml support
 
 optional dependencies needed for exports
 
@@ -172,7 +174,6 @@ optional dependencies needed for exports
 
 other optional dependencies
 
-* cChardet : to detect non-standard unicode encodings
 * PyQt5 : for GUI tool
 * pyqtgraph : for GUI tool and Signal plotting (preferably the latest develop branch code)
 * matplotlib : as fallback for Signal plotting
