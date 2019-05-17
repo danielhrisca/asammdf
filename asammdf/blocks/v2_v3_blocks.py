@@ -1205,26 +1205,26 @@ class ChannelConversion(_ChannelConversionBase):
     def metadata(self, indent=""):
         conv = self.conversion_type
         if conv == v23c.CONVERSION_TYPE_NONE:
-            keys = v23c.KEYS_CONVESION_NONE
+            keys = v23c.KEYS_CONVERSION_NONE
         elif conv == v23c.CONVERSION_TYPE_FORMULA:
-            keys = v23c.KEYS_CONVESION_FORMULA
+            keys = v23c.KEYS_CONVERSION_FORMULA
         elif conv == v23c.CONVERSION_TYPE_LINEAR:
-            keys = v23c.KEYS_CONVESION_LINEAR
+            keys = v23c.KEYS_CONVERSION_LINEAR
             if not self.block_len == v23c.CC_LIN_BLOCK_SIZE:
                 keys += ("CANapeHiddenExtra",)
         elif conv in (v23c.CONVERSION_TYPE_POLY, v23c.CONVERSION_TYPE_RAT):
-            keys = v23c.KEYS_CONVESION_POLY_RAT
+            keys = v23c.KEYS_CONVERSION_POLY_RAT
         elif conv in (v23c.CONVERSION_TYPE_EXPO, v23c.CONVERSION_TYPE_LOGH):
-            keys = v23c.KEYS_CONVESION_EXPO_LOGH
+            keys = v23c.KEYS_CONVERSION_EXPO_LOGH
         elif conv in (v23c.CONVERSION_TYPE_TABI, v23c.CONVERSION_TYPE_TAB):
             nr = self.ref_param_nr
-            keys = list(v23c.KEYS_CONVESION_NONE)
+            keys = list(v23c.KEYS_CONVERSION_NONE)
             for i in range(nr):
                 keys.append(f"raw_{i}")
                 keys.append(f"phys_{i}")
         elif conv == v23c.CONVERSION_TYPE_RTABX:
             nr = self.ref_param_nr
-            keys = list(v23c.KEYS_CONVESION_NONE)
+            keys = list(v23c.KEYS_CONVERSION_NONE)
             keys += ["default_lower", "default_upper", "default_addr"]
             for i in range(nr - 1):
                 keys.append(f"lower_{i}")
@@ -1232,7 +1232,7 @@ class ChannelConversion(_ChannelConversionBase):
                 keys.append(f"text_{i}")
         elif conv == v23c.CONVERSION_TYPE_TABX:
             nr = self.ref_param_nr
-            keys = list(v23c.KEYS_CONVESION_NONE)
+            keys = list(v23c.KEYS_CONVERSION_NONE)
             for i in range(nr):
                 keys.append(f"param_val_{i}")
                 keys.append(f"text_{i}")
@@ -1536,26 +1536,26 @@ address: {hex(self.address)}
             fmt = v23c.FMT_CONVERSION_COMMON + "d32s" * nr
 
         if conv == v23c.CONVERSION_TYPE_NONE:
-            keys = v23c.KEYS_CONVESION_NONE
+            keys = v23c.KEYS_CONVERSION_NONE
         elif conv == v23c.CONVERSION_TYPE_FORMULA:
-            keys = v23c.KEYS_CONVESION_FORMULA
+            keys = v23c.KEYS_CONVERSION_FORMULA
         elif conv == v23c.CONVERSION_TYPE_LINEAR:
-            keys = v23c.KEYS_CONVESION_LINEAR
+            keys = v23c.KEYS_CONVERSION_LINEAR
             if not self.block_len == v23c.CC_LIN_BLOCK_SIZE:
                 keys += ("CANapeHiddenExtra",)
         elif conv in (v23c.CONVERSION_TYPE_POLY, v23c.CONVERSION_TYPE_RAT):
-            keys = v23c.KEYS_CONVESION_POLY_RAT
+            keys = v23c.KEYS_CONVERSION_POLY_RAT
         elif conv in (v23c.CONVERSION_TYPE_EXPO, v23c.CONVERSION_TYPE_LOGH):
-            keys = v23c.KEYS_CONVESION_EXPO_LOGH
+            keys = v23c.KEYS_CONVERSION_EXPO_LOGH
         elif conv in (v23c.CONVERSION_TYPE_TABI, v23c.CONVERSION_TYPE_TAB):
             nr = self.ref_param_nr
-            keys = list(v23c.KEYS_CONVESION_NONE)
+            keys = list(v23c.KEYS_CONVERSION_NONE)
             for i in range(nr):
                 keys.append(f"raw_{i}")
                 keys.append(f"phys_{i}")
         elif conv == v23c.CONVERSION_TYPE_RTABX:
             nr = self.ref_param_nr
-            keys = list(v23c.KEYS_CONVESION_NONE)
+            keys = list(v23c.KEYS_CONVERSION_NONE)
             keys += ["default_lower", "default_upper", "default_addr"]
             for i in range(nr - 1):
                 keys.append(f"lower_{i}")
@@ -1563,7 +1563,7 @@ address: {hex(self.address)}
                 keys.append(f"text_{i}")
         elif conv == v23c.CONVERSION_TYPE_TABX:
             nr = self.ref_param_nr
-            keys = list(v23c.KEYS_CONVESION_NONE)
+            keys = list(v23c.KEYS_CONVERSION_NONE)
             for i in range(nr):
                 keys.append(f"param_val_{i}")
                 keys.append(f"text_{i}")

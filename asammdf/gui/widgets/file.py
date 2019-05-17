@@ -1384,7 +1384,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
     def add_window(self, args):
         window_type, names = args
-        if isinstance(names[0], str):
+        if names and isinstance(names[0], str):
             signals_ = [
                 (None, *self.mdf.whereis(name)[0])
                 for name in names
