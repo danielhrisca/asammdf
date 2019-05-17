@@ -1089,7 +1089,7 @@ class Signal(object):
             self.timestamps.copy(),
             unit=self.unit,
             name=self.name,
-            conversion=self.conversion,
+            conversion=None,
             raw=False,
             master_metadata=self.master_metadata,
             display_name=self.display_name,
