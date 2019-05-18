@@ -2599,6 +2599,8 @@ class ChannelConversion(_ChannelConversionBase):
             nr = self.val_param_nr
             raw_vals = [self[f"val_{i}"] for i in range(nr)]
 
+            ret = np.array([None]*len(values), dtype='O')
+
             phys = []
             for i in range(nr):
                 try:
@@ -2620,25 +2622,75 @@ class ChannelConversion(_ChannelConversionBase):
                 except TypeError:
                     default = b""
 
-            new_values = []
-            for i, val in enumerate(values):
-                try:
-                    idx = raw_vals.index(val)
-                    item = phys[idx]
-                except ValueError:
-                    item = default
+            x = sorted(zip(raw_vals, phys))
+            raw_vals = np.array(
+                [e[0] for e in x], dtype='<i8'
+            )
+            phys = np.array(
+                [e[1] for e in x]
+            )
 
-                if isinstance(item, bytes):
-                    new_values.append(item)
-                else:
-                    new_values.append(item.convert(values[i: i+1])[0])
+            idx1 = np.searchsorted(raw_vals, values, side="right") - 1
+            idx2 = np.searchsorted(raw_vals, values, side="left")
 
-            if all(isinstance(v, bytes) for v in new_values):
-                values = np.array(new_values)
+            idx = np.argwhere(idx1 != idx2).flatten()
+
+            if isinstance(default, bytes):
+                ret[idx] = default
             else:
-                values = np.array(
-                    [np.nan if isinstance(v, bytes) else v for v in new_values]
-                )
+                ret[idx] = default.convert(values[idx])
+
+            idx = np.argwhere(idx1 == idx2).flatten()
+            if len(idx):
+                ret[idx] = phys[idx1[idx]]
+
+            if all(isinstance(v, bytes) for v in ret):
+                ret = ret.astype(bytes)
+            else:
+                try:
+                    ret = ret.astype('<f8')
+                except:
+                    ret = np.array(
+                        [np.nan if isinstance(v, bytes) else v for v in ret]
+                    )
+
+            values = ret
+
+#            raw_vals = raw_vals.tolist()
+
+#            new_values = []
+#            for i, val in enumerate(values):
+#                try:
+#                    idx = raw_vals.index(val)
+#                    item = phys[idx]
+#                except ValueError:
+#                    item = default
+#
+#                if isinstance(item, bytes):
+#                    new_values.append(item)
+#                else:
+#                    new_values.append(item.convert(values[i: i+1])[0])
+#
+#            if all(isinstance(v, bytes) for v in new_values):
+#                values = np.array(new_values)
+#            else:
+#                values = np.array(
+#                    [np.nan if isinstance(v, bytes) else v for v in new_values]
+#                )
+
+
+#            for v1, v2 in zip(ret, values):
+#                if v1 != v1 and v2 == v2 or v1 == v1 and v2!= v2:
+#                    print(v1, v2)
+#                    1/0
+#                elif v1!=v1 and v2!=v2:
+#                    continue
+#                else:
+#                    if v1 != v2:
+#                        print(v1, v2, v1!=v1, v2!=v2)
+#                        1/0
+#            print(np.array_equal(ret, values))
+#            print(ret.dtype, values.dtype)
 
         elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
             nr = self.val_param_nr // 2
