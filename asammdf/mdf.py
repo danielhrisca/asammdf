@@ -939,10 +939,6 @@ class MDF(object):
               a *HDF5* group with the name 'DataGroup_<cntr>'
               (where <cntr> is the index)
 
-            * `excel` : Excel file output (very slow). This option will
-              generate a new excel file for each data group
-              (<MDFNAME>_DataGroup_<cntr>.xlsx)
-
             * `mat` : Matlab .mat version 4, 5 or 7.3 export. If
               *single_time_base==False* the channels will be renamed in the mat
               file to 'D<cntr>_<channel name>'. The channel group
@@ -1049,13 +1045,6 @@ class MDF(object):
                 logger.warning("h5py not found; export to HDF5 is unavailable")
                 return
 
-        elif fmt == "excel":
-            try:
-                import xlsxwriter
-            except ImportError:
-                logger.warning("xlsxwriter not found; export to Excel unavailable")
-                return
-
         elif fmt == "mat":
             if format == "7.3":
                 try:
@@ -1071,6 +1060,9 @@ class MDF(object):
                 except ImportError:
                     logger.warning("scipy not found; export to mat is unavailable")
                     return
+
+        else:
+            raise MdfException(f"Export to {fmt} is not implemented")
 
         name = ''
 
@@ -1089,6 +1081,17 @@ class MDF(object):
             units = OrderedDict()
             comments = OrderedDict()
             used_names = UniqueDB()
+
+            refactor = {}
+
+            for name in df.columns:
+                col = df[name]
+                if col.dtype.kind =='O':
+                    if isinstance(col[0], np.ndarray):
+                        refactor[name] = np.vstack(col)
+
+            for name, arr in refactor.items():
+                df[name] = arr
 
             groups_nr = len(self.groups)
             for i, grp in enumerate(self.groups):
@@ -1182,6 +1185,8 @@ class MDF(object):
 
                     groups_nr = len(self.groups)
                     for i, grp in enumerate(self.groups):
+                        if not len(grp.channels):
+                            continue
                         names = UniqueDB()
                         if self._terminate:
                             return
@@ -1412,7 +1417,7 @@ class MDF(object):
 
                     if time_as_date:
                         index = (
-                            pd.to_datetime(self.signals.index + self.start, unit='s')
+                            pd.to_datetime(df.index + self.header.start_time.timestamp(), unit='s')
                             .tz_localize('UTC')
                             .tz_convert(LOCAL_TIMEZONE)
                             .astype(str)
