@@ -87,7 +87,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.empty_channels_can.insertItems(0, ("skip", "zeros"))
         self.mat_format.insertItems(0, ("4", "5", "7.3"))
         self.oned_as.insertItems(0, ("row", "column"))
-        self.export_type.insertItems(0, ("csv", "excel", "hdf5", "mat", "parquet"))
+        self.export_type.insertItems(0, ("csv", "hdf5", "mat", "parquet"))
         self.export_btn.clicked.connect(self.export)
         self.export_type.currentTextChanged.connect(self.export_changed)
         self.export_type.setCurrentIndex(-1)
@@ -497,8 +497,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         if export_type == 'csv':
             suffix = '.csv'
-        elif export_type == "excel":
-            suffix = '.xslx'
         elif export_type == "hdf5":
             suffix = '.hdf'
         elif export_type == "mat":

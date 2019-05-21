@@ -1061,7 +1061,7 @@ class MDF(object):
                     logger.warning("scipy not found; export to mat is unavailable")
                     return
 
-        else:
+        elif fmt not in ('csv',):
             raise MdfException(f"Export to {fmt} is not implemented")
 
         name = ''
@@ -1227,113 +1227,6 @@ class MDF(object):
 
                         if self._callback:
                             self._callback(i + 1, groups_nr)
-
-        elif fmt == "excel":
-
-            if single_time_base:
-                filename = filename.with_suffix(".xlsx")
-                message = f'Writing excel export to file "{filename}"'
-                logger.info(message)
-
-                workbook = xlsxwriter.Workbook(str(filename))
-                sheet = workbook.add_worksheet("Channels")
-
-                cols = len(units)
-
-                for col, (channel_name, channel_unit) in enumerate(units.items()):
-                    if self._terminate:
-                        return
-                    samples = df[channel_name]
-                    sig_description = f"{channel_name} [{channel_unit}]"
-                    sheet.write(0, col, sig_description)
-                    try:
-                        sheet.write_column(1, col, samples.astype(str))
-                    except:
-                        vals = [str(e) for e in sig.samples]
-                        sheet.write_column(1, col, vals)
-
-                    if self._callback:
-                        self._callback(col + 1 + cols, cols * 2)
-
-                workbook.close()
-
-            else:
-                while filename.suffix == ".xlsx":
-                    filename = filename.stem
-
-                count = len(self.groups)
-
-                for i, grp in enumerate(self.groups):
-                    if self._terminate:
-                        return
-                    message = f"Exporting group {i+1} of {count}"
-                    logger.info(message)
-
-                    data = self._load_data(grp)
-
-                    data = b"".join(d[0] for d in data)
-                    data = (data, 0, -1)
-
-                    master_index = self.masters_db.get(i, None)
-                    if master_index is not None:
-                        master = self.get(group=i, index=master_index, data=data)
-
-                        if raster and len(master):
-                            raster_ = np.arange(
-                                master[0], master[-1], raster, dtype=np.float64
-                            )
-                            master = master.interp(raster_)
-                        else:
-                            raster_ = None
-                    else:
-                        master = None
-                        raster_ = None
-
-                    if time_from_zero:
-                        master.samples -= master.samples[0]
-
-                    group_name = f"ChannelGroup_{i}"
-                    wb_name = Path(f"{filename.stem}_{group_name}.xlsx")
-                    workbook = xlsxwriter.Workbook(str(wb_name))
-
-                    sheet = workbook.add_worksheet(group_name)
-
-                    if master is not None:
-
-                        sig_description = f"{master.name} [{master.unit}]"
-                        sheet.write(0, 0, sig_description)
-                        sheet.write_column(1, 0, master.samples.astype(str))
-
-                        offset = 1
-                    else:
-                        offset = 0
-
-                    for col, _ in enumerate(grp.channels):
-                        if self._terminate:
-                            return
-                        if col == master_index:
-                            offset -= 1
-                            continue
-
-                        sig = self.get(group=i, index=col, data=data)
-                        if raster_ is not None:
-                            sig = sig.interp(raster_, self._integer_interpolation)
-
-                        sig_description = f"{sig.name} [{sig.unit}]"
-                        sheet.write(0, col + offset, sig_description)
-
-                        try:
-                            sheet.write_column(1, col + offset, sig.samples.astype(str))
-                        except:
-                            vals = [str(e) for e in sig.samples]
-                            sheet.write_column(1, col + offset, vals)
-
-                    workbook.close()
-                    if (i, 0, -1) in self._master_channel_cache:
-                        del self._master_channel_cache[(i, 0, -1)]
-
-                    if self._callback:
-                        self._callback(i + 1, count)
 
         elif fmt == "csv":
 

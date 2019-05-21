@@ -282,6 +282,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             filter_channel_group.setFlags(
                 filter_channel_group.flags() | QtCore.Qt.ItemIsTristate | QtCore.Qt.ItemIsUserCheckable
             )
+            filter_channel_group.setCheckState(0, QtCore.Qt.Unchecked)
 
             self.filter_tree.addTopLevelItem(filter_channel_group)
 
@@ -295,6 +296,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 channel = TreeItem(entry, name)
                 channel.setText(0, name)
                 filter_children.append(channel)
+                channel.setCheckState(0, QtCore.Qt.Unchecked)
 
             if self.mdf.version >= "4.00":
                 for j, ch in enumerate(group.logging_channels, 1):
@@ -383,7 +385,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         self.empty_channels_can.insertItems(0, ("skip", "zeros"))
         self.mat_format.insertItems(0, ("4", "5", "7.3"))
         self.oned_as.insertItems(0, ("row", "column"))
-        self.export_type.insertItems(0, ("csv", "excel", "hdf5", "mat", "parquet"))
+        self.export_type.insertItems(0, ("csv", "hdf5", "mat", "parquet"))
         self.export_btn.clicked.connect(self.export)
         self.export_type.currentTextChanged.connect(self.export_changed)
         self.export_type.setCurrentIndex(-1)
@@ -1331,7 +1333,6 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
         filters = {
             "csv": "CSV files (*.csv)",
-            "excel": "Excel files (*.xlsx)",
             "hdf5": "HDF5 files (*.hdf)",
             "mat": "Matlab MAT files (*.mat)",
             "parquet": "Apache Parquet files (*.parquet)",
