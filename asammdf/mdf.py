@@ -3001,6 +3001,13 @@ class MDF(object):
                         size = UINT64_u(stream.read(8))[0] - 24
                         texts[addr] = randomized_string(size)
 
+            for at in mdf.attachments:
+                for addr in (at.comment_addr, at.file_name_addr):
+                    if addr and addr not in texts:
+                        stream.seek(addr + 8)
+                        size = UINT64_u(stream.read(8))[0] - 24
+                        texts[addr] = randomized_string(size)
+
             for idx, gp in enumerate(mdf.groups, 1):
 
                 addr = gp.data_group.comment_addr
