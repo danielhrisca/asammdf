@@ -33,7 +33,10 @@ def plot(signals, title=''):
         if title.strip():
             main.setWindowTitle(title.strip())
         else:
-            main.setWindowTitle(', '.join(sig.name for sig in signals))
+            if isinstance(signals, (tuple, list)):
+                main.setWindowTitle(', '.join(sig.name for sig in signals))
+            else:
+                main.setWindowTitle(signals.name)
 
         app.setStyle(QtWidgets.QStyleFactory.create("Fusion"))
 
