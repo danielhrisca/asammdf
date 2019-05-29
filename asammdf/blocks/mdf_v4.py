@@ -1727,6 +1727,7 @@ class MDF4(object):
                 ca_block = dependencies[0]
 
                 size = bit_count // 8
+
                 shape = tuple(ca_block[f"dim_size_{i}"] for i in range(ca_block.dims))
                 if ca_block.byte_offset_base // size > 1 and len(shape) == 1:
                     shape += (ca_block.byte_offset_base // size,)
@@ -1805,8 +1806,12 @@ class MDF4(object):
         vals = vals >> bit_offset
         vals &= (2 ** bit_count) - 1
 
-        if channel.data_type in v4c.SIGNED_INT:
+        data_type = channel.data_type
+
+        if data_type in v4c.SIGNED_INT:
             return as_non_byte_sized_signed_int(vals, bit_count)
+        elif data_type in v4c.FLOATS:
+            return vals.view(get_fmt_v4(data_type, bit_count))
         else:
             return vals
 

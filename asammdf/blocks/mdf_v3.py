@@ -566,8 +566,12 @@ class MDF3(object):
 
         vals = fromstring(vals, dtype=dtype(types))["vals"]
 
-        if channel.data_type in v23c.SIGNED_INT:
+        data_type = channel.data_type
+
+        if data_type in v23c.SIGNED_INT:
             return as_non_byte_sized_signed_int(vals, bit_count)
+        elif data_type in v23c.FLOATS:
+            return vals.view(get_fmt_v3(data_type, bit_count))
         else:
             return vals
 
