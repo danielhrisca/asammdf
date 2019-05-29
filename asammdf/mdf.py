@@ -1082,16 +1082,7 @@ class MDF(object):
             comments = OrderedDict()
             used_names = UniqueDB()
 
-            refactor = {}
-
-            for name in df.columns:
-                col = df[name]
-                if col.dtype.kind =='O':
-                    if isinstance(col[0], np.ndarray):
-                        refactor[name] = np.vstack(col)
-
-            for name, arr in refactor.items():
-                df[name] = arr
+            dropped = {}
 
             groups_nr = len(self.groups)
             for i, grp in enumerate(self.groups):
@@ -1128,6 +1119,7 @@ class MDF(object):
             filename = filename.with_suffix(".hdf")
 
             if single_time_base:
+
                 with HDF5(str(filename), "w") as hdf:
                     # header information
                     group = hdf.create_group(str(filename))
@@ -1145,11 +1137,14 @@ class MDF(object):
 
                     for i, channel in enumerate(df):
                         samples = df[channel]
-                        unit = units[channel]
-                        comment = comments[channel]
+                        unit = units.get(channel, '')
+                        comment = comments.get(channel, '')
 
                         if samples.dtype.kind == 'O':
-                            continue
+                            if isinstance(samples[0], np.ndarray):
+                                samples = np.vstack(samples)
+                            else:
+                                continue
 
                         if compression:
                             dataset = group.create_dataset(
@@ -1248,9 +1243,13 @@ class MDF(object):
                 with open(filename, "w", newline="") as csvfile:
                     writer = csv.writer(csvfile)
 
+
+
                     if hasattr(self,'can_logging_db') and self.can_logging_db:
 
                         dropped = {}
+
+                        print(df['CAN_DataFrame.CAN_DataFrame.DataBytes'])
 
                         for name_ in df.columns:
                             if name_.endswith('CAN_DataFrame.ID'):
@@ -1290,6 +1289,8 @@ class MDF(object):
                 for i, grp in enumerate(self.groups):
                     if self._terminate:
                         return
+                    if not len(grp.channels):
+                        continue
                     message = f"Exporting group {i+1} of {gp_count}"
                     logger.info(message)
 
@@ -1370,6 +1371,8 @@ class MDF(object):
                 for i, grp in enumerate(self.groups):
                     if self._terminate:
                         return
+                    if not len(grp.channels):
+                        continue
 
                     included_channels = self._included_channels(i)
 

@@ -12,8 +12,17 @@ except ImportError:
 logger = logging.getLogger("asammdf")
 
 
-def plot(signals):
-    """ create a stand-alone plot using the input signal or signals """
+def plot(signals, title=''):
+    """ create a stand-alone plot using the input signal or signals
+
+    Arguments
+    ---------
+    signals : iterable | Signal
+
+    title (""): str
+        window title
+
+    """
 
     if QT:
         app = QtWidgets.QApplication([])
@@ -21,6 +30,10 @@ def plot(signals):
         app.setOrganizationDomain("py-asammdf")
         app.setApplicationName("py-asammdf")
         main = PlotWindow(signals)
+        if title.strip():
+            main.setWindowTitle(title.strip())
+        else:
+            main.setWindowTitle(', '.join(sig.name for sig in signals))
 
         app.setStyle(QtWidgets.QStyleFactory.create("Fusion"))
 

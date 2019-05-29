@@ -81,9 +81,10 @@ def run_thread_with_progress(widget, target, kwargs, factor=100, offset=0, progr
             MDF3._terminate = True
             MDF4._terminate = True
         else:
-            progress.setValue(
-                int(widget.progress[0] / widget.progress[1] * factor) + offset
-            )
+            if widget.progress is not None:
+                progress.setValue(
+                    int(widget.progress[0] / widget.progress[1] * factor) + offset
+                )
         sleep(0.1)
 
     if termination_request:
