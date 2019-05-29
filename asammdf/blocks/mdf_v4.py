@@ -703,23 +703,18 @@ class MDF4(object):
             if self._remove_source_from_channel_names:
                 channel.name = channel.name.split(path_separator)[0]
 
-            value = channel
-            display_name = channel.display_name
-            name = channel.name
-
             entry = (dg_cntr, ch_cntr)
             self._ch_map[ch_addr] = entry
 
-            channels.append(value)
+            channels.append(channel)
             if channel_composition:
                 composition.append(entry)
 
-            self.channels_db.add(display_name, entry)
-            self.channels_db.add(name, entry)
+            self.channels_db.add(channel.display_name, entry)
+            self.channels_db.add(channel.name, entry)
 
             # signal data
-            address = channel.data_block_addr
-            grp.signal_data.append(address)
+            grp.signal_data.append(channel.data_block_addr)
 
             if channel.channel_type in MASTER_CHANNELS:
                 self.masters_db[dg_cntr] = ch_cntr

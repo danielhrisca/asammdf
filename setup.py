@@ -84,7 +84,7 @@ setup(
                       'pandas',
                       'numexpr',
                       'wheel',
-                      'canmatrix',
+                      'canmatrix~=0.8',
                       'natsort',
                       'lxml',
                       'cChardet',

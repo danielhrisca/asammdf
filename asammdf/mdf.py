@@ -939,10 +939,6 @@ class MDF(object):
               a *HDF5* group with the name 'DataGroup_<cntr>'
               (where <cntr> is the index)
 
-            * `excel` : Excel file output (very slow). This option will
-              generate a new excel file for each data group
-              (<MDFNAME>_DataGroup_<cntr>.xlsx)
-
             * `mat` : Matlab .mat version 4, 5 or 7.3 export. If
               *single_time_base==False* the channels will be renamed in the mat
               file to 'D<cntr>_<channel name>'. The channel group
@@ -1049,13 +1045,6 @@ class MDF(object):
                 logger.warning("h5py not found; export to HDF5 is unavailable")
                 return
 
-        elif fmt == "excel":
-            try:
-                import xlsxwriter
-            except ImportError:
-                logger.warning("xlsxwriter not found; export to Excel unavailable")
-                return
-
         elif fmt == "mat":
             if format == "7.3":
                 try:
@@ -1071,6 +1060,9 @@ class MDF(object):
                 except ImportError:
                     logger.warning("scipy not found; export to mat is unavailable")
                     return
+
+        elif fmt not in ('csv',):
+            raise MdfException(f"Export to {fmt} is not implemented")
 
         name = ''
 
@@ -1089,6 +1081,8 @@ class MDF(object):
             units = OrderedDict()
             comments = OrderedDict()
             used_names = UniqueDB()
+
+            dropped = {}
 
             groups_nr = len(self.groups)
             for i, grp in enumerate(self.groups):
@@ -1125,6 +1119,7 @@ class MDF(object):
             filename = filename.with_suffix(".hdf")
 
             if single_time_base:
+
                 with HDF5(str(filename), "w") as hdf:
                     # header information
                     group = hdf.create_group(str(filename))
@@ -1142,11 +1137,14 @@ class MDF(object):
 
                     for i, channel in enumerate(df):
                         samples = df[channel]
-                        unit = units[channel]
-                        comment = comments[channel]
+                        unit = units.get(channel, '')
+                        comment = comments.get(channel, '')
 
                         if samples.dtype.kind == 'O':
-                            continue
+                            if isinstance(samples[0], np.ndarray):
+                                samples = np.vstack(samples)
+                            else:
+                                continue
 
                         if compression:
                             dataset = group.create_dataset(
@@ -1182,6 +1180,8 @@ class MDF(object):
 
                     groups_nr = len(self.groups)
                     for i, grp in enumerate(self.groups):
+                        if not len(grp.channels):
+                            continue
                         names = UniqueDB()
                         if self._terminate:
                             return
@@ -1223,136 +1223,33 @@ class MDF(object):
                         if self._callback:
                             self._callback(i + 1, groups_nr)
 
-        elif fmt == "excel":
-
-            if single_time_base:
-                filename = filename.with_suffix(".xlsx")
-                message = f'Writing excel export to file "{filename}"'
-                logger.info(message)
-
-                workbook = xlsxwriter.Workbook(str(filename))
-                sheet = workbook.add_worksheet("Channels")
-
-                cols = len(units)
-
-                for col, (channel_name, channel_unit) in enumerate(units.items()):
-                    if self._terminate:
-                        return
-                    samples = df[channel_name]
-                    sig_description = f"{channel_name} [{channel_unit}]"
-                    sheet.write(0, col, sig_description)
-                    try:
-                        sheet.write_column(1, col, samples.astype(str))
-                    except:
-                        vals = [str(e) for e in sig.samples]
-                        sheet.write_column(1, col, vals)
-
-                    if self._callback:
-                        self._callback(col + 1 + cols, cols * 2)
-
-                workbook.close()
-
-            else:
-                while filename.suffix == ".xlsx":
-                    filename = filename.stem
-
-                count = len(self.groups)
-
-                for i, grp in enumerate(self.groups):
-                    if self._terminate:
-                        return
-                    message = f"Exporting group {i+1} of {count}"
-                    logger.info(message)
-
-                    data = self._load_data(grp)
-
-                    data = b"".join(d[0] for d in data)
-                    data = (data, 0, -1)
-
-                    master_index = self.masters_db.get(i, None)
-                    if master_index is not None:
-                        master = self.get(group=i, index=master_index, data=data)
-
-                        if raster and len(master):
-                            raster_ = np.arange(
-                                master[0], master[-1], raster, dtype=np.float64
-                            )
-                            master = master.interp(raster_)
-                        else:
-                            raster_ = None
-                    else:
-                        master = None
-                        raster_ = None
-
-                    if time_from_zero:
-                        master.samples -= master.samples[0]
-
-                    group_name = f"ChannelGroup_{i}"
-                    wb_name = Path(f"{filename.stem}_{group_name}.xlsx")
-                    workbook = xlsxwriter.Workbook(str(wb_name))
-
-                    sheet = workbook.add_worksheet(group_name)
-
-                    if master is not None:
-
-                        sig_description = f"{master.name} [{master.unit}]"
-                        sheet.write(0, 0, sig_description)
-                        sheet.write_column(1, 0, master.samples.astype(str))
-
-                        offset = 1
-                    else:
-                        offset = 0
-
-                    for col, _ in enumerate(grp.channels):
-                        if self._terminate:
-                            return
-                        if col == master_index:
-                            offset -= 1
-                            continue
-
-                        sig = self.get(group=i, index=col, data=data)
-                        if raster_ is not None:
-                            sig = sig.interp(raster_, self._integer_interpolation)
-
-                        sig_description = f"{sig.name} [{sig.unit}]"
-                        sheet.write(0, col + offset, sig_description)
-
-                        try:
-                            sheet.write_column(1, col + offset, sig.samples.astype(str))
-                        except:
-                            vals = [str(e) for e in sig.samples]
-                            sheet.write_column(1, col + offset, vals)
-
-                    workbook.close()
-                    if (i, 0, -1) in self._master_channel_cache:
-                        del self._master_channel_cache[(i, 0, -1)]
-
-                    if self._callback:
-                        self._callback(i + 1, count)
-
         elif fmt == "csv":
-
-            if time_as_date:
-                index = (
-                    pd.to_datetime(df.index + self.header.start_time.timestamp(), unit='s')
-                    .tz_localize('UTC')
-                    .tz_convert(LOCAL_TIMEZONE)
-                    .astype(str)
-                )
-                df.index = index
-                df.index.name = 'time'
 
             if single_time_base:
                 filename = filename.with_suffix(".csv")
                 message = f'Writing csv export to file "{filename}"'
                 logger.info(message)
 
+                if time_as_date:
+                    index = (
+                        pd.to_datetime(df.index + self.header.start_time.timestamp(), unit='s')
+                        .tz_localize('UTC')
+                        .tz_convert(LOCAL_TIMEZONE)
+                        .astype(str)
+                    )
+                    df.index = index
+                    df.index.name = 'time'
+
                 with open(filename, "w", newline="") as csvfile:
                     writer = csv.writer(csvfile)
+
+
 
                     if hasattr(self,'can_logging_db') and self.can_logging_db:
 
                         dropped = {}
+
+                        print(df['CAN_DataFrame.CAN_DataFrame.DataBytes'])
 
                         for name_ in df.columns:
                             if name_.endswith('CAN_DataFrame.ID'):
@@ -1392,6 +1289,8 @@ class MDF(object):
                 for i, grp in enumerate(self.groups):
                     if self._terminate:
                         return
+                    if not len(grp.channels):
+                        continue
                     message = f"Exporting group {i+1} of {gp_count}"
                     logger.info(message)
 
@@ -1412,7 +1311,7 @@ class MDF(object):
 
                     if time_as_date:
                         index = (
-                            pd.to_datetime(self.signals.index + self.start, unit='s')
+                            pd.to_datetime(df.index + self.header.start_time.timestamp(), unit='s')
                             .tz_localize('UTC')
                             .tz_convert(LOCAL_TIMEZONE)
                             .astype(str)
@@ -1472,6 +1371,8 @@ class MDF(object):
                 for i, grp in enumerate(self.groups):
                     if self._terminate:
                         return
+                    if not len(grp.channels):
+                        continue
 
                     included_channels = self._included_channels(i)
 

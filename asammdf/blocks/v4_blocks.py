@@ -2599,6 +2599,8 @@ class ChannelConversion(_ChannelConversionBase):
             nr = self.val_param_nr
             raw_vals = [self[f"val_{i}"] for i in range(nr)]
 
+            ret = np.array([None]*len(values), dtype='O')
+
             phys = []
             for i in range(nr):
                 try:
@@ -2620,25 +2622,46 @@ class ChannelConversion(_ChannelConversionBase):
                 except TypeError:
                     default = b""
 
-            new_values = []
-            for i, val in enumerate(values):
-                try:
-                    idx = raw_vals.index(val)
-                    item = phys[idx]
-                except ValueError:
-                    item = default
+            x = sorted(zip(raw_vals, phys))
+            raw_vals = np.array(
+                [e[0] for e in x], dtype='<i8'
+            )
+            phys = [e[1] for e in x]
 
-                if isinstance(item, bytes):
-                    new_values.append(item)
-                else:
-                    new_values.append(item.convert(values[i: i+1])[0])
+            idx1 = np.searchsorted(raw_vals, values, side="right") - 1
+            idx2 = np.searchsorted(raw_vals, values, side="left")
 
-            if all(isinstance(v, bytes) for v in new_values):
-                values = np.array(new_values)
+            idx = np.argwhere(idx1 != idx2).flatten()
+
+            if isinstance(default, bytes):
+                ret[idx] = default
             else:
-                values = np.array(
-                    [np.nan if isinstance(v, bytes) else v for v in new_values]
-                )
+                ret[idx] = default.convert(values[idx])
+
+            idx = np.argwhere(idx1 == idx2).flatten()
+            if len(idx):
+                indexes = idx1[idx]
+                unique = np.unique(indexes)
+                for val in unique:
+
+                    item = phys[val]
+                    idx_ = np.argwhere(indexes == val).flatten()
+                    if isinstance(item, bytes):
+                        ret[idx[idx_]] = item
+                    else:
+                        ret[idx[idx_]] = item.convert(values[idx[idx_]])
+
+            if all(isinstance(v, bytes) for v in ret):
+                ret = ret.astype(bytes)
+            else:
+                try:
+                    ret = ret.astype('<f8')
+                except:
+                    ret = np.array(
+                        [np.nan if isinstance(v, bytes) else v for v in ret]
+                    )
+
+            values = ret
 
         elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
             nr = self.val_param_nr // 2
@@ -2664,52 +2687,55 @@ class ChannelConversion(_ChannelConversionBase):
                 except TypeError:
                     default = b""
 
-            lower = np.array([self[f"lower_{i}"] for i in range(nr)])
-            upper = np.array([self[f"upper_{i}"] for i in range(nr)])
+            lower = [self[f"lower_{i}"] for i in range(nr)]
+            upper = [self[f"upper_{i}"] for i in range(nr)]
 
-            all_values = phys + [default]
+            x = sorted(zip(lower, upper, phys))
+            lower = np.array(
+                [e[0] for e in x], dtype='<i8'
+            )
+            upper = np.array(
+                [e[1] for e in x], dtype='<i8'
+            )
+            phys = [e[2] for e in x]
+
+            ret = np.array([None]*len(values), dtype='O')
 
             idx1 = np.searchsorted(lower, values, side="right") - 1
             idx2 = np.searchsorted(upper, values, side="left")
 
-            idx_ne = np.nonzero(idx1 != idx2)[0]
-            idx_eq = np.nonzero(idx1 == idx2)[0]
+            idx_ne = np.argwhere(idx1 != idx2).flatten()
+            idx_eq = np.argwhere(idx1 == idx2).flatten()
 
-            if all(isinstance(val, bytes) for val in all_values):
-                phys = np.array(phys)
-                all_values = np.array(all_values)
-
-                new_values = np.zeros(len(values), dtype=all_values.dtype)
-
-                if len(idx_ne):
-                    new_values[idx_ne] = default
-                if len(idx_eq):
-                    new_values[idx_eq] = phys[idx1[idx_eq]]
-
-                values = new_values
+            if isinstance(default, bytes):
+                ret[idx_ne] = default
             else:
-                new_values = []
-                for i, val in enumerate(values):
-                    if i in idx_ne:
-                        item = default
-                    else:
-                        item = phys[idx1[i]]
+                ret[idx_ne] = default.convert(values[idx_ne])
+
+
+            if len(idx_eq):
+                indexes = idx1[idx_eq]
+                unique = np.unique(indexes)
+                for val in unique:
+
+                    item = phys[val]
+                    idx_ = np.argwhere(indexes == val).flatten()
 
                     if isinstance(item, bytes):
-                        new_values.append(item)
+                        ret[idx_eq[idx_]] = item
                     else:
-                        try:
-                            new_values.append(item.convert(values[i : i + 1])[0])
-                        except:
-                            print(item, default, phys)
-                            1/0
+                        ret[idx_eq[idx_]] = item.convert(values[idx_eq[idx_]])
 
-                if all(isinstance(v, bytes) for v in new_values):
-                    values = np.array(new_values)
-                else:
-                    values = np.array(
-                        [np.nan if isinstance(v, bytes) else v for v in new_values]
+            if all(isinstance(v, bytes) for v in ret):
+                ret = ret.astype(bytes)
+            else:
+                try:
+                    ret = ret.astype('<f8')
+                except:
+                    ret = np.array(
+                        [np.nan if isinstance(v, bytes) else v for v in ret]
                     )
+            values = ret
 
         elif conversion_type == v4c.CONVERSION_TYPE_TTAB:
             nr = self.val_param_nr - 1
