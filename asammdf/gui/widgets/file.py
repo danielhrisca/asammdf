@@ -313,6 +313,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
             progress.setValue(37 + int(53 * (i + 1) / groups_nr / 2))
 
+        self.channel_view.setCurrentIndex(-1)
         self.channel_view.setCurrentText(
             self._settings.value('channels_view', 'Internal file structure')
         )
@@ -533,6 +534,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             self.raster.setEnabled(True)
 
     def _update_channel_tree(self, index=None):
+        if self.channel_view.currentIndex() == -1:
+            return
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
         signals = set()
 
