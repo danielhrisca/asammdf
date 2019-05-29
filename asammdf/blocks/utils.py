@@ -261,6 +261,14 @@ def get_text_v3(address, stream):
                 " encoding was used"
             )
             raise err
+        except LookupError:
+            logger.warning(
+                'The encoding {} for text block @0x{:X} is not supported by Python'.format(
+                    encoding,
+                    address
+                )
+            )
+            text = ''
 
     return text
 
@@ -304,6 +312,14 @@ def get_text_v4(address, stream):
                 " encoding was used"
             )
             raise err
+        except LookupError:
+            logger.warning(
+                'The encoding {} for text block @0x{:X} is not supported by Python'.format(
+                    encoding,
+                    address
+                )
+            )
+            text = ''
 
     return text
 
