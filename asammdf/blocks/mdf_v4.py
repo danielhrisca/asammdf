@@ -759,7 +759,7 @@ class MDF4(object):
             else:
                 dependencies.append(None)
                 if channel_composition:
-                    channel.dtype_fmt = get_fmt_v4(channel.data_type, channel.bit_count, channel.channel_type)
+                    channel.dtype_fmt = get_fmt_v4(channel.data_type, channel.bit_offset + channel.bit_count, channel.channel_type)
                     composition_dtype.append((channel.name, channel.dtype_fmt))
 
             # go to next channel of the current channel group
