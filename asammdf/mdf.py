@@ -2954,13 +2954,15 @@ class MDF(object):
             return tuple()
 
     @staticmethod
-    def scramble(name, **kwargs):
+    def scramble(name, skip_attachments=False, **kwargs):
         """ scramble text blocks and keep original file structure
 
         Parameters
         ----------
         name : str | pathlib.Path
             file name
+        skip_attachments : bool
+            skip scrambling of attachments data if True
 
         Returns
         -------
@@ -3010,6 +3012,8 @@ class MDF(object):
                         stream.seek(addr + 8)
                         size = UINT64_u(stream.read(8))[0] - 24
                         texts[addr] = randomized_string(size)
+                if not skip_attachments and at.embedded_data:
+                    texts[at.address + v4c.AT_COMMON_SIZE] = randomized_string(at.embedded_size)
 
             for idx, gp in enumerate(mdf.groups, 1):
 
