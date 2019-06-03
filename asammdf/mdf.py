@@ -2964,6 +2964,8 @@ class MDF(object):
         skip_attachments : bool
             skip scrambling of attachments data if True
 
+            .. versionadded:: 5.9.0
+
         Returns
         -------
         name : str
