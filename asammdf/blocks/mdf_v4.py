@@ -4987,6 +4987,11 @@ class MDF4(object):
             else:
                 message_id = int(message_id)
 
+            if isinstance(message_id, str):
+                message = db.frame_by_name(message_id)
+            else:
+                message = db.frame_by_id(message_id)
+
         elif len(name_) == 2:
             message_id_str, signal = name_
 
@@ -4998,14 +5003,23 @@ class MDF4(object):
             else:
                 message_id = int(message_id.group('id'))
 
+            if isinstance(message_id, str):
+                message = db.frame_by_name(message_id)
+            else:
+                message = db.frame_by_id(message_id)
+
         else:
-            can_id = message_id = None
+            message = None
+            for msg in db:
+                for signal in msg:
+                    if signal.name == name:
+                        message = msg
+
+            can_id = None
             signal = name
 
-        if isinstance(message_id, str):
-            message = db.frame_by_name(message_id)
-        else:
-            message = db.frame_by_id(message_id)
+        if message is None:
+            raise MdfException(f'Could not find signal {name} in {database}')
 
         for sig in message.signals:
             if sig.name == signal:
@@ -5018,17 +5032,17 @@ class MDF4(object):
 
         if can_id is None:
             for _can_id, messages in self.can_logging_db.items():
-                message_id = message.id
+                message_id = message.arbitration_id.id
 
                 if message_id > 0x80000000:
                     message_id -= 0x80000000
 
                 if message_id in messages:
-                    index = messages[message.id]
+                    index = messages[message.arbitration_id.id]
                     break
             else:
                 raise MdfException(
-                    f'Message "{message.name}" (ID={hex(message.id)}) not found in the measurement'
+                    f'Message "{message.name}" (ID={hex(message.arbitration_id.id)}) not found in the measurement'
                 )
         else:
             if can_id in self.can_logging_db:
