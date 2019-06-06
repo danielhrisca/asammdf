@@ -14,3 +14,6 @@ class Cursor(pg.InfiniteLine):
         self.addMarker("v", 1)
 
         self.label.show()
+
+    def set_value(self, value):
+        self.setPos(value)
