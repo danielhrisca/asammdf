@@ -3926,12 +3926,12 @@ class MDF4(object):
 
                 if fast_path:
                     if count > 1:
-                        vals = concatenate(channel_values)
+                        vals = concatenate(channel_values).astype(channel_values[0].dtype)
                     else:
                         vals = channel_values[0]
                 else:
                     if count > 1:
-                        arrays = [concatenate(lst) for lst in channel_values]
+                        arrays = [concatenate(lst).astype(lst[0].dtype) for lst in channel_values]
                     else:
                         arrays = [lst[0] for lst in channel_values]
                     types = [
@@ -3944,13 +3944,13 @@ class MDF4(object):
 
                 if master_is_required:
                     if count > 1:
-                        timestamps = concatenate(timestamps)
+                        timestamps = concatenate(timestamps).astype(timestamps[0].dtype)
                     else:
                         timestamps = timestamps[0]
 
                 if channel_invalidation_present:
                     if count > 1:
-                        invalidation_bits = concatenate(invalidation_bits)
+                        invalidation_bits = concatenate(invalidation_bits).astype(invalidation_bits[0].dtype)
                     else:
                         invalidation_bits = invalidation_bits[0]
                     if not ignore_invalidation_bits:
@@ -4174,7 +4174,7 @@ class MDF4(object):
                     count += 1
 
                 if count > 1:
-                    vals = concatenate(channel_values)
+                    vals = concatenate(channel_values).astype(channel_values[0].dtype)
                 elif count == 1:
                     vals = channel_values[0]
                 else:
@@ -4182,13 +4182,13 @@ class MDF4(object):
 
                 if master_is_required:
                     if count > 1:
-                        timestamps = concatenate(timestamps)
+                        timestamps = concatenate(timestamps).astype(timestamps[0].dtype)
                     else:
                         timestamps = timestamps[0]
 
                 if channel_invalidation_present:
                     if count > 1:
-                        invalidation_bits = concatenate(invalidation_bits)
+                        invalidation_bits = concatenate(invalidation_bits).astype(invalidation_bits[0].dtype)
                     else:
                         invalidation_bits = invalidation_bits[0]
                     if not ignore_invalidation_bits:
@@ -4251,7 +4251,7 @@ class MDF4(object):
                     count += 1
 
                 if count > 1:
-                    vals = concatenate(channel_values)
+                    vals = concatenate(channel_values).astype(channel_values[0].dtype)
                 elif count == 1:
                     vals = channel_values[0]
                 else:
@@ -4259,13 +4259,13 @@ class MDF4(object):
 
                 if master_is_required:
                     if count > 1:
-                        timestamps = concatenate(timestamps)
+                        timestamps = concatenate(timestamps).astype(timestamps[0].dtype)
                     else:
                         timestamps = timestamps[0]
 
                 if channel_invalidation_present:
                     if count > 1:
-                        invalidation_bits = concatenate(invalidation_bits)
+                        invalidation_bits = concatenate(invalidation_bits).astype(invalidation_bits[0].dtype)
                     else:
                         invalidation_bits = invalidation_bits[0]
                     if not ignore_invalidation_bits:
@@ -4430,7 +4430,7 @@ class MDF4(object):
                     count += 1
 
                 if count > 1:
-                    vals = concatenate(channel_values)
+                    vals = concatenate(channel_values).astype(channel_values[0].dtype)
                 elif count == 1:
                     vals = channel_values[0]
                 else:
@@ -4438,7 +4438,7 @@ class MDF4(object):
 
                 if master_is_required:
                     if count > 1:
-                        timestamps = concatenate(timestamps)
+                        timestamps = concatenate(timestamps).astype(timestamps[0].dtype)
                     elif count == 1:
                         timestamps = timestamps[0]
                     else:
@@ -4446,7 +4446,7 @@ class MDF4(object):
 
                 if channel_invalidation_present:
                     if count > 1:
-                        invalidation_bits = concatenate(invalidation_bits)
+                        invalidation_bits = concatenate(invalidation_bits).astype(invalidation_bits[0].dtype)
                     elif count == 1:
                         invalidation_bits = invalidation_bits[0]
                     else:
@@ -4863,7 +4863,7 @@ class MDF4(object):
                     time_values.append(t.copy())
 
                 if len(time_values) > 1:
-                    t = concatenate(time_values)
+                    t = concatenate(time_values).astype(time_values[0].dtype)
                 else:
                     t = time_values[0]
 

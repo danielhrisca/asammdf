@@ -2850,7 +2850,7 @@ class MDF(object):
 
             pieces = len(master_parts)
             if pieces > 1:
-                master = np.concatenate(master_parts)
+                master = np.concatenate(master_parts).astype(master_parts[0].dtype)
             else:
                 master = master_parts[0]
             master_parts = None
@@ -2863,7 +2863,7 @@ class MDF(object):
                 if pieces > 1:
                     samples = np.concatenate(
                         [part[0] for part in parts]
-                    )
+                    ).astype(parts[0][0].dtype)
                     if sig.invalidation_bits is not None:
                         invalidation_bits = np.concatenate(
                             [part[0] for part in parts]
@@ -3463,7 +3463,7 @@ class MDF(object):
                 grp.record = None
 
             if len(timestamps):
-                signals = [np.concatenate(parts) for parts in signals]
+                signals = [np.concatenate(parts).astype(parts[0].dtype) for parts in signals]
 
                 if not raw:
                     if ignore_value2text_conversions:
@@ -3483,7 +3483,7 @@ class MDF(object):
                             for signal, conversion in zip(signals, conversions)
                         ]
 
-                timestamps = np.concatenate(timestamps)
+                timestamps = np.concatenate(timestamps).astype(timestamps[0].dtype)
                 for idx, parts in enumerate(invalidation_bits):
                     if parts[0] is None:
                         invalidation_bits[idx] = None
