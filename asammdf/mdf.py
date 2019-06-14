@@ -1249,8 +1249,6 @@ class MDF(object):
 
                         dropped = {}
 
-                        print(df['CAN_DataFrame.CAN_DataFrame.DataBytes'])
-
                         for name_ in df.columns:
                             if name_.endswith('CAN_DataFrame.ID'):
                                 dropped[name_] = pd.Series(csv_int2hex(df[name_].astype('<u4')), index=df.index)

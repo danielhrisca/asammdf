@@ -1361,6 +1361,7 @@ class _Plot(pg.PlotWidget):
 
                             idx = np.searchsorted(sig.timestamps, timestamps)
                             sig.plot_texts = sig.texts[idx]
+
                     else:
                         start_ = max(0, start_ - 2)
                         stop_ += 2

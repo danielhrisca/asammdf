@@ -437,8 +437,8 @@ class MDF4(object):
 
         # all channels have been loaded so now we can link the
         # channel dependencies and load the signal data for VLSD channels
-        for grp in self.groups:
-            for dep_list in grp.channel_dependencies:
+        for gp_index, grp in enumerate(self.groups):
+            for ch_index, dep_list in enumerate(grp.channel_dependencies):
                 if not dep_list:
                     continue
 
@@ -453,8 +453,11 @@ class MDF4(object):
 
                         for i in range(dep.dims):
                             ch_addr = dep[f"scale_axis_{i}_ch_addr"]
-                            ref_channel = self._ch_map[ch_addr]
-                            dep.referenced_channels.append(ref_channel)
+                            if ch_addr:
+                                ref_channel = self._ch_map[ch_addr]
+                                dep.referenced_channels.append(ref_channel)
+                            else:
+                                dep.referenced_channels.append(None)
                     else:
                         break
 
@@ -4052,49 +4055,63 @@ class MDF4(object):
                                     types.append(dtype_pair)
                             else:
                                 for i in range(dims_nr):
-                                    try:
-                                        ref_dg_nr, ref_ch_nr = ca_block.referenced_channels[
-                                            i
-                                        ]
-                                    except:
-                                        debug_channel(
-                                            self, grp, channel, dependency_list
-                                        )
-                                        raise
 
-                                    axisname = (
-                                        self.groups[ref_dg_nr].channels[ref_ch_nr].name
-                                    )
-
+                                    axis = ca_block.referenced_channels[i]
                                     shape = (ca_block[f"dim_size_{i}"],)
-                                    if ref_dg_nr == gp_nr:
-                                        axis_values = self.get(
-                                            group=ref_dg_nr,
-                                            index=ref_ch_nr,
-                                            samples_only=True,
-                                            data=fragment,
-                                            ignore_invalidation_bits=ignore_invalidation_bits,
-                                            record_offset=record_offset,
-                                            record_count=cycles,
-                                        )[0]
-                                    else:
-                                        channel_group = grp.channel_group
-                                        record_size = channel_group.samples_byte_nr
-                                        record_size += (
-                                            channel_group.invalidation_bytes_nr
+
+                                    if axis is None:
+                                        axisname = f'axis_{i}'
+                                        axis_values = array(
+                                            [arange(shape[0])] * cycles
                                         )
-                                        start = offset // record_size
-                                        end = start + len(data_bytes) // record_size + 1
-                                        ref = self.get(
-                                            group=ref_dg_nr,
-                                            index=ref_ch_nr,
-                                            samples_only=True,
-                                            ignore_invalidation_bits=ignore_invalidation_bits,
-                                            record_offset=record_offset,
-                                            record_count=cycles,
-                                        )[0]
-                                        axis_values = ref[start:end].copy()
-                                    axis_values = axis_values[axisname]
+
+                                    else:
+                                        try:
+                                            ref_dg_nr, ref_ch_nr = ca_block.referenced_channels[
+                                                i
+                                            ]
+                                        except:
+                                            debug_channel(
+                                                self, grp, channel, dependency_list
+                                            )
+                                            raise
+
+                                        axisname = (
+                                            self.groups[ref_dg_nr].channels[ref_ch_nr].name
+                                        )
+
+                                        if ref_dg_nr == gp_nr:
+                                            axis_values = self.get(
+                                                group=ref_dg_nr,
+                                                index=ref_ch_nr,
+                                                samples_only=True,
+                                                data=fragment,
+                                                ignore_invalidation_bits=ignore_invalidation_bits,
+                                                record_offset=record_offset,
+                                                record_count=cycles,
+                                            )[0]
+                                        else:
+                                            channel_group = grp.channel_group
+                                            record_size = channel_group.samples_byte_nr
+                                            record_size += (
+                                                channel_group.invalidation_bytes_nr
+                                            )
+                                            start = offset // record_size
+                                            end = start + len(data_bytes) // record_size + 1
+                                            ref = self.get(
+                                                group=ref_dg_nr,
+                                                index=ref_ch_nr,
+                                                samples_only=True,
+                                                ignore_invalidation_bits=ignore_invalidation_bits,
+                                                record_offset=record_offset,
+                                                record_count=cycles,
+                                            )[0]
+                                            axis_values = ref[start:end].copy()
+                                        axis_values = axis_values[axisname]
+                                        if len(axis_values) == 0:
+                                            axis_values = array(
+                                                [arange(shape[0])] * cycles
+                                            )
 
                                     arrays.append(axis_values)
                                     dtype_pair = (axisname, axis_values.dtype, shape)
