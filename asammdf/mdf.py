@@ -1188,6 +1188,8 @@ class MDF(object):
                         group_name = r"/" + f"ChannelGroup_{i}"
                         group = hdf.create_group(group_name)
 
+                        group.attrs['comment'] = grp.channel_group.comment
+
                         master_index = self.masters_db.get(i, -1)
 
                         if master_index:
