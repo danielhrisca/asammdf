@@ -508,80 +508,81 @@ class MDF4(object):
 
                     db = load_can_database(at_name, attachment)
 
-                    try:
-                        board_units = set(bu.name for bu in db.boardUnits)
-                    except AttributeError:
-                        board_units = set(bu.name for bu in db.ecus)
-
-                    cg_source = group.channel_group.acq_source
-
-                    all_message_info_extracted = True
-                    for message_id in all_can_ids:
-                        self.can_logging_db[group.CAN_id][message_id] = i
-                        sigs = []
+                    if db:
                         try:
-                            can_msg = db.frameById(message_id)
+                            board_units = set(bu.name for bu in db.boardUnits)
                         except AttributeError:
-                            can_msg = db.frame_by_id(canmatrix.ArbitrationId(message_id))
+                            board_units = set(bu.name for bu in db.ecus)
 
-                        if can_msg:
-                            for transmitter in can_msg.transmitters:
-                                if transmitter in board_units:
-                                    break
-                            else:
-                                transmitter = ""
-                            message_name = can_msg.name
+                        cg_source = group.channel_group.acq_source
 
-                            source = SignalSource(
-                                transmitter,
-                                can_msg.name,
-                                "",
-                                v4c.SOURCE_BUS,
-                                v4c.BUS_TYPE_CAN,
-                            )
+                        all_message_info_extracted = True
+                        for message_id in all_can_ids:
+                            self.can_logging_db[group.CAN_id][message_id] = i
+                            sigs = []
+                            try:
+                                can_msg = db.frameById(message_id)
+                            except AttributeError:
+                                can_msg = db.frame_by_id(canmatrix.ArbitrationId(message_id))
 
-                            idx = nonzero(can_ids.samples == message_id)[0]
-                            data = payload[idx]
-                            t = can_ids.timestamps[idx].copy()
-                            if can_ids.invalidation_bits is not None:
-                                invalidation_bits = can_ids.invalidation_bits[idx]
-                            else:
-                                invalidation_bits = None
+                            if can_msg:
+                                for transmitter in can_msg.transmitters:
+                                    if transmitter in board_units:
+                                        break
+                                else:
+                                    transmitter = ""
+                                message_name = can_msg.name
 
-                            for signal in sorted(can_msg.signals, key=lambda x: x.name):
-
-                                sig_vals = extract_can_signal(
-                                    signal,
-                                    data,
+                                source = SignalSource(
+                                    transmitter,
+                                    can_msg.name,
+                                    "",
+                                    v4c.SOURCE_BUS,
+                                    v4c.BUS_TYPE_CAN,
                                 )
 
-                                # conversion = ChannelConversion(
-                                #     a=float(signal.factor),
-                                #     b=float(signal.offset),
-                                #     conversion_type=v4c.CONVERSION_TYPE_LIN,
-                                # )
-                                # conversion.unit = signal.unit or ""
-                                sigs.append(
-                                    Signal(
-                                        sig_vals,
-                                        t,
-                                        name=signal.name,
-                                        conversion=None,
-                                        source=source,
-                                        unit=signal.unit,
-                                        raw=False,
-                                        invalidation_bits=invalidation_bits,
+                                idx = nonzero(can_ids.samples == message_id)[0]
+                                data = payload[idx]
+                                t = can_ids.timestamps[idx].copy()
+                                if can_ids.invalidation_bits is not None:
+                                    invalidation_bits = can_ids.invalidation_bits[idx]
+                                else:
+                                    invalidation_bits = None
+
+                                for signal in sorted(can_msg.signals, key=lambda x: x.name):
+
+                                    sig_vals = extract_can_signal(
+                                        signal,
+                                        data,
                                     )
+
+                                    # conversion = ChannelConversion(
+                                    #     a=float(signal.factor),
+                                    #     b=float(signal.offset),
+                                    #     conversion_type=v4c.CONVERSION_TYPE_LIN,
+                                    # )
+                                    # conversion.unit = signal.unit or ""
+                                    sigs.append(
+                                        Signal(
+                                            sig_vals,
+                                            t,
+                                            name=signal.name,
+                                            conversion=None,
+                                            source=source,
+                                            unit=signal.unit,
+                                            raw=False,
+                                            invalidation_bits=invalidation_bits,
+                                        )
+                                    )
+
+                                processed_can.append(
+                                    [sigs, message_id, message_name, cg_source, group.CAN_id]
                                 )
+                            else:
+                                all_message_info_extracted = False
 
-                            processed_can.append(
-                                [sigs, message_id, message_name, cg_source, group.CAN_id]
-                            )
-                        else:
-                            all_message_info_extracted = False
-
-                    if all_message_info_extracted:
-                        raw_can.append(i)
+                        if all_message_info_extracted:
+                            raw_can.append(i)
 
         # delete the groups that contain raw CAN bus logging and also
         # delete the channel entries from the channels_db. Update data group
