@@ -110,8 +110,8 @@ class MDF(object):
                 else:
                     raise MdfException(f'File "{name}" does not exist')
             file_stream.seek(0)
-            magic_header = file_stream.read(3)
-            if magic_header != b"MDF":
+            magic_header = file_stream.read(8)
+            if magic_header != b"MDF     " and magic_header != b"UnFinMF ":
                 raise MdfException(f'"{name}" is not a valid ASAM MDF file')
             file_stream.seek(8)
             version = file_stream.read(4).decode("ascii").strip(" \0")

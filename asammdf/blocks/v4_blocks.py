@@ -14,6 +14,7 @@ from zlib import compress, decompress
 from pathlib import Path
 
 import numpy as np
+from asammdf.blocks.utils import is_file_like
 from numexpr import evaluate
 
 from . import v4_constants as v4c
@@ -137,7 +138,7 @@ class AttachmentBlock:
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            mapped = kwargs.get("mapped", False)
+            mapped = not is_file_like(stream)
 
             if mapped:
                 (
@@ -465,7 +466,7 @@ class Channel:
 
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            mapped = kwargs.get('mapped', False)
+            mapped = not is_file_like(stream)
 
             if mapped:
 
@@ -1147,7 +1148,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
 
-            mapped = kwargs.get("mapped", False)
+            mapped = not is_file_like(stream)
 
             if mapped:
 
@@ -1502,7 +1503,7 @@ class ChannelGroup:
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            mapped = kwargs.get("mapped", False)
+            mapped = not is_file_like(stream)
 
             if mapped:
                 (
@@ -1846,9 +1847,9 @@ class ChannelConversion(_ChannelConversionBase):
         self.referenced_blocks = None
 
         if "stream" in kwargs:
-            mapped = kwargs.get("mapped", False)
-
             stream = kwargs["stream"]
+            mapped = not is_file_like(stream)
+
             try:
                 self.address = address = kwargs.get("address", 0)
                 block = kwargs["raw_bytes"]
@@ -3210,7 +3211,7 @@ class DataBlock:
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            mapped = kwargs.get("mapped", False)
+            mapped = not is_file_like(stream)
 
             if mapped:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(
@@ -3504,7 +3505,7 @@ class DataGroup:
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            mapped = kwargs.get("mapped", False)
+            mapped = not is_file_like(stream)
 
             if mapped:
                 stream.seek(address)
@@ -3676,7 +3677,7 @@ class DataList(_DataListBase):
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            mapped = kwargs.get("mapped", False)
+            mapped = not is_file_like(stream)
 
             if mapped:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(
@@ -4651,7 +4652,7 @@ class SourceInformation:
         if "stream" in kwargs:
 
             stream = kwargs["stream"]
-            mapped = kwargs.get("mapped", False)
+            mapped = not is_file_like(stream)
             try:
                 block = kwargs["raw_bytes"]
                 self.address = kwargs.get("address", 0)
@@ -4859,7 +4860,7 @@ class TextBlock:
 
         if "stream" in kwargs:
             stream = kwargs["stream"]
-            mapped = kwargs.get("mapped", False)
+            mapped = not is_file_like(stream)
             self.address = address = kwargs["address"]
 
             if mapped:
