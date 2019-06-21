@@ -14,13 +14,13 @@ from zlib import compress, decompress
 from pathlib import Path
 
 import numpy as np
-from asammdf.blocks.utils import is_file_like
 from numexpr import evaluate
 
 from . import v4_constants as v4c
 from .utils import (
     MdfException,
     get_text_v4,
+    is_file_like,
     SignalSource,
     UINT8_uf,
     UINT64_u,

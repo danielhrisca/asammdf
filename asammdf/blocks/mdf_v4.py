@@ -5958,7 +5958,7 @@ class MDF4(object):
         Attempt finalization of the file.
         :return:    None
         """
-        from .FinalizationShim import FinalizationShim
+        from .finalization_shim import FinalizationShim
 
         flags = self.identification["unfinalized_standard_flags"]
         
