@@ -262,7 +262,7 @@ class MDF4(object):
 
     def _check_finalised(self) -> bool:
         flags = self.identification["unfinalized_standard_flags"]
-        
+
         if flags & 1:
             message = (
                 f"Unfinalised file {self.name}:"
@@ -327,13 +327,13 @@ class MDF4(object):
         if self.version >= "4.10":
             # Check for finalization past version 4.10
             is_finalised = self._check_finalised()
-            
+
             if not is_finalised:
                 message = f"Attempting finalization of {self.name}"
                 logger.info(message)
                 self._finalize()
         stream = self._file
-        
+
         self.header = HeaderBlock(address=0x40, stream=stream, mapped=mapped)
 
         # read file history
@@ -458,7 +458,7 @@ class MDF4(object):
                     if isinstance(dep, ChannelArrayBlock):
                         conditions = (
                             dep.ca_type == v4c.CA_TYPE_LOOKUP,
-                            dep.links_nr == 4 * dep.dims + 1,
+                            bool(dep.flags & v4c.FLAG_CA_AXIS),
                         )
                         if not all(conditions):
                             continue
@@ -472,7 +472,7 @@ class MDF4(object):
                                 dep.referenced_channels.append(None)
                     else:
                         break
-                        
+
         self._sort()
         self._process_can_logging()
 
@@ -5953,24 +5953,24 @@ class MDF4(object):
         channel = grp.channels[ch_nr]
 
         return extract_cncomment_xml(channel.comment)
-    
+
     def _finalize(self):
         """
         Attempt finalization of the file.
         :return:    None
         """
         flags = self.identification["unfinalized_standard_flags"]
-        
+
         shim = FinalizationShim(self._file, flags)
         shim.load_blocks()
         shim.finalize()
-        
+
         # In-memory finalization performed, inject as a shim between the original file and asammdf.
         self._file_orig = self._file
         self._file = shim
 
         return
-    
+
     def _sort(self):
         if self._file is None:
             return

@@ -1165,28 +1165,11 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                 address += COMMON_SIZE
                 links = unpack_from(f"<{nr}Q", stream, address)
                 self.composition_addr = links[0]
+                links = links[1:]
 
                 address += nr * 8
                 values = unpack_from("<2BHIiI", stream, address)
                 dims_nr = values[2]
-
-                if nr == 1:
-                    pass
-
-                # lookup table with fixed axis
-                elif nr == dims_nr + 1:
-                    for i in range(dims_nr):
-                        self[f"axis_conversion_{i}"] = links[i + 1]
-
-                # lookup table with CN template
-                elif nr == 4 * dims_nr + 1:
-                    for i in range(dims_nr):
-                        self[f"axis_conversion_{i}"] = links[i + 1]
-                    links = links[dims_nr + 1 :]
-                    for i in range(dims_nr):
-                        self[f"scale_axis_{i}_dg_addr"] = links[3 * i]
-                        self[f"scale_axis_{i}_cg_addr"] = links[3 * i + 1]
-                        self[f"scale_axis_{i}_ch_addr"] = links[3 * i + 2]
 
                 (
                     self.ca_type,
@@ -1201,6 +1184,58 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                 dim_sizes = unpack_from(f"<{dims_nr}Q", stream, address)
                 for i, size in enumerate(dim_sizes):
                     self[f"dim_size_{i}"] = size
+
+                stream.seek(address+ dims_nr*8)
+
+                if self.storage == v4c.CA_STORAGE_TYPE_DG_TEMPLATE:
+
+                    data_links_nr = 1
+                    for size in dim_sizes:
+                        data_links_nr *= size
+
+                    for i in range(data_links_nr):
+                        self[f'data_link_{i}'] = links[i]
+
+                    links = links[data_links_nr:]
+
+                if self.flags & v4c.FLAG_CA_DYNAMIC_AXIS:
+                    for i in range(dims_nr):
+                        self[f"dynamic_size_{i}_dg_addr"] = links[3 * i]
+                        self[f"dynamic_size_{i}_cg_addr"] = links[3 * i + 1]
+                        self[f"dynamic_size_{i}_ch_addr"] = links[3 * i + 2]
+                    links = links[dims_nr*3:]
+
+                if self.flags & v4c.FLAG_CA_INPUT_QUANTITY:
+                    for i in range(dims_nr):
+                        self[f"input_quantity_{i}_dg_addr"] = links[3 * i]
+                        self[f"input_quantity_{i}_cg_addr"] = links[3 * i + 1]
+                        self[f"input_quantity_{i}_ch_addr"] = links[3 * i + 2]
+                    links = links[dims_nr*3:]
+
+                if self.flags & v4c.FLAG_CA_OUTPUT_QUANTITY:
+                    self[f"output_quantity_dg_addr"] = links[0]
+                    self[f"output_quantity_cg_addr"] = links[1]
+                    self[f"output_quantity_ch_addr"] = links[2]
+                    links = links[3:]
+
+                if self.flags & v4c.FLAG_CA_COMPARISON_QUANTITY:
+                    self[f"comparison_quantity_dg_addr"] = links[0]
+                    self[f"comparison_quantity_cg_addr"] = links[1]
+                    self[f"comparison_quantity_ch_addr"] = links[2]
+                    links = links[3:]
+
+                if self.flags & v4c.FLAG_CA_AXIS:
+                    for i in range(dims_nr):
+                        self[f"axis_conversion_{i}"] = links[i]
+                    links = links[dims_nr:]
+
+                if (self.flags & v4c.FLAG_CA_AXIS) and not (self.flags & v4c.FLAG_CA_FIXED_AXIS):
+                    for i in range(dims_nr):
+                        self[f"scale_axis_{i}_dg_addr"] = links[3 * i]
+                        self[f"scale_axis_{i}_cg_addr"] = links[3 * i + 1]
+                        self[f"scale_axis_{i}_ch_addr"] = links[3 * i + 2]
+
+                    links = links[dims_nr*3:]
 
                 if self.flags & v4c.FLAG_CA_FIXED_AXIS:
                     for i in range(dims_nr):
@@ -1223,27 +1258,10 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                 nr = self.links_nr
                 links = unpack(f"<{nr}Q", stream.read(8 * nr))
                 self.composition_addr = links[0]
+                links = links[1:]
 
                 values = unpack("<2BHIiI", stream.read(16))
                 dims_nr = values[2]
-
-                if nr == 1:
-                    pass
-
-                # lookup table with fixed axis
-                elif nr == dims_nr + 1:
-                    for i in range(dims_nr):
-                        self[f"axis_conversion_{i}"] = links[i + 1]
-
-                # lookup table with CN template
-                elif nr == 4 * dims_nr + 1:
-                    for i in range(dims_nr):
-                        self[f"axis_conversion_{i}"] = links[i + 1]
-                    links = links[dims_nr + 1 :]
-                    for i in range(dims_nr):
-                        self[f"scale_axis_{i}_dg_addr"] = links[3 * i]
-                        self[f"scale_axis_{i}_cg_addr"] = links[3 * i + 1]
-                        self[f"scale_axis_{i}_ch_addr"] = links[3 * i + 2]
 
                 (
                     self.ca_type,
@@ -1257,6 +1275,56 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                 dim_sizes = unpack(f"<{dims_nr}Q", stream.read(8 * dims_nr))
                 for i, size in enumerate(dim_sizes):
                     self[f"dim_size_{i}"] = size
+
+                if self.storage == v4c.CA_STORAGE_TYPE_DG_TEMPLATE:
+
+                    data_links_nr = 1
+                    for size in dim_sizes:
+                        data_links_nr *= size
+
+                    for i in range(data_links_nr):
+                        self[f'data_link_{i}'] = links[i]
+
+                    links = links[data_links_nr:]
+
+                if self.flags & v4c.FLAG_CA_DYNAMIC_AXIS:
+                    for i in range(dims_nr):
+                        self[f"dynamic_size_{i}_dg_addr"] = links[3 * i]
+                        self[f"dynamic_size_{i}_cg_addr"] = links[3 * i + 1]
+                        self[f"dynamic_size_{i}_ch_addr"] = links[3 * i + 2]
+                    links = links[dims_nr*3:]
+
+                if self.flags & v4c.FLAG_CA_INPUT_QUANTITY:
+                    for i in range(dims_nr):
+                        self[f"input_quantity_{i}_dg_addr"] = links[3 * i]
+                        self[f"input_quantity_{i}_cg_addr"] = links[3 * i + 1]
+                        self[f"input_quantity_{i}_ch_addr"] = links[3 * i + 2]
+                    links = links[dims_nr*3:]
+
+                if self.flags & v4c.FLAG_CA_OUTPUT_QUANTITY:
+                    self[f"output_quantity_dg_addr"] = links[0]
+                    self[f"output_quantity_cg_addr"] = links[1]
+                    self[f"output_quantity_ch_addr"] = links[2]
+                    links = links[3:]
+
+                if self.flags & v4c.FLAG_CA_COMPARISON_QUANTITY:
+                    self[f"comparison_quantity_dg_addr"] = links[0]
+                    self[f"comparison_quantity_cg_addr"] = links[1]
+                    self[f"comparison_quantity_ch_addr"] = links[2]
+                    links = links[3:]
+
+                if self.flags & v4c.FLAG_CA_AXIS:
+                    for i in range(dims_nr):
+                        self[f"axis_conversion_{i}"] = links[i]
+                    links = links[dims_nr:]
+
+                if (self.flags & v4c.FLAG_CA_AXIS) and not (self.flags & v4c.FLAG_CA_FIXED_AXIS):
+                    for i in range(dims_nr):
+                        self[f"scale_axis_{i}_dg_addr"] = links[3 * i]
+                        self[f"scale_axis_{i}_cg_addr"] = links[3 * i + 1]
+                        self[f"scale_axis_{i}_ch_addr"] = links[3 * i + 2]
+
+                    links = links[dims_nr*3:]
 
                 if self.flags & v4c.FLAG_CA_FIXED_AXIS:
                     for i in range(dims_nr):
@@ -1349,82 +1417,108 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
 
     def __bytes__(self):
         flags = self.flags
-        ca_type = self.ca_type
         dims_nr = self.dims
 
-        if ca_type == v4c.CA_TYPE_ARRAY:
-            keys = (
-                "id",
-                "reserved0",
-                "block_len",
-                "links_nr",
-                "composition_addr",
-                "ca_type",
-                "storage",
-                "dims",
-                "flags",
-                "byte_offset_base",
-                "invalidation_bit_base",
-            )
-            keys += tuple(f"dim_size_{i}" for i in range(dims_nr))
-            fmt = f"<4sI3Q2BHIiI{dims_nr}Q"
-        elif ca_type == v4c.CA_TYPE_SCALE_AXIS:
-            keys = (
-                "id",
-                "reserved0",
-                "block_len",
-                "links_nr",
-                "composition_addr",
-                "ca_type",
-                "storage",
-                "dims",
-                "flags",
-                "byte_offset_base",
-                "invalidation_bit_base",
-                "dim_size_0",
+        keys = (
+            "id",
+            "reserved0",
+            "block_len",
+            "links_nr",
+            "composition_addr",
+        )
+
+        if self.storage:
+            dim_sizes = [
+                self[f"dim_size_{i}"]
+                for i in range(dims_nr)
+            ]
+
+            data_links_nr = 1
+            for size in dim_sizes:
+                data_links_nr *= size
+        else:
+            dim_sizes = []
+            data_links_nr = 0
+
+        if self.storage == v4c.CA_STORAGE_TYPE_DG_TEMPLATE:
+
+            keys += tuple(
+                 f'data_link_{i}'
+                 for i in range(data_links_nr)
             )
 
-            fmt = "<4sI3Q2BHIiIQ"
-        elif ca_type == v4c.CA_TYPE_LOOKUP:
-            if flags & v4c.FLAG_CA_FIXED_AXIS:
-                nr = sum(self[f"dim_size_{i}"] for i in range(dims_nr))
-                keys = ("id", "reserved0", "block_len", "links_nr", "composition_addr")
-                keys += tuple(f"axis_conversion_{i}" for i in range(dims_nr))
+        if flags & v4c.FLAG_CA_DYNAMIC_AXIS:
+            for i in range(dims_nr):
                 keys += (
-                    "ca_type",
-                    "storage",
-                    "dims",
-                    "flags",
-                    "byte_offset_base",
-                    "invalidation_bit_base",
+                    f"dynamic_size_{i}_dg_addr",
+                    f"dynamic_size_{i}_cg_addr",
+                    f"dynamic_size_{i}_ch_addr",
                 )
-                keys += tuple(f"dim_size_{i}" for i in range(dims_nr))
-                keys += tuple(
-                    f"axis_{i}_value_{j}"
-                    for i in range(dims_nr)
-                    for j in range(self[f"dim_size_{i}"])
-                )
-                fmt = "<4sI{}Q2BHIiI{}Q{}d"
-                fmt = fmt.format(self.links_nr + 2, dims_nr, nr)
-            else:
-                keys = ("id", "reserved0", "block_len", "links_nr", "composition_addr")
-                keys += tuple(f"axis_conversion_{i}" for i in range(dims_nr))
-                for i in range(dims_nr):
-                    keys += (
-                        f"scale_axis_{i}_dg_addr",
-                        f"scale_axis_{i}_cg_addr",
-                        f"scale_axis_{i}_ch_addr",
-                    )
+
+        if flags & v4c.FLAG_CA_INPUT_QUANTITY:
+            for i in range(dims_nr):
                 keys += (
-                    "ca_type",
-                    "storage",
-                    "dims",
-                    "flags",
-                    "byte_offset_base",
-                    "invalidation_bit_base",
+                    f"input_quantity_{i}_dg_addr",
+                    f"input_quantity_{i}_cg_addr",
+                    f"input_quantity_{i}_ch_addr",
                 )
-                keys += tuple(f"dim_size_{i}" for i in range(dims_nr))
-                fmt = "<4sI{}Q2BHIiI{}Q".format(self.links_nr + 2, dims_nr)
+
+        if flags & v4c.FLAG_CA_OUTPUT_QUANTITY:
+            keys += (
+                f"output_quantity_dg_addr",
+                f"output_quantity_cg_addr",
+                f"output_quantity_ch_addr",
+            )
+
+        if flags & v4c.FLAG_CA_COMPARISON_QUANTITY:
+            keys += (
+                f"comparison_quantity_dg_addr",
+                f"comparison_quantity_cg_addr",
+                f"comparison_quantity_ch_addr",
+            )
+
+        if flags & v4c.FLAG_CA_AXIS:
+            keys += tuple(f"axis_conversion_{i}" for i in range(dims_nr))
+
+        if (flags & v4c.FLAG_CA_AXIS) and not (flags & v4c.FLAG_CA_FIXED_AXIS):
+            for i in range(dims_nr):
+                keys += (
+                    f"scale_axis_{i}_dg_addr",
+                    f"scale_axis_{i}_cg_addr",
+                    f"scale_axis_{i}_ch_addr",
+                )
+
+        keys += (
+            "ca_type",
+            "storage",
+            "dims",
+            "flags",
+            "byte_offset_base",
+            "invalidation_bit_base",
+        )
+
+        keys += tuple(f"dim_size_{i}" for i in range(dims_nr))
+
+        if flags & v4c.FLAG_CA_FIXED_AXIS:
+            keys += tuple(
+                f"axis_{i}_value_{j}"
+                for i in range(dims_nr)
+                for j in range(self[f"dim_size_{i}"])
+            )
+
+        if self.storage:
+
+            keys += tuple(
+                 f'cycle_count_{i}'
+                 for i in range(data_links_nr)
+            )
+
+        fmt = "<4sI{}Q2BHIiI{}Q{}d{}Q".format(
+            self.links_nr + 2,
+            dims_nr,
+            sum(dim_sizes),
+            data_links_nr,
+        )
 
         result = pack(fmt, *[getattr(self, key) for key in keys])
         return result
