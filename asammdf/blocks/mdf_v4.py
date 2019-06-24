@@ -54,6 +54,7 @@ from pandas import DataFrame
 from . import v4_constants as v4c
 from ..signal import Signal
 from .conversion_utils import conversion_transfer
+from .finalization_shim import FinalizationShim
 from .utils import (
     UINT8_u,
     UINT8_uf,
@@ -5958,8 +5959,6 @@ class MDF4(object):
         Attempt finalization of the file.
         :return:    None
         """
-        from .finalization_shim import FinalizationShim
-
         flags = self.identification["unfinalized_standard_flags"]
         
         shim = FinalizationShim(self._file, flags)
