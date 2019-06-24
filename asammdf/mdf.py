@@ -1204,6 +1204,7 @@ class MDF(object):
                                 name = sig.display_name or sig.name
                             else:
                                 name = sig.name
+                            name = name.replace('\\', '_').replace('/', '_')
                             name = names.get_unique_name(name)
                             if reduce_memory_usage:
                                 sig.samples = downcast(sig.samples)
