@@ -54,6 +54,7 @@ from pandas import DataFrame
 from . import v4_constants as v4c
 from ..signal import Signal
 from .conversion_utils import conversion_transfer
+from .finalization_shim import FinalizationShim
 from .utils import (
     UINT8_u,
     UINT8_uf,
@@ -259,55 +260,59 @@ class MDF4(object):
             self.version = version
             self.name = Path("new.mf4")
 
-    def _check_finalised(self):
+    def _check_finalised(self) -> bool:
         flags = self.identification["unfinalized_standard_flags"]
+        
         if flags & 1:
             message = (
                 f"Unfinalised file {self.name}:"
-                "Update of cycle counters for CG/CA blocks required"
+                " Update of cycle counters for CG/CA blocks required"
             )
 
             logger.warning(message)
-        elif flags & 1 << 1:
+        if flags & 1 << 1:
             message = f"Unfinalised file {self.name}: Update of cycle counters for SR blocks required"
 
             logger.warning(message)
-        elif flags & 1 << 2:
+        if flags & 1 << 2:
             message = f"Unfinalised file {self.name}: Update of length for last DT block required"
 
             logger.warning(message)
-        elif flags & 1 << 3:
+        if flags & 1 << 3:
             message = f"Unfinalised file {self.name}: Update of length for last RD block required"
 
             logger.warning(message)
-        elif flags & 1 << 4:
+        if flags & 1 << 4:
             message = (
                 f"Unfinalised file {self.name}:"
-                "Update of last DL block in each chained list"
-                "of DL blocks required"
+                " Update of last DL block in each chained list"
+                " of DL blocks required"
             )
 
             logger.warning(message)
-        elif flags & 1 << 5:
+        if flags & 1 << 5:
             message = (
                 f"Unfinalised file {self.name}:"
-                "Update of cg_data_bytes and cg_inval_bytes "
-                "in VLSD CG block required"
+                " Update of cg_data_bytes and cg_inval_bytes"
+                " in VLSD CG block required"
             )
 
             logger.warning(message)
-        elif flags & 1 << 6:
+        if flags & 1 << 6:
             message = (
                 f"Unfinalised file {self.name}:"
-                "Update of offset values for VLSD channel required "
-                "in case a VLSD CG block is used"
+                " Update of offset values for VLSD channel required"
+                " in case a VLSD CG block is used"
             )
 
             logger.warning(message)
+
+        return flags == 0
 
     def _read(self, mapped=False):
 
         stream = self._file
+        self._mapped = mapped
         dg_cntr = 0
 
         cg_count, _ = count_channel_groups(stream)
@@ -320,8 +325,15 @@ class MDF4(object):
         self.version = version.decode("utf-8").strip(" \n\t\0")
 
         if self.version >= "4.10":
-            self._check_finalised()
-
+            # Check for finalization past version 4.10
+            is_finalised = self._check_finalised()
+            
+            if not is_finalised:
+                message = f"Attempting finalization of {self.name}"
+                logger.info(message)
+                self._finalize()
+        stream = self._file
+        
         self.header = HeaderBlock(address=0x40, stream=stream, mapped=mapped)
 
         # read file history
@@ -460,7 +472,7 @@ class MDF4(object):
                                 dep.referenced_channels.append(None)
                     else:
                         break
-
+                        
         self._sort()
         self._process_can_logging()
 
@@ -1924,6 +1936,7 @@ class MDF4(object):
 
     def _get_data_blocks_info(self, address, stream, block_type=b"##DT", mapped=False):
         info = []
+        mapped = not is_file_like(stream)
 
         if mapped:
             if address:
@@ -5940,7 +5953,24 @@ class MDF4(object):
         channel = grp.channels[ch_nr]
 
         return extract_cncomment_xml(channel.comment)
+    
+    def _finalize(self):
+        """
+        Attempt finalization of the file.
+        :return:    None
+        """
+        flags = self.identification["unfinalized_standard_flags"]
+        
+        shim = FinalizationShim(self._file, flags)
+        shim.load_blocks()
+        shim.finalize()
+        
+        # In-memory finalization performed, inject as a shim between the original file and asammdf.
+        self._file_orig = self._file
+        self._file = shim
 
+        return
+    
     def _sort(self):
         if self._file is None:
             return
