@@ -403,7 +403,28 @@ class MDF(object):
                             pass
                 else:
                     for dep in dependencies:
-                        for gp_nr, ch_nr in dep.referenced_channels:
+                        for referenced_channels in (
+                           dep.axis_channels,
+                           dep.dynamic_size_channels,
+                           dep.input_quantity_channels,
+                        ):
+                            for gp_nr, ch_nr in referenced_channels:
+                                if gp_nr == index:
+                                    try:
+                                        included_channels.remove(ch_nr)
+                                    except KeyError:
+                                        pass
+
+                        if dep.output_quantity_channel:
+                            gp_nr, ch_nr = dep.output_quantity_channel
+                            if gp_nr == index:
+                                try:
+                                    included_channels.remove(ch_nr)
+                                except KeyError:
+                                    pass
+
+                        if dep.comparison_quantity_channel:
+                            gp_nr, ch_nr = dep.comparison_quantity_channel
                             if gp_nr == index:
                                 try:
                                     included_channels.remove(ch_nr)
@@ -1562,7 +1583,7 @@ class MDF(object):
                 else:
                     gps[group].add(index)
 
-        # see if there are exluded channels in the filter list
+        # see if there are excluded channels in the filter list
         for group_index, indexes in gps.items():
             grp = self.groups[group_index]
             included_channels = set(indexes)
@@ -1590,9 +1611,33 @@ class MDF(object):
                             to_exclude.add(channel)
                     else:
                         for dep in dependencies:
-                            for gp_nr, ch_nr in dep.referenced_channels:
-                                if gp_nr == group:
-                                    to_exclude.add(ch_nr)
+                            for referenced_channels in (
+                               dep.axis_channels,
+                               dep.dynamic_size_channels,
+                               dep.input_quantity_channels,
+                            ):
+                                for gp_nr, ch_nr in referenced_channels:
+                                    if gp_nr == index:
+                                        try:
+                                            included_channels.remove(ch_nr)
+                                        except KeyError:
+                                            pass
+
+                            if dep.output_quantity_channel:
+                                gp_nr, ch_nr = dep.output_quantity_channel
+                                if gp_nr == index:
+                                    try:
+                                        included_channels.remove(ch_nr)
+                                    except KeyError:
+                                        pass
+
+                            if dep.comparison_quantity_channel:
+                                gp_nr, ch_nr = dep.comparison_quantity_channel
+                                if gp_nr == index:
+                                    try:
+                                        included_channels.remove(ch_nr)
+                                    except KeyError:
+                                        pass
 
             gps[group_index] = sorted(included_channels - to_exclude)
 

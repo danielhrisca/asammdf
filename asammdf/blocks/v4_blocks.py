@@ -1115,7 +1115,12 @@ comment: {self.comment}
 
 class _ChannelArrayBlockBase:
     __slots__ = (
-        "referenced_channels",
+        "axis_channels",
+        "dynamic_size_channels",
+        "input_quantity_channels",
+        "output_quantity_channel",
+        "comparison_quantity_channel",
+        "axis_conversions",
         "address",
         "id",
         "reserved0",
@@ -1135,14 +1140,19 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
     Other attributes
 
     * ``address`` - int : array block address
-    * ``referenced_channels`` - list : list of (group index, channel index)
+    * ``axis_channels`` - list : list of (group index, channel index)
       pairs referenced by this array block
 
     """
 
     def __init__(self, **kwargs):
 
-        self.referenced_channels = []
+        self.axis_channels = []
+        self.dynamic_size_channels = []
+        self.input_quantity_channels = []
+        self.output_quantity_channel = None
+        self.comparison_quantity_channel = None
+        self.axis_conversions = []
 
         try:
             self.address = address = kwargs["address"]
@@ -1412,7 +1422,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
 
     def __str__(self):
         return "<ChannelArrayBlock (referenced channels: {}, address: {}, fields: {})>".format(
-            self.referenced_channels, hex(self.address), dict(self)
+            self.axis_channels, hex(self.address), dict(self)
         )
 
     def __bytes__(self):

@@ -456,20 +456,62 @@ class MDF4(object):
 
                 for dep in dep_list:
                     if isinstance(dep, ChannelArrayBlock):
-                        conditions = (
-                            dep.ca_type == v4c.CA_TYPE_LOOKUP,
-                            bool(dep.flags & v4c.FLAG_CA_AXIS),
-                        )
-                        if not all(conditions):
-                            continue
 
-                        for i in range(dep.dims):
-                            ch_addr = dep[f"scale_axis_{i}_ch_addr"]
+                        if dep.flags & v4c.FLAG_CA_DYNAMIC_AXIS:
+                            for i in range(dep.dims):
+                                ch_addr = dep[f"dynamic_size_{i}_ch_addr"]
+                                if ch_addr:
+                                    ref_channel = self._ch_map[ch_addr]
+                                    dep.dynamic_size_channels.append(ref_channel)
+                                else:
+                                    dep.dynamic_size_channels.append(None)
+
+                        if dep.flags & v4c.FLAG_CA_INPUT_QUANTITY:
+                            for i in range(dep.dims):
+                                ch_addr = dep[f"input_quantity_{i}_ch_addr"]
+                                if ch_addr:
+                                    ref_channel = self._ch_map[ch_addr]
+                                    dep.input_quantity_channels.append(ref_channel)
+                                else:
+                                    dep.input_quantity_channels.append(None)
+
+                        if dep.flags & v4c.FLAG_CA_OUTPUT_QUANTITY:
+                            ch_addr = dep[f"output_quantity_ch_addr"]
                             if ch_addr:
                                 ref_channel = self._ch_map[ch_addr]
-                                dep.referenced_channels.append(ref_channel)
+                                dep.output_quantity_channel = ref_channel
                             else:
-                                dep.referenced_channels.append(None)
+                                dep.output_quantity_channel = None
+
+                        if dep.flags & v4c.FLAG_CA_COMPARISON_QUANTITY:
+                            ch_addr = dep[f"comparison_quantity_ch_addr"]
+                            if ch_addr:
+                                ref_channel = self._ch_map[ch_addr]
+                                dep.comparison_quantity_channel = ref_channel
+                            else:
+                                dep.comparison_quantity_channel = None
+
+                        if dep.flags & v4c.FLAG_CA_AXIS:
+                            for i in range(dep.dims):
+                                cc_addr = dep[f"axis_conversion_{i}"]
+                                if cc_addr:
+                                    conv = ChannelConversion(
+                                        stream=stream,
+                                        address=cc_addr,
+                                        mapped=mapped,
+                                    )
+                                    dep.axis_conversions.append(conv)
+                                else:
+                                    dep.axis_conversions.append(None)
+
+                        if (dep.flags & v4c.FLAG_CA_AXIS) and not (dep.flags & v4c.FLAG_CA_FIXED_AXIS):
+                            for i in range(dep.dims):
+                                ch_addr = dep[f"scale_axis_{i}_ch_addr"]
+                                if ch_addr:
+                                    ref_channel = self._ch_map[ch_addr]
+                                    dep.axis_channels.append(ref_channel)
+                                else:
+                                    dep.axis_channels.append(None)
                     else:
                         break
 
@@ -2866,7 +2908,7 @@ class MDF4(object):
                     gp_channels.append(ch)
 
                     entry = dg_cntr, ch_cntr
-                    parent_dep.referenced_channels.append(entry)
+                    parent_dep.axis_channels.append(entry)
                     for dim in shape:
                         byte_size *= dim
                     offset += byte_size
@@ -4070,7 +4112,7 @@ class MDF4(object):
                             else:
                                 for i in range(dims_nr):
 
-                                    axis = ca_block.referenced_channels[i]
+                                    axis = ca_block.axis_channels[i]
                                     shape = (ca_block[f"dim_size_{i}"],)
 
                                     if axis is None:
@@ -4081,7 +4123,7 @@ class MDF4(object):
 
                                     else:
                                         try:
-                                            ref_dg_nr, ref_ch_nr = ca_block.referenced_channels[
+                                            ref_dg_nr, ref_ch_nr = ca_block.axis_channels[
                                                 i
                                             ]
                                         except:
@@ -4152,7 +4194,7 @@ class MDF4(object):
                                 types.append((f"axis_{i}", axis.dtype, shape))
                         else:
                             for i in range(dims_nr):
-                                axis = ca_block.referenced_channels[i]
+                                axis = ca_block.axis_channels[i]
                                 shape = (ca_block[f"dim_size_{i}"],)
 
                                 if axis is None:
@@ -4163,7 +4205,7 @@ class MDF4(object):
 
                                 else:
                                     try:
-                                        ref_dg_nr, ref_ch_nr = ca_block.referenced_channels[
+                                        ref_dg_nr, ref_ch_nr = ca_block.axis_channels[
                                             i
                                         ]
                                     except:
@@ -5673,20 +5715,57 @@ class MDF4(object):
                     if dep_list:
                         if all(isinstance(dep, ChannelArrayBlock) for dep in dep_list):
                             for dep in dep_list:
-                                if dep.ca_type != v4c.CA_TYPE_LOOKUP:
-                                    dep.referenced_channels = []
-                                    continue
+
                                 for i, (gp_nr, ch_nr) in enumerate(
-                                    dep.referenced_channels
+                                    dep.dynamic_size_channels
                                 ):
                                     grp = self.groups[gp_nr]
                                     ch = grp.channels[ch_nr]
-                                    dep[
-                                        f"scale_axis_{i}_dg_addr"
-                                    ] = grp.data_group.address
-                                    dep[
-                                        f"scale_axis_{i}_cg_addr"
-                                    ] = grp.channel_group.address
+                                    dep[f"dynamic_size_{i}_dg_addr"] = grp.data_group.address
+                                    dep[f"dynamic_size_{i}_cg_addr"] = grp.channel_group.address
+                                    dep[f"dynamic_size_{i}_ch_addr"] = ch.address
+
+                                for i, (gp_nr, ch_nr) in enumerate(
+                                    dep.input_quantity_channels
+                                ):
+                                    grp = self.groups[gp_nr]
+                                    ch = grp.channels[ch_nr]
+                                    dep[f"input_quantity_{i}_dg_addr"] = grp.data_group.address
+                                    dep[f"input_quantity_{i}_cg_addr"] = grp.channel_group.address
+                                    dep[f"input_quantity_{i}_ch_addr"] = ch.address
+
+                                for i, conversion in enumerate(
+                                    dep.axis_conversions
+                                ):
+                                    if conversion:
+                                        address = conversion.to_blocks(address, blocks, defined_texts, cc_map)
+                                        dep[f"axis_conversion_{i}"] = conversion.address
+                                    else:
+                                        dep[f"axis_conversion_{i}"] = 0
+
+                                if dep.output_quantity_channel:
+                                    gp_nr, ch_nr = dep.output_quantity_channel
+                                    grp = self.groups[gp_nr]
+                                    ch = grp.channels[ch_nr]
+                                    dep[f"output_quantity_dg_addr"] = grp.data_group.address
+                                    dep[f"output_quantity_cg_addr"] = grp.channel_group.address
+                                    dep[f"output_quantity_ch_addr"] = ch.address
+
+                                if dep.comparison_quantity_channel:
+                                    gp_nr, ch_nr = dep.comparison_quantity_channel
+                                    grp = self.groups[gp_nr]
+                                    ch = grp.channels[ch_nr]
+                                    dep[f"comparison_quantity_dg_addr"] = grp.data_group.address
+                                    dep[f"comparison_quantity_cg_addr"] = grp.channel_group.address
+                                    dep[f"comparison_quantity_ch_addr"] = ch.address
+
+                                for i, (gp_nr, ch_nr) in enumerate(
+                                    dep.axis_channels
+                                ):
+                                    grp = self.groups[gp_nr]
+                                    ch = grp.channels[ch_nr]
+                                    dep[f"scale_axis_{i}_dg_addr"] = grp.data_group.address
+                                    dep[f"scale_axis_{i}_cg_addr"] = grp.channel_group.address
                                     dep[f"scale_axis_{i}_ch_addr"] = ch.address
 
             for gp in self.groups:
