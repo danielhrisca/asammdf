@@ -4873,11 +4873,6 @@ class MDF4(object):
 
         original_data = fragment
 
-        if group.data_location == v4c.LOCATION_ORIGINAL_FILE:
-            stream = self._file
-        else:
-            stream = self._tempfile
-
         time_ch_nr = self.masters_db.get(index, None)
         channel_group = group.channel_group
         record_size = channel_group.samples_byte_nr
@@ -5876,12 +5871,12 @@ class MDF4(object):
                     event[key] = at_map[addr]
 
         except:
-            raise
             if not file_like:
                 dst_.close()
-
-        if not file_like:
-            dst_.close()
+            raise
+        else:
+            if not file_like:
+                dst_.close()
 
         if dst == self.name:
             self.close()

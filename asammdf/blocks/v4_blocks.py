@@ -1141,7 +1141,18 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
 
     * ``address`` - int : array block address
     * ``axis_channels`` - list : list of (group index, channel index)
-      pairs referenced by this array block
+      pairs referencing the axis of this array block
+    * ``axis_conversions`` - list : list of ChannelConversion or None
+      for each axis of this array block
+    * ``dynamic_size_channels`` - list : list of (group index, channel index)
+      pairs referencing the axis dynamic size of this array block
+    * ``input_quantity_channels`` - list : list of (group index, channel index)
+      pairs referencing the input quantity channels of this array block
+    * ``output_quantity_channels`` - tuple | None : (group index, channel index)
+      pair referencing the output quantity channel of this array block
+    * ``comparison_quantity_channel`` - tuple | None : (group index, channel index)
+      pair referencing the comparison quantity channel of this array block
+
 
     """
 

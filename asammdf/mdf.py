@@ -535,11 +535,13 @@ class MDF(object):
                                             .view(sig.samples.dtype)
                                         )
                                         sig.samples = encode(
-                                            decode(sig.samples, "utf-16-be"), "latin-1"
+                                            decode(sig.samples, "utf-16-be"),
+                                            "latin-1",
                                         )
                                     else:
                                         sig.samples = encode(
-                                            decode(sig.samples, sig.encoding), "latin-1"
+                                            decode(sig.samples, sig.encoding),
+                                            "latin-1",
                                         )
                             else:
                                 encodings.append(None)
