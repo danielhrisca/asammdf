@@ -34,7 +34,7 @@ install:
   - cmd: "if \"%PY%\" == \"37-x64\" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe)"
   - cmd: "if \"%PY%\" == \"37-x64\" (%PYTHON%\\Scripts\\pyinstaller asammdf_noconsole.spec)"
   - cmd: "if \"%PY%\" == \"37-x64\" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%_noconsole.exe)"
-  - sh: "sudo apt-get --yes update && sudo apt-get --yes upgrade"
+  - sh: "sudo apt-get --yes update"
   - sh: "sudo apt-get --yes install python3-dev python3-pip python3-setuptools"
   - sh: "python3 -m pip install --upgrade pip --user"
   - sh: "python3 -m pip install --upgrade setuptools --user"
