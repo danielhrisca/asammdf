@@ -2645,10 +2645,10 @@ class HeaderBlock:
                     "Local PC Reference Time"
                 ).encode("latin-1")
 
-        self.author = self.author_field.strip(b" \r\n\t0").decode("latin-1")
-        self.department = self.department_field.strip(b" \r\n\t0").decode("latin-1")
-        self.project = self.project_field.strip(b" \r\n\t0").decode("latin-1")
-        self.subject = self.subject_field.strip(b" \r\n\t0").decode("latin-1")
+        self.author = self.author_field.strip(b" \r\n\t\0").decode("latin-1")
+        self.department = self.department_field.strip(b" \r\n\t\0").decode("latin-1")
+        self.project = self.project_field.strip(b" \r\n\t\0").decode("latin-1")
+        self.subject = self.subject_field.strip(b" \r\n\t\0").decode("latin-1")
 
     def to_blocks(self, address, blocks, defined_texts, si_map):
         blocks.append(self)
