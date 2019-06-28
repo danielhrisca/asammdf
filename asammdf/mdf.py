@@ -1149,7 +1149,11 @@ class MDF(object):
 
                     if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
                         for item in header_items:
-                            group.attrs[item] = self.header[item]
+                            group.attrs[item] = (
+                                self.header[item]
+                                .strip(b' \0\r\n\t')
+                                .decode('latin-1')
+                            )
 
                     # save each data group in a HDF5 group called
                     # "DataGroup_<cntr>" with the index starting from 1
@@ -1194,7 +1198,11 @@ class MDF(object):
 
                     if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
                         for item in header_items:
-                            group.attrs[item] = self.header[item]
+                            group.attrs[item] = (
+                                self.header[item]
+                                .strip(b' \0\r\n\t')
+                                .decode('latin-1')
+                            )
 
                     # save each data group in a HDF5 group called
                     # "DataGroup_<cntr>" with the index starting from 1
