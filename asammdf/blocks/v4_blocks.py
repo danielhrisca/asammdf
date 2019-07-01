@@ -3044,7 +3044,9 @@ formula: {self.formula}
             lines.append("")
             lines.append("Referenced blocks:")
             for key, block in self.referenced_blocks.items():
-                if isinstance(block, TextBlock):
+                if block is None:
+                    lines.append(template.format(key, b""))
+                elif isinstance(block, TextBlock):
                     lines.append(template.format(key, block["text"].strip(b"\0")))
                 else:
                     lines.append(template.format(key, ""))
