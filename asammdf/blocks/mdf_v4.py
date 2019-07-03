@@ -516,6 +516,7 @@ class MDF4(object):
                         break
 
         self._sort()
+
         self._process_can_logging()
 
         # append indexes of groups that contain raw CAN bus logging and
@@ -536,7 +537,11 @@ class MDF4(object):
 
             if group.raw_can:
 
-                _sig = self.get("CAN_DataFrame", group=i, ignore_invalidation_bits=True)
+                try:
+                    _sig = self.get("CAN_DataFrame", group=i, ignore_invalidation_bits=True)
+                except MdfException:
+                    continue
+
                 can_ids = Signal(
                     _sig.samples['CAN_DataFrame.ID'],
                     _sig.timestamps,
@@ -886,10 +891,12 @@ class MDF4(object):
 
                         else:
                             grp.raw_can = True
+                            grp.CAN_logging = False
                             message = f"Invalid bus logging channel group metadata: {comment}"
                             logger.warning(message)
                     else:
                         grp.raw_can = True
+                        grp.CAN_logging = False
 
             else:
                 try:
@@ -5535,6 +5542,8 @@ class MDF4(object):
                 for j, channel in enumerate(channels):
                     if channel.attachment is not None:
                         channel.attachment_addr = self.attachments[channel.attachment].address
+                    else:
+                        channel.attachment_addr = 0
 
                     address = channel.to_blocks(
                         address, blocks, defined_texts, cc_map, si_map

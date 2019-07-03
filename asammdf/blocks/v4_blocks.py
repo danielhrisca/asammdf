@@ -465,6 +465,7 @@ class Channel:
         if "stream" in kwargs:
 
             self.address = address = kwargs["address"]
+            self.dtype_fmt = self.attachment = None
             stream = kwargs["stream"]
             mapped = not is_file_like(stream)
 
@@ -629,7 +630,7 @@ class Channel:
                     self.source = source
                 else:
                     self.source = None
-                self.dtype_fmt = self.attachment = None
+
             else:
                 stream.seek(address)
 
@@ -784,7 +785,6 @@ class Channel:
                     self.source = source
                 else:
                     self.source = None
-                self.dtype_fmt = self.attachment = None
         else:
             self.address = 0
             self.name = self.comment = self.display_name = self.unit = ""
