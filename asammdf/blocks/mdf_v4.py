@@ -896,7 +896,6 @@ class MDF4(object):
                             logger.warning(message)
                     else:
                         grp.raw_can = True
-                        grp.CAN_logging = False
 
             else:
                 try:
