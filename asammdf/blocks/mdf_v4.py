@@ -1544,6 +1544,8 @@ class MDF4(object):
         inval_cntr,
     ):
 
+        print(signal, signal.samples.dtype)
+
         si_map = self._si_map
 
         fields = []
