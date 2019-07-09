@@ -1019,7 +1019,14 @@ class MDF(object):
 
         from time import perf_counter as pc
 
-        header_items = ("date", "time", "author", "department", "project", "subject")
+        header_items = (
+            "date",
+            "time",
+            "author_field",
+            "department_field",
+            "project_field",
+            "subject_field",
+        )
 
         if fmt != "pandas" and filename is None and self.name is None:
             message = (
@@ -1149,7 +1156,7 @@ class MDF(object):
 
                     if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
                         for item in header_items:
-                            group.attrs[item] = self.header[item].replace('\0', '')
+                            group.attrs[item] = self.header[item].replace(b'\0', b'')
 
                     # save each data group in a HDF5 group called
                     # "DataGroup_<cntr>" with the index starting from 1
@@ -1194,7 +1201,7 @@ class MDF(object):
 
                     if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
                         for item in header_items:
-                            group.attrs[item] = self.header[item].replace('\0', '')
+                            group.attrs[item] = self.header[item].replace(b'\0', b'')
 
                     # save each data group in a HDF5 group called
                     # "DataGroup_<cntr>" with the index starting from 1
