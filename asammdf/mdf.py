@@ -359,6 +359,7 @@ class MDF(object):
                     + self.whereis("CAN_ErrorFrame")
                     + self.whereis("CAN_RemoteFrame")
                 )
+
                 for dg_cntr, ch_cntr in where:
                     if dg_cntr == index:
                         break

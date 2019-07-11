@@ -658,7 +658,7 @@ class MDF4(object):
                         continue
                     for index in raw_can:
                         if new_group_index > index:
-                            new_group_index += 1
+                            new_group_index -= 1
                         else:
                             break
                     new_entry.append((new_group_index, entry[1]))
@@ -675,7 +675,7 @@ class MDF4(object):
                 )
                 group = self.groups[-1]
                 group.CAN_database = message_name != ""
-                group.CAN_logging = True
+                group.CAN_logging = False
                 group.CAN_id = can_id
                 if message_id > 0:
                     if message_id > 0x80000000:

@@ -509,7 +509,6 @@ class Channel:
         else:
             self[key] = 0
 
-
         conversion = self.conversion
         if conversion:
             address = conversion.to_blocks(address, blocks, defined_texts, cc_map)
@@ -2790,7 +2789,7 @@ class ProgramBlock:
         self.__setattr__(item, value)
 
     def __bytes__(self):
-        fmt = v23c.FMT_PROGRAM_BLOCK.format(self.block_len)
+        fmt = v23c.FMT_PROGRAM_BLOCK.format(self.block_len - 4)
         result = pack(fmt, *[self[key] for key in v23c.KEYS_PROGRAM_BLOCK])
         return result
 
