@@ -3687,6 +3687,9 @@ class MDF(object):
                 if not group.CAN_logging:
                     continue
 
+                if not 'CAN_DataFrame' in [ch.name for ch in group.channels]:
+                    continue
+
                 parents, dtypes = self._prepare_record(group)
                 data = self._load_data(group)
 
@@ -3736,7 +3739,7 @@ class MDF(object):
                         bus_msg_ids = msg_ids.samples[idx]
                         bus_data_bytes = data_bytes[idx]
 
-                        unique_ids = np.unique(bus_msg_ids)
+                        unique_ids = np.unique(bus_msg_ids).astype('<u8')
 
                         for msg_id in unique_ids:
                             message = messages.get(msg_id, None)

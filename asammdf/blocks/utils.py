@@ -1517,33 +1517,37 @@ def pandas_query_compatible(name):
 
 
 def load_can_database(file, contents=None):
+
     file = Path(file)
 
     dbc = None
 
-    if file.exists() and file.suffix.lower() in ('.dbc', '.arxml'):
-        import_type = file.suffix.lower().strip('.')
-        loads = dbc_load if import_type == 'dbc' else arxml_load
-        if contents is None:
+    if file.suffix.lower() in ('.dbc', '.arxml'):
+        if contents is None and file.exists():
             contents = file.read_bytes()
-        contents = BytesIO(contents)
-        try:
-            dbc = loads(
-                contents,
-                import_type=import_type,
-                key="db",
-            )
-        except UnicodeDecodeError:
-            encoding = detect(contents)["encoding"]
-            contents = contents.decode(
-                encoding
-            )
-            dbc = loads(
-                contents,
-                importType=import_type,
-                import_type=import_type,
-                key="db",
-                encoding=encoding,
-            )
+
+        if contents:
+            import_type = file.suffix.lower().strip('.')
+            loads = dbc_load if import_type == 'dbc' else arxml_load
+
+            contents = BytesIO(contents)
+            try:
+                dbc = loads(
+                    contents,
+                    import_type=import_type,
+                    key="db",
+                )
+            except UnicodeDecodeError:
+                encoding = detect(contents)["encoding"]
+                contents = contents.decode(
+                    encoding
+                )
+                dbc = loads(
+                    contents,
+                    importType=import_type,
+                    import_type=import_type,
+                    key="db",
+                    encoding=encoding,
+                )
 
     return dbc

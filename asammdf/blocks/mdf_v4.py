@@ -536,7 +536,6 @@ class MDF4(object):
                 continue
 
             if group.raw_can:
-
                 try:
                     _sig = self.get("CAN_DataFrame", group=i, ignore_invalidation_bits=True)
                 except MdfException:
@@ -1543,9 +1542,6 @@ class MDF4(object):
         inval_bits,
         inval_cntr,
     ):
-
-        print(signal, signal.samples.dtype)
-
         si_map = self._si_map
 
         fields = []
