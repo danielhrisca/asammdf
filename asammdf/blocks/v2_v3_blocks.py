@@ -1020,14 +1020,14 @@ class ChannelConversion(_ChannelConversionBase):
 
             self.address = 0
             self.id = b"CC"
-            self.unit_field = kwargs.get("unit", b"").decode("latin-1")
+            self.unit_field = kwargs.get("unit", b"")
 
             if kwargs["conversion_type"] == v23c.CONVERSION_TYPE_NONE:
                 self.block_len = v23c.CC_COMMON_BLOCK_SIZE
                 self.range_flag = kwargs.get("range_flag", 1)
                 self.min_phy_value = kwargs.get("min_phy_value", 0)
                 self.max_phy_value = kwargs.get("max_phy_value", 0)
-                self.unit_field = kwargs.get("unit", ("0" * 20).encode("latin-1"))
+                self.unit_field = kwargs.get("unit", ("\0" * 20).encode("latin-1"))
                 self.conversion_type = v23c.CONVERSION_TYPE_NONE
                 self.ref_param_nr = 0
 
@@ -1036,7 +1036,7 @@ class ChannelConversion(_ChannelConversionBase):
                 self.range_flag = kwargs.get("range_flag", 1)
                 self.min_phy_value = kwargs.get("min_phy_value", 0)
                 self.max_phy_value = kwargs.get("max_phy_value", 0)
-                self.unit_field = kwargs.get("unit", ("0" * 20).encode("latin-1"))
+                self.unit_field = kwargs.get("unit", ("\0" * 20).encode("latin-1"))
                 self.conversion_type = v23c.CONVERSION_TYPE_LINEAR
                 self.ref_param_nr = 2
                 self.b = kwargs.get("b", 0)
@@ -1052,7 +1052,7 @@ class ChannelConversion(_ChannelConversionBase):
                 self.range_flag = kwargs.get("range_flag", 1)
                 self.min_phy_value = kwargs.get("min_phy_value", 0)
                 self.max_phy_value = kwargs.get("max_phy_value", 0)
-                self.unit_field = kwargs.get("unit", ("0" * 20).encode("latin-1"))
+                self.unit_field = kwargs.get("unit", ("\0" * 20).encode("latin-1"))
                 self.conversion_type = kwargs["conversion_type"]
                 self.ref_param_nr = 6
                 self.P1 = kwargs.get("P1", 0)
@@ -1070,7 +1070,7 @@ class ChannelConversion(_ChannelConversionBase):
                 self.range_flag = kwargs.get("range_flag", 1)
                 self.min_phy_value = kwargs.get("min_phy_value", 0)
                 self.max_phy_value = kwargs.get("max_phy_value", 0)
-                self.unit_field = kwargs.get("unit", ("0" * 20).encode("latin-1"))
+                self.unit_field = kwargs.get("unit", ("\0" * 20).encode("latin-1"))
                 self.conversion_type = v23c.CONVERSION_TYPE_EXPO
                 self.ref_param_nr = 7
                 self.P1 = kwargs.get("P1", 0)
@@ -1094,7 +1094,7 @@ class ChannelConversion(_ChannelConversionBase):
                 self.range_flag = kwargs.get("range_flag", 1)
                 self.min_phy_value = kwargs.get("min_phy_value", 0)
                 self.max_phy_value = kwargs.get("max_phy_value", 0)
-                self.unit_field = kwargs.get("unit", ("0" * 20).encode("latin-1"))
+                self.unit_field = kwargs.get("unit", ("\0" * 20).encode("latin-1"))
                 self.conversion_type = v23c.CONVERSION_TYPE_FORMULA
                 self.ref_param_nr = formula_len
                 self.formula_field = formula
@@ -1108,7 +1108,7 @@ class ChannelConversion(_ChannelConversionBase):
                 self.range_flag = kwargs.get("range_flag", 1)
                 self.min_phy_value = kwargs.get("min_phy_value", 0)
                 self.max_phy_value = kwargs.get("max_phy_value", 0)
-                self.unit_field = kwargs.get("unit", ("0" * 20).encode("latin-1"))
+                self.unit_field = kwargs.get("unit", ("\0" * 20).encode("latin-1"))
                 self.conversion_type = kwargs["conversion_type"]
                 self.ref_param_nr = nr
                 for i in range(nr):
@@ -1121,7 +1121,7 @@ class ChannelConversion(_ChannelConversionBase):
                 self.range_flag = kwargs.get("range_flag", 0)
                 self.min_phy_value = kwargs.get("min_phy_value", 0)
                 self.max_phy_value = kwargs.get("max_phy_value", 0)
-                self.unit_field = kwargs.get("unit", ("0" * 20).encode("latin-1"))
+                self.unit_field = kwargs.get("unit", ("\0" * 20).encode("latin-1"))
                 self.conversion_type = v23c.CONVERSION_TYPE_TABX
                 self.ref_param_nr = nr
 
@@ -1135,7 +1135,7 @@ class ChannelConversion(_ChannelConversionBase):
                 self.range_flag = kwargs.get("range_flag", 0)
                 self.min_phy_value = kwargs.get("min_phy_value", 0)
                 self.max_phy_value = kwargs.get("max_phy_value", 0)
-                self.unit_field = kwargs.get("unit", ("0" * 20).encode("latin-1"))
+                self.unit_field = kwargs.get("unit", ("\0" * 20).encode("latin-1"))
                 self.conversion_type = v23c.CONVERSION_TYPE_RTABX
                 self.ref_param_nr = nr
 

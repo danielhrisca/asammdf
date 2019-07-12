@@ -1190,6 +1190,7 @@ class MDF3(object):
 
             conversion = conversion_transfer(signal.conversion)
             conversion.unit = unit = signal.unit
+
             israw = signal.raw
 
             if not israw and not unit:

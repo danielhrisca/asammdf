@@ -159,6 +159,7 @@ def conversion_transfer(conversion, version=3):
         else:
             conversion_type = conversion["conversion_type"]
             unit = conversion["unit_field"].decode("latin-1").strip(" \r\n\t\0")
+
             if conversion_type == v3c.CONVERSION_TYPE_NONE:
                 conversion = v4b.ChannelConversion(
                     conversion_type=v4c.CONVERSION_TYPE_NON
@@ -225,7 +226,6 @@ def conversion_transfer(conversion, version=3):
                 conversion = v4b.ChannelConversion(**kargs)
 
             elif conversion_type == v3c.CONVERSION_TYPE_RTABX:
-#                print('IN', conversion)
 
                 nr = conversion["ref_param_nr"] - 1
                 kargs = {
@@ -240,9 +240,6 @@ def conversion_transfer(conversion, version=3):
                     kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"].text
 
                 conversion = v4b.ChannelConversion(**kargs)
-
-#                print('OUT', conversion)
-#                print('\n'*3)
 
             conversion.unit = unit
 
