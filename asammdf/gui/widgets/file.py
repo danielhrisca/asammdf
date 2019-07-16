@@ -4,6 +4,7 @@ from functools import partial, reduce
 import json
 from pathlib import Path
 import os
+from traceback import format_exc
 
 import psutil
 from natsort import natsorted
@@ -87,9 +88,10 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             try:
                 from mfile import ERG
 
-                self.mdf = ERG(file_name).export_mdf()
-            except Exception as err:
-                print(err)
+                mdf_path = ERG(file_name).export_mdf().save(file_name.with_suffix('.tmp.mf4'))
+                self.mdf = MDF(mdf_path)
+            except:
+                print(format_exc())
                 return
         else:
 
