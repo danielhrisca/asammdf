@@ -315,6 +315,10 @@ class MDF4(object):
         self._mapped = mapped
         dg_cntr = 0
 
+        stream.seek(0, 2)
+        self.file_limit = stream.tell()
+        stream.seek(0)
+
         cg_count, _ = count_channel_groups(stream)
         if self._callback:
             self._callback(0, cg_count)
@@ -339,6 +343,9 @@ class MDF4(object):
         # read file history
         fh_addr = self.header["file_history_addr"]
         while fh_addr:
+            if fh_addr > self.file_limit:
+                logger.warning(f'File history address {fh_addr:X} is outside the file size {self.file_limit}')
+                break
             history_block = FileHistory(address=fh_addr, stream=stream, mapped=mapped)
             self.file_history.append(history_block)
             fh_addr = history_block.next_fh_addr
@@ -347,6 +354,9 @@ class MDF4(object):
         at_addr = self.header["first_attachment_addr"]
         index = 0
         while at_addr:
+            if at_addr > self.file_limit:
+                logger.warning(f'Attachment address {at_addr:X} is outside the file size {self.file_limit}')
+                break
             at_block = AttachmentBlock(address=at_addr, stream=stream, mapped=mapped)
             self._attachments_map[at_addr] = index
             self.attachments.append(at_block)
@@ -357,6 +367,9 @@ class MDF4(object):
         dg_addr = self.header.first_dg_addr
 
         while dg_addr:
+            if dg_addr > self.file_limit:
+                logger.warning(f'Data group address {dg_addr:X} is outside the file size {self.file_limit}')
+                break
             new_groups = []
             group = DataGroup(address=dg_addr, stream=stream, mapped=mapped)
             record_id_nr = group.record_id_len
@@ -369,6 +382,9 @@ class MDF4(object):
             cg_size = {}
 
             while cg_addr:
+                if cg_addr > self.file_limit:
+                    logger.warning(f'Channel group address {cg_addr:X} is outside the file size {self.file_limit}')
+                    break
                 cg_nr += 1
 
                 grp = Group(group.copy())
@@ -706,6 +722,9 @@ class MDF4(object):
         ev_map = {}
         event_index = 0
         while addr:
+            if addr > self.file_limit:
+                logger.warning(f'Event address {addr:X} is outside the file size {self.file_limit}')
+                break
             event = EventBlock(address=addr, stream=stream, mapped=mapped)
             event.update_references(self._ch_map, self._cg_map)
             self.events.append(event)
@@ -717,11 +736,19 @@ class MDF4(object):
         for event in self.events:
             addr = event.parent_ev_addr
             if addr:
-                event.parent = ev_map[addr]
+                parent = ev_map.get(addr, None)
+                if parent is not None:
+                    event.parent = parent
+                else:
+                    event.parent = None
 
             addr = event.range_start_ev_addr
             if addr:
-                event.range_start = ev_map[addr]
+                range_start_ev_addr = ev_map.get(addr, None)
+                if range_start_ev_addr is not None:
+                    event.parent = range_start_ev_addr
+                else:
+                    event.parent = None
 
         self._si_map.clear()
         self._ch_map.clear()
