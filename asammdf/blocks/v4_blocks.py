@@ -4493,19 +4493,23 @@ class HeaderBlock:
 
         if self.comment.startswith("<HDcomment"):
             comment = self.comment
-            comment_xml = ET.fromstring(comment)
-            common_properties = comment_xml.find(".//common_properties")
-            if common_properties is not None:
-                for e in common_properties:
-                    name = e.get("name")
-                    if name == "author":
-                        self.author = e.text
-                    elif name == "department":
-                        self.department = e.text
-                    elif name == "project":
-                        self.project = e.text
-                    elif name == "subject":
-                        self.subject = e.text
+            try:
+                comment_xml = ET.fromstring(comment)
+            except ET.ParseError as e:
+                logger.error("could not parse header block comment; %s", e)
+            else:
+                common_properties = comment_xml.find(".//common_properties")
+                if common_properties is not None:
+                    for e in common_properties:
+                        name = e.get("name")
+                        if name == "author":
+                            self.author = e.text
+                        elif name == "department":
+                            self.department = e.text
+                        elif name == "project":
+                            self.project = e.text
+                        elif name == "subject":
+                            self.subject = e.text
 
     def __getitem__(self, item):
         return self.__getattribute__(item)
