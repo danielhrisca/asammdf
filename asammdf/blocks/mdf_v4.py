@@ -779,6 +779,10 @@ class MDF4(object):
         while ch_addr:
             # read channel block and create channel object
 
+            if ch_addr > self.file_limit:
+                logger.warning(f'Channel address {ch_addr:X} is outside the file size {self.file_limit}')
+                break
+
             channel = Channel(
                 address=ch_addr,
                 stream=stream,
@@ -813,6 +817,10 @@ class MDF4(object):
             component_addr = channel.component_addr
 
             if component_addr:
+
+                if component_addr > self.file_limit:
+                    logger.warning(f'Channel component address {component_addr:X} is outside the file size {self.file_limit}')
+                    break
                 # check if it is a CABLOCK or CNBLOCK
                 stream.seek(component_addr)
                 blk_id = stream.read(4)
