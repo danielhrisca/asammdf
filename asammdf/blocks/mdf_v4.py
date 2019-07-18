@@ -5574,7 +5574,7 @@ class MDF4(object):
                 for j, channel in enumerate(channels):
                     if channel.attachment is not None:
                         channel.attachment_addr = self.attachments[channel.attachment].address
-                    else:
+                    elif channel.attachment_nr:
                         channel.attachment_addr = 0
 
                     address = channel.to_blocks(
