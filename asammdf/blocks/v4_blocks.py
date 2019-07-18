@@ -4496,7 +4496,7 @@ class HeaderBlock:
             try:
                 comment_xml = ET.fromstring(comment)
             except ET.ParseError as e:
-                logger.error("could not parse header block comment; %s", e)
+                logger.error(f"could not parse header block comment; {e}")
             else:
                 common_properties = comment_xml.find(".//common_properties")
                 if common_properties is not None:
