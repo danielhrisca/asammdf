@@ -3683,8 +3683,6 @@ class MDF4(object):
             # for embedded attachments extrat data and create new files
             if flags & v4c.FLAG_AT_EMBEDDED:
                 data = attachment.extract()
-
-                return data, file_path
             else:
                 # for external attachments read the file and return the content
                 if flags & v4c.FLAG_AT_MD5_VALID:
@@ -3697,7 +3695,6 @@ class MDF4(object):
                         if attachment.mime.startswith("text"):
                             with open(file_path, "r") as f:
                                 data = f.read()
-                        return data, file_path
                     else:
                         message = (
                             f'ATBLOCK md5sum="{attachment["md5_sum"]}" '
@@ -3713,12 +3710,15 @@ class MDF4(object):
                     with open(file_path, mode) as f:
                         file_path = Path(f"FROM_{file_path}")
                         data = f.read()
-                    return data, file_path
         except Exception as err:
             os.chdir(current_path)
             message = "Exception during attachment extraction: " + repr(err)
             logger.warning(message)
-            return b"", file_path
+            data = b""
+        finally:
+            os.chdir(current_path)
+
+        return data, file_path
 
     def get(
         self,
