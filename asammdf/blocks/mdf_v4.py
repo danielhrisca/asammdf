@@ -977,11 +977,6 @@ class MDF4(object):
                             logger.warning(message)
                             grp.CAN_database = False
                         else:
-                            import_type = (
-                                "dbc"
-                                if at_name.name.lower().endswith("dbc")
-                                else "arxml"
-                            )
 
                             dbc = load_can_database(at_name, attachment)
                             if dbc is None:

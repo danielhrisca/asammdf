@@ -1532,22 +1532,25 @@ def load_can_database(file, contents=None):
 
             contents = BytesIO(contents)
             try:
-                dbc = loads(
-                    contents,
-                    import_type=import_type,
-                    key="db",
-                )
-            except UnicodeDecodeError:
-                encoding = detect(contents)["encoding"]
-                contents = contents.decode(
-                    encoding
-                )
-                dbc = loads(
-                    contents,
-                    importType=import_type,
-                    import_type=import_type,
-                    key="db",
-                    encoding=encoding,
-                )
+                try:
+                    dbc = loads(
+                        contents,
+                        import_type=import_type,
+                        key="db",
+                    )
+                except UnicodeDecodeError:
+                    encoding = detect(contents)["encoding"]
+                    contents = contents.decode(
+                        encoding
+                    )
+                    dbc = loads(
+                        contents,
+                        importType=import_type,
+                        import_type=import_type,
+                        key="db",
+                        encoding=encoding,
+                    )
+            except:
+                dbc = None
 
     return dbc
