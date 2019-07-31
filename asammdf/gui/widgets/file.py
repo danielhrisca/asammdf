@@ -1403,6 +1403,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             signals = self.mdf.to_dataframe(
                 channels=signals_,
                 ignore_value2text_conversions=self.ignore_value2text_conversions,
+                time_from_zero=False,
             )
         else:
 
