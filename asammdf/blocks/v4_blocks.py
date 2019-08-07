@@ -1590,7 +1590,6 @@ class ChannelGroup:
         "acq_name",
         "acq_source",
         "comment",
-        "name",
         "id",
         "reserved0",
         "block_len",

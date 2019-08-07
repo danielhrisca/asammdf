@@ -2446,7 +2446,7 @@ class MDF4(object):
         # channel group
         kwargs = {"cycles_nr": 0, "samples_byte_nr": 0}
         gp.channel_group = ChannelGroup(**kwargs)
-        gp.channel_group.name = source_info
+        gp.channel_group.acq_name = source_info
 
         if any(sig.invalidation_bits is not None for sig in signals):
             invalidation_bytes_nr = 1
