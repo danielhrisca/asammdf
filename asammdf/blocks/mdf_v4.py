@@ -401,13 +401,16 @@ class MDF4(object):
                     record_id = channel_group.record_id
                     cg_size[record_id] = 0
                 elif channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
-                    bus_type = channel_group.acq_source.bus_type
-                    if bus_type == v4c.BUS_TYPE_CAN:
-                        grp.CAN_logging = True
-
-                    else:
-                        # only CAN bus logging is supported
+                    if channel_group.acq_source is None:
                         grp.CAN_logging = False
+                    else:
+                        bus_type = channel_group.acq_source.bus_type
+                        if bus_type == v4c.BUS_TYPE_CAN:
+                            grp.CAN_logging = True
+
+                        else:
+                            # only CAN bus logging is supported
+                            grp.CAN_logging = False
                     samples_size = channel_group.samples_byte_nr
                     inval_size = channel_group.invalidation_bytes_nr
                     record_id = channel_group.record_id
