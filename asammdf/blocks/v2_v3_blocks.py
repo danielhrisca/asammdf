@@ -273,7 +273,8 @@ class Channel:
                                 mapped=mapped,
                             )
                         except:
-                            print(raw_bytes.hex())
+                            stream.seek(0, 2)
+                            print(address, stream.tell(), raw_bytes.hex())
                             raise
                         cc_map[raw_bytes] = conv
                     self.conversion = conv
