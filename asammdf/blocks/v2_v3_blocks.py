@@ -265,12 +265,16 @@ class Channel:
                     if raw_bytes in cc_map:
                         conv = cc_map[raw_bytes]
                     else:
-                        conv = ChannelConversion(
-                            raw_bytes=raw_bytes,
-                            stream=stream,
-                            address=address,
-                            mapped=mapped,
-                        )
+                        try:
+                            conv = ChannelConversion(
+                                raw_bytes=raw_bytes,
+                                stream=stream,
+                                address=address,
+                                mapped=mapped,
+                            )
+                        except:
+                            print(raw_bytes.hex())
+                            raise
                         cc_map[raw_bytes] = conv
                     self.conversion = conv
 
