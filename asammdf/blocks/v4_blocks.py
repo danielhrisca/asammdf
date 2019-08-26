@@ -603,11 +603,16 @@ class Channel:
                     if raw_bytes in cc_map:
                         conv = cc_map[raw_bytes]
                     else:
-                        conv = ChannelConversion(
-                            raw_bytes=raw_bytes, stream=stream, address=address,
-                            mapped=mapped,
-                        )
-                        cc_map[raw_bytes] = conv
+                        try:
+                            conv = ChannelConversion(
+                                raw_bytes=raw_bytes, stream=stream, address=address,
+                                mapped=mapped,
+                            )
+                            cc_map[raw_bytes] = conv
+                        except Exception as err:
+                            logger.warning(f'Channel conversion parsing error: {err}. The error is ignored and the channel conversion is None')
+                            conv = None
+
                     self.conversion = conv
                 else:
                     self.conversion = None
@@ -763,10 +768,14 @@ class Channel:
                     if raw_bytes in cc_map:
                         conv = cc_map[raw_bytes]
                     else:
-                        conv = ChannelConversion(
-                            raw_bytes=raw_bytes, stream=stream, address=address
-                        )
-                        cc_map[raw_bytes] = conv
+                        try:
+                            conv = ChannelConversion(
+                                raw_bytes=raw_bytes, stream=stream, address=address
+                            )
+                            cc_map[raw_bytes] = conv
+                        except Exception as err:
+                            logger.warning(f'Channel conversion parsing error: {err}. The error is ignored and the channel conversion is None')
+                            conv = None
                     self.conversion = conv
                 else:
                     self.conversion = None
