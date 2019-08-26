@@ -3397,7 +3397,7 @@ class MDF4(object):
         >>> s1 = Signal(samples=s1, timestamps=t, unit='+', name='Positive')
         >>> s2 = Signal(samples=s2, timestamps=t, unit='-', name='Negative')
         >>> s3 = Signal(samples=s3, timestamps=t, unit='flts', name='Floats')
-        >>> mdf = MDF3('new.mdf')
+        >>> mdf = MDF4('new.mdf')
         >>> mdf.append([s1, s2, s3], 'created by asammdf v1.1.0')
         >>> t = np.array([0.006, 0.007, 0.008, 0.009, 0.010])
         >>> # extend without invalidation bits
