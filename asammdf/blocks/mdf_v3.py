@@ -1293,7 +1293,7 @@ class MDF3(object):
                 v23c.SIGNAL_TYPE_STRUCTURE_COMPOSITION,
             ):
                 new_dg_cntr = len(self.groups)
-                new_gp = {}
+                new_gp = Group(None)
                 new_gp.channels = new_gp_channels = []
                 new_gp.channel_dependencies = new_gp_dep = []
                 new_gp.signal_types = new_gp_sig_types = []
@@ -1335,7 +1335,7 @@ class MDF3(object):
                 channel.name = name = time_name
                 channel.source = source
                 channel.conversion = conversion
-                gp_channels.append(channel)
+                new_gp_channels.append(channel)
 
                 self.channels_db.add(name, (new_dg_cntr, new_ch_cntr))
 
@@ -2645,7 +2645,25 @@ class MDF3(object):
         # check if this is a channel array
         if dep:
             if dep.dependency_type == v23c.DEPENDENCY_TYPE_VECTOR:
-                shape = [dep.sd_nr]
+                arrays = []
+                types = []
+
+                for dg_nr, ch_nr in dep.referenced_channels:
+
+                    sig = self.get(
+                        group=dg_nr,
+                        index=ch_nr,
+                        raw=raw,
+                        data=original_data,
+                        record_offset=record_offset,
+                        record_count=record_count,
+                    )
+
+                    arrays.append(sig.samples)
+                    types.append((sig.name, sig.samples.dtype))
+
+                vals = fromarrays(arrays, dtype=types)
+
             elif dep.dependency_type >= v23c.DEPENDENCY_TYPE_NDIM:
                 shape = []
                 i = 0
@@ -2654,33 +2672,33 @@ class MDF3(object):
                         dim = dep[f"dim_{i}"]
                         shape.append(dim)
                         i += 1
-                    except KeyError:
+                    except (KeyError, AttributeError):
                         break
                 shape = shape[::-1]
 
-            record_shape = tuple(shape)
+                record_shape = tuple(shape)
 
-            arrays = [
-                self.get(
-                    group=dg_nr,
-                    index=ch_nr,
-                    samples_only=True,
-                    raw=raw,
-                    data=original_data,
-                    record_offset=record_offset,
-                    record_count=record_count,
-                )[0]
-                for dg_nr, ch_nr in dep.referenced_channels
-            ]
-            shape.insert(0, cycles_nr)
+                arrays = [
+                    self.get(
+                        group=dg_nr,
+                        index=ch_nr,
+                        samples_only=True,
+                        raw=raw,
+                        data=original_data,
+                        record_offset=record_offset,
+                        record_count=record_count,
+                    )[0]
+                    for dg_nr, ch_nr in dep.referenced_channels
+                ]
+                shape.insert(0, cycles_nr)
 
-            vals = column_stack(arrays).flatten().reshape(tuple(shape))
+                vals = column_stack(arrays).flatten().reshape(tuple(shape))
 
-            arrays = [vals]
-            types = [(channel.name, vals.dtype, record_shape)]
+                arrays = [vals]
+                types = [(channel.name, vals.dtype, record_shape)]
 
-            types = dtype(types)
-            vals = fromarrays(arrays, dtype=types)
+                types = dtype(types)
+                vals = fromarrays(arrays, dtype=types)
 
             if not samples_only or raster:
                 timestamps = self.get_master(
@@ -2806,7 +2824,10 @@ class MDF3(object):
                     data_type = channel.data_type
                     channel_dtype = array([], dtype=get_fmt_v3(data_type, bits))
                     if vals.dtype != channel_dtype.dtype:
-                        vals = vals.astype(channel_dtype.dtype)
+                        try:
+                            vals = vals.astype(channel_dtype.dtype)
+                        except ValueError:
+                            pass
 
                 channel_values.append(vals.copy())
                 count += 1

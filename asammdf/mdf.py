@@ -351,7 +351,7 @@ class MDF(object):
                     continue
                 for gp_nr, ch_nr in dep.referenced_channels:
                     if gp_nr == index:
-                        included_channels.add(ch_nr)
+                        included_channels.remove(ch_nr)
         else:
             if group.CAN_logging:
                 where = (
@@ -1608,7 +1608,10 @@ class MDF(object):
                     if dep:
                         for gp_nr, ch_nr in dep.referenced_channels:
                             if gp_nr == group:
-                                included_channels.remove(ch_nr)
+                                try:
+                                    included_channels.remove(ch_nr)
+                                except:
+                                    pass
                 else:
                     dependencies = grp.channel_dependencies[index]
                     if dependencies is None:
