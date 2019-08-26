@@ -236,6 +236,8 @@ class MDF3(object):
                 if split_size == 0:
                     split_size = samples_size
 
+                split_size = int(split_size)
+
                 blocks = iter(group.data_blocks)
 
                 cur_size = 0
