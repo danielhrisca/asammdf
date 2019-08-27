@@ -35,7 +35,7 @@
       <enum>QTabWidget::West</enum>
      </property>
      <property name="currentIndex">
-      <number>7</number>
+      <number>8</number>
      </property>
      <property name="documentMode">
       <bool>false</bool>
@@ -1278,7 +1278,7 @@
        <item row="0" column="0">
         <widget class="QTreeWidget" name="info">
          <property name="uniformRowHeights">
-          <bool>true</bool>
+          <bool>false</bool>
          </property>
          <column>
           <property name="text">

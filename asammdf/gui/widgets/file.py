@@ -448,6 +448,11 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         item.setText(1, self.mdf.header.start_time.strftime('%d-%b-%Y %H:%M:%S + %fus UTC'))
         children.append(item)
 
+        item = QtWidgets.QTreeWidgetItem()
+        item.setText(0, 'Measurement comment')
+        item.setText(1, self.mdf.header.comment)
+        children.append(item)
+
         channel_groups = QtWidgets.QTreeWidgetItem()
         channel_groups.setText(0, 'Channel groups')
         channel_groups.setText(1, str(len(self.mdf.groups)))

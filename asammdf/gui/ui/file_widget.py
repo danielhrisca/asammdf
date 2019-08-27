@@ -541,7 +541,7 @@ class Ui_file_widget(object):
         self.gridLayout_9 = QtWidgets.QGridLayout(self.info_tab)
         self.gridLayout_9.setObjectName("gridLayout_9")
         self.info = QtWidgets.QTreeWidget(self.info_tab)
-        self.info.setUniformRowHeights(True)
+        self.info.setUniformRowHeights(False)
         self.info.setObjectName("info")
         self.gridLayout_9.addWidget(self.info, 0, 0, 1, 1)
         icon12 = QtGui.QIcon()
@@ -550,7 +550,7 @@ class Ui_file_widget(object):
         self.verticalLayout.addWidget(self.aspects)
 
         self.retranslateUi(file_widget)
-        self.aspects.setCurrentIndex(7)
+        self.aspects.setCurrentIndex(8)
         QtCore.QMetaObject.connectSlotsByName(file_widget)
 
     def retranslateUi(self, file_widget):
