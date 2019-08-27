@@ -82,12 +82,21 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
         self._original_index = self.signals.index.values
 
-        self.build(self.signals)
+        self.build(self.signals, True)
 
         self.add_filter_btn.clicked.connect(self.add_filter)
         self.apply_filters_btn.clicked.connect(self.apply_filters)
         self.sort.stateChanged.connect(self.sorting_changed)
         self.time_as_date.stateChanged.connect(self.time_as_date_changed)
+        self.remove_prefix.stateChanged.connect(self.remove_prefix_changed)
+
+        prefixes = set()
+        for name in self.signals.columns:
+            if '.' in name:
+                prefixes.add(f'{name.split(".")[0]}.')
+
+        self.prefix.insertItems(0, sorted(prefixes))
+        self.prefix.setEnabled(False)
 
     def add_filter(self, event=None):
         filter_widget = TabularFilter(
@@ -190,7 +199,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             self.signals.pop(name)
         self.build()
 
-    def build(self, df):
+    def build(self, df, reset_header_names=False):
         self.tree.setSortingEnabled(False)
         self.tree.clear()
 
@@ -204,10 +213,27 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         for name, s in dropped.items():
             df[name] = s
 
+        if self.remove_prefix.checkState() == QtCore.Qt.Checked:
+            prefix = self.prefix.currentText()
+            dim = len(prefix)
+
+            dropped = {}
+
+            for name_ in df.columns:
+                if name_.startswith(prefix):
+                    dropped[name_] = pd.Series(df[name_], index=df.index)
+
+            df = df.drop(columns=list(dropped))
+            for name, s in dropped.items():
+                df[name[dim:]] = s
+
         names = [
             df.index.name,
             *df.columns
         ]
+
+        if reset_header_names:
+            self.header_names = names
 
         self.tree.setColumnCount(len(names))
         self.tree.setHeaderLabels(names)
@@ -243,7 +269,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         for sig in channels:
             if sig:
                 self.signals[sig.name] = sig
-        self.build()
+        self.build(self.signals, reset_header_names=True)
 
     def to_config(self):
 
@@ -294,3 +320,18 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             self.apply_filters()
         else:
             self.build(self.signals)
+
+    def remove_prefix_changed(self, state):
+
+        if state == QtCore.Qt.Checked:
+            self.prefix.setEnabled(True)
+            prefix = self.prefix.currentText()
+            dim = len(prefix)
+            names = [
+                name[dim:] if name.startswith(prefix) else name
+                for name in self.header_names
+            ]
+            self.tree.setHeaderLabels(names)
+        else:
+            self.prefix.setEnabled(False)
+            self.tree.setHeaderLabels(self.header_names)
