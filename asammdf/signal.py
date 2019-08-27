@@ -590,7 +590,7 @@ class Signal(object):
                     else:
                         samples = self.samples[start:stop].copy()
                         timestamps = self.timestamps[start:stop].copy()
-                        if self.invalidation_bits:
+                        if self.invalidation_bits is not None:
                             invalidation_bits = self.invalidation_bits[
                                 start:stop
                             ].copy()
