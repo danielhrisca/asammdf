@@ -23,7 +23,7 @@ class Signal(object):
     The operations are computed in respect to the timestamps (time correct).
     The non-float signals are not interpolated, instead the last value relative
     to the current timestamp is used.
-    *samples*, *timstamps* and *name* are mandatory arguments.
+    *samples*, *timestamps* and *name* are mandatory arguments.
 
     Parameters
     ----------
