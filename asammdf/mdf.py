@@ -2923,7 +2923,7 @@ class MDF(object):
                     ).astype(parts[0][0].dtype)
                     if sig.invalidation_bits is not None:
                         invalidation_bits = np.concatenate(
-                            [part[0] for part in parts]
+                            [part[1] for part in parts]
                         )
                     else:
                         invalidation_bits = None
