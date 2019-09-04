@@ -2630,24 +2630,18 @@ class HeaderBlock:
             self.comment_addr = 0
             self.program_addr = 0
             self.dg_nr = 0
-            t1 = time.time() * 10 ** 9
-            t2 = time.gmtime()
-            self.date = "{:0<10}".format(time.strftime("%d:%m:%Y", t2)).encode(
-                "latin-1"
-            )
-            self.time = "{:0<8}".format(time.strftime("%X", t2)).encode("latin-1")
             self.author_field = "{:0<32}".format(getuser()).encode("latin-1")
             self.department_field = "{:0<32}".format("").encode("latin-1")
             self.project_field = "{:0<32}".format("").encode("latin-1")
             self.subject_field = "{:0<32}".format("").encode("latin-1")
 
             if self.block_len > v23c.HEADER_COMMON_SIZE:
-                self.abs_time = int(t1)
-                self.tz_offset = 2
                 self.time_quality = 0
                 self.timer_identification = "{:0<32}".format(
                     "Local PC Reference Time"
                 ).encode("latin-1")
+
+            self.start_time = datetime(1980, 1, 1)
 
         self.author = self.author_field.strip(b" \r\n\t\0").decode("latin-1")
         self.department = self.department_field.strip(b" \r\n\t\0").decode("latin-1")

@@ -4488,7 +4488,7 @@ class HeaderBlock:
             self.comment_addr = kwargs.get("comment_addr", 0)
             self.abs_time = kwargs.get(
                 "abs_time",
-                int(datetime.now(tz=timezone.utc).timestamp() * 10 ** 9)
+                0,
             )
             self.tz_offset = kwargs.get("tz_offset", 0)
             self.daylight_save_time = kwargs.get("daylight_save_time", 0)
@@ -4498,6 +4498,8 @@ class HeaderBlock:
             self.reserved1 = kwargs.get("reserved4", 0)
             self.start_angle = kwargs.get("start_angle", 0)
             self.start_distance = kwargs.get("start_distance", 0)
+
+            self.start_time = datetime(1980, 1, 1)
 
         if self.comment.startswith("<HDcomment"):
             comment = self.comment
