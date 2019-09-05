@@ -212,9 +212,9 @@ def get_text_v3(address, stream, mapped=False):
         text_bytes = stream.read(size)
     try:
         text = text_bytes.strip(b" \r\t\n\0").decode("latin-1")
-    except UnicodeDecodeError as err:
+    except UnicodeDecodeError:
         encoding = detect(text_bytes)["encoding"]
-        text = text_bytes.strip(b" \r\t\n\0").decode(encoding)
+        text = text_bytes.strip(b" \r\t\n\0").decode(encoding, 'ignore')
 
     return text
 
@@ -248,9 +248,9 @@ def get_text_v4(address, stream, mapped=False):
         text_bytes = stream.read(size - 24)
     try:
         text = text_bytes.strip(b" \r\t\n\0").decode("utf-8")
-    except UnicodeDecodeError as err:
+    except UnicodeDecodeError:
         encoding = detect(text_bytes)["encoding"]
-        text = text_bytes.decode(encoding).strip(" \r\t\n\0")
+        text = text_bytes.strip(" \r\t\n\0").decode(encoding, 'ignore')
 
     return text
 
