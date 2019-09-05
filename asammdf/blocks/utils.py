@@ -250,7 +250,7 @@ def get_text_v4(address, stream, mapped=False):
         text = text_bytes.strip(b" \r\t\n\0").decode("utf-8")
     except UnicodeDecodeError:
         encoding = detect(text_bytes)["encoding"]
-        text = text_bytes.strip(" \r\t\n\0").decode(encoding, 'ignore')
+        text = text_bytes.strip(b" \r\t\n\0").decode(encoding, 'ignore')
 
     return text
 
