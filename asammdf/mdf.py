@@ -3364,6 +3364,7 @@ class MDF(object):
         reduce_memory_usage=False,
         raw=False,
         ignore_value2text_conversions=False,
+        use_interpolation=True,
     ):
         """ generate pandas DataFrame
 
@@ -3412,6 +3413,14 @@ class MDF(object):
 
             .. versionadded:: 5.8.0
 
+        use_interpolation (True) : bool
+            option to perform interpoaltions when multiple timestamp raster are
+            present. If *False* then dataframe columns will be automatically
+            filled with NaN's were the dataframe index values are not found in
+            the current column's timestamps
+
+            .. versionadded:: 5.11.0
+
 
         Returns
         -------
@@ -3431,6 +3440,7 @@ class MDF(object):
                 reduce_memory_usage=reduce_memory_usage,
                 raw=raw,
                 ignore_value2text_conversions=ignore_value2text_conversions,
+                use_interpolation=use_interpolation,
             )
 
         df = pd.DataFrame()
@@ -3464,7 +3474,6 @@ class MDF(object):
                 master = np.array([], dtype='<f4')
 
         df["time"] = pd.Series(master, index=np.arange(len(master)))
-
         df.set_index('time', inplace=True)
 
         used_names = UniqueDB()
@@ -3547,25 +3556,37 @@ class MDF(object):
                     else:
                         invalidation_bits[idx] = np.concatenate(parts)
 
-            signals = [
-                Signal(
-                    samples,
-                    timestamps,
-                    name=channels[idx].name,
-                    invalidation_bits=invalidation,
-                )
-                .validate()
-                .interp(
-                    master,
-                    self._integer_interpolation,
-                )
-                for samples, invalidation, idx in zip(signals, invalidation_bits, included_channels)
-            ]
+            if not use_interpolation:
+                signals = [
+                    Signal(
+                        samples,
+                        timestamps,
+                        name=channels[idx].name,
+                        invalidation_bits=invalidation,
+                    )
+                    .validate()
+                    for samples, invalidation, idx in zip(signals, invalidation_bits, included_channels)
+                ]
+            else:
+                signals = [
+                    Signal(
+                        samples,
+                        timestamps,
+                        name=channels[idx].name,
+                        invalidation_bits=invalidation,
+                    )
+                    .validate()
+                    .interp(
+                        master,
+                        self._integer_interpolation,
+                    )
+                    for samples, invalidation, idx in zip(signals, invalidation_bits, included_channels)
+                ]
 
             for sig in signals:
                 if len(sig) == 0:
                     if empty_channels == "zeros":
-                        sig.samples = np.zeros(len(master), dtype=sig.samples.dtype)
+                        sig.samples = np.zeros(len(df.index), dtype=sig.samples.dtype)
                     else:
                         continue
 
@@ -3582,11 +3603,14 @@ class MDF(object):
 
                     channel_name = used_names.get_unique_name(channel_name)
 
-                    df[channel_name] = pd.Series(list(sig.samples), index=master)
+                    df[channel_name] = pd.Series(
+                        list(sig.samples),
+                        index=sig.timestamps,
+                    )
 
                 # arrays and structures
                 elif sig.samples.dtype.names:
-                    for name, series in components(sig.samples, sig.name, used_names, master=master):
+                    for name, series in components(sig.samples, sig.name, used_names, master=sig.timestamps):
                         df[name] = series
 
                 # scalars
@@ -3601,13 +3625,13 @@ class MDF(object):
                     if reduce_memory_usage and sig.samples.dtype.kind in 'SU':
                         unique = np.unique(sig.samples)
                         if len(sig.samples) / len(unique) >= 2:
-                            df[channel_name] = pd.Series(sig.samples, index=master, dtype="category")
+                            df[channel_name] = pd.Series(sig.samples, index=sig.timestamps, dtype="category")
                         else:
-                            df[channel_name] = pd.Series(sig.samples, index=master)
+                            df[channel_name] = pd.Series(sig.samples, index=sig.timestamps)
                     else:
                         if reduce_memory_usage:
                             sig.samples = downcast(sig.samples)
-                        df[channel_name] = pd.Series(sig.samples, index=master)
+                        df[channel_name] = pd.Series(sig.samples, index=sig.timestamps)
 
             if self._callback:
                 self._callback(group_index + 1, groups_nr)
