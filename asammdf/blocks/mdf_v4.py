@@ -775,6 +775,8 @@ class MDF4(object):
 
         dependencies = grp.channel_dependencies
 
+        unique_names = UniqueDB()
+
         composition = []
         composition_dtype = []
 
@@ -860,7 +862,7 @@ class MDF4(object):
                 dependencies.append(None)
                 if channel_composition:
                     channel.dtype_fmt = get_fmt_v4(channel.data_type, channel.bit_offset + channel.bit_count, channel.channel_type)
-                    composition_dtype.append((channel.name, channel.dtype_fmt))
+                    composition_dtype.append((unique_names.get_unique_name(channel.name), channel.dtype_fmt))
 
             # go to next channel of the current channel group
             ch_addr = channel.next_ch_addr
@@ -3989,8 +3991,12 @@ class MDF4(object):
 
                         count += 1
                 else:
+                    unique_names = UniqueDB()
                     fast_path = False
-                    names = [grp.channels[ch_nr].name for _, ch_nr in dependency_list]
+                    names = [
+                        unique_names.get_unique_name(grp.channels[ch_nr].name)
+                        for _, ch_nr in dependency_list
+                    ]
 
                     channel_values = [[] for _ in dependency_list]
                     timestamps = []
