@@ -63,7 +63,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             for name_ in signals.columns:
                 col = signals[name_]
                 if col.dtype.kind == 'O':
-                    dropped[name_] = pd.Series(csv_bytearray2hex(col), index=signals.index)
+#                    dropped[name_] = pd.Series(csv_bytearray2hex(col), index=signals.index)
                     self.signals_descr[name_] = 1
                 elif col.dtype.kind == 'S':
                     try:
@@ -89,6 +89,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         self.sort.stateChanged.connect(self.sorting_changed)
         self.time_as_date.stateChanged.connect(self.time_as_date_changed)
         self.remove_prefix.stateChanged.connect(self.remove_prefix_changed)
+        self.tree.header().sortIndicatorChanged.connect(self._sort)
 
         prefixes = set()
         for name in self.signals.columns:
@@ -97,6 +98,36 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
         self.prefix.insertItems(0, sorted(prefixes))
         self.prefix.setEnabled(False)
+
+        self.tree_scroll.valueChanged.connect(self._display)
+        self.tree.verticalScrollBar().valueChanged.connect(self._scroll_tree)
+
+    def _scroll_tree(self, value):
+        if value == self.tree.verticalScrollBar().minimum() and self.tree_scroll.value() != self.tree_scroll.minimum():
+            self.tree_scroll.setValue(self.tree_scroll.value() - self.tree_scroll.singleStep())
+            self.tree.verticalScrollBar().setValue(self.tree.verticalScrollBar().value() + self.tree.verticalScrollBar().singleStep())
+        elif value == self.tree.verticalScrollBar().maximum():
+            self.tree_scroll.setValue(self.tree_scroll.value() + self.tree_scroll.singleStep())
+            self.tree.verticalScrollBar().setValue(self.tree.verticalScrollBar().value() - self.tree.verticalScrollBar().singleStep())
+
+    def _sort(self, index, mode):
+        ascending = mode == QtCore.Qt.AscendingOrder
+        names = [
+            self.df.index.name,
+            *self.df.columns
+        ]
+        name = names[index]
+
+        if index:
+            try:
+                self.df.sort_values(by=[name, 'time'], ascending=ascending, inplace=True)
+            except:
+                pass
+        else:
+            self.df.sort_index(ascending=ascending, inplace=True)
+
+        self.tree_scroll.setSliderPosition(self.tree_scroll.maximum())
+        self.tree_scroll.setSliderPosition(self.tree_scroll.minimum())
 
     def add_filter(self, event=None):
         filter_widget = TabularFilter(
@@ -203,16 +234,6 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         self.tree.setSortingEnabled(False)
         self.tree.clear()
 
-        dropped = {}
-
-        for name_ in df.columns:
-            if name_.endswith('CAN_DataFrame.ID'):
-                dropped[name_] = pd.Series(csv_int2hex(df[name_].astype('<u4')), index=df.index)
-
-        df = df.drop(columns=list(dropped))
-        for name, s in dropped.items():
-            df[name] = s
-
         if self.remove_prefix.checkState() == QtCore.Qt.Checked:
             prefix = self.prefix.currentText()
             dim = len(prefix)
@@ -238,6 +259,24 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         self.tree.setColumnCount(len(names))
         self.tree.setHeaderLabels(names)
 
+        self.df = df
+        self.size = len(df.index)
+        self.position = 0
+
+        count = max(1, self.size // 10 + 1)
+
+        self.tree_scroll.setMaximum(count)
+
+        self.tree_scroll.setSliderPosition(0)
+
+        self._display(0)
+
+    def _display(self, position):
+        self.tree.setSortingEnabled(False)
+        self.tree.clear()
+
+        df = self.df.iloc[max(0, position*10 - 50): max(0, position*10+100)]
+
         if df.index.dtype.kind == 'M':
             index = df.index.tz_localize('UTC').tz_convert(LOCAL_TIMEZONE)
         else:
@@ -248,15 +287,26 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             column = df[name]
             kind = column.dtype.kind
 
-            if kind in 'uif':
-                items.append(column.astype(str))
-            elif kind == 'S':
-                try:
-                    items.append(npchar.decode(column, 'utf-8'))
-                except:
-                    items.append(npchar.decode(column, 'latin-1'))
+            if name.endswith('CAN_DataFrame.ID'):
+                items.append(pd.Series(csv_int2hex(df[name].astype('<u4'))).values)
             else:
-                items.append(column)
+
+                if kind in 'uif':
+                    items.append(column.astype(str))
+                elif kind == 'S':
+                    try:
+                        items.append(npchar.decode(column, 'utf-8'))
+                    except:
+                        items.append(npchar.decode(column, 'latin-1'))
+                elif kind == 'O':
+                    items.append(pd.Series(csv_bytearray2hex(df[name])).values)
+                else:
+                    items.append(column)
+
+        if position == 0:
+            self.tree.verticalScrollBar().setSliderPosition(0)
+        elif position == self.tree_scroll.maximum():
+            self.tree.verticalScrollBar().setSliderPosition(self.tree.verticalScrollBar().maximum())
 
         items = [
             TreeItem(row)
@@ -264,6 +314,8 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         ]
 
         self.tree.addTopLevelItems(items)
+
+        self.tree.setSortingEnabled(self.sort.checkState() == QtCore.Qt.Checked)
 
     def add_new_channels(self, channels):
         for sig in channels:
@@ -291,9 +343,11 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
     def sorting_changed(self, state):
         if state == QtCore.Qt.Checked:
             self.tree.setSortingEnabled(True)
-        else:
             self.tree.header().setSortIndicator(0, QtCore.Qt.AscendingOrder)
+        else:
             self.tree.setSortingEnabled(False)
+
+        self._display(0)
 
     def time_as_date_changed(self, state):
         count = self.filters.count()

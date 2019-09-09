@@ -2105,7 +2105,7 @@ class MDF(object):
 
                         if signals and len(signals[0]):
                             if offset > 0:
-                                timestamps = sig[0].timestamps + offset
+                                timestamps = signals[0].timestamps + offset
                                 for sig in signals:
                                     sig.timestamps = timestamps
                             last_timestamp = signals[0].timestamps[-1]
