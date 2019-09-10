@@ -2040,33 +2040,31 @@ class MDF4(object):
                         )
                 # or a DataZippedBlock
                 elif id_string == b"##DZ":
-                    temp = {}
                     (
-                        temp["id"],
-                        temp["reserved0"],
-                        temp["block_len"],
-                        temp["links_nr"],
-                        temp["original_type"],
-                        temp["zip_type"],
-                        temp["reserved1"],
-                        temp["param"],
-                        temp["original_size"],
-                        temp["zip_size"],
+                        _1,
+                        _2,
+                        _3,
+                        _4,
+                        original_type,
+                        zip_type,
+                        _5,
+                        param,
+                        original_size,
+                        zip_size,
                     ) = v4c.DZ_COMMON_uf(stream, address)
 
-                    if temp["original_size"]:
-                        if temp["zip_type"] == v4c.FLAG_DZ_DEFLATE:
+                    if original_size:
+                        if zip_type == v4c.FLAG_DZ_DEFLATE:
                             block_type_ = v4c.DZ_BLOCK_DEFLATE
                             param = 0
                         else:
                             block_type_ = v4c.DZ_BLOCK_TRANSPOSED
-                            param = temp["param"]
                         info.append(
                             DataBlockInfo(
                                 address=address + v4c.DZ_COMMON_SIZE,
                                 block_type=block_type_,
-                                raw_size=temp["original_size"],
-                                size=temp["zip_size"],
+                                raw_size=original_size,
+                                size=zip_size,
                                 param=param,
                             )
                         )
@@ -2078,7 +2076,7 @@ class MDF4(object):
                         for i in range(dl.data_block_nr):
                             addr = dl[f"data_block_addr{i}"]
 
-                            id_string, _, block_len, __ = COMMON_uf(stream, addr)
+                            id_string, _1, block_len, _2 = COMMON_uf(stream, addr)
                             # can be a DataBlock
                             if id_string == block_type:
                                 size = block_len - 24
@@ -2094,33 +2092,31 @@ class MDF4(object):
                                     )
                             # or a DataZippedBlock
                             elif id_string == b"##DZ":
-                                temp = {}
                                 (
-                                    temp["id"],
-                                    temp["reserved0"],
-                                    temp["block_len"],
-                                    temp["links_nr"],
-                                    temp["original_type"],
-                                    temp["zip_type"],
-                                    temp["reserved1"],
-                                    temp["param"],
-                                    temp["original_size"],
-                                    temp["zip_size"],
-                                ) = v4c.DZ_COMMON_uf(stream, addr)
+                                    _1,
+                                    _2,
+                                    _3,
+                                    _4,
+                                    original_type,
+                                    zip_type,
+                                    _5,
+                                    param,
+                                    original_size,
+                                    zip_size,
+                                ) = v4c.DZ_COMMON_uf(stream, address)
 
-                                if temp["original_size"]:
-                                    if temp["zip_type"] == v4c.FLAG_DZ_DEFLATE:
+                                if original_size:
+                                    if zip_type == v4c.FLAG_DZ_DEFLATE:
                                         block_type_ = v4c.DZ_BLOCK_DEFLATE
                                         param = 0
                                     else:
                                         block_type_ = v4c.DZ_BLOCK_TRANSPOSED
-                                        param = temp["param"]
                                     info.append(
                                         DataBlockInfo(
-                                            address=addr + v4c.DZ_COMMON_SIZE,
+                                            address=address + v4c.DZ_COMMON_SIZE,
                                             block_type=block_type_,
-                                            raw_size=temp["original_size"],
-                                            size=temp["zip_size"],
+                                            raw_size=original_size,
+                                            size=zip_size,
                                             param=param,
                                         )
                                     )
@@ -2140,7 +2136,7 @@ class MDF4(object):
 
             if address:
                 stream.seek(address)
-                id_string, _, block_len, __ = COMMON_u(stream.read(COMMON_SIZE))
+                id_string, _1, block_len, _2 = COMMON_u(stream.read(COMMON_SIZE))
 
                 # can be a DataBlock
                 if id_string == block_type:
@@ -2158,33 +2154,31 @@ class MDF4(object):
                 # or a DataZippedBlock
                 elif id_string == b"##DZ":
                     stream.seek(address)
-                    temp = {}
                     (
-                        temp["id"],
-                        temp["reserved0"],
-                        temp["block_len"],
-                        temp["links_nr"],
-                        temp["original_type"],
-                        temp["zip_type"],
-                        temp["reserved1"],
-                        temp["param"],
-                        temp["original_size"],
-                        temp["zip_size"],
+                        _1,
+                        _2,
+                        _3,
+                        _4,
+                        original_type,
+                        zip_type,
+                        _5,
+                        param,
+                        original_size,
+                        zip_size,
                     ) = v4c.DZ_COMMON_u(stream.read(v4c.DZ_COMMON_SIZE))
 
-                    if temp["original_size"]:
-                        if temp["zip_type"] == v4c.FLAG_DZ_DEFLATE:
+                    if original_size:
+                        if zip_type == v4c.FLAG_DZ_DEFLATE:
                             block_type_ = v4c.DZ_BLOCK_DEFLATE
                             param = 0
                         else:
                             block_type_ = v4c.DZ_BLOCK_TRANSPOSED
-                            param = temp["param"]
                         info.append(
                             DataBlockInfo(
                                 address=address + v4c.DZ_COMMON_SIZE,
                                 block_type=block_type_,
-                                raw_size=temp["original_size"],
-                                size=temp["zip_size"],
+                                raw_size=original_size,
+                                size=zip_size,
                                 param=param,
                             )
                         )
@@ -2216,33 +2210,31 @@ class MDF4(object):
                             # or a DataZippedBlock
                             elif id_string == b"##DZ":
                                 stream.seek(addr)
-                                temp = {}
                                 (
-                                    temp["id"],
-                                    temp["reserved0"],
-                                    temp["block_len"],
-                                    temp["links_nr"],
-                                    temp["original_type"],
-                                    temp["zip_type"],
-                                    temp["reserved1"],
-                                    temp["param"],
-                                    temp["original_size"],
-                                    temp["zip_size"],
+                                    _1,
+                                    _2,
+                                    _3,
+                                    _4,
+                                    original_type,
+                                    zip_type,
+                                    _5,
+                                    param,
+                                    original_size,
+                                    zip_size,
                                 ) = v4c.DZ_COMMON_u(stream.read(v4c.DZ_COMMON_SIZE))
 
-                                if temp["original_size"]:
-                                    if temp["zip_type"] == v4c.FLAG_DZ_DEFLATE:
+                                if original_size:
+                                    if zip_type == v4c.FLAG_DZ_DEFLATE:
                                         block_type_ = v4c.DZ_BLOCK_DEFLATE
                                         param = 0
                                     else:
                                         block_type_ = v4c.DZ_BLOCK_TRANSPOSED
-                                        param = temp["param"]
                                     info.append(
                                         DataBlockInfo(
-                                            address=addr + v4c.DZ_COMMON_SIZE,
+                                            address=address + v4c.DZ_COMMON_SIZE,
                                             block_type=block_type_,
-                                            raw_size=temp["original_size"],
-                                            size=temp["zip_size"],
+                                            raw_size=original_size,
+                                            size=zip_size,
                                             param=param,
                                         )
                                     )
