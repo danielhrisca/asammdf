@@ -921,16 +921,16 @@ def main(text_output, fmt):
     output.append('    * {} groups'.format(v4_groups))
     output.append('    * {} channels\n\n'.format(v4_channels))
 
-    OPEN, SAVE, GET, CONVERT, MERGE, FILTER, CUT = 1, 0, 0, 0, 0, 0, 0
+    OPEN, SAVE, GET, CONVERT, MERGE, FILTER, CUT = 1, 1, 1, 1, 1, 0, 0
 
     tests = (
-#          open_mdf3,
-#          open_reader3,
-#          open_reader3_compression,
-#          open_reader3_nodata,
+          open_mdf3,
+          open_reader3,
+          open_reader3_compression,
+          open_reader3_nodata,
          open_mdf4,
-#          open_reader4,
-#          open_reader4_compression,
+          open_reader4,
+          open_reader4_compression,
           open_reader4_nodata,
     )
 

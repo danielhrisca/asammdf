@@ -3431,12 +3431,14 @@ class MDF3(object):
             return
         common = defaultdict(list)
         for i, group in enumerate(self.groups):
+
             if group.sorted:
                 continue
 
-            address = group.data_blocks[0].address
+            if group.data_blocks:
+                address = group.data_blocks[0].address
 
-            common[address].append((i, group.channel_group.record_id))
+                common[address].append((i, group.channel_group.record_id))
 
         read = self._file.read
         seek = self._file.seek
