@@ -1475,7 +1475,7 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
 def csv_int2hex(val):
     """ format CAN id as hex
 
-    100 -> 0x64
+    100 -> 64
 
     """
 
@@ -1487,7 +1487,7 @@ csv_int2hex = np.vectorize(csv_int2hex, otypes=[str])
 def csv_bytearray2hex(val):
     """ format CAN payload as hex strings
 
-    b'\xa2\xc3\x08' -> a2 c3 08
+    b'\xa2\xc3\x08' -> A2 C3 08
 
     """
     val = val.tobytes().hex().upper()

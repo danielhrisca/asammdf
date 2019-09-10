@@ -838,7 +838,7 @@ class MDF4(object):
                     dependencies[index] = ret_composition
 
                     channel.dtype_fmt = ret_composition_dtype
-                    composition_dtype.append((channel.name, channel.dtype_fmt))
+                    composition_dtype.append((unique_names.get_unique_name(channel.name), channel.dtype_fmt))
 
                 else:
                     # only channel arrays with storage=CN_TEMPLATE are
