@@ -1624,9 +1624,12 @@ class MDF4(object):
         if attachment_addr:
             kwargs["attachment_addr"] = attachment_addr
 
-        if signal.source and signal.source.source_type == 2:
+        source_bus = signal.source and signal.source.source_type == v4c.SOURCE_BUS
+
+        if source_bus:
             kwargs["flags"] = v4c.FLAG_CN_BUS_EVENT
             flags_ = v4c.FLAG_CN_BUS_EVENT
+            grp.channel_group.flags = v4c.FLAG_CG_BUS_EVENT
         else:
             kwargs["flags"] = 0
             flags_ = 0
@@ -1644,11 +1647,9 @@ class MDF4(object):
         ch.display_name = signal.display_name
         ch.attachment = attachment
 
-        if name in ('CAN_DataFrame', 'CAN_ErrorFrame'):
-            grp.channel_group.flags = v4c.FLAG_CG_BUS_EVENT
+        if source_bus and signal.source.bus_type == v4c.BUS_TYPE_CAN:
             grp.channel_group.path_separator = 46
             grp.CAN_logging = True
-            ch.flags |= v4c.FLAG_CN_BUS_EVENT
             grp.channel_group.acq_name = 'CAN'
             grp.channel_group.acq_source = SourceInformation(
                 source_type=v4c.SOURCE_BUS,
