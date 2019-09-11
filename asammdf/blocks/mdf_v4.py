@@ -945,12 +945,14 @@ class MDF4(object):
                     bus_ids = frame['CAN_DataFrame.BusChannel']
                     can_ids = frame['CAN_DataFrame.ID']
 
-                    for can_id, message_id in unique(column_stack((bus_ids.astype(int), can_ids)), axis=0):
-                        can_id = f'CAN{can_id}'
-                        if can_id not in self.can_logging_db:
-                            self.can_logging_db[can_id] = {}
-                        grp.CAN_id = can_id
-                        self.can_logging_db[can_id][message_id] = i
+                    if len(bus_ids):
+
+                        for can_id, message_id in unique(column_stack((bus_ids.astype(int), can_ids)), axis=0):
+                            can_id = f'CAN{can_id}'
+                            if can_id not in self.can_logging_db:
+                                self.can_logging_db[can_id] = {}
+                            grp.CAN_id = can_id
+                            self.can_logging_db[can_id][message_id] = i
 
                     grp.message_id = set(unique(can_ids))
 
@@ -6092,9 +6094,10 @@ class MDF4(object):
             if group.sorted:
                 continue
 
-            address = group.data_blocks[0].address
+            if group.data_blocks:
+                address = group.data_blocks[0].address
 
-            common[address].append((i, group.channel_group.record_id))
+                common[address].append((i, group.channel_group.record_id))
 
         read = self._file.read
         seek = self._file.seek

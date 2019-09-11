@@ -745,13 +745,9 @@ def validate_version_argument(version, hint=4):
 
 
 class ChannelsDB(dict):
-    def __init__(self, version=4):
 
+    def __init__(self, version=4):
         super().__init__()
-        if version == 4:
-            self.encoding = "utf-8"
-        else:
-            self.encoding = "latin-1"
 
     def add(self, channel_name, entry):
         """ add name to channels database and check if it contains a source
