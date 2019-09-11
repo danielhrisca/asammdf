@@ -1619,11 +1619,18 @@ class MDF4(object):
             "bit_offset": 0,
             "data_type": v4c.DATA_TYPE_BYTEARRAY,
             "precision": 0,
-            "flags": 0,
         }
+
         if attachment_addr:
             kwargs["attachment_addr"] = attachment_addr
-            kwargs["flags"] |= v4c.FLAG_CN_BUS_EVENT
+
+        if signal.source and signal.source.source_type == 2:
+            kwargs["flags"] = v4c.FLAG_CN_BUS_EVENT
+            flags_ = v4c.FLAG_CN_BUS_EVENT
+        else:
+            kwargs["flags"] = 0
+            flags_ = 0
+
         if invalidation_bytes_nr and signal.invalidation_bits is not None:
             inval_bits.append(signal.invalidation_bits)
             kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
@@ -1740,11 +1747,8 @@ class MDF4(object):
                     "byte_offset": offset,
                     "bit_offset": 0,
                     "data_type": s_type,
-                    "flags": 0,
+                    "flags": flags_,
                 }
-
-                if attachment_addr:
-                    kwargs["flags"] |= v4c.FLAG_CN_BUS_EVENT
 
                 if invalidation_bytes_nr:
                     if signal.invalidation_bits is not None:
