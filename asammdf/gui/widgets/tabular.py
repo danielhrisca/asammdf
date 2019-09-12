@@ -19,32 +19,6 @@ logger = logging.getLogger("asammdf.gui")
 LOCAL_TIMEZONE = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
 
 
-class TreeItem(QtWidgets.QTreeWidgetItem):
-
-    def __lt__(self, otherItem):
-        column = self.treeWidget().sortColumn()
-
-        val1 = self.text(column)
-        try:
-            val1 = float(val1)
-        except:
-            pass
-
-        val2 = otherItem.text(column)
-        try:
-            val2 = float(val2)
-        except:
-            pass
-
-        try:
-            return val1 < val2
-        except:
-            if isinstance(val1, float):
-                return True
-            else:
-                return False
-
-
 class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
     add_channels_request = QtCore.pyqtSignal(list)
 
@@ -309,7 +283,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             self.tree.verticalScrollBar().setSliderPosition(self.tree.verticalScrollBar().maximum())
 
         items = [
-            TreeItem(row)
+            QtWidgets.QTreeWidgetItem(row)
             for row in zip(*items)
         ]
 
