@@ -94,7 +94,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
         if index:
             try:
-                self.df.sort_values(by=[name, 'time'], ascending=ascending, inplace=True)
+                self.df.sort_values(by=[name, 'timestamps'], ascending=ascending, inplace=True)
             except:
                 pass
         else:
@@ -342,7 +342,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                 filter._target = None
                 filter.validate_target()
             self.signals.index = self._original_index
-        self.signals.index.name = 'time'
+        self.signals.index.name = 'timestamps'
 
         if self.query.toPlainText():
             self.apply_filters()

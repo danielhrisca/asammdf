@@ -483,6 +483,9 @@ class MDF(object):
 
         cg_nr = -1
 
+        from time import perf_counter
+        start_ = perf_counter()
+
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
 
@@ -508,6 +511,8 @@ class MDF(object):
                 if idx == 0:
                     sigs = []
                     for j in included_channels:
+                        if perf_counter() - start_ > 120:
+                            return
                         sig = self.get(
                             group=i,
                             index=j,
@@ -572,6 +577,8 @@ class MDF(object):
                     ]
 
                     for k, j in enumerate(included_channels):
+                        if perf_counter() - start_ > 120:
+                            return
                         sig = self.get(
                             group=i,
                             index=j,
@@ -1272,7 +1279,7 @@ class MDF(object):
                         .astype(str)
                     )
                     df.index = index
-                    df.index.name = 'time'
+                    df.index.name = 'timestamps'
 
                 with open(filename, "w", newline="") as csvfile:
                     writer = csv.writer(csvfile)
@@ -1347,7 +1354,7 @@ class MDF(object):
                             .astype(str)
                         )
                         df.index = index
-                        df.index.name = 'time'
+                        df.index.name = 'timestamps'
 
                     with open(group_csv_name, "w", newline="") as csvfile:
                         writer = csv.writer(csvfile)
@@ -1456,7 +1463,7 @@ class MDF(object):
                     if self._callback:
                         self._callback(i + 1 + count, count * 2)
 
-                mdict['time'] = df.index.values
+                mdict['timestamps'] = df.index.values
 
             if self._callback:
                 self._callback(80, 100)
@@ -3473,11 +3480,11 @@ class MDF(object):
             else:
                 master = np.array([], dtype='<f4')
 
-        df["time"] = pd.Series(master, index=np.arange(len(master)))
-        df.set_index('time', inplace=True)
+        df["timestamps"] = pd.Series(master, index=np.arange(len(master)))
+        df.set_index('timestamps', inplace=True)
 
         used_names = UniqueDB()
-        used_names.get_unique_name("time")
+        used_names.get_unique_name("timestamps")
 
         groups_nr = len(self.groups)
 
