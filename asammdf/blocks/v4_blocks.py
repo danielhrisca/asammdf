@@ -582,6 +582,8 @@ class Channel:
                         )
                         if display_name is not None:
                             self.display_name = display_name.text
+                        else:
+                            self.display_name = ""
                     except:
                         self.display_name = ""
                 else:
@@ -751,6 +753,8 @@ class Channel:
                         )
                         if display_name is not None:
                             self.display_name = display_name.text
+                        else:
+                            self.display_name = ""
                     except ET.ParseError:
                         self.display_name = ""
                 else:
