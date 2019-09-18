@@ -2110,7 +2110,7 @@ class MDF4(object):
                                     param,
                                     original_size,
                                     zip_size,
-                                ) = v4c.DZ_COMMON_uf(stream, address)
+                                ) = v4c.DZ_COMMON_uf(stream, addr)
 
                                 if original_size:
                                     if zip_type == v4c.FLAG_DZ_DEFLATE:
@@ -2120,7 +2120,7 @@ class MDF4(object):
                                         block_type_ = v4c.DZ_BLOCK_TRANSPOSED
                                     info.append(
                                         DataBlockInfo(
-                                            address=address + v4c.DZ_COMMON_SIZE,
+                                            address=addr + v4c.DZ_COMMON_SIZE,
                                             block_type=block_type_,
                                             raw_size=original_size,
                                             size=zip_size,
@@ -2238,7 +2238,7 @@ class MDF4(object):
                                         block_type_ = v4c.DZ_BLOCK_TRANSPOSED
                                     info.append(
                                         DataBlockInfo(
-                                            address=address + v4c.DZ_COMMON_SIZE,
+                                            address=addr + v4c.DZ_COMMON_SIZE,
                                             block_type=block_type_,
                                             raw_size=original_size,
                                             size=zip_size,
@@ -4935,7 +4935,7 @@ class MDF4(object):
                 t += offset
             else:
                 t = array([], dtype=float64)
-            metadata = ("time", v4c.SYNC_TYPE_TIME)
+            metadata = ("timestamps", v4c.SYNC_TYPE_TIME)
         else:
 
             time_ch = group.channels[time_ch_nr]
