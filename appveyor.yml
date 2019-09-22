@@ -44,7 +44,10 @@ install:
   - sh: "python3 -m pip install https://github.com/pyinstaller/pyinstaller/archive/develop.zip --user"
   - sh: "python3 -m pip install https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip --user"
   - sh: "python3 -m pip install . --user"
-  - sh: "if [ $APPVEYOR_REPO_BRANCH == "master" ]; then /home/appveyor/.local/bin/pyinstaller asammdf_noconsole.spec fi"
+  - sh: 
+      "if [ $APPVEYOR_REPO_BRANCH == "master" ]; then
+          /home/appveyor/.local/bin/pyinstaller asammdf_noconsole.spec 
+       fi"
   - sh: "if [ $APPVEYOR_REPO_BRANCH == "master" ]; then mv dist/asammdfgui dist/asammdfgui_noconsole fi"
   - sh: "if [ $APPVEYOR_REPO_BRANCH == "master" ]; then /home/appveyor/.local/bin/pyinstaller asammdf.spec fi"
 
