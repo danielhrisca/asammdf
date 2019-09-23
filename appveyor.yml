@@ -52,7 +52,7 @@ install:
       if [ $APPVEYOR_REPO_BRANCH == "master" ] ; then
          mv dist/asammdfgui dist/asammdfgui_noconsole
       fi
-  - sh:
+  - sh: >-
       if [ $APPVEYOR_REPO_BRANCH == "master" ] ; then
          /home/appveyor/.local/bin/pyinstaller asammdf.spec
       fi
