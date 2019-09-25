@@ -1215,6 +1215,7 @@ class MDF4(object):
 
     def _load_data(self, group, record_offset=0, record_count=None, optimize_read=True):
         """ get group's data block bytes """
+
         offset = 0
         has_yielded = False
         _count = record_count
@@ -1243,8 +1244,9 @@ class MDF4(object):
             yield b"", offset, _count
         else:
 
-            if optimize_read and group.data_blocks:
+            if optimize_read and group.data_blocks and not self._read_fragment_size:
                 split_size = group.data_blocks[0].raw_size
+
             else:
                 if self._read_fragment_size:
                     split_size = self._read_fragment_size // samples_size
@@ -3121,10 +3123,21 @@ class MDF4(object):
             gp.data_location = v4c.LOCATION_TEMPORARY_FILE
             samples.tofile(self._tempfile)
 
+#            gp.data_blocks.append(
+#                DataBlockInfo(
+#                    address=data_address,
+#                    block_type=v4c.DT_BLOCK,
+#                    raw_size=size,
+#                    size=size,
+#                    param=0,
+#                )
+#            )
+
             chunk = self._write_fragment_size // samples.itemsize
             chunk *= samples.itemsize
 
             while size:
+
                 if size > chunk:
                     gp.data_blocks.append(
                         DataBlockInfo(
