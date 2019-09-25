@@ -498,7 +498,7 @@ class MDF(object):
 
             parents, dtypes = self._prepare_record(group)
 
-            data = self._load_data(group)
+            data = self._load_data(group, optimize_read=False)
             for idx, fragment in enumerate(data):
                 if dtypes.itemsize:
                     group.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
@@ -725,7 +725,7 @@ class MDF(object):
             else:
                 continue
 
-            data = self._load_data(group)
+            data = self._load_data(group, optimize_read=False)
             parents, dtypes = self._prepare_record(group)
 
             idx = 0
@@ -911,7 +911,7 @@ class MDF(object):
                 self.configure(read_fragment_size=1)
                 sigs = []
 
-                fragment = next(self._load_data(group))
+                fragment = next(self._load_data(group, optimize_read=False))
 
                 fragment = (fragment[0], -1, None)
 
@@ -1682,7 +1682,7 @@ class MDF(object):
 
             group = self.groups[group_index]
 
-            data = self._load_data(group)
+            data = self._load_data(group, optimize_read=False)
             _, dtypes = self._prepare_record(group)
 
             for idx, fragment in enumerate(data):
@@ -2050,7 +2050,7 @@ class MDF(object):
 
                 parents, dtypes = mdf._prepare_record(group)
 
-                data = mdf._load_data(group)
+                data = mdf._load_data(group, optimize_read=False)
 
                 for fragment in data:
 
@@ -2337,7 +2337,7 @@ class MDF(object):
 
                 _, dtypes = mdf._prepare_record(group)
 
-                data = mdf._load_data(group)
+                data = mdf._load_data(group, optimize_read=False)
 
                 for fragment in data:
 
@@ -3726,7 +3726,7 @@ class MDF(object):
                     continue
 
                 parents, dtypes = self._prepare_record(group)
-                data = self._load_data(group)
+                data = self._load_data(group, optimize_read=False)
 
                 for fragment_index, fragment in enumerate(data):
                     if dtypes.itemsize:

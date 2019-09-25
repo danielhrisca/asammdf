@@ -889,6 +889,7 @@ class MDF3(object):
 
         if read_fragment_size is not None:
             self._read_fragment_size = int(read_fragment_size)
+            self._master_channel_cache.clear()
 
         if write_fragment_size:
             self._write_fragment_size = min(int(write_fragment_size), 4 * 2 ** 20)

@@ -1213,7 +1213,7 @@ class MDF4(object):
 
         return data
 
-    def _load_data(self, group, record_offset=0, record_count=None):
+    def _load_data(self, group, record_offset=0, record_count=None, optimize_read=True):
         """ get group's data block bytes """
         offset = 0
         has_yielded = False
@@ -1243,21 +1243,24 @@ class MDF4(object):
             yield b"", offset, _count
         else:
 
-            if self._read_fragment_size:
-                split_size = self._read_fragment_size // samples_size
-                split_size *= samples_size
+            if optimize_read and group.data_blocks:
+                split_size = group.data_blocks[0].raw_size
             else:
-                channels_nr = len(group.channels)
+                if self._read_fragment_size:
+                    split_size = self._read_fragment_size // samples_size
+                    split_size *= samples_size
+                else:
+                    channels_nr = len(group.channels)
 
-                y_axis = CONVERT
+                    y_axis = CONVERT
 
-                idx = searchsorted(CHANNEL_COUNT, channels_nr, side="right") - 1
-                if idx < 0:
-                    idx = 0
-                split_size = y_axis[idx]
+                    idx = searchsorted(CHANNEL_COUNT, channels_nr, side="right") - 1
+                    if idx < 0:
+                        idx = 0
+                    split_size = y_axis[idx]
 
-                split_size = split_size // samples_size
-                split_size *= samples_size
+                    split_size = split_size // samples_size
+                    split_size *= samples_size
 
             if split_size == 0:
                 split_size = samples_size
@@ -2343,6 +2346,7 @@ class MDF4(object):
 
         if read_fragment_size is not None:
             self._read_fragment_size = int(read_fragment_size)
+            self._master_channel_cache.clear()
 
         if write_fragment_size:
             self._write_fragment_size = min(int(write_fragment_size), 4 * 2 ** 20)
@@ -3117,15 +3121,33 @@ class MDF4(object):
             gp.data_location = v4c.LOCATION_TEMPORARY_FILE
             samples.tofile(self._tempfile)
 
-            gp.data_blocks.append(
-                DataBlockInfo(
-                    address=data_address,
-                    block_type=v4c.DT_BLOCK,
-                    raw_size=size,
-                    size=size,
-                    param=0,
-                )
-            )
+            chunk = self._write_fragment_size // samples.itemsize
+            chunk *= samples.itemsize
+
+            while size:
+                if size > chunk:
+                    gp.data_blocks.append(
+                        DataBlockInfo(
+                            address=data_address,
+                            block_type=v4c.DT_BLOCK,
+                            raw_size=chunk,
+                            size=chunk,
+                            param=0,
+                        )
+                    )
+                    data_address += chunk
+                    size -= chunk
+                else:
+                    gp.data_blocks.append(
+                        DataBlockInfo(
+                            address=data_address,
+                            block_type=v4c.DT_BLOCK,
+                            raw_size=size,
+                            size=size,
+                            param=0,
+                        )
+                    )
+                    size = 0
         else:
             gp.data_location = v4c.LOCATION_TEMPORARY_FILE
 
@@ -3888,8 +3910,6 @@ class MDF4(object):
         grp = self.groups[gp_nr]
 
         interp_mode = self._integer_interpolation
-
-        original_data = data
 
         if ch_nr >= 0:
 
