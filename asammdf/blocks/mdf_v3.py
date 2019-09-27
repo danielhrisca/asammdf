@@ -195,6 +195,9 @@ class MDF3(object):
 
         self._sort()
 
+    def __del__(self):
+        self.close()
+
     def _load_data(self, group, record_offset=0, record_count=None, optimize_read=True):
         """ get group's data block bytes"""
         has_yielded = False

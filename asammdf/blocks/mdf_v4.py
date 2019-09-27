@@ -16,6 +16,7 @@ from tempfile import TemporaryFile
 from zlib import decompress
 from pathlib import Path
 import mmap
+from functools import lru_cache
 
 from numpy import (
     arange,
@@ -110,6 +111,10 @@ MASTER_CHANNELS = (v4c.CHANNEL_TYPE_MASTER, v4c.CHANNEL_TYPE_VIRTUAL_MASTER)
 COMMON_SIZE = v4c.COMMON_SIZE
 COMMON_u = v4c.COMMON_u
 COMMON_uf = v4c.COMMON_uf
+
+COMMON_SHORT_SIZE = v4c.COMMON_SIZE
+COMMON_SHORT_uf = v4c.COMMON_SHORT_uf
+COMMON_SHORT_u = v4c.COMMON_SHORT_u
 
 
 logger = logging.getLogger("asammdf")
@@ -259,6 +264,9 @@ class MDF4(object):
             self.identification = FileIdentificationBlock(version=version)
             self.version = version
             self.name = Path("new.mf4")
+
+    def __del__(self):
+        self.close()
 
     def _check_finalised(self) -> bool:
         flags = self.identification["unfinalized_standard_flags"]
@@ -1321,7 +1329,7 @@ class MDF4(object):
                         cols = param
                         lines = size // cols
 
-                        nd = fromstring(new_data[: lines * cols], dtype=uint8)
+                        nd = frombuffer(new_data[: lines * cols], dtype=uint8)
                         nd = nd.reshape((cols, lines))
                         new_data = nd.T.tostring() + new_data[lines * cols :]
 
@@ -1926,6 +1934,7 @@ class MDF4(object):
         else:
             return vals
 
+    @lru_cache(maxsize=1024)
     def _validate_channel_selection(
         self, name=None, group=None, index=None, source=None
     ):
@@ -2035,7 +2044,7 @@ class MDF4(object):
 
         if mapped:
             if address:
-                id_string, _, block_len, __ = COMMON_uf(stream, address)
+                id_string, _1, block_len = COMMON_SHORT_uf(stream, address)
 
                 # can be a DataBlock
                 if id_string == block_type:
@@ -2088,7 +2097,7 @@ class MDF4(object):
                         for i in range(dl.data_block_nr):
                             addr = dl[f"data_block_addr{i}"]
 
-                            id_string, _1, block_len, _2 = COMMON_uf(stream, addr)
+                            id_string, _1, block_len = COMMON_SHORT_uf(stream, addr)
                             # can be a DataBlock
                             if id_string == block_type:
                                 size = block_len - 24
@@ -2148,7 +2157,7 @@ class MDF4(object):
 
             if address:
                 stream.seek(address)
-                id_string, _1, block_len, _2 = COMMON_u(stream.read(COMMON_SIZE))
+                id_string, _1, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
                 # can be a DataBlock
                 if id_string == block_type:
@@ -2203,8 +2212,8 @@ class MDF4(object):
                             addr = dl[f"data_block_addr{i}"]
 
                             stream.seek(addr)
-                            id_string, _, block_len, __ = COMMON_u(
-                                stream.read(COMMON_SIZE)
+                            id_string, _, block_len = COMMON_SHORT_u(
+                                stream.read(COMMON_SHORT_SIZE)
                             )
                             # can be a DataBlock
                             if id_string == block_type:
@@ -4488,7 +4497,7 @@ class MDF4(object):
 
                         dtype_ = vals.dtype
                         shape_ = vals.shape
-                        size = vals.dtype.itemsize
+                        size = dtype_.itemsize
                         for dim in shape_[1:]:
                             size *= dim
 
