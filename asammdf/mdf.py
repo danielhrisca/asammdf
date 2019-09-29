@@ -3695,7 +3695,7 @@ class MDF(object):
             if dbc is None:
                 continue
             else:
-                valid_dbc_files.append(dbc)
+                valid_dbc_files.append((dbc, dbc_name))
 
         count = sum(
             1
@@ -3705,8 +3705,14 @@ class MDF(object):
         count *= len(valid_dbc_files)
 
         cntr = 0
+        
+        total_id_count = 0
+        found_id_count = 0
+        found_ids = defaultdict(list)
+        not_found_ids = defaultdict(list)
+        unknown_ids = defaultdict(list)
 
-        for dbc in valid_dbc_files:
+        for dbc, dbc_name in valid_dbc_files:
             is_j1939 = dbc.contains_j1939
             if is_j1939:
                 messages = {
@@ -3718,6 +3724,13 @@ class MDF(object):
                     message.arbitration_id.id: message
                     for message in dbc
                 }
+                
+            total_id_count += len(messages)
+                
+            current_not_found_ids = {
+                (msg_id, message.name) 
+                for msg_id, message in messages.items()
+            }
 
             msg_map = {}
 
@@ -3782,7 +3795,13 @@ class MDF(object):
                         for msg_id in unique_ids:
                             message = messages.get(msg_id, None)
                             if message is None:
+                                unknown_ids[msg_id].append(True)
                                 continue
+                            
+                            found_ids[dbc_name].append((msg_id, message.name))
+                            current_not_found_ids.remove((msg_id, message.name))
+                            found_id_count += 1
+                            unknown_ids[msg_id].append(False)
 
                             idx = np.argwhere(bus_msg_ids == msg_id).ravel()
                             payload = bus_data_bytes[idx]
@@ -3853,6 +3872,25 @@ class MDF(object):
                 cntr += 1
                 if self._callback:
                     self._callback(cntr, count)
+                    
+            if current_not_found_ids:
+                not_found_ids[dbc_name] = list(current_not_found_ids)
+                
+        unknown_ids = {
+            msg_id
+            for msg_id, not_found in unknown_ids.items()
+            if all(not_found)
+        }
+                
+        self.last_call_info = {
+            'dbc_files': dbc_files,
+            'total_id_count': total_id_count,
+            'found_id_count': found_id_count,
+            'unknown_id_count': len(unknown_ids),
+            'not_found_ids': not_found_ids,
+            'found_ids': found_ids,
+            'unknown_ids': unknown_ids,
+        }
 
         if ignore_invalid_signals:
             to_keep = []
@@ -3871,6 +3909,7 @@ class MDF(object):
                 f'No CAN signals could be extracted from "{self.name}". The'
                 'output file will be empty.'
             )
+
         return out
 
 

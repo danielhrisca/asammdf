@@ -234,6 +234,8 @@ class MDF4(object):
         self._remove_source_from_channel_names = kwargs.get('remove_source_from_channel_names', False)
         self._single_bit_uint_as_bool = False
         self._integer_interpolation = 0
+        
+        self.last_call_info = None
 
         # make sure no appended block has the address 0
         self._tempfile.write(b"\0")
