@@ -2940,7 +2940,7 @@ class MDF(object):
 
                 if pieces > 1:
                     out = np.empty(
-                        grp.channel_group.cycles_nr,
+                        (grp.channel_group.cycles_nr,) + parts[0].shape[1:],
                         dtype=parts[0].dtype,
                     )
                     samples = np.concatenate(
@@ -3554,10 +3554,17 @@ class MDF(object):
 
                 grp.record = None
 
-            total_size = len(timestamps)
+            total_size = sum(len(_) for _ in timestamps)
             if total_size:
+
                 signals = [
-                    np.concatenate(parts, out=np.empty(total_size, dtype=parts[0].dtype))
+                    np.concatenate(
+                        parts,
+                        out=np.empty(
+                            (total_size,) + parts[0].shape[1:],
+                            dtype=parts[0].dtype,
+                        )
+                    )
                     for parts in signals
                 ]
 
