@@ -2327,14 +2327,14 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             self.progress = None
             progress.cancel()
 
-            call_info = self.mdf.last_call_info
+            call_info = dict(self.mdf.last_call_info)
 
             message = [
                 'Summary:',
-                f'- {call_info["found_id_count"]} of {call_info["total_id_count"]} IDs in the MDF4 file were matched in the DBC and converted',
+                f'- {call_info["found_id_count"]} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
             ]
             if call_info['unknown_id_count']:
-                message.append(f'- {call_info["unknown_id_count"]} unknown IDs inf the MDF4 file')
+                message.append(f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file')
             else:
                 message.append(f'- no unknown IDs inf the MDF4 file')
 
@@ -2342,25 +2342,17 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 '',
                 'Detailed information:',
                 '',
-                'The following CAN IDs were matched in the DBC:'
+                'The following CAN IDs were in the MDF log file and matched in the DBC:'
             ]
             for dbc_name, found_ids in call_info['found_ids'].items():
-                for msg_id, msg_name in found_ids:
+                for msg_id, msg_name in sorted(found_ids):
                     message.append(f'- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>')
 
             message += [
                 '',
-                'The following CAN IDs were NOT matched in the DBC:'
+                'The following CAN IDs were in the MDF log file, but not matched in the DBC:'
             ]
-            for dbc_name, not_found in call_info['not_found_ids'].items():
-                for msg_id, msg_name in not_found:
-                    message.append(f'- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>')
-
-            message += [
-                '',
-                'The following CAN IDs were detected but were not found in any DBC:'
-            ]
-            for msg_id in call_info['unknown_ids']:
+            for msg_id in sorted(call_info['unknown_ids']):
                 message.append(f'- 0x{msg_id:X}')
 
             self.output_info_can.setPlainText('\n'.join(message))
