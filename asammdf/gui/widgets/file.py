@@ -2220,7 +2220,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
             message = [
                 'Summary:',
-                f'- {call_info["found_id_count"]} of {call_info["total_id_count"]} IDs in the MDF4 file were matched in the DBC and converted',
+                f'- {call_info["found_id_count"]} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
             ]
             if call_info['unknown_id_count']:
                 message.append(f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file')
