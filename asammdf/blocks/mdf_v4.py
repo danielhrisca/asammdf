@@ -16,6 +16,7 @@ from tempfile import TemporaryFile
 from zlib import decompress
 from pathlib import Path
 import mmap
+from functools import lru_cache
 
 from numpy import (
     arange,
@@ -23,6 +24,7 @@ from numpy import (
     array_equal,
     concatenate,
     dtype,
+    empty,
     flip,
     float32,
     float64,
@@ -111,6 +113,10 @@ COMMON_SIZE = v4c.COMMON_SIZE
 COMMON_u = v4c.COMMON_u
 COMMON_uf = v4c.COMMON_uf
 
+COMMON_SHORT_SIZE = v4c.COMMON_SHORT_SIZE
+COMMON_SHORT_uf = v4c.COMMON_SHORT_uf
+COMMON_SHORT_u = v4c.COMMON_SHORT_u
+
 
 logger = logging.getLogger("asammdf")
 
@@ -181,6 +187,11 @@ class MDF4(object):
         mdf file header
     identification : FileIdentificationBlock
         mdf file start block
+    last_call_info : dict | None
+        a dict to hold information about the last called method.
+
+        .. versionadded:: 5.12.0
+
     masters_db : dict
         used for fast master channel access; for each group index key the value
          is the master channel index
@@ -230,6 +241,8 @@ class MDF4(object):
         self._single_bit_uint_as_bool = False
         self._integer_interpolation = 0
 
+        self.last_call_info = None
+
         # make sure no appended block has the address 0
         self._tempfile.write(b"\0")
 
@@ -259,6 +272,9 @@ class MDF4(object):
             self.identification = FileIdentificationBlock(version=version)
             self.version = version
             self.name = Path("new.mf4")
+
+    def __del__(self):
+        self.close()
 
     def _check_finalised(self) -> bool:
         flags = self.identification["unfinalized_standard_flags"]
@@ -1213,8 +1229,9 @@ class MDF4(object):
 
         return data
 
-    def _load_data(self, group, record_offset=0, record_count=None):
+    def _load_data(self, group, record_offset=0, record_count=None, optimize_read=True):
         """ get group's data block bytes """
+
         offset = 0
         has_yielded = False
         _count = record_count
@@ -1243,21 +1260,25 @@ class MDF4(object):
             yield b"", offset, _count
         else:
 
-            if self._read_fragment_size:
-                split_size = self._read_fragment_size // samples_size
-                split_size *= samples_size
+            if optimize_read and group.data_blocks and not self._read_fragment_size:
+                split_size = group.data_blocks[0].raw_size
+
             else:
-                channels_nr = len(group.channels)
+                if self._read_fragment_size:
+                    split_size = self._read_fragment_size // samples_size
+                    split_size *= samples_size
+                else:
+                    channels_nr = len(group.channels)
 
-                y_axis = CONVERT
+                    y_axis = CONVERT
 
-                idx = searchsorted(CHANNEL_COUNT, channels_nr, side="right") - 1
-                if idx < 0:
-                    idx = 0
-                split_size = y_axis[idx]
+                    idx = searchsorted(CHANNEL_COUNT, channels_nr, side="right") - 1
+                    if idx < 0:
+                        idx = 0
+                    split_size = y_axis[idx]
 
-                split_size = split_size // samples_size
-                split_size *= samples_size
+                    split_size = split_size // samples_size
+                    split_size *= samples_size
 
             if split_size == 0:
                 split_size = samples_size
@@ -1316,7 +1337,7 @@ class MDF4(object):
                         cols = param
                         lines = size // cols
 
-                        nd = fromstring(new_data[: lines * cols], dtype=uint8)
+                        nd = frombuffer(new_data[: lines * cols], dtype=uint8)
                         nd = nd.reshape((cols, lines))
                         new_data = nd.T.tostring() + new_data[lines * cols :]
 
@@ -1921,6 +1942,7 @@ class MDF4(object):
         else:
             return vals
 
+    @lru_cache(maxsize=1024)
     def _validate_channel_selection(
         self, name=None, group=None, index=None, source=None
     ):
@@ -2030,7 +2052,7 @@ class MDF4(object):
 
         if mapped:
             if address:
-                id_string, _, block_len, __ = COMMON_uf(stream, address)
+                id_string, _1, block_len = COMMON_SHORT_uf(stream, address)
 
                 # can be a DataBlock
                 if id_string == block_type:
@@ -2083,7 +2105,7 @@ class MDF4(object):
                         for i in range(dl.data_block_nr):
                             addr = dl[f"data_block_addr{i}"]
 
-                            id_string, _1, block_len, _2 = COMMON_uf(stream, addr)
+                            id_string, _1, block_len = COMMON_SHORT_uf(stream, addr)
                             # can be a DataBlock
                             if id_string == block_type:
                                 size = block_len - 24
@@ -2143,7 +2165,7 @@ class MDF4(object):
 
             if address:
                 stream.seek(address)
-                id_string, _1, block_len, _2 = COMMON_u(stream.read(COMMON_SIZE))
+                id_string, _1, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
                 # can be a DataBlock
                 if id_string == block_type:
@@ -2198,8 +2220,8 @@ class MDF4(object):
                             addr = dl[f"data_block_addr{i}"]
 
                             stream.seek(addr)
-                            id_string, _, block_len, __ = COMMON_u(
-                                stream.read(COMMON_SIZE)
+                            id_string, _, block_len = COMMON_SHORT_u(
+                                stream.read(COMMON_SHORT_SIZE)
                             )
                             # can be a DataBlock
                             if id_string == block_type:
@@ -2343,6 +2365,7 @@ class MDF4(object):
 
         if read_fragment_size is not None:
             self._read_fragment_size = int(read_fragment_size)
+            self._master_channel_cache.clear()
 
         if write_fragment_size:
             self._write_fragment_size = min(int(write_fragment_size), 4 * 2 ** 20)
@@ -3117,15 +3140,44 @@ class MDF4(object):
             gp.data_location = v4c.LOCATION_TEMPORARY_FILE
             samples.tofile(self._tempfile)
 
-            gp.data_blocks.append(
-                DataBlockInfo(
-                    address=data_address,
-                    block_type=v4c.DT_BLOCK,
-                    raw_size=size,
-                    size=size,
-                    param=0,
-                )
-            )
+#            gp.data_blocks.append(
+#                DataBlockInfo(
+#                    address=data_address,
+#                    block_type=v4c.DT_BLOCK,
+#                    raw_size=size,
+#                    size=size,
+#                    param=0,
+#                )
+#            )
+
+            chunk = self._write_fragment_size // samples.itemsize
+            chunk *= samples.itemsize
+
+            while size:
+
+                if size > chunk:
+                    gp.data_blocks.append(
+                        DataBlockInfo(
+                            address=data_address,
+                            block_type=v4c.DT_BLOCK,
+                            raw_size=chunk,
+                            size=chunk,
+                            param=0,
+                        )
+                    )
+                    data_address += chunk
+                    size -= chunk
+                else:
+                    gp.data_blocks.append(
+                        DataBlockInfo(
+                            address=data_address,
+                            block_type=v4c.DT_BLOCK,
+                            raw_size=size,
+                            size=size,
+                            param=0,
+                        )
+                    )
+                    size = 0
         else:
             gp.data_location = v4c.LOCATION_TEMPORARY_FILE
 
@@ -3713,7 +3765,7 @@ class MDF4(object):
                         data = f.read()
         except Exception as err:
             os.chdir(current_path)
-            message = "Exception during attachment extraction: " + repr(err)
+            message = f'Exception during attachment "{attachment.file_name}" extraction: {err!r}'
             logger.warning(message)
             data = b""
         finally:
@@ -3889,8 +3941,6 @@ class MDF4(object):
 
         interp_mode = self._integer_interpolation
 
-        original_data = data
-
         if ch_nr >= 0:
 
             # get the channel object
@@ -3980,7 +4030,8 @@ class MDF4(object):
                         if master_is_required:
                             timestamps.append(
                                 self.get_master(
-                                    gp_nr, fragment, copy_master=copy_master
+                                    gp_nr, fragment, copy_master=copy_master,
+                                    one_peace=True,
                                 )
                             )
                         if channel_invalidation_present:
@@ -4027,14 +4078,24 @@ class MDF4(object):
 
                         count += 1
 
+                if count > 1:
+                    total_size = sum(len(_) for _ in channel_values)
+
                 if fast_path:
                     if count > 1:
-                        vals = concatenate(channel_values).astype(channel_values[0].dtype)
+                        out = empty(total_size, dtype=channel_values[0].dtype)
+                        vals = concatenate(
+                            channel_values,
+                            out=out,
+                        )
                     else:
                         vals = channel_values[0]
                 else:
                     if count > 1:
-                        arrays = [concatenate(lst).astype(lst[0].dtype) for lst in channel_values]
+                        arrays = [
+                            concatenate(lst, out=empty(total_size, dtype=lst[0].dtype))
+                            for lst in channel_values
+                        ]
                     else:
                         arrays = [lst[0] for lst in channel_values]
                     types = [
@@ -4047,13 +4108,15 @@ class MDF4(object):
 
                 if master_is_required:
                     if count > 1:
-                        timestamps = concatenate(timestamps).astype(timestamps[0].dtype)
+                        out = empty(total_size, dtype=timestamps[0].dtype)
+                        timestamps = concatenate(timestamps, out=out)
                     else:
                         timestamps = timestamps[0]
 
                 if channel_invalidation_present:
                     if count > 1:
-                        invalidation_bits = concatenate(invalidation_bits).astype(invalidation_bits[0].dtype)
+                        out = empty(total_size, dtype=invalidation_bits[0].dtype)
+                        invalidation_bits = concatenate(invalidation_bits, out=out)
                     else:
                         invalidation_bits = invalidation_bits[0]
                     if not ignore_invalidation_bits:
@@ -4314,7 +4377,11 @@ class MDF4(object):
                     count += 1
 
                 if count > 1:
-                    vals = concatenate(channel_values).astype(channel_values[0].dtype)
+                    total_size = sum(len(_) for _ in channel_values)
+
+                if count > 1:
+                    out = empty(total_size, dtype=channel_values[0].dtype)
+                    vals = concatenate(channel_values, out=out)
                 elif count == 1:
                     vals = channel_values[0]
                 else:
@@ -4322,13 +4389,15 @@ class MDF4(object):
 
                 if master_is_required:
                     if count > 1:
-                        timestamps = concatenate(timestamps).astype(timestamps[0].dtype)
+                        out = empty(total_size, dtype=timestamps[0].dtype)
+                        timestamps = concatenate(timestamps, out=out)
                     else:
                         timestamps = timestamps[0]
 
                 if channel_invalidation_present:
                     if count > 1:
-                        invalidation_bits = concatenate(invalidation_bits).astype(invalidation_bits[0].dtype)
+                        out = empty(total_size, dtype=invalidation_bits[0].dtype)
+                        invalidation_bits = concatenate(invalidation_bits, out=out)
                     else:
                         invalidation_bits = invalidation_bits[0]
                     if not ignore_invalidation_bits:
@@ -4391,7 +4460,11 @@ class MDF4(object):
                     count += 1
 
                 if count > 1:
-                    vals = concatenate(channel_values).astype(channel_values[0].dtype)
+                    total_size = sum(len(_) for _ in channel_values)
+
+                if count > 1:
+                    out = empty(total_size, dtype=channel_values[0].dtype)
+                    vals = concatenate(channel_values, out=out)
                 elif count == 1:
                     vals = channel_values[0]
                 else:
@@ -4399,13 +4472,15 @@ class MDF4(object):
 
                 if master_is_required:
                     if count > 1:
-                        timestamps = concatenate(timestamps).astype(timestamps[0].dtype)
+                        out = empty(total_size, dtype=timestamps[0].dtype)
+                        timestamps = concatenate(timestamps, out=out)
                     else:
                         timestamps = timestamps[0]
 
                 if channel_invalidation_present:
                     if count > 1:
-                        invalidation_bits = concatenate(invalidation_bits).astype(invalidation_bits[0].dtype)
+                        out = empty(total_size, dtype=invalidation_bits[0].dtype)
+                        invalidation_bits = concatenate(invalidation_bits, out=out)
                     else:
                         invalidation_bits = invalidation_bits[0]
                     if not ignore_invalidation_bits:
@@ -4455,7 +4530,7 @@ class MDF4(object):
 
                         dtype_ = vals.dtype
                         shape_ = vals.shape
-                        size = vals.dtype.itemsize
+                        size = dtype_.itemsize
                         for dim in shape_[1:]:
                             size *= dim
 
@@ -4570,7 +4645,11 @@ class MDF4(object):
                     count += 1
 
                 if count > 1:
-                    vals = concatenate(channel_values).astype(channel_values[0].dtype)
+                    total_size = sum(len(_) for _ in channel_values)
+
+                if count > 1:
+                    out = empty(total_size, dtype=channel_values[0].dtype)
+                    vals = concatenate(channel_values, out=out)
                 elif count == 1:
                     vals = channel_values[0]
                 else:
@@ -4578,7 +4657,8 @@ class MDF4(object):
 
                 if master_is_required:
                     if count > 1:
-                        timestamps = concatenate(timestamps).astype(timestamps[0].dtype)
+                        out = empty(total_size, dtype=timestamps[0].dtype)
+                        timestamps = concatenate(timestamps, out=out)
                     elif count == 1:
                         timestamps = timestamps[0]
                     else:
@@ -4586,7 +4666,8 @@ class MDF4(object):
 
                 if channel_invalidation_present:
                     if count > 1:
-                        invalidation_bits = concatenate(invalidation_bits).astype(invalidation_bits[0].dtype)
+                        out = empty(total_size, dtype=invalidation_bits[0].dtype)
+                        invalidation_bits = concatenate(invalidation_bits, out=out)
                     elif count == 1:
                         invalidation_bits = invalidation_bits[0]
                     else:
@@ -4858,6 +4939,7 @@ class MDF4(object):
         record_offset=0,
         record_count=None,
         copy_master=True,
+        one_peace=False,
     ):
         """ returns master channel samples for given group
 
@@ -4964,17 +5046,8 @@ class MDF4(object):
                 if parents is None:
                     parents, dtypes = self._prepare_record(group)
 
-                # get data
-                if fragment is None:
-                    data = self._load_data(
-                        group, record_offset=record_offset, record_count=record_count
-                    )
-                else:
-                    data = (fragment,)
-                time_values = []
-
-                for fragment in data:
-                    data_bytes, offset, _count = fragment
+                if one_peace:
+                    data_bytes, offset, _count = data
                     try:
                         parent, _ = parents[time_ch_nr]
                     except KeyError:
@@ -4995,12 +5068,53 @@ class MDF4(object):
                             data_bytes, group, time_ch_nr
                         )
 
-                    time_values.append(t.copy())
-
-                if len(time_values) > 1:
-                    t = concatenate(time_values).astype(time_values[0].dtype)
                 else:
-                    t = time_values[0]
+
+                    # get data
+                    if fragment is None:
+                        data = self._load_data(
+                            group, record_offset=record_offset, record_count=record_count
+                        )
+                    else:
+                        data = (fragment,)
+
+                    time_values = []
+
+                    count = 0
+
+                    for fragment in data:
+                        data_bytes, offset, _count = fragment
+                        try:
+                            parent, _ = parents[time_ch_nr]
+                        except KeyError:
+                            parent = None
+                        if parent is not None:
+                            if group.record is None:
+                                dtypes = group.types
+                                if dtypes.itemsize:
+                                    record = fromstring(data_bytes, dtype=dtypes)
+                                else:
+                                    record = None
+                            else:
+                                record = group.record
+
+                            t = record[parent]
+                        else:
+                            t = self._get_not_byte_aligned_data(
+                                data_bytes, group, time_ch_nr
+                            )
+
+                        time_values.append(t.copy())
+                        count += 1
+
+                    if count > 1:
+                        total_size = sum(len(_) for _ in time_values)
+
+                    if len(time_values) > 1:
+                        out = empty(total_size, dtype=time_values[0].dtype)
+                        t = concatenate(time_values, out=out)
+                    else:
+                        t = time_values[0]
 
                 # get timestamps
                 if time_conv:

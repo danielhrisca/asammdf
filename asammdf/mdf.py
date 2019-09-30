@@ -159,6 +159,9 @@ class MDF(object):
     def __exit__(self, exc_type, exc_value, traceback):
         self.close()
 
+    def __del__(self):
+        self.close()
+
     def _transfer_events(self, other):
         def get_scopes(event, events):
             if event.scopes:
@@ -498,7 +501,7 @@ class MDF(object):
 
             parents, dtypes = self._prepare_record(group)
 
-            data = self._load_data(group)
+            data = self._load_data(group, optimize_read=False)
             for idx, fragment in enumerate(data):
                 if dtypes.itemsize:
                     group.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
@@ -725,7 +728,7 @@ class MDF(object):
             else:
                 continue
 
-            data = self._load_data(group)
+            data = self._load_data(group, optimize_read=False)
             parents, dtypes = self._prepare_record(group)
 
             idx = 0
@@ -911,7 +914,7 @@ class MDF(object):
                 self.configure(read_fragment_size=1)
                 sigs = []
 
-                fragment = next(self._load_data(group))
+                fragment = next(self._load_data(group, optimize_read=False))
 
                 fragment = (fragment[0], -1, None)
 
@@ -1682,7 +1685,7 @@ class MDF(object):
 
             group = self.groups[group_index]
 
-            data = self._load_data(group)
+            data = self._load_data(group, optimize_read=False)
             _, dtypes = self._prepare_record(group)
 
             for idx, fragment in enumerate(data):
@@ -2050,7 +2053,7 @@ class MDF(object):
 
                 parents, dtypes = mdf._prepare_record(group)
 
-                data = mdf._load_data(group)
+                data = mdf._load_data(group, optimize_read=False)
 
                 for fragment in data:
 
@@ -2337,7 +2340,7 @@ class MDF(object):
 
                 _, dtypes = mdf._prepare_record(group)
 
-                data = mdf._load_data(group)
+                data = mdf._load_data(group, optimize_read=False)
 
                 for fragment in data:
 
@@ -2862,6 +2865,7 @@ class MDF(object):
             channel_indexes = gps[group]
 
             signal_parts = defaultdict(list)
+            invalidations_parts = defaultdict(list)
             master_parts = []
 
             sigs = {}
@@ -2885,7 +2889,10 @@ class MDF(object):
 
                         sigs[index] = signal
                         signal_parts[(group, index)].append(
-                            (signal.samples, signal.invalidation_bits)
+                            signal.samples
+                        )
+                        invalidations_parts[(group, index)].append(
+                            signal.invalidation_bits
                         )
 
                     master_parts.append(signal.timestamps)
@@ -2901,20 +2908,26 @@ class MDF(object):
                             ignore_invalidation_bits=True,
                         )
 
-                        signal_parts[(group, index)].append(signal)
+                        signal_parts[(group, index)].append(signal[0])
+                        invalidations_parts[(group, index)].append(signal[1])
 
                     master_parts.append(
                         self.get_master(
                             group,
                             data=fragment,
                             copy_master=False,
+                            one_peace=True,
                         )
                     )
                 grp.record = None
 
             pieces = len(master_parts)
             if pieces > 1:
-                master = np.concatenate(master_parts).astype(master_parts[0].dtype)
+                out = np.empty(grp.channel_group.cycles_nr, dtype=master_parts[0].dtype)
+                master = np.concatenate(
+                    master_parts,
+                    out=out,
+                )
             else:
                 master = master_parts[0]
             master_parts = None
@@ -2922,22 +2935,28 @@ class MDF(object):
             for pair in pairs:
                 group, index = pair
                 parts = signal_parts.pop(pair)
+                inval_parts = invalidations_parts.pop(pair)
                 sig = sigs.pop(index)
 
                 if pieces > 1:
+                    out = np.empty(
+                        grp.channel_group.cycles_nr,
+                        dtype=parts[0].dtype,
+                    )
                     samples = np.concatenate(
-                        [part[0] for part in parts]
-                    ).astype(parts[0][0].dtype)
+                        parts,
+                        out=out,
+                    )
                     if sig.invalidation_bits is not None:
                         invalidation_bits = np.concatenate(
-                            [part[1] for part in parts]
+                            inval_parts
                         )
                     else:
                         invalidation_bits = None
                 else:
-                    samples = parts[0][0]
+                    samples = parts[0]
                     if sig.invalidation_bits is not None:
-                        invalidation_bits = parts[0][1]
+                        invalidation_bits = inval_parts[0]
                     else:
                         invalidation_bits = None
 
@@ -3535,8 +3554,12 @@ class MDF(object):
 
                 grp.record = None
 
-            if len(timestamps):
-                signals = [np.concatenate(parts).astype(parts[0].dtype) for parts in signals]
+            total_size = len(timestamps)
+            if total_size:
+                signals = [
+                    np.concatenate(parts, out=np.empty(total_size, dtype=parts[0].dtype))
+                    for parts in signals
+                ]
 
                 if not raw:
                     if ignore_value2text_conversions:
@@ -3556,7 +3579,7 @@ class MDF(object):
                             for signal, conversion in zip(signals, conversions)
                         ]
 
-                timestamps = np.concatenate(timestamps).astype(timestamps[0].dtype)
+                timestamps = np.concatenate(timestamps, out=np.empty(total_size, dtype=timestamps[0].dtype))
                 for idx, parts in enumerate(invalidation_bits):
                     if parts[0] is None:
                         invalidation_bits[idx] = None
@@ -3692,7 +3715,7 @@ class MDF(object):
             if dbc is None:
                 continue
             else:
-                valid_dbc_files.append(dbc)
+                valid_dbc_files.append((dbc, dbc_name))
 
         count = sum(
             1
@@ -3703,7 +3726,13 @@ class MDF(object):
 
         cntr = 0
 
-        for dbc in valid_dbc_files:
+        total_unique_ids = set()
+        found_id_count = 0
+        found_ids = defaultdict(list)
+        not_found_ids = defaultdict(list)
+        unknown_ids = defaultdict(list)
+
+        for dbc, dbc_name in valid_dbc_files:
             is_j1939 = dbc.contains_j1939
             if is_j1939:
                 messages = {
@@ -3716,6 +3745,11 @@ class MDF(object):
                     for message in dbc
                 }
 
+            current_not_found_ids = {
+                (msg_id, message.name)
+                for msg_id, message in messages.items()
+            }
+
             msg_map = {}
 
             for i, group in enumerate(self.groups):
@@ -3726,7 +3760,7 @@ class MDF(object):
                     continue
 
                 parents, dtypes = self._prepare_record(group)
-                data = self._load_data(group)
+                data = self._load_data(group, optimize_read=False)
 
                 for fragment_index, fragment in enumerate(data):
                     if dtypes.itemsize:
@@ -3776,10 +3810,18 @@ class MDF(object):
 
                         unique_ids = np.unique(bus_msg_ids).astype('<u8')
 
+                        total_unique_ids = total_unique_ids | set(unique_ids)
+
                         for msg_id in unique_ids:
                             message = messages.get(msg_id, None)
                             if message is None:
+                                unknown_ids[msg_id].append(True)
                                 continue
+
+                            found_ids[dbc_name].append((msg_id, message.name))
+                            current_not_found_ids.remove((msg_id, message.name))
+                            found_id_count += 1
+                            unknown_ids[msg_id].append(False)
 
                             idx = np.argwhere(bus_msg_ids == msg_id).ravel()
                             payload = bus_data_bytes[idx]
@@ -3851,6 +3893,25 @@ class MDF(object):
                 if self._callback:
                     self._callback(cntr, count)
 
+            if current_not_found_ids:
+                not_found_ids[dbc_name] = list(current_not_found_ids)
+
+        unknown_ids = {
+            msg_id
+            for msg_id, not_found in unknown_ids.items()
+            if all(not_found)
+        }
+
+        self.last_call_info = {
+            'dbc_files': dbc_files,
+            'total_unique_ids': total_unique_ids,
+            'found_id_count': found_id_count,
+            'unknown_id_count': len(unknown_ids),
+            'not_found_ids': not_found_ids,
+            'found_ids': found_ids,
+            'unknown_ids': unknown_ids,
+        }
+
         if ignore_invalid_signals:
             to_keep = []
 
@@ -3868,6 +3929,7 @@ class MDF(object):
                 f'No CAN signals could be extracted from "{self.name}". The'
                 'output file will be empty.'
             )
+
         return out
 
 

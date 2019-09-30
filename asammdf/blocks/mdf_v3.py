@@ -127,6 +127,11 @@ class MDF3(object):
         mdf file header
     identification : FileIdentificationBlock
         mdf file start block
+    last_call_info : dict | None
+        a dict to hold information about the last called method.
+
+        .. versionadded:: 5.12.0
+
     masters_db : dict
         used for fast master channel access; for each group index key the value
          is the master channel index
@@ -168,6 +173,8 @@ class MDF3(object):
 
         self._callback = kwargs.get("callback", None)
 
+        self.last_call_info = None
+
         if name:
             if is_file_like(name):
                 self._file = name
@@ -195,7 +202,10 @@ class MDF3(object):
 
         self._sort()
 
-    def _load_data(self, group, record_offset=0, record_count=None):
+    def __del__(self):
+        self.close()
+
+    def _load_data(self, group, record_offset=0, record_count=None, optimize_read=True):
         """ get group's data block bytes"""
         has_yielded = False
         offset = 0
@@ -889,6 +899,7 @@ class MDF3(object):
 
         if read_fragment_size is not None:
             self._read_fragment_size = int(read_fragment_size)
+            self._master_channel_cache.clear()
 
         if write_fragment_size:
             self._write_fragment_size = min(int(write_fragment_size), 4 * 2 ** 20)

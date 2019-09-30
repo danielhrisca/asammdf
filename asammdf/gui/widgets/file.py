@@ -2140,6 +2140,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         version = self.extract_can_format.currentText()
         count = self.can_database_list.count()
 
+        self.output_info_can.setPlainText('')
+
         dbc_files = []
         for i in range(count):
             item = self.can_database_list.item(i)
@@ -2214,11 +2216,43 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             self.progress = None
             progress.cancel()
 
+            call_info = dict(self.mdf.last_call_info)
+
+            message = [
+                'Summary:',
+                f'- {call_info["found_id_count"]} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
+            ]
+            if call_info['unknown_id_count']:
+                message.append(f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file')
+            else:
+                message.append(f'- no unknown IDs inf the MDF4 file')
+
+            message += [
+                '',
+                'Detailed information:',
+                '',
+                'The following CAN IDs were in the MDF log file and matched in the DBC:'
+            ]
+            for dbc_name, found_ids in call_info['found_ids'].items():
+                for msg_id, msg_name in sorted(found_ids):
+                    message.append(f'- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>')
+
+            message += [
+                '',
+                'The following CAN IDs were in the MDF log file, but not matched in the DBC:'
+            ]
+            for msg_id in sorted(call_info['unknown_ids']):
+                message.append(f'- 0x{msg_id:X}')
+
+            self.output_info_can.setPlainText('\n'.join(message))
+
             self.open_new_file.emit(str(file_name))
 
     def extract_can_csv_logging(self, event):
         version = self.extract_can_format.currentText()
         count = self.can_database_list.count()
+
+        self.output_info_can.setPlainText('')
 
         dbc_files = []
         for i in range(count):
@@ -2292,6 +2326,36 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
             self.progress = None
             progress.cancel()
+
+            call_info = dict(self.mdf.last_call_info)
+
+            message = [
+                'Summary:',
+                f'- {call_info["found_id_count"]} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
+            ]
+            if call_info['unknown_id_count']:
+                message.append(f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file')
+            else:
+                message.append(f'- no unknown IDs inf the MDF4 file')
+
+            message += [
+                '',
+                'Detailed information:',
+                '',
+                'The following CAN IDs were in the MDF log file and matched in the DBC:'
+            ]
+            for dbc_name, found_ids in call_info['found_ids'].items():
+                for msg_id, msg_name in sorted(found_ids):
+                    message.append(f'- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>')
+
+            message += [
+                '',
+                'The following CAN IDs were in the MDF log file, but not matched in the DBC:'
+            ]
+            for msg_id in sorted(call_info['unknown_ids']):
+                message.append(f'- 0x{msg_id:X}')
+
+            self.output_info_can.setPlainText('\n'.join(message))
 
     def load_can_database(self, event):
         file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(

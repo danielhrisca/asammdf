@@ -24,7 +24,7 @@
        <enum>QTabWidget::West</enum>
       </property>
       <property name="currentIndex">
-       <number>3</number>
+       <number>7</number>
       </property>
       <property name="documentMode">
        <bool>false</bool>
@@ -960,6 +960,9 @@
         <string>CAN logging</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_11">
+        <item row="1" column="0" colspan="3">
+         <widget class="MinimalListWidget" name="can_database_list"/>
+        </item>
         <item row="0" column="0">
          <widget class="QPushButton" name="load_can_database_btn">
           <property name="text">
@@ -970,9 +973,6 @@
             <normaloff>:/open.png</normaloff>:/open.png</iconset>
           </property>
          </widget>
-        </item>
-        <item row="1" column="0" colspan="3">
-         <widget class="MinimalListWidget" name="can_database_list"/>
         </item>
         <item row="2" column="0">
          <widget class="QGroupBox" name="groupBox_2">
@@ -1131,18 +1131,12 @@
           </layout>
          </widget>
         </item>
-        <item row="2" column="2">
-         <spacer name="horizontalSpacer_12">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
+        <item row="1" column="3" rowspan="2">
+         <widget class="QTextEdit" name="output_info_can">
+          <property name="readOnly">
+           <bool>true</bool>
           </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>240</width>
-            <height>20</height>
-           </size>
-          </property>
-         </spacer>
+         </widget>
         </item>
        </layout>
       </widget>
