@@ -30,8 +30,6 @@ install:
   - cmd: "if \"%PY%\" == \"37-x64\" ( if %APPVEYOR_REPO_BRANCH% == \"master\" (%PYTHON%\\python.exe -m pip install https://github.com/pyinstaller/pyinstaller/archive/develop.zip))"
   - cmd: "if \"%PY%\" == \"37-x64\" ( if %APPVEYOR_REPO_BRANCH% == \"master\" (%PYTHON%\\python.exe -m pip install https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip))"
   - cmd: "if \"%PY%\" == \"37-x64\" ( if %APPVEYOR_REPO_BRANCH% == \"master\" (%PYTHON%\\python.exe -m pip install .))"
-  - cmd: "if \"%PY%\" == \"37-x64\" ( if %APPVEYOR_REPO_BRANCH% == \"master\" (%PYTHON%\\Scripts\\pyinstaller asammdf.spec))"
-  - cmd: "if \"%PY%\" == \"37-x64\" ( if %APPVEYOR_REPO_BRANCH% == \"master\" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe))"
   - cmd: "if \"%PY%\" == \"37-x64\" ( if %APPVEYOR_REPO_BRANCH% == \"master\" (%PYTHON%\\Scripts\\pyinstaller asammdf_noconsole.spec))"
   - cmd: "if \"%PY%\" == \"37-x64\" ( if %APPVEYOR_REPO_BRANCH% == \"master\" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%_noconsole.exe))"
   - sh: "sudo apt-get --yes --force-yes update"
@@ -51,10 +49,6 @@ install:
   - sh: >-
       if [ $APPVEYOR_REPO_BRANCH == "master" ] ; then
          mv dist/asammdfgui dist/asammdfgui_noconsole
-      fi
-  - sh: >-
-      if [ $APPVEYOR_REPO_BRANCH == "master" ] ; then
-         /home/appveyor/.local/bin/pyinstaller asammdf.spec
       fi
 
 build: off
