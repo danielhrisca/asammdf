@@ -2231,7 +2231,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 '',
                 'Detailed information:',
                 '',
-                'The following CAN IDs were matched in the DBC and logged in the file:'
+                'The following CAN IDs were in the MDF log file and matched in the DBC:'
             ]
             for dbc_name, found_ids in call_info['found_ids'].items():
                 for msg_id, msg_name in sorted(found_ids):
@@ -2239,15 +2239,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
             message += [
                 '',
-                'The following CAN IDs were matched in the DBC but were not logged in the file:'
-            ]
-            for dbc_name, not_found in call_info['not_found_ids'].items():
-                for msg_id, msg_name in sorted(not_found):
-                    message.append(f'- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>')
-
-            message += [
-                '',
-                'The following CAN IDs were detected but were NOT matched in any DBC:'
+                'The following CAN IDs were in the MDF log file, but not matched in the DBC:'
             ]
             for msg_id in sorted(call_info['unknown_ids']):
                 message.append(f'- 0x{msg_id:X}')
