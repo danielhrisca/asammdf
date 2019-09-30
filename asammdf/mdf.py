@@ -2865,6 +2865,7 @@ class MDF(object):
             channel_indexes = gps[group]
 
             signal_parts = defaultdict(list)
+            invalidations_parts = defaultdict(list)
             master_parts = []
 
             sigs = {}
@@ -2888,7 +2889,10 @@ class MDF(object):
 
                         sigs[index] = signal
                         signal_parts[(group, index)].append(
-                            (signal.samples, signal.invalidation_bits)
+                            signal.samples
+                        )
+                        invalidations_parts[(group, index)].append(
+                            signal.invalidation_bits
                         )
 
                     master_parts.append(signal.timestamps)
@@ -2904,20 +2908,26 @@ class MDF(object):
                             ignore_invalidation_bits=True,
                         )
 
-                        signal_parts[(group, index)].append(signal)
+                        signal_parts[(group, index)].append(signal[0])
+                        invalidations_parts[(group, index)].append(signal[1])
 
                     master_parts.append(
                         self.get_master(
                             group,
                             data=fragment,
                             copy_master=False,
+                            one_peace=True,
                         )
                     )
                 grp.record = None
 
             pieces = len(master_parts)
             if pieces > 1:
-                master = np.concatenate(master_parts).astype(master_parts[0].dtype)
+                out = np.empty(grp.channel_group.cycles_nr, dtype=master_parts[0].dtype)
+                master = np.concatenate(
+                    master_parts,
+                    out=out,
+                )
             else:
                 master = master_parts[0]
             master_parts = None
@@ -2925,22 +2935,28 @@ class MDF(object):
             for pair in pairs:
                 group, index = pair
                 parts = signal_parts.pop(pair)
+                inval_parts = invalidations_parts.pop(pair)
                 sig = sigs.pop(index)
 
                 if pieces > 1:
+                    out = np.empty(
+                        grp.channel_group.cycles_nr,
+                        dtype=parts[0].dtype,
+                    )
                     samples = np.concatenate(
-                        [part[0] for part in parts]
-                    ).astype(parts[0][0].dtype)
+                        parts,
+                        out=out,
+                    )
                     if sig.invalidation_bits is not None:
                         invalidation_bits = np.concatenate(
-                            [part[1] for part in parts]
+                            inval_parts
                         )
                     else:
                         invalidation_bits = None
                 else:
-                    samples = parts[0][0]
+                    samples = parts[0]
                     if sig.invalidation_bits is not None:
-                        invalidation_bits = parts[0][1]
+                        invalidation_bits = inval_parts[0]
                     else:
                         invalidation_bits = None
 
@@ -3538,8 +3554,12 @@ class MDF(object):
 
                 grp.record = None
 
-            if len(timestamps):
-                signals = [np.concatenate(parts).astype(parts[0].dtype) for parts in signals]
+            total_size = len(timestamps)
+            if total_size:
+                signals = [
+                    np.concatenate(parts, out=np.empty(total_size, dtype=parts[0].dtype))
+                    for parts in signals
+                ]
 
                 if not raw:
                     if ignore_value2text_conversions:
@@ -3559,7 +3579,7 @@ class MDF(object):
                             for signal, conversion in zip(signals, conversions)
                         ]
 
-                timestamps = np.concatenate(timestamps).astype(timestamps[0].dtype)
+                timestamps = np.concatenate(timestamps, out=np.empty(total_size, dtype=timestamps[0].dtype))
                 for idx, parts in enumerate(invalidation_bits):
                     if parts[0] is None:
                         invalidation_bits[idx] = None
