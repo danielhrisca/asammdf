@@ -4080,10 +4080,11 @@ class MDF4(object):
 
                 if count > 1:
                     total_size = sum(len(_) for _ in channel_values)
+                    shape = (total_size,) + channel_values[0].shape[1:]
 
                 if fast_path:
                     if count > 1:
-                        out = empty(total_size, dtype=channel_values[0].dtype)
+                        out = empty(shape, dtype=channel_values[0].dtype)
                         vals = concatenate(
                             channel_values,
                             out=out,
@@ -4378,9 +4379,10 @@ class MDF4(object):
 
                 if count > 1:
                     total_size = sum(len(_) for _ in channel_values)
+                    shape = (total_size,) + channel_values[0].shape[1:]
 
                 if count > 1:
-                    out = empty(total_size, dtype=channel_values[0].dtype)
+                    out = empty(shape, dtype=channel_values[0].dtype)
                     vals = concatenate(channel_values, out=out)
                 elif count == 1:
                     vals = channel_values[0]
@@ -4461,9 +4463,10 @@ class MDF4(object):
 
                 if count > 1:
                     total_size = sum(len(_) for _ in channel_values)
+                    shape = (total_size,) + channel_values[0].shape[1:]
 
                 if count > 1:
-                    out = empty(total_size, dtype=channel_values[0].dtype)
+                    out = empty(shape, dtype=channel_values[0].dtype)
                     vals = concatenate(channel_values, out=out)
                 elif count == 1:
                     vals = channel_values[0]
@@ -4646,9 +4649,10 @@ class MDF4(object):
 
                 if count > 1:
                     total_size = sum(len(_) for _ in channel_values)
+                    shape = (total_size,) + channel_values[0].shape[1:]
 
                 if count > 1:
-                    out = empty(total_size, dtype=channel_values[0].dtype)
+                    out = empty(shape, dtype=channel_values[0].dtype)
                     vals = concatenate(channel_values, out=out)
                 elif count == 1:
                     vals = channel_values[0]
