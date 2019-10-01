@@ -220,7 +220,6 @@ class MDF4(object):
 
         self._attachments_map = {}
         self._ch_map = {}
-        self._master_channel_cache = {}
         self._master_channel_metadata = {}
         self._invalidation_cache = {}
         self._external_dbc_cache = {}
@@ -240,6 +239,8 @@ class MDF4(object):
         self._remove_source_from_channel_names = kwargs.get('remove_source_from_channel_names', False)
         self._single_bit_uint_as_bool = False
         self._integer_interpolation = 0
+
+        self._master = None
 
         self.last_call_info = None
 
@@ -772,7 +773,6 @@ class MDF4(object):
         self._si_map.clear()
         self._ch_map.clear()
         self._cc_map.clear()
-        self._master_channel_cache.clear()
 
         self.progress = cg_count, cg_count
 
@@ -1229,7 +1229,7 @@ class MDF4(object):
 
         return data
 
-    def _load_data(self, group, record_offset=0, record_count=None, optimize_read=True):
+    def _load_data(self, group, record_offset=0, record_count=None, optimize_read=False):
         """ get group's data block bytes """
 
         offset = 0
@@ -2046,6 +2046,9 @@ class MDF4(object):
     def _get_source_name(self, group, index):
         return self.groups[group].channels[index].source.name or ""
 
+    def _set_temporary_master(self, master):
+        self._master = master
+
     def _get_data_blocks_info(self, address, stream, block_type=b"##DT", mapped=False):
         info = []
         mapped = not is_file_like(stream)
@@ -2365,7 +2368,6 @@ class MDF4(object):
 
         if read_fragment_size is not None:
             self._read_fragment_size = int(read_fragment_size)
-            self._master_channel_cache.clear()
 
         if write_fragment_size:
             self._write_fragment_size = min(int(write_fragment_size), 4 * 2 ** 20)
@@ -3786,7 +3788,6 @@ class MDF4(object):
         source=None,
         record_offset=0,
         record_count=None,
-        copy_master=True,
     ):
         """Gets channel samples. The raw data group samples are not loaded to
         memory so it is advised to use ``filter`` or ``select`` instead of
@@ -3839,8 +3840,6 @@ class MDF4(object):
         record_count : int
             number of records to read; default *None* and in this case all
             available records are used
-        copy_master : bool
-            make a copy of the timebase for this channel
 
         Returns
         -------
@@ -4030,7 +4029,7 @@ class MDF4(object):
                         if master_is_required:
                             timestamps.append(
                                 self.get_master(
-                                    gp_nr, fragment, copy_master=copy_master,
+                                    gp_nr, fragment,
                                     one_peace=True,
                                 )
                             )
@@ -4068,7 +4067,7 @@ class MDF4(object):
                         if master_is_required:
                             timestamps.append(
                                 self.get_master(
-                                    gp_nr, fragment, copy_master=copy_master
+                                    gp_nr, fragment,
                                 )
                             )
                         if channel_invalidation_present:
@@ -4365,7 +4364,7 @@ class MDF4(object):
 
                     if master_is_required:
                         timestamps.append(
-                            self.get_master(gp_nr, fragment, copy_master=copy_master)
+                            self.get_master(gp_nr, fragment)
                         )
                     if channel_invalidation_present:
                         invalidation_bits.append(
@@ -4449,7 +4448,7 @@ class MDF4(object):
 
                     if master_is_required:
                         timestamps.append(
-                            self.get_master(gp_nr, fragment, copy_master=copy_master)
+                            self.get_master(gp_nr, fragment)
                         )
                     if channel_invalidation_present:
                         invalidation_bits.append(
@@ -4632,7 +4631,7 @@ class MDF4(object):
 
                     if master_is_required:
                         timestamps.append(
-                            self.get_master(gp_nr, fragment, copy_master=copy_master)
+                            self.get_master(gp_nr, fragment)
                         )
                     if channel_invalidation_present:
                         invalidation_bits.append(
@@ -4940,7 +4939,6 @@ class MDF4(object):
         raster=None,
         record_offset=0,
         record_count=None,
-        copy_master=True,
         one_peace=False,
     ):
         """ returns master channel samples for given group
@@ -4959,8 +4957,6 @@ class MDF4(object):
         record_count : int
             number of records to read; default *None* and in this case all
             available records are used
-        copy_master : bool
-            return a copy of the cached master
 
         Returns
         -------
@@ -4968,34 +4964,14 @@ class MDF4(object):
             master channel samples
 
         """
+        if self._master is not None:
+            return self._master
+
         fragment = data
         if fragment:
             data_bytes, offset, _count = fragment
-            try:
-                timestamps = self._master_channel_cache[(index, offset, _count)]
-                if raster and len(timestamps):
-                    timestamps = arange(timestamps[0], timestamps[-1], raster)
-                    return timestamps
-                else:
-                    if copy_master:
-                        return timestamps.copy()
-                    else:
-                        return timestamps
-            except KeyError:
-                pass
         else:
-            try:
-                timestamps = self._master_channel_cache[index]
-                if raster and len(timestamps):
-                    timestamps = arange(timestamps[0], timestamps[-1], raster)
-                    return timestamps
-                else:
-                    if copy_master:
-                        return timestamps.copy()
-                    else:
-                        return timestamps
-            except KeyError:
-                offset = 0
+            offset = 0
 
         group = self.groups[index]
 
@@ -5127,12 +5103,6 @@ class MDF4(object):
         if not t.dtype == float64:
             t = t.astype(float64)
 
-        if original_data is None:
-            self._master_channel_cache[index] = t
-        else:
-            data_bytes, offset, _ = original_data
-            self._master_channel_cache[(index, offset, _count)] = t
-
         if raster and t.size:
             timestamps = t
             if len(t) > 1:
@@ -5141,13 +5111,9 @@ class MDF4(object):
                     timestamps = linspace(t[0], t[-1], int(num))
                 else:
                     timestamps = arange(t[0], t[-1], raster)
-            return timestamps
         else:
             timestamps = t
-            if copy_master:
-                return timestamps.copy()
-            else:
-                return timestamps
+        return timestamps.copy()
 
     def get_can_signal(
         self, name, database=None, db=None, ignore_invalidation_bits=False
@@ -6055,7 +6021,6 @@ class MDF4(object):
             self.file_comment = None
 
             self._ch_map.clear()
-            self._master_channel_cache.clear()
 
             self._tempfile = TemporaryFile()
             self._file = open(self.name, "rb")

@@ -625,11 +625,6 @@ def debug_channel(mdf, group, channel, dependency, file=None):
     print(dependency, file=file)
     print(file=file)
 
-    print("MASTER CACHE", "=" * 67, file=file)
-    print(
-        [(key, len(val)) for key, val in mdf._master_channel_cache.items()], file=file
-    )
-
 
 def count_channel_groups(stream, include_channels=False):
     """ count all channel groups as fast as possible. This is used to provide
@@ -1190,7 +1185,6 @@ def master_using_raster(mdf, raster, endpoint=False):
                 )
                 if len(master_min):
                     t_min.append(master_min[0])
-                mdf._master_channel_cache.clear()
                 master_max = mdf.get_master(
                     i,
                     record_offset=cycles_nr-1,
@@ -1198,7 +1192,6 @@ def master_using_raster(mdf, raster, endpoint=False):
                 )
                 if len(master_max):
                     t_max.append(master_max[0])
-                mdf._master_channel_cache.clear()
 
         if t_min:
             t_min = np.amin(t_min)

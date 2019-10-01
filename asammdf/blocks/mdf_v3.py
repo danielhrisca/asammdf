@@ -154,7 +154,6 @@ class MDF3(object):
         self.masters_db = {}
         self.version = version
 
-        self._master_channel_cache = {}
         self._master_channel_metadata = {}
 
         self._tempfile = TemporaryFile()
@@ -174,6 +173,7 @@ class MDF3(object):
         self._callback = kwargs.get("callback", None)
 
         self.last_call_info = None
+        self._master = None
 
         if name:
             if is_file_like(name):
@@ -695,6 +695,10 @@ class MDF3(object):
             name = ""
         return name
 
+    def _set_temporary_master(self, master):
+        self._master = master
+
+
     def _read(self, mapped=False):
         stream = self._file
 
@@ -899,7 +903,6 @@ class MDF3(object):
 
         if read_fragment_size is not None:
             self._read_fragment_size = int(read_fragment_size)
-            self._master_channel_cache.clear()
 
         if write_fragment_size:
             self._write_fragment_size = min(int(write_fragment_size), 4 * 2 ** 20)
@@ -2481,7 +2484,6 @@ class MDF3(object):
         source=None,
         record_offset=0,
         record_count=None,
-        copy_master=True,
     ):
         """Gets channel samples.
         Channel can be specified in two ways:
@@ -2529,8 +2531,6 @@ class MDF3(object):
         record_offset : int
             if *data=None* use this to select the record offset from which the
             group data should be loaded
-        copy_master : bool
-            make a copy of the timebase for this channel
 
 
         Returns
@@ -2717,7 +2717,6 @@ class MDF3(object):
                     original_data,
                     record_offset=record_offset,
                     record_count=record_count,
-                    copy_master=copy_master,
                 )
                 if raster and len(timestamps) > 1:
                     num = float(float32((timestamps[-1] - timestamps[0]) / raster))
@@ -2826,7 +2825,7 @@ class MDF3(object):
 
                 if not samples_only or raster:
                     timestamps.append(
-                        self.get_master(gp_nr, fragment, copy_master=copy_master)
+                        self.get_master(gp_nr, fragment)
                     )
 
                 if bits == 1 and self._single_bit_uint_as_bool:
@@ -2947,7 +2946,7 @@ class MDF3(object):
         raster=None,
         record_offset=0,
         record_count=None,
-        copy_master=True,
+        one_peace=False,
     ):
         """ returns master channel samples for given group
 
@@ -2969,36 +2968,15 @@ class MDF3(object):
             master channel samples
 
         """
+        if self._master is not None:
+            return self._master
         original_data = data
 
         fragment = data
         if fragment:
             data_bytes, offset, _count = fragment
-            try:
-                timestamps = self._master_channel_cache[(index, offset, _count)]
-                if raster and timestamps:
-                    timestamps = arange(timestamps[0], timestamps[-1], raster)
-                    return timestamps
-                else:
-                    if copy_master:
-                        return timestamps.copy()
-                    else:
-                        return timestamps
-            except KeyError:
-                pass
         else:
-            try:
-                timestamps = self._master_channel_cache[index]
-                if raster and timestamps:
-                    timestamps = arange(timestamps[0], timestamps[-1], raster)
-                    return timestamps
-                else:
-                    if copy_master:
-                        return timestamps.copy()
-                    else:
-                        return timestamps
-            except KeyError:
-                pass
+            offset = 0
 
         group = self.groups[index]
 
@@ -3084,12 +3062,6 @@ class MDF3(object):
 
         self._master_channel_metadata[index] = metadata
 
-        if original_data is None:
-            self._master_channel_cache[index] = t
-        else:
-            data_bytes, offset, _count = original_data
-            self._master_channel_cache[(index, offset, _count)] = t
-
         if raster:
             timestamps = t
             if len(t) > 1:
@@ -3100,10 +3072,8 @@ class MDF3(object):
                     timestamps = arange(t[0], t[-1], raster)
         else:
             timestamps = t
-        if copy_master:
-            return timestamps.copy()
-        else:
-            return timestamps
+
+        return timestamps.copy()
 
     def iter_get_triggers(self):
         """ generator that yields triggers
@@ -3425,8 +3395,6 @@ class MDF3(object):
             self.identification = None
             self.channels_db.clear()
             self.masters_db.clear()
-
-            self._master_channel_cache.clear()
 
             self._tempfile = TemporaryFile()
             self._file = open(self.name, "rb")
