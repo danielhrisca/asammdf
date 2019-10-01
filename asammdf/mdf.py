@@ -2855,26 +2855,29 @@ class MDF(object):
                 else:
                     gps[group].add(index)
 
-        signals = {}
+        output_signals = {}
 
         for group in gps:
             grp = self.groups[group]
             data = self._load_data(grp, record_offset=record_offset)
             parents, dtypes = self._prepare_record(grp)
 
-            channel_indexes = gps[group]
+            channel_indexes = list(gps[group])
 
-            signal_parts = defaultdict(list)
-            invalidations_parts = defaultdict(list)
-            master_parts = []
+            cycles = grp.channel_group.cycles_nr
 
-            sigs = {}
+            signals = []
+            invalidation_bits = []
+
+            sigs = []
 
             for i, fragment in enumerate(data):
                 if dtypes.itemsize:
                     grp.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
                 else:
                     grp.record = None
+
+                current_pos = 0
 
                 if i == 0:
                     for index in channel_indexes:
@@ -2887,18 +2890,53 @@ class MDF(object):
                             ignore_invalidation_bits=True,
                         )
 
-                        sigs[index] = signal
-                        signal_parts[(group, index)].append(
-                            signal.samples
-                        )
-                        invalidations_parts[(group, index)].append(
-                            signal.invalidation_bits
-                        )
+                        sigs.append(signal)
 
-                    master_parts.append(signal.timestamps)
+                    next_pos = current_pos + len(sigs[0])
+
+                    master = np.empty(
+                        cycles,
+                        dtype=sigs[0].timestamps.dtype,
+                    )
+
+                    master[current_pos: next_pos] = sigs[0].timestamps
+
+                    for sig in sigs:
+                        shape = (cycles,) + sig.samples.shape[1:]
+                        signal = np.empty(
+                            shape,
+                            dtype=sig.samples.dtype
+                        )
+                        signals.append(
+                            signal
+                        )
+                        signal[current_pos: next_pos] = sig.samples
+
+                        if sig.invalidation_bits is not None:
+                            inval = np.empty(
+                                cycles,
+                                dtype=sig.invalidation_bits.dtype
+                            )
+                            invalidation_bits.append(
+                                inval
+                            )
+                            inval[current_pos: next_pos] = sig.invalidation_bits
+                        else:
+                            invalidation_bits.append(None)
+
                 else:
-                    for index in channel_indexes:
-                        signal = self.get(
+
+                    master_ = self.get_master(
+                        group,
+                        data=fragment,
+                        copy_master=False,
+                        one_peace=True,
+                    )
+                    next_pos = current_pos + len(master_)
+                    master[current_pos: next_pos] = master_
+
+                    for signal, inval, index in zip(signals, invalidation_bits, channel_indexes):
+                        sig = self.get(
                             group=group,
                             index=index,
                             data=fragment,
@@ -2907,61 +2945,19 @@ class MDF(object):
                             samples_only=True,
                             ignore_invalidation_bits=True,
                         )
+                        signal[current_pos: next_pos] = sig[0]
+                        if inval is not None:
+                            inval[current_pos: next_pos] = sig[1]
 
-                        signal_parts[(group, index)].append(signal[0])
-                        invalidations_parts[(group, index)].append(signal[1])
+                current_pos = next_pos
 
-                    master_parts.append(
-                        self.get_master(
-                            group,
-                            data=fragment,
-                            copy_master=False,
-                            one_peace=True,
-                        )
-                    )
                 grp.record = None
 
-            pieces = len(master_parts)
-            if pieces > 1:
-                out = np.empty(grp.channel_group.cycles_nr, dtype=master_parts[0].dtype)
-                master = np.concatenate(
-                    master_parts,
-                    out=out,
-                )
-            else:
-                master = master_parts[0]
-            master_parts = None
-            pairs = list(signal_parts.keys())
-            for pair in pairs:
-                group, index = pair
-                parts = signal_parts.pop(pair)
-                inval_parts = invalidations_parts.pop(pair)
-                sig = sigs.pop(index)
+            for signal, inval, index, sig in zip(signals, invalidation_bits, channel_indexes, sigs):
+                pair = group, index
 
-                if pieces > 1:
-                    out = np.empty(
-                        (grp.channel_group.cycles_nr,) + parts[0].shape[1:],
-                        dtype=parts[0].dtype,
-                    )
-                    samples = np.concatenate(
-                        parts,
-                        out=out,
-                    )
-                    if sig.invalidation_bits is not None:
-                        invalidation_bits = np.concatenate(
-                            inval_parts
-                        )
-                    else:
-                        invalidation_bits = None
-                else:
-                    samples = parts[0]
-                    if sig.invalidation_bits is not None:
-                        invalidation_bits = inval_parts[0]
-                    else:
-                        invalidation_bits = None
-
-                signals[pair] = Signal(
-                    samples=samples,
+                output_signals[pair] = Signal(
+                    samples=signal,
                     timestamps=master,
                     name=sig.name,
                     unit=sig.unit,
@@ -2975,11 +2971,11 @@ class MDF(object):
                     raw=True,
                     source=sig.source,
                     stream_sync=sig.stream_sync,
-                    invalidation_bits=invalidation_bits,
+                    invalidation_bits=inval,
                 )
 
         signals = [
-            signals[pair]
+            output_signals[pair]
             for pair in indexes
         ]
 
