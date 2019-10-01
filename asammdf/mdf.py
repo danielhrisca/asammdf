@@ -486,9 +486,6 @@ class MDF(object):
 
         cg_nr = -1
 
-        from time import perf_counter
-        start_ = perf_counter()
-
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
 
@@ -509,20 +506,19 @@ class MDF(object):
                     group.record = None
                     continue
 
+                self._set_temporary_master(self.get_master(i, data=fragment, one_peace=True))
+
                 # the first fragment triggers and append that will add the
                 # metadata for all channels
                 if idx == 0:
                     sigs = []
                     for j in included_channels:
-                        if perf_counter() - start_ > 120:
-                            return
                         sig = self.get(
                             group=i,
                             index=j,
                             data=fragment,
                             raw=True,
                             ignore_invalidation_bits=True,
-                            copy_master=False,
                         )
                         if version < "4.00":
                             if sig.samples.dtype.kind == "S":
@@ -576,12 +572,10 @@ class MDF(object):
                 # samples records to the data block
                 else:
                     sigs = [
-                        (self.get_master(i, data=fragment, copy_master=False), None)
+                        (self.get_master(i, data=fragment), None)
                     ]
 
                     for k, j in enumerate(included_channels):
-                        if perf_counter() - start_ > 120:
-                            return
                         sig = self.get(
                             group=i,
                             index=j,
@@ -618,6 +612,7 @@ class MDF(object):
                     out.extend(cg_nr, sigs)
 
                 group.record = None
+                self._set_temporary_master(None)
 
             if self._callback:
                 self._callback(i + 1, groups_nr)
@@ -691,7 +686,6 @@ class MDF(object):
                 )
                 if master.size:
                     timestamps.append(master[0])
-            self._master_channel_cache.clear()
 
             if timestamps:
                 first_timestamp = np.amin(timestamps)
@@ -737,8 +731,13 @@ class MDF(object):
                     group.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
                 else:
                     group.record = None
-                master = self.get_master(i, fragment, copy_master=False)
+#                master = self.get_master(i, data=fragment, one_peace=True)
+                self._set_temporary_master(None)
+                master = self.get_master(i, data=fragment)
+
+                self._set_temporary_master(master)
                 if not len(master):
+                    self._set_temporary_master(None)
                     continue
 
                 needs_cutting = True
@@ -810,7 +809,6 @@ class MDF(object):
                             data=fragment,
                             raw=True,
                             ignore_invalidation_bits=True,
-                            copy_master=False,
                         )
                         if needs_cutting:
                             sig = sig.interp(cut_timebase, interpolation_mode=interpolation_mode)
@@ -906,6 +904,7 @@ class MDF(object):
                     idx += 1
 
                 group.record = None
+                self._set_temporary_master(None)
 
             # if the cut interval is not found in the measurement
             # then append an empty data group
@@ -1027,8 +1026,6 @@ class MDF(object):
 
 
         """
-
-        from time import perf_counter as pc
 
         header_items = (
             "date",
@@ -1390,8 +1387,6 @@ class MDF(object):
                         for i, row in enumerate(zip(*vals)):
                             writer.writerow(row)
 
-                    if (i, 0, -1) in self._master_channel_cache:
-                        del self._master_channel_cache[(i, 0, -1)]
                     if self._callback:
                         self._callback(i + 1, gp_count)
 
@@ -1695,6 +1690,8 @@ class MDF(object):
                 else:
                     group.record = None
 
+                self._set_temporary_master(self.get_master(group_index, data=fragment, one_peace=True))
+
                 # the first fragment triggers and append that will add the
                 # metadata for all channels
                 if idx == 0:
@@ -1706,7 +1703,6 @@ class MDF(object):
                             data=fragment,
                             raw=True,
                             ignore_invalidation_bits=True,
-                            copy_master=False,
                         )
                         if version < "4.00":
                             if sig.samples.dtype.kind == "S":
@@ -1762,7 +1758,6 @@ class MDF(object):
                             self.get_master(
                                 group_index,
                                 data=fragment,
-                                copy_master=False
                             ),
                             None,
                         )
@@ -1804,6 +1799,7 @@ class MDF(object):
                         mdf.extend(new_index, sigs)
 
                 group.record = None
+                self._set_temporary_master(None)
 
             if self._callback:
                 self._callback(new_index + 1, groups_nr)
@@ -2055,7 +2051,7 @@ class MDF(object):
 
                 data = mdf._load_data(group, optimize_read=False)
 
-                for fragment in data:
+                for f_index, fragment in enumerate(data):
 
                     if dtypes.itemsize:
                         group.record = np.core.records.fromstring(
@@ -2063,6 +2059,8 @@ class MDF(object):
                         )
                     else:
                         group.record = None
+
+                    mdf._set_temporary_master(mdf.get_master(i, data=fragment, one_peace=True))
 
                     if mdf_index == 0 and idx == 0:
                         encodings_ = []
@@ -2075,7 +2073,6 @@ class MDF(object):
                                 data=fragment,
                                 raw=True,
                                 ignore_invalidation_bits=True,
-                                copy_master=False,
                             )
 
                             if version < "4.00":
@@ -2149,7 +2146,7 @@ class MDF(object):
                             break
                         idx += 1
                     else:
-                        master = mdf.get_master(i, fragment, copy_master=False)
+                        master = mdf.get_master(i, fragment)
                         _copied = False
 
                         if len(master):
@@ -2225,6 +2222,7 @@ class MDF(object):
                         idx += 1
 
                     group.record = None
+                    mdf._set_temporary_master(None)
 
                 last_timestamps[i] = last_timestamp
 
@@ -2350,6 +2348,7 @@ class MDF(object):
                         )
                     else:
                         group.record = None
+                    mdf._set_temporary_master(mdf.get_master(i, data=fragment, one_peace=True))
                     if idx == 0:
                         signals = []
                         for j in included_channels:
@@ -2359,7 +2358,6 @@ class MDF(object):
                                 data=fragment,
                                 raw=True,
                                 ignore_invalidation_bits=True,
-                                copy_master=False,
                             )
 
                             if version < "4.00":
@@ -2413,7 +2411,7 @@ class MDF(object):
                                 pass
                         idx += 1
                     else:
-                        master = mdf.get_master(i, fragment, copy_master=False)
+                        master = mdf.get_master(i, fragment)
                         if sync:
                             master = master + offset
                         if len(master):
@@ -2458,6 +2456,7 @@ class MDF(object):
                         idx += 1
 
                     group.record = None
+                    mdf._set_temporary_master(None)
 
                 stacked.groups[
                     -1
@@ -2706,7 +2705,6 @@ class MDF(object):
             sigs = self.select(
                 channels,
                 raw=True,
-                copy_master=False,
             )
             sigs = [
                 sig.interp(raster, interpolation_mode=interpolation_mode)
@@ -2871,13 +2869,16 @@ class MDF(object):
 
             sigs = []
 
+            current_pos = 0
+
             for i, fragment in enumerate(data):
+
                 if dtypes.itemsize:
                     grp.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
                 else:
                     grp.record = None
 
-                current_pos = 0
+                self._set_temporary_master(self.get_master(group, data=fragment, one_peace=True))
 
                 if i == 0:
                     for index in channel_indexes:
@@ -2885,7 +2886,6 @@ class MDF(object):
                             group=group,
                             index=index,
                             data=fragment,
-                            copy_master=False,
                             raw=True,
                             ignore_invalidation_bits=True,
                         )
@@ -2925,26 +2925,19 @@ class MDF(object):
                             invalidation_bits.append(None)
 
                 else:
-
-                    master_ = self.get_master(
-                        group,
-                        data=fragment,
-                        copy_master=False,
-                        one_peace=True,
-                    )
-                    next_pos = current_pos + len(master_)
-                    master[current_pos: next_pos] = master_
+                    next_pos = current_pos + len(self._mdf._master)
+                    master[current_pos: next_pos] = self._mdf._master
 
                     for signal, inval, index in zip(signals, invalidation_bits, channel_indexes):
                         sig = self.get(
                             group=group,
                             index=index,
                             data=fragment,
-                            copy_master=False,
                             raw=True,
                             samples_only=True,
                             ignore_invalidation_bits=True,
                         )
+
                         signal[current_pos: next_pos] = sig[0]
                         if inval is not None:
                             inval[current_pos: next_pos] = sig[1]
@@ -2952,6 +2945,7 @@ class MDF(object):
                 current_pos = next_pos
 
                 grp.record = None
+                self._set_temporary_master(None)
 
             for signal, inval, index, sig in zip(signals, invalidation_bits, channel_indexes, sigs):
                 pair = group, index
@@ -3481,7 +3475,7 @@ class MDF(object):
             master = raster
         else:
             masters = [
-                self.get_master(i, copy_master=False)
+                self.get_master(i)
                 for i, _ in enumerate(self.groups)
             ]
             masters = [
@@ -3489,7 +3483,7 @@ class MDF(object):
                 for master in masters
                 if len(master)
             ]
-            self._master_channel_cache.clear()
+
             if masters:
                 master = reduce(np.union1d, masters)
             else:
@@ -3544,7 +3538,6 @@ class MDF(object):
                     self.get_master(
                         group_index,
                         data=fragment,
-                        copy_master=False,
                     )
                 )
 
@@ -3772,6 +3765,8 @@ class MDF(object):
                         group.record = None
                         continue
 
+                    self._set_temporary_master(self.get_master(i, data=fragment, one_peace=True))
+
                     bus_ids = self.get(
                         'CAN_DataFrame.BusChannel',
                         group=i,
@@ -3783,7 +3778,6 @@ class MDF(object):
                         'CAN_DataFrame.ID',
                         group=i,
                         data=fragment,
-                        copy_master=False,
                     )
 
                     if is_j1939:
@@ -3891,7 +3885,7 @@ class MDF(object):
                                         max_flags[max_flags_entry] = max_flags[max_flags_entry] and signal['is_max']
 
                                     out.extend(index, sigs)
-
+                    self._set_temporary_master(None)
                 cntr += 1
                 if self._callback:
                     self._callback(cntr, count)
