@@ -4174,11 +4174,9 @@ class MDF4(object):
                         else:
                             record = grp.record
 
-                        vals = record[parent]
+                        vals = record[parent].copy()
                     else:
                         vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
-
-                    vals = vals.copy()
 
                     dep = dependency_list[0]
                     if dep.flags & v4c.FLAG_CA_INVERSE_LAYOUT:
@@ -5102,13 +5100,13 @@ class MDF4(object):
                             else:
                                 record = group.record
 
-                            t = record[parent]
+                            t = record[parent].copy()
                         else:
                             t = self._get_not_byte_aligned_data(
                                 data_bytes, group, time_ch_nr
                             )
 
-                        time_values.append(t.copy())
+                        time_values.append(t)
                         count += 1
 
                     if count > 1:
