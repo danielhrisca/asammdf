@@ -2454,7 +2454,7 @@ class MDF4(object):
 
                 if different:
                     times = [s.timestamps for s in signals]
-                    t = reduce(union1d, times).flatten().astype(float64)
+                    t = unique(concatenate(times)).astype(float64)
                     signals = [s.interp(t, interpolation_mode=interp_mode) for s in signals]
                     times = None
                 else:
@@ -3788,6 +3788,7 @@ class MDF4(object):
         source=None,
         record_offset=0,
         record_count=None,
+        copy_master=None,
     ):
         """Gets channel samples. The raw data group samples are not loaded to
         memory so it is advised to use ``filter`` or ``select`` instead of
@@ -3840,6 +3841,10 @@ class MDF4(object):
         record_count : int
             number of records to read; default *None* and in this case all
             available records are used
+        copy_master : bool
+            .. deprecated:: 5.12.0
+
+
 
         Returns
         -------
@@ -3931,6 +3936,12 @@ class MDF4(object):
                 comment="">
 
         """
+
+        if copy_master is not None:
+            logger.warning(
+                'the argument copy_master is depreacted since version 5.12.0 '
+                'and will be removed in a future release'
+            )
 
         gp_nr, ch_nr = self._validate_channel_selection(
             name, group, index, source=source
@@ -4740,6 +4751,8 @@ class MDF4(object):
                             )
 
                 else:
+                    if len(vals):
+                        raise MdfException(f'Wrong signal data block refence (0x{channel.data_block_addr:X}) for VLSD channel "{channel.name}"')
                     # no VLSD signal data samples
                     if data_type != v4c.DATA_TYPE_BYTEARRAY:
                         vals = array([], dtype="S")
@@ -4940,6 +4953,7 @@ class MDF4(object):
         record_offset=0,
         record_count=None,
         one_peace=False,
+        copy_master=None,
     ):
         """ returns master channel samples for given group
 
@@ -4957,6 +4971,8 @@ class MDF4(object):
         record_count : int
             number of records to read; default *None* and in this case all
             available records are used
+        copy_master : bool
+            .. deprecated:: 5.12.0
 
         Returns
         -------
@@ -4964,6 +4980,11 @@ class MDF4(object):
             master channel samples
 
         """
+        if copy_master is not None:
+            PendingDeprecationWarning(
+                'the argument copy_master is depreacted since version 5.12.0 '
+                'and will be removed in a future release'
+            )
         if self._master is not None:
             return self._master
 
@@ -5040,7 +5061,7 @@ class MDF4(object):
                         else:
                             record = group.record
 
-                        t = record[parent]
+                        t = record[parent].copy()
                     else:
                         t = self._get_not_byte_aligned_data(
                             data_bytes, group, time_ch_nr

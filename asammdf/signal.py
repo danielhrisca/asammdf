@@ -1100,29 +1100,23 @@ class Signal(object):
             encoding=self.encoding,
         )
 
-    def validate(self):
+    def validate(self, copy=True):
+        """ appply invalidation bits if they are available for this signal
+
+        Arguments
+        ---------
+        copy (True) : bool
+            return a copy of the result
+
+            .. versionadded:: 5.12.0
+
+        """
         if self.invalidation_bits is None:
-            result = Signal(
-                self.samples.copy(),
-                self.timestamps.copy(),
-                self.unit,
-                self.name,
-                self.conversion,
-                self.comment,
-                self.raw,
-                self.master_metadata,
-                self.display_name,
-                self.attachment,
-                self.source,
-                self.bit_count,
-                self.stream_sync,
-                invalidation_bits=None,
-                encoding=self.encoding,
-            )
+            signal = self
 
         else:
             idx = np.nonzero(~self.invalidation_bits)[0]
-            result = Signal(
+            signal = Signal(
                 self.samples[idx],
                 self.timestamps[idx],
                 self.unit,
@@ -1139,7 +1133,11 @@ class Signal(object):
                 invalidation_bits=None,
                 encoding=self.encoding,
             )
-        return result
+
+        if copy:
+            signal = signal.copy()
+
+        return signal
 
     def copy(self):
         """ copy all attributes to a new Signal """

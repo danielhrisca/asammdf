@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
-from functools import partial, reduce
+from functools import partial
 import json
 from pathlib import Path
 import os
@@ -1404,6 +1404,9 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         else:
             signals_ = names
 
+        if not signals_:
+            return
+
         if window_type == 'Tabular':
             signals = self.mdf.to_dataframe(
                 channels=signals_,
@@ -1419,6 +1422,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
             for sig, sig_ in zip(signals, signals_):
                 sig.group_index = sig_[1]
+                sig.channel_index = sig_[2]
 
             signals = [
                 sig
@@ -1640,26 +1644,29 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             numeric.add_channels_request.connect(partial(self.add_new_channels, widget=numeric))
 
         elif window_info['type'] == 'Plot':
-            measured_signals = [
+            measured_signals_ = [
                 (None, *self.mdf.whereis(channel['name'])[0])
                 for channel in window_info['configuration']['channels']
                 if not channel['computed'] and channel['name']  in self.mdf
             ]
+
             measured_signals = {
                 sig.name: sig
                 for sig in self.mdf.select(
-                    measured_signals,
+                    measured_signals_,
                     ignore_value2text_conversions=self.ignore_value2text_conversions,
                 )
             }
 
-            for signal in measured_signals.values():
+            for signal, entry_info in zip(measured_signals.values(), measured_signals_):
                 signal.computed = False
                 signal.computation = {}
+                signal.group_index = entry_info[1]
+                signal.channel_index = entry_info[2]
 
             if measured_signals:
-                all_timebase = reduce(
-                    np.union1d, (sig.timestamps for sig in measured_signals.values())
+                all_timebase = np.unique(
+                    np.concatenate([sig.timestamps for sig in measured_signals.values()])
                 )
             else:
                 all_timebase = []
@@ -1772,6 +1779,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                     signal.computation = channel['computation']
                     signal.name = channel['name']
                     signal.unit = channel['unit']
+                    signal.group_index = -1
+                    signal.channel_index = -1
 
                     computed_signals[signal.name] = signal
                 except:
@@ -1951,7 +1960,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
     def _create_window(self, event):
 
         ret, ok = QtWidgets.QInputDialog.getItem(
-            None,
+            self,
             "Select window type",
             "Type:",
             ["Plot", "Numeric", "Tabular"],
@@ -2126,6 +2135,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             for sig in sigs:
                 group, index = self.mdf.whereis(sig.name)[0]
                 sig.group_index = group
+                sig.channel_index = index
 
             sigs = [
                 sig

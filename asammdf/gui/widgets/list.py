@@ -3,6 +3,8 @@
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
+from struct import pack, unpack
+import json
 
 
 class ListWidget(QtWidgets.QListWidget):
@@ -76,18 +78,43 @@ class ListWidget(QtWidgets.QListWidget):
             super().keyPressEvent(event)
 
     def startDrag(self, supportedActions):
+        selected_items = self.selectedItems()
+
+        mimeData = QtCore.QMimeData()
+
+        data = []
+
+        for item in selected_items:
+
+            name = item.name.encode('utf-8')
+            entry = item.entry
+            computation = item.computation
+
+            if entry == (-1, -1):
+                info = {
+                    "name": name,
+                    "computation": computation,
+                }
+                info = json.dumps(info).encode('utf-8')
+            else:
+                info = name
+
+            data.append(pack(f'<3Q{len(info)}s', entry[0], entry[1], len(info), info))
+
+        mimeData.setData(
+            'application/octet-stream-asammdf',
+            QtCore.QByteArray(
+                b''.join(data)
+            )
+        )
+
         drag = QtGui.QDrag(self)
-        try:
-            t = [self.itemWidget(i).text() for i in self.selectedItems()]
-            mimeData = self.model().mimeData(self.selectedIndexes())
-            mimeData.setText(str(t))
-            drag.setMimeData(mimeData)
-            drag.exec(QtCore.Qt.CopyAction)
-        except:
-            pass
+        drag.setMimeData(mimeData)
+        drag.exec(QtCore.Qt.CopyAction)
 
     def dragEnterEvent(self, e):
-        e.accept()
+        if e.mimeData().hasFormat('application/octet-stream-asammdf'):
+            e.accept()
         super().dragEnterEvent(e)
 
     def dropEvent(self, e):
@@ -110,6 +137,19 @@ class ListWidget(QtWidgets.QListWidget):
                         model.item(row, 0).text()
                         for row in range(model.rowCount())
                     ]
+                self.add_channels_request.emit(names)
+
+            elif data.hasFormat('application/octet-stream-asammdf'):
+                data = bytes(data.data('application/octet-stream-asammdf'))
+                size = len(data)
+                names = []
+                pos = 0
+                while pos < size:
+                    group_index, channel_index, name_length = unpack('<3Q', data[pos: pos + 24])
+                    pos += 24
+                    name = data[pos: pos + name_length].decode('utf-8')
+                    pos += name_length
+                    names.append((name, group_index, channel_index))
                 self.add_channels_request.emit(names)
             else:
                 super().dropEvent(e)

@@ -2,7 +2,8 @@
 
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
-
+from PyQt5 import QtGui
+from struct import pack
 
 class TreeWidget(QtWidgets.QTreeWidget):
     def __init__(self, *args, **kwargs):
@@ -33,3 +34,42 @@ class TreeWidget(QtWidgets.QTreeWidget):
                     item.setCheckState(0, checked)
         else:
             super().keyPressEvent(event)
+
+    def mouseMoveEvent(self, e):
+
+        selected_items = self.selectedItems()
+
+        mimeData = QtCore.QMimeData()
+
+        data = []
+
+        for item in selected_items:
+
+            count = item.childCount()
+
+            if count:
+                for i in range(count):
+                    child = item.child(i)
+
+                    name = child.name.encode('utf-8')
+                    entry = child.entry
+
+                    data.append(pack(f'<3Q{len(name)}s', entry[0], entry[1], len(name), name))
+            else:
+                name = item.name.encode('utf-8')
+                entry = item.entry
+
+                data.append(pack(f'<3Q{len(name)}s', entry[0], entry[1], len(name), name))
+
+        mimeData.setData(
+            'application/octet-stream-asammdf',
+            QtCore.QByteArray(
+                b''.join(data)
+            )
+        )
+
+        drag = QtGui.QDrag(self)
+        drag.setMimeData(mimeData)
+        drag.setHotSpot(e.pos() - self.rect().topLeft())
+
+        drag.exec_(QtCore.Qt.MoveAction)

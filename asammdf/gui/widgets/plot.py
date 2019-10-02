@@ -3,8 +3,7 @@ import os
 
 bin_ = bin
 import logging
-from functools import reduce, partial
-import math
+from functools import partial
 from time import perf_counter
 
 import numpy as np
@@ -13,7 +12,6 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 
 from ..ui import resource_rc as resource_rc
-from .list import ListWidget
 
 import pyqtgraph as pg
 
@@ -27,6 +25,7 @@ from .formated_axis import FormatedAxis
 from ..dialogs.define_channel import DefineChannel
 from ...mdf import MDF
 from .list import ListWidget
+from .list_item import ListItem
 from .channel_display import ChannelDisplay
 from .channel_stats import ChannelStats
 
@@ -428,7 +427,7 @@ class Plot(QtWidgets.QWidget):
             name, unit = sig.name, sig.unit
         else:
             name, unit = sig.name, sig.unit
-        item = QtWidgets.QListWidgetItem(self.channel_selection)
+        item = ListItem((-1, -1), name, sig.computation, self.channel_selection)
         it = ChannelDisplay(self._available_index, unit, sig.samples.dtype.kind, 3, self)
         it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
@@ -463,7 +462,7 @@ class Plot(QtWidgets.QWidget):
 
         for sig in channels:
 
-            item = QtWidgets.QListWidgetItem(self.channel_selection)
+            item = ListItem((sig.group_index, sig.channel_index), sig.name, None, self.channel_selection)
             item.setData(QtCore.Qt.UserRole, sig.name)
             it = ChannelDisplay(sig._index, sig.unit, sig.samples.dtype.kind, 3, self)
             it.setAttribute(QtCore.Qt.WA_StyledBackground)
@@ -572,8 +571,8 @@ class _Plot(pg.PlotWidget):
         self.disabled_keys = set()
 
         if self.signals:
-            self.all_timebase = self.timebase = reduce(
-                np.union1d, (sig.timestamps for sig in self.signals)
+            self.all_timebase = self.timebase = np.unique(
+                np.concatenate([sig.timestamps for sig in self.signals])
             )
         else:
             self.all_timebase = self.timebase = []
@@ -1606,8 +1605,8 @@ class _Plot(pg.PlotWidget):
             self.set_current_index(self.signals[0]._index)
 
         if self.signals:
-            self.all_timebase = self.timebase = reduce(
-                np.union1d, (sig.timestamps for sig in self.signals)
+            self.all_timebase = self.timebase = np.unique(
+                np.concatenate([sig.timestamps for sig in self.signals])
             )
         else:
             self.all_timebase = self.timebase = None

@@ -27,7 +27,7 @@ Test setup
 The benchmarks were done using two test files (available `here <https://github.com/danielhrisca/asammdf/issues/14>`_) (for mdf version 3 and 4) of around 170MB.
 The files contain 183 data groups and a total of 36424 channels.
 
-*asamdf 5.0.0* was compared against *mdfreader 3.0*.
+*asamdf 5.12.0* was compared against *mdfreader 3.0*.
 
 For each category two aspect were noted: elapsed time and peak RAM usage.
 
@@ -50,12 +50,14 @@ x64 Python results
 
 
 
+
+
 Benchmark environment
 
-* 3.7.1 (v3.7.1:260ec2c36a, Oct 20 2018, 14:57:15) [MSC v.1915 64 bit (AMD64)]
-* Windows-10-10.0.16299-SP0
-* Intel64 Family 6 Model 94 Stepping 3, GenuineIntel
-* numpy 1.16.1
+* 3.7.2 (tags/v3.7.2:9a3ffc0492, Dec 23 2018, 23:09:28) [MSC v.1916 64 bit (AMD64)]
+* Windows-10-10.0.17763-SP0
+* Intel64 Family 6 Model 158 Stepping 10, GenuineIntel
+* numpy 1.16.2
 * 16GB installed RAM
 
 Notations used in the results
@@ -79,65 +81,66 @@ Files used for benchmark:
 ================================================== ========= ========
 Open file                                          Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 5.0.0    mdfv3                                   329      111
-mdfreader 3.0 mdfv3                                     1942      425
-mdfreader 3.0 compress mdfv3                            1667      293
-mdfreader 3.0 no_data_loading mdfv3                      864      171
-asammdf 5.0.0    mdfv4                                   455      123
-mdfreader 3.0 mdfv4                                     5217      448
-mdfreader 3.0 compress mdfv4                            4999      320
-mdfreader 3.0 no_data_loading mdfv4                     3644      178
+asammdf 5.12.0 mdfv3                                     257      155
+mdfreader 3.3 mdfv3                                     1621      474
+mdfreader 3.3 compress mdfv3                            3251      174
+mdfreader 3.3 no_data_loading mdfv3                      714      222
+asammdf 5.12.0 mdfv4                                     401      167
+mdfreader 3.3 mdfv4                                     4408      497
+mdfreader 3.3 compress mdfv4                            6013      196
+mdfreader 3.3 no_data_loading mdfv4                     2901      234
 ================================================== ========= ========
 
 
 ================================================== ========= ========
 Save file                                          Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 5.0.0    mdfv3                                   544      110
-mdfreader 3.0 mdfv3                                     6017      453
-mdfreader 3.0 no_data_loading mdfv3                     6808      513
-mdfreader 3.0 compress mdfv3                            6124      452
-asammdf 5.0.0    mdfv4                                   449      124
-mdfreader 3.0 mdfv4                                     3409      467
-mdfreader 3.0 no_data_loading mdfv4                     4841      485
-mdfreader 3.0 compress mdfv4                            3597      465
+asammdf 5.12.0 mdfv3                                     414      154
+mdfreader 3.3 mdfv3                                     4129      501
+mdfreader 3.3 no_data_loading mdfv3                     4885      562
+mdfreader 3.3 compress mdfv3                            4339      470
+asammdf 5.12.0 mdfv4                                     351      168
+mdfreader 3.3 mdfv4                                     2399      515
+mdfreader 3.3 no_data_loading mdfv4                     3647      533
+mdfreader 3.3 compress mdfv4                            2535      474
 ================================================== ========= ========
 
 
 ================================================== ========= ========
 Get all channels (36424 calls)                     Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 5.0.0    mdfv3                                  4783      111
-mdfreader 3.0 mdfv3                                       59      425
-mdfreader 3.0 nodata mdfv3                             15259      207
-mdfreader 3.0 compress mdfv3                             200      292
-asammdf 5.0.0    mdfv4                                  8210      123
-mdfreader 3.0 mdfv4                                       80      448
-mdfreader 3.0 compress mdfv4                             226      322
-mdfreader 3.0 nodata mdfv4                             22078      208
+asammdf 5.12.0 mdfv3                                    3953      155
+mdfreader 3.3 mdfv3                                       47      474
+mdfreader 3.3 nodata mdfv3                             13157      257
+mdfreader 3.3 compress mdfv3                             512      174
+asammdf 5.12.0 mdfv4                                    7528      167
+mdfreader 3.3 mdfv4                                       84      496
+mdfreader 3.3 compress mdfv4                             560      201
+mdfreader 3.3 nodata mdfv4                             41172      260
 ================================================== ========= ========
 
 
 ================================================== ========= ========
 Convert file                                       Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 5.0.0    v3 to v4                               3090      157
-asammdf 5.0.0    v4 to v3                               2665      151
+asammdf 5.12.0 v3 to v4                                 2173      203
+asammdf 5.12.0 v4 to v3                                 2043      191
 ================================================== ========= ========
 
 
 ================================================== ========= ========
 Merge 3 files                                      Time [ms] RAM [MB]
 ================================================== ========= ========
-asammdf 5.0.0    v3                                     8409      173
-mdfreader 3.0 v3                                       18133     1329
-mdfreader 3.0 compress v3                              18285     1277
-mdfreader 3.0 nodata v3                                17846     1432
-asammdf 5.0.0    v4                                     8902      174
-mdfreader 3.0 v4                                       29391     1356
-mdfreader 3.0 nodata v4                                28493     1334
-mdfreader 3.0 compress v4                              29109     1298
+asammdf 5.12.0 v3                                       6090      245
+mdfreader 3.3 v3                                       17474     1378
+mdfreader 3.3 compress v3                              30164     1327
+mdfreader 3.3 nodata v3                                16876     1482
+asammdf 5.12.0 v4                                       5995      291
+mdfreader 3.3 v4                                       25128     1406
+mdfreader 3.3 nodata v4                                24789     1390
+mdfreader 3.3 compress v4                              37270     1348
 ================================================== ========= ========
+
 
 
 Graphical results
@@ -148,7 +151,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_5.0.0dev_mdfreader_3.0.rst'
+    res = '../benchmarks/results/x64_asammdf_5.12.0dev_mdfreader_3.3.rst'
     topic = 'Open'
     aspect = 'time'
     for_doc = True
@@ -218,7 +221,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_5.0.0dev_mdfreader_3.0.rst'
+    res = '../benchmarks/results/x64_asammdf_5.12.0dev_mdfreader_3.3.rst'
     topic = 'Open'
     aspect = 'ram'
     for_doc = True
@@ -288,7 +291,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_5.0.0dev_mdfreader_3.0.rst'
+    res = '../benchmarks/results/x64_asammdf_5.12.0dev_mdfreader_3.3.rst'
     topic = 'Save'
     aspect = 'time'
     for_doc = True
@@ -359,7 +362,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_5.0.0dev_mdfreader_3.0.rst'
+    res = '../benchmarks/results/x64_asammdf_5.12.0dev_mdfreader_3.3.rst'
     topic = 'Save'
     aspect = 'ram'
     for_doc = True
@@ -429,7 +432,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_5.0.0dev_mdfreader_3.0.rst'
+    res = '../benchmarks/results/x64_asammdf_5.12.0dev_mdfreader_3.3.rst'
     topic = 'Get'
     aspect = 'time'
     for_doc = True
@@ -500,7 +503,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_5.0.0dev_mdfreader_3.0.rst'
+    res = '../benchmarks/results/x64_asammdf_5.12.0dev_mdfreader_3.3.rst'
     topic = 'Get'
     aspect = 'ram'
     for_doc = True
@@ -571,7 +574,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_5.0.0dev_mdfreader_3.0.rst'
+    res = '../benchmarks/results/x64_asammdf_5.12.0dev_mdfreader_3.3.rst'
     topic = 'Convert'
     aspect = 'time'
     for_doc = True
@@ -642,7 +645,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_5.0.0dev_mdfreader_3.0.rst'
+    res = '../benchmarks/results/x64_asammdf_5.12.0dev_mdfreader_3.3.rst'
     topic = 'Convert'
     aspect = 'ram'
     for_doc = True
@@ -713,7 +716,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_5.0.0dev_mdfreader_3.0.rst'
+    res = '../benchmarks/results/x64_asammdf_5.12.0dev_mdfreader_3.3.rst'
     topic = 'Merge'
     aspect = 'time'
     for_doc = True
@@ -784,7 +787,7 @@ Graphical results
     import matplotlib.pyplot as plt
     import numpy as np
 
-    res = '../benchmarks/results/x64_asammdf_5.0.0dev_mdfreader_3.0.rst'
+    res = '../benchmarks/results/x64_asammdf_5.12.0dev_mdfreader_3.3.rst'
     topic = 'Merge'
     aspect = 'ram'
     for_doc = True

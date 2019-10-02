@@ -3,6 +3,7 @@
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
+from struct import unpack
 
 
 class MdiAreaWidget(QtWidgets.QMdiArea):
@@ -25,20 +26,17 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
             super().dropEvent(e)
         else:
             data = e.mimeData()
-            if data.hasFormat('application/x-qabstractitemmodeldatalist'):
-                if data.hasFormat('text/plain'):
-                    names = [
-                        name.strip('"\'')
-                        for name in data.text().strip('[]').split(', ')
-                    ]
-                else:
-                    model = QtGui.QStandardItemModel()
-                    model.dropMimeData(data, QtCore.Qt.CopyAction, 0,0, QtCore.QModelIndex())
-
-                    names = [
-                        model.item(row, 0).text()
-                        for row in range(model.rowCount())
-                    ]
+            if data.hasFormat('application/octet-stream-asammdf'):
+                data = bytes(data.data('application/octet-stream-asammdf'))
+                size = len(data)
+                names = []
+                pos = 0
+                while pos < size:
+                    group_index, channel_index, name_length = unpack('<3Q', data[pos: pos + 24])
+                    pos += 24
+                    name = data[pos: pos + name_length].decode('utf-8')
+                    pos += name_length
+                    names.append((name, group_index, channel_index))
                 ret, ok = QtWidgets.QInputDialog.getItem(
                     None,
                     "Select window type",

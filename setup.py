@@ -95,7 +95,7 @@ setup(
     # for example:
     # $ pip install -e .[dev,test]
     extras_require={
-        'gui': ['PyQt5~=5.12', 'pyqtgraph>=0.10.0', 'psutil'],
+        'gui': ['PyQt5>=5.13.1', 'pyqtgraph>=0.10.0', 'psutil'],
     },
 
     # If there are data files included in your packages that need to be

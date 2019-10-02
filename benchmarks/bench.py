@@ -886,6 +886,7 @@ def main(text_output, fmt):
     v3_version = mdf.version
 
     mdf = MDF('test.mf4', 'minimum')
+    mdf.get_master(0, copy_master=True)
     v4_size = os.path.getsize('test.mf4') // 1024 // 1024
     v4_groups = len(mdf.groups)
     v4_channels = sum(
