@@ -3501,112 +3501,44 @@ class MDF(object):
             if grp.channel_group.cycles_nr == 0 and empty_channels == "skip":
                 continue
 
-            included_channels = self._included_channels(group_index)
+            included_channels = [
+                (None, group_index, channel_index)
+                for channel_index in self._included_channels(group_index)
+            ]
 
-            channels = grp.channels
-
-            data = self._load_data(grp)
-            _, dtypes = self._prepare_record(grp)
-
-            signals = [[] for _ in included_channels]
-            invalidation_bits = [[] for _ in included_channels]
-            timestamps = []
-            conversions = []
-
-            for idx, fragment in enumerate(data):
-                if dtypes.itemsize:
-                    grp.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
-                else:
-                    grp.record = None
-
-                for k, index in enumerate(included_channels):
-                    signal = self.get(
-                        group=group_index,
-                        index=index,
-                        data=fragment,
-                        samples_only=True,
-                        ignore_invalidation_bits=True,
-                        raw=True,
-                    )
-                    signals[k].append(signal[0])
-                    invalidation_bits[k].append(signal[1])
-
-                    if idx == 0:
-                        conversions.append(grp.channels[index].conversion)
-
-                timestamps.append(
-                    self.get_master(
-                        group_index,
-                        data=fragment,
-                    )
+            signals = [
+                signal.validate(copy=False)
+                for signal in self.select(
+                    included_channels,
+                    raw=True,
+                    copy_master=False,
                 )
+            ]
 
-                grp.record = None
-
-            total_size = sum(len(_) for _ in timestamps)
-            if total_size:
-
-                signals = [
-                    np.concatenate(
-                        parts,
-                        out=np.empty(
-                            (total_size,) + parts[0].shape[1:],
-                            dtype=parts[0].dtype,
-                        )
-                    )
-                    for parts in signals
-                ]
-
-                if not raw:
-                    if ignore_value2text_conversions:
-                        if self.version < '4.00':
-                            text_conversion = 11
-                        else:
-                            text_conversion = 7
-                        signals = [
-                            conversion.convert(signal)
-                            if conversion and conversion.conversion_type < text_conversion
-                            else signal
-                            for signal, conversion in zip(signals, conversions)
-                        ]
+            if not raw:
+                if ignore_value2text_conversions:
+                    if self.version < '4.00':
+                        text_conversion = 11
                     else:
-                        signals = [
-                            conversion.convert(signal) if conversion else signal
-                            for signal, conversion in zip(signals, conversions)
-                        ]
+                        text_conversion = 7
 
-                timestamps = np.concatenate(timestamps, out=np.empty(total_size, dtype=timestamps[0].dtype))
-                for idx, parts in enumerate(invalidation_bits):
-                    if parts[0] is None:
-                        invalidation_bits[idx] = None
-                    else:
-                        invalidation_bits[idx] = np.concatenate(parts)
+                    for signal in signals:
+                        conversion = signal.conversion
+                        if conversion and conversion.conversion_type < text_conversion:
+                            signal.samples = conversion.convert(signal.samples)
 
-            if not use_interpolation:
+                else:
+                    for signal in signals:
+                        if signal.conversion:
+                            signal.samples = signal.conversion.convert(signal.samples)
+
+            if use_interpolation:
                 signals = [
-                    Signal(
-                        samples,
-                        timestamps,
-                        name=channels[idx].name,
-                        invalidation_bits=invalidation,
-                    )
-                    .validate()
-                    for samples, invalidation, idx in zip(signals, invalidation_bits, included_channels)
-                ]
-            else:
-                signals = [
-                    Signal(
-                        samples,
-                        timestamps,
-                        name=channels[idx].name,
-                        invalidation_bits=invalidation,
-                    )
-                    .validate()
-                    .interp(
+                    signal.interp(
                         master,
                         self._integer_interpolation,
                     )
-                    for samples, invalidation, idx in zip(signals, invalidation_bits, included_channels)
+                    for signal in signals
                 ]
 
             for sig in signals:
