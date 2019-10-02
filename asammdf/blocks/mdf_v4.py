@@ -2454,7 +2454,7 @@ class MDF4(object):
 
                 if different:
                     times = [s.timestamps for s in signals]
-                    t = reduce(union1d, times).flatten().astype(float64)
+                    t = unique(concatenate(times)).astype(float64)
                     signals = [s.interp(t, interpolation_mode=interp_mode) for s in signals]
                     times = None
                 else:

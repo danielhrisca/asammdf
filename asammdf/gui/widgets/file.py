@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
-from functools import partial, reduce
+from functools import partial
 import json
 from pathlib import Path
 import os
@@ -1658,8 +1658,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 signal.computation = {}
 
             if measured_signals:
-                all_timebase = reduce(
-                    np.union1d, (sig.timestamps for sig in measured_signals.values())
+                all_timebase = np.unique(
+                    np.concatenate(sig.timestamps for sig in measured_signals.values())
                 )
             else:
                 all_timebase = []

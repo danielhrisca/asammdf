@@ -7,7 +7,6 @@ import logging
 import xml.etree.ElementTree as ET
 from collections import OrderedDict, defaultdict
 from copy import deepcopy
-from functools import reduce
 from struct import unpack
 from shutil import copy
 from pathlib import Path
@@ -3485,7 +3484,7 @@ class MDF(object):
             ]
 
             if masters:
-                master = reduce(np.union1d, masters)
+                master = np.unique(np.concatenate(masters))
             else:
                 master = np.array([], dtype='<f4')
 
@@ -3532,7 +3531,7 @@ class MDF(object):
                         if signal.conversion:
                             signal.samples = signal.conversion.convert(signal.samples)
 
-            if use_interpolation:
+            if use_interpolation and not np.array_equal(master, signals[0].timestamps):
                 signals = [
                     signal.interp(
                         master,

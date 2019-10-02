@@ -3,8 +3,7 @@ import os
 
 bin_ = bin
 import logging
-from functools import reduce, partial
-import math
+from functools import partial
 from time import perf_counter
 
 import numpy as np
@@ -572,8 +571,8 @@ class _Plot(pg.PlotWidget):
         self.disabled_keys = set()
 
         if self.signals:
-            self.all_timebase = self.timebase = reduce(
-                np.union1d, (sig.timestamps for sig in self.signals)
+            self.all_timebase = self.timebase = np.unique(
+                np.concatenate([sig.timestamps for sig in self.signals])
             )
         else:
             self.all_timebase = self.timebase = []
@@ -1606,8 +1605,8 @@ class _Plot(pg.PlotWidget):
             self.set_current_index(self.signals[0]._index)
 
         if self.signals:
-            self.all_timebase = self.timebase = reduce(
-                np.union1d, (sig.timestamps for sig in self.signals)
+            self.all_timebase = self.timebase = np.unique(
+                np.concatenate([sig.timestamps for sig in self.signals])
             )
         else:
             self.all_timebase = self.timebase = None

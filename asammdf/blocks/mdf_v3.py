@@ -28,6 +28,7 @@ from numpy import (
     roll,
     uint8,
     union1d,
+    unique,
     unpackbits,
     zeros,
     searchsorted,
@@ -1068,7 +1069,7 @@ class MDF3(object):
 
                 if different:
                     times = [s.timestamps for s in signals]
-                    timestamps = reduce(union1d, times).flatten().astype(float64)
+                    timestampst = unique(concatenate(times)).astype(float64)
                     signals = [s.interp(timestamps, interpolation_mode=interp_mode) for s in signals]
                     times = None
         else:
