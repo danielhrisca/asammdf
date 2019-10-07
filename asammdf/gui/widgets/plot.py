@@ -5,6 +5,7 @@ bin_ = bin
 import logging
 from functools import partial
 from time import perf_counter
+from struct import unpack
 
 import numpy as np
 from pathlib import Path
@@ -102,6 +103,8 @@ class Plot(QtWidgets.QWidget):
             self.channel_selection_row_changed
         )
         self.channel_selection.add_channels_request.connect(self.add_channels_request)
+        self.plot.add_channels_request.connect(self.add_channels_request)
+        self.setAcceptDrops(True)
 
         main_layout.addWidget(self.splitter)
 
@@ -530,6 +533,47 @@ class Plot(QtWidgets.QWidget):
 
         return config
 
+    def dragEnterEvent(self, e):
+        if e.mimeData().hasFormat('application/octet-stream-asammdf'):
+            e.accept()
+        super().dragEnterEvent(e)
+
+    def dropEvent(self, e):
+        if e.source() is self.channel_selection:
+            super().dropEvent(e)
+        else:
+            data = e.mimeData()
+            if data.hasFormat('application/x-qabstractitemmodeldatalist'):
+                if data.hasFormat('text/plain'):
+                    names = [
+                        name.strip('"\'')
+                        for name in data.text().strip('[]').split(', ')
+                    ]
+                else:
+                    model = QtGui.QStandardItemModel()
+                    model.dropMimeData(data, QtCore.Qt.CopyAction, 0,0, QtCore.QModelIndex())
+
+                    names = [
+                        model.item(row, 0).text()
+                        for row in range(model.rowCount())
+                    ]
+                self.add_channels_request.emit(names)
+
+            elif data.hasFormat('application/octet-stream-asammdf'):
+                data = bytes(data.data('application/octet-stream-asammdf'))
+                size = len(data)
+                names = []
+                pos = 0
+                while pos < size:
+                    group_index, channel_index, name_length = unpack('<3Q', data[pos: pos + 24])
+                    pos += 24
+                    name = data[pos: pos + name_length].decode('utf-8')
+                    pos += name_length
+                    names.append((name, group_index, channel_index))
+                self.add_channels_request.emit(names)
+            else:
+                super().dropEvent(e)
+
 
 class _Plot(pg.PlotWidget):
     cursor_moved = QtCore.pyqtSignal()
@@ -542,8 +586,12 @@ class _Plot(pg.PlotWidget):
     computation_channel_inserted = QtCore.pyqtSignal()
     curve_clicked = QtCore.pyqtSignal(int)
 
+    add_channels_request = QtCore.pyqtSignal(list)
+
     def __init__(self, signals=None, with_dots=False, *args, **kwargs):
         super().__init__()
+
+        self.setAcceptDrops(True)
 
         self._last_size = self.geometry()
         self._settings = QtCore.QSettings()
@@ -1619,3 +1667,45 @@ class _Plot(pg.PlotWidget):
                 return sig, i
 
         raise Exception('Signal not found')
+
+    def dragEnterEvent(self, e):
+        if e.mimeData().hasFormat('application/octet-stream-asammdf'):
+            e.accept()
+        super().dragEnterEvent(e)
+
+    def dropEvent(self, e):
+        if e.source() is self.parent().channel_selection:
+            super().dropEvent(e)
+        else:
+            data = e.mimeData()
+            if data.hasFormat('application/x-qabstractitemmodeldatalist'):
+                if data.hasFormat('text/plain'):
+                    names = [
+                        name.strip('"\'')
+                        for name in data.text().strip('[]').split(', ')
+                    ]
+                else:
+                    model = QtGui.QStandardItemModel()
+                    model.dropMimeData(data, QtCore.Qt.CopyAction, 0,0, QtCore.QModelIndex())
+
+                    names = [
+                        model.item(row, 0).text()
+                        for row in range(model.rowCount())
+                    ]
+                self.add_channels_request.emit(names)
+
+            elif data.hasFormat('application/octet-stream-asammdf'):
+                data = bytes(data.data('application/octet-stream-asammdf'))
+                size = len(data)
+                names = []
+                pos = 0
+                while pos < size:
+                    group_index, channel_index, name_length = unpack('<3Q', data[pos: pos + 24])
+                    pos += 24
+                    name = data[pos: pos + name_length].decode('utf-8')
+                    pos += name_length
+                    names.append((name, group_index, channel_index))
+                self.add_channels_request.emit(names)
+            else:
+                super().dropEvent(e)
+
