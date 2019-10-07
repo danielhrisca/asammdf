@@ -4,6 +4,7 @@ import traceback
 from datetime import datetime
 from io import StringIO
 from time import sleep
+from struct import unpack
 from threading import Thread
 
 from PyQt5 import QtGui
@@ -60,6 +61,21 @@ def excepthook(exc_type, exc_value, tracebackobj):
     print('{0}: {1}'.format(exc_type, exc_value))
 
     QtWidgets.QMessageBox.warning(None, notice, msg)
+
+
+def extract_mime_names(data):
+    names = []
+    if data.hasFormat('application/octet-stream-asammdf'):
+        data = bytes(data.data('application/octet-stream-asammdf'))
+        size = len(data)
+        pos = 0
+        while pos < size:
+            group_index, channel_index, name_length = unpack('<3Q', data[pos: pos + 24])
+            pos += 24
+            name = data[pos: pos + name_length].decode('utf-8')
+            pos += name_length
+            names.append((name, group_index, channel_index))
+    return names
 
 
 def run_thread_with_progress(widget, target, kwargs, factor=100, offset=0, progress=None):

@@ -25,6 +25,7 @@ from .cursor import Cursor
 from .formated_axis import FormatedAxis
 from ..dialogs.define_channel import DefineChannel
 from ...mdf import MDF
+from ..utils import extract_mime_names
 from .list import ListWidget
 from .list_item import ListItem
 from .channel_display import ChannelDisplay
@@ -543,33 +544,8 @@ class Plot(QtWidgets.QWidget):
             super().dropEvent(e)
         else:
             data = e.mimeData()
-            if data.hasFormat('application/x-qabstractitemmodeldatalist'):
-                if data.hasFormat('text/plain'):
-                    names = [
-                        name.strip('"\'')
-                        for name in data.text().strip('[]').split(', ')
-                    ]
-                else:
-                    model = QtGui.QStandardItemModel()
-                    model.dropMimeData(data, QtCore.Qt.CopyAction, 0,0, QtCore.QModelIndex())
-
-                    names = [
-                        model.item(row, 0).text()
-                        for row in range(model.rowCount())
-                    ]
-                self.add_channels_request.emit(names)
-
-            elif data.hasFormat('application/octet-stream-asammdf'):
-                data = bytes(data.data('application/octet-stream-asammdf'))
-                size = len(data)
-                names = []
-                pos = 0
-                while pos < size:
-                    group_index, channel_index, name_length = unpack('<3Q', data[pos: pos + 24])
-                    pos += 24
-                    name = data[pos: pos + name_length].decode('utf-8')
-                    pos += name_length
-                    names.append((name, group_index, channel_index))
+            if data.hasFormat('application/octet-stream-asammdf'):
+                names = extract_mime_names(data)
                 self.add_channels_request.emit(names)
             else:
                 super().dropEvent(e)
@@ -1678,33 +1654,8 @@ class _Plot(pg.PlotWidget):
             super().dropEvent(e)
         else:
             data = e.mimeData()
-            if data.hasFormat('application/x-qabstractitemmodeldatalist'):
-                if data.hasFormat('text/plain'):
-                    names = [
-                        name.strip('"\'')
-                        for name in data.text().strip('[]').split(', ')
-                    ]
-                else:
-                    model = QtGui.QStandardItemModel()
-                    model.dropMimeData(data, QtCore.Qt.CopyAction, 0,0, QtCore.QModelIndex())
-
-                    names = [
-                        model.item(row, 0).text()
-                        for row in range(model.rowCount())
-                    ]
-                self.add_channels_request.emit(names)
-
-            elif data.hasFormat('application/octet-stream-asammdf'):
-                data = bytes(data.data('application/octet-stream-asammdf'))
-                size = len(data)
-                names = []
-                pos = 0
-                while pos < size:
-                    group_index, channel_index, name_length = unpack('<3Q', data[pos: pos + 24])
-                    pos += 24
-                    name = data[pos: pos + name_length].decode('utf-8')
-                    pos += name_length
-                    names.append((name, group_index, channel_index))
+            if data.hasFormat('application/octet-stream-asammdf'):
+                names = extract_mime_names(data)
                 self.add_channels_request.emit(names)
             else:
                 super().dropEvent(e)
