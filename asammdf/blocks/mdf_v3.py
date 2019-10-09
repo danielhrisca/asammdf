@@ -178,22 +178,28 @@ class MDF3(object):
         self._master = None
 
         if name:
-            if is_file_like(name) or sys.maxsize < 2**32:
+            if is_file_like(name):
                 self._file = name
-                self.name = Path("From_FileLike.mf4")
+                self.name = Path("From_FileLike.mdf")
                 self._from_filelike = True
                 self._read(mapped=False)
             else:
-                self.name = Path(name)
-                x = open(self.name, "rb")
-                self._file = mmap.mmap(x.fileno(), 0, access=mmap.ACCESS_READ)
-                self._from_filelike = False
-                self._read(mapped=True)
+                if sys.maxsize < 2**32:
+                    self.name = Path(name)
+                    self._file = open(self.name, "rb")
+                    self._from_filelike = False
+                    self._read(mapped=False)
+                else:
+                    self.name = Path(name)
+                    x = open(self.name, "rb")
+                    self._file = mmap.mmap(x.fileno(), 0, access=mmap.ACCESS_READ)
+                    self._from_filelike = False
+                    self._read(mapped=True)
 
-                self._file.close()
-                x.close()
+                    self._file.close()
+                    x.close()
 
-                self._file = open(self.name, "r+b")
+                    self._file = open(self.name, "rb")
         else:
             self._from_filelike = False
             version = validate_version_argument(version, hint=3)

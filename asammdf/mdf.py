@@ -3525,6 +3525,9 @@ class MDF(object):
                 )
             ]
 
+            if not signals:
+                continue
+
             if not raw:
                 if ignore_value2text_conversions:
                     if self.version < '4.00':

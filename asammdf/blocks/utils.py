@@ -240,7 +240,7 @@ def get_text_v4(address, stream, mapped=False):
         return ""
 
     if mapped:
-        size, _ = TWO_UINT64_uf(stream, address + 8)
+        size, = UINT64_uf(stream, address + 8)
         text_bytes = stream[address + 24: address + size]
     else:
         stream.seek(address + 8)
