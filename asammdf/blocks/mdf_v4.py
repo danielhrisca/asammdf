@@ -4741,10 +4741,10 @@ class MDF4(object):
                     pos = 0
 
                     while pos < size:
+                        positions.append(pos)
                         (str_size,) = UINT32_uf(signal_data, pos)
                         pos = pos + 4 + str_size
                         values.append(signal_data[pos - str_size: pos])
-                        positions.append(pos)
 
                     if not array_equal(positions, vals):
                         message = (
