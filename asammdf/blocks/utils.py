@@ -1107,6 +1107,30 @@ class DataBlockInfo:
         )
 
 
+class SignalDataBlockInfo:
+
+    __slots__ = (
+        'address',
+        'size',
+        'count',
+        'dtype',
+    )
+
+    def __init__(self, address, size, count, dtype):
+        self.address = address
+        self.count = count
+        self.size = size
+        self.dtype = dtype
+
+    def __repr__(self):
+        return (
+            f"SignalDataBlockInfo(address=0x{self.address:X}, "
+            f"size={self.size}, "
+            f"count={self.count}, "
+            f"dtype={self.dtype})"
+        )
+
+
 def get_fields(obj):
     fields = []
     for attr in dir(obj):

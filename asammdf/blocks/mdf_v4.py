@@ -85,6 +85,7 @@ from .utils import (
     sanitize_xml,
     Group,
     DataBlockInfo,
+    SignalDataBlockInfo,
     extract_can_signal,
     load_can_database,
 )
@@ -1217,20 +1218,21 @@ class MDF4(object):
                             data.append(
                                 b''.join(e[0] for e in self._load_data(group))
                             )
+
                     else:
-                        if address[0] in self._cg_map:
+                        if isinstance(address[0], SignalDataBlockInfo):
+                            for info in address:
+                                if not info.size:
+                                    continue
+                                stream.seek(info.address)
+                                data.append(stream.read(info.size))
+
+                        elif address[0] in self._cg_map:
                             group = self.groups[self._cg_map[address[0]]]
                             data.append(
                                 b''.join(e[0] for e in self._load_data(group))
                             )
-                        else:
-                            for addr, size in zip(
-                                group.signal_data[index], group.signal_data_size[index]
-                            ):
-                                if not size:
-                                    continue
-                                stream.seek(addr)
-                                data.append(stream.read(size))
+
                 data = b"".join(data)
         else:
             data = b""
@@ -2923,7 +2925,6 @@ class MDF4(object):
                 offset += size
 
                 gp_sdata.append(None)
-                gp_sdata_size.append(0)
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
                 if ch.display_name:
@@ -3025,13 +3026,17 @@ class MDF4(object):
                 data_size = len(data) * data.itemsize
                 if data_size:
                     data_addr = tell()
-                    gp_sdata.append([data_addr])
-                    gp_sdata_size.append([data_size])
+                    info = SignalDataBlockInfo(
+                        address=data_addr,
+                        size=data_size,
+                        count=len(data),
+                        dtype=data.dtype,
+                    )
+                    gp_sdata.append([info])
                     data.tofile(file)
                 else:
                     data_addr = 0
                     gp_sdata.append([])
-                    gp_sdata_size.append([])
 
                 # compute additional byte offset for large records size
                 byte_size = 8
@@ -3356,13 +3361,17 @@ class MDF4(object):
                 data_size = len(data) * data.itemsize
                 if data_size:
                     data_addr = tell()
-                    gp_sdata.append([data_addr])
-                    gp_sdata_size.append([data_size])
+                    info = SignalDataBlockInfo(
+                        address=data_addr,
+                        size=data_size,
+                        count=len(data),
+                        dtype=data.dtype,
+                    )
+                    gp_sdata.append([info])
                     data.tofile(file)
                 else:
                     data_addr = 0
                     gp_sdata.append([])
-                    gp_sdata_size.append([])
 
                 # compute additional byte offset for large records size
                 byte_size = 8
@@ -3554,7 +3563,7 @@ class MDF4(object):
                         inval_bits.append(invalidation_bits)
 
             else:
-                cur_offset = sum(gp.signal_data_size[i])
+                cur_offset = sum(blk.size for blk in gp.signal_data[i])
 
                 offsets = (
                     arange(len(signal), dtype=uint64) * (signal.itemsize + 4)
@@ -3570,9 +3579,14 @@ class MDF4(object):
                 addr = stream.tell()
                 block_size = len(values) * values.itemsize
                 if block_size:
+                    info = SignalDataBlockInfo(
+                        address=addr,
+                        size=block_size,
+                        count=len(values),
+                        dtype=values.dtype,
+                    )
+                    gp.signal_data[i].append(info)
                     values.tofile(stream)
-                    gp.signal_data[i].append(addr)
-                    gp.signal_data_size[i].append(block_size)
 
                 fields.append(offsets)
                 types.append(("", uint64))
@@ -6321,21 +6335,35 @@ class MDF4(object):
 
                 for rec_id, new_data in partial_records.items():
                     if new_data:
-                        new_data = b''.join(new_data)
-                        size = len(new_data)
-                        new_data = DataBlock(
-                            data=new_data
-                        )
+                        _2_MB = 2 * 1024 * 1024
+
                         address = tell()
-                        write(bytes(new_data))
-                        block_info = DataBlockInfo(
-                            address=address + COMMON_SIZE,
-                            block_type=v4c.DT_BLOCK,
-                            raw_size=size,
-                            size=size,
-                            param=0,
-                        )
-                        final_records[rec_id].append(block_info)
+                        size = 0
+
+                        for data in new_data:
+                            write(data)
+                            size += len(data)
+                            if size >= _2_MB:
+                                block_info = DataBlockInfo(
+                                    address=address,
+                                    block_type=v4c.DT_BLOCK,
+                                    raw_size=size,
+                                    size=size,
+                                    param=0,
+                                )
+                                final_records[rec_id].append(block_info)
+                                address = tell()
+                                size = 0
+                        if size:
+                            block_info = DataBlockInfo(
+                                address=address,
+                                block_type=v4c.DT_BLOCK,
+                                raw_size=size,
+                                size=size,
+                                param=0,
+                            )
+                            final_records[rec_id].append(block_info)
+                            size = 0
 
             for idx, rec_id in groups:
                 group = self.groups[idx]
