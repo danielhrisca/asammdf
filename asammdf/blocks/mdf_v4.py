@@ -1386,27 +1386,27 @@ class MDF4(object):
                             new_data = new_data[split_size - cur_size:]
                             data_ = b"".join(data)
                             if record_count is not None:
-                                yield data_[:record_count], offset, _count
+                                yield data_[:record_count], offset // samples_size, _count
                                 has_yielded = True
                                 record_count -= len(data_)
                                 if record_count <= 0:
                                     finished = True
                                     break
                             else:
-                                yield data_, offset, _count
+                                yield data_, offset // samples_size, _count
                                 has_yielded = True
                             current_address += split_size - cur_size
                         else:
                             data_, new_data = new_data[:split_size], new_data[split_size:]
                             if record_count is not None:
-                                yield data_[:record_count], offset, _count
+                                yield data_[:record_count], offset // samples_size, _count
                                 has_yielded = True
                                 record_count -= len(data_)
                                 if record_count <= 0:
                                     finished = True
                                     break
                             else:
-                                yield data_, offset, _count
+                                yield data_, offset // samples_size, _count
                                 has_yielded = True
                             current_address += split_size
                         offset += split_size
@@ -1425,11 +1425,11 @@ class MDF4(object):
                 if data:
                     data_ = b"".join(data)
                     if record_count is not None:
-                        yield data_[:record_count], offset, _count
+                        yield data_[:record_count], offset // samples_size, _count
                         has_yielded = True
                         record_count -= len(data_)
                     else:
-                        yield data_, offset, _count
+                        yield data_, offset // samples_size, _count
                         has_yielded = True
 
                 if not has_yielded:
@@ -4750,10 +4750,7 @@ class MDF4(object):
                         pos = pos + 4 + str_size
                         values.append(signal_data[pos - str_size: pos])
 
-                    if record_count is None:
-                        values = values[record_start:]
-                    else:
-                        values = values[record_start: record_start + record_count]
+                    values = values[record_start: record_start + len(vals)]
 
                     if not array_equal(positions, vals):
                         message = (
