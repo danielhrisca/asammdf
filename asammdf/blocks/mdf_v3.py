@@ -5,6 +5,7 @@ import logging
 import time
 import xml.etree.ElementTree as ET
 import mmap
+import sys
 from copy import deepcopy
 from collections import defaultdict
 from functools import reduce
@@ -177,7 +178,7 @@ class MDF3(object):
         self._master = None
 
         if name:
-            if is_file_like(name):
+            if is_file_like(name) or sys.maxsize < 2**32:
                 self._file = name
                 self.name = Path("From_FileLike.mf4")
                 self._from_filelike = True

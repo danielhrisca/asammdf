@@ -5,6 +5,7 @@ ASAM MDF version 4 file format module
 import logging
 import xml.etree.ElementTree as ET
 import os
+import sys
 from copy import deepcopy
 from collections import defaultdict
 from functools import reduce
@@ -250,7 +251,7 @@ class MDF4(object):
         self._callback = kwargs.get("callback", None)
 
         if name:
-            if is_file_like(name):
+            if is_file_like(name) or sys.maxsize < 2**32:
                 self._file = name
                 self.name = Path("From_FileLike.mf4")
                 self._from_filelike = True
