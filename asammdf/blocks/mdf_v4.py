@@ -4725,12 +4725,33 @@ class MDF4(object):
 
                     values = []
 
-                    vals = vals.tolist()
+#                    vals = vals.tolist()
 
-                    for offset in vals:
-                        (str_size,) = UINT32_uf(signal_data, offset)
-                        offset += 4
-                        values.append(signal_data[offset : offset + str_size])
+#                    for offset in vals:
+#                        (str_size,) = UINT32_uf(signal_data, offset)
+#                        print(offset, str_size)
+#                        if str_size > 200:
+#                            1/0
+#                        offset += 4
+#                        values.append(signal_data[offset : offset + str_size])
+
+                    size = len(signal_data)
+
+                    positions = []
+                    pos = 0
+
+                    while pos < size:
+                        (str_size,) = UINT32_uf(signal_data, pos)
+                        pos = pos + 4 + str_size
+                        values.append(signal_data[pos - str_size: pos])
+                        positions.append(pos)
+
+                    if not array_equal(positions, vals):
+                        message = (
+                            f'Mismatch between VLSD channel "{channel.name}" '
+                            f'offsets and referenced signal data'
+                        )
+                        logger.warning(message)
 
                     if data_type == v4c.DATA_TYPE_BYTEARRAY:
 
