@@ -4531,8 +4531,12 @@ class MDF4(object):
                 invalidation_bits = []
 
                 count = 0
+
                 for kk, fragment in enumerate(data):
                     data_bytes, offset, _count = fragment
+                    if kk == 0:
+                        record_start = offset
+                        record_count = _count
                     try:
                         parent, bit_offset = parents[ch_nr]
                     except KeyError:
@@ -4745,6 +4749,11 @@ class MDF4(object):
                         (str_size,) = UINT32_uf(signal_data, pos)
                         pos = pos + 4 + str_size
                         values.append(signal_data[pos - str_size: pos])
+
+                    if record_count is None:
+                        values = values[record_start:]
+                    else:
+                        values = values[record_start: record_start + record_count]
 
                     if not array_equal(positions, vals):
                         message = (
