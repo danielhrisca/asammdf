@@ -4751,12 +4751,15 @@ class MDF4(object):
                         values.append(signal_data[pos - str_size: pos])
 
                     values = values[record_start: record_start + len(vals)]
+                    positions = positions[record_start: record_start + len(vals)]
 
                     if not array_equal(positions, vals):
                         message = (
                             f'Mismatch between VLSD channel "{channel.name}" '
                             f'offsets and referenced signal data'
                         )
+#                        print(*zip(positions, vals), sep='\n')
+#                        print(vals.tolist())
                         logger.warning(message)
 
                     if data_type == v4c.DATA_TYPE_BYTEARRAY:

@@ -916,8 +916,6 @@ class MDF(object):
 
                 fragment = next(self._load_data(group, optimize_read=False))
 
-                fragment = (fragment[0], -1, None)
-
                 for j in included_channels:
                     sig = self.get(
                         group=i,
