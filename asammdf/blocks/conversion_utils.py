@@ -184,7 +184,7 @@ def conversion_transfer(conversion, version=3):
                 )
 
             elif conversion_type == v3c.CONVERSION_TYPE_FORMULA:
-                formula = conversion.formula
+                formula = conversion.formula.replace("X1", "X")
                 conversion = v4b.ChannelConversion(
                     conversion_type=v4c.CONVERSION_TYPE_ALG, formula=formula
                 )

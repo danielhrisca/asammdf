@@ -887,7 +887,14 @@ class ChannelConversion(_ChannelConversionBase):
 
             elif conv_type == v23c.CONVERSION_TYPE_FORMULA:
                 self.formula_field = block[v23c.CC_COMMON_SHORT_SIZE :]
-                self.formula = self.formula_field.decode("latin-1").strip(" \t\r\n\0")
+                self.formula = (
+                    self.formula_field
+                    .decode("latin-1")
+                    .strip(" \t\r\n\0")
+                    .replace("x", "X")
+                )
+                if "X1" not in self.formula:
+                    self.formula = self.formula.replace("X", "X1")
 
             elif conv_type in (v23c.CONVERSION_TYPE_TABI, v23c.CONVERSION_TYPE_TAB):
 
@@ -1497,11 +1504,8 @@ address: {hex(self.address)}
         elif conversion_type == v23c.CONVERSION_TYPE_FORMULA:
             # pylint: disable=unused-variable,C0103
 
-            formula = self.formula_field.decode("latin-1").strip(" \r\n\t\0")
-            if "X1" not in formula:
-                formula = formula.replace("X", "X1")
             X1 = values
-            values = evaluate(formula)
+            values = evaluate(self.formula)
 
         return values
 

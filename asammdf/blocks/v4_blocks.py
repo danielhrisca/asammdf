@@ -2255,7 +2255,11 @@ class ChannelConversion(_ChannelConversionBase):
             conv_type = conv
 
             if conv_type == v4c.CONVERSION_TYPE_ALG:
-                self.formula = get_text_v4(self.formula_addr, stream, mapped=mapped)
+                self.formula = get_text_v4(
+                    self.formula_addr,
+                    stream,
+                    mapped=mapped,
+                ).replace('x', 'X')
 
             elif conv_type in v4c.TABULAR_CONVERSIONS:
                 refs = self.referenced_blocks = {}
