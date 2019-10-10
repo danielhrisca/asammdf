@@ -1088,6 +1088,7 @@ class DataBlockInfo:
         'raw_size',
         'size',
         'param',
+        'offsets',
     )
 
     def __init__(self, address, block_type, raw_size, size, param):
@@ -1096,6 +1097,7 @@ class DataBlockInfo:
         self.raw_size = raw_size
         self.size = size
         self.param = param
+
 
     def __repr__(self):
         return (
@@ -1114,20 +1116,23 @@ class SignalDataBlockInfo:
         'size',
         'count',
         'dtype',
+        'offsets',
     )
 
-    def __init__(self, address, size, count, dtype):
+    def __init__(self, address, size, count, dtype, offsets=None):
         self.address = address
         self.count = count
         self.size = size
         self.dtype = dtype
+        self.offsets = offsets
 
     def __repr__(self):
         return (
             f"SignalDataBlockInfo(address=0x{self.address:X}, "
             f"size={self.size}, "
             f"count={self.count}, "
-            f"dtype={self.dtype})"
+            f"dtype={self.dtype}, "
+            f"offsets={self.offsets})"
         )
 
 

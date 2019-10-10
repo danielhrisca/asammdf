@@ -230,6 +230,7 @@ class MDF4(object):
         self._cc_map = {}
         self._file_cc_map = {}
         self._cg_map = {}
+        self._cn_data_map = {}
         self._dbc_cache = {}
 
         self._tempfile = TemporaryFile()
@@ -837,7 +838,10 @@ class MDF4(object):
             self.channels_db.add(channel.name, entry)
 
             # signal data
-            grp.signal_data.append(channel.data_block_addr)
+            cn_data_addr = channel.data_block_addr
+            grp.signal_data.append(cn_data_addr)
+            if cn_data_addr:
+                self._cn_data_map[cn_data_addr] = entry
 
             if channel.channel_type in MASTER_CHANNELS:
                 self.masters_db[dg_cntr] = ch_cntr
@@ -1129,7 +1133,7 @@ class MDF4(object):
                         grp.channel_group["flags"] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
 
 
-    def _load_signal_data(self, address=None, stream=None, group=None, index=None):
+    def _load_signal_data(self, address=None, stream=None, group=None, index=None, offset=0, count=None):
         """ this method is used to get the channel signal data, usually for
         VLSD channels
 
@@ -1146,6 +1150,8 @@ class MDF4(object):
             signal data bytes
 
         """
+
+        with_bounds = False
 
         if address == 0:
             data = b""
@@ -1190,7 +1196,7 @@ class MDF4(object):
             elif blk_id == b"##HL":
                 hl = HeaderList(address=address, stream=stream)
 
-                data = self._load_signal_data(
+                data, with_bounds = self._load_signal_data(
                     address=hl.first_dl_addr, stream=stream, group=group, index=index
                 )
             elif blk_id == b"##AT":
@@ -1202,7 +1208,7 @@ class MDF4(object):
 
         elif group is not None and index is not None:
             if group.data_location == v4c.LOCATION_ORIGINAL_FILE:
-                data = self._load_signal_data(
+                data, with_bounds = self._load_signal_data(
                     address=group.signal_data[index], stream=self._file
                 )
             elif group.data_location == v4c.LOCATION_MEMORY:
@@ -1211,6 +1217,7 @@ class MDF4(object):
                 data = []
                 stream = self._tempfile
                 address = group.signal_data[index]
+
                 if address:
                     if isinstance(address, int):
                         if address in self._cg_map:
@@ -1221,11 +1228,35 @@ class MDF4(object):
 
                     else:
                         if isinstance(address[0], SignalDataBlockInfo):
-                            for info in address:
-                                if not info.size:
-                                    continue
-                                stream.seek(info.address)
-                                data.append(stream.read(info.size))
+                            if len(address) == 1 and address[0].offsets is not None:
+
+                                info = address[0]
+
+                                if count is not None:
+                                    end = offset + count
+                                    if end == len(info.offsets):
+                                        end_addr = info.address + info.size
+                                    else:
+                                        end_addr = info.address + info.offsets[offset + count]
+                                else:
+                                    end_addr = info.address + info.size
+
+                                start_addr = info.address + info.offsets[offset]
+
+                                size = end_addr - start_addr
+
+
+
+                                stream.seek(start_addr)
+                                data.append(stream.read(size))
+                                with_bounds = True
+
+                            else:
+                                for info in address:
+                                    if not info.size:
+                                        continue
+                                    stream.seek(info.address)
+                                    data.append(stream.read(info.size))
 
                         elif address[0] in self._cg_map:
                             group = self.groups[self._cg_map[address[0]]]
@@ -1237,7 +1268,7 @@ class MDF4(object):
         else:
             data = b""
 
-        return data
+        return data, with_bounds
 
     def _load_data(self, group, record_offset=0, record_count=None, optimize_read=False):
         """ get group's data block bytes """
@@ -4110,11 +4141,10 @@ class MDF4(object):
 
                         count += 1
 
-                if count > 1:
+                if fast_path:
                     total_size = sum(len(_) for _ in channel_values)
                     shape = (total_size,) + channel_values[0].shape[1:]
 
-                if fast_path:
                     if count > 1:
                         out = empty(shape, dtype=channel_values[0].dtype)
                         vals = concatenate(
@@ -4124,9 +4154,11 @@ class MDF4(object):
                     else:
                         vals = channel_values[0]
                 else:
+                    total_size = sum(len(_) for _ in channel_values[0])
+
                     if count > 1:
                         arrays = [
-                            concatenate(lst, out=empty(total_size, dtype=lst[0].dtype))
+                            concatenate(lst, out=empty((total_size,) + lst[0].shape[1:], dtype=lst[0].dtype))
                             for lst in channel_values
                         ]
                     else:
@@ -4738,7 +4770,12 @@ class MDF4(object):
             conversion = channel.conversion
 
             if channel_type == v4c.CHANNEL_TYPE_VLSD:
-                signal_data = self._load_signal_data(group=grp, index=ch_nr)
+                signal_data, with_bounds = self._load_signal_data(
+                    group=grp,
+                    index=ch_nr,
+                    offset=record_start,
+                    count=len(vals),
+                )
                 if signal_data:
 
                     values = []
@@ -4764,17 +4801,19 @@ class MDF4(object):
                         pos = pos + 4 + str_size
                         values.append(signal_data[pos - str_size: pos])
 
-                    values = values[record_start: record_start + len(vals)]
-                    positions = positions[record_start: record_start + len(vals)]
+                    if not with_bounds:
 
-                    if not array_equal(positions, vals):
-                        message = (
-                            f'Mismatch between VLSD channel "{channel.name}" '
-                            f'offsets and referenced signal data'
-                        )
-#                        print(*zip(positions, vals), sep='\n')
-#                        print(vals.tolist())
-                        logger.warning(message)
+                        values = values[record_start: record_start + len(vals)]
+                        positions = positions[record_start: record_start + len(vals)]
+
+                        if not array_equal(positions, vals):
+                            message = (
+                                f'Mismatch between VLSD channel "{channel.name}" '
+                                f'offsets and referenced signal data'
+                            )
+    #                        print(*zip(positions, vals), sep='\n')
+    #                        print(vals.tolist())
+                            logger.warning(message)
 
                     if data_type == v4c.DATA_TYPE_BYTEARRAY:
 
@@ -5746,7 +5785,7 @@ class MDF4(object):
                             idx = self._attachments_map[channel.data_block_addr]
                             channel.data_block_addr = self.attachments[idx].address
                     else:
-                        sdata = self._load_signal_data(group=gp, index=j)
+                        sdata, with_bounds = self._load_signal_data(group=gp, index=j)
                         if sdata:
                             split_size = self._write_fragment_size
                             if self._write_fragment_size:
@@ -6334,16 +6373,55 @@ class MDF4(object):
                         i = endpoint
 
                 for rec_id, new_data in partial_records.items():
+
+                    for index_, grp_rec_id in groups:
+                        if grp_rec_id == rec_id:
+                            channel_group = self.groups[index_].channel_group
+
+                    if channel_group.address in self._cn_data_map:
+                        dg_cntr, ch_cntr = self._cn_data_map[channel_group.address]
+                    else:
+                        dg_cntr, ch_cntr = None, None
+
                     if new_data:
+                        offsets = []
                         _2_MB = 2 * 1024 * 1024
 
                         address = tell()
                         size = 0
 
                         for data in new_data:
+                            offsets.append(size)
                             write(data)
                             size += len(data)
-                            if size >= _2_MB:
+
+#                            if size >= _2_MB:
+#                                block_info = DataBlockInfo(
+#                                    address=address,
+#                                    block_type=v4c.DT_BLOCK,
+#                                    raw_size=size,
+#                                    size=size,
+#                                    param=0,
+#                                )
+#                                final_records[rec_id].append(block_info)
+#                                address = tell()
+#                                size = 0
+
+                        if dg_cntr is not None:
+                            offsets = array(offsets)
+                            if size:
+                                info = SignalDataBlockInfo(
+                                    address=address,
+                                    size=size,
+                                    count=len(offsets),
+                                    dtype=None,
+                                    offsets=offsets,
+                                )
+                                self.groups[dg_cntr].signal_data[ch_cntr] = [info]
+                            else:
+                                self.groups[dg_cntr].signal_data[ch_cntr] = None
+                        else:
+                            if size:
                                 block_info = DataBlockInfo(
                                     address=address,
                                     block_type=v4c.DT_BLOCK,
@@ -6352,18 +6430,7 @@ class MDF4(object):
                                     param=0,
                                 )
                                 final_records[rec_id].append(block_info)
-                                address = tell()
                                 size = 0
-                        if size:
-                            block_info = DataBlockInfo(
-                                address=address,
-                                block_type=v4c.DT_BLOCK,
-                                raw_size=size,
-                                size=size,
-                                param=0,
-                            )
-                            final_records[rec_id].append(block_info)
-                            size = 0
 
             for idx, rec_id in groups:
                 group = self.groups[idx]
