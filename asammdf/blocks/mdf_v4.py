@@ -6311,6 +6311,11 @@ class MDF4(object):
                 for (_, id_) in groups
             }
 
+            partial_records = {
+                id_: []
+                for _, id_ in groups
+            }
+
             group = self.groups[groups[0][0]]
 
             record_id_nr = group.data_group.record_id_len
@@ -6336,6 +6341,7 @@ class MDF4(object):
                     info.block_type,
                     info.param,
                 )
+
                 seek(address)
                 new_data = read(block_size)
                 if block_type == v4c.DZ_BLOCK_DEFLATE:
@@ -6348,11 +6354,6 @@ class MDF4(object):
                     nd = fromstring(new_data[: lines * cols], dtype=uint8)
                     nd = nd.reshape((cols, lines))
                     new_data = nd.T.tostring() + new_data[lines * cols :]
-
-                partial_records = {
-                    id_: []
-                    for _, id_ in groups
-                }
 
                 i = 0
                 size = len(new_data)
@@ -6371,55 +6372,57 @@ class MDF4(object):
                         partial_records[rec_id].append(new_data[i : endpoint])
                         i = endpoint
 
-                cg_map = {
-                    rec_id: self.groups[index_].channel_group
-                    for index_, rec_id in groups
-                }
+            cg_map = {
+                rec_id: self.groups[index_].channel_group
+                for index_, rec_id in groups
+            }
 
-                for rec_id, new_data in partial_records.items():
+            for rec_id, new_data in partial_records.items():
 
-                    channel_group = cg_map[rec_id]
+                channel_group = cg_map[rec_id]
 
-                    if channel_group.address in self._cn_data_map:
-                        dg_cntr, ch_cntr = self._cn_data_map[channel_group.address]
-                    else:
-                        dg_cntr, ch_cntr = None, None
+                if channel_group.address in self._cn_data_map:
+                    dg_cntr, ch_cntr = self._cn_data_map[channel_group.address]
+                else:
+                    dg_cntr, ch_cntr = None, None
 
-                    if new_data:
+                if new_data:
 
-                        address = tell()
-                        size = write(b''.join(new_data))
+                    address = tell()
+                    data_ = b''.join(new_data)
 
-                        if dg_cntr is not None:
-                            offsets = cumsum(
-                                [len(d) for d in new_data]
+                    size = write(data_)
+
+                    if dg_cntr is not None:
+                        offsets = cumsum(
+                            [len(d) for d in new_data]
+                        )
+
+                        size = offsets[-1]
+                        offsets -= len(new_data[0])
+
+                        if size:
+                            info = SignalDataBlockInfo(
+                                address=address,
+                                size=size,
+                                count=len(offsets),
+                                dtype=None,
+                                offsets=offsets,
                             )
-
-                            size = offsets[-1]
-                            offsets -= len(new_data[0])
-
-                            if size:
-                                info = SignalDataBlockInfo(
-                                    address=address,
-                                    size=size,
-                                    count=len(offsets),
-                                    dtype=None,
-                                    offsets=offsets,
-                                )
-                                self.groups[dg_cntr].signal_data[ch_cntr] = [info]
-                            else:
-                                self.groups[dg_cntr].signal_data[ch_cntr] = None
+                            self.groups[dg_cntr].signal_data[ch_cntr] = [info]
                         else:
-                            if size:
-                                block_info = DataBlockInfo(
-                                    address=address,
-                                    block_type=v4c.DT_BLOCK,
-                                    raw_size=size,
-                                    size=size,
-                                    param=0,
-                                )
-                                final_records[rec_id].append(block_info)
-                                size = 0
+                            self.groups[dg_cntr].signal_data[ch_cntr] = None
+                    else:
+                        if size:
+                            block_info = DataBlockInfo(
+                                address=address,
+                                block_type=v4c.DT_BLOCK,
+                                raw_size=size,
+                                size=size,
+                                param=0,
+                            )
+                            final_records[rec_id].append(block_info)
+                            size = 0
 
             for idx, rec_id in groups:
                 group = self.groups[idx]
