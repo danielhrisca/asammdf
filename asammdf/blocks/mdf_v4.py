@@ -24,6 +24,7 @@ from numpy import (
     array,
     array_equal,
     concatenate,
+    cumsum,
     dtype,
     empty,
     flip,
@@ -4811,8 +4812,6 @@ class MDF4(object):
                                 f'Mismatch between VLSD channel "{channel.name}" '
                                 f'offsets and referenced signal data'
                             )
-    #                        print(*zip(positions, vals), sep='\n')
-    #                        print(vals.tolist())
                             logger.warning(message)
 
                     if data_type == v4c.DATA_TYPE_BYTEARRAY:
@@ -6372,11 +6371,14 @@ class MDF4(object):
                         partial_records[rec_id].append(new_data[i : endpoint])
                         i = endpoint
 
+                cg_map = {
+                    rec_id: self.groups[index_].channel_group
+                    for index_, rec_id in groups
+                }
+
                 for rec_id, new_data in partial_records.items():
 
-                    for index_, grp_rec_id in groups:
-                        if grp_rec_id == rec_id:
-                            channel_group = self.groups[index_].channel_group
+                    channel_group = cg_map[rec_id]
 
                     if channel_group.address in self._cn_data_map:
                         dg_cntr, ch_cntr = self._cn_data_map[channel_group.address]
@@ -6384,31 +6386,18 @@ class MDF4(object):
                         dg_cntr, ch_cntr = None, None
 
                     if new_data:
-                        offsets = []
-                        _2_MB = 2 * 1024 * 1024
 
                         address = tell()
-                        size = 0
-
-                        for data in new_data:
-                            offsets.append(size)
-                            write(data)
-                            size += len(data)
-
-#                            if size >= _2_MB:
-#                                block_info = DataBlockInfo(
-#                                    address=address,
-#                                    block_type=v4c.DT_BLOCK,
-#                                    raw_size=size,
-#                                    size=size,
-#                                    param=0,
-#                                )
-#                                final_records[rec_id].append(block_info)
-#                                address = tell()
-#                                size = 0
+                        size = write(b''.join(new_data))
 
                         if dg_cntr is not None:
-                            offsets = array(offsets)
+                            offsets = cumsum(
+                                [len(d) for d in new_data]
+                            )
+
+                            size = offsets[-1]
+                            offsets -= len(new_data[0])
+
                             if size:
                                 info = SignalDataBlockInfo(
                                     address=address,
