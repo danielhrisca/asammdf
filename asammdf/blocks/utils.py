@@ -1011,19 +1011,33 @@ def block_fields(obj):
     return fields
 
 
-def components(channel, channel_name, unique_names, prefix="", master=None):
+def components(
+        channel,
+        channel_name,
+        unique_names,
+        prefix="",
+        master=None,
+        only_basenames=False,
+    ):
     """ yield pandas Series and unique name based on the ndarray object
 
     Parameters
     ----------
     channel : numpy.ndarray
-        channel to be used foir Series
+        channel to be used for Series
     channel_name : str
         channel name
     unique_names : UniqueDB
         unique names object
     prefix : str
         prefix used in case of nested recarrays
+    master : np.array
+        optional index for the Series
+    only_basenames (False) : bool
+        use jsut the field names, without prefix, for structures and channel
+        arrays
+
+        .. versionadded:: 5.13.0
 
     Returns
     -------
@@ -1036,8 +1050,11 @@ def components(channel, channel_name, unique_names, prefix="", master=None):
     if names[0] == channel_name:
         name = names[0]
 
-        if prefix:
-            name_ = unique_names.get_unique_name(f"{prefix}.{name}")
+        if not only_basenames:
+            if prefix:
+                name_ = unique_names.get_unique_name(f"{prefix}.{name}")
+            else:
+                name_ = unique_names.get_unique_name(name)
         else:
             name_ = unique_names.get_unique_name(name)
 
@@ -1048,7 +1065,10 @@ def components(channel, channel_name, unique_names, prefix="", master=None):
 
         for name in names[1:]:
             values = channel[name]
-            axis_name = unique_names.get_unique_name(f"{name_}.{name}")
+            if not only_basenames:
+                axis_name = unique_names.get_unique_name(f"{name_}.{name}")
+            else:
+                axis_name = unique_names.get_unique_name(name)
             if len(values.shape) > 1:
                 arr = [values]
                 types = [("", values.dtype, values.shape[1:])]
@@ -1067,13 +1087,17 @@ def components(channel, channel_name, unique_names, prefix="", master=None):
                 yield from components(
                     values, name, unique_names,
                     prefix=f"{prefix}.{channel_name}" if prefix else f"{channel_name}",
-                    master=master
+                    master=master,
+                    only_basenames=only_basenames,
                 )
 
             else:
-                name_ = unique_names.get_unique_name(
-                    f"{prefix}.{channel_name}.{name}" if prefix else f"{channel_name}.{name}"
-                )
+                if not only_basenames:
+                    name_ = unique_names.get_unique_name(
+                        f"{prefix}.{channel_name}.{name}" if prefix else f"{channel_name}.{name}"
+                    )
+                else:
+                    name_ = unique_names.get_unique_name(name)
                 if len(values.shape) > 1:
                     values = list(values)
 

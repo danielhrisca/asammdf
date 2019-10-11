@@ -3306,6 +3306,7 @@ class MDF(object):
         reduce_memory_usage=False,
         raw=False,
         ignore_value2text_conversions=False,
+        only_basenames=False,
     ):
         """ get channel group as pandas DataFrames. If there are multiple
         occurences for the same channel name, then a counter will be used to
@@ -3333,7 +3334,7 @@ class MDF(object):
 
             .. versionadded:: 5.8.0
 
-        keep_arrays : bool
+        keep_arrays (False) : bool
             keep arrays and structure channels as well as the
             component channels. If *True* this can be very slow. If *False*
             only the component channels are saved, and their names will be
@@ -3341,11 +3342,17 @@ class MDF(object):
 
             .. versionadded:: 5.8.0
 
-        empty_channels : str
+        empty_channels ("skip") : str
             behaviour for channels without samples; the options are *skip* or
             *zeros*; default is *skip*
 
             .. versionadded:: 5.8.0
+
+        only_basenames (False) : bool
+            use jsut the field names, without prefix, for structures and channel
+            arrays
+
+            .. versionadded:: 5.13.0
 
         Returns
         -------
@@ -3371,6 +3378,7 @@ class MDF(object):
             reduce_memory_usage=reduce_memory_usage,
             raw=raw,
             ignore_value2text_conversions=ignore_value2text_conversions,
+            only_basenames=only_basenames,
         )
 
     def to_dataframe(
@@ -3386,6 +3394,7 @@ class MDF(object):
         raw=False,
         ignore_value2text_conversions=False,
         use_interpolation=True,
+        only_basenames=False,
     ):
         """ generate pandas DataFrame
 
@@ -3442,6 +3451,12 @@ class MDF(object):
 
             .. versionadded:: 5.11.0
 
+        only_basenames (False) : bool
+            use jsut the field names, without prefix, for structures and channel
+            arrays
+
+            .. versionadded:: 5.13.0
+
 
         Returns
         -------
@@ -3463,6 +3478,7 @@ class MDF(object):
                 raw=raw,
                 ignore_value2text_conversions=ignore_value2text_conversions,
                 use_interpolation=use_interpolation,
+                only_basenames=only_basenames,
             )
 
         df = pd.DataFrame()
