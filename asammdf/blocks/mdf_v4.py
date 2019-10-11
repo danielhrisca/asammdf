@@ -1229,28 +1229,45 @@ class MDF4(object):
 
                     else:
                         if isinstance(address[0], SignalDataBlockInfo):
-                            if len(address) == 1 and address[0].offsets is not None:
 
-                                info = address[0]
 
+                            if address[0].offsets is not None:
+                                with_bounds = True
+
+                                current_offset = 0
                                 if count is not None:
                                     end = offset + count
-                                    if end == len(info.offsets):
-                                        end_addr = info.address + info.size
-                                    else:
-                                        end_addr = info.address + info.offsets[offset + count]
                                 else:
-                                    end_addr = info.address + info.size
+                                    end = None
 
-                                start_addr = info.address + info.offsets[offset]
+                                for info in address:
 
-                                size = end_addr - start_addr
+                                    current_count = info.count
 
+                                    if current_offset + current_count < offset:
+                                        current_offset += current_count
+                                        continue
 
+                                    if current_offset < offset:
+                                        start_addr = info.address + info.offsets[offset - current_offset]
+                                    else:
+                                        start_addr = info.address
 
-                                stream.seek(start_addr)
-                                data.append(stream.read(size))
-                                with_bounds = True
+                                    if end is not None:
+                                        if end <= current_offset:
+                                            break
+                                        elif end >= current_offset + current_count:
+                                            end_addr = info.address + info.size
+                                        else:
+                                            end_addr = info.address + info.offsets[end - current_offset]
+                                    else:
+                                        end_addr = info.address + info.size
+
+                                    size = end_addr - start_addr
+
+                                    stream.seek(start_addr)
+                                    data.append(stream.read(size))
+                                    current_offset += current_count
 
                             else:
                                 for info in address:
@@ -6306,15 +6323,20 @@ class MDF4(object):
 
         for address, groups in common.items():
 
+            cg_map = {
+                rec_id: self.groups[index_].channel_group
+                for index_, rec_id in groups
+            }
+
             final_records = {
                 id_: []
                 for (_, id_) in groups
             }
 
-            partial_records = {
-                id_: []
-                for _, id_ in groups
-            }
+            for rec_id, channel_group in cg_map.items():
+                if channel_group.address in self._cn_data_map:
+                    dg_cntr, ch_cntr = self._cn_data_map[channel_group.address]
+                    self.groups[dg_cntr].signal_data[ch_cntr] = []
 
             group = self.groups[groups[0][0]]
 
@@ -6341,6 +6363,11 @@ class MDF4(object):
                     info.block_type,
                     info.param,
                 )
+
+                partial_records = {
+                    id_: []
+                    for _, id_ in groups
+                }
 
                 seek(address)
                 new_data = read(block_size)
@@ -6372,57 +6399,55 @@ class MDF4(object):
                         partial_records[rec_id].append(new_data[i : endpoint])
                         i = endpoint
 
-            cg_map = {
-                rec_id: self.groups[index_].channel_group
-                for index_, rec_id in groups
-            }
+                for rec_id, new_data in partial_records.items():
 
-            for rec_id, new_data in partial_records.items():
+                    channel_group = cg_map[rec_id]
 
-                channel_group = cg_map[rec_id]
-
-                if channel_group.address in self._cn_data_map:
-                    dg_cntr, ch_cntr = self._cn_data_map[channel_group.address]
-                else:
-                    dg_cntr, ch_cntr = None, None
-
-                if new_data:
-
-                    address = tell()
-                    data_ = b''.join(new_data)
-
-                    size = write(data_)
-
-                    if dg_cntr is not None:
-                        offsets = cumsum(
-                            [len(d) for d in new_data]
-                        )
-
-                        size = offsets[-1]
-                        offsets -= len(new_data[0])
-
-                        if size:
-                            info = SignalDataBlockInfo(
-                                address=address,
-                                size=size,
-                                count=len(offsets),
-                                dtype=None,
-                                offsets=offsets,
-                            )
-                            self.groups[dg_cntr].signal_data[ch_cntr] = [info]
-                        else:
-                            self.groups[dg_cntr].signal_data[ch_cntr] = None
+                    if channel_group.address in self._cn_data_map:
+                        dg_cntr, ch_cntr = self._cn_data_map[channel_group.address]
                     else:
-                        if size:
-                            block_info = DataBlockInfo(
-                                address=address,
-                                block_type=v4c.DT_BLOCK,
-                                raw_size=size,
-                                size=size,
-                                param=0,
+                        dg_cntr, ch_cntr = None, None
+
+                    if new_data:
+
+                        address = tell()
+
+                        size = write(b''.join(new_data))
+
+                        if dg_cntr is not None:
+                            offsets = cumsum(
+                                [len(d) for d in new_data]
                             )
-                            final_records[rec_id].append(block_info)
-                            size = 0
+
+                            size = offsets[-1]
+                            offsets -= len(new_data[0])
+
+#                            signal_data = self.groups[dg_cntr].signal_data[ch_cntr]
+#                            if signal_data:
+#                                last = signal_data[-1]
+#                                offsets += last.offsets[0] + last.size
+
+                            if size:
+                                info = SignalDataBlockInfo(
+                                    address=address,
+                                    size=size,
+                                    count=len(offsets),
+                                    dtype=None,
+                                    offsets=offsets,
+                                )
+                                self.groups[dg_cntr].signal_data[ch_cntr].append(info)
+
+                        else:
+                            if size:
+                                block_info = DataBlockInfo(
+                                    address=address,
+                                    block_type=v4c.DT_BLOCK,
+                                    raw_size=size,
+                                    size=size,
+                                    param=0,
+                                )
+                                final_records[rec_id].append(block_info)
+                                size = 0
 
             for idx, rec_id in groups:
                 group = self.groups[idx]
