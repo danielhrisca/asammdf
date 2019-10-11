@@ -3090,6 +3090,7 @@ class MDF4(object):
                         size=data_size,
                         count=len(data),
                         dtype=data.dtype,
+                        offsets=offsets,
                     )
                     gp_sdata.append([info])
                     data.tofile(file)
@@ -3425,6 +3426,7 @@ class MDF4(object):
                         size=data_size,
                         count=len(data),
                         dtype=data.dtype,
+                        offsets=offsets,
                     )
                     gp_sdata.append([info])
                     data.tofile(file)
@@ -3624,10 +3626,8 @@ class MDF4(object):
             else:
                 cur_offset = sum(blk.size for blk in gp.signal_data[i])
 
-                offsets = (
-                    arange(len(signal), dtype=uint64) * (signal.itemsize + 4)
-                    + cur_offset
-                )
+                offsets = arange(len(signal), dtype=uint64) * (signal.itemsize + 4)
+
                 values = [full(len(signal), signal.itemsize, dtype=uint32), signal]
 
                 types_ = [("", uint32), ("", signal.dtype)]
@@ -3643,10 +3643,12 @@ class MDF4(object):
                         size=block_size,
                         count=len(values),
                         dtype=values.dtype,
+                        offsets=offsets,
                     )
                     gp.signal_data[i].append(info)
                     values.tofile(stream)
 
+                offsets += cur_offset
                 fields.append(offsets)
                 types.append(("", uint64))
 
