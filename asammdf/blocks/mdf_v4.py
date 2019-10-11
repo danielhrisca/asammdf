@@ -968,23 +968,33 @@ class MDF4(object):
 
             else:
                 try:
-                    frame = self.get(
-                        "CAN_DataFrame",
-                        group=i,
-                    )
-                    bus_ids = frame['CAN_DataFrame.BusChannel']
-                    can_ids = frame['CAN_DataFrame.ID']
+                    data = self._load_data(self.groups[i])
+                    for fragment in data:
+                        bus_ids = self.get(
+                            'CAN_DataFrame.BusChannel',
+                            group=i,
+                            data=fragment,
+                            samples_only=True,
+                        )[0]
 
-                    if len(bus_ids):
+                        can_ids = self.get(
+                            'CAN_DataFrame.ID',
+                            group=i,
+                            data=fragment,
+                            samples_only=True,
+                        )[0]
 
-                        for can_id, message_id in unique(column_stack((bus_ids.astype(int), can_ids)), axis=0):
-                            can_id = f'CAN{can_id}'
-                            if can_id not in self.can_logging_db:
-                                self.can_logging_db[can_id] = {}
-                            grp.CAN_id = can_id
-                            self.can_logging_db[can_id][message_id] = i
 
-                    grp.message_id = set(unique(can_ids))
+                        if len(bus_ids):
+
+                            for can_id, message_id in unique(column_stack((bus_ids.astype(int), can_ids)), axis=0):
+                                can_id = f'CAN{can_id}'
+                                if can_id not in self.can_logging_db:
+                                    self.can_logging_db[can_id] = {}
+                                grp.CAN_id = can_id
+                                self.can_logging_db[can_id][message_id] = i
+
+                        grp.message_id = grp.message_id | set(unique(can_ids))
 
                 except MdfException:
                     grp.CAN_logging = False
