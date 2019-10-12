@@ -3595,7 +3595,7 @@ class MDF(object):
 
                 # arrays and structures
                 elif sig.samples.dtype.names:
-                    for name, series in components(sig.samples, sig.name, used_names, master=sig.timestamps):
+                    for name, series in components(sig.samples, sig.name, used_names, master=sig.timestamps, only_basenames=only_basenames):
                         df[name] = series
 
                 # scalars
