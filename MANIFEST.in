@@ -1,3 +1,4 @@
 include LICENSE
 recursive-include asammdf *.ui
+recursive-include asammdf *.c
 recursive-include asammdf *.qrc

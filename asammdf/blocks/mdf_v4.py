@@ -18,6 +18,7 @@ from zlib import decompress
 from pathlib import Path
 import mmap
 from functools import lru_cache
+from time import perf_counter
 
 from numpy import (
     arange,
@@ -124,6 +125,24 @@ COMMON_SHORT_u = v4c.COMMON_SHORT_u
 logger = logging.getLogger("asammdf")
 
 __all__ = ["MDF4"]
+
+
+try:
+    from .cutils import extract
+except:
+    def extract(signal_data, count):
+        size = len(signal_data)
+        positions = []
+        values = []
+        pos = 0
+
+        while pos < size:
+            positions.append(pos)
+            (str_size,) = UINT32_uf(signal_data, pos)
+            pos = pos + 4 + str_size
+            values.append(signal_data[pos - str_size: pos])
+
+        return values
 
 
 class MDF4(object):
@@ -4800,48 +4819,19 @@ class MDF4(object):
             conversion = channel.conversion
 
             if channel_type == v4c.CHANNEL_TYPE_VLSD:
+                count_ = len(vals)
                 signal_data, with_bounds = self._load_signal_data(
                     group=grp,
                     index=ch_nr,
                     offset=record_start,
-                    count=len(vals),
+                    count=count_,
                 )
                 if signal_data:
 
-                    values = []
-
-#                    vals = vals.tolist()
-
-#                    for offset in vals:
-#                        (str_size,) = UINT32_uf(signal_data, offset)
-#                        print(offset, str_size)
-#                        if str_size > 200:
-#                            1/0
-#                        offset += 4
-#                        values.append(signal_data[offset : offset + str_size])
-
-                    size = len(signal_data)
-
-                    positions = []
-                    pos = 0
-
-                    while pos < size:
-                        positions.append(pos)
-                        (str_size,) = UINT32_uf(signal_data, pos)
-                        pos = pos + 4 + str_size
-                        values.append(signal_data[pos - str_size: pos])
+                    values = extract(signal_data, count_)
 
                     if not with_bounds:
-
-                        values = values[record_start: record_start + len(vals)]
-                        positions = positions[record_start: record_start + len(vals)]
-
-                        if not array_equal(positions, vals):
-                            message = (
-                                f'Mismatch between VLSD channel "{channel.name}" '
-                                f'offsets and referenced signal data'
-                            )
-                            logger.warning(message)
+                        values = values[record_start: record_start + count_]
 
                     if data_type == v4c.DATA_TYPE_BYTEARRAY:
 
@@ -6433,11 +6423,6 @@ class MDF4(object):
 
                             size = offsets[-1]
                             offsets -= len(new_data[0])
-
-#                            signal_data = self.groups[dg_cntr].signal_data[ch_cntr]
-#                            if signal_data:
-#                                last = signal_data[-1]
-#                                offsets += last.offsets[0] + last.size
 
                             if size:
                                 info = SignalDataBlockInfo(
