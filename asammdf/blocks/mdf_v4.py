@@ -1012,9 +1012,12 @@ class MDF4(object):
                                     self.can_logging_db[can_id] = {}
                                 grp.CAN_id = can_id
                                 self.can_logging_db[can_id][message_id] = i
-
-                        grp.message_id = grp.message_id | set(unique(can_ids))
-
+                                
+                        if grp.message_id is None:
+                            grp.message_id = set(unique(can_ids))
+                        else:
+                            grp.message_id = grp.message_id | set(unique(can_ids))
+                        
                 except MdfException:
                     grp.CAN_logging = False
                     pass
