@@ -3724,6 +3724,7 @@ class MDF(object):
                         group.record = None
                         continue
 
+                    self._set_temporary_master(None)
                     self._set_temporary_master(self.get_master(i, data=fragment))
 
                     bus_ids = self.get(

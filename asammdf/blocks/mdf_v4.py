@@ -128,8 +128,9 @@ __all__ = ["MDF4"]
 
 
 try:
-    from .cutils import extract
+    from .cutils import extract, sort_data_block
 except:
+
     def extract(signal_data, count):
         size = len(signal_data)
         positions = []
@@ -143,6 +144,24 @@ except:
             values.append(signal_data[pos - str_size: pos])
 
         return values
+
+    def sort_data_block(signal_data, partial_records, cg_size, record_id_nr, _unpack_stuct):
+        i = 0
+        size = len(signal_data)
+        while i < size:
+            rec_id, = _unpack_stuct(signal_data, i)
+            # skip record id
+            i += record_id_nr
+            rec_size = cg_size[rec_id]
+            if rec_size:
+                endpoint = i + rec_size
+                partial_records[rec_id].append(signal_data[i : endpoint])
+                i = endpoint
+            else:
+                rec_size, = UINT32_uf(signal_data, i)
+                endpoint = i + rec_size + 4
+                partial_records[rec_id].append(signal_data[i : endpoint])
+                i = endpoint
 
 
 class MDF4(object):
@@ -1012,12 +1031,12 @@ class MDF4(object):
                                     self.can_logging_db[can_id] = {}
                                 grp.CAN_id = can_id
                                 self.can_logging_db[can_id][message_id] = i
-                                
+
                         if grp.message_id is None:
                             grp.message_id = set(unique(can_ids))
                         else:
                             grp.message_id = grp.message_id | set(unique(can_ids))
-                        
+
                 except MdfException:
                     grp.CAN_logging = False
                     pass
@@ -5246,7 +5265,7 @@ class MDF4(object):
                     timestamps = arange(t[0], t[-1], raster)
         else:
             timestamps = t
-        return timestamps.copy()
+        return timestamps
 
     def get_can_signal(
         self, name, database=None, db=None, ignore_invalidation_bits=False
@@ -6349,13 +6368,13 @@ class MDF4(object):
             cg_size = group.record_size
 
             if record_id_nr == 1:
-                _unpack_stuct = UINT8_u
+                _unpack_stuct = UINT8_uf
             elif record_id_nr == 2:
-                _unpack_stuct = UINT16_u
+                _unpack_stuct = UINT16_uf
             elif record_id_nr == 4:
-                _unpack_stuct = UINT32_u
+                _unpack_stuct = UINT32_uf
             elif record_id_nr == 8:
-                _unpack_stuct = UINT64_u
+                _unpack_stuct = UINT64_uf
             else:
                 message = f"invalid record id size {record_id_nr}"
                 raise MdfException(message)
@@ -6387,22 +6406,7 @@ class MDF4(object):
                     nd = nd.reshape((cols, lines))
                     new_data = nd.T.tostring() + new_data[lines * cols :]
 
-                i = 0
-                size = len(new_data)
-                while i < size:
-                    rec_id, = _unpack_stuct(new_data[i : i + record_id_nr])
-                    # skip record id
-                    i += record_id_nr
-                    rec_size = cg_size[rec_id]
-                    if rec_size:
-                        endpoint = i + rec_size
-                        partial_records[rec_id].append(new_data[i : endpoint])
-                        i = endpoint
-                    else:
-                        rec_size, = UINT32_u(new_data[i : i + 4])
-                        endpoint = i + rec_size + 4
-                        partial_records[rec_id].append(new_data[i : endpoint])
-                        i = endpoint
+                sort_data_block(new_data, partial_records, cg_size, record_id_nr, _unpack_stuct)
 
                 for rec_id, new_data in partial_records.items():
 
