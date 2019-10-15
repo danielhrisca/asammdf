@@ -6408,6 +6408,8 @@ class MDF4(object):
 
                 sort_data_block(new_data, partial_records, cg_size, record_id_nr, _unpack_stuct)
 
+
+
                 for rec_id, new_data in partial_records.items():
 
                     channel_group = cg_map[rec_id]
