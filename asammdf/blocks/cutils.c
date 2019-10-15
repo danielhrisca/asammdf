@@ -1,4 +1,6 @@
 #include <Python.h>
+#include "numpy/arrayobject.h"
+#include "numpy/ndarrayobject.h"
 
 #define PY_PRINTF(o) \
     PyObject_Print(o, stdout, 0); printf("\n");
@@ -14,7 +16,7 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
     char *buf;
     
     if(!PyArg_ParseTuple(args, "OOOi|O", &signal_data, &partial_records, &record_size, &id_size, &optional)){
-        printf("len 0\n");}
+        printf("sort len 0\n");}
     else{
         PyObject_GetBuffer(signal_data, &buffer, PyBUF_SIMPLE);
         buf = buffer.buf;
@@ -68,7 +70,7 @@ static PyObject* extract(PyObject* self, PyObject* args)
     char *buf;
     
     if(!PyArg_ParseTuple(args, "Oi", &signal_data, &count)){
-        printf("len 0\n");}
+        printf("ext len 0\n");}
     else{
         PyObject_GetBuffer(signal_data, &buffer, PyBUF_SIMPLE);
         buf = buffer.buf;
@@ -84,10 +86,77 @@ static PyObject* extract(PyObject* self, PyObject* args)
 
         PyBuffer_Release(&buffer);
     }
+
+    return values;
+}
+
+
+static PyObject* lengths(PyObject* self, PyObject* args) 
+{   
+    int i=0, count;
+    int pos=0;
+    int size;
+    PyObject *lst, *values, *item;
+    Py_buffer buffer;
+    char *buf;
     
-    Py_INCREF(Py_None);
+    if(!PyArg_ParseTuple(args, "O", &lst)) {
+        values = Py_None;
+        Py_INCREF(Py_None);
+    }
+    else {
+       
+        count = PyList_Size(lst);
+        
+        values = PyTuple_New(count);
+        
+        for (i=0; i<count; i++) {
+            item = PyList_GetItem(lst, i);
+            PyTuple_SetItem(values, i, PyLong_FromSsize_t(PyBytes_Size(item)));
+        }
+        
+    }
     
     return values;
+}
+
+
+static PyObject* get_vlsd_offsets(PyObject* self, PyObject* args) 
+{   
+    int i=0, count;
+    int pos=0;
+    int size;
+    PyObject *lst, *item;
+    Py_buffer buffer;
+    char *buf;
+    npy_intp dim[1];
+    PyArrayObject *values, *result;
+    
+    unsigned long current_size = 0;
+    
+    void *h_result;
+    
+    if(!PyArg_ParseTuple(args, "O", &lst)) {
+        values = Py_None;
+        Py_INCREF(Py_None);
+    }
+    else {
+       
+        count = PyList_Size(lst);
+        dim[0] = count;
+        values = (PyArrayObject *) PyArray_SimpleNew(1, dim, NPY_ULONG);
+
+        for (i=0; i<count; i++) {
+            h_result = PyArray_GETPTR1(values, i);
+            item = PyList_GetItem(lst, i);
+            *((unsigned long *)h_result) = current_size;
+            current_size += (unsigned long)PyBytes_Size(item);
+        }
+    }
+    
+    result = PyTuple_Pack(2, values, PyLong_FromUnsignedLong(current_size));
+    
+    return result;
 }
 
 
@@ -96,6 +165,8 @@ static PyObject* extract(PyObject* self, PyObject* args)
 // definition 
 static PyMethodDef myMethods[] = {
     { "extract", extract, METH_VARARGS, "extract VLSD samples from raw block" },
+    { "lengths", lengths, METH_VARARGS, "lengths" },
+    { "get_vlsd_offsets", get_vlsd_offsets, METH_VARARGS, "get_vlsd_offsets" },
     { "sort_data_block", sort_data_block, METH_VARARGS, "sort raw data group block" },
     { NULL, NULL, 0, NULL }
 };
@@ -112,5 +183,6 @@ static struct PyModuleDef cutils = {
 // Initializes our module using our above struct
 PyMODINIT_FUNC PyInit_cutils(void)
 {
+    import_array();
     return PyModule_Create(&cutils);
 }

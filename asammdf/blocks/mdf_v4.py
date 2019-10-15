@@ -128,7 +128,7 @@ __all__ = ["MDF4"]
 
 
 try:
-    from .cutils import extract, sort_data_block
+    from .cutils import extract, sort_data_block, lengths, get_vlsd_offsets
 except:
 
     def extract(signal_data, count):
@@ -162,6 +162,14 @@ except:
                 endpoint = i + rec_size + 4
                 partial_records[rec_id].append(signal_data[i : endpoint])
                 i = endpoint
+
+    def lengths(iterable):
+        return [len(item) for item in iterable]
+
+    def get_vlsd_offsets(data):
+        offsets = [0, ] + [len(item) for item in data]
+        offsets = cumsum(offsets)
+        return offsets[:-1], offsets[-1]
 
 
 class MDF4(object):
@@ -6408,8 +6416,6 @@ class MDF4(object):
 
                 sort_data_block(new_data, partial_records, cg_size, record_id_nr, _unpack_stuct)
 
-
-
                 for rec_id, new_data in partial_records.items():
 
                     channel_group = cg_map[rec_id]
@@ -6426,12 +6432,7 @@ class MDF4(object):
                         size = write(b''.join(new_data))
 
                         if dg_cntr is not None:
-                            offsets = cumsum(
-                                [len(d) for d in new_data]
-                            )
-
-                            size = offsets[-1]
-                            offsets -= len(new_data[0])
+                            offsets, size = get_vlsd_offsets(new_data)
 
                             if size:
                                 info = SignalDataBlockInfo(
