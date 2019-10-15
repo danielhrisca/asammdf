@@ -444,6 +444,7 @@ class MDF3(object):
                             dtype_pair = (name, get_fmt_v3(data_type, size))
                             types.append(dtype_pair)
                             parents[original_index] = name, bit_offset
+
                         else:
                             next_byte_aligned_position = parent_start_offset
 
@@ -492,6 +493,7 @@ class MDF3(object):
             dtypes = dtype(types)
 
             group.parents, group.types = parents, dtypes
+
         return parents, dtypes
 
     def _get_not_byte_aligned_data(self, data, group, ch_nr):

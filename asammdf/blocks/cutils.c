@@ -60,34 +60,84 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
     return Py_None;
 }
 
+
 static PyObject* extract(PyObject* self, PyObject* args) 
 {   
-    int i=0, count;
+    int i=0, j, count, max=0, is_byte_array;
     int pos=0;
     int size;
     PyObject *values, *signal_data, *bts;
     Py_buffer buffer;
     char *buf;
+    PyArrayObject *vals;
+    PyArray_Descr *descr;
+    void *addr;
+    unsigned char * addr2;
     
-    if(!PyArg_ParseTuple(args, "Oi", &signal_data, &count)){
-        printf("ext len 0\n");}
-    else{
+    if(!PyArg_ParseTuple(args, "Oi", &signal_data, &is_byte_array)){
+        printf("ext len 0\n");
+    }
+    else {
         PyObject_GetBuffer(signal_data, &buffer, PyBUF_SIMPLE);
         buf = buffer.buf;
-        values = PyTuple_New(count);
+        
+        count = 0;
         
         while (pos < buffer.len) {
             size = (buf[pos+3] << 24) + (buf[pos+2] << 16) +(buf[pos+1] << 8) +buf[pos];
-            pos += 4;
-            bts = PyBytes_FromStringAndSize(buf + pos, size);
-            PyTuple_SetItem(values, i++, bts);
-            pos += size;
+            if (max < size) max = size;
+            pos += 4 + size;
+            count++;
+        }
+        
+        if (is_byte_array) {
+        
+            npy_intp dims[2];
+            dims[0] = count;
+            dims[1] = max;
+            
+            vals = (PyArrayObject *) PyArray_ZEROS(2, dims, NPY_UBYTE, 0);
+            
+            addr = PyArray_GETPTR2(vals, 0, 0);
+            
+            for (i=0, pos=0; i<count; i++) {
+                size = (buf[pos+3] << 24) + (buf[pos+2] << 16) +(buf[pos+1] << 8) +buf[pos];
+                pos += 4;
+                addr2 = ((unsigned char *) addr) + i * max;
+                for (j=0; j<size; j++) {
+                    *( addr2 + j) = buf[pos+j];
+                }
+                pos += size;
+            }
+        }
+        else {
+            npy_intp dims[1];
+            dims[0] = count;
+            
+            descr = PyArray_DescrFromType(NPY_STRING);
+            descr = PyArray_DescrNew(descr);
+            descr->elsize = max;
+            
+            vals = (PyArrayObject *) PyArray_Zeros(1, dims, descr, 0);
+
+            addr = PyArray_GETPTR1(vals, 0);
+            
+            for (i=0, pos=0; i<count; i++) {
+                size = (buf[pos+3] << 24) + (buf[pos+2] << 16) +(buf[pos+1] << 8) +buf[pos];
+                pos += 4;
+                addr2 = ((unsigned char *) addr) + i * max;
+                for (j=0; j<size; j++) {
+                    *( addr2 + j) = buf[pos+j];
+                }
+                pos += size;
+            }
         }
 
         PyBuffer_Release(&buffer);
+       
     }
 
-    return values;
+    return vals;
 }
 
 
@@ -99,6 +149,7 @@ static PyObject* lengths(PyObject* self, PyObject* args)
     PyObject *lst, *values, *item;
     Py_buffer buffer;
     char *buf;
+    
     
     if(!PyArg_ParseTuple(args, "O", &lst)) {
         values = Py_None;

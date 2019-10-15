@@ -131,7 +131,7 @@ try:
     from .cutils import extract, sort_data_block, lengths, get_vlsd_offsets
 except:
 
-    def extract(signal_data, count):
+    def extract(signal_data, is_byte_array):
         size = len(signal_data)
         positions = []
         values = []
@@ -142,6 +142,14 @@ except:
             (str_size,) = UINT32_uf(signal_data, pos)
             pos = pos + 4 + str_size
             values.append(signal_data[pos - str_size: pos])
+
+        if is_byte_array:
+
+            values = array(values)
+            values = values.view(dtype=f"({values.itemsize},)u1")
+        else:
+
+            values = array(values)
 
         return values
 
@@ -1280,6 +1288,7 @@ class MDF4(object):
 
                 if address:
                     if isinstance(address, int):
+
                         if address in self._cg_map:
                             group = self.groups[self._cg_map[address]]
                             data.append(
@@ -3726,6 +3735,10 @@ class MDF4(object):
             fields.append(inval_bits)
             types.append(("invalidation_bytes", inval_bits.dtype, inval_bits.shape[1:]))
 
+#        print('???????????????????????????????????????????')
+#        print([(c.name, f.dtype, f.shape) for f,c in zip(fields, gp.channels)])
+#        print(types)
+
         samples = fromarrays(fields, dtype=types)
 
         del fields
@@ -4856,21 +4869,18 @@ class MDF4(object):
                     offset=record_start,
                     count=count_,
                 )
+
                 if signal_data:
 
-                    values = extract(signal_data, count_)
+                    if data_type == v4c.DATA_TYPE_BYTEARRAY:
+                        vals = extract(signal_data, 1)
+                    else:
+                        vals = extract(signal_data, 0)
 
                     if not with_bounds:
-                        values = values[record_start: record_start + count_]
+                        vals = vals[record_start: record_start + count_]
 
-                    if data_type == v4c.DATA_TYPE_BYTEARRAY:
-
-                        vals = array(values)
-                        vals = vals.view(dtype=f"({vals.itemsize},)u1")
-
-                    else:
-
-                        vals = array(values)
+                    if data_type != v4c.DATA_TYPE_BYTEARRAY:
 
                         if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
                             encoding = "utf-16-be"
@@ -4888,7 +4898,6 @@ class MDF4(object):
                             raise MdfException(
                                 f'wrong data type "{data_type}" for vlsd channel'
                             )
-
                 else:
                     if len(vals):
                         raise MdfException(f'Wrong signal data block refence (0x{channel.data_block_addr:X}) for VLSD channel "{channel.name}"')
@@ -5011,10 +5020,13 @@ class MDF4(object):
                     vals = conversion.convert(vals)
                     conversion = None
 
+
+
         if samples_only:
             if not channel_invalidation_present or not ignore_invalidation_bits:
                 invalidation_bits = None
             res = vals, invalidation_bits
+
         else:
             # search for unit in conversion texts
 
