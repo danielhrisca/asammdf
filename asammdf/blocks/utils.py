@@ -11,12 +11,10 @@ import subprocess
 from io import BytesIO
 
 from collections import namedtuple
-from functools import partial
 from random import randint
 from struct import Struct
 from tempfile import TemporaryDirectory
 from pathlib import Path
-from struct import pack
 
 try:
     from canmatrix.dbc import load as dbc_load

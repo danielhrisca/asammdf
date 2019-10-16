@@ -134,4 +134,5 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
             'target': str(self._target),
         }
 
+
         return info

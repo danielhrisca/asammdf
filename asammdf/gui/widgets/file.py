@@ -1920,7 +1920,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                     filter.relation.setCurrentText(filter_info['relation'])
                     filter.column.setCurrentText(filter_info['column'])
                     filter.op.setCurrentText(filter_info['op'])
-                    filter.target.setText(str(filter_info['target']))
+                    filter.target.setText(str(filter_info['target']).strip('"'))
                     filter.validate_target()
 
                     filter_count += 1

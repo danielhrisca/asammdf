@@ -147,7 +147,9 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             if filters:
                 filters.append(filter.relation.currentText().lower())
 
-            column_name = pandas_query_compatible(filter.column.currentText())
+            column_name = filter.column.currentText()
+            is_byte_array = self.signals_descr[column_name]
+            column_name = pandas_query_compatible(column_name)
             op = filter.op.currentText()
 
             if target != target:
@@ -176,6 +178,20 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                     filters.append(op)
                     filters.append('@ts')
 
+                elif is_byte_array:
+                    target = str(target).replace(' ', '').strip('"')
+
+                    if f'{column_name}__as__bytes' not in df.columns:
+                        df[f'{column_name}__as__bytes'] = pd.Series(
+                            [bytes(s) for s in df[column_name]],
+                            index=df.index,
+                        )
+                    val = bytes.fromhex(target)
+
+                    filters.append(f'{column_name}__as__bytes')
+                    filters.append(op)
+                    filters.append('@val')
+
                 else:
                     filters.append(column_name)
                     filters.append(op)
@@ -188,9 +204,16 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                 logger.exception(f'Failed to apply filter for tabular window: {" ".join(filters)}')
                 self.query.setText(format_exc())
             else:
-
+                to_drop = [
+                    name
+                    for name in df.columns
+                    if name.endswith('__as__bytes')
+                ]
+                if to_drop:
+                    df.drop(columns=to_drop, inplace=True)
+                    new_df.drop(columns=to_drop, inplace=True)
                 self.query.setText(' '.join(filters))
-                new_df.rename(columns=original_names, inplace=True)
+                df.rename(columns=original_names, inplace=True)
                 self.build(new_df)
         else:
             self.query.setText('')
@@ -202,6 +225,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
     def items_deleted(self, names):
         for name in names:
             self.signals.pop(name)
+            self.signals_descr.pop(name)
         self.build()
 
     def build(self, df, reset_header_names=False):
