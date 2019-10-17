@@ -108,6 +108,8 @@ class Signal(object):
             self.display_name = display_name
             self.attachment = attachment
             self.encoding = encoding
+            self.group_index = -1
+            self.channel_index = -1
 
             if source:
                 if isinstance(source, SignalSource):
@@ -157,6 +159,7 @@ class Signal(object):
             return
 
         except:
+            raise
             try:
                 import matplotlib.pyplot as plt
                 from mpl_toolkits.mplot3d import axes3d

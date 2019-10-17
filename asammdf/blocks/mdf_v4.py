@@ -1592,7 +1592,6 @@ class MDF4(object):
 
             sortedchannels = sorted(enumerate(channels), key=lambda i: i[1])
             for original_index, new_ch in sortedchannels:
-
                 start_offset = new_ch.byte_offset
                 bit_offset = new_ch.bit_offset
                 data_type = new_ch.data_type
@@ -1926,7 +1925,189 @@ class MDF4(object):
                 gp_dep.append(None)
 
             elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
-                pass
+                # here we have channel arrays or mdf v3 channel dependencies
+                array_samples = samples
+                names = samples.dtype.names
+                samples = array_samples[names[0]]
+                shape = samples.shape[1:]
+
+                if len(shape) > 1:
+                    # add channel dependency block for composed parent channel
+                    dims_nr = len(shape)
+                    names_nr = len(names)
+
+                    if names_nr == 0:
+                        kwargs = {
+                            "dims": dims_nr,
+                            "ca_type": v4c.CA_TYPE_LOOKUP,
+                            "flags": v4c.FLAG_CA_FIXED_AXIS,
+                            "byte_offset_base": samples.dtype.itemsize,
+                        }
+                        for i in range(dims_nr):
+                            kwargs[f"dim_size_{i}"] = shape[i]
+
+                    elif len(names) == 1:
+                        kwargs = {
+                            "dims": dims_nr,
+                            "ca_type": v4c.CA_TYPE_ARRAY,
+                            "flags": 0,
+                            "byte_offset_base": samples.dtype.itemsize,
+                        }
+                        for i in range(dims_nr):
+                            kwargs[f"dim_size_{i}"] = shape[i]
+
+                    else:
+                        kwargs = {
+                            "dims": dims_nr,
+                            "ca_type": v4c.CA_TYPE_LOOKUP,
+                            "flags": v4c.FLAG_CA_AXIS,
+                            "byte_offset_base": samples.dtype.itemsize,
+                        }
+                        for i in range(dims_nr):
+                            kwargs[f"dim_size_{i}"] = shape[i]
+
+                    parent_dep = ChannelArrayBlock(**kwargs)
+                    gp_dep.append([parent_dep])
+
+                else:
+                    # add channel dependency block for composed parent channel
+                    kwargs = {
+                        "dims": 1,
+                        "ca_type": v4c.CA_TYPE_SCALE_AXIS,
+                        "flags": 0,
+                        "byte_offset_base": samples.dtype.itemsize,
+                        "dim_size_0": shape[0],
+                    }
+                    parent_dep = ChannelArrayBlock(**kwargs)
+                    gp_dep.append([parent_dep])
+
+                field_name = field_names.get_unique_name(name)
+
+                fields.append(samples)
+                dtype_pair = field_name, samples.dtype, shape
+                types.append(dtype_pair)
+
+                # first we add the structure channel
+                s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape, True)
+
+                # add channel block
+                kwargs = {
+                    "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                    "bit_count": s_size,
+                    "byte_offset": offset,
+                    "bit_offset": 0,
+                    "data_type": s_type,
+                    "flags": 0,
+                }
+
+                if invalidation_bytes_nr:
+                    if signal.invalidation_bits is not None:
+                        inval_bits.append(signal.invalidation_bits)
+                        kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["pos_invalidation_bit"] = inval_cntr
+                        inval_cntr += 1
+
+                ch = Channel(**kwargs)
+                ch.name = name
+                ch.unit = signal.unit
+                ch.comment = signal.comment
+                ch.display_name = signal.display_name
+
+                # source for channel
+                source = signal.source
+                if source:
+                    if source in si_map:
+                        ch.source = si_map[source]
+                    else:
+                        new_source = SourceInformation(
+                            source_type=source.source_type, bus_type=source.bus_type
+                        )
+                        new_source.name = source.name
+                        new_source.path = source.path
+                        new_source.comment = source.comment
+
+                        si_map[source] = new_source
+
+                        ch.source = new_source
+
+                gp_channels.append(ch)
+
+                size = s_size // 8
+                for dim in shape:
+                    size *= dim
+                offset += size
+
+                gp_sdata.append(None)
+                entry = (dg_cntr, ch_cntr)
+                self.channels_db.add(name, entry)
+                if ch.display_name:
+                    self.channels_db.add(ch.display_name, entry)
+
+                # update the parents as well
+                parents[ch_cntr] = name, 0
+
+                ch_cntr += 1
+
+                for name in names[1:]:
+                    field_name = field_names.get_unique_name(name)
+
+                    samples = array_samples[name]
+                    shape = samples.shape[1:]
+                    fields.append(samples)
+                    types.append((field_name, samples.dtype, shape))
+
+                    # add channel dependency block
+                    kwargs = {
+                        "dims": 1,
+                        "ca_type": v4c.CA_TYPE_SCALE_AXIS,
+                        "flags": 0,
+                        "byte_offset_base": samples.dtype.itemsize,
+                        "dim_size_0": shape[0],
+                    }
+                    dep = ChannelArrayBlock(**kwargs)
+                    gp_dep.append([dep])
+
+                    # add components channel
+                    s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
+                    byte_size = max(s_size // 8, 1)
+                    kwargs = {
+                        "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                        "bit_count": s_size,
+                        "byte_offset": offset,
+                        "bit_offset": 0,
+                        "data_type": s_type,
+                        "flags": 0,
+                    }
+
+                    if invalidation_bytes_nr:
+                        if signal.invalidation_bits is not None:
+                            inval_bits.append(signal.invalidation_bits)
+                            kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                            kwargs["pos_invalidation_bit"] = inval_cntr
+                            inval_cntr += 1
+
+                    ch = Channel(**kwargs)
+                    ch.name = name
+                    ch.unit = signal.unit
+                    ch.comment = signal.comment
+                    ch.display_name = signal.display_name
+
+                    gp_channels.append(ch)
+
+                    entry = dg_cntr, ch_cntr
+                    parent_dep.axis_channels.append(entry)
+                    for dim in shape:
+                        byte_size *= dim
+                    offset += byte_size
+
+                    gp_sdata.append(None)
+                    gp_sdata_size.append(0)
+                    self.channels_db.add(name, entry)
+
+                    # update the parents as well
+                    parents[ch_cntr] = field_name, 0
+
+                    ch_cntr += 1
 
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
                 struct = Signal(
@@ -2567,6 +2748,8 @@ class MDF4(object):
 
         interp_mode = self._integer_interpolation
 
+        prepare_record = True
+
         # check if the signals have a common timebase
         # if not interpolate the signals using the union of all timbases
         if signals:
@@ -2714,6 +2897,7 @@ class MDF4(object):
                 if sig_dtype.kind in "SV":
                     sig_type = v4c.SIGNAL_TYPE_STRING
             else:
+                prepare_record = False
                 if names in (v4c.CANOPEN_TIME_FIELDS, v4c.CANOPEN_DATE_FIELDS):
                     sig_type = v4c.SIGNAL_TYPE_CANOPEN
                 elif names[0] != sig.name:
@@ -3255,8 +3439,9 @@ class MDF4(object):
         types = dtype(types)
 
         gp.sorted = True
-        gp.types = types
-        gp.parents = parents
+        if prepare_record:
+            gp.types = types
+            gp.parents = parents
 
         if signals:
             samples = fromarrays(fields, dtype=types)
@@ -3319,6 +3504,8 @@ class MDF4(object):
         Appends a new data group from a Pandas data frame.
 
         """
+
+        prepare_record = True
 
         units = units or {}
 
@@ -3734,10 +3921,6 @@ class MDF4(object):
 
             fields.append(inval_bits)
             types.append(("invalidation_bytes", inval_bits.dtype, inval_bits.shape[1:]))
-
-#        print('???????????????????????????????????????????')
-#        print([(c.name, f.dtype, f.shape) for f,c in zip(fields, gp.channels)])
-#        print(types)
 
         samples = fromarrays(fields, dtype=types)
 
