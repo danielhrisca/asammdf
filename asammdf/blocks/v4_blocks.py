@@ -1369,6 +1369,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
         except KeyError:
             self.id = b"##CA"
             self.reserved0 = 0
+            self.address = 0
 
             ca_type = kwargs["ca_type"]
 
