@@ -1931,7 +1931,7 @@ class MDF4(object):
                 samples = array_samples[names[0]]
                 shape = samples.shape[1:]
 
-                if len(shape) > 1:
+                if len(names) > 1:
                     # add channel dependency block for composed parent channel
                     dims_nr = len(shape)
                     names_nr = len(names)
@@ -3119,7 +3119,7 @@ class MDF4(object):
                 samples = signal.samples[names[0]]
                 shape = samples.shape[1:]
 
-                if len(shape) > 1:
+                if len(names) > 1:
                     # add channel dependency block for composed parent channel
                     dims_nr = len(shape)
                     names_nr = len(names)
