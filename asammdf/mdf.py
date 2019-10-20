@@ -3470,8 +3470,6 @@ class MDF(object):
 
             mdf.save(r'e:\uidn3651\MDFs\Zarii\test.___.mf4', overwrite=True)
 
-#            mdf = MDF(r'e:\uidn3651\MDFs\Zarii\test.___.mf4')
-
             return mdf.to_dataframe(
                 raster=raster,
                 time_from_zero=time_from_zero,
