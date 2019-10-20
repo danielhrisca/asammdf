@@ -859,7 +859,7 @@ class MDF4(object):
         unique_names = UniqueDB()
 
         composition = []
-        composition_dtype = []
+        composition_channels = []
 
         path_separator = chr(grp.channel_group.path_separator or ord('\\'))
         while ch_addr:
@@ -888,6 +888,7 @@ class MDF4(object):
             channels.append(channel)
             if channel_composition:
                 composition.append(entry)
+                composition_channels.append(channel)
 
             self.channels_db.add(channel.display_name, entry)
             self.channels_db.add(channel.name, entry)
@@ -922,7 +923,6 @@ class MDF4(object):
                     dependencies[index] = ret_composition
 
                     channel.dtype_fmt = ret_composition_dtype
-                    composition_dtype.append((unique_names.get_unique_name(channel.name), channel.dtype_fmt))
 
                 else:
                     # only channel arrays with storage=CN_TEMPLATE are
@@ -946,10 +946,14 @@ class MDF4(object):
                 dependencies.append(None)
                 if channel_composition:
                     channel.dtype_fmt = get_fmt_v4(channel.data_type, channel.bit_offset + channel.bit_count, channel.channel_type)
-                    composition_dtype.append((unique_names.get_unique_name(channel.name), channel.dtype_fmt))
 
             # go to next channel of the current channel group
             ch_addr = channel.next_ch_addr
+
+        composition_dtype = [
+            (unique_names.get_unique_name(channel.name), channel.dtype_fmt)
+            for channel in sorted(composition_channels)
+        ]
 
         return ch_cntr, composition, composition_dtype
 

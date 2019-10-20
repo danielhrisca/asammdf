@@ -814,7 +814,6 @@ def is_file_like(obj):
     >>> is_file_like([1, 2, 3])
     False
     """
-
     if not (hasattr(obj, "read") and hasattr(obj, "seek")):
         return False
 
