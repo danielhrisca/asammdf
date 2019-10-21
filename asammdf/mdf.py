@@ -3468,8 +3468,6 @@ class MDF(object):
         if channels:
             mdf = self.filter(channels)
 
-            mdf.save(r'e:\uidn3651\MDFs\Zarii\test.___.mf4', overwrite=True)
-
             return mdf.to_dataframe(
                 raster=raster,
                 time_from_zero=time_from_zero,
