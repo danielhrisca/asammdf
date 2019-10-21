@@ -3123,7 +3123,7 @@ class MDF4(object):
                 samples = signal.samples[names[0]]
                 shape = samples.shape[1:]
 
-                if len(names) > 1:
+                if len(names) > 1 or len(shape) > 1:
                     # add channel dependency block for composed parent channel
                     dims_nr = len(shape)
                     names_nr = len(names)
@@ -3461,16 +3461,6 @@ class MDF4(object):
             data_address = self._tempfile.tell()
             gp.data_location = v4c.LOCATION_TEMPORARY_FILE
             samples.tofile(self._tempfile)
-
-#            gp.data_blocks.append(
-#                DataBlockInfo(
-#                    address=data_address,
-#                    block_type=v4c.DT_BLOCK,
-#                    raw_size=size,
-#                    size=size,
-#                    param=0,
-#                )
-#            )
 
             chunk = self._write_fragment_size // samples.itemsize
             chunk *= samples.itemsize
