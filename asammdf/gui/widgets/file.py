@@ -1029,7 +1029,6 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             msg = ChannelGroupInfoDialog(channel_group, group, self)
             msg.show()
         else:
-
             channel = self.mdf.get_channel_metadata(group=group, index=index)
 
             msg = ChannelInfoDialog(channel, self)
