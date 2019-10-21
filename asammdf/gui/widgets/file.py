@@ -93,6 +93,17 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             except:
                 print(format_exc())
                 return
+
+        elif file_name.suffix.lower() == ".zip":
+            progress.setLabelText("Opening zipped MF4 file")
+            try:
+                from mfile import ZIP
+
+                self.mdf = ZIP(file_name)
+            except:
+                print(format_exc())
+                return
+
         else:
 
             if file_name.suffix.lower() == ".dl3":
