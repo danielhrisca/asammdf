@@ -3683,8 +3683,7 @@ class MDF(object):
         cntr = 0
 
         total_unique_ids = set()
-        found_id_count = 0
-        found_ids = defaultdict(list)
+        found_ids = defaultdict(set)
         not_found_ids = defaultdict(list)
         unknown_ids = defaultdict(list)
 
@@ -3776,12 +3775,12 @@ class MDF(object):
                                 unknown_ids[msg_id].append(True)
                                 continue
 
-                            found_ids[dbc_name].append((msg_id, message.name))
+                            found_ids[dbc_name].add((msg_id, message.name))
                             try:
                                 current_not_found_ids.remove((msg_id, message.name))
                             except KeyError:
                                 pass
-                            found_id_count += 1
+
                             unknown_ids[msg_id].append(False)
 
                             idx = np.argwhere(bus_msg_ids == msg_id).ravel()
@@ -3866,7 +3865,6 @@ class MDF(object):
         self.last_call_info = {
             'dbc_files': dbc_files,
             'total_unique_ids': total_unique_ids,
-            'found_id_count': found_id_count,
             'unknown_id_count': len(unknown_ids),
             'not_found_ids': not_found_ids,
             'found_ids': found_ids,
