@@ -88,6 +88,7 @@ from .utils import (
     Group,
     DataBlockInfo,
     SignalDataBlockInfo,
+    InvalidationBlockInfo,
     extract_can_signal,
     load_can_database,
 )
@@ -106,6 +107,7 @@ from .v4_blocks import (
     FileIdentificationBlock,
     HeaderBlock,
     HeaderList,
+    ListData,
     SourceInformation,
     TextBlock,
 )
@@ -536,8 +538,17 @@ class MDF4(object):
 
             address = group.data_block_addr
 
+            if new_groups:
+                channel_group = new_groups[0].channel_group
+                if channel_group.flags & v4c.FLAG_CG_REMOTE_MASTER:
+                    block_type = b'##DV'
+                else:
+                    block_type = b"##DT"
+            else:
+                block_type = b"##DT"
+
             info = self._get_data_blocks_info(
-                address=address, stream=stream, block_type=b"##DT", mapped=mapped
+                address=address, stream=stream, block_type=block_type, mapped=mapped,
             )
 
             for grp in new_groups:
@@ -1377,9 +1388,12 @@ class MDF4(object):
         read = stream.read
         seek = stream.seek
 
-        samples_size = (
-            channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
-        )
+        if channel_group.flags & v4c.FLAG_CG_REMOTE_MASTER:
+            samples_size = channel_group.samples_byte_nr
+        else:
+            samples_size = (
+                channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
+            )
 
         record_offset *= samples_size
 
@@ -2465,6 +2479,113 @@ class MDF4(object):
                                         )
                                     )
                         address = dl.next_dl_addr
+
+                # or a ListData
+                elif id_string == b"##LD":
+                    while address:
+                        ld = ListData(address=address, stream=stream, mapped=mapped)
+                        has_invalidation = ld.flags & v4c.FLAG_LD_INVALIDATION_PRESENT
+                        for i in range(ld.data_block_nr):
+                            addr = ld[f"data_block_addr_{i}"]
+
+                            id_string, _1, block_len = COMMON_SHORT_uf(stream, addr)
+                            # can be a DataBlock
+                            if id_string == block_type:
+                                size = block_len - 24
+                                if size:
+                                    info.append(
+                                        DataBlockInfo(
+                                            address=addr + COMMON_SIZE,
+                                            block_type=v4c.DT_BLOCK,
+                                            raw_size=size,
+                                            size=size,
+                                            param=0,
+                                        )
+                                    )
+                            # or a DataZippedBlock
+                            elif id_string == b"##DZ":
+                                (
+                                    _1,
+                                    _2,
+                                    _3,
+                                    _4,
+                                    original_type,
+                                    zip_type,
+                                    _5,
+                                    param,
+                                    original_size,
+                                    zip_size,
+                                ) = v4c.DZ_COMMON_uf(stream, addr)
+
+                                if original_size:
+                                    if zip_type == v4c.FLAG_DZ_DEFLATE:
+                                        block_type_ = v4c.DZ_BLOCK_DEFLATE
+                                        param = 0
+                                    else:
+                                        block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                                    info.append(
+                                        DataBlockInfo(
+                                            address=addr + v4c.DZ_COMMON_SIZE,
+                                            block_type=block_type_,
+                                            raw_size=original_size,
+                                            size=zip_size,
+                                            param=param,
+                                        )
+                                    )
+
+                            if has_invalidation:
+                                inval_addr = ld[f"invalidation_bits_addr_{i}"]
+                                if inval_addr:
+                                    id_string, _1, block_len = COMMON_SHORT_uf(stream, inval_addr)
+                                    if id_string == b'##DI':
+                                        size = block_len - 24
+                                        if size:
+                                            info[-1].invalidation_block = InvalidationBlockInfo(
+                                                address=inval_addr + COMMON_SIZE,
+                                                block_type=v4c.DT_BLOCK,
+                                                raw_size=size,
+                                                size=size,
+                                                param=0,
+                                            )
+                                    else:
+                                        (
+                                            _1,
+                                            _2,
+                                            _3,
+                                            _4,
+                                            original_type,
+                                            zip_type,
+                                            _5,
+                                            param,
+                                            original_size,
+                                            zip_size,
+                                        ) = v4c.DZ_COMMON_uf(stream, inval_addr)
+
+                                        if original_size:
+                                            if zip_type == v4c.FLAG_DZ_DEFLATE:
+                                                block_type_ = v4c.DZ_BLOCK_DEFLATE
+                                                param = 0
+                                            else:
+                                                block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                                            info[-1].invalidation_block = InvalidationBlockInfo(
+                                                address=inval_addr + v4c.DZ_COMMON_SIZE,
+                                                block_type=block_type_,
+                                                raw_size=original_size,
+                                                size=zip_size,
+                                                param=param,
+                                            )
+                                else:
+                                    info[-1].invalidation_block = InvalidationBlockInfo(
+                                        address=0,
+                                        block_type=v4c.DT_BLOCK,
+                                        raw_size=0,
+                                        size=0,
+                                        param=0,
+                                        all_valid=True,
+                                    )
+
+                        address = ld.next_ld_addr
+
                 # or a header list
                 elif id_string == b"##HL":
                     hl = HeaderList(address=address, stream=stream, mapped=mapped)
@@ -2583,6 +2704,117 @@ class MDF4(object):
                                         )
                                     )
                         address = dl.next_dl_addr
+
+                # or a DataList
+                elif id_string == b"##LD":
+                    while address:
+                        ld = ListData(address=address, stream=stream)
+                        has_invalidation = ld.flags & v4c.FLAG_LD_INVALIDATION_PRESENT
+                        for i in range(ld.data_block_nr):
+                            addr = ld[f"data_block_addr{i}"]
+
+                            stream.seek(addr)
+                            id_string, _, block_len = COMMON_SHORT_u(
+                                stream.read(COMMON_SHORT_SIZE)
+                            )
+                            # can be a DataBlock
+                            if id_string == block_type:
+                                size = block_len - 24
+                                if size:
+                                    info.append(
+                                        DataBlockInfo(
+                                            address=addr + COMMON_SIZE,
+                                            block_type=v4c.DT_BLOCK,
+                                            raw_size=size,
+                                            size=size,
+                                            param=0,
+                                        )
+                                    )
+                            # or a DataZippedBlock
+                            elif id_string == b"##DZ":
+                                stream.seek(addr)
+                                (
+                                    _1,
+                                    _2,
+                                    _3,
+                                    _4,
+                                    original_type,
+                                    zip_type,
+                                    _5,
+                                    param,
+                                    original_size,
+                                    zip_size,
+                                ) = v4c.DZ_COMMON_u(stream.read(v4c.DZ_COMMON_SIZE))
+
+                                if original_size:
+                                    if zip_type == v4c.FLAG_DZ_DEFLATE:
+                                        block_type_ = v4c.DZ_BLOCK_DEFLATE
+                                        param = 0
+                                    else:
+                                        block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                                    info.append(
+                                        DataBlockInfo(
+                                            address=addr + v4c.DZ_COMMON_SIZE,
+                                            block_type=block_type_,
+                                            raw_size=original_size,
+                                            size=zip_size,
+                                            param=param,
+                                        )
+                                    )
+
+                            if has_invalidation:
+                                inval_addr = ld[f"invalidation_bits_addr_{i}"]
+                                if inval_addr:
+                                    stream.seek(inval_addr)
+                                    id_string, _1, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
+                                    if id_string == b'##DI':
+                                        size = block_len - 24
+                                        if size:
+                                            info[-1].invalidation_block = InvalidationBlockInfo(
+                                                address=inval_addr + COMMON_SIZE,
+                                                block_type=v4c.DT_BLOCK,
+                                                raw_size=size,
+                                                size=size,
+                                                param=0,
+                                            )
+                                    else:
+                                        (
+                                            _1,
+                                            _2,
+                                            _3,
+                                            _4,
+                                            original_type,
+                                            zip_type,
+                                            _5,
+                                            param,
+                                            original_size,
+                                            zip_size,
+                                        ) = v4c.DZ_COMMON_u(stream.read(v4c.DZ_COMMON_SIZE))
+
+                                        if original_size:
+                                            if zip_type == v4c.FLAG_DZ_DEFLATE:
+                                                block_type_ = v4c.DZ_BLOCK_DEFLATE
+                                                param = 0
+                                            else:
+                                                block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                                            info[-1].invalidation_block = InvalidationBlockInfo(
+                                                address=inval_addr + v4c.DZ_COMMON_SIZE,
+                                                block_type=block_type_,
+                                                raw_size=original_size,
+                                                size=zip_size,
+                                                param=param,
+                                            )
+                                else:
+                                    info[-1].invalidation_block = InvalidationBlockInfo(
+                                        address=0,
+                                        block_type=v4c.DT_BLOCK,
+                                        raw_size=0,
+                                        size=0,
+                                        param=0,
+                                        all_valid=True,
+                                    )
+                        address = ld.next_ld_addr
+
                 # or a header list
                 elif id_string == b"##HL":
                     hl = HeaderList(address=address, stream=stream)
@@ -3335,7 +3567,6 @@ class MDF4(object):
                         address=data_addr,
                         size=data_size,
                         count=len(data),
-                        dtype=data.dtype,
                         offsets=offsets,
                     )
                     gp_sdata.append([info])
@@ -3664,7 +3895,6 @@ class MDF4(object):
                         address=data_addr,
                         size=data_size,
                         count=len(data),
-                        dtype=data.dtype,
                         offsets=offsets,
                     )
                     gp_sdata.append([info])
@@ -3881,7 +4111,6 @@ class MDF4(object):
                         address=addr,
                         size=block_size,
                         count=len(values),
-                        dtype=values.dtype,
                         offsets=offsets,
                     )
                     gp.signal_data[i].append(info)
@@ -6628,7 +6857,6 @@ class MDF4(object):
                                     address=address,
                                     size=size,
                                     count=len(offsets),
-                                    dtype=None,
                                     offsets=offsets,
                                 )
                                 self.groups[dg_cntr].signal_data[ch_cntr].append(info)

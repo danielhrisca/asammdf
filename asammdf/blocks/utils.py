@@ -393,11 +393,6 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
         elif data_type == v4c.DATA_TYPE_REAL_MOTOROLA:
             fmt = f">f{size}"
 
-        elif data_type == v4c.DATA_TYPE_COMPLEX_INTEL:
-            fmt = f"<c{size}"
-        elif data_type == v4c.DATA_TYPE_COMPLEX_MOTOROLA:
-            fmt = f">c{size}"
-
     return fmt
 
 
@@ -541,11 +536,6 @@ def fmt_to_datatype_v4(fmt, shape, array=False):
         elif kind == "b":
             data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
             size = 1
-        elif kind == "c":
-            if byteorder in "=<":
-                data_type = v4c.DATA_TYPE_COMPLEX_INTEL
-            else:
-                data_type = v4c.DATA_TYPE_COMPLEX_MOTOROLA
         else:
             message = f"Unknown type: dtype={fmt}, shape={shape}"
             logger.exception(message)
@@ -1121,15 +1111,16 @@ class DataBlockInfo:
         'raw_size',
         'size',
         'param',
-        'offsets',
+        'invalidation_block',
     )
 
-    def __init__(self, address, block_type, raw_size, size, param):
+    def __init__(self, address, block_type, raw_size, size, param, invalidation_block=None):
         self.address = address
         self.block_type = block_type
         self.raw_size = raw_size
         self.size = size
         self.param = param
+        self.invalidation_block = invalidation_block
 
 
     def __repr__(self):
@@ -1138,7 +1129,29 @@ class DataBlockInfo:
             f"block_type={self.block_type}, "
             f"raw_size={self.raw_size}, "
             f"size={self.size}, "
-            f"param={self.param})"
+            f"param={self.param}, "
+            f"invalidation_block={self.invalidation_block})"
+        )
+
+
+class InvalidationBlockInfo(DataBlockInfo):
+
+    __slots__ = (
+        'all_valid',
+    )
+
+    def __init__(self, address, block_type, raw_size, size, param, all_valid=False):
+        super().__init__(address, block_type, raw_size, size, param)
+        self.all_valid = all_valid
+
+    def __repr__(self):
+        return (
+            f"InvalidationBlockInfo(address=0x{self.address:X}, "
+            f"block_type={self.block_type}, "
+            f"raw_size={self.raw_size}, "
+            f"size={self.size}, "
+            f"param={self.param}, "
+            f"all_valid={self.all_valid})"
         )
 
 
@@ -1148,15 +1161,13 @@ class SignalDataBlockInfo:
         'address',
         'size',
         'count',
-        'dtype',
         'offsets',
     )
 
-    def __init__(self, address, size, count, dtype, offsets=None):
+    def __init__(self, address, size, count, offsets=None):
         self.address = address
         self.count = count
         self.size = size
-        self.dtype = dtype
         self.offsets = offsets
 
     def __repr__(self):
@@ -1164,7 +1175,6 @@ class SignalDataBlockInfo:
             f"SignalDataBlockInfo(address=0x{self.address:X}, "
             f"size={self.size}, "
             f"count={self.count}, "
-            f"dtype={self.dtype}, "
             f"offsets={self.offsets})"
         )
 
