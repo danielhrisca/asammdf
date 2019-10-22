@@ -23,6 +23,8 @@ from .utils import (
     is_file_like,
     SignalSource,
     UINT8_uf,
+    UINT32_uf,
+    UINT32_u,
     UINT64_u,
     UINT64_uf,
     FLOAT64_u,
@@ -3863,7 +3865,7 @@ class DataList(_DataListBase):
     * ``data_block_addr<N>`` - int : address of N-th data block
     * ``flags`` - int : data list flags
     * ``reserved1`` - int : reserved bytes
-    * ``data_block_nr`` - int : number of data blocks referenced by thsi list
+    * ``data_block_nr`` - int : number of data blocks referenced by this list
 
     DLBLOCK specific fields
 
@@ -4822,6 +4824,277 @@ class HeaderList:
 
     def __bytes__(self):
         result = pack(v4c.FMT_HL_BLOCK, *[self[key] for key in v4c.KEYS_HL_BLOCK])
+        return result
+
+
+class _ListDataBase:
+    __slots__ = (
+        "address",
+        "id",
+        "reserved0",
+        "block_len",
+        "links_nr",
+        "next_ld_addr",
+        "flags",
+        "data_block_nr",
+        "data_block_len",
+    )
+
+
+class ListData(_ListDataBase):
+    """
+    *ListData* has the following attributes, that are also available as
+    dict like key-value pairs
+
+    LDBLOCK common fields
+
+    * ``id`` - bytes : block ID; always b'##LD'
+    * ``reserved0`` - int : reserved bytes
+    * ``block_len`` - int : block bytes size
+    * ``links_nr`` - int : number of links
+    * ``next_ld_addr`` - int : address of next LDBLOCK
+    * ``data_block_addr_<N>`` - int : address of N-th data block
+      bits data block
+    * ``flags`` - int : data list flags
+    * ``data_block_nr`` - int : number of data blocks referenced by this list
+
+    LDBLOCK specific fields
+
+    * if invalidation data present flag is set
+
+        * ``invalidation_bits_addr_<N>`` - int : address of N-th invalidation
+
+    * for equall lenght blocks
+
+        * ``data_block_len`` - int : equall uncompressed size in bytes for all
+          referenced data blocks; last block can be smaller
+
+    * for variable lenght blocks
+
+        * ``offset_<N>`` - int : byte offset of N-th data block
+
+    * if time values flag is set
+
+        * ``time_value_<N>`` - int | float : first raw timestamp value of
+          N-th data block
+
+    * if angle values flag is set
+
+        * ``angle_value_<N>`` - int | float : first raw angle value of
+          N-th data block
+
+    * if distance values flag is set
+
+        * ``distance_value_<N>`` - int | float : first raw distance value of
+          N-th data block
+
+    Other attributes
+
+    * ``address`` - int : data list address
+
+    """
+
+    def __init__(self, **kwargs):
+
+        try:
+            self.address = address = kwargs["address"]
+            stream = kwargs["stream"]
+            mapped = not is_file_like(stream)
+
+            if mapped:
+                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(
+                    stream, address
+                )
+
+                if self.id != b"##LD":
+                    message = f'Expected "##LD" block @{hex(address)} but found "{self.id}"'
+
+                    logger.exception(message)
+                    raise MdfException(message)
+
+                address += COMMON_SIZE
+
+                links = unpack_from(
+                    f"<{self.links_nr}Q", stream, address
+                )
+
+                address += self.links_nr * 8
+
+                self.flags, self.data_block_nr = unpack_from('<2I', stream, address)
+                address += 8
+                if self.flags & v4c.FLAG_LD_EQUAL_LENGHT:
+                    self.data_block_len, = UINT64_uf(stream, address)
+                    address += 8
+                else:
+                    offsets = unpack_from(
+                        f'<{self.data_block_nr}Q', stream, address
+                    )
+                    address += self.data_block_nr * 8
+                    for i, offset in enumerate(offsets):
+                        self[f'offset_{i}'] = offset
+
+                if self.flags & v4c.FLAG_LD_TIME_VALUES:
+                    values = unpack_from(
+                        f'<8s'*self.data_block_nr, stream, address
+                    )
+                    address += self.data_block_nr * 8
+                    for i, value in enumerate(values):
+                        self[f'time_value_{i}'] = value
+
+                if self.flags & v4c.FLAG_LD_ANGLE_VALUES:
+                    values = unpack_from(
+                        f'<8s'*self.data_block_nr, stream, address
+                    )
+                    address += self.data_block_nr * 8
+                    for i, value in enumerate(values):
+                        self[f'angle_value_{i}'] = value
+
+                if self.flags & v4c.FLAG_LD_DISTANCE_VALUES:
+                    values = unpack_from(
+                        f'<8s'*self.data_block_nr, stream, address
+                    )
+                    address += self.data_block_nr * 8
+                    for i, value in enumerate(values):
+                        self[f'distance_value_{i}'] = value
+
+                self.next_ld_addr = links[0]
+
+                for i in range(self.data_block_nr, 1):
+                    self[f'data_block_addr_{i}'] = links[i]
+
+                if self.flags & v4c.FLAG_LD_INVALIDATION_PRESENT:
+                    for i in range(self.data_block_nr, self.data_block_nr + 1):
+                        self[f'invalidation_bits_addr_{i}'] = links[i]
+            else:
+
+                stream.seek(address)
+
+                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_u(
+                    stream.read(COMMON_SIZE)
+                )
+
+                if self.id != b"##LD":
+                    message = f'Expected "##LD" block @{hex(address)} but found "{self.id}"'
+
+                    logger.exception(message)
+                    raise MdfException(message)
+
+                links = unpack(
+                    f"<{self.links_nr}Q", stream.read(self.links_nr * 8)
+                )
+
+                self.flags, self.data_block_nr = unpack('<2I', stream(8))
+
+                if self.flags & v4c.FLAG_LD_EQUAL_LENGHT:
+                    self.data_block_len, = UINT64_u(stream.read(8))
+                else:
+                    offsets = unpack(
+                        f'<{self.data_block_nr}Q', stream.read(self.data_block_nr*8)
+                    )
+                    for i, offset in enumerate(offsets):
+                        self[f'offset_{i}'] = offset
+
+                if self.flags & v4c.FLAG_LD_TIME_VALUES:
+                    values = unpack(
+                        f'<8s'*self.data_block_nr, stream.read(self.data_block_nr*8)
+                    )
+                    for i, value in enumerate(values):
+                        self[f'time_value_{i}'] = value
+
+                if self.flags & v4c.FLAG_LD_ANGLE_VALUES:
+                    values = unpack(
+                        f'<8s'*self.data_block_nr, stream.read(self.data_block_nr*8)
+                    )
+                    for i, value in enumerate(values):
+                        self[f'angle_value_{i}'] = value
+
+                if self.flags & v4c.FLAG_LD_DISTANCE_VALUES:
+                    values = unpack(
+                        f'<8s'*self.data_block_nr, stream.read(self.data_block_nr*8)
+                    )
+                    for i, value in enumerate(values):
+                        self[f'distance_value_{i}'] = value
+
+                self.next_ld_addr = links[0]
+
+                for i in range(self.data_block_nr, 1):
+                    self[f'data_block_addr_{i}'] = links[i]
+
+                if self.flags & v4c.FLAG_LD_INVALIDATION_PRESENT:
+                    for i in range(self.data_block_nr, self.data_block_nr + 1):
+                        self[f'invalidation_bits_addr_{i}'] = links[i]
+
+        except KeyError:
+
+            # TODO: add implementation for creating new LDBLOCK
+            raise NotImplementedError('New LDBLOCK not implemented')
+
+    def __getitem__(self, item):
+        return self.__getattribute__(item)
+
+    def __setitem__(self, item, value):
+        self.__setattr__(item, value)
+
+    def __bytes__(self):
+        fmt = '<4sI2Q'
+        keys = (
+            'id',
+            'reserved0',
+            'block_len',
+            'links_nr',
+            'next_ld_addr',
+        )
+
+        fmt += f'{self.data_block_nr}Q'
+        keys += tuple(
+            f'data_block_addr_{i}'
+            for i in range(self.data_block_nr)
+        )
+
+        if self.flags & v4c.FLAG_LD_INVALIDATION_PRESENT:
+            fmt += f'8s' * self.data_block_nr
+            keys += tuple(
+                f'invalidation_bits_addr_{i}'
+                for i in range(self.data_block_nr)
+            )
+
+        fmt += '2I'
+        keys += ('flags', 'data_block_nr')
+
+        if self.flags & v4c.FLAG_LD_EQUAL_LENGHT:
+            fmt += 'Q'
+            keys += ('data_block_len',)
+
+        else:
+
+            fmt += f'<{self.data_block_nr}Q'
+            keys += tuple(
+                f'offset_{i}'
+                for i in range(self.data_block_nr)
+            )
+
+        if self.flags & v4c.FLAG_LD_TIME_VALUES:
+            fmt += f'8s' * self.data_block_nr
+            keys += tuple(
+                f'time_value_{i}'
+                for i in range(self.data_block_nr)
+            )
+
+        if self.flags & v4c.FLAG_LD_ANGLE_VALUES:
+            fmt += f'8s' * self.data_block_nr
+            keys += tuple(
+                f'angle_value_{i}'
+                for i in range(self.data_block_nr)
+            )
+
+        if self.flags & v4c.FLAG_LD_DISTANCE_VALUES:
+            fmt += f'8s' * self.data_block_nr
+            keys += tuple(
+                f'distance_value_{i}'
+                for i in range(self.data_block_nr)
+            )
+
+        result = pack(fmt, *[getattr(self, key) for key in keys])
         return result
 
 
