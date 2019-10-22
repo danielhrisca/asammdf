@@ -84,7 +84,7 @@ CHANNEL_COUNT = _channel_count
 
 MDF2_VERSIONS = ("2.00", "2.10", "2.14")
 MDF3_VERSIONS = ("3.00", "3.10", "3.20", "3.30")
-MDF4_VERSIONS = ("4.00", "4.10", "4.11")
+MDF4_VERSIONS = ("4.00", "4.10", "4.11", "4.20")
 SUPPORTED_VERSIONS = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
 
 
@@ -393,6 +393,11 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
         elif data_type == v4c.DATA_TYPE_REAL_MOTOROLA:
             fmt = f">f{size}"
 
+        elif data_type == v4c.DATA_TYPE_COMPLEX_INTEL:
+            fmt = f"<c{size}"
+        elif data_type == v4c.DATA_TYPE_COMPLEX_MOTOROLA:
+            fmt = f">c{size}"
+
     return fmt
 
 
@@ -514,26 +519,33 @@ def fmt_to_datatype_v4(fmt, shape, array=False):
             size *= dim
 
     else:
-        if fmt.kind == "u":
-            if fmt.byteorder in "=<|":
+        kind = fmt.kind
+        byteorder = fmt.byteorder
+        if kind == "u":
+            if byteorder in "=<|":
                 data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
             else:
                 data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
-        elif fmt.kind == "i":
-            if fmt.byteorder in "=<|":
+        elif kind == "i":
+            if byteorder in "=<|":
                 data_type = v4c.DATA_TYPE_SIGNED_INTEL
             else:
                 data_type = v4c.DATA_TYPE_SIGNED_MOTOROLA
-        elif fmt.kind == "f":
-            if fmt.byteorder in "=<":
+        elif kind == "f":
+            if byteorder in "=<":
                 data_type = v4c.DATA_TYPE_REAL_INTEL
             else:
                 data_type = v4c.DATA_TYPE_REAL_MOTOROLA
-        elif fmt.kind in "SV":
+        elif kind in "SV":
             data_type = v4c.DATA_TYPE_STRING_LATIN_1
-        elif fmt.kind == "b":
+        elif kind == "b":
             data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
             size = 1
+        elif kind == "c":
+            if byteorder in "=<":
+                data_type = v4c.DATA_TYPE_COMPLEX_INTEL
+            else:
+                data_type = v4c.DATA_TYPE_COMPLEX_MOTOROLA
         else:
             message = f"Unknown type: dtype={fmt}, shape={shape}"
             logger.exception(message)

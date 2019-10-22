@@ -1614,6 +1614,7 @@ class ChannelGroup:
         "acq_source_addr",
         "first_sample_reduction_addr",
         "comment_addr",
+        "cg_master_addr",
         "record_id",
         "cycles_nr",
         "flags",
@@ -1639,20 +1640,43 @@ class ChannelGroup:
                     self.reserved0,
                     self.block_len,
                     self.links_nr,
-                    self.next_cg_addr,
-                    self.first_ch_addr,
-                    self.acq_name_addr,
-                    self.acq_source_addr,
-                    self.first_sample_reduction_addr,
-                    self.comment_addr,
-                    self.record_id,
-                    self.cycles_nr,
-                    self.flags,
-                    self.path_separator,
-                    self.reserved1,
-                    self.samples_byte_nr,
-                    self.invalidation_bytes_nr,
-                ) = v4c.CHANNEL_GROUP_uf(stream, address)
+                ) = v4c.COMMON_uf(stream, address)
+
+                if self.block_len == v4c.CG_BLOCK_SIZE:
+                    (
+                        self.next_cg_addr,
+                        self.first_ch_addr,
+                        self.acq_name_addr,
+                        self.acq_source_addr,
+                        self.first_sample_reduction_addr,
+                        self.comment_addr,
+                        self.record_id,
+                        self.cycles_nr,
+                        self.flags,
+                        self.path_separator,
+                        self.reserved1,
+                        self.samples_byte_nr,
+                        self.invalidation_bytes_nr,
+                    ) = v4c.CHANNEL_GROUP_SHORT_uf(stream, address + COMMON_SIZE)
+
+                else:
+                    (
+                        self.next_cg_addr,
+                        self.first_ch_addr,
+                        self.acq_name_addr,
+                        self.acq_source_addr,
+                        self.first_sample_reduction_addr,
+                        self.comment_addr,
+                        self.cg_master_addr,
+                        self.record_id,
+                        self.cycles_nr,
+                        self.flags,
+                        self.path_separator,
+                        self.reserved1,
+                        self.samples_byte_nr,
+                        self.invalidation_bytes_nr,
+                    ) = v4c.CHANNEL_GROUP_RM_SHORT_uf(stream, address + COMMON_SIZE)
+
             else:
 
                 stream.seek(address)
@@ -1662,20 +1686,42 @@ class ChannelGroup:
                     self.reserved0,
                     self.block_len,
                     self.links_nr,
-                    self.next_cg_addr,
-                    self.first_ch_addr,
-                    self.acq_name_addr,
-                    self.acq_source_addr,
-                    self.first_sample_reduction_addr,
-                    self.comment_addr,
-                    self.record_id,
-                    self.cycles_nr,
-                    self.flags,
-                    self.path_separator,
-                    self.reserved1,
-                    self.samples_byte_nr,
-                    self.invalidation_bytes_nr,
-                ) = v4c.CHANNEL_GROUP_u(stream.read(v4c.CG_BLOCK_SIZE))
+                ) = v4c.COMMON_u(stream.read(COMMON_SIZE))
+
+                if self.block_len == v4c.CG_BLOCK_SIZE:
+                    (
+                        self.next_cg_addr,
+                        self.first_ch_addr,
+                        self.acq_name_addr,
+                        self.acq_source_addr,
+                        self.first_sample_reduction_addr,
+                        self.comment_addr,
+                        self.record_id,
+                        self.cycles_nr,
+                        self.flags,
+                        self.path_separator,
+                        self.reserved1,
+                        self.samples_byte_nr,
+                        self.invalidation_bytes_nr,
+                    ) = v4c.CHANNEL_GROUP_SHORT_u(stream.read(v4c.CG_BLOCK_SIZE - COMMON_SIZE))
+
+                else:
+                    (
+                        self.next_cg_addr,
+                        self.first_ch_addr,
+                        self.acq_name_addr,
+                        self.acq_source_addr,
+                        self.first_sample_reduction_addr,
+                        self.comment_addr,
+                        self.cg_master_addr,
+                        self.record_id,
+                        self.cycles_nr,
+                        self.flags,
+                        self.path_separator,
+                        self.reserved1,
+                        self.samples_byte_nr,
+                        self.invalidation_bytes_nr,
+                    ) = v4c.CHANNEL_GROUP_RM_SHORT_u(stream.read(v4c.CG_RM_BLOCK_SIZE - COMMON_SIZE))
 
             if self.id != b"##CG":
                 message = f'Expected "##CG" block @{hex(address)} but found "{self.id}"'
@@ -1712,6 +1758,9 @@ class ChannelGroup:
             self.reserved1 = kwargs.get("reserved1", 0)
             self.samples_byte_nr = kwargs.get("samples_byte_nr", 0)
             self.invalidation_bytes_nr = kwargs.get("invalidation_bytes_nr", 0)
+
+            if self.block_len == v4c.CG_RM_BLOCK_SIZE:
+                self.cg_master_addr = kwargs.get("cg_master_addr", 0)
 
     def __getitem__(self, item):
         return self.__getattribute__(item)
@@ -1763,25 +1812,47 @@ class ChannelGroup:
         return address
 
     def __bytes__(self):
-        result = v4c.CHANNEL_GROUP_p(
-            self.id,
-            self.reserved0,
-            self.block_len,
-            self.links_nr,
-            self.next_cg_addr,
-            self.first_ch_addr,
-            self.acq_name_addr,
-            self.acq_source_addr,
-            self.first_sample_reduction_addr,
-            self.comment_addr,
-            self.record_id,
-            self.cycles_nr,
-            self.flags,
-            self.path_separator,
-            self.reserved1,
-            self.samples_byte_nr,
-            self.invalidation_bytes_nr,
-        )
+        if self.block_len == v4c.CG_BLOCK_SIZE:
+            result = v4c.CHANNEL_GROUP_p(
+                self.id,
+                self.reserved0,
+                self.block_len,
+                self.links_nr,
+                self.next_cg_addr,
+                self.first_ch_addr,
+                self.acq_name_addr,
+                self.acq_source_addr,
+                self.first_sample_reduction_addr,
+                self.comment_addr,
+                self.record_id,
+                self.cycles_nr,
+                self.flags,
+                self.path_separator,
+                self.reserved1,
+                self.samples_byte_nr,
+                self.invalidation_bytes_nr,
+            )
+        else:
+            result = v4c.CHANNEL_GROUP_RM_p(
+                self.id,
+                self.reserved0,
+                self.block_len,
+                self.links_nr,
+                self.next_cg_addr,
+                self.first_ch_addr,
+                self.acq_name_addr,
+                self.acq_source_addr,
+                self.first_sample_reduction_addr,
+                self.comment_addr,
+                self.cg_master_addr,
+                self.record_id,
+                self.cycles_nr,
+                self.flags,
+                self.path_separator,
+                self.reserved1,
+                self.samples_byte_nr,
+                self.invalidation_bytes_nr,
+            )
         return result
 
     def metadata(self):
@@ -1796,6 +1867,11 @@ class ChannelGroup:
             "acq_source_addr",
             "first_sample_reduction_addr",
             "comment_addr",
+        )
+        if self.block_len == v4c.CG_RM_BLOCK_SIZE:
+            keys += ("cg_master_addr",)
+
+        keys += (
             "record_id",
             "cycles_nr",
             "flags",
@@ -3309,15 +3385,15 @@ formula: {self.formula}
 
 
 class DataBlock:
-    """Common implementation for DTBLOCK/RDBLOCK/SDBLOCK
+    """Common implementation for DTBLOCK/RDBLOCK/SDBLOCK/DVBLOCK/DIBLOCK
 
     *DataBlock* has the following attributes, that are also available as
     dict like key-value pairs
 
     DTBLOCK fields
 
-    * ``id`` - bytes : block ID; b'##DT' for DTBLOCK, b'##RD' for RDBLOCK or
-      b'##SD' for SDBLOCK
+    * ``id`` - bytes : block ID; b'##DT' for DTBLOCK, b'##RD' for RDBLOCK,
+      b'##SD' for SDBLOCK, b'##DV' for DVBLOCK or b'##DI' for DIBLOCK
     * ``reserved0`` - int : reserved bytes
     * ``block_len`` - int : block bytes size
     * ``links_nr`` - int : number of links
@@ -3330,7 +3406,7 @@ class DataBlock:
     Parameters
     ----------
     address : int
-        DTBLOCK/RDBLOCK/SDBLOCK address inside the file
+        DTBLOCK/RDBLOCK/SDBLOCK/DVBLOCK/DIBLOCK address inside the file
     stream : int
         file handle
     reduction : bool
@@ -3352,8 +3428,8 @@ class DataBlock:
                     stream, address
                 )
                 address += COMMON_SIZE
-                if self.id not in (b"##DT", b"##RD", b"##SD"):
-                    message = f'Expected "##DT", "##RD" or "##SD" block @{hex(address)} but found "{self.id}"'
+                if self.id not in (b"##DT", b"##RD", b"##SD", b"##DV", b"##DI"):
+                    message = f'Expected "##DT", "##DV", "##DI", "##RD" or "##SD" block @{hex(address)} but found "{self.id}"'
                     logger.exception(message)
                     raise MdfException(message)
                 self.data = stream[address: address + self.block_len]
@@ -3365,8 +3441,8 @@ class DataBlock:
                     stream.read(COMMON_SIZE)
                 )
 
-                if self.id not in (b"##DT", b"##RD", b"##SD"):
-                    message = f'Expected "##DT", "##RD" or "##SD" block @{hex(address)} but found "{self.id}"'
+                if self.id not in (b"##DT", b"##RD", b"##SD", b"##DV", b"##DI"):
+                    message = f'Expected "##DT", "##DV", "##DI", "##RD" or "##SD" block @{hex(address)} but found "{self.id}"'
                     logger.exception(message)
                     raise MdfException(message)
 
@@ -3375,7 +3451,7 @@ class DataBlock:
         except KeyError:
             self.address = 0
             type = kwargs.get("type", "DT")
-            if type not in ("DT", "SD", "RD"):
+            if type not in ("DT", "SD", "RD", "DV", "DI"):
                 type = "DT"
 
             self.id = "##{}".format(type).encode("ascii")
@@ -3940,6 +4016,7 @@ class _EventBlockBase:
         "range_start_ev_addr",
         "name_addr",
         "comment_addr",
+        "group_name_addr",
         "event_type",
         "sync_type",
         "range_type",
@@ -4056,6 +4133,9 @@ class EventBlock(_EventBlockBase):
                 self.sync_factor,
             ) = params
 
+            if self.flags & v4c.FLAG_EV_GROUP_NAME:
+                self.group_name_addr = links[-1]
+
             if self.id != b"##EV":
                 message = f'Expected "##EV" block @{hex(address)} but found "{self.id}"'
 
@@ -4097,6 +4177,9 @@ class EventBlock(_EventBlockBase):
             self.sync_base = kwargs.get("sync_base", 0)
             self.sync_factor = kwargs.get("sync_factor", 1.0)
 
+            if self.flags & v4c.FLAG_EV_GROUP_NAME:
+                self.group_name_addr = kwargs.get("group_name_addr", 0)
+
     def update_references(self, ch_map, cg_map):
         self.scopes.clear()
         for i in range(self.scope_nr):
@@ -4133,6 +4216,9 @@ class EventBlock(_EventBlockBase):
         keys += tuple(f"scope_{i}_addr" for i in range(self.scope_nr))
 
         keys += tuple(f"attachment_{i}_addr" for i in range(self.attachment_nr))
+
+        if self.flags & v4c.FLAG_EV_GROUP_NAME:
+            keys += ("group_name_addr",)
 
         keys += (
             "event_type",

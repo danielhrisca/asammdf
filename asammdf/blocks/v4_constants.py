@@ -20,6 +20,8 @@ DATA_TYPE_MIME_SAMPLE = 11
 DATA_TYPE_MIME_STREAM = 12
 DATA_TYPE_CANOPEN_DATE = 13
 DATA_TYPE_CANOPEN_TIME = 14
+DATA_TYPE_COMPLEX_INTEL = 15
+DATA_TYPE_COMPLEX_MOTOROLA = 16
 
 NON_SCALAR_TYPES = {
     DATA_TYPE_BYTEARRAY,
@@ -87,6 +89,7 @@ CONVERSION_TYPE_TABX = 7
 CONVERSION_TYPE_RTABX = 8
 CONVERSION_TYPE_TTAB = 9
 CONVERSION_TYPE_TRANS = 10
+CONVERSION_TYPE_BITFIELD = 11
 
 CONV_RAT_TEXT = "(P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)"
 
@@ -173,6 +176,7 @@ DG_BLOCK_SIZE = 64
 HD_BLOCK_SIZE = 104
 CN_BLOCK_SIZE = 160
 CG_BLOCK_SIZE = 104
+CG_RM_BLOCK_SIZE = 112
 COMMON_SIZE = 24
 COMMON_SHORT_SIZE = 16
 CC_NONE_BLOCK_SIZE = 80
@@ -206,13 +210,21 @@ FLAG_CA_AXIS = 1 << 4
 FLAG_CA_FIXED_AXIS = 1 << 5
 FLAG_CA_INVERSE_LAYOUT = 1 << 6
 FLAG_CA_LEFT_OPENED_INTERVAL = 1 << 7
+FLAG_CA_STANDARD_AXIS = 1 << 8
 
 FLAG_DL_EQUAL_LENGHT = 1
+FLAG_DL_TIME_VALUES = 1 << 1
+FLAG_DL_ANGLE_VALUES = 1 << 2
+FLAG_DL_DISTANCE_VALUES = 1 << 3
+
 FLAG_EV_POST_PROCESSING = 1
+FLAG_EV_GROUP_NAME = 1 << 1
 
 FLAG_CG_VLSD = 1
 FLAG_CG_BUS_EVENT = 1 << 1
 FLAG_CG_PLAIN_BUS_EVENT = 1 << 2
+FLAG_CG_REMOTE_MASTER = 1 << 3
+FLAG_CG_EVENT_GROUP = 1 << 4
 
 FLAG_CN_ALL_INVALID = 1
 FLAG_CN_INVALIDATION_PRESENT = 1 << 1
@@ -227,6 +239,8 @@ FLAG_CN_VIRTUAL = 1 << 9
 FLAG_CN_BUS_EVENT = 1 << 10
 FLAG_CN_MONOTONOUS = 1 << 11
 FLAG_CN_DEFAULT_X = 1 << 12
+FLAG_CN_EVENT_SIGNAL = 1 << 13
+FLAG_CN_VLSD = 1 << 14
 
 FLAG_CC_PRECISION = 1
 FLAG_CC_RANGE = 1 << 1
@@ -326,6 +340,72 @@ KEYS_CHANNEL_GROUP = (
 CHANNEL_GROUP_u = struct.Struct(FMT_CHANNEL_GROUP).unpack
 CHANNEL_GROUP_uf = struct.Struct(FMT_CHANNEL_GROUP).unpack_from
 CHANNEL_GROUP_p = struct.Struct(FMT_CHANNEL_GROUP).pack
+
+FMT_CHANNEL_GROUP_SHORT = "<8Q2H3I"
+KEYS_CHANNEL_GROUP_SHORT = (
+    "next_cg_addr",
+    "first_ch_addr",
+    "acq_name_addr",
+    "acq_source_addr",
+    "first_sample_reduction_addr",
+    "comment_addr",
+    "record_id",
+    "cycles_nr",
+    "flags",
+    "path_separator",
+    "reserved1",
+    "samples_byte_nr",
+    "invalidation_bytes_nr",
+)
+CHANNEL_GROUP_SHORT_u = struct.Struct(FMT_CHANNEL_GROUP_SHORT).unpack
+CHANNEL_GROUP_SHORT_uf = struct.Struct(FMT_CHANNEL_GROUP_SHORT).unpack_from
+CHANNEL_GROUP_SHORT_p = struct.Struct(FMT_CHANNEL_GROUP_SHORT).pack
+
+FMT_CHANNEL_GROUP_RM = "<4sI11Q2H3I"
+KEYS_CHANNEL_GROUP_RM = (
+    "id",
+    "reserved0",
+    "block_len",
+    "links_nr",
+    "next_cg_addr",
+    "first_ch_addr",
+    "acq_name_addr",
+    "acq_source_addr",
+    "first_sample_reduction_addr",
+    "comment_addr",
+    "cg_master_addr",
+    "record_id",
+    "cycles_nr",
+    "flags",
+    "path_separator",
+    "reserved1",
+    "samples_byte_nr",
+    "invalidation_bytes_nr",
+)
+CHANNEL_GROUP_RM_u = struct.Struct(FMT_CHANNEL_GROUP_RM).unpack
+CHANNEL_GROUP_RM_uf = struct.Struct(FMT_CHANNEL_GROUP_RM).unpack_from
+CHANNEL_GROUP_RM_p = struct.Struct(FMT_CHANNEL_GROUP_RM).pack
+
+FMT_CHANNEL_GROUP_RM_SHORT = "<9Q2H3I"
+KEYS_CHANNEL_GROUP_RM_SHORT = (
+    "next_cg_addr",
+    "first_ch_addr",
+    "acq_name_addr",
+    "acq_source_addr",
+    "first_sample_reduction_addr",
+    "comment_addr",
+    "cg_master_addr",
+    "record_id",
+    "cycles_nr",
+    "flags",
+    "path_separator",
+    "reserved1",
+    "samples_byte_nr",
+    "invalidation_bytes_nr",
+)
+CHANNEL_GROUP_RM_SHORT_u = struct.Struct(FMT_CHANNEL_GROUP_RM_SHORT).unpack
+CHANNEL_GROUP_RM_SHORT_uf = struct.Struct(FMT_CHANNEL_GROUP_RM_SHORT).unpack_from
+CHANNEL_GROUP_RM_SHORT_p = struct.Struct(FMT_CHANNEL_GROUP_RM_SHORT).pack
 
 FMT_DATA_BLOCK = "<4sI2Q{}s"
 KEYS_DATA_BLOCK = ("id", "reserved0", "block_len", "links_nr", "data")

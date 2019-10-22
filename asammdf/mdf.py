@@ -78,7 +78,7 @@ class MDF(object):
 
     version : string
         mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20',
-        '3.30', '4.00', '4.10', '4.11'); default '4.10'
+        '3.30', '4.00', '4.10', '4.11', '4.20'); default '4.10'
 
 
     callback (\*\*kwargs) : function
