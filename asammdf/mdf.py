@@ -1264,7 +1264,6 @@ class MDF(object):
                             self._callback(i + 1, groups_nr)
 
         elif fmt == "csv":
-
             if single_time_base:
                 filename = filename.with_suffix(".csv")
                 message = f'Writing csv export to file "{filename}"'
@@ -1332,7 +1331,8 @@ class MDF(object):
 
                     comment = grp.channel_group.comment
                     if comment:
-                        group_csv_name = filename.parent / f"{filename.stem}.ChannelGroup_{i}_{comment.replace(' ', '_')}.csv"
+                        comment = comment.replace(' ', '_').replace('\\', '_').replace('/', '_')
+                        group_csv_name = filename.parent / f"{filename.stem}.ChannelGroup_{i}_{comment}.csv"
                     else:
                         group_csv_name = filename.parent / f"{filename.stem}.ChannelGroup_{i}.csv"
 
