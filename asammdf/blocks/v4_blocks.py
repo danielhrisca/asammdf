@@ -3484,7 +3484,7 @@ class DataZippedBlock(object):
     * ``reserved0`` - int : reserved bytes
     * ``block_len`` - int : block bytes size
     * ``links_nr`` - int : number of links
-    * ``original_type`` - bytes : b'DT' or b'SD'
+    * ``original_type`` - bytes : b'DT', b'SD', b'DI' or b'DV'
     * ``zip_type`` - int : zip algorithm used
     * ``reserved1`` - int : reserved bytes
     * ``param`` - int : for transpose deflate the record size used for
