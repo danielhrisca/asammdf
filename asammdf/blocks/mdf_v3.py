@@ -2968,9 +2968,13 @@ class MDF3(object):
             (data block raw bytes, fragment offset); default None
         raster : float
             raster to be used for interpolation; default None
+
+            .. deprecated:: 5.13.0
+
         record_offset : int
             if *data=None* use this to select the record offset from which the
             group data should be loaded
+
 
         Returns
         -------
@@ -2980,7 +2984,12 @@ class MDF3(object):
         """
         if self._master is not None:
             return self._master
-        original_data = data
+
+        if raster is not None:
+            PendingDeprecationWarning(
+                'the argument raster is depreacted since version 5.13.0 '
+                'and will be removed in a future release'
+            )
 
         fragment = data
         if fragment:
@@ -2989,11 +2998,6 @@ class MDF3(object):
             offset = 0
 
         group = self.groups[index]
-
-        if group.data_location == v23c.LOCATION_ORIGINAL_FILE:
-            stream = self._file
-        else:
-            stream = self._tempfile
 
         time_ch_nr = self.masters_db.get(index, None)
         cycles_nr = group.channel_group.cycles_nr

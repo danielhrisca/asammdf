@@ -2880,6 +2880,8 @@ class MDF(object):
             for i, fragment in enumerate(data):
 
                 if dtypes.itemsize:
+                    #TODO: optimize for channel groups with a single channel
+                    # and LDBLOCK (records 6us; array 0.5us)
                     grp.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
                 else:
                     grp.record = None

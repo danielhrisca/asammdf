@@ -1409,7 +1409,10 @@ class MDF4(object):
             record_count *= samples_size
 
         if not samples_size:
-            yield b"", offset, _count
+            if rm:
+                yield b"", offset, _count, b""
+            else:
+                yield b"", offset, _count, None
         else:
 
             if optimize_read and group.data_blocks and not self._read_fragment_size:
@@ -1832,8 +1835,10 @@ class MDF4(object):
                 dtype_pair = "", f"V{gap}"
                 types.append(dtype_pair)
 
-            dtype_pair = "invalidation_bytes", "<u1", (invalidation_bytes_nr,)
-            types.append(dtype_pair)
+            if not channel_group.flags & v4c.FLAG_CG_REMOTE_MASTER:
+
+                dtype_pair = "invalidation_bytes", "<u1", (invalidation_bytes_nr,)
+                types.append(dtype_pair)
 
             dtypes = dtype(types)
 
@@ -5622,7 +5627,6 @@ class MDF4(object):
         record_offset=0,
         record_count=None,
         one_peace=False,
-        copy_master=None,
     ):
         """ returns master channel samples for given group
 
@@ -5630,18 +5634,19 @@ class MDF4(object):
         ----------
         index : int
             group index
-        data : (bytes, int)
-            (data block raw bytes, fragment offset); default None
+        data : (bytes, int, int, bytes|None)
+            (data block raw bytes, fragment offset, count, invalidation bytes); default None
         raster : float
             raster to be used for interpolation; default None
+
+            .. deprecated:: 5.13.0
+
         record_offset : int
             if *data=None* use this to select the record offset from which the
             group data should be loaded
         record_count : int
             number of records to read; default *None* and in this case all
             available records are used
-        copy_master : bool
-            .. deprecated:: 5.12.0
 
         Returns
         -------
@@ -5649,21 +5654,31 @@ class MDF4(object):
             master channel samples
 
         """
-        if copy_master is not None:
+
+        if raster is not None:
             PendingDeprecationWarning(
-                'the argument copy_master is depreacted since version 5.12.0 '
+                'the argument raster is depreacted since version 5.13.0 '
                 'and will be removed in a future release'
             )
         if self._master is not None:
             return self._master
+
+        group = self.groups[index]
+        if group.channel_group.flags & v4c.FLAG_CG_REMOTE_MASTER:
+            if data is not None:
+                record_offset = data[1]
+                record_count = data[2]
+            return self.get_master(
+                self._cg_map[group.channel_group.cg_master_addr],
+                record_offset=record_offset,
+                record_count=record_count,
+            )
 
         fragment = data
         if fragment:
             data_bytes, offset, _count, invalidation_bytes = fragment
         else:
             offset = 0
-
-        group = self.groups[index]
 
         original_data = fragment
 
