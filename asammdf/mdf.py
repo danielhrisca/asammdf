@@ -1331,7 +1331,8 @@ class MDF(object):
 
                     comment = grp.channel_group.comment
                     if comment:
-                        comment = comment.replace(' ', '_').replace('\\', '_').replace('/', '_')
+                        for char in r' \/:':
+                            comment = comment.replace(char, '_')
                         group_csv_name = filename.parent / f"{filename.stem}.ChannelGroup_{i}_{comment}.csv"
                     else:
                         group_csv_name = filename.parent / f"{filename.stem}.ChannelGroup_{i}.csv"
