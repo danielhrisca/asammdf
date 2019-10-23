@@ -1375,6 +1375,7 @@ class MDF4(object):
         """ get group's data block bytes """
 
         offset = 0
+        invalidation_offset = 0
         has_yielded = False
         _count = record_count
         data_group = group.data_group
@@ -1390,15 +1391,21 @@ class MDF4(object):
 
         if channel_group.flags & v4c.FLAG_CG_REMOTE_MASTER:
             samples_size = channel_group.samples_byte_nr
+            invalidation_size = channel_group.invalidation_bytes_nr
+            invalidation_record_offset = record_offset * invalidation_size
+            rm = True
         else:
+            rm = False
             samples_size = (
                 channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
             )
+            invalidation_size = channel_group.invalidation_bytes_nr
 
         record_offset *= samples_size
 
         finished = False
         if record_count is not None:
+            invalidation_record_count = record_count * invalidation_size
             record_count *= samples_size
 
         if not samples_size:
@@ -1411,7 +1418,9 @@ class MDF4(object):
             else:
                 if self._read_fragment_size:
                     split_size = self._read_fragment_size // samples_size
+                    invalidation_split_size = split_size * invalidation_size
                     split_size *= samples_size
+
                 else:
                     channels_nr = len(group.channels)
 
@@ -1423,12 +1432,15 @@ class MDF4(object):
                     split_size = y_axis[idx]
 
                     split_size = split_size // samples_size
+                    invalidation_split_size = split_size * invalidation_size
                     split_size *= samples_size
 
             if split_size == 0:
                 split_size = samples_size
+                invalidation_split_size = invalidation_size
 
             split_size = int(split_size)
+            invalidation_split_size = int(invalidation_split_size)
 
             if not group.sorted:
                 cg_size = group.record_size
@@ -1454,6 +1466,9 @@ class MDF4(object):
                 cur_size = 0
                 data = []
 
+                cur_invalidation_size = 0
+                invalidation_data = []
+
                 while True:
                     try:
                         info = next(blocks)
@@ -1464,13 +1479,21 @@ class MDF4(object):
                             info.block_type,
                             info.param,
                         )
-                        current_address = address
+
+                        if rm:
+                            invalidation_info = info.invalidation_block
                     except StopIteration:
                         break
 
                     if group.sorted:
                         if offset + size < record_offset + 1:
                             offset += size
+                            if rm:
+                                if invalidation_info.all_valid:
+                                    count = size // samples_size
+                                    invalidation_offset += count * invalidation_size
+                                else:
+                                    invalidation_offset += invalidation_info.raw_size
                             continue
 
                     seek(address)
@@ -1511,68 +1534,154 @@ class MDF4(object):
 
                         size = len(new_data)
 
+                    if rm:
+
+                        if invalidation_info.all_valid:
+                            count = size // samples_size
+                            new_invalidation_data = bytes(count*invalidation_size)
+
+                        else:
+                            seek(invalidation_info.address)
+                            new_invalidation_data = read(invalidation_info.block_size)
+                            if invalidation_info.block_type == v4c.DZ_BLOCK_DEFLATE:
+                                new_invalidation_data = decompress(
+                                    new_invalidation_data,
+                                    0,
+                                    invalidation_info.raw_size,
+                                )
+                            elif invalidation_info.block_type == v4c.DZ_BLOCK_TRANSPOSED:
+                                new_invalidation_data = decompress(
+                                    new_invalidation_data,
+                                    0,
+                                    invalidation_info.raw_size,
+                                )
+                                cols = invalidation_info.param
+                                lines = invalidation_info.raw_size // cols
+
+                                nd = frombuffer(new_invalidation_data[: lines * cols], dtype=uint8)
+                                nd = nd.reshape((cols, lines))
+                                new_invalidation_data = nd.T.tostring() + new_invalidation_data[lines * cols :]
+
+                        inv_size = len(new_invalidation_data)
+
                     if offset < record_offset:
                         delta = record_offset - offset
                         new_data = new_data[delta:]
                         size -= delta
                         offset = record_offset
 
+                        if rm:
+                            delta = invalidation_record_offset - invalidation_offset
+                            new_invalidation_data = new_invalidation_data[delta:]
+                            inv_size -= delta
+                            invalidation_offset = invalidation_record_offset
+
                     while size >= split_size - cur_size:
                         if data:
                             data.append(new_data[:split_size - cur_size])
                             new_data = new_data[split_size - cur_size:]
                             data_ = b"".join(data)
+
+                            if rm:
+                                invalidation_data.append(new_invalidation_data[:invalidation_split_size - cur_invalidation_size])
+                                new_invalidation_data = new_invalidation_data[invalidation_split_size - cur_invalidation_size:]
+                                invalidation_data_ = b"".join(invalidation_data)
+
                             if record_count is not None:
-                                yield data_[:record_count], offset // samples_size, _count
+                                if rm:
+                                    yield data_[:record_count], offset // samples_size, _count, invalidation_data_[:invalidation_record_count]
+                                    invalidation_record_count -= len(invalidation_data_)
+                                else:
+                                    yield data_[:record_count], offset // samples_size, _count, None
                                 has_yielded = True
                                 record_count -= len(data_)
                                 if record_count <= 0:
                                     finished = True
                                     break
                             else:
-                                yield data_, offset // samples_size, _count
+                                if rm:
+                                    yield data_, offset // samples_size, _count, invalidation_data_
+                                else:
+                                    yield data_, offset // samples_size, _count, None
                                 has_yielded = True
-                            current_address += split_size - cur_size
+
                         else:
                             data_, new_data = new_data[:split_size], new_data[split_size:]
+                            if rm:
+                                invalidation_data_ = new_invalidation_data[:invalidation_split_size]
+                                new_invalidation_data = new_invalidation_data[invalidation_split_size:]
+
                             if record_count is not None:
-                                yield data_[:record_count], offset // samples_size, _count
+                                if rm:
+                                    yield data_[:record_count], offset // samples_size, _count, invalidation_data_[:invalidation_record_count]
+                                    invalidation_record_count -= len(invalidation_data_)
+                                else:
+                                    yield data_[:record_count], offset // samples_size, _count, None
                                 has_yielded = True
                                 record_count -= len(data_)
                                 if record_count <= 0:
                                     finished = True
                                     break
                             else:
-                                yield data_, offset // samples_size, _count
+                                if rm:
+                                    yield data_, offset // samples_size, _count, invalidation_data_
+                                else:
+                                    yield data_, offset // samples_size, _count, None
                                 has_yielded = True
-                            current_address += split_size
-                        offset += split_size
 
+                        offset += split_size
                         size -= split_size - cur_size
                         data = []
                         cur_size = 0
 
+                        if rm:
+                            invalidation_offset += invalidation_split_size
+                            invalidation_data = []
+                            cur_invalidation_size = 0
+                            inv_size -= invalidation_split_size - cur_invalidation_size
+
                     if finished:
                         data = []
+                        if rm:
+                            invalidation_data = []
                         break
 
                     if size:
                         data.append(new_data)
                         cur_size += size
+
+                        if rm:
+                            invalidation_data.append(new_invalidation_data)
+                            cur_invalidation_size += inv_size
                 if data:
                     data_ = b"".join(data)
+                    if rm:
+                        invalidation_data_ = b"".join(invalidation_data)
                     if record_count is not None:
-                        yield data_[:record_count], offset // samples_size, _count
+                        if rm:
+                            yield data_[:record_count], offset // samples_size, _count, invalidation_data_[:invalidation_record_count]
+                            invalidation_record_count -= len(invalidation_data_)
+                        else:
+                            yield data_[:record_count], offset // samples_size, _count, None
                         has_yielded = True
                         record_count -= len(data_)
                     else:
-                        yield data_, offset // samples_size, _count
+                        if rm:
+                            yield data_, offset // samples_size, _count, invalidation_data_
+                        else:
+                            yield data_, offset // samples_size, _count, None
                         has_yielded = True
 
                 if not has_yielded:
-                    yield b"", 0, _count
+                    if rm:
+                        yield b"", 0, _count, b""
+                    else:
+                        yield b"", 0, _count, None
             else:
-                yield b"", offset, _count
+                if rm:
+                    yield b"", offset, _count, b""
+                else:
+                    yield b"", offset, _count, None
 
     def _prepare_record(self, group):
         """ compute record dtype and parents dict fro this group
@@ -2578,9 +2687,9 @@ class MDF4(object):
                                     info[-1].invalidation_block = InvalidationBlockInfo(
                                         address=0,
                                         block_type=v4c.DT_BLOCK,
-                                        raw_size=0,
-                                        size=0,
-                                        param=0,
+                                        raw_size=None,
+                                        size=None,
+                                        param=None,
                                         all_valid=True,
                                     )
 
@@ -2851,19 +2960,22 @@ class MDF4(object):
         group = self.groups[group_index]
         dtypes = group.types
 
-        data_bytes, offset, _count = fragment
+        data_bytes, offset, _count, invalidation_bytes = fragment
         try:
             invalidation = self._invalidation_cache[(group_index, offset, _count)]
         except KeyError:
-            record = group.record
-            if record is None:
-                dtypes = group.types
-                if dtypes.itemsize:
-                    record = fromstring(data_bytes, dtype=dtypes)
-                else:
-                    record = None
+            if invalidation_bytes is not None:
+                invalidation = invalidation_bytes
+            else:
+                record = group.record
+                if record is None:
+                    dtypes = group.types
+                    if dtypes.itemsize:
+                        record = fromstring(data_bytes, dtype=dtypes)
+                    else:
+                        record = None
 
-            invalidation = record["invalidation_bytes"].copy()
+                invalidation = record["invalidation_bytes"].copy()
             self._invalidation_cache[(group_index, offset, _count)] = invalidation
 
         ch_invalidation_pos = channel.pos_invalidation_bit
@@ -4714,7 +4826,7 @@ class MDF4(object):
                 count = 0
                 for fragment in data:
 
-                    data_bytes, offset, _count = fragment
+                    data_bytes, offset, _count, invalidation_bytes = fragment
 
                     cycles = len(data_bytes) // samples_size
 
@@ -5003,7 +5115,7 @@ class MDF4(object):
 
                 count = 0
                 for fragment in data:
-                    data_bytes, offset, _count = fragment
+                    data_bytes, offset, _count, invalidation_bytes = fragment
                     offset = offset // record_size
 
                     vals = arange(len(data_bytes) // record_size, dtype=ch_dtype)
@@ -5077,7 +5189,7 @@ class MDF4(object):
                 count = 0
 
                 for kk, fragment in enumerate(data):
-                    data_bytes, offset, _count = fragment
+                    data_bytes, offset, _count, invalidation_bytes = fragment
                     if kk == 0:
                         record_start = offset
                         record_count = _count
@@ -5547,7 +5659,7 @@ class MDF4(object):
 
         fragment = data
         if fragment:
-            data_bytes, offset, _count = fragment
+            data_bytes, offset, _count, invalidation_bytes = fragment
         else:
             offset = 0
 
@@ -5639,7 +5751,7 @@ class MDF4(object):
                     count = 0
 
                     for fragment in data:
-                        data_bytes, offset, _count = fragment
+                        data_bytes, offset, _count, invalidation_bytes = fragment
                         try:
                             parent, _ = parents[time_ch_nr]
                         except KeyError:
