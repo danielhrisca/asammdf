@@ -1352,7 +1352,8 @@ def extract_can_signal(signal, payload):
         vals = as_non_byte_sized_signed_int(vals, bit_count)
 
     if (signal.factor, signal.offset) != (1, 0):
-        vals = vals * float(signal.factor) + float(signal.offset)
+        vals = vals * float(signal.factor)
+        vals += float(signal.offset)
 
     return vals
 
