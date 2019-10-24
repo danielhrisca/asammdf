@@ -1188,7 +1188,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
 
             if mapped:
 
-                (self.id, self.reserved0, self.block_len, self.links_nr) = v4c.COMMON_uf(
+                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(
                     stream, address
                 )
 
@@ -1642,7 +1642,7 @@ class ChannelGroup:
                     self.reserved0,
                     self.block_len,
                     self.links_nr,
-                ) = v4c.COMMON_uf(stream, address)
+                ) = COMMON_uf(stream, address)
 
                 if self.block_len == v4c.CG_BLOCK_SIZE:
                     (

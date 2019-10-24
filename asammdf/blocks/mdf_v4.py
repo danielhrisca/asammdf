@@ -659,7 +659,7 @@ class MDF4(object):
                     name='can_ids',
                 )
 
-                all_can_ids = sorted(unique(can_ids.samples))
+                all_can_ids = unique(can_ids.samples).tolist()
 
                 if all_can_ids:
                     group.message_id = set()
@@ -1346,7 +1346,8 @@ class MDF4(object):
                                     else:
                                         end_addr = info.address + info.size
 
-                                    size = end_addr - start_addr
+                                    size = int(end_addr - start_addr)
+                                    start_addr = int(start_addr)
 
                                     stream.seek(start_addr)
                                     data.append(stream.read(size))
@@ -5206,7 +5207,6 @@ class MDF4(object):
                     if parent is not None:
                         if grp.record is None:
                             record = fromstring(data_bytes, dtype=dtypes)
-
                         else:
                             record = grp.record
 

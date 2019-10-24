@@ -1536,9 +1536,12 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             if self.subplots_link:
 
                 for i, mdi in enumerate(self.mdi_area.subWindowList()):
-                    viewbox = mdi.widget().plot.viewbox
-                    plot.plot.viewbox.setXLink(viewbox)
-                    break
+                    try:
+                        viewbox = mdi.widget().plot.viewbox
+                        plot.plot.viewbox.setXLink(viewbox)
+                        break
+                    except:
+                        continue
 
             plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
 
