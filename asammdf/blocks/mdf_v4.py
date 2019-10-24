@@ -1271,7 +1271,7 @@ class MDF4(object):
                         else:
                             message = f'Expected SD, DZ or DL block at {hex(address)} but found id="{blk_id}"'
                             logger.warning(message)
-                            return b""
+                            return b"", with_bounds
                     address = data_list.next_dl_addr
                 data = b"".join(data)
             elif blk_id == b"##CN":
