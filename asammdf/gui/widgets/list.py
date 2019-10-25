@@ -84,7 +84,7 @@ class ListWidget(QtWidgets.QListWidget):
                 return
             self.itemWidget(selected_items[0]).keyPressEvent(event)
 
-        elif modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier )  and key == QtCore.Qt.Key_T:
+        elif modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier ) and key in (QtCore.Qt.Key_C, QtCore.Qt.Key_P):
             selected_items = self.selectedItems()
             if not selected_items:
                 return

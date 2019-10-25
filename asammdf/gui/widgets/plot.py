@@ -1400,8 +1400,8 @@ class _Plot(pg.PlotWidget):
 
         if uuid in self.common_axis_items:
             if self.current_uuid not in self.common_axis_items or force:
-                for sig, vbox in zip(self.signals, self.view_boxes):
-                    if sig.uuid not in self.common_axis_items:
+                for sig_, vbox in zip(self.signals, self.view_boxes):
+                    if sig_.uuid not in self.common_axis_items:
                         vbox.setYLink(None)
 
                 vbox = self.view_boxes[index]
@@ -1417,8 +1417,8 @@ class _Plot(pg.PlotWidget):
 
         else:
             self.common_viewbox.setYLink(None)
-            for sig, vbox in zip(self.signals, self.view_boxes):
-                if sig.uuid not in self.common_axis_items:
+            for sig_, vbox in zip(self.signals, self.view_boxes):
+                if sig_.uuid not in self.common_axis_items:
                     vbox.setYLink(None)
 
             viewbox.setYRange(*self.view_boxes[index].viewRange()[1], padding=0)
