@@ -21,6 +21,8 @@ class ListWidget(QtWidgets.QListWidget):
 
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
         self.setSelectionMode(QtWidgets.QAbstractItemView.ContiguousSelection)
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.open_menu)
 
         self.setAlternatingRowColors(True)
 
@@ -76,6 +78,18 @@ class ListWidget(QtWidgets.QListWidget):
                 wid = self.itemWidget(item)
                 wid.individual_axis.setCheckState(state)
 
+        elif modifiers == QtCore.Qt.ControlModifier and key == QtCore.Qt.Key_C:
+            selected_items = self.selectedItems()
+            if not selected_items:
+                return
+            self.itemWidget(selected_items[0]).keyPressEvent(event)
+
+        elif modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier )  and key == QtCore.Qt.Key_T:
+            selected_items = self.selectedItems()
+            if not selected_items:
+                return
+            self.itemWidget(selected_items[0]).keyPressEvent(event)
+
         else:
             super().keyPressEvent(event)
 
@@ -130,6 +144,56 @@ class ListWidget(QtWidgets.QListWidget):
                 self.add_channels_request.emit(names)
             else:
                 super().dropEvent(e)
+
+    def open_menu(self, position):
+
+        item = self.itemAt(position)
+        if item is None:
+            return
+
+        menu = QtWidgets.QMenu()
+        menu.addAction(self.tr("Copy name (Ctrl+C)"))
+        menu.addAction(self.tr("Copy display properties (Ctrl+Shift+C)"))
+        menu.addAction(self.tr("Paste display properties (Ctrl+Shift+P)"))
+        menu.addSeparator()
+        menu.addAction(self.tr("Delete (Del)"))
+
+        action = menu.exec_(self.viewport().mapToGlobal(position))
+
+        if action is None:
+            return
+
+        if action.text() == "Copy name (Ctrl+C)":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.KeyPress,
+                QtCore.Qt.Key_C,
+                QtCore.Qt.ControlModifier,
+            )
+            self.itemWidget(item).keyPressEvent(event)
+
+        elif action.text() == "Copy display properties (Ctrl+Shift+C)":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.KeyPress,
+                QtCore.Qt.Key_C,
+                QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier,
+            )
+            self.itemWidget(item).keyPressEvent(event)
+
+        elif action.text() == "Paste display properties (Ctrl+Shift+P)":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.KeyPress,
+                QtCore.Qt.Key_P,
+                QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier,
+            )
+            self.itemWidget(item).keyPressEvent(event)
+
+        elif action.text() == "Delete (Del)":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.KeyPress,
+                QtCore.Qt.Key_Del,
+                QtCore.Qt.NoModifier,
+            )
+            self.keyPressEvent(event)
 
 
 class MinimalListWidget(QtWidgets.QListWidget):

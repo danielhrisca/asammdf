@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
@@ -141,6 +142,34 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         if modifier == QtCore.Qt.ControlModifier and key == QtCore.Qt.Key_C:
             QtWidgets.QApplication.instance().clipboard().setText(self._name)
 
+        elif modifier == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier) and key == QtCore.Qt.Key_C:
+            QtWidgets.QApplication.instance().clipboard().setText(
+                self.get_display_properties()
+            )
+
+        elif modifier == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier) and key == QtCore.Qt.Key_P:
+            info = QtWidgets.QApplication.instance().clipboard().text()
+            try:
+                info = json.loads(info)
+                self.set_color(info['color'])
+                self.color_changed.emit(self.uuid, info['color'])
+                self.set_fmt(info['format'])
+                self.individual_axis.setCheckState(
+                    QtCore.Qt.Checked if info['individual_axis'] else QtCore.Qt.Unchecked
+                )
+                self.ylink.setCheckState(
+                    QtCore.Qt.Checked if info['ylink'] else QtCore.Qt.Unchecked
+                )
+                self.set_precision(info['precision'])
+
+                parent = self.parent().parent().parent().parent().parent()
+                sig, index = parent.plot.signal_by_uuid(self.uuid)
+                viewbox = parent.plot.view_boxes[index]
+                viewbox.setYRange(info["min"], info["max"], padding=0)
+
+            except:
+                pass
+
         else:
             super().keyPressEvent(event)
 
@@ -153,3 +182,23 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
     def text(self):
         return self._name
+
+    def get_display_properties(self):
+        info = {
+            'color': self.color,
+            'precision': self.precision,
+            'ylink': self.ylink.checkState() == QtCore.Qt.Checked,
+            'individual_axis': self.individual_axis.checkState() == QtCore.Qt.Checked,
+            'format': "hex" if self.fmt.startswith('0x') else "bin" if self.fmt.startswith('0b') else "phys",
+        }
+
+        parent = self.parent().parent().parent().parent().parent()
+
+        sig, index = parent.plot.signal_by_uuid(self.uuid)
+
+        min_, max_ = parent.plot.view_boxes[index].viewRange()[1]
+
+        info['min'] = float(min_)
+        info['max'] = float(max_)
+
+        return json.dumps(info)

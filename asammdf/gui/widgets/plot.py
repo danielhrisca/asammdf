@@ -674,7 +674,7 @@ class _Plot(pg.PlotWidget):
             self.curves[index].setSymbolPen(color)
             self.curves[index].setSymbolBrush(color)
 
-        if index == self.current_uuid:
+        if uuid == self.current_uuid:
             self.axis.setPen(color)
 
     def set_common_axis(self, uuid, state):
@@ -975,7 +975,7 @@ class _Plot(pg.PlotWidget):
             super().keyPressEvent(event)
         else:
 
-            if key == QtCore.Qt.Key_C:
+            if key == QtCore.Qt.Key_C and modifier == QtCore.Qt.NoModifier:
                 if self.cursor1 is None:
                     start, stop = self.viewbox.viewRange()[0]
                     self.cursor1 = Cursor(pos=0, angle=90, movable=True)
