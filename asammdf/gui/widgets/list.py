@@ -190,7 +190,7 @@ class ListWidget(QtWidgets.QListWidget):
         elif action.text() == "Delete (Del)":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.KeyPress,
-                QtCore.Qt.Key_Del,
+                QtCore.Qt.Key_Delete,
                 QtCore.Qt.NoModifier,
             )
             self.keyPressEvent(event)
