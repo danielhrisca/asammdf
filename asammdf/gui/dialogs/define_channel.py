@@ -262,7 +262,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
             self.result.name = name
             self.result.unit = self.unit.text()
-            self.result.enabled = True
+            self.result.enable = True
             self.result.computation = {
                 'type': 'arithmetic',
                 'op': op,

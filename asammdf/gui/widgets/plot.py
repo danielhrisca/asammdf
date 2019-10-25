@@ -398,7 +398,6 @@ class Plot(QtWidgets.QWidget):
 
     def computation_channel_inserted(self):
         sig = self.plot.signals[-1]
-        sig.uuid = uuid4()
 
         if sig.empty:
             name, unit = sig.name, sig.unit
@@ -1288,6 +1287,7 @@ class _Plot(pg.PlotWidget):
                 dlg.setModal(True)
                 dlg.exec_()
                 sig = dlg.result
+                sig.uuid = uuid4()
 
                 if sig is not None:
                     self.add_new_channels([sig], computed=True)
