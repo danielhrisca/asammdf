@@ -167,6 +167,10 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
                 viewbox = parent.plot.view_boxes[index]
                 viewbox.setYRange(info["min"], info["max"], padding=0)
 
+                self.display.setCheckState(
+                    QtCore.Qt.Checked if info['display'] else QtCore.Qt.Unchecked
+                )
+
             except:
                 pass
 
@@ -190,6 +194,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             'ylink': self.ylink.checkState() == QtCore.Qt.Checked,
             'individual_axis': self.individual_axis.checkState() == QtCore.Qt.Checked,
             'format': "hex" if self.fmt.startswith('0x') else "bin" if self.fmt.startswith('0b') else "phys",
+            'display': self.display.checkState() == QtCore.Qt.Checked,
         }
 
         parent = self.parent().parent().parent().parent().parent()
