@@ -1866,7 +1866,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 wid.set_fmt(description['fmt'])
                 wid.set_precision(description['precision'])
                 wid.set_color(description['color'])
-                wid.color_changed.emit(wid.index, description['color'])
+                wid.color_changed.emit(wid.uuid, description['color'])
                 wid.ranges = {
                     (range['start'], range['stop']): range['color']
                     for range in description['ranges']

@@ -36,7 +36,7 @@ class ListWidget(QtWidgets.QListWidget):
             deleted = []
             for item in selected_items:
                 row = self.row(item)
-                deleted.append(row)
+                deleted.append(self.itemWidget(item).uuid)
                 self.takeItem(row)
             if deleted:
                 self.itemsDeleted.emit(deleted)

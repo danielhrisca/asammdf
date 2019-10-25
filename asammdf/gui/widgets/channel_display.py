@@ -11,10 +11,10 @@ from ..dialogs.range_editor import RangeEditor
 
 class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
-    color_changed = QtCore.pyqtSignal(int, str)
-    enable_changed = QtCore.pyqtSignal(int, int)
-    ylink_changed = QtCore.pyqtSignal(int, int)
-    individual_axis_changed = QtCore.pyqtSignal(int, int)
+    color_changed = QtCore.pyqtSignal(object, str)
+    enable_changed = QtCore.pyqtSignal(object, int)
+    ylink_changed = QtCore.pyqtSignal(object, int)
+    individual_axis_changed = QtCore.pyqtSignal(object, int)
 
     __slots__ = (
         'color',
@@ -22,13 +22,13 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         '_value',
         '_name',
         'fmt',
-        'index',
+        'uuid',
         'ranges',
         'unit',
         '_transparent',
     )
 
-    def __init__(self, index, unit="", kind='f', precision=3, *args, **kwargs):
+    def __init__(self, uuid, unit="", kind='f', precision=3, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
@@ -37,7 +37,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self._value = ""
         self._name = ""
 
-        self.index = index
+        self.uuid = uuid
         self.ranges = {}
         self.unit = unit.strip()
         self.kind = kind
@@ -66,15 +66,15 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
     def display_changed(self, state):
         state = self.display.checkState()
-        self.enable_changed.emit(self.index, state)
+        self.enable_changed.emit(self.uuid, state)
 
     def _individual_axis(self, state):
         state = self.individual_axis.checkState()
-        self.individual_axis_changed.emit(self.index, state)
+        self.individual_axis_changed.emit(self.uuid, state)
 
     def _ylink_changed(self, state):
         state = self.ylink.checkState()
-        self.ylink_changed.emit(self.index, state)
+        self.ylink_changed.emit(self.uuid, state)
 
     def mouseDoubleClickEvent(self, event):
         dlg = RangeEditor(self.unit, self.ranges)
@@ -87,7 +87,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         if color.isValid():
             self.set_color(color.name())
 
-            self.color_changed.emit(self.index, color.name())
+            self.color_changed.emit(self.uuid, color.name())
 
     def set_fmt(self, fmt):
         if self.kind in 'fSUV':

@@ -6,6 +6,7 @@ import logging
 from functools import partial
 from time import perf_counter
 from struct import unpack
+from uuid import uuid4
 
 import numpy as np
 from pathlib import Path
@@ -53,7 +54,7 @@ class Plot(QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
         self.setContentsMargins(0, 0, 0, 0)
 
-        self.info_index = None
+        self.info_uuid = None
 
         main_layout = QtWidgets.QVBoxLayout(self)
         # self.setLayout(main_layout)
@@ -91,8 +92,6 @@ class Plot(QtWidgets.QWidget):
 
         self.splitter.addWidget(self.plot)
 
-        self._available_index = 0
-
         self.info = ChannelStats()
         self.splitter.addWidget(self.info)
 
@@ -124,67 +123,41 @@ class Plot(QtWidgets.QWidget):
 
     def channel_selection_modified(self, item):
         if item:
-            index = self.channel_selection.itemWidget(item).index
-            self.info_index = index
+            uuid = self.channel_selection.itemWidget(item).uuid
+            self.info_uuid = uuid
 
-            sig, _ = self.plot.signal_by_index(index)
+            sig, _ = self.plot.signal_by_uuid(uuid)
             if sig.enable:
 
-                self.plot.set_current_index(self.info_index)
-                stats = self.plot.get_stats(self.info_index)
+                self.plot.set_current_uuid(self.info_uuid)
+                stats = self.plot.get_stats(self.info_uuid)
                 self.info.set_stats(stats)
 
     def channel_selection_row_changed(self, row):
         if row >= 0:
             item = self.channel_selection.item(row)
-            index = self.channel_selection.itemWidget(item).index
-            self.info_index = index
+            uuid = self.channel_selection.itemWidget(item).uuid
+            self.info_uuid = uuid
 
-            sig, _ = self.plot.signal_by_index(index)
+            sig, _ = self.plot.signal_by_uuid(uuid)
             if sig.enable:
 
-                self.plot.set_current_index(self.info_index)
-                stats = self.plot.get_stats(self.info_index)
+                self.plot.set_current_uuid(self.info_uuid)
+                stats = self.plot.get_stats(self.info_uuid)
                 self.info.set_stats(stats)
 
     def channel_selection_reduced(self, deleted):
-        for i in sorted(deleted, reverse=True):
-            item = self.plot.curves.pop(i)
-            item.hide()
-            item.setParent(None)
 
-            item = self.plot.view_boxes.pop(i)
-            item.hide()
-            item.setParent(None)
+        self.plot.delete_channels(deleted)
 
-            item = self.plot.axes.pop(i)
-            item.hide()
-            item.setParent(None)
-
-            sig = self.plot.signals.pop(i)
-
-            if self.info_index == sig._index:
-                self.info_index = None
-
-            if i in self.plot.common_axis_items:
-                self.plot.common_axis_items.remove(i)
-
-                self.plot.common_axis_items = set(
-                    idx if idx < i else idx - 1
-                    for idx in self.plot.common_axis_items
-                )
+        if self.info_uuid in deleted:
+            self.info_uuid = None
+            self.info.hide()
 
         rows = self.channel_selection.count()
 
         if not rows:
             self.close_request.emit()
-        else:
-            if self.info_index is None:
-                self.info_index = self.plot.signals[0]._index
-
-            self.plot.set_current_index(self.info_index)
-            stats = self.plot.get_stats(self.info_index)
-            self.info.set_stats(stats)
 
     def cursor_move_finished(self):
         x = self.plot.timebase
@@ -285,7 +258,7 @@ class Plot(QtWidgets.QWidget):
                     item.set_value("n.a.")
 
         if self.info.isVisible():
-            stats = self.plot.get_stats(self.info_index)
+            stats = self.plot.get_stats(self.info_uuid)
             self.info.set_stats(stats)
 
         self.cursor_moved_signal.emit(self, position)
@@ -300,7 +273,7 @@ class Plot(QtWidgets.QWidget):
                 item.set_prefix("")
                 item.set_value("")
         if self.info.isVisible():
-            stats = self.plot.get_stats(self.info_index)
+            stats = self.plot.get_stats(self.info_uuid)
             self.info.set_stats(stats)
 
         self.cursor_removed_signal.emit(self)
@@ -338,12 +311,12 @@ class Plot(QtWidgets.QWidget):
                 item.set_value("n.a.")
 
         if self.info.isVisible():
-            stats = self.plot.get_stats(self.info_index)
+            stats = self.plot.get_stats(self.info_uuid)
             self.info.set_stats(stats)
 
     def xrange_changed(self):
         if self.info.isVisible():
-            stats = self.plot.get_stats(self.info_index)
+            stats = self.plot.get_stats(self.info_uuid)
             self.info.set_stats(stats)
 
     def range_modified_finished(self):
@@ -420,22 +393,20 @@ class Plot(QtWidgets.QWidget):
         if self.plot.cursor1:
             self.plot.cursor_moved.emit()
         if self.info.isVisible():
-            stats = self.plot.get_stats(self.info_index)
+            stats = self.plot.get_stats(self.info_uuid)
             self.info.set_stats(stats)
 
     def computation_channel_inserted(self):
         sig = self.plot.signals[-1]
-        sig._index = self._available_index
+        sig.uuid = uuid4()
 
         if sig.empty:
             name, unit = sig.name, sig.unit
         else:
             name, unit = sig.name, sig.unit
         item = ListItem((-1, -1), name, sig.computation, self.channel_selection)
-        it = ChannelDisplay(self._available_index, unit, sig.samples.dtype.kind, 3, self)
+        it = ChannelDisplay(sig.uuid, unit, sig.samples.dtype.kind, 3, self)
         it.setAttribute(QtCore.Qt.WA_StyledBackground)
-
-        self._available_index += 1
 
         it.set_name(name)
         it.set_value("")
@@ -448,19 +419,18 @@ class Plot(QtWidgets.QWidget):
         it.enable_changed.connect(self.plot.set_signal_enable)
         it.ylink_changed.connect(self.plot.set_common_axis)
 
-        it.enable_changed.emit(sig._index, 1)
-        it.enable_changed.emit(sig._index, 0)
-        it.enable_changed.emit(sig._index, 1)
+        it.enable_changed.emit(sig.uuid, 1)
+        it.enable_changed.emit(sig.uuid, 0)
+        it.enable_changed.emit(sig.uuid, 1)
 
-        self.info_index = sig._index
+        self.info_uuid = sig.uuid
 
-        self.plot.set_current_index(self.info_index, True)
+        self.plot.set_current_uuid(self.info_uuid, True)
 
     def add_new_channels(self, channels):
 
         for sig in channels:
-            sig._index = self._available_index
-            self._available_index += 1
+            sig.uuid = uuid4()
 
         self.plot.add_new_channels(channels)
 
@@ -468,7 +438,7 @@ class Plot(QtWidgets.QWidget):
 
             item = ListItem((sig.group_index, sig.channel_index), sig.name, None, self.channel_selection)
             item.setData(QtCore.Qt.UserRole, sig.name)
-            it = ChannelDisplay(sig._index, sig.unit, sig.samples.dtype.kind, 3, self)
+            it = ChannelDisplay(sig.uuid, sig.unit, sig.samples.dtype.kind, 3, self)
             it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
             it.set_name(sig.name)
@@ -483,11 +453,11 @@ class Plot(QtWidgets.QWidget):
             it.ylink_changed.connect(self.plot.set_common_axis)
             it.individual_axis_changed.connect(self.plot.set_individual_axis)
 
-            it.enable_changed.emit(sig._index, 1)
-            it.enable_changed.emit(sig._index, 0)
-            it.enable_changed.emit(sig._index, 1)
+            it.enable_changed.emit(sig.uuid, 1)
+            it.enable_changed.emit(sig.uuid, 0)
+            it.enable_changed.emit(sig.uuid, 1)
 
-            self.info_index = sig._index
+            self.info_uuid = sig.uuid
 
     def to_config(self):
         count = self.channel_selection.count()
@@ -580,7 +550,7 @@ class _Plot(pg.PlotWidget):
         else:
             self.curvetype = pg.PlotCurveItem
         self.info = None
-        self.current_index = 0
+        self.current_uuid = 0
 
         self.standalone = kwargs.get("standalone", False)
 
@@ -697,37 +667,38 @@ class _Plot(pg.PlotWidget):
                 else:
                     curve.hide()
 
-    def set_color(self, index, color):
-        _, index = self.signal_by_index(index)
+    def set_color(self, uuid, color):
+        _, index = self.signal_by_uuid(uuid)
         self.signals[index].color = color
         self.curves[index].setPen(color)
         if self.curvetype == pg.PlotDataItem:
             self.curves[index].setSymbolPen(color)
             self.curves[index].setSymbolBrush(color)
 
-        if index == self.current_index:
+        if index == self.current_uuid:
             self.axis.setPen(color)
 
-    def set_common_axis(self, index, state):
+    def set_common_axis(self, uuid, state):
+        _, index = self.signal_by_uuid(uuid)
         viewbox = self.view_boxes[index]
         if state in (QtCore.Qt.Checked, True, 1):
             viewbox.setYRange(*self.common_viewbox.viewRange()[1], padding=0)
             viewbox.setYLink(self.common_viewbox)
-            self.common_axis_items.add(index)
+            self.common_axis_items.add(uuid)
         else:
             self.view_boxes[index].setYLink(None)
-            self.common_axis_items.remove(index)
+            self.common_axis_items.remove(uuid)
 
         self.common_axis_label = ', '.join(
-            self.signals[i].name
-            for i in sorted(self.common_axis_items)
+            self.signal_by_uuid(uuid)[0].name
+            for uuid in self.common_axis_items
         )
 
-        self.set_current_index(self.current_index, True)
+        self.set_current_uuid(self.current_uuid, True)
 
-    def set_individual_axis(self, index, state):
+    def set_individual_axis(self, uuid, state):
 
-        _, index = self.signal_by_index(index)
+        _, index = self.signal_by_uuid(uuid)
 
         if state in (QtCore.Qt.Checked, True, 1):
             if self.signals[index].enable:
@@ -737,9 +708,9 @@ class _Plot(pg.PlotWidget):
             self.axes[index].hide()
             self.signals[index].individual_axis = False
 
-    def set_signal_enable(self, index, state):
+    def set_signal_enable(self, uuid, state):
 
-        _, index = self.signal_by_index(index)
+        _, index = self.signal_by_uuid(uuid)
 
         if state in (QtCore.Qt.Checked, True, 1):
             self.signals[index].enable = True
@@ -761,9 +732,9 @@ class _Plot(pg.PlotWidget):
         for view_box in self.view_boxes:
             view_box.setGeometry(geometry)
 
-    def get_stats(self, index):
+    def get_stats(self, uuid):
         stats = {}
-        sig, index = self.signal_by_index(index)
+        sig, index = self.signal_by_uuid(uuid)
         x = sig.timestamps
         size = len(x)
 
@@ -1026,24 +997,24 @@ class _Plot(pg.PlotWidget):
             elif key == QtCore.Qt.Key_F:
                 if self.common_axis_items:
                     if any(
-                        len(self.signals[i].plot_samples)
-                        for i in self.common_axis_items
-                        if self.curves[i].isVisible()
+                        len(self.signal_by_uuid(uuid)[0].plot_samples)
+                        for uuid in self.common_axis_items
+                        if self.signal_by_uuid(uuid)[0].enable
                     ):
                         with_common_axis = True
 
                         common_min = np.nanmin(
                             [
-                                np.nanmin(self.signals[k].plot_samples)
-                                for k in self.common_axis_items
-                                if len(self.signals[k].plot_samples)
+                                np.nanmin(self.signal_by_uuid(uuid)[0].plot_samples)
+                                for uuid in self.common_axis_items
+                                if len(self.signal_by_uuid(uuid)[0].plot_samples)
                             ]
                         )
                         common_max = np.nanmax(
                             [
-                                np.nanmax(self.signals[k].plot_samples)
-                                for k in self.common_axis_items
-                                if len(self.signals[k].plot_samples)
+                                np.nanmax(self.signal_by_uuid(uuid)[0].plot_samples)
+                                for uuid in self.common_axis_items
+                                if len(self.signal_by_uuid(uuid)[0].plot_samples)
                             ]
                         )
                     else:
@@ -1051,7 +1022,7 @@ class _Plot(pg.PlotWidget):
 
                 for i, (viewbox, signal) in enumerate(zip(self.view_boxes, self.signals)):
                     if len(signal.plot_samples):
-                        if i in self.common_axis_items:
+                        if signal.uuid in self.common_axis_items:
                             if with_common_axis:
                                 min_ = common_min
                                 max_ = common_max
@@ -1134,10 +1105,20 @@ class _Plot(pg.PlotWidget):
                         mdf.save(file_name, overwrite=True)
 
             elif key == QtCore.Qt.Key_S and modifier == QtCore.Qt.NoModifier:
+
+                parent = self.parent().parent()
+                count = parent.channel_selection.count()
+                uuids = []
+
+                for i in range(count):
+                    item = parent.channel_selection.item(i)
+                    uuids.append(parent.channel_selection.itemWidget(item).uuid)
+                uuids = reversed(uuids)
+
                 count = sum(
                     1
                     for i, (sig, curve) in enumerate(zip(self.signals, self.curves))
-                    if sig.min != 'n.a.' and curve.isVisible() and i not in self.common_axis_items
+                    if sig.min != 'n.a.' and curve.isVisible() and sig.uuid not in self.common_axis_items
                 )
 
                 if any(
@@ -1149,38 +1130,33 @@ class _Plot(pg.PlotWidget):
                 else:
                     with_common_axis = False
 
-                total = len(self.signals) - 1
-
                 if count:
                     position = 0
-                    for i, (signal, viewbox, curve) in enumerate(
-                        zip(
-                            reversed(self.signals),
-                            reversed(self.view_boxes),
-                            reversed(self.curves),
-                        )
-                    ):
-                        if not signal.empty and curve.isVisible():
-                            if with_common_axis and total - i in self.common_axis_items:
+                    for uuid in uuids:
+                        signal, index = self.signal_by_uuid(uuid)
+                        viewbox = self.view_boxes[index]
+
+                        if not signal.empty and signal.enable:
+                            if with_common_axis and signal.uuid in self.common_axis_items:
                                 with_common_axis = False
 
                                 min_ = np.nanmin(
                                     [
-                                        np.nanmin(self.signals[k].plot_samples)
-                                        for k in self.common_axis_items
-                                        if len(self.signals[k].plot_samples) and self.curves[k].isVisible()
+                                        np.nanmin(self.signal_by_uuid(uuid)[0].plot_samples)
+                                        for uuid in self.common_axis_items
+                                        if len(self.signal_by_uuid(uuid)[0].plot_samples) and self.signal_by_uuid(uuid)[0].enable
                                     ]
                                 )
                                 max_ = np.nanmax(
                                     [
-                                        np.nanmax(self.signals[k].plot_samples)
-                                        for k in self.common_axis_items
-                                        if len(self.signals[k].plot_samples) and self.curves[k].isVisible()
+                                        np.nanmax(self.signal_by_uuid(uuid)[0].plot_samples)
+                                        for uuid in self.common_axis_items
+                                        if len(self.signal_by_uuid(uuid)[0].plot_samples) and self.signal_by_uuid(uuid)[0].enable
                                     ]
                                 )
 
                             else:
-                                if total - i in self.common_axis_items:
+                                if signal.uuid in self.common_axis_items:
                                     continue
                                 min_ = signal.min
                                 max_ = signal.max
@@ -1220,7 +1196,7 @@ class _Plot(pg.PlotWidget):
                 for i, signal in enumerate(self.signals):
                     if signal.samples.dtype.kind in "ui":
                         signal.format = "hex"
-                    if self.current_index == i:
+                    if self.current_uuid == i:
                         self.axis.format = "hex"
                         self.axis.hide()
                         self.axis.show()
@@ -1231,7 +1207,7 @@ class _Plot(pg.PlotWidget):
                 for i, signal in enumerate(self.signals):
                     if signal.samples.dtype.kind in "ui":
                         signal.format = "bin"
-                    if self.current_index == i:
+                    if self.current_uuid == i:
                         self.axis.format = "bin"
                         self.axis.hide()
                         self.axis.show()
@@ -1242,7 +1218,7 @@ class _Plot(pg.PlotWidget):
                 for i, signal in enumerate(self.signals):
                     if signal.samples.dtype.kind in "ui":
                         signal.format = "phys"
-                    if self.current_index == i:
+                    if self.current_uuid == i:
                         self.axis.format = "phys"
                         self.axis.hide()
                         self.axis.show()
@@ -1410,11 +1386,11 @@ class _Plot(pg.PlotWidget):
             self.xrange_changed_handle()
             super().resizeEvent(ev)
 
-    def set_current_index(self, index, force=False):
+    def set_current_uuid(self, uuid, force=False):
         axis = self.axis
         viewbox = self.viewbox
 
-        sig, index = self.signal_by_index(index)
+        sig, index = self.signal_by_uuid(uuid)
 
         if sig.conversion and hasattr(sig.conversion, "text_0"):
             axis.text_conversion = sig.conversion
@@ -1422,10 +1398,10 @@ class _Plot(pg.PlotWidget):
             axis.text_conversion = None
         axis.format = sig.format
 
-        if index in self.common_axis_items:
-            if self.current_index not in self.common_axis_items or force:
-                for i, vbox in enumerate(self.view_boxes):
-                    if i not in self.common_axis_items:
+        if uuid in self.common_axis_items:
+            if self.current_uuid not in self.common_axis_items or force:
+                for sig, vbox in zip(self.signals, self.view_boxes):
+                    if sig.uuid not in self.common_axis_items:
                         vbox.setYLink(None)
 
                 vbox = self.view_boxes[index]
@@ -1441,8 +1417,8 @@ class _Plot(pg.PlotWidget):
 
         else:
             self.common_viewbox.setYLink(None)
-            for i, vbox in enumerate(self.view_boxes):
-                if i not in self.common_axis_items:
+            for sig, vbox in zip(self.signals, self.view_boxes):
+                if sig.uuid not in self.common_axis_items:
                     vbox.setYLink(None)
 
             viewbox.setYRange(*self.view_boxes[index].viewRange()[1], padding=0)
@@ -1461,7 +1437,7 @@ class _Plot(pg.PlotWidget):
             axis.setPen(sig.color)
             axis.update()
 
-        self.current_index = index
+        self.current_uuid = uuid
 
     def _clicked(self, event):
         if QtCore.Qt.Key_C not in self.disabled_keys:
@@ -1626,7 +1602,7 @@ class _Plot(pg.PlotWidget):
             curve.show()
 
         if initial_index == 0 and self.signals:
-            self.set_current_index(self.signals[0]._index)
+            self.set_current_uuid(self.signals[0].uuid)
 
         if self.signals:
             self.all_timebase = self.timebase = np.unique(
@@ -1637,9 +1613,9 @@ class _Plot(pg.PlotWidget):
 
         QtWidgets.QApplication.processEvents()
 
-    def signal_by_index(self, index):
+    def signal_by_uuid(self, uuid):
         for i, sig in enumerate(self.signals):
-            if sig._index == index:
+            if sig.uuid == uuid:
                 return sig, i
 
         raise Exception('Signal not found')
@@ -1659,4 +1635,45 @@ class _Plot(pg.PlotWidget):
                 self.add_channels_request.emit(names)
             else:
                 super().dropEvent(e)
+
+    def delete_channels(self, deleted):
+
+        indexes = sorted(
+            [
+                (self.signal_by_uuid(uuid)[1], uuid)
+                for uuid in deleted
+            ],
+            reverse=True,
+        )
+
+        for i, uuid in indexes:
+            item = self.curves.pop(i)
+            item.hide()
+            item.setParent(None)
+
+            item = self.view_boxes.pop(i)
+            item.hide()
+            item.setParent(None)
+
+            item = self.axes.pop(i)
+            item.hide()
+            item.setParent(None)
+
+            sig = self.signals.pop(i)
+
+            if uuid in self.common_axis_items:
+                self.common_axis_items.remove(uuid)
+
+        uuids = [
+            sig.uuid
+            for sig in self.signals
+        ]
+
+        if uuids:
+            if self.current_uuid in uuids:
+                self.set_current_uuid(self.current_uuid, True)
+            else:
+                self.set_current_uuid(uuids[0], True)
+        else:
+            self.current_uuid = None
 
