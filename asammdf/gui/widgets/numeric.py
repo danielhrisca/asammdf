@@ -7,35 +7,7 @@ from numpy import searchsorted
 
 from ..ui import resource_rc as resource_rc
 from ..ui.numeric import Ui_NumericDisplay
-
-
-class TreeItem(QtWidgets.QTreeWidgetItem):
-
-    def __lt__(self, otherItem):
-        column = self.treeWidget().sortColumn()
-
-        if column == 1:
-            val1 = self.text(column)
-            try:
-                val1 = float(val1)
-            except:
-                pass
-
-            val2 = otherItem.text(column)
-            try:
-                val2 = float(val2)
-            except:
-                pass
-
-            try:
-                return val1 < val2
-            except:
-                if isinstance(val1, float):
-                    return True
-                else:
-                    return False
-        else:
-            return self.text(column) < otherItem.text(column)
+from .tree_item import TreeItem
 
 
 class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
@@ -90,7 +62,12 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             else:
                 value = 'n.a.'
 
-            item = TreeItem([sig.name, value, sig.unit])
+            item = TreeItem(
+                (sig.group_index, sig.channel_index),
+                sig.name,
+                self.channels,
+                [sig.name, value, sig.unit],
+            )
             item.setFlags(item.flags() & ~QtCore.Qt.ItemIsDropEnabled)
             items.append(
                 item
