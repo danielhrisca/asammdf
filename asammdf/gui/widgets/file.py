@@ -611,7 +611,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             self.channels_tree.addTopLevelItems(items)
         else:
             for i, group in enumerate(self.mdf.groups):
-                entry = i, 0xFFFFFFFFFFFFFFFF
+                entry = i, None
                 channel_group = TreeItem(entry)
                 comment = group.channel_group.comment
                 comment = extract_cncomment_xml(comment)
