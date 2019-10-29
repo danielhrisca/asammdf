@@ -2853,6 +2853,7 @@ class MDF(object):
             else:
                 name = item
                 group, index = self._validate_channel_selection(name)
+
                 indexes.append((group, index))
                 if group not in gps:
                     gps[group] = {index}

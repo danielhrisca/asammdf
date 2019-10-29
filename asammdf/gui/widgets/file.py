@@ -1023,7 +1023,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
     def show_info(self, item, column):
         group, index = item.entry
-        if index is None:
+        if index == 0xFFFFFFFFFFFFFFFF:
             channel_group = self.mdf.groups[group].channel_group
 
             msg = ChannelGroupInfoDialog(channel_group, group, self)
@@ -1405,6 +1405,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
     def add_window(self, args):
         window_type, names = args
+
         if names and isinstance(names[0], str):
             signals_ = [
                 (None, *self.mdf.whereis(name)[0])
