@@ -59,7 +59,7 @@ class TreeWidget(QtWidgets.QTreeWidget):
 
                 name = item.name.encode('utf-8')
                 entry = item.entry
-                if entry[1] != 0xFFFFFFFFFFFFFFFF:
+                if entry[1] != None:
                     data.append(pack(f'<3Q{len(name)}s', entry[0], entry[1], len(name), name))
 
         mimeData.setData(
