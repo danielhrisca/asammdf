@@ -3595,7 +3595,7 @@ class DataZippedBlock(object):
 
                 if lines * cols < original_size:
                     data = (
-                        np.frombuffer(data[: lines * cols], dtype=np.uint8)
+                        np.frombuffer(data[: lines * cols], dtype='B')
                         .reshape((lines, cols))
                         .T.tostring()
                     ) + data[lines * cols :]

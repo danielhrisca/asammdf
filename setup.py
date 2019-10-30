@@ -5,6 +5,28 @@ asammdf
 
 # Always prefer setuptools over distutils
 from setuptools import setup, find_packages, Extension
+from distutils.core import setup, Extension
+
+from distutils.command import build_ext
+def get_export_symbols(self, ext):
+    parts = ext.name.split(".")
+    print('parts', parts)
+    if parts[-1] == "__init__":
+        initfunc_name = "PyInit_" + parts[-2]
+    else:
+        initfunc_name = "PyInit_" + parts[-1]
+
+build_ext.build_ext.get_export_symbols = get_export_symbols
+
+def get_export_symbols(self, ext):
+    parts = ext.name.split(".")
+    print('parts', parts)
+    if parts[-1] == "__init__":
+        initfunc_name = "PyInit_" + parts[-2]
+    else:
+        initfunc_name = "PyInit_" + parts[-1]
+
+build_ext.build_ext.get_export_symbols = get_export_symbols
 # To use a consistent encoding
 from codecs import open
 from os import path, listdir, walk
@@ -21,6 +43,10 @@ with open(path.join('asammdf', 'version.py'), 'r') as f:
             break
 
 try:
+    try:
+        import numpy
+    except ImportError:
+        print('numpy must be preinstalled to compile the asammdf C extension; falling back to pure python')
     setup(
         name='asammdf',
 
@@ -121,7 +147,7 @@ try:
             ],
         },
         ext_package = 'asammdf.blocks',        
-        ext_modules = [Extension('cutils', ['asammdf/blocks/cutils.c'])]
+        ext_modules = [Extension('cutils', ['asammdf/blocks/cutils.c'], include_dirs=[numpy.get_include()])]
     )
     
 except:
@@ -225,17 +251,3 @@ except:
             ],
         },
     )
-
-
-"""
-try:
-    setup(
-        name = 'asammdf', 
-        version = '1.0', 
-        ext_package = 'asammdf.blocks',        
-        ext_modules = [Extension('cutils', ['asammdf/blocks/cutils.c'])]
-    )
-except:
-    raise
-    print('WARNING: Failed to build the C extension.')
-"""
