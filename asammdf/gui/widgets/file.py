@@ -37,18 +37,17 @@ from ..dialogs.channel_group_info import ChannelGroupInfoDialog
 
 
 class FileWidget(Ui_file_widget, QtWidgets.QWidget):
-
     open_new_file = QtCore.pyqtSignal(str)
 
     def __init__(
-        self,
-        file_name,
-        with_dots,
-        subplots=False,
-        subplots_link=False,
-        ignore_value2text_conversions=False,
-        *args,
-        **kwargs,
+            self,
+            file_name,
+            with_dots,
+            subplots=False,
+            subplots_link=False,
+            ignore_value2text_conversions=False,
+            *args,
+            **kwargs,
     ):
 
         super().__init__(*args, **kwargs)
@@ -123,7 +122,6 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                         else:
                             break
 
-
                     datalyser = win32com.client.Dispatch("Datalyser3.Datalyser3_COM")
                     if not datalyser_active:
                         try:
@@ -153,7 +151,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             if self.mdf is TERMINATED:
                 return
 
-        channels_db_items = sorted(self.mdf.channels_db, key = lambda x: x.lower())
+        channels_db_items = sorted(self.mdf.channels_db, key=lambda x: x.lower())
 
         progress.setLabelText("Loading graphical elements")
 
@@ -524,6 +522,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         # self.channels_tree.itemChanged.connect(self.select)
         self.create_window_btn.clicked.connect(self._create_window)
 
+        self.select_all_btn.clicked.connect(self.select_all_channels)
+
         self.clear_filter_btn.clicked.connect(self.clear_filter)
         self.clear_channels_btn.clicked.connect(self.clear_channels)
 
@@ -827,7 +827,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                             mdi.widget()
                             for mdi in self.mdi_area.subWindowList()
                         ]
-                        widget = widgets[index-3]
+                        widget = widgets[index - 3]
                         self.add_new_channels(names, widget)
 
     def save_channel_list(self, event=None, file_name=None):
@@ -996,7 +996,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 self.mdf._master_channel_cache.clear()
                 master_max = self.mdf.get_master(
                     i,
-                    record_offset=cycles_nr-1,
+                    record_offset=cycles_nr - 1,
                     record_count=1,
                 )
                 if len(master_max):
@@ -1024,15 +1024,21 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
     def show_info(self, item, column):
         group, index = item.entry
         if index is None:
-            channel_group = self.mdf.groups[group].channel_group
+            try:
+                channel_group = self.mdf.groups[group].channel_group
 
-            msg = ChannelGroupInfoDialog(channel_group, group, self)
-            msg.show()
+                msg = ChannelGroupInfoDialog(channel_group, group, self)
+                msg.show()
+            except:
+                pass
         else:
-            channel = self.mdf.get_channel_metadata(group=group, index=index)
+            try:
+                channel = self.mdf.get_channel_metadata(group=group, index=index)
 
-            msg = ChannelInfoDialog(channel, self)
-            msg.show()
+                msg = ChannelInfoDialog(channel, self)
+                msg.show()
+            except:
+                pass
 
     def clear_filter(self):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
@@ -1058,6 +1064,18 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
             iterator += 1
 
+    def select_all_channels(self):
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
+
+        while iterator.value():
+            item = iterator.value()
+            item.setCheckState(0, QtCore.Qt.Checked)
+
+            if item.parent() is None:
+                item.setExpanded(True)
+
+            iterator += 1
+
     def get_current_plot(self):
         mdi = self.mdi_area.activeSubWindow()
         if mdi is not None:
@@ -1080,7 +1098,6 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 item = iterator.value()
                 if item.parent() is not None:
                     if item.entry == (group_index, channel_index):
-
                         tree.scrollToItem(item, QtWidgets.QAbstractItemView.PositionAtTop)
                         item.setSelected(True)
                         tree.setFocus()
@@ -1089,7 +1106,6 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             while iterator.value():
                 item = iterator.value()
                 if item.entry == (group_index, channel_index):
-
                     tree.scrollToItem(item, QtWidgets.QAbstractItemView.PositionAtTop)
                     item.setSelected(True)
                     tree.setFocus()
@@ -1372,7 +1388,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
             # cut self.mdf
             target = self.mdf.export
-            kwargs={
+            kwargs = {
                 "fmt": export_type,
                 "filename": file_name,
                 "single_time_base": single_time_base,
@@ -1660,7 +1676,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             measured_signals_ = [
                 (None, *self.mdf.whereis(channel['name'])[0])
                 for channel in window_info['configuration']['channels']
-                if not channel['computed'] and channel['name']  in self.mdf
+                if not channel['computed'] and channel['name'] in self.mdf
             ]
 
             measured_signals = {
@@ -1714,7 +1730,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                     if not hasattr(result, 'name'):
                         result = Signal(
                             name='_',
-                            samples=np.ones(len(all_timebase))*result,
+                            samples=np.ones(len(all_timebase)) * result,
                             timestamps=all_timebase,
                         )
 
@@ -1920,7 +1936,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 self._window_counter += 1
 
             filter_count = 0
-            available_columns = [signals.index.name,] + list(signals.columns)
+            available_columns = [signals.index.name, ] + list(signals.columns)
             for filter_info in window_info['configuration']['filters']:
                 if filter_info['column'] in available_columns:
                     tabular.add_filter()
@@ -2179,7 +2195,6 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         else:
             filter = "MDF version 4 files (*.mf4)"
             suffix = '.mf4'
-
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self, "Select output measurement file", "", f'{filter};;All files (*.*)', filter
