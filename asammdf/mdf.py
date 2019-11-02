@@ -1904,6 +1904,11 @@ class MDF(object):
             callback(0, 100)
 
         mdf_nr = len(files)
+        
+        input_types = [
+            isinstance(mdf, MDF)
+            for mdf in files
+        ]
 
         versions = []
         if sync:
@@ -2231,6 +2236,9 @@ class MDF(object):
                     mdf._set_temporary_master(None)
 
                 last_timestamps[i] = last_timestamp
+                
+            if not input_types[mdf_index]:
+                mdf.close()
 
             if callback:
                 callback(i + 1 + mdf_index * groups_nr, groups_nr * mdf_nr)
@@ -2271,6 +2279,11 @@ class MDF(object):
         stacked = MDF(version=version, callback=callback)
 
         files_nr = len(files)
+        
+        input_types = [
+            isinstance(mdf, MDF)
+            for mdf in files
+        ]
 
         if callback:
             callback(0, files_nr)
@@ -2313,7 +2326,7 @@ class MDF(object):
             offsets = [0 for file in files]
 
         cg_nr = -1
-        for offset, mdf in zip(offsets, files):
+        for mdf_index, (offset, mdf) in enumerate(zip(offsets, files)):
             if not isinstance(mdf, MDF):
                 mdf = MDF(mdf)
 
@@ -2471,7 +2484,10 @@ class MDF(object):
                 )
 
             if callback:
-                callback(idx, files_nr)
+                callback(mdf_index, files_nr)
+                
+            if not input_types[mdf_index]:
+                mdf.close()
 
             if MDF._terminate:
                 return
@@ -3472,7 +3488,7 @@ class MDF(object):
         if channels:
             mdf = self.filter(channels)
 
-            return mdf.to_dataframe(
+            result = mdf.to_dataframe(
                 raster=raster,
                 time_from_zero=time_from_zero,
                 empty_channels=empty_channels,
@@ -3485,6 +3501,9 @@ class MDF(object):
                 use_interpolation=use_interpolation,
                 only_basenames=only_basenames,
             )
+            
+            mdf.close()
+            return result
 
         df = pd.DataFrame()
         self._set_temporary_master(None)
@@ -3883,7 +3902,9 @@ class MDF(object):
                     if not max_flags[(i, channel.name)]:
                         to_keep.append((None, i, j))
 
-            out = out.filter(to_keep, version)
+            tmp = out.filter(to_keep, version)
+            out.close()
+            out = tmp
 
         if self._callback:
             self._callback(100, 100)
