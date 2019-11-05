@@ -1287,9 +1287,9 @@ class _Plot(pg.PlotWidget):
                 dlg.setModal(True)
                 dlg.exec_()
                 sig = dlg.result
-                sig.uuid = uuid4()
 
                 if sig is not None:
+                    sig.uuid = uuid4()
                     self.add_new_channels([sig], computed=True)
                     self.computation_channel_inserted.emit()
 
