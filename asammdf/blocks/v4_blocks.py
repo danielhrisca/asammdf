@@ -3513,6 +3513,7 @@ class DataZippedBlock(object):
     __slots__ = (
         "address",
         "_prevent_data_setitem",
+        "_transposed",
         "return_unzipped",
         "id",
         "reserved0",
@@ -3530,6 +3531,7 @@ class DataZippedBlock(object):
     def __init__(self, **kwargs):
 
         self._prevent_data_setitem = True
+        self._transposed = False
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
@@ -3557,7 +3559,9 @@ class DataZippedBlock(object):
             self.data = stream.read(self.zip_size)
 
         except KeyError:
+
             self._prevent_data_setitem = False
+
             self.address = 0
 
             data = kwargs["data"]
@@ -3574,8 +3578,7 @@ class DataZippedBlock(object):
             else:
                 self.param = kwargs["param"]
 
-            # since prevent_data_setitem is False the rest of the keys will be
-            # handled by __setitem__
+            self._transposed = kwargs.get("transposed", False)
             self.data = data
 
         self._prevent_data_setitem = False
@@ -3590,30 +3593,35 @@ class DataZippedBlock(object):
             if self.zip_type == v4c.FLAG_DZ_DEFLATE:
                 data = compress(data, 1)
             else:
-                cols = self.param
-                lines = original_size // cols
+                if not self._transposed:
+                    cols = self.param
+                    lines = original_size // cols
 
-                if lines * cols < original_size:
-                    data = (
-                        np.frombuffer(data[: lines * cols], dtype='B')
-                        .reshape((lines, cols))
-                        .T.tostring()
-                    ) + data[lines * cols :]
+                    if lines * cols < original_size:
+                        data = (
+                            np.frombuffer(data[: lines * cols], dtype='B')
+                            .reshape((lines, cols))
+                            .T.tostring()
+                        ) + data[lines * cols :]
 
-                else:
-                    data = (
-                        np.frombuffer(data, dtype=np.uint8)
-                        .reshape((lines, cols))
-                        .T.tostring()
-                    )
+                    else:
+                        data = (
+                            np.frombuffer(data, dtype=np.uint8)
+                            .reshape((lines, cols))
+                            .T.tostring()
+                        )
                 data = compress(data, 1)
 
             zipped_size = len(data)
             self.zip_size = zipped_size
             self.block_len = zipped_size + v4c.DZ_COMMON_SIZE
             DataZippedBlock.__dict__[item].__set__(self, data)
+            DataZippedBlock.__dict__['_transposed'].__set__(self, False)
         else:
             DataZippedBlock.__dict__[item].__set__(self, value)
+            DataZippedBlock.__dict__['_transposed'].__set__(self, False)
+
+
 
     def __getattribute__(self, item):
         if item == "data":
