@@ -171,6 +171,15 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
                     QtCore.Qt.Checked if info['display'] else QtCore.Qt.Unchecked
                 )
 
+                self.ranges = {}
+
+                for key, val in info['ranges'].items():
+                    start, stop = [
+                        float(e)
+                        for e in key.split('|')
+                    ]
+                    self.ranges[(start, stop)] = val
+
             except:
                 pass
 
@@ -195,6 +204,10 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             'individual_axis': self.individual_axis.checkState() == QtCore.Qt.Checked,
             'format': "hex" if self.fmt.startswith('0x') else "bin" if self.fmt.startswith('0b') else "phys",
             'display': self.display.checkState() == QtCore.Qt.Checked,
+            'ranges': {
+                 f'{start}|{stop}': val
+                 for (start, stop), val in self.ranges.items()
+            }
         }
 
         parent = self.parent().parent().parent().parent().parent()
