@@ -1337,8 +1337,8 @@ class _Plot(pg.PlotWidget):
                         samples = np.dstack((min_, max_)).ravel()
 
                         timestamps = sig.timestamps[start_: stop_2].reshape(rows, raster)
-                        t_max = np.nanmax(timestamps, axis=1)
-                        t_min = np.nanmin(timestamps, axis=1)
+                        t_max = timestamps[:, -1]
+                        t_min = timestamps[:, -0]
 
                         timestamps = np.dstack((t_min, t_max)).ravel()
 
@@ -1349,8 +1349,8 @@ class _Plot(pg.PlotWidget):
                             samples = np.concatenate((samples, [min_, max_]))
 
                             timestamps_ = sig.timestamps[stop_2: stop_]
-                            t_max = np.nanmax(timestamps_)
-                            t_min = np.nanmin(timestamps_)
+                            t_max = timestamps_[-1]
+                            t_min = timestamps_[0]
 
                             timestamps = np.concatenate((timestamps, [t_min, t_max]))
 

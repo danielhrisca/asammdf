@@ -41,9 +41,14 @@ def set_startbit(self, start_bit, bitNumbering=None, startLittle=None):
         If startLittle is set, given start_bit is assumed start from lsb bit
         rather than the start of the signal data in the message data.
         """
+
         # bit numbering not consistent with byte order. reverse
         if bitNumbering is not None and bitNumbering != self.is_little_endian:
-            pass
+            rest = start_bit % 8
+            if rest + 1 <= self.size:
+                start_bit -= rest
+            else:
+                start_bit -= self.size - 1
 
         # if given start_bit is for the end of signal data (lsbit),
         # convert to start of signal data (msbit)
