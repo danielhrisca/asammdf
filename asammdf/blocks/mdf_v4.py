@@ -420,6 +420,7 @@ class MDF4(object):
                 message = f"Attempting finalization of {self.name}"
                 logger.info(message)
                 self._finalize()
+
         stream = self._file
 
         self.header = HeaderBlock(address=0x40, stream=stream, mapped=mapped)
@@ -6875,7 +6876,10 @@ class MDF4(object):
         self._file_orig = self._file
         self._file = shim
 
-        return
+        self.identification.file_identification = b"MDF     "
+        self.identification.unfinalized_standard_flags = 0
+        self.identification.unfinalized_custom_flags = 0
+
 
     def _sort(self):
         if self._file is None:

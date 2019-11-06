@@ -213,7 +213,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                     df.drop(columns=to_drop, inplace=True)
                     new_df.drop(columns=to_drop, inplace=True)
                 self.query.setText(' '.join(filters))
-                df.rename(columns=original_names, inplace=True)
+                new_df.rename(columns=original_names, inplace=True)
                 self.build(new_df)
         else:
             self.query.setText('')
