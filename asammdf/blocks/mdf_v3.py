@@ -2956,7 +2956,7 @@ class MDF3(object):
         raster=None,
         record_offset=0,
         record_count=None,
-        one_peace=False,
+        one_piece=False,
     ):
         """ returns master channel samples for given group
 

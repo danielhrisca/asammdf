@@ -732,7 +732,7 @@ class MDF(object):
                     group.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
                 else:
                     group.record = None
-#                master = self.get_master(i, data=fragment, one_peace=True)
+#                master = self.get_master(i, data=fragment, one_piece=True)
                 self._set_temporary_master(None)
                 master = self.get_master(i, data=fragment)
 
@@ -1904,7 +1904,7 @@ class MDF(object):
             callback(0, 100)
 
         mdf_nr = len(files)
-        
+
         input_types = [
             isinstance(mdf, MDF)
             for mdf in files
@@ -2236,7 +2236,7 @@ class MDF(object):
                     mdf._set_temporary_master(None)
 
                 last_timestamps[i] = last_timestamp
-                
+
             if not input_types[mdf_index]:
                 mdf.close()
 
@@ -2279,7 +2279,7 @@ class MDF(object):
         stacked = MDF(version=version, callback=callback)
 
         files_nr = len(files)
-        
+
         input_types = [
             isinstance(mdf, MDF)
             for mdf in files
@@ -2485,7 +2485,7 @@ class MDF(object):
 
             if callback:
                 callback(mdf_index, files_nr)
-                
+
             if not input_types[mdf_index]:
                 mdf.close()
 
@@ -3501,7 +3501,7 @@ class MDF(object):
                 use_interpolation=use_interpolation,
                 only_basenames=only_basenames,
             )
-            
+
             mdf.close()
             return result
 

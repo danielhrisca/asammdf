@@ -4711,7 +4711,7 @@ class MDF4(object):
                             timestamps.append(
                                 self.get_master(
                                     gp_nr, fragment,
-                                    one_peace=True,
+                                    one_piece=True,
                                 )
                             )
                         if channel_invalidation_present:
@@ -5627,7 +5627,7 @@ class MDF4(object):
         raster=None,
         record_offset=0,
         record_count=None,
-        one_peace=False,
+        one_piece=False,
     ):
         """ returns master channel samples for given group
 
@@ -5675,23 +5675,18 @@ class MDF4(object):
                 record_count=record_count,
             )
 
-        fragment = data
-        if fragment:
-            data_bytes, offset, _count, invalidation_bytes = fragment
-        else:
-            offset = 0
-
-        original_data = fragment
-
         time_ch_nr = self.masters_db.get(index, None)
         channel_group = group.channel_group
         record_size = channel_group.samples_byte_nr
         record_size += channel_group.invalidation_bytes_nr
         cycles_nr = group.channel_group.cycles_nr
 
-        if original_data:
+        fragment = data
+        if fragment:
+            data_bytes, offset, _count, invalidation_bytes = fragment
             cycles_nr = len(data_bytes) // record_size if record_size else 0
         else:
+            offset = 0
             _count = record_count
 
         if time_ch_nr is None:
@@ -5730,8 +5725,8 @@ class MDF4(object):
                 if parents is None:
                     parents, dtypes = self._prepare_record(group)
 
-                if one_peace:
-                    data_bytes, offset, _count = data
+                if one_piece:
+                    data_bytes, offset, _count, _ = data
                     try:
                         parent, _ = parents[time_ch_nr]
                     except KeyError:
