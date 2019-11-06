@@ -526,6 +526,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
         self.clear_filter_btn.clicked.connect(self.clear_filter)
         self.clear_channels_btn.clicked.connect(self.clear_channels)
+        self.select_all_btn.clicked.connect(self.select_all_channels)
 
         self.aspects.setCurrentIndex(0)
 
@@ -1049,14 +1050,36 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
     def clear_channels(self):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
-        while iterator.value():
-            item = iterator.value()
-            item.setCheckState(0, QtCore.Qt.Unchecked)
+        if self.channel_view.currentIndex() == 1:
+            while iterator.value():
+                item = iterator.value()
+                if item.parent() is None:
+                    item.setExpanded(False)
+                else:
+                    item.setCheckState(0, QtCore.Qt.Unchecked)
+                iterator += 1
+        else:
+            while iterator.value():
+                item = iterator.value()
+                item.setCheckState(0, QtCore.Qt.Unchecked)
+                iterator += 1
 
-            if item.parent() is None:
-                item.setExpanded(False)
+    def select_all_channels(self):
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
-            iterator += 1
+        if self.channel_view.currentIndex() == 1:
+            while iterator.value():
+                item = iterator.value()
+                if item.parent() is None:
+                    item.setExpanded(False)
+                else:
+                    item.setCheckState(0, QtCore.Qt.Checked)
+                iterator += 1
+        else:
+            while iterator.value():
+                item = iterator.value()
+                item.setCheckState(0, QtCore.Qt.Checked)
+                iterator += 1
 
     def get_current_plot(self):
         mdi = self.mdi_area.activeSubWindow()
