@@ -1615,4 +1615,11 @@ def load_can_database(file, contents=None):
             except:
                 dbc = None
 
+    if isinstance(dbc, dict):
+        if dbc:
+            first_bus = list(dbc)[0]
+            dbc = dbc[first_bus]
+        else:
+            dbc = None
+
     return dbc
