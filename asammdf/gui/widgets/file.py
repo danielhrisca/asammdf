@@ -2413,5 +2413,5 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             "ARXML or DBC (*.dbc *.axml)",
         )
 
-        for file_name in file_names:
+        if file_names:
             self.can_database_list.addItems(file_names)

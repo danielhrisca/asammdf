@@ -112,3 +112,5 @@ canape*.ini
 _build/
 debug/
 *.txt
+/asammdf/gui/ssss.txt
+/asammdf/gui/ddsd.csv

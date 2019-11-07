@@ -1,8 +1,0 @@
-{
-    "selected_channels": [
-        "Timestamp",
-        "CAN_DataFrame.DataBytes",
-        "CAN_DataFrame.DataLength"
-    ],
-    "windows": []
-}
