@@ -2648,7 +2648,7 @@ class MDF3(object):
         dep = grp.channel_dependencies[ch_nr]
         cycles_nr = grp.channel_group.cycles_nr
 
-        encoding = None
+        encoding = "latin-1"
 
         # get data group record
         if data is None:
