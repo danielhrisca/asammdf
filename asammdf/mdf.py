@@ -1458,6 +1458,9 @@ class MDF(object):
 
                     mdict[channel_name] = df[name].values
 
+                    if hasattr(mdict[channel_name].dtype, 'categories'):
+                        mdict[channel_name] = np.array(mdict[channel_name], dtype='S')
+
                     if self._callback:
                         self._callback(i + 1 + count, count * 2)
 
