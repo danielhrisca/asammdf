@@ -3598,6 +3598,7 @@ class DataZippedBlock(object):
                     lines = original_size // cols
 
                     if lines * cols < original_size:
+                        data = memoryview(data)
                         data = (
                             np.frombuffer(data[: lines * cols], dtype='B')
                             .reshape((lines, cols))
@@ -3634,6 +3635,7 @@ class DataZippedBlock(object):
                     lines = original_size // cols
 
                     if lines * cols < original_size:
+                        data = memoryview(data)
                         data = (
                             np.frombuffer(data[: lines * cols], dtype=np.uint8)
                             .reshape((cols, lines))

@@ -2637,11 +2637,6 @@ class MDF3(object):
 
         grp = self.groups[gp_nr]
 
-        if grp.data_location == v23c.LOCATION_ORIGINAL_FILE:
-            stream = self._file
-        else:
-            stream = self._tempfile
-
         channel = grp.channels[ch_nr]
 
         conversion = channel.conversion

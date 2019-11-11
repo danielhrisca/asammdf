@@ -4629,9 +4629,7 @@ class MDF4(object):
             dependency_list = grp.channel_dependencies[ch_nr]
 
             # get data group record
-            parents, dtypes = grp.parents, grp.types
-            if parents is None:
-                parents, dtypes = self._prepare_record(grp)
+            parents, dtypes = self._prepare_record(grp)
 
             # get group data
             if data is None:
@@ -5206,10 +5204,9 @@ class MDF4(object):
                         parent, bit_offset = None, None
 
                     if parent is not None:
-                        if grp.record is None:
+                        record = grp.record
+                        if record is None:
                             record = fromstring(data_bytes, dtype=dtypes)
-                        else:
-                            record = grp.record
 
                         vals = record[parent]
 
@@ -5543,8 +5540,6 @@ class MDF4(object):
                 if conversion:
                     vals = conversion.convert(vals)
                     conversion = None
-
-
 
         if samples_only:
             if not channel_invalidation_present or not ignore_invalidation_bits:

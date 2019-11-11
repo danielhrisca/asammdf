@@ -114,6 +114,14 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
     def set_prefix(self, text=""):
         self._value_prefix = text
 
+    def update(self):
+        width = self.name.size().width()
+        if self.unit:
+            self.name.setText(self.fm.elidedText(f'{self._name} ({self.unit})', QtCore.Qt.ElideMiddle, width))
+        else:
+            self.name.setText(self.fm.elidedText(self._name, QtCore.Qt.ElideMiddle, width))
+        self.set_value(self._value)
+
     def set_value(self, value):
         self._value = value
         if self.ranges and value not in ("", "n.a."):

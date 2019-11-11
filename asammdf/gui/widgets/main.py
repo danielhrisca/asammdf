@@ -398,6 +398,11 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.subplots = state
         self._settings.setValue('subplots', state)
 
+        count = self.files.count()
+
+        for i in range(count):
+            self.files.widget(i).set_subplots(state)
+
     def set_plot_background(self, option):
         self._settings.setValue('plot_background', option)
         if option == 'Black':
@@ -617,8 +622,6 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 self.ignore_value2text_conversions,
                 self,
             )
-            widget.search_field.set_search_option(self.match)
-            widget.filter_field.set_search_option(self.match)
         except:
             raise
         else:
@@ -713,3 +716,13 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         else:
             self.plot_menu.setEnabled(False)
             self.setWindowTitle(f'asammdf {libversion} - Batch processing')
+
+    def keyPressEvent(self, event):
+        key = event.key()
+        modifier = event.modifiers()
+
+        if key == QtCore.Qt.Key_F and modifier == QtCore.Qt.ControlModifier:
+            if self.files.count() and self.stackedWidget.currentIndex() == 0:
+                self.files.currentWidget().keyPressEvent(event)
+        else:
+            super().keyPressEvent(event)

@@ -130,7 +130,7 @@ class Plot(QtWidgets.QWidget):
             if sig.enable:
 
                 self.plot.set_current_uuid(self.info_uuid)
-                stats = self.plot.get_stats(self.info_uuid)
+                stats = self.plot.get_stats(self.info_uuid, self.channel_selection.itemWidget(item).fmt)
                 self.info.set_stats(stats)
 
     def channel_selection_row_changed(self, row):
@@ -143,7 +143,7 @@ class Plot(QtWidgets.QWidget):
             if sig.enable:
 
                 self.plot.set_current_uuid(self.info_uuid)
-                stats = self.plot.get_stats(self.info_uuid)
+                stats = self.plot.get_stats(self.info_uuid, self.channel_selection.itemWidget(item).fmt)
                 self.info.set_stats(stats)
 
     def channel_selection_reduced(self, deleted):
@@ -204,9 +204,22 @@ class Plot(QtWidgets.QWidget):
 
             _, (hint_min, hint_max) = self.plot.viewbox.viewRange()
 
-            for viewbox, sig, curve in zip(
-                self.plot.view_boxes, self.plot.signals, self.plot.curves
-            ):
+            items = [
+                self.channel_selection.item(i)
+                for i in range(self.channel_selection.count())
+            ]
+
+            uuids = [
+                self.channel_selection.itemWidget(item).uuid
+                for item in items
+            ]
+
+            for uuid in uuids:
+                sig, idx = self.plot.signal_by_uuid(uuid)
+
+                curve = self.plot.curves[idx]
+                viewbox = self.plot.view_boxes[idx]
+
                 if curve.isVisible():
                     index = np.argwhere(sig.timestamps == next_pos).flatten()
                     if len(index):
@@ -226,7 +239,18 @@ class Plot(QtWidgets.QWidget):
 
         if not self.plot.region:
             self.cursor_info.setText(f"t = {position:.6f}s")
-            for i, signal in enumerate(self.plot.signals):
+            items = [
+                self.channel_selection.item(i)
+                for i in range(self.channel_selection.count())
+            ]
+
+            uuids = [
+                self.channel_selection.itemWidget(item).uuid
+                for item in items
+            ]
+
+            for i, uuid in enumerate(uuids):
+                signal, idx = self.plot.signal_by_uuid(uuid)
                 cut_sig = signal.cut(position, position)
                 if signal.plot_texts is None or len(cut_sig) == 0:
                     samples = cut_sig.samples
@@ -258,13 +282,15 @@ class Plot(QtWidgets.QWidget):
                     item.set_value("n.a.")
 
         if self.info.isVisible():
-            stats = self.plot.get_stats(self.info_uuid)
+            fmt = self.widget_by_uuid(self.info_uuid).fmt
+            stats = self.plot.get_stats(self.info_uuid, fmt)
             self.info.set_stats(stats)
 
         self.cursor_moved_signal.emit(self, position)
 
     def cursor_removed(self):
-        for i, signal in enumerate(self.plot.signals):
+
+        for i in range(self.channel_selection.count()):
             item = self.channel_selection.item(i)
             item = self.channel_selection.itemWidget(item)
 
@@ -273,7 +299,8 @@ class Plot(QtWidgets.QWidget):
                 item.set_prefix("")
                 item.set_value("")
         if self.info.isVisible():
-            stats = self.plot.get_stats(self.info_uuid)
+            fmt = self.widget_by_uuid(self.info_uuid).fmt
+            stats = self.plot.get_stats(self.info_uuid, fmt)
             self.info.set_stats(stats)
 
         self.cursor_removed_signal.emit(self)
@@ -291,10 +318,13 @@ class Plot(QtWidgets.QWidget):
             )
         )
 
-        for i, signal in enumerate(self.plot.signals):
-            samples = signal.cut(start, stop).samples
+        for i in range(self.channel_selection.count()):
+
             item = self.channel_selection.item(i)
             item = self.channel_selection.itemWidget(item)
+
+            signal, i = self.plot.signal_by_uuid(item.uuid)
+            samples = signal.cut(start, stop).samples
 
             item.set_prefix("Δ = ")
             item.set_fmt(signal.format)
@@ -311,12 +341,14 @@ class Plot(QtWidgets.QWidget):
                 item.set_value("n.a.")
 
         if self.info.isVisible():
-            stats = self.plot.get_stats(self.info_uuid)
+            fmt = self.widget_by_uuid(self.info_uuid).fmt
+            stats = self.plot.get_stats(self.info_uuid, fmt)
             self.info.set_stats(stats)
 
     def xrange_changed(self):
         if self.info.isVisible():
-            stats = self.plot.get_stats(self.info_uuid)
+            fmt = self.widget_by_uuid(self.info_uuid).fmt
+            stats = self.plot.get_stats(self.info_uuid, fmt)
             self.info.set_stats(stats)
 
     def range_modified_finished(self):
@@ -353,7 +385,9 @@ class Plot(QtWidgets.QWidget):
             self.plot.region.setRegion((start, stop))
 
     def keyPressEvent(self, event):
-        if event.key() == QtCore.Qt.Key_M and event.modifiers() == QtCore.Qt.NoModifier:
+        key = event.key()
+        modifiers = event.modifiers()
+        if key == QtCore.Qt.Key_M and modifiers == QtCore.Qt.NoModifier:
 
             ch_size, plt_size, info_size = self.splitter.sizes()
 
@@ -378,11 +412,99 @@ class Plot(QtWidgets.QWidget):
                     )
                 )
 
+        elif key == QtCore.Qt.Key_E and modifiers == QtCore.Qt.ControlModifier:
+            for sig in self.plot.signals:
+                print(sig.name, sig.uuid, self.plot.signal_by_uuid(sig.uuid)[1])
+
+            for i in range(self.channel_selection.count()):
+                item = self.channel_selection.item(i)
+                wid = self.channel_selection.itemWidget(item)
+                print(i, wid._name, wid.uuid)
+
+
+        elif key == QtCore.Qt.Key_B and modifiers == QtCore.Qt.ControlModifier:
+            selected_items = self.channel_selection.selectedItems()
+            if not selected_items:
+                signals = self.plot.signals
+
+            else:
+                uuids = [
+                    self.channel_selection.itemWidget(item).uuid
+                    for item in selected_items
+                ]
+
+                signals = [
+                    self.plot.signal_by_uuid(uuid)[0]
+                    for uuid in uuids
+                ]
+
+            for signal in signals:
+                if signal.samples.dtype.kind in "ui":
+                    signal.format = "bin"
+                if self.plot.current_uuid == signal.uuid:
+                    self.plot.axis.format = "bin"
+                    self.plot.axis.hide()
+                    self.plot.axis.show()
+            if self.plot.cursor1:
+                self.plot.cursor_moved.emit()
+
+        elif key == QtCore.Qt.Key_H and modifiers == QtCore.Qt.ControlModifier:
+            selected_items = self.channel_selection.selectedItems()
+            if not selected_items:
+                signals = self.plot.signals
+
+            else:
+                uuids = [
+                    self.channel_selection.itemWidget(item).uuid
+                    for item in selected_items
+                ]
+
+                signals = [
+                    self.plot.signal_by_uuid(uuid)[0]
+                    for uuid in uuids
+                ]
+
+            for signal in signals:
+                if signal.samples.dtype.kind in "ui":
+                    signal.format = "hex"
+                if self.plot.current_uuid == signal.uuid:
+                    self.plot.axis.format = "hex"
+                    self.plot.axis.hide()
+                    self.plot.axis.show()
+            if self.plot.cursor1:
+                self.plot.cursor_moved.emit()
+
+        elif key == QtCore.Qt.Key_P and modifiers == QtCore.Qt.ControlModifier:
+            selected_items = self.channel_selection.selectedItems()
+            if not selected_items:
+                signals = self.plot.signals
+
+            else:
+                uuids = [
+                    self.channel_selection.itemWidget(item).uuid
+                    for item in selected_items
+                ]
+
+                signals = [
+                    self.plot.signal_by_uuid(uuid)[0]
+                    for uuid in uuids
+                ]
+
+            for signal in signals:
+                if signal.samples.dtype.kind in "ui":
+                    signal.format = "phys"
+                if self.plot.current_uuid == signal.uuid:
+                    self.plot.axis.format = "phys"
+                    self.plot.axis.hide()
+                    self.plot.axis.show()
+            if self.plot.cursor1:
+                self.plot.cursor_moved.emit()
+
         else:
             self.plot.keyPressEvent(event)
 
     def range_removed(self):
-        for i, signal in enumerate(self.plot.signals):
+        for i in range(self.channel_selection.count()):
             item = self.channel_selection.item(i)
             item = self.channel_selection.itemWidget(item)
 
@@ -393,7 +515,8 @@ class Plot(QtWidgets.QWidget):
         if self.plot.cursor1:
             self.plot.cursor_moved.emit()
         if self.info.isVisible():
-            stats = self.plot.get_stats(self.info_uuid)
+            fmt = self.widget_by_uuid(self.info_uuid).fmt
+            stats = self.plot.get_stats(self.info_uuid, fmt)
             self.info.set_stats(stats)
 
     def computation_channel_inserted(self):
@@ -519,6 +642,16 @@ class Plot(QtWidgets.QWidget):
             else:
                 super().dropEvent(e)
 
+    def widget_by_uuid(self, uuid):
+        for i in range(self.channel_selection.count()):
+            item = self.channel_selection.item(i)
+            widget = self.channel_selection.itemWidget(item)
+            if widget.uuid == uuid:
+                break
+        else:
+            widget = None
+        return widget
+
 
 class _Plot(pg.PlotWidget):
     cursor_moved = QtCore.pyqtSignal()
@@ -624,7 +757,8 @@ class _Plot(pg.PlotWidget):
             with_dots_changed = True
 
         if with_dots_changed or force:
-            for i, sig in enumerate(self.signals):
+            for sig in self.signals:
+                _, i = self.signal_by_uuid(sig.uuid)
                 color = sig.color
                 t = sig.plot_timestamps
 
@@ -731,7 +865,7 @@ class _Plot(pg.PlotWidget):
         for view_box in self.view_boxes:
             view_box.setGeometry(geometry)
 
-    def get_stats(self, uuid):
+    def get_stats(self, uuid, fmt):
         stats = {}
         sig, index = self.signal_by_uuid(uuid)
         x = sig.timestamps
@@ -744,8 +878,8 @@ class _Plot(pg.PlotWidget):
                 stats["overall_max"] = ""
                 stats["overall_average"] = ""
                 stats["overall_rms"] = ""
-                stats["overall_start"] = sig.timestamps[0]
-                stats["overall_stop"] = sig.timestamps[-1]
+                stats["overall_start"] = fmt.format(sig.timestamps[0])
+                stats["overall_stop"] = fmt.format(sig.timestamps[-1])
                 stats["unit"] = ""
                 stats["color"] = sig.color
                 stats["name"] = sig.name
@@ -784,8 +918,8 @@ class _Plot(pg.PlotWidget):
                 stats["visible_rms"] = ""
                 stats["visible_delta"] = ""
             else:
-                stats["overall_min"] = sig.min
-                stats["overall_max"] = sig.max
+                stats["overall_min"] = fmt.format(sig.min)
+                stats["overall_max"] = fmt.format(sig.max)
                 stats["overall_average"] = sig.avg
                 stats["overall_rms"] = sig.rms
                 stats["overall_start"] = sig.timestamps[0]
@@ -813,7 +947,7 @@ class _Plot(pg.PlotWidget):
                             else:
                                 val = f"{val:.6f}= {vals[0]:.6f}"
 
-                        stats["cursor_value"] = val
+                        stats["cursor_value"] = fmt.format(val)
 
                     else:
                         stats["cursor_value"] = "n.a."
@@ -825,7 +959,7 @@ class _Plot(pg.PlotWidget):
                 if self.region:
                     start, stop = self.region.getRegion()
 
-                    if sig._stats["range"] != (start, stop):
+                    if sig._stats["range"] != (start, stop) or sig._stats["fmt"] != fmt:
                         new_stats = {}
                         new_stats["selected_start"] = start
                         new_stats["selected_stop"] = stop
@@ -834,20 +968,20 @@ class _Plot(pg.PlotWidget):
                         cut = sig.cut(start, stop)
 
                         if len(cut):
-                            new_stats["selected_min"] = np.nanmin(cut.samples)
-                            new_stats["selected_max"] = np.nanmax(cut.samples)
+                            new_stats["selected_min"] = fmt.format(np.nanmin(cut.samples))
+                            new_stats["selected_max"] = fmt.format(np.nanmax(cut.samples))
                             new_stats["selected_average"] = np.mean(cut.samples)
                             new_stats["selected_rms"] = (
                                  np.sqrt(np.mean(np.square(cut.samples)))
                             )
                             if cut.samples.dtype.kind in "ui":
-                                new_stats["selected_delta"] = int(
+                                new_stats["selected_delta"] = fmt.format(int(
                                     float(cut.samples[-1]) - (cut.samples[0])
-                                )
+                                ))
                             else:
-                                new_stats["selected_delta"] = (
+                                new_stats["selected_delta"] = fmt.format((
                                     cut.samples[-1] - cut.samples[0]
-                                )
+                                ))
 
                         else:
                             new_stats["selected_min"] = "n.a."
@@ -873,7 +1007,7 @@ class _Plot(pg.PlotWidget):
 
                 (start, stop), _ = self.viewbox.viewRange()
 
-                if sig._stats["visible"] != (start, stop):
+                if sig._stats["visible"] != (start, stop)  or sig._stats["fmt"] != fmt:
                     new_stats = {}
                     new_stats["visible_start"] = start
                     new_stats["visible_stop"] = stop
@@ -882,8 +1016,8 @@ class _Plot(pg.PlotWidget):
                     cut = sig.cut(start, stop)
 
                     if len(cut):
-                        new_stats["visible_min"] = np.nanmin(cut.samples)
-                        new_stats["visible_max"] = np.nanmax(cut.samples)
+                        new_stats["visible_min"] = fmt.format(np.nanmin(cut.samples))
+                        new_stats["visible_max"] = fmt.format(np.nanmax(cut.samples))
                         new_stats["visible_average"] = np.mean(cut.samples)
                         new_stats["visible_rms"] = (
                              np.sqrt(np.mean(np.square(cut.samples)))
@@ -893,7 +1027,7 @@ class _Plot(pg.PlotWidget):
                                 int(cut.samples[-1]) - int(cut.samples[0])
                             )
                         else:
-                            new_stats["visible_delta"] = (
+                            new_stats["visible_delta"] = fmt.format(
                                 cut.samples[-1] - cut.samples[0]
                             )
 
@@ -965,6 +1099,7 @@ class _Plot(pg.PlotWidget):
             stats["visible_rms"] = "n.a."
             stats["visible_delta"] = "n.a."
 
+        sig._stats["fmt"] = fmt
         return stats
 
     def keyPressEvent(self, event):
@@ -1188,39 +1323,6 @@ class _Plot(pg.PlotWidget):
                     self.viewbox.autoRange(padding=0)
                     self.viewbox.setXRange(*xrange, padding=0)
                     self.viewbox.disableAutoRange()
-                if self.cursor1:
-                    self.cursor_moved.emit()
-
-            elif key == QtCore.Qt.Key_H and modifier == QtCore.Qt.ControlModifier:
-                for i, signal in enumerate(self.signals):
-                    if signal.samples.dtype.kind in "ui":
-                        signal.format = "hex"
-                    if self.current_uuid == i:
-                        self.axis.format = "hex"
-                        self.axis.hide()
-                        self.axis.show()
-                if self.cursor1:
-                    self.cursor_moved.emit()
-
-            elif key == QtCore.Qt.Key_B and modifier == QtCore.Qt.ControlModifier:
-                for i, signal in enumerate(self.signals):
-                    if signal.samples.dtype.kind in "ui":
-                        signal.format = "bin"
-                    if self.current_uuid == i:
-                        self.axis.format = "bin"
-                        self.axis.hide()
-                        self.axis.show()
-                if self.cursor1:
-                    self.cursor_moved.emit()
-
-            elif key == QtCore.Qt.Key_P and modifier == QtCore.Qt.ControlModifier:
-                for i, signal in enumerate(self.signals):
-                    if signal.samples.dtype.kind in "ui":
-                        signal.format = "phys"
-                    if self.current_uuid == i:
-                        self.axis.format = "phys"
-                        self.axis.hide()
-                        self.axis.show()
                 if self.cursor1:
                     self.cursor_moved.emit()
 
@@ -1519,6 +1621,7 @@ class _Plot(pg.PlotWidget):
                 "range_stats": {},
                 "visible": (0, -1),
                 "visible_stats": {},
+                "fmt": "",
             }
 
             color = COLORS[index % 10]

@@ -156,6 +156,16 @@ class ListWidget(QtWidgets.QListWidget):
         menu.addAction(self.tr("Copy display properties (Ctrl+Shift+C)"))
         menu.addAction(self.tr("Paste display properties (Ctrl+Shift+P)"))
         menu.addSeparator()
+        menu.addAction(self.tr("Enable all"))
+        menu.addAction(self.tr("Disable all"))
+        menu.addAction(self.tr("Enable all but this"))
+        menu.addSeparator()
+        menu.addAction(self.tr("Add to common Y axis"))
+        menu.addAction(self.tr("Remove from common Y axis"))
+        menu.addSeparator()
+        menu.addAction(self.tr("Set unit"))
+        menu.addAction(self.tr("Set precision"))
+        menu.addSeparator()
         menu.addAction(self.tr("Delete (Del)"))
 
         action = menu.exec_(self.viewport().mapToGlobal(position))
@@ -186,6 +196,81 @@ class ListWidget(QtWidgets.QListWidget):
                 QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier,
             )
             self.itemWidget(item).keyPressEvent(event)
+
+        if action.text() == "Enable all":
+            for i in range(self.count()):
+                item = self.item(i)
+                widget = self.itemWidget(item)
+                widget.display.setCheckState(QtCore.Qt.Checked)
+
+        elif action.text() == "Disable all":
+            for i in range(self.count()):
+                item = self.item(i)
+                widget = self.itemWidget(item)
+                widget.display.setCheckState(QtCore.Qt.Unchecked)
+
+        elif action.text() == "Enable all but this":
+            selected_items = self.selectedItems()
+            for i in range(self.count()):
+                item = self.item(i)
+                widget = self.itemWidget(item)
+                if item in selected_items:
+                    widget.display.setCheckState(QtCore.Qt.Unchecked)
+                else:
+                    widget.display.setCheckState(QtCore.Qt.Checked)
+
+        elif action.text() == "Add to common Y axis":
+            selected_items = self.selectedItems()
+            for i in range(self.count()):
+                item = self.item(i)
+                widget = self.itemWidget(item)
+                if item in selected_items:
+                    widget.ylink.setCheckState(QtCore.Qt.Checked)
+
+        elif action.text() == "Remove from common Y axis":
+            selected_items = self.selectedItems()
+            for i in range(self.count()):
+                item = self.item(i)
+                widget = self.itemWidget(item)
+                if item in selected_items:
+                    widget.ylink.setCheckState(QtCore.Qt.Unchecked)
+
+        elif action.text() == "Set unit":
+            selected_items = self.selectedItems()
+
+            unit, ok = QtWidgets.QInputDialog.getText(
+                None,
+                'Set new unit',
+                'Unit:',
+            )
+
+            if ok:
+
+                selected_items = self.selectedItems()
+                for i in range(self.count()):
+                    item = self.item(i)
+                    widget = self.itemWidget(item)
+                    if item in selected_items:
+                        widget.unit = unit
+                        widget.update()
+
+        elif action.text() == "Set precision":
+            selected_items = self.selectedItems()
+
+            precision, ok = QtWidgets.QInputDialog.getInt(
+                None,
+                'Set new precision (float decimals)',
+                'Precision:',
+            )
+
+            if ok and 0 <= precision <= 15:
+
+                for i in range(self.count()):
+                    item = self.item(i)
+                    widget = self.itemWidget(item)
+                    if item in selected_items:
+                        widget.set_precision(precision)
+                        widget.update()
 
         elif action.text() == "Delete (Del)":
             event = QtGui.QKeyEvent(
