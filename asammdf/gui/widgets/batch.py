@@ -769,10 +769,12 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
             call_info = dict(mdf.last_call_info)
 
+            found_id_count = sum(e for e in call_info["found_ids"].values())
+
             message = [
                 '',
                 f'Summary of "{mdf.name}":',
-                f'- {call_info["found_id_count"]} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
+                f'- {found_id_count} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
             ]
             if call_info['unknown_id_count']:
                 message.append(f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file')
@@ -900,10 +902,12 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
             call_info = dict(mdf.last_call_info)
 
+            found_id_count = sum(e for e in call_info["found_ids"].values())
+
             message = [
                 '',
                 f'Summary of "{mdf.name}":',
-                f'- {call_info["found_id_count"]} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
+                f'- {found_id_count} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
             ]
             if call_info['unknown_id_count']:
                 message.append(f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file')

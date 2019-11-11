@@ -148,7 +148,10 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                 filters.append(filter.relation.currentText().lower())
 
             column_name = filter.column.currentText()
-            is_byte_array = self.signals_descr[column_name]
+            if column_name == df.index.name:
+                is_byte_array = False
+            else:
+                is_byte_array = self.signals_descr[column_name]
             column_name = pandas_query_compatible(column_name)
             op = filter.op.currentText()
 
