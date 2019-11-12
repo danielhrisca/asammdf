@@ -72,11 +72,14 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
         prefixes = set()
         for name in self.signals.columns:
-            if '.' in name:
-                prefixes.add(f'{name.split(".")[0]}.')
+            while '.' in name:
+                name = name.rsplit(".", 1)[0]
+                prefixes.add(f'{name}.')
 
         self.prefix.insertItems(0, sorted(prefixes))
         self.prefix.setEnabled(False)
+
+        self.prefix.currentIndexChanged.connect(self.prefix_changed)
 
         self.tree_scroll.valueChanged.connect(self._display)
         self.tree.verticalScrollBar().valueChanged.connect(self._scroll_tree)
@@ -395,3 +398,6 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         else:
             self.prefix.setEnabled(False)
             self.tree.setHeaderLabels(self.header_names)
+
+    def prefix_changed(self, index):
+        self.remove_prefix_changed(QtCore.Qt.Checked)
