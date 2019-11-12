@@ -54,6 +54,11 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
             self.signals = signals
 
+        self.as_hex = [
+            name.endswith('CAN_DataFrame.ID')
+            for name in self.signals.columns
+        ]
+
         self._original_index = self.signals.index.values
 
         self.build(self.signals, True)
@@ -284,12 +289,12 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             index = df.index
         items = [index.astype(str),]
 
-        for name in df:
+        for i, name in enumerate(df.columns):
             column = df[name]
             kind = column.dtype.kind
 
-            if name.endswith('CAN_DataFrame.ID'):
-                items.append(pd.Series(csv_int2hex(df[name].astype('<u4'))).values)
+            if self.as_hex[i]:
+                items.append(pd.Series(csv_int2hex(column.astype('<u4'))).values)
             else:
 
                 if kind in 'uif':
