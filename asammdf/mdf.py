@@ -1288,7 +1288,7 @@ class MDF(object):
 
                         for name_ in df.columns:
                             if name_.endswith('CAN_DataFrame.ID'):
-                                dropped[name_] = pd.Series(csv_int2hex(df[name_].astype('<u4')), index=df.index)
+                                dropped[name_] = pd.Series(csv_int2hex(df[name_].astype('<u4') & 0x1FFFFFFF), index=df.index)
 
                             elif name_.endswith('CAN_DataFrame.DataBytes'):
                                 dropped[name_] = pd.Series(csv_bytearray2hex(df[name_]), index=df.index)
@@ -1365,7 +1365,7 @@ class MDF(object):
 
                             for name_ in df.columns:
                                 if name_.endswith('CAN_DataFrame.ID'):
-                                    dropped[name_] = pd.Series(csv_int2hex(df[name_]), index=df.index)
+                                    dropped[name_] = pd.Series(csv_int2hex(df[name_] & 0x1FFFFFFF), index=df.index)
 
                                 elif name_.endswith('CAN_DataFrame.DataBytes'):
                                     dropped[name_] = pd.Series(csv_bytearray2hex(df[name_]), index=df.index)
@@ -3764,7 +3764,7 @@ class MDF(object):
                         'CAN_DataFrame.ID',
                         group=i,
                         data=fragment,
-                    )
+                    ) & 0x1FFFFFFF
 
                     if is_j1939:
                         ps = (msg_ids.samples >> 8) & 0xFF

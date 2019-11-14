@@ -1409,6 +1409,10 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 ignore_value2text_conversions=self.ignore_value2text_conversions,
                 time_from_zero=False,
             )
+
+            for name in signals.columns:
+                if name.endswith('CAN_DataFrame.ID'):
+                    signals[name] = signals[name] & 0x1fffffff
         else:
 
             signals = self.mdf.select(
@@ -1426,9 +1430,14 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 if not sig.samples.dtype.names
             ]
 
+
+
             for signal in signals:
                 if len(signal.samples.shape) > 1:
                     signal.samples = csv_bytearray2hex(pd.Series(list(signal.samples))).astype(bytes)
+
+                if signal.name.endswith('CAN_DataFrame.ID'):
+                    signal.samples = signal.samples & 0x1fffffff
 
             signals = natsorted(signals, key=lambda x: x.name)
 
