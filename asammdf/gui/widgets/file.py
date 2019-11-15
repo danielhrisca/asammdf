@@ -819,6 +819,53 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                         widget = widgets[index-3]
                         self.add_new_channels(names, widget)
 
+    def to_config(self):
+        config = {}
+
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
+
+        signals = []
+        if self.channel_view.currentIndex() == 1:
+            while iterator.value():
+                item = iterator.value()
+                if item.parent() is None:
+                    iterator += 1
+                    continue
+
+                if item.checkState(0) == QtCore.Qt.Checked:
+                    signals.append(item.text(0))
+
+                iterator += 1
+        else:
+            while iterator.value():
+                item = iterator.value()
+
+                if item.checkState(0) == QtCore.Qt.Checked:
+                    signals.append(item.text(0))
+
+                iterator += 1
+
+        config['selected_channels'] = signals
+
+        windows = []
+        for window in self.mdi_area.subWindowList():
+            wid = window.widget()
+            window_config = {
+                'title': window.windowTitle(),
+                'configuration': wid.to_config(),
+            }
+            if isinstance(wid, Numeric):
+                window_config['type'] = 'Numeric'
+            elif isinstance(wid, Plot):
+                window_config['type'] = 'Plot'
+            else:
+                window_config['type'] = 'Tabular'
+            windows.append(window_config)
+
+        config['windows'] = windows
+
+        return config
+
     def save_channel_list(self, event=None, file_name=None):
 
         if file_name is None:
@@ -827,52 +874,9 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             )
 
         if file_name:
-
-            config = {}
-            with open(file_name, "w") as output:
-                iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
-
-                signals = []
-                if self.channel_view.currentIndex() == 1:
-                    while iterator.value():
-                        item = iterator.value()
-                        if item.parent() is None:
-                            iterator += 1
-                            continue
-
-                        if item.checkState(0) == QtCore.Qt.Checked:
-                            signals.append(item.text(0))
-
-                        iterator += 1
-                else:
-                    while iterator.value():
-                        item = iterator.value()
-
-                        if item.checkState(0) == QtCore.Qt.Checked:
-                            signals.append(item.text(0))
-
-                        iterator += 1
-
-                config['selected_channels'] = signals
-
-                windows = []
-                for window in self.mdi_area.subWindowList():
-                    wid = window.widget()
-                    window_config = {
-                        'title': window.windowTitle(),
-                        'configuration': wid.to_config(),
-                    }
-                    if isinstance(wid, Numeric):
-                        window_config['type'] = 'Numeric'
-                    elif isinstance(wid, Plot):
-                        window_config['type'] = 'Plot'
-                    else:
-                        window_config['type'] = 'Tabular'
-                    windows.append(window_config)
-
-                config['windows'] = windows
-
-                output.write(json.dumps(config, indent=4, sort_keys=True))
+            Path(file_name).write_text(
+                json.dumps(self.to_config(), indent=4, sort_keys=True)
+            )
 
     def load_channel_list(self, event=None, file_name=None):
         if file_name is None:
@@ -881,42 +885,47 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             )
 
         if file_name:
-            with open(file_name, "r") as infile:
-                info = json.load(infile)
-
-            channels = info['selected_channels']
-
-            iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
-
-            if self.channel_view.currentIndex() == 1:
-                while iterator.value():
-                    item = iterator.value()
-                    if item.parent() is None:
-                        iterator += 1
-                        continue
-
-                    channel_name = item.text(0)
-                    if channel_name in channels:
-                        item.setCheckState(0, QtCore.Qt.Checked)
-                        channels.pop(channels.index(channel_name))
-                    else:
-                        item.setCheckState(0, QtCore.Qt.Unchecked)
-
-                    iterator += 1
+            if not isinstance(file_name, dict):
+                with open(file_name, "r") as infile:
+                    info = json.load(infile)
             else:
-                while iterator.value():
-                    item = iterator.value()
+                info = file_name
 
-                    channel_name = item.text(0)
-                    if channel_name in channels:
-                        item.setCheckState(0, QtCore.Qt.Checked)
-                        channels.pop(channels.index(channel_name))
-                    else:
-                        item.setCheckState(0, QtCore.Qt.Unchecked)
+            channels = info.get('selected_channels', [])
 
-                    iterator += 1
+            if channels:
 
-            for window in info['windows']:
+                iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
+
+                if self.channel_view.currentIndex() == 1:
+                    while iterator.value():
+                        item = iterator.value()
+                        if item.parent() is None:
+                            iterator += 1
+                            continue
+
+                        channel_name = item.text(0)
+                        if channel_name in channels:
+                            item.setCheckState(0, QtCore.Qt.Checked)
+                            channels.pop(channels.index(channel_name))
+                        else:
+                            item.setCheckState(0, QtCore.Qt.Unchecked)
+
+                        iterator += 1
+                else:
+                    while iterator.value():
+                        item = iterator.value()
+
+                        channel_name = item.text(0)
+                        if channel_name in channels:
+                            item.setCheckState(0, QtCore.Qt.Checked)
+                            channels.pop(channels.index(channel_name))
+                        else:
+                            item.setCheckState(0, QtCore.Qt.Unchecked)
+
+                        iterator += 1
+
+            for window in info.get('windows', []):
                 self.load_window(window)
 
     def save_filter_list(self):
@@ -1083,7 +1092,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
     def close(self):
         mdf_name = self.mdf.name
         self.mdf.close()
-        if self.file_name.suffix.lower() == ".dl3":
+        if self.file_name.suffix.lower() in (".dl3", ".erg"):
             mdf_name.unlink()
 
     def convert(self, event):
