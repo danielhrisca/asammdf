@@ -1599,6 +1599,10 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 for name in window_info['configuration']['channels']
                 if name in self.mdf
             ]
+
+            if not signals_:
+                return
+
             signals = self.mdf.select(
                 signals_,
                 ignore_value2text_conversions=self.ignore_value2text_conversions,
@@ -1866,6 +1870,9 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
             signals = list(measured_signals.values()) + list(computed_signals.values())
 
+            if not signals:
+                return
+
             plot = Plot([], self.with_dots)
 
             if not self.subplots:
@@ -1955,6 +1962,10 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 for name in window_info['configuration']['channels']
                 if name in self.mdf
             ]
+
+            if not signals_:
+                return
+
             signals = self.mdf.to_dataframe(
                 channels=signals_,
                 ignore_value2text_conversions=self.ignore_value2text_conversions,
