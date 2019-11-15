@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'file_widget.ui'
 #
-# Created by: PyQt5 UI code generator 5.13.0
+# Created by: PyQt5 UI code generator 5.13.1
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -531,7 +531,7 @@ class Ui_file_widget(object):
         self.line_12.setObjectName("line_12")
         self.gridLayout_5.addWidget(self.line_12, 4, 0, 1, 2)
         self.gridLayout_8.addWidget(self.groupBox_2, 2, 0, 1, 1)
-        self.can_database_list = ListWidget(self.extract_can_tab)
+        self.can_database_list = MinimalListWidget(self.extract_can_tab)
         self.can_database_list.setObjectName("can_database_list")
         self.gridLayout_8.addWidget(self.can_database_list, 1, 0, 1, 2)
         self.output_info_can = QtWidgets.QTextEdit(self.extract_can_tab)
@@ -641,5 +641,5 @@ class Ui_file_widget(object):
         self.info.headerItem().setText(0, _translate("file_widget", "Cathegory"))
         self.info.headerItem().setText(1, _translate("file_widget", "Value"))
         self.aspects.setTabText(self.aspects.indexOf(self.info_tab), _translate("file_widget", "Info"))
-from asammdf.gui.widgets.list import ListWidget
+from asammdf.gui.widgets.list import MinimalListWidget
 from . import resource_rc

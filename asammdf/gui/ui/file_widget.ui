@@ -1249,7 +1249,7 @@
         </widget>
        </item>
        <item row="1" column="0" colspan="2">
-        <widget class="ListWidget" name="can_database_list"/>
+        <widget class="MinimalListWidget" name="can_database_list"/>
        </item>
        <item row="1" column="2" rowspan="2" colspan="2">
         <widget class="QTextEdit" name="output_info_can">
@@ -1294,7 +1294,7 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>ListWidget</class>
+   <class>MinimalListWidget</class>
    <extends>QListWidget</extends>
    <header>asammdf/gui/widgets/list.h</header>
   </customwidget>
