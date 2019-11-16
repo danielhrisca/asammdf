@@ -440,6 +440,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         item = QtWidgets.QTreeWidgetItem()
         item.setText(0, 'Measurement comment')
         item.setText(1, self.mdf.header.comment)
+        item.setTextAlignment(0, QtCore.Qt.AlignTop)
         children.append(item)
 
         channel_groups = QtWidgets.QTreeWidgetItem()
@@ -498,6 +499,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         mdf_info.addChildren(children)
 
         self.info.expandAll()
+
+        self.info.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
 
         # self.channels_tree.itemChanged.connect(self.select)
         self.create_window_btn.clicked.connect(self._create_window)
@@ -1427,7 +1430,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
             for name in signals.columns:
                 if name.endswith('CAN_DataFrame.ID'):
-                    signals[name] = signals[name] & 0x1fffffff
+                    signals[name] = signals[name].astype('<u4') & 0x1fffffff
         else:
 
             signals = self.mdf.select(
@@ -1445,14 +1448,12 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 if not sig.samples.dtype.names
             ]
 
-
-
             for signal in signals:
                 if len(signal.samples.shape) > 1:
                     signal.samples = csv_bytearray2hex(pd.Series(list(signal.samples))).astype(bytes)
 
                 if signal.name.endswith('CAN_DataFrame.ID'):
-                    signal.samples = signal.samples & 0x1fffffff
+                    signal.samples = signal.samples.astype('<u4') & 0x1fffffff
 
             signals = natsorted(signals, key=lambda x: x.name)
 
