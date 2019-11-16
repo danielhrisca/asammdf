@@ -769,7 +769,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
             call_info = dict(mdf.last_call_info)
 
-            found_id_count = sum(e for e in call_info["found_ids"].values())
+            found_id_count = sum(len(e) for e in call_info["found_ids"].values())
 
             message = [
                 '',
@@ -902,7 +902,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
             call_info = dict(mdf.last_call_info)
 
-            found_id_count = sum(e for e in call_info["found_ids"].values())
+            found_id_count = sum(len(e) for e in call_info["found_ids"].values())
 
             message = [
                 '',

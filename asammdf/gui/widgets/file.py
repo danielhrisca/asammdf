@@ -1364,6 +1364,12 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 icon_name="export",
             )
 
+            if export_type == 'mat':
+                if compression:
+                    compression = True if compression == 'enabled' else False
+                else:
+                    compression = False
+
             # cut self.mdf
             target = self.mdf.export
             kwargs={
@@ -2316,9 +2322,11 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
             call_info = dict(self.mdf.last_call_info)
 
+            found_id_count = sum(len(e) for e in call_info["found_ids"].values())
+
             message = [
                 'Summary:',
-                f'- {sum(len(s) for s in call_info["found_ids"])} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
+                f'- {found_id_count} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
             ]
             if call_info['unknown_id_count']:
                 message.append(f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file')
@@ -2427,9 +2435,11 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
             call_info = dict(self.mdf.last_call_info)
 
+            found_id_count = sum(len(e) for e in call_info["found_ids"].values())
+
             message = [
                 'Summary:',
-                f'- {call_info["found_id_count"]} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
+                f'- {found_id_count} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
             ]
             if call_info['unknown_id_count']:
                 message.append(f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file')

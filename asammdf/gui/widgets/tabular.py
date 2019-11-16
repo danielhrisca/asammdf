@@ -366,7 +366,8 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                 filter = self.filters.itemWidget(self.filters.item(i))
                 filter.dtype_kind[0] = 'M'
                 filter._target = None
-                filter.validate_target()
+                if filter.column.currentIndex() == 0:
+                    filter.column_changed(0)
             index = pd.to_datetime(self.signals.index + self.start, unit='s')
 
             self.signals.index = index
@@ -375,7 +376,8 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                 filter = self.filters.itemWidget(self.filters.item(i))
                 filter.dtype_kind[0] = 'f'
                 filter._target = None
-                filter.validate_target()
+                if filter.column.currentIndex() == 0:
+                    filter.column_changed(0)
             self.signals.index = self._original_index
         self.signals.index.name = 'timestamps'
 

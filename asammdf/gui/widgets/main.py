@@ -73,23 +73,6 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         menu = QtWidgets.QMenu("Settings", self.menubar)
         self.menubar.addMenu(menu)
 
-        # search mode menu
-        search_option = QtWidgets.QActionGroup(self)
-
-        for option in ("Match start", "Match contains"):
-
-            action = QtWidgets.QAction(option, menu)
-            action.setCheckable(True)
-            search_option.addAction(action)
-            action.triggered.connect(partial(self.set_search_option, option))
-
-            if option == self._settings.value('search_match', "Match start"):
-                action.setChecked(True)
-
-        submenu = QtWidgets.QMenu("Search", self.menubar)
-        submenu.addActions(search_option.actions())
-        menu.addMenu(submenu)
-
         # sub plots
         subplot_action = QtWidgets.QAction('Sub-plots', menu)
         subplot_action.setCheckable(True)
@@ -345,7 +328,6 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         self.show()
 
-        self.set_search_option(self._settings.value('search_match', "Match start"))
         self.set_subplot_option(self._settings.value('subplots', "Disabled"))
         self.set_subplot_link_option(self._settings.value('subplots_link', "Disabled"))
 
@@ -383,14 +365,6 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 widget.mdi_area.tile_vertically()
             elif mode == 'tile horizontally':
                 widget.mdi_area.tile_horizontally()
-
-    def set_search_option(self, option):
-        self.match = option
-        self._settings.setValue('search_match', self.match)
-        count = self.files.count()
-        for i in range(count):
-            self.files.widget(i).search_field.set_search_option(option)
-            self.files.widget(i).filter_field.set_search_option(option)
 
     def set_subplot_option(self, state):
         if isinstance(state, str):
