@@ -215,7 +215,7 @@ except:
                           'pandas',
                           'numexpr',
                           'wheel',
-                          'canmatrix~=0.8',
+                          'canmatrix>=0.8',
                           'natsort',
                           'lxml',
                           'cChardet',

@@ -23,46 +23,6 @@ except ModuleNotFoundError:
     from canmatrix.formats.dbc import load as dbc_load
     from canmatrix.formats.arxml import load as arxml_load
 
-from canmatrix import Signal
-
-
-# monkey patch the canmatrix.Signal.set_startbit
-
-def set_startbit(self, start_bit, bitNumbering=None, startLittle=None):
-        """
-        Set start_bit.
-
-        bitNumbering is 1 for LSB0/LSBFirst, 0 for MSB0/MSBFirst.
-        If bit numbering is consistent with byte order (little=LSB0, big=MSB0)
-        (KCD, SYM), start bit unmodified.
-        Otherwise reverse bit numbering. For DBC, ArXML (OSEK),
-        both little endian and big endian use LSB0.
-        If bitNumbering is None, assume consistent with byte order.
-        If startLittle is set, given start_bit is assumed start from lsb bit
-        rather than the start of the signal data in the message data.
-        """
-
-        # bit numbering not consistent with byte order. reverse
-        if bitNumbering is not None and bitNumbering != self.is_little_endian:
-            rest = start_bit % 8
-            if rest + 1 <= self.size:
-                start_bit -= rest
-            else:
-                start_bit -= self.size - 1
-
-        # if given start_bit is for the end of signal data (lsbit),
-        # convert to start of signal data (msbit)
-        if startLittle is True and self.is_little_endian is False:
-            start_bit = start_bit + 1 - self.size
-        if start_bit < 0:
-            print("wrong start_bit found Signal: %s Startbit: %d" %
-                  (self.name, start_bit))
-            raise Exception
-        self.start_bit = start_bit
-
-Signal.set_startbit = set_startbit
-
-
 from cchardet import detect
 from numpy import where, arange, interp
 import numpy as np
@@ -1329,7 +1289,9 @@ def extract_can_signal(signal, payload):
     big_endian = False if signal.is_little_endian else True
     signed = signal.is_signed
 
-    start_byte, bit_offset = divmod(signal.start_bit, 8)
+    start_bit = signal.get_startbit()
+
+    start_byte, bit_offset = divmod(start_bit, 8)
 
     bit_count = signal.size
 

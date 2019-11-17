@@ -4,7 +4,7 @@ codacy-coverage
 numpy>=1.16.1
 sphinx_rtd_theme
 pylint >= 1.8
-canmatrix~=0.8
+canmatrix>=0.8
 pandas
 numexpr
 wheel
