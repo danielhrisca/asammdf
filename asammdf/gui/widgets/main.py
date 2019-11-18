@@ -320,6 +320,9 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.with_dots = self._settings.value('dots', False, type=bool)
         self.setWindowTitle(f'asammdf {libversion} - Single files')
 
+        self.set_subplot_option(self._settings.value('subplots', "Disabled"))
+        self.set_subplot_link_option(self._settings.value('subplots_link', "Disabled"))
+
         if files:
             for name in files:
                 self._open_file(name)
@@ -327,9 +330,6 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.setAcceptDrops(True)
 
         self.show()
-
-        self.set_subplot_option(self._settings.value('subplots', "Disabled"))
-        self.set_subplot_link_option(self._settings.value('subplots_link', "Disabled"))
 
     def help(self, event):
         webbrowser.open_new(r'http://asammdf.readthedocs.io/en/master/gui.html')
