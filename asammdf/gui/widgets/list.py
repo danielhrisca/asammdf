@@ -3,7 +3,7 @@
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
-from struct import pack, unpack
+from struct import pack
 import json
 
 from ..utils import extract_mime_names
@@ -92,6 +92,7 @@ class ListWidget(QtWidgets.QListWidget):
 
         else:
             super().keyPressEvent(event)
+            self.parent().keyPressEvent(event)
 
     def startDrag(self, supportedActions):
         selected_items = self.selectedItems()

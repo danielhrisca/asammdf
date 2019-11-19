@@ -117,6 +117,15 @@ class Plot(QtWidgets.QWidget):
         self.splitter.setStretchFactor(1, 2)
         self.splitter.setStretchFactor(2, 0)
 
+        self.keyboard_events = set(
+            [
+                (QtCore.Qt.Key_M, QtCore.Qt.NoModifier),
+                (QtCore.Qt.Key_B, QtCore.Qt.ControlModifier),
+                (QtCore.Qt.Key_H, QtCore.Qt.ControlModifier),
+                (QtCore.Qt.Key_P, QtCore.Qt.ControlModifier),
+            ]
+        ) | self.plot.keyboard_events
+
     def mousePressEvent(self, event):
         self.clicked.emit()
         super().mousePressEvent(event)
@@ -412,16 +421,6 @@ class Plot(QtWidgets.QWidget):
                     )
                 )
 
-        elif key == QtCore.Qt.Key_E and modifiers == QtCore.Qt.ControlModifier:
-            for sig in self.plot.signals:
-                print(sig.name, sig.uuid, self.plot.signal_by_uuid(sig.uuid)[1])
-
-            for i in range(self.channel_selection.count()):
-                item = self.channel_selection.item(i)
-                wid = self.channel_selection.itemWidget(item)
-                print(i, wid._name, wid.uuid)
-
-
         elif key == QtCore.Qt.Key_B and modifiers == QtCore.Qt.ControlModifier:
             selected_items = self.channel_selection.selectedItems()
             if not selected_items:
@@ -441,10 +440,10 @@ class Plot(QtWidgets.QWidget):
             for signal in signals:
                 if signal.samples.dtype.kind in "ui":
                     signal.format = "bin"
-                if self.plot.current_uuid == signal.uuid:
-                    self.plot.axis.format = "bin"
-                    self.plot.axis.hide()
-                    self.plot.axis.show()
+                    if self.plot.current_uuid == signal.uuid:
+                        self.plot.axis.format = "bin"
+                        self.plot.axis.hide()
+                        self.plot.axis.show()
             if self.plot.cursor1:
                 self.plot.cursor_moved.emit()
 
@@ -467,10 +466,10 @@ class Plot(QtWidgets.QWidget):
             for signal in signals:
                 if signal.samples.dtype.kind in "ui":
                     signal.format = "hex"
-                if self.plot.current_uuid == signal.uuid:
-                    self.plot.axis.format = "hex"
-                    self.plot.axis.hide()
-                    self.plot.axis.show()
+                    if self.plot.current_uuid == signal.uuid:
+                        self.plot.axis.format = "hex"
+                        self.plot.axis.hide()
+                        self.plot.axis.show()
             if self.plot.cursor1:
                 self.plot.cursor_moved.emit()
 
@@ -500,8 +499,10 @@ class Plot(QtWidgets.QWidget):
             if self.plot.cursor1:
                 self.plot.cursor_moved.emit()
 
-        else:
+        elif (key, modifiers) in self.plot.keyboard_events:
             self.plot.keyPressEvent(event)
+        else:
+            self.parent().keyPressEvent(event)
 
     def range_removed(self):
         for i in range(self.channel_selection.count()):
@@ -747,6 +748,23 @@ class _Plot(pg.PlotWidget):
 
         if signals:
             self.add_new_channels(signals)
+
+        self.keyboard_events = set(
+            [
+                (QtCore.Qt.Key_C, QtCore.Qt.NoModifier),
+                (QtCore.Qt.Key_F, QtCore.Qt.NoModifier),
+                (QtCore.Qt.Key_G, QtCore.Qt.NoModifier),
+                (QtCore.Qt.Key_I, QtCore.Qt.NoModifier),
+                (QtCore.Qt.Key_O, QtCore.Qt.NoModifier),
+                (QtCore.Qt.Key_R, QtCore.Qt.NoModifier),
+                (QtCore.Qt.Key_S, QtCore.Qt.ControlModifier),
+                (QtCore.Qt.Key_S, QtCore.Qt.NoModifier),
+                (QtCore.Qt.Key_Left, QtCore.Qt.NoModifier),
+                (QtCore.Qt.Key_Right, QtCore.Qt.NoModifier),
+                (QtCore.Qt.Key_H, QtCore.Qt.NoModifier),
+                (QtCore.Qt.Key_Insert, QtCore.Qt.NoModifier),
+            ]
+        )
 
     def update_lines(self, with_dots=None, force=False):
         with_dots_changed = False
@@ -1128,7 +1146,7 @@ class _Plot(pg.PlotWidget):
                     self.cursor1 = None
                     self.cursor_removed.emit()
 
-            elif key == QtCore.Qt.Key_F:
+            elif key == QtCore.Qt.Key_F and modifier == QtCore.Qt.NoModifier:
                 if self.common_axis_items:
                     if any(
                         len(self.signal_by_uuid(uuid)[0].plot_samples)
@@ -1181,13 +1199,13 @@ class _Plot(pg.PlotWidget):
                 if self.cursor1:
                     self.cursor_moved.emit()
 
-            elif key == QtCore.Qt.Key_G:
+            elif key == QtCore.Qt.Key_G and modifier == QtCore.Qt.NoModifier:
                 if self.plotItem.ctrl.yGridCheck.isChecked():
                     self.showGrid(x=True, y=False)
                 else:
                     self.showGrid(x=True, y=True)
 
-            elif key in (QtCore.Qt.Key_I, QtCore.Qt.Key_O):
+            elif key in (QtCore.Qt.Key_I, QtCore.Qt.Key_O) and modifier == QtCore.Qt.NoModifier:
                 x_range, _ = self.viewbox.viewRange()
                 delta = x_range[1] - x_range[0]
                 step = delta * 0.05
@@ -1200,7 +1218,7 @@ class _Plot(pg.PlotWidget):
                     x_range[0] - step, x_range[1] + step, padding=0
                 )
 
-            elif key == QtCore.Qt.Key_R:
+            elif key == QtCore.Qt.Key_R and modifier == QtCore.Qt.NoModifier:
                 if self.region is None:
 
                     self.region = pg.LinearRegionItem((0, 0))
@@ -1326,7 +1344,7 @@ class _Plot(pg.PlotWidget):
                 if self.cursor1:
                     self.cursor_moved.emit()
 
-            elif key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right):
+            elif key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right) and modifier == QtCore.Qt.NoModifier:
                 if self.cursor1:
                     prev_pos = pos = self.cursor1.value()
                     dim = len(self.timebase)
@@ -1361,7 +1379,7 @@ class _Plot(pg.PlotWidget):
 
                     self.cursor1.set_value(pos)
 
-            elif key == QtCore.Qt.Key_H:
+            elif key == QtCore.Qt.Key_H and modifier == QtCore.Qt.NoModifier:
                 start_ts = [
                     sig.timestamps[0]
                     for sig in self.signals
@@ -1384,7 +1402,7 @@ class _Plot(pg.PlotWidget):
                     if self.cursor1:
                         self.cursor_moved.emit()
 
-            elif key == QtCore.Qt.Key_Insert:
+            elif key == QtCore.Qt.Key_Insert and modifier == QtCore.Qt.NoModifier:
                 dlg = DefineChannel(self.signals, self.all_timebase, self)
                 dlg.setModal(True)
                 dlg.exec_()
@@ -1396,7 +1414,7 @@ class _Plot(pg.PlotWidget):
                     self.computation_channel_inserted.emit()
 
             else:
-                super().keyPressEvent(event)
+                self.parent().keyPressEvent(event)
 
     def trim(self, width, start, stop, signals):
         for sig in signals:
