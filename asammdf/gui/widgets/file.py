@@ -83,12 +83,18 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         progress.setWindowIcon(icon)
         progress.show()
 
-        if file_name.suffix.lower() == ".erg":
-            progress.setLabelText("Converting from erg to mdf")
-            try:
-                from mfile import ERG
+        if file_name.suffix.lower() in (".erg", ".bsig"):
 
-                mdf_path = ERG(file_name).export_mdf().save(file_name.with_suffix('.tmp.mf4'))
+            extension = file_name.suffix.lower().strip(".")
+            progress.setLabelText(f"Converting from {extension} to mdf")
+            try:
+                from mfile import ERG, BSIG
+
+                if file_name.suffix.lower() == ".erg":
+                    cls = ERG
+                else:
+                    cls = BSIG
+                mdf_path = cls(file_name).export_mdf().save(file_name.with_suffix('.tmp.mf4'))
                 self.mdf = MDF(mdf_path)
             except:
                 print(format_exc())
