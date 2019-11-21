@@ -1701,6 +1701,7 @@ class _Plot(pg.PlotWidget):
                 symbolSize=4,
                 clickable=True,
                 mouseWidth=30,
+                connect='finite',
             )
             curve.hide()
 
