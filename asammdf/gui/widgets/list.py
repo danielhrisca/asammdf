@@ -284,6 +284,8 @@ class ListWidget(QtWidgets.QListWidget):
 
 class MinimalListWidget(QtWidgets.QListWidget):
 
+    itemsDeleted = QtCore.pyqtSignal(list)
+
     def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
@@ -305,5 +307,7 @@ class MinimalListWidget(QtWidgets.QListWidget):
                 row = self.row(item)
                 deleted.append(row)
                 self.takeItem(row)
+            if deleted:
+                self.itemsDeleted.emit(deleted)
         else:
             super().keyPressEvent(event)
