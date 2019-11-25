@@ -890,7 +890,11 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
     def load_channel_list(self, event=None, file_name=None):
         if file_name is None:
             file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
-                self, "Select channel list file", "", "TXT files (*.txt)"
+                self,
+                "Select channel list file",
+                "",
+                "Config file (*.cfg);;TXT files (*.txt);;All file types (*.cfg *.txt)",
+                "All file types (*.cfg *.txt)"
             )
 
         if file_name:
