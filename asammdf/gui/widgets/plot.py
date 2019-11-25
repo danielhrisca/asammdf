@@ -1182,18 +1182,15 @@ class _Plot(pg.PlotWidget):
                             else:
                                 continue
                         else:
-                            min_, max_ = (
-                                np.nanmin(signal.plot_samples),
-                                np.nanmax(signal.plot_samples),
-                            )
+                            samples = signal.plot_samples[np.isfinite(signal.plot_samples)]
+                            if len(samples):
+                                min_, max_ = (
+                                    np.amin(samples),
+                                    np.amax(samples),
+                                )
+                            else:
+                                min_, max_ = 0, 1
 
-                        if min_ == -float('inf') and max_ == float('inf'):
-                            min_ = 0
-                            max_ = 1
-                        elif min_ == -float('inf'):
-                            min_ = max_ - 1
-                        elif max_ == float('inf'):
-                            max_ = min_ + 1
                         viewbox.setYRange(min_, max_)
 
                 if self.cursor1:
@@ -1646,19 +1643,19 @@ class _Plot(pg.PlotWidget):
             sig.color = color
 
             if len(sig.samples):
-                sig.min = np.nanmin(sig.samples)
-                sig.max = np.nanmax(sig.samples)
-                sig.avg = np.mean(sig.samples)
-                sig.rms = np.sqrt(np.mean(np.square(sig.samples)))
-                sig.empty = False
+                samples = sig.samples[np.isfinite(sig.samples)]
+                if len(samples):
+                    sig.min = np.amin(samples)
+                    sig.max = np.amax(samples)
+                    sig.avg = np.mean(samples)
+                    sig.rms = np.sqrt(np.mean(np.square(samples)))
+                else:
+                    sig.min = 'n.a.'
+                    sig.max = 'n.a.'
+                    sig.avg = 'n.a.'
+                    sig.rms = 'n.a.'
 
-                if sig.min == -float('inf') and sig.max == float('inf'):
-                    sig.min = 0
-                    sig.max = 1
-                elif sig.min == -float('inf'):
-                    sig.min = sig.max - 1
-                elif sig.max == float('inf'):
-                    sig.max = sig.min + 1
+                sig.empty = False
 
             else:
                 sig.empty = True
@@ -1701,6 +1698,7 @@ class _Plot(pg.PlotWidget):
                 symbolSize=4,
                 clickable=True,
                 mouseWidth=30,
+#                connect='finite',
             )
             curve.hide()
 

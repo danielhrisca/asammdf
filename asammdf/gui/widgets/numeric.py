@@ -31,6 +31,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         self.channels.add_channels_request.connect(self.add_channels_request)
         self.channels.items_deleted.connect(self.items_deleted)
 
+        self._inhibit = False
+
         self.build()
 
     def items_deleted(self, names):
@@ -85,20 +87,25 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
     def _timestamp_changed(self, stamp):
         val = int((stamp - self._min) / (self._max - self._min) * 9999)
-        if val != self.timestamp_slider.value():
+
+        if not self._inhibit:
+            self._inhibit = True
             self.timestamp_slider.setValue(val)
+        else:
+            self._inhibit = False
 
         self._update_values(stamp)
-
         self.timestamp_changed_signal.emit(self, stamp)
 
     def _timestamp_slider_changed(self, stamp):
         factor = stamp / 9999
         val = (self._max - self._min) * factor + self._min
-        if val != self.timestamp.value():
-            self.timestamp.setValue(val)
 
-        self._update_values(val)
+        if not self._inhibit:
+            self._inhibit = True
+            self.timestamp.setValue(val)
+        else:
+            self._inhibit = False
 
     def _update_values(self, stamp=None):
         if stamp is None:
