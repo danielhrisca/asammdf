@@ -64,7 +64,7 @@
     </widget>
    </item>
    <item row="5" column="2" rowspan="4" colspan="4">
-    <widget class="ListWidget" name="selection"/>
+    <widget class="MinimalListWidget" name="selection"/>
    </item>
    <item row="10" column="0">
     <widget class="QLabel" name="status">
@@ -159,7 +159,7 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>ListWidget</class>
+   <class>MinimalListWidget</class>
    <extends>QListWidget</extends>
    <header>asammdf/gui/widgets/list.h</header>
   </customwidget>

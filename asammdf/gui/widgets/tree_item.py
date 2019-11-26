@@ -40,3 +40,6 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
         else:
             return self.text(column) < otherItem.text(column)
 
+    def __del__(self):
+        self.entry = self.name = None
+

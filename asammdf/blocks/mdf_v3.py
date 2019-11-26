@@ -2148,10 +2148,21 @@ class MDF3(object):
         object is not used anymore to clean-up the temporary file
 
         """
+
         if self._tempfile is not None:
             self._tempfile.close()
         if self._file is not None and not self._from_filelike:
             self._file.close()
+
+        self._call_back = None
+        self.groups.clear()
+        self.header = None
+        self.identification = None
+        self.channels_db.clear()
+        self.masters_db.clear()
+        self._master_channel_metadata.clear()
+        self._si_map.clear()
+        self._cc_map.clear()
 
     def extend(self, index, signals):
         """

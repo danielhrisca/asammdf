@@ -318,7 +318,7 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         menu.addActions(open_group.actions())
 
         self.with_dots = self._settings.value('dots', False, type=bool)
-        self.setWindowTitle(f'asammdf {libversion} - Single files')
+        self.setWindowTitle(f'asammdf {libversion} [PID={os.getpid()}] - Single files')
 
         self.set_subplot_option(self._settings.value('subplots', "Disabled"))
         self.set_subplot_link_option(self._settings.value('subplots_link', "Disabled"))
@@ -686,10 +686,10 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
     def mode_changed(self, index):
         if index == 0:
             self.plot_menu.setEnabled(True)
-            self.setWindowTitle(f'asammdf {libversion} - Single files')
+            self.setWindowTitle(f'asammdf {libversion} [PID={os.getpid()}] - Single files')
         else:
             self.plot_menu.setEnabled(False)
-            self.setWindowTitle(f'asammdf {libversion} - Batch processing')
+            self.setWindowTitle(f'asammdf {libversion} [PID={os.getpid()}] - Batch processing')
 
     def keyPressEvent(self, event):
         key = event.key()

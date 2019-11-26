@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'd:\DSUsers\uidn3651\02__PythonWorkspace\asammdf\asammdf\gui\ui\search_dialog.ui'
+# Form implementation generated from reading ui file 'search_dialog.ui'
 #
-# Created by: PyQt5 UI code generator 5.12.1
+# Created by: PyQt5 UI code generator 5.13.1
 #
 # WARNING! All changes made in this file will be lost!
+
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -30,7 +31,7 @@ class Ui_SearchDialog(object):
         self.match_kind.addItem("")
         self.match_kind.addItem("")
         self.grid_layout.addWidget(self.match_kind, 0, 0, 1, 1)
-        self.selection = ListWidget(SearchDialog)
+        self.selection = MinimalListWidget(SearchDialog)
         self.selection.setObjectName("selection")
         self.grid_layout.addWidget(self.selection, 5, 2, 4, 4)
         self.status = QtWidgets.QLabel(SearchDialog)
@@ -85,7 +86,5 @@ class Ui_SearchDialog(object):
         self.cancel_btn.setText(_translate("SearchDialog", "Cancel"))
         self.add_window_btn.setText(_translate("SearchDialog", "Add window"))
         self.apply_btn.setText(_translate("SearchDialog", "Apply"))
-
-
-from asammdf.gui.widgets.list import ListWidget
+from asammdf.gui.widgets.list import MinimalListWidget
 from . import resource_rc
