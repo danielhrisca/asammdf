@@ -811,7 +811,25 @@ class _Plot(pg.PlotWidget):
                     self.view_boxes[i].addItem(curve)
                 else:
                     curve = self.curves[i]
-                    curve.setData(x=t, y=sig.plot_samples)
+
+                    if len(t):
+
+#                    curve.setData(x=t, y=sig.plot_samples)
+                        curve.invalidateBounds()
+                        curve._boundsCache = [
+                             [(1, None), (t[0], t[-1])],
+                             [(1, None), (sig.min, sig.max)]
+                        ]
+
+                        curve.xData = t
+                        curve.yData = sig.plot_samples
+                        curve.path = None
+                        curve.fillPath = None
+                        curve._mouseShape = None
+                        curve.prepareGeometryChange()
+                        curve.informViewBoundsChanged()
+                        curve.update()
+                        curve.sigPlotChanged.emit(curve)
 
                 if sig.enable:
                     curve.show()

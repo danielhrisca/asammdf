@@ -123,6 +123,9 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self.set_value(self._value)
 
     def set_value(self, value):
+        if self._value == value:
+            return
+
         self._value = value
         if self.ranges and value not in ("", "n.a."):
             for (start, stop), color in self.ranges.items():
