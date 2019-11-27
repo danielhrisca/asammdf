@@ -980,13 +980,17 @@ class MDF4(object):
 
             comment = channel_group.acq_source.comment
             if comment:
-                comment_xml = ET.fromstring(comment)
-                common_properties = comment_xml.find(".//common_properties")
-                for e in common_properties:
-                    name = e.get("name")
-                    if name == "ChannelNo":
-                        grp.CAN_id = f"CAN{e.text}"
-                        break
+                try:
+                    comment_xml = ET.fromstring(comment)
+                except ET.ParseError:
+                    pass
+                else:
+                    common_properties = comment_xml.find(".//common_properties")
+                    for e in common_properties:
+                        name = e.get("name")
+                        if name == "ChannelNo":
+                            grp.CAN_id = f"CAN{e.text}"
+                            break
 
             if grp.CAN_id:
                 if message_name == "CAN_DataFrame":
