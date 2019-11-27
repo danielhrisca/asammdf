@@ -982,8 +982,8 @@ class MDF4(object):
             if comment:
                 try:
                     comment_xml = ET.fromstring(comment)
-                except ET.ParseError:
-                    pass
+                except ET.ParseError as e:
+                    logger.error(f"could not parse acq_source comment; {e}")
                 else:
                     common_properties = comment_xml.find(".//common_properties")
                     for e in common_properties:
