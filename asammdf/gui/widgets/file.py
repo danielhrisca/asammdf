@@ -278,6 +278,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             self._settings.value('channels_view', 'Internal file structure')
         )
 
+        progress.setValue(70)
+
         self.raster_channel.addItems(channels_db_items)
 
         self.raster_type_channel.toggled.connect(self.set_raster_type)

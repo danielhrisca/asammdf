@@ -8,11 +8,9 @@ import os
 import sys
 from copy import deepcopy
 from collections import defaultdict
-from functools import reduce
 from hashlib import md5
 from itertools import chain
 from math import ceil
-from struct import unpack, unpack_from
 from tempfile import TemporaryFile
 from zlib import decompress
 from pathlib import Path
@@ -1783,7 +1781,7 @@ class MDF4(object):
                                     dtype_pair = "", f"V{gap}"
                                     types.append(dtype_pair)
 
-                                size = max(bit_count // 8, 1)
+                                size = bit_count // 8 or 1
                                 shape = tuple(
                                     ca_block[f"dim_size_{i}"]
                                     for i in range(ca_block.dims)
@@ -2203,7 +2201,7 @@ class MDF4(object):
 
                     # add components channel
                     s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
-                    byte_size = max(s_size // 8, 1)
+                    byte_size = s_size // 8 or 1
                     kwargs = {
                         "channel_type": v4c.CHANNEL_TYPE_VALUE,
                         "bit_count": s_size,
@@ -3268,7 +3266,7 @@ class MDF4(object):
                 # compute additional byte offset for large records size
                 s_type, s_size = fmt_to_datatype_v4(sig_dtype, sig_shape)
 
-                byte_size = max(s_size // 8, 1)
+                byte_size = s_size // 8 or 1
 
                 if sig_dtype.kind == "u" and signal.bit_count <= 4:
                     s_size = signal.bit_count
@@ -3612,7 +3610,7 @@ class MDF4(object):
 
                     # add components channel
                     s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
-                    byte_size = max(s_size // 8, 1)
+                    byte_size = s_size // 8 or 1
                     kwargs = {
                         "channel_type": v4c.CHANNEL_TYPE_VALUE,
                         "bit_count": s_size,
@@ -3797,7 +3795,7 @@ class MDF4(object):
             gp.types = types
             gp.parents = parents
 
-        if signals:
+        if signals and cycles_nr:
             samples = fromarrays(fields, dtype=types)
         else:
             samples = array([])
@@ -3958,7 +3956,7 @@ class MDF4(object):
                 # compute additional byte offset for large records size
                 s_type, s_size = fmt_to_datatype_v4(sig.dtype, sig.shape)
 
-                byte_size = max(s_size // 8, 1)
+                byte_size = s_size // 8 or 1
 
                 channel_type = v4c.CHANNEL_TYPE_VALUE
                 data_block_addr = 0

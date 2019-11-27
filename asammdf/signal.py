@@ -80,7 +80,7 @@ class Signal(object):
         encoding=None,
     ):
 
-        if samples is None or timestamps is None or name == "":
+        if samples is None or timestamps is None or not name:
             message = (
                 '"samples", "timestamps" and "name" are mandatory '
                 "for Signal class __init__: samples={samples}\n"
@@ -88,9 +88,9 @@ class Signal(object):
             )
             raise MdfException(message)
         else:
-            if isinstance(samples, (list, tuple)):
+            if not isinstance(samples, np.ndarray):
                 samples = np.array(samples)
-            if isinstance(timestamps, (list, tuple)):
+            if not isinstance(timestamps, np.ndarray):
                 timestamps = np.array(timestamps, dtype=np.float64)
             if samples.shape[0] != timestamps.shape[0]:
                 message = "{} samples and timestamps length mismatch ({} vs {})"
@@ -112,12 +112,9 @@ class Signal(object):
             self.channel_index = -1
 
             if source:
-                if isinstance(source, SignalSource):
-                    self.source = source
-                else:
-                    self.source = source.to_common_source()
-            else:
-                self.source = source
+                if not isinstance(source, SignalSource):
+                    source = source.to_common_source()
+            self.source = source
 
             if bit_count is None:
                 self.bit_count = samples.dtype.itemsize * 8
@@ -127,10 +124,11 @@ class Signal(object):
             self.stream_sync = stream_sync
             self.invalidation_bits = invalidation_bits
 
-            if not isinstance(
-                conversion, (v4b.ChannelConversion, v3b.ChannelConversion)
-            ):
-                conversion = from_dict(conversion)
+            if conversion:
+                if not isinstance(
+                    conversion, (v4b.ChannelConversion, v3b.ChannelConversion)
+                ):
+                    conversion = from_dict(conversion)
 
             self.conversion = conversion
 
