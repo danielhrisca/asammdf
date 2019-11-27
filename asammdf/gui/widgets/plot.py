@@ -78,6 +78,7 @@ class Plot(QtWidgets.QWidget):
 
         self.splitter = QtWidgets.QSplitter()
         self.splitter.addWidget(widget)
+        self.splitter.setOpaqueResize(False)
 
         self.plot = _Plot(with_dots=with_dots, parent=self)
         self.plot.range_modified.connect(self.range_modified)
@@ -670,6 +671,8 @@ class _Plot(pg.PlotWidget):
     def __init__(self, signals=None, with_dots=False, *args, **kwargs):
         super().__init__()
 
+        self._last_update = perf_counter()
+
         self.setAcceptDrops(True)
 
         self._last_size = self.geometry()
@@ -743,6 +746,7 @@ class _Plot(pg.PlotWidget):
         self.curves = []
 
         self.viewbox.sigResized.connect(self.update_views)
+        self._prev_geometry = self.viewbox.sceneBoundingRect()
 
         self.resizeEvent = self._resizeEvent
 
@@ -814,22 +818,24 @@ class _Plot(pg.PlotWidget):
 
                     if len(t):
 
-#                    curve.setData(x=t, y=sig.plot_samples)
-                        curve.invalidateBounds()
-                        curve._boundsCache = [
-                             [(1, None), (t[0], t[-1])],
-                             [(1, None), (sig.min, sig.max)]
-                        ]
+                        if self.with_dots:
+                            curve.setData(x=t, y=sig.plot_samples)
+                        else:
+                            curve.invalidateBounds()
+                            curve._boundsCache = [
+                                 [(1, None), (t[0], t[-1])],
+                                 [(1, None), (sig.min, sig.max)]
+                            ]
 
-                        curve.xData = t
-                        curve.yData = sig.plot_samples
-                        curve.path = None
-                        curve.fillPath = None
-                        curve._mouseShape = None
-                        curve.prepareGeometryChange()
-                        curve.informViewBoundsChanged()
-                        curve.update()
-                        curve.sigPlotChanged.emit(curve)
+                            curve.xData = t
+                            curve.yData = sig.plot_samples
+                            curve.path = None
+                            curve.fillPath = None
+                            curve._mouseShape = None
+                            curve.prepareGeometryChange()
+                            curve.informViewBoundsChanged()
+                            curve.update()
+                            curve.sigPlotChanged.emit(curve)
 
                 if sig.enable:
                     curve.show()
@@ -898,8 +904,10 @@ class _Plot(pg.PlotWidget):
 
     def update_views(self):
         geometry = self.viewbox.sceneBoundingRect()
-        for view_box in self.view_boxes:
-            view_box.setGeometry(geometry)
+        if geometry != self._prev_geometry:
+            for view_box in self.view_boxes:
+                view_box.setGeometry(geometry)
+            self._prev_geometry = geometry
 
     def get_stats(self, uuid, fmt):
         stats = {}
