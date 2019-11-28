@@ -27,7 +27,7 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
             super().dropEvent(e)
         else:
             data = e.mimeData()
-            if data.hasFormat('application/octet-stream-asammdf'):
+            if data.hasFormat("application/octet-stream-asammdf"):
                 names = extract_mime_names(data)
                 ret, ok = QtWidgets.QInputDialog.getItem(
                     None,

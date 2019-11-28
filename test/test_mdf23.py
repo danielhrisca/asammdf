@@ -30,7 +30,7 @@ class TestMDF23(unittest.TestCase):
         print("Read 2.00 using seed =", seed)
 
         sig_int = Signal(
-            np.random.randint(-2 ** 15, -1, CHANNEL_LEN),
+            np.random.randint(-(2 ** 15), -1, CHANNEL_LEN),
             np.arange(CHANNEL_LEN),
             name="Integer Channel",
             unit="unit1",
@@ -62,7 +62,7 @@ class TestMDF23(unittest.TestCase):
         print("Read 2.14 using seed =", seed)
 
         sig_int = Signal(
-            np.random.randint(-2 ** 29, 2 ** 29, CHANNEL_LEN),
+            np.random.randint(-(2 ** 29), 2 ** 29, CHANNEL_LEN),
             np.arange(CHANNEL_LEN),
             name="Integer Channel",
             unit="unit1",
@@ -94,7 +94,7 @@ class TestMDF23(unittest.TestCase):
         print("Read 3.00 using seed =", seed)
 
         sig_int = Signal(
-            np.random.randint(-2 ** 16, 2 ** 16, CHANNEL_LEN, np.int32),
+            np.random.randint(-(2 ** 16), 2 ** 16, CHANNEL_LEN, np.int32),
             np.arange(CHANNEL_LEN),
             name="Integer Channel",
             unit="unit1",
@@ -126,7 +126,7 @@ class TestMDF23(unittest.TestCase):
         print("Read 3.10 using seed =", seed)
 
         sig_int = Signal(
-            np.random.randint(-2 ** 9, 2 ** 7, CHANNEL_LEN),
+            np.random.randint(-(2 ** 9), 2 ** 7, CHANNEL_LEN),
             np.arange(CHANNEL_LEN),
             name="Integer Channel",
             unit="unit1",

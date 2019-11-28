@@ -56,12 +56,14 @@ class TestMDF(unittest.TestCase):
         generate_arrays_test_file(cls.tempdir_array.name)
 
     def test_mdf_header(self):
-        mdf = BytesIO(b'M' * 100)
+        mdf = BytesIO(b"M" * 100)
         with self.assertRaises(MdfException):
             MDF(mdf)
 
     def test_wrong_header_version(self):
-        mdf = BytesIO(b'MDF     AAAA    amdf500d\x00\x00\x00\x00\x9f\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00')
+        mdf = BytesIO(
+            b"MDF     AAAA    amdf500d\x00\x00\x00\x00\x9f\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+        )
         with self.assertRaises(MdfException):
             MDF(mdf)
 
@@ -138,7 +140,9 @@ class TestMDF(unittest.TestCase):
 
                         elif i == 6:
                             for j in range(1, 20):
-                                target = np.array([b'Value %d' % j for _ in range(cycles)])
+                                target = np.array(
+                                    [b"Value %d" % j for _ in range(cycles)]
+                                )
                                 vals = mdf.get(group=i, index=j + 1, samples_only=True)[
                                     0
                                 ]
@@ -147,7 +151,6 @@ class TestMDF(unittest.TestCase):
                                     print(i, j, vals, target, len(vals), len(target))
                                 self.assertTrue(cond)
             self.assertTrue(equal)
-
 
     def test_read_arrays(self):
         print("MDF read big array files")
@@ -287,8 +290,12 @@ class TestMDF(unittest.TestCase):
 
                                 print(repr(signal.samples))
                                 ret = False
-                                print(name, *zip(raw, signal.samples, original_samples), sep='\n')
-                                1/0
+                                print(
+                                    name,
+                                    *zip(raw, signal.samples, original_samples),
+                                    sep="\n",
+                                )
+                                1 / 0
 
         self.assertTrue(ret)
 
@@ -403,7 +410,9 @@ class TestMDF(unittest.TestCase):
 
                             elif i == 6:
                                 for j in range(1, 20):
-                                    target = np.array([b'Value %d' % j for _ in range(cycles)])
+                                    target = np.array(
+                                        [b"Value %d" % j for _ in range(cycles)]
+                                    )
                                     vals = mdf.get(
                                         group=i, index=j + 1, samples_only=True
                                     )[0]
@@ -427,8 +436,7 @@ class TestMDF(unittest.TestCase):
                 print(input_file, out)
                 with MDF(input_file) as mdf:
                     outfile = mdf.convert(out).save(
-                        Path(TestMDF.tempdir_demo.name) / "tmp",
-                        overwrite=True,
+                        Path(TestMDF.tempdir_demo.name) / "tmp", overwrite=True,
                     )
 
                 equal = True
@@ -441,7 +449,12 @@ class TestMDF(unittest.TestCase):
                         raw = mdf.get(name, raw=True)
                         if not np.array_equal(original.samples, converted.samples):
                             equal = False
-                            print(name, *zip(raw.samples, original.samples, converted.samples), outfile, sep='\n')
+                            print(
+                                name,
+                                *zip(raw.samples, original.samples, converted.samples),
+                                outfile,
+                                sep="\n",
+                            )
                             1 / 0
                         if not np.array_equal(
                             original.timestamps, converted.timestamps
@@ -463,35 +476,47 @@ class TestMDF(unittest.TestCase):
 
                     outfile0 = MDF(input_file)
                     outfile0.configure(read_fragment_size=8000)
-                    outfile0 = outfile0.cut(stop=-1, whence=whence, include_ends=False).save(
-                        Path(TestMDF.tempdir.name) / "tmp0", overwrite=True,
+                    outfile0 = outfile0.cut(
+                        stop=-1, whence=whence, include_ends=False
+                    ).save(
+                        Path(TestMDF.tempdir.name) / "tmp0",
+                        overwrite=True,
                         compression=compression,
                     )
 
                     outfile1 = MDF(input_file)
                     outfile1.configure(read_fragment_size=8000)
-                    outfile1 = outfile1.cut(stop=105, whence=whence, include_ends=False).save(
-                        Path(TestMDF.tempdir.name) / "tmp1", overwrite=True,
+                    outfile1 = outfile1.cut(
+                        stop=105, whence=whence, include_ends=False
+                    ).save(
+                        Path(TestMDF.tempdir.name) / "tmp1",
+                        overwrite=True,
                         compression=compression,
                     )
 
                     outfile2 = MDF(input_file)
                     outfile2.configure(read_fragment_size=8000)
-                    outfile2 = outfile2.cut(start=105.1, stop=201, whence=whence, include_ends=False).save(
-                        Path(TestMDF.tempdir.name) / "tmp2", overwrite=True,
+                    outfile2 = outfile2.cut(
+                        start=105.1, stop=201, whence=whence, include_ends=False
+                    ).save(
+                        Path(TestMDF.tempdir.name) / "tmp2",
+                        overwrite=True,
                         compression=compression,
                     )
 
                     outfile3 = MDF(input_file)
                     outfile3.configure(read_fragment_size=8000)
-                    outfile3 = outfile3.cut(start=201.1, whence=whence, include_ends=False).save(
-                        Path(TestMDF.tempdir.name) / "tmp3", overwrite=True
-                    )
+                    outfile3 = outfile3.cut(
+                        start=201.1, whence=whence, include_ends=False
+                    ).save(Path(TestMDF.tempdir.name) / "tmp3", overwrite=True)
 
                     outfile4 = MDF(input_file)
                     outfile4.configure(read_fragment_size=8000)
-                    outfile4 = outfile4.cut(start=7000, whence=whence, include_ends=False).save(
-                        Path(TestMDF.tempdir.name) / "tmp4", overwrite=True,
+                    outfile4 = outfile4.cut(
+                        start=7000, whence=whence, include_ends=False
+                    ).save(
+                        Path(TestMDF.tempdir.name) / "tmp4",
+                        overwrite=True,
                         compression=compression,
                     )
 
@@ -499,8 +524,11 @@ class TestMDF(unittest.TestCase):
                         [outfile0, outfile1, outfile2, outfile3, outfile4],
                         version=MDF(input_file).version,
                         sync=whence,
-                    ).save(Path(TestMDF.tempdir.name) / "tmp_cut", overwrite=True,
-                        compression=compression,)
+                    ).save(
+                        Path(TestMDF.tempdir.name) / "tmp_cut",
+                        overwrite=True,
+                        compression=compression,
+                    )
 
                     with MDF(outfile) as mdf:
 
@@ -595,7 +623,9 @@ class TestMDF(unittest.TestCase):
 
                             elif i == 6:
                                 for j in range(1, 20):
-                                    target = np.array([b'Value %d' % j for _ in range(cycles)])
+                                    target = np.array(
+                                        [b"Value %d" % j for _ in range(cycles)]
+                                    )
                                     vals = mdf.get(
                                         group=i, index=j + 1, samples_only=True
                                     )[0]
@@ -614,9 +644,9 @@ class TestMDF(unittest.TestCase):
 
                 outfile1 = MDF(input_file)
                 outfile1.configure(read_fragment_size=8000)
-                outfile1 = outfile1.cut(stop=105.5, whence=whence, include_ends=False).save(
-                    Path(TestMDF.tempdir.name) / "tmp1", overwrite=True
-                )
+                outfile1 = outfile1.cut(
+                    stop=105.5, whence=whence, include_ends=False
+                ).save(Path(TestMDF.tempdir.name) / "tmp1", overwrite=True)
                 outfile2 = MDF(input_file)
                 outfile2.configure(read_fragment_size=8000)
                 outfile2 = outfile2.cut(
@@ -624,13 +654,12 @@ class TestMDF(unittest.TestCase):
                 ).save(Path(TestMDF.tempdir.name) / "tmp2", overwrite=True)
                 outfile3 = MDF(input_file)
                 outfile3.configure(read_fragment_size=8000)
-                outfile3 = outfile3.cut(start=201.5, whence=whence, include_ends=False).save(
-                    Path(TestMDF.tempdir.name) / "tmp3", overwrite=True
-                )
+                outfile3 = outfile3.cut(
+                    start=201.5, whence=whence, include_ends=False
+                ).save(Path(TestMDF.tempdir.name) / "tmp3", overwrite=True)
 
                 outfile = MDF.concatenate(
-                    [outfile1, outfile2, outfile3],
-                    MDF(input_file).version
+                    [outfile1, outfile2, outfile3], MDF(input_file).version
                 ).save(Path(TestMDF.tempdir.name) / "tmp_cut", overwrite=True)
 
                 equal = True
@@ -658,14 +687,10 @@ class TestMDF(unittest.TestCase):
                                 types = np.dtype(types)
 
                                 vals = mdf.get(
-                                    "Channel_{}".format(j),
-                                    group=i,
-                                    samples_only=True,
+                                    "Channel_{}".format(j), group=i, samples_only=True,
                                 )[0]
                                 target = [arr * j for arr in samples]
-                                target = np.core.records.fromarrays(
-                                    target, dtype=types
-                                )
+                                target = np.core.records.fromarrays(target, dtype=types)
                                 if not np.array_equal(vals, target):
                                     equal = False
                                     print(
@@ -691,14 +716,10 @@ class TestMDF(unittest.TestCase):
                                 types = np.dtype(types)
 
                                 vals = mdf.get(
-                                    "Channel_{}".format(j),
-                                    group=i,
-                                    samples_only=True,
+                                    "Channel_{}".format(j), group=i, samples_only=True,
                                 )[0]
                                 target = [samples * j]
-                                target = np.core.records.fromarrays(
-                                    target, dtype=types
-                                )
+                                target = np.core.records.fromarrays(target, dtype=types)
                                 if not np.array_equal(vals, target):
                                     equal = False
                                     1 / 0
@@ -731,14 +752,10 @@ class TestMDF(unittest.TestCase):
                                 types = np.dtype(types)
 
                                 vals = mdf.get(
-                                    "Channel_{}".format(j),
-                                    group=i,
-                                    samples_only=True,
+                                    "Channel_{}".format(j), group=i, samples_only=True,
                                 )[0]
                                 target = [arr * j for arr in samples]
-                                target = np.core.records.fromarrays(
-                                    target, dtype=types
-                                )
+                                target = np.core.records.fromarrays(target, dtype=types)
                                 if not np.array_equal(vals, target):
                                     equal = False
                                     1 / 0
@@ -772,24 +789,20 @@ class TestMDF(unittest.TestCase):
                 )
 
                 outfile = MDF.concatenate(
-                    [outfile1, outfile2, outfile3],
-                    version=MDF(input_file).version
+                    [outfile1, outfile2, outfile3], version=MDF(input_file).version
                 ).save(Path(TestMDF.tempdir.name) / "tmp", overwrite=True)
 
                 print("OUT", outfile)
 
                 equal = True
 
-                with MDF(input_file) as mdf, MDF(
-                    outfile) as mdf2:
+                with MDF(input_file) as mdf, MDF(outfile) as mdf2:
 
                     for i, group in enumerate(mdf.groups):
                         for j, _ in enumerate(group["channels"][1:], 1):
                             original = mdf.get(group=i, index=j)
                             converted = mdf2.get(group=i, index=j)
-                            if not np.array_equal(
-                                original.samples, converted.samples
-                            ):
+                            if not np.array_equal(original.samples, converted.samples):
                                 equal = False
                             if not np.array_equal(
                                 original.timestamps, converted.timestamps
@@ -811,15 +824,12 @@ class TestMDF(unittest.TestCase):
 
             channel_list = random.sample(list(CHANNELS_DEMO), channels_nr)
 
-            filtered_mdf = MDF(input_file).filter(
-                channel_list)
+            filtered_mdf = MDF(input_file).filter(channel_list)
 
             target = set(
                 k
                 for k in filtered_mdf.channels_db
-                if not k.endswith("[0]")
-                and not k.startswith("DI")
-                and "\\" not in k
+                if not k.endswith("[0]") and not k.startswith("DI") and "\\" not in k
             )
 
             self.assertTrue((target - {"t", "time"}) == set(channel_list))
@@ -832,7 +842,7 @@ class TestMDF(unittest.TestCase):
                 for name in channel_list:
                     self.assertTrue(name in mdf)
 
-                names = [name + '_' for name in names]
+                names = [name + "_" for name in names]
                 for name in names:
                     self.assertFalse(name in mdf)
 
@@ -869,10 +879,7 @@ class TestMDF(unittest.TestCase):
             self.assertTrue(len(selected_signals) == len(channel_list))
 
             self.assertTrue(
-                all(
-                    ch.name == name
-                    for ch, name in zip(selected_signals, channel_list)
-                )
+                all(ch.name == name for ch, name in zip(selected_signals, channel_list))
             )
 
             equal = True
@@ -898,7 +905,12 @@ class TestMDF(unittest.TestCase):
 
     def test_iter_groups(self):
         dfs = [
-            DataFrame({f'df_{i}_column_0': np.ones(5) * i, f'df_{i}_column_1': np.arange(5) * i})
+            DataFrame(
+                {
+                    f"df_{i}_column_0": np.ones(5) * i,
+                    f"df_{i}_column_1": np.arange(5) * i,
+                }
+            )
             for i in range(5)
         ]
 
@@ -914,7 +926,7 @@ class TestMDF(unittest.TestCase):
             Signal(
                 samples=np.ones(1000) * i,
                 timestamps=np.arange(1000),
-                name=f'Signal_{i}',
+                name=f"Signal_{i}",
             )
             for i in range(20)
         ]
@@ -929,9 +941,9 @@ class TestMDF(unittest.TestCase):
         raster = 1.33
         sigs = [
             Signal(
-                samples=np.arange(1000, dtype='f8'),
+                samples=np.arange(1000, dtype="f8"),
                 timestamps=np.concatenate([np.arange(500), np.arange(1000, 1500)]),
-                name=f'Signal_{i}',
+                name=f"Signal_{i}",
             )
             for i in range(20)
         ]
@@ -941,11 +953,12 @@ class TestMDF(unittest.TestCase):
         mdf = mdf.resample(raster=raster)
 
         target_timestamps = np.arange(0, 1500, 1.33)
-        target_samples = np.concatenate([
-             np.arange(0, 500, 1.33),
-             np.linspace(499.00215568862274, 499.9976646706587, 376),
-             np.arange(500.1600000000001, 1000, 1.33)
-             ]
+        target_samples = np.concatenate(
+            [
+                np.arange(0, 500, 1.33),
+                np.linspace(499.00215568862274, 499.9976646706587, 376),
+                np.arange(500.1600000000001, 1000, 1.33),
+            ]
         )
 
         for i, sig in enumerate(mdf.iter_channels(skip_master=True)):
@@ -954,7 +967,12 @@ class TestMDF(unittest.TestCase):
 
     def test_to_dataframe(self):
         dfs = [
-            DataFrame({f'df_{i}_column_0': np.ones(5) * i, f'df_{i}_column_1': np.arange(5) * i})
+            DataFrame(
+                {
+                    f"df_{i}_column_0": np.ones(5) * i,
+                    f"df_{i}_column_1": np.arange(5) * i,
+                }
+            )
             for i in range(5)
         ]
 
@@ -964,8 +982,8 @@ class TestMDF(unittest.TestCase):
 
         target = {}
         for i in range(5):
-            target[f'df_{i}_column_0'] = np.ones(5) * i
-            target[f'df_{i}_column_1'] = np.arange(5) * i
+            target[f"df_{i}_column_0"] = np.ones(5) * i
+            target[f"df_{i}_column_1"] = np.arange(5) * i
 
         target = DataFrame(target)
 

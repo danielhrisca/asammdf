@@ -9,9 +9,9 @@ from asammdf.blocks.v4_blocks import AttachmentBlock
 class TestATBLOCK(unittest.TestCase):
 
     tempdir = None
-    data = b'\n'.join(f'line {i}'.encode('ascii') for i in range(50))
-    filename = 'embedded.txt'
-    comment = 'example of embedded attachment'
+    data = b"\n".join(f"line {i}".encode("ascii") for i in range(50))
+    filename = "embedded.txt"
+    comment = "example of embedded attachment"
 
     @classmethod
     def setUpClass(cls):
@@ -23,7 +23,7 @@ class TestATBLOCK(unittest.TestCase):
 
         cls.uncompressed = BytesIO()
         cls.uncompressed.write(
-            b'\x00##TX\x00\x00\x00\x00(\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00embedded.txt\x00\x00\x00\x00##TX\x00\x00\x00\x008\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00example of embedded attachment\x00\x00##AT\x00\x00\x00\x00\xe5\x01\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00)\x00\x00\x00\x00\x00\x00\x00\x05\x00\x00\x00\x00\x00\x00\x00\xeb\x825\x1a\x0cri\xb9\xca\xfb\xde\xb6pT\x17k\x85\x01\x00\x00\x00\x00\x00\x00\x85\x01\x00\x00\x00\x00\x00\x00line 0\nline 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\nline 11\nline 12\nline 13\nline 14\nline 15\nline 16\nline 17\nline 18\nline 19\nline 20\nline 21\nline 22\nline 23\nline 24\nline 25\nline 26\nline 27\nline 28\nline 29\nline 30\nline 31\nline 32\nline 33\nline 34\nline 35\nline 36\nline 37\nline 38\nline 39\nline 40\nline 41\nline 42\nline 43\nline 44\nline 45\nline 46\nline 47\nline 48\nline 49\x00\x00'
+            b"\x00##TX\x00\x00\x00\x00(\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00embedded.txt\x00\x00\x00\x00##TX\x00\x00\x00\x008\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00example of embedded attachment\x00\x00##AT\x00\x00\x00\x00\xe5\x01\x00\x00\x00\x00\x00\x00\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00)\x00\x00\x00\x00\x00\x00\x00\x05\x00\x00\x00\x00\x00\x00\x00\xeb\x825\x1a\x0cri\xb9\xca\xfb\xde\xb6pT\x17k\x85\x01\x00\x00\x00\x00\x00\x00\x85\x01\x00\x00\x00\x00\x00\x00line 0\nline 1\nline 2\nline 3\nline 4\nline 5\nline 6\nline 7\nline 8\nline 9\nline 10\nline 11\nline 12\nline 13\nline 14\nline 15\nline 16\nline 17\nline 18\nline 19\nline 20\nline 21\nline 22\nline 23\nline 24\nline 25\nline 26\nline 27\nline 28\nline 29\nline 30\nline 31\nline 32\nline 33\nline 34\nline 35\nline 36\nline 37\nline 38\nline 39\nline 40\nline 41\nline 42\nline 43\nline 44\nline 45\nline 46\nline 47\nline 48\nline 49\x00\x00"
         )
 
     def test_read_compressed(self):
@@ -48,23 +48,20 @@ class TestATBLOCK(unittest.TestCase):
         self.compressed.seek(0)
         stream = BytesIO(self.compressed.read())
         stream.seek(97)
-        stream.write(b'_NOK')
+        stream.write(b"_NOK")
 
         with self.assertRaises(MdfException):
             AttachmentBlock(address=97, stream=stream)
 
     def test_bytes_compressed(self):
         attachment = AttachmentBlock(
-            file_name=self.filename,
-            data=self.data,
-            embedded=True,
-            compressed=True,
+            file_name=self.filename, data=self.data, embedded=True, compressed=True,
         )
         attachment.comment = self.comment
 
         stream = BytesIO()
 
-        stream.write(b'\0')
+        stream.write(b"\0")
 
         blocks = []
         attachment.to_blocks(1, blocks, {})
@@ -81,16 +78,13 @@ class TestATBLOCK(unittest.TestCase):
 
     def test_bytes_uncompressed(self):
         attachment = AttachmentBlock(
-            file_name=self.filename,
-            data=self.data,
-            embedded=True,
-            compressed=False,
+            file_name=self.filename, data=self.data, embedded=True, compressed=False,
         )
         attachment.comment = self.comment
 
         stream = BytesIO()
 
-        stream.write(b'\0')
+        stream.write(b"\0")
 
         blocks = []
         attachment.to_blocks(1, blocks, {})

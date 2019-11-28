@@ -9,7 +9,9 @@ from ..ui.search_dialog import Ui_SearchDialog
 
 
 class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
-    def __init__(self, channels_db, return_names=False, show_add_window=False, *args, **kwargs):
+    def __init__(
+        self, channels_db, return_names=False, show_add_window=False, *args, **kwargs
+    ):
 
         super().__init__(*args, **kwargs)
         self.setupUi(self)
@@ -57,15 +59,9 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
     def _add(self, event):
         count = self.selection.count()
-        names = set(
-            self.selection.item(i).text()
-            for i in range(count)
-        )
+        names = set(self.selection.item(i).text() for i in range(count))
 
-        to_add = set(
-            item.text()
-            for item in self.matches.selectedItems()
-        )
+        to_add = set(item.text() for item in self.matches.selectedItems())
 
         names = natsorted(names | to_add)
 
@@ -76,10 +72,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         count = self.selection.count()
 
         if self._return_names:
-            self.result = set(
-                self.selection.item(i).text()
-                for i in range(count)
-            )
+            self.result = set(self.selection.item(i).text() for i in range(count))
         else:
             self.result = set()
             for i in range(count):
@@ -91,10 +84,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         count = self.selection.count()
 
         if self._return_names:
-            self.result = set(
-                self.selection.item(i).text()
-                for i in range(count)
-            )
+            self.result = set(self.selection.item(i).text() for i in range(count))
         else:
             self.result = set()
             for i in range(count):

@@ -20,14 +20,15 @@ from .batch import BatchWidget
 
 
 class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
-
     def __init__(self, files=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self._settings = QtCore.QSettings()
         self._light_palette = self.palette()
 
-        self.ignore_value2text_conversions = self._settings.value('ignore_value2text_conversions', False, type=bool)
+        self.ignore_value2text_conversions = self._settings.value(
+            "ignore_value2text_conversions", False, type=bool
+        )
 
         self.batch = BatchWidget(self.ignore_value2text_conversions)
         self.stackedWidget.addWidget(self.batch)
@@ -74,25 +75,25 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.menubar.addMenu(menu)
 
         # sub plots
-        subplot_action = QtWidgets.QAction('Sub-plots', menu)
+        subplot_action = QtWidgets.QAction("Sub-plots", menu)
         subplot_action.setCheckable(True)
 
-        state = self._settings.value('subplots', False, type=bool)
+        state = self._settings.value("subplots", False, type=bool)
         subplot_action.toggled.connect(self.set_subplot_option)
         subplot_action.triggered.connect(self.set_subplot_option)
         subplot_action.setChecked(state)
         menu.addAction(subplot_action)
 
         # Link sub-plots X-axis
-        subplot_action = QtWidgets.QAction('Link sub-plots X-axis', menu)
+        subplot_action = QtWidgets.QAction("Link sub-plots X-axis", menu)
         subplot_action.setCheckable(True)
-        state = self._settings.value('subplots_link', False, type=bool)
+        state = self._settings.value("subplots_link", False, type=bool)
         subplot_action.toggled.connect(self.set_subplot_link_option)
         subplot_action.setChecked(state)
         menu.addAction(subplot_action)
 
         # Link sub-plots X-axis
-        subplot_action = QtWidgets.QAction('Ignore value2text conversions', menu)
+        subplot_action = QtWidgets.QAction("Ignore value2text conversions", menu)
         subplot_action.setCheckable(True)
         subplot_action.toggled.connect(self.set_ignore_value2text_conversions_option)
         subplot_action.setChecked(self.ignore_value2text_conversions)
@@ -108,7 +109,7 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             plot_background_option.addAction(action)
             action.triggered.connect(partial(self.set_plot_background, option))
 
-            if option == self._settings.value('plot_background', "Black"):
+            if option == self._settings.value("plot_background", "Black"):
                 action.setChecked(True)
                 action.triggered.emit()
 
@@ -126,7 +127,7 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             theme_option.addAction(action)
             action.triggered.connect(partial(self.set_theme, option))
 
-            if option == self._settings.value('theme', "Light"):
+            if option == self._settings.value("theme", "Light"):
                 action.setChecked(True)
                 action.triggered.emit()
 
@@ -159,21 +160,27 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/list2.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(":/list2.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         action = QtWidgets.QAction(icon, "{: <20}\tS".format("Stack"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_S))
         action.setShortcut(QtCore.Qt.Key_S)
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/zoom-in.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(":/zoom-in.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         action = QtWidgets.QAction(icon, "{: <20}\tI".format("Zoom in"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_I))
         action.setShortcut(QtCore.Qt.Key_I)
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/zoom-out.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(":/zoom-out.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         action = QtWidgets.QAction(icon, "{: <20}\tO".format("Zoom out"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_O))
         action.setShortcut(QtCore.Qt.Key_O)
@@ -186,25 +193,36 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/plus.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        action = QtWidgets.QAction(icon, "{: <20}\tIns".format("Insert computation"), menu)
+        action = QtWidgets.QAction(
+            icon, "{: <20}\tIns".format("Insert computation"), menu
+        )
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_Insert))
         action.setShortcut(QtCore.Qt.Key_Insert)
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        action = QtWidgets.QAction(icon, "{: <20}\tCtrl+S".format("Save active subplot channels"), menu)
-        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_S, modifier=QtCore.Qt.ControlModifier))
+        action = QtWidgets.QAction(
+            icon, "{: <20}\tCtrl+S".format("Save active subplot channels"), menu
+        )
+        action.triggered.connect(
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key_S,
+                modifier=QtCore.Qt.ControlModifier,
+            )
+        )
         action.setShortcut(QtGui.QKeySequence("Ctrl+S"))
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        action = QtWidgets.QAction(icon, "{: <20}\tCtrl+Shift+S".format("Save all subplot channels"), menu)
+        action = QtWidgets.QAction(
+            icon, "{: <20}\tCtrl+Shift+S".format("Save all subplot channels"), menu
+        )
         action.triggered.connect(self.save_all_subplots)
         action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+S"))
         plot_actions.addAction(action)
-
 
         # values display
 
@@ -212,21 +230,33 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         action = QtWidgets.QAction("{: <20}\tCtrl+H".format("Hex"), menu)
         action.triggered.connect(
-            partial(self.plot_action, key=QtCore.Qt.Key_H, modifier=QtCore.Qt.ControlModifier)
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key_H,
+                modifier=QtCore.Qt.ControlModifier,
+            )
         )
         action.setShortcut(QtGui.QKeySequence("Ctrl+H"))
         display_format_actions.addAction(action)
 
         action = QtWidgets.QAction("{: <20}\tCtrl+B".format("Bin"), menu)
         action.triggered.connect(
-            partial(self.plot_action, key=QtCore.Qt.Key_B, modifier=QtCore.Qt.ControlModifier)
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key_B,
+                modifier=QtCore.Qt.ControlModifier,
+            )
         )
         action.setShortcut(QtGui.QKeySequence("Ctrl+B"))
         display_format_actions.addAction(action)
 
         action = QtWidgets.QAction("{: <20}\tCtrl+P".format("Physical"), menu)
         action.triggered.connect(
-            partial(self.plot_action, key=QtCore.Qt.Key_P, modifier=QtCore.Qt.ControlModifier)
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key_P,
+                modifier=QtCore.Qt.ControlModifier,
+            )
         )
         action.setShortcut(QtGui.QKeySequence("Ctrl+P"))
         display_format_actions.addAction(action)
@@ -247,23 +277,30 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         subs = QtWidgets.QActionGroup(self)
 
         action = QtWidgets.QAction("{: <20}\tShift+C".format("Cascade sub-plots"), menu)
-        action.triggered.connect(partial(self.show_sub_windows, mode='cascade'))
+        action.triggered.connect(partial(self.show_sub_windows, mode="cascade"))
         action.setShortcut(QtGui.QKeySequence("Shift+C"))
         subs.addAction(action)
 
-        action = QtWidgets.QAction("{: <20}\tShift+T".format("Tile sub-plots in a grid"), menu)
-        action.triggered.connect(partial(self.show_sub_windows, mode='tile'))
+        action = QtWidgets.QAction(
+            "{: <20}\tShift+T".format("Tile sub-plots in a grid"), menu
+        )
+        action.triggered.connect(partial(self.show_sub_windows, mode="tile"))
         action.setShortcut(QtGui.QKeySequence("Shift+T"))
         subs.addAction(action)
 
-        action = QtWidgets.QAction("{: <20}\tShift+V".format("Tile sub-plots vertically"), menu)
-        action.triggered.connect(partial(self.show_sub_windows, mode='tile vertically'))
+        action = QtWidgets.QAction(
+            "{: <20}\tShift+V".format("Tile sub-plots vertically"), menu
+        )
+        action.triggered.connect(partial(self.show_sub_windows, mode="tile vertically"))
         action.setShortcut(QtGui.QKeySequence("Shift+V"))
         subs.addAction(action)
 
-
-        action = QtWidgets.QAction("{: <20}\tShift+H".format("Tile sub-plots horizontally"), menu)
-        action.triggered.connect(partial(self.show_sub_windows, mode='tile horizontally'))
+        action = QtWidgets.QAction(
+            "{: <20}\tShift+H".format("Tile sub-plots horizontally"), menu
+        )
+        action.triggered.connect(
+            partial(self.show_sub_windows, mode="tile horizontally")
+        )
         action.setShortcut(QtGui.QKeySequence("Shift+H"))
         subs.addAction(action)
 
@@ -271,14 +308,18 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         cursors_actions = QtWidgets.QActionGroup(self)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/cursor.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(":/cursor.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         action = QtWidgets.QAction(icon, "{: <20}\tC".format("Cursor"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_C))
         action.setShortcut(QtCore.Qt.Key_C)
         cursors_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/right.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(":/right.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         action = QtWidgets.QAction(icon, "{: <20}\t←".format("Move cursor left"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_Left))
         action.setShortcut(QtCore.Qt.Key_Left)
@@ -292,7 +333,9 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         cursors_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/range.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(":/range.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         action = QtWidgets.QAction(icon, "{: <20}\tR".format("Range"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_R))
         action.setShortcut(QtCore.Qt.Key_R)
@@ -317,11 +360,11 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         open_group.addAction(action)
         menu.addActions(open_group.actions())
 
-        self.with_dots = self._settings.value('dots', False, type=bool)
-        self.setWindowTitle(f'asammdf {libversion} [PID={os.getpid()}] - Single files')
+        self.with_dots = self._settings.value("dots", False, type=bool)
+        self.setWindowTitle(f"asammdf {libversion} [PID={os.getpid()}] - Single files")
 
-        self.set_subplot_option(self._settings.value('subplots', "Disabled"))
-        self.set_subplot_link_option(self._settings.value('subplots_link', "Disabled"))
+        self.set_subplot_option(self._settings.value("subplots", "Disabled"))
+        self.set_subplot_link_option(self._settings.value("subplots_link", "Disabled"))
 
         if files:
             for name in files:
@@ -332,7 +375,7 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.show()
 
     def help(self, event):
-        webbrowser.open_new(r'http://asammdf.readthedocs.io/en/master/gui.html')
+        webbrowser.open_new(r"http://asammdf.readthedocs.io/en/master/gui.html")
 
     def save_all_subplots(self, key):
         widget = self.files.currentWidget()
@@ -346,7 +389,7 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
     def toggle_dots(self, key):
         self.with_dots = not self.with_dots
-        self._settings.setValue('dots', self.with_dots)
+        self._settings.setValue("dots", self.with_dots)
 
         count = self.files.count()
 
@@ -357,20 +400,20 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         widget = self.files.currentWidget()
         if widget:
-            if mode == 'tile':
+            if mode == "tile":
                 widget.mdi_area.tileSubWindows()
-            elif mode == 'cascade':
+            elif mode == "cascade":
                 widget.mdi_area.cascadeSubWindows()
-            elif mode == 'tile vertically':
+            elif mode == "tile vertically":
                 widget.mdi_area.tile_vertically()
-            elif mode == 'tile horizontally':
+            elif mode == "tile horizontally":
                 widget.mdi_area.tile_horizontally()
 
     def set_subplot_option(self, state):
         if isinstance(state, str):
-            state = True if state == 'true' else False
+            state = True if state == "true" else False
         self.subplots = state
-        self._settings.setValue('subplots', state)
+        self._settings.setValue("subplots", state)
 
         count = self.files.count()
 
@@ -378,18 +421,18 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             self.files.widget(i).set_subplots(state)
 
     def set_plot_background(self, option):
-        self._settings.setValue('plot_background', option)
-        if option == 'Black':
-            pg.setConfigOption('background', 'k')
-            pg.setConfigOption('foreground', 'w')
+        self._settings.setValue("plot_background", option)
+        if option == "Black":
+            pg.setConfigOption("background", "k")
+            pg.setConfigOption("foreground", "w")
         else:
-            pg.setConfigOption('background', 'w')
-            pg.setConfigOption('foreground', 'k')
+            pg.setConfigOption("background", "w")
+            pg.setConfigOption("foreground", "k")
 
     def set_theme(self, option):
-        self._settings.setValue('theme', option)
+        self._settings.setValue("theme", option)
         app = QtWidgets.QApplication.instance()
-        if option == 'Light':
+        if option == "Light":
             app.setPalette(self._light_palette)
         else:
 
@@ -477,7 +520,9 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Shadow, brush)
             brush = QtGui.QBrush(QtGui.QColor(27, 27, 27))
             brush.setStyle(QtCore.Qt.SolidPattern)
-            palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.AlternateBase, brush)
+            palette.setBrush(
+                QtGui.QPalette.Inactive, QtGui.QPalette.AlternateBase, brush
+            )
             brush = QtGui.QBrush(QtGui.QColor(255, 255, 220))
             brush.setStyle(QtCore.Qt.SolidPattern)
             palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.ToolTipBase, brush)
@@ -522,7 +567,9 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Shadow, brush)
             brush = QtGui.QBrush(QtGui.QColor(55, 55, 55))
             brush.setStyle(QtCore.Qt.SolidPattern)
-            palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.AlternateBase, brush)
+            palette.setBrush(
+                QtGui.QPalette.Disabled, QtGui.QPalette.AlternateBase, brush
+            )
             brush = QtGui.QBrush(QtGui.QColor(255, 255, 220))
             brush.setStyle(QtCore.Qt.SolidPattern)
             palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.ToolTipBase, brush)
@@ -536,9 +583,9 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
     def set_subplot_link_option(self, state):
         if isinstance(state, str):
-            state = True if state == 'true' else False
+            state = True if state == "true" else False
         self.subplots_link = state
-        self._settings.setValue('subplots_link', state)
+        self._settings.setValue("subplots_link", state)
         count = self.files.count()
 
         for i in range(count):
@@ -546,9 +593,9 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
     def set_ignore_value2text_conversions_option(self, state):
         if isinstance(state, str):
-            state = True if state == 'true' else False
+            state = True if state == "true" else False
         self.ignore_value2text_conversions = state
-        self._settings.setValue('ignore_value2text_conversions', state)
+        self._settings.setValue("ignore_value2text_conversions", state)
         count = self.files.count()
 
         for i in range(count):
@@ -572,7 +619,9 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             count = self.batch.files_list.count()
 
             icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            icon.addPixmap(
+                QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+            )
 
             for row in range(count):
                 self.batch.files_list.item(row).setIcon(icon)
@@ -621,22 +670,25 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             self,
             "Select folder",
             "",
-            QtWidgets.QFileDialog.ShowDirsOnly | QtWidgets.QFileDialog.DontResolveSymlinks,
+            QtWidgets.QFileDialog.ShowDirsOnly
+            | QtWidgets.QFileDialog.DontResolveSymlinks,
         )
         if not folder:
             return
         if self.stackedWidget.currentIndex() == 0:
             for root, dirs, files in os.walk(folder):
                 for file in natsorted(files):
-                    if file.lower().endswith(('.erg', '.dl3', '.dat', '.mdf', '.mf4')):
+                    if file.lower().endswith((".erg", ".dl3", ".dat", ".mdf", ".mf4")):
                         self._open_file(os.path.join(root, file))
         else:
             icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            icon.addPixmap(
+                QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+            )
 
             for root, dirs, files in os.walk(folder):
                 for file in natsorted(files):
-                    if file.lower().endswith(('.erg', '.dl3', '.dat', '.mdf', '.mf4')):
+                    if file.lower().endswith((".erg", ".dl3", ".dat", ".mdf", ".mf4")):
 
                         row = self.batch.files_list.count()
                         self.batch.files_list.addItem(os.path.join(root, file))
@@ -665,17 +717,19 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         try:
             if self.stackedWidget.currentIndex() == 0:
                 for path in e.mimeData().text().splitlines():
-                    path = Path(path.replace(r'file:///', ''))
-                    if path.suffix.lower() in ('.dat', '.mdf', '.mf4'):
+                    path = Path(path.replace(r"file:///", ""))
+                    if path.suffix.lower() in (".dat", ".mdf", ".mf4"):
 
                         self._open_file(path)
             else:
                 icon = QtGui.QIcon()
-                icon.addPixmap(QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+                icon.addPixmap(
+                    QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                )
 
                 for path in e.mimeData().text().splitlines():
-                    path = Path(path.replace(r'file:///', ''))
-                    if path.suffix.lower() in ('.dat', '.mdf', '.mf4'):
+                    path = Path(path.replace(r"file:///", ""))
+                    if path.suffix.lower() in (".dat", ".mdf", ".mf4"):
 
                         row = self.batch.files_list.count()
                         self.batch.files_list.addItem(str(path))
@@ -686,10 +740,14 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
     def mode_changed(self, index):
         if index == 0:
             self.plot_menu.setEnabled(True)
-            self.setWindowTitle(f'asammdf {libversion} [PID={os.getpid()}] - Single files')
+            self.setWindowTitle(
+                f"asammdf {libversion} [PID={os.getpid()}] - Single files"
+            )
         else:
             self.plot_menu.setEnabled(False)
-            self.setWindowTitle(f'asammdf {libversion} [PID={os.getpid()}] - Batch processing')
+            self.setWindowTitle(
+                f"asammdf {libversion} [PID={os.getpid()}] - Batch processing"
+            )
 
     def keyPressEvent(self, event):
         key = event.key()

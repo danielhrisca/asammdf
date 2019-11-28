@@ -153,6 +153,7 @@ class Signal(object):
         try:
 
             from .gui.plot import plot
+
             plot(self)
             return
 
@@ -449,7 +450,9 @@ class Signal(object):
                         and ends[-1] not in self.timestamps
                         and ends[-1] < self.timestamps[-1]
                     ):
-                        interpolated = self.interp([ends[1]], interpolation_mode=interpolation_mode)
+                        interpolated = self.interp(
+                            [ends[1]], interpolation_mode=interpolation_mode
+                        )
                         samples = np.append(
                             self.samples[:stop], interpolated.samples, axis=0
                         )
@@ -513,7 +516,9 @@ class Signal(object):
                         and ends[0] not in self.timestamps
                         and ends[0] > self.timestamps[0]
                     ):
-                        interpolated = self.interp([ends[0]], interpolation_mode=interpolation_mode)
+                        interpolated = self.interp(
+                            [ends[0]], interpolation_mode=interpolation_mode
+                        )
                         samples = np.append(
                             interpolated.samples, self.samples[start:], axis=0
                         )
@@ -575,7 +580,9 @@ class Signal(object):
 
                     if start == stop:
                         if include_ends:
-                            interpolated = self.interp(np.unique(ends), interpolation_mode=interpolation_mode)
+                            interpolated = self.interp(
+                                np.unique(ends), interpolation_mode=interpolation_mode
+                            )
                             samples = interpolated.samples
                             timestamps = np.array(
                                 np.unique(ends), dtype=self.timestamps.dtype
@@ -603,7 +610,9 @@ class Signal(object):
                             and ends[-1] not in self.timestamps
                             and ends[-1] < self.timestamps[-1]
                         ):
-                            interpolated = self.interp([ends[1]], interpolation_mode=interpolation_mode)
+                            interpolated = self.interp(
+                                [ends[1]], interpolation_mode=interpolation_mode
+                            )
                             samples = np.append(samples, interpolated.samples, axis=0)
                             timestamps = np.append(timestamps, ends[1])
                             if invalidation_bits is not None:
@@ -616,7 +625,9 @@ class Signal(object):
                             and ends[0] not in self.timestamps
                             and ends[0] > self.timestamps[0]
                         ):
-                            interpolated = self.interp([ends[0]], interpolation_mode=interpolation_mode)
+                            interpolated = self.interp(
+                                [ends[0]], interpolation_mode=interpolation_mode
+                            )
                             samples = np.append(interpolated.samples, samples, axis=0)
                             timestamps = np.append(ends[0], timestamps)
 

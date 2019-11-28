@@ -14,7 +14,9 @@ class Ui_PyMDFMainWindow(object):
         PyMDFMainWindow.setObjectName("PyMDFMainWindow")
         PyMDFMainWindow.resize(800, 723)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/asammdf.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(":/asammdf.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         PyMDFMainWindow.setWindowIcon(icon)
         self.centralwidget = QtWidgets.QWidget(PyMDFMainWindow)
         self.centralwidget.setObjectName("centralwidget")
@@ -62,11 +64,23 @@ class Ui_PyMDFMainWindow(object):
         _translate = QtCore.QCoreApplication.translate
         PyMDFMainWindow.setWindowTitle(_translate("PyMDFMainWindow", "asammdf"))
         self.action_memory_minimum.setText(_translate("PyMDFMainWindow", "minimum"))
-        self.action_memory_minimum.setToolTip(_translate("PyMDFMainWindow", "Minimal memory usage by loading only the nedded block addresses"))
+        self.action_memory_minimum.setToolTip(
+            _translate(
+                "PyMDFMainWindow",
+                "Minimal memory usage by loading only the nedded block addresses",
+            )
+        )
         self.action_memory_full.setText(_translate("PyMDFMainWindow", "full"))
-        self.action_memory_full.setToolTip(_translate("PyMDFMainWindow", "Load all blocks in the RAM"))
+        self.action_memory_full.setToolTip(
+            _translate("PyMDFMainWindow", "Load all blocks in the RAM")
+        )
         self.action_memory_low.setText(_translate("PyMDFMainWindow", "low"))
-        self.action_memory_low.setToolTip(_translate("PyMDFMainWindow", "Load metdata block in RAM but leave the samples on disk"))
+        self.action_memory_low.setToolTip(
+            _translate(
+                "PyMDFMainWindow",
+                "Load metdata block in RAM but leave the samples on disk",
+            )
+        )
 
 
 from . import resource_rc

@@ -4,7 +4,7 @@
 import logging
 
 logger = logging.getLogger("asammdf")
-formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
+formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
 console = logging.StreamHandler()
 console.setFormatter(formatter)
 console.setLevel(logging.DEBUG)
@@ -22,5 +22,12 @@ from .version import __version__
 
 
 __all__ = [
-    "__version__", "MDF", "MDF2", "MDF3", "MDF4", "Signal", "SUPPORTED_VERSIONS", "plot"
+    "__version__",
+    "MDF",
+    "MDF2",
+    "MDF3",
+    "MDF4",
+    "Signal",
+    "SUPPORTED_VERSIONS",
+    "plot",
 ]

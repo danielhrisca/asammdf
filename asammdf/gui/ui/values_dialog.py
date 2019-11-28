@@ -26,7 +26,9 @@ class Ui_RangeDialog(object):
         self.apply_btn = QtWidgets.QPushButton(RangeDialog)
         self.apply_btn.setObjectName("apply_btn")
         self.gridLayout.addWidget(self.apply_btn, 2, 1, 1, 1)
-        spacerItem = QtWidgets.QSpacerItem(20, 271, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem = QtWidgets.QSpacerItem(
+            20, 271, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.gridLayout.addItem(spacerItem, 1, 1, 1, 1)
         self.table = QtWidgets.QTableWidget(RangeDialog)
         self.table.setRowCount(100)
@@ -64,5 +66,3 @@ class Ui_RangeDialog(object):
         item.setText(_translate("RangeDialog", "To"))
         item = self.table.horizontalHeaderItem(2)
         item.setText(_translate("RangeDialog", "Set color"))
-
-

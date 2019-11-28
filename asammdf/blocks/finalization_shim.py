@@ -20,16 +20,21 @@ class FinalizationFlags(IntFlag):
 class MdfHeader:
     """Representation of the MDF header.
     """
+
     _fmt = "<4s4xQQ"
     _fmt_length = 24
 
-    def __init__(self, identification_str: str = None, length: int = 0, link_count: int = 0):
+    def __init__(
+        self, identification_str: str = None, length: int = 0, link_count: int = 0
+    ):
         self.identification_str = identification_str
         self.length = length
         self.link_count = link_count
 
     def __bytes__(self):
-        return struct.pack(self._fmt, self.identification_str, self.length, self.link_count)
+        return struct.pack(
+            self._fmt, self.identification_str, self.length, self.link_count
+        )
 
     def __len__(self):
         return self._fmt_length
@@ -37,9 +42,10 @@ class MdfHeader:
     pass
 
 
-class MdfBlock():
+class MdfBlock:
     """Generic representation of a MDF4 block (Except the ID block).
     """
+
     def __init__(self, header: MdfHeader):
         self.header: MdfHeader = header
         self.file_location: int = 0
@@ -58,7 +64,9 @@ class MdfBlock():
             Access to block data
         """
         # Load the addresses of the block links.
-        self.links = struct.unpack(f"<{self.header.link_count}Q", stream.read(8 * self.header.link_count))
+        self.links = struct.unpack(
+            f"<{self.header.link_count}Q", stream.read(8 * self.header.link_count)
+        )
 
         return
 
@@ -306,17 +314,14 @@ class DG_Block(MdfBlock):
         super().load(stream)
 
         # Load data.
-        self.record_size, = struct.unpack(self._fmt, stream.read(self._fmt_length))
+        (self.record_size,) = struct.unpack(self._fmt, stream.read(self._fmt_length))
         pass
 
     def __bytes__(self):
         # Aggregate the result of the header and links from the super class, and the data from this class.
         result = super().__bytes__()
 
-        result += struct.pack(
-            self._fmt,
-            self.record_size,
-        )
+        result += struct.pack(self._fmt, self.record_size,)
 
         return result
 
@@ -396,6 +401,7 @@ class HD_Block(MdfBlock):
 class FinalizationShim:
     """Shim class to insert between un-finalized MDF files and asammdf.
     """
+
     def __init__(self, parent: BinaryIO, finalization_flags: int):
         super().__init__()
 
@@ -435,7 +441,9 @@ class FinalizationShim:
             self._handle_dt()
             self._flags = ~FinalizationFlags.DT_LENGTH & self._flags
             pass
-        if (self._flags & FinalizationFlags.CG_CA_CYCLE_COUNTERS) or (self._flags & FinalizationFlags.VLSD_CG_DATA_BYTES):
+        if (self._flags & FinalizationFlags.CG_CA_CYCLE_COUNTERS) or (
+            self._flags & FinalizationFlags.VLSD_CG_DATA_BYTES
+        ):
             # Since all data records have to be read to get valid cycle counts, data bytes can be updated for "free".
             self._handle_cg_counters()
             self._flags = ~FinalizationFlags.CG_CA_CYCLE_COUNTERS & self._flags
@@ -473,7 +481,7 @@ class FinalizationShim:
             offset = self._location - match.file_location
 
             if len(data) - offset > size:
-                result = data[offset:offset+size]
+                result = data[offset : offset + size]
                 self._location += size
                 size = 0
             else:
@@ -526,7 +534,9 @@ class FinalizationShim:
                 break
 
         if dt_block is None:
-            raise RuntimeError("Requested to finalize DT block, but no DT blocks found in the file.")
+            raise RuntimeError(
+                "Requested to finalize DT block, but no DT blocks found in the file."
+            )
 
         # Set the initial guess at a bound to the EOF.
         bound = self._file_size
@@ -589,11 +599,17 @@ class FinalizationShim:
                 else:
                     # Count the number of bits used by all sub-channels. This is done by taking the highest bit/byte
                     # offset, and utilising the bit count there.
-                    cn_block: CN_Block = self._blocks.get(cg_block.get_first_cn_block_address)
+                    cn_block: CN_Block = self._blocks.get(
+                        cg_block.get_first_cn_block_address
+                    )
                     highest_bit_value = 0
 
                     while cn_block is not None:
-                        bit_value = cn_block.byte_offset * 8 + cn_block.bit_offset + cn_block.bit_count
+                        bit_value = (
+                            cn_block.byte_offset * 8
+                            + cn_block.bit_offset
+                            + cn_block.bit_count
+                        )
 
                         if bit_value > highest_bit_value:
                             highest_bit_value = bit_value
@@ -629,7 +645,9 @@ class FinalizationShim:
 
             while dt_location < dt_block_size:
                 # Read record id.
-                record_id, = struct.unpack(dg_record_fmt, self._parent.read(dg_record_size))
+                (record_id,) = struct.unpack(
+                    dg_record_fmt, self._parent.read(dg_record_size)
+                )
                 dt_location += dg_record_size
 
                 # Increment the corresponding cycle counter.
@@ -640,7 +658,7 @@ class FinalizationShim:
 
                 if record_length < 0:
                     # VLSD data, read 4 bytes of length information from the data record.
-                    record_length, = struct.unpack("<L", self._parent.read(4))
+                    (record_length,) = struct.unpack("<L", self._parent.read(4))
                     dt_location += 4
                     pass
 
@@ -657,9 +675,13 @@ class FinalizationShim:
                 if self._flags & FinalizationFlags.CG_CA_CYCLE_COUNTERS:
                     cg_block.cycle_count = cycle_counters.get(record_id)
 
-                if cg_block.is_vlsd and (self._flags & FinalizationFlags.VLSD_CG_DATA_BYTES):
-                    cg_block.data_bytes = (data_bytes.get(record_id) & 0x00000000FFFFFFFF)
-                    cg_block.inval_bytes = (data_bytes.get(record_id) & 0xFFFFFFFF00000000) << 32
+                if cg_block.is_vlsd and (
+                    self._flags & FinalizationFlags.VLSD_CG_DATA_BYTES
+                ):
+                    cg_block.data_bytes = data_bytes.get(record_id) & 0x00000000FFFFFFFF
+                    cg_block.inval_bytes = (
+                        data_bytes.get(record_id) & 0xFFFFFFFF00000000
+                    ) << 32
 
             dg_block = self._blocks.get(dg_block.get_next_dg_block_address)
             pass

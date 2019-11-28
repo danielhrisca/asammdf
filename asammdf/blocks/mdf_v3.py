@@ -162,7 +162,9 @@ class MDF3(object):
         self._tempfile.write(b"\0")
         self._file = None
 
-        self._remove_source_from_channel_names = kwargs.get('remove_source_from_channel_names', False)
+        self._remove_source_from_channel_names = kwargs.get(
+            "remove_source_from_channel_names", False
+        )
 
         self._read_fragment_size = 0
         self._write_fragment_size = 4 * 2 ** 20
@@ -184,7 +186,7 @@ class MDF3(object):
                 self._from_filelike = True
                 self._read(mapped=False)
             else:
-                if sys.maxsize < 2**32:
+                if sys.maxsize < 2 ** 32:
                     self.name = Path(name)
                     self._file = open(self.name, "rb")
                     self._from_filelike = False
@@ -659,9 +661,7 @@ class MDF3(object):
                         if source_name == source:
                             break
                     else:
-                        raise MdfException(
-                            f"{name} with source {source} not found"
-                        )
+                        raise MdfException(f"{name} with source {source} not found")
                 elif group is None:
 
                     gp_nr, ch_nr = self.channels_db[name][0]
@@ -689,9 +689,7 @@ class MDF3(object):
                             if index is None:
                                 message = f'Channel "{name}" not found in group {group}'
                             else:
-                                message = (
-                                    f'Channel "{name}" not found in group {group} at index {index}'
-                                )
+                                message = f'Channel "{name}" not found in group {group} at index {index}'
                             raise MdfException(message)
 
         return gp_nr, ch_nr
@@ -707,7 +705,6 @@ class MDF3(object):
 
     def _set_temporary_master(self, master):
         self._master = master
-
 
     def _read(self, mapped=False):
         stream = self._file
@@ -725,7 +722,9 @@ class MDF3(object):
         self.identification = FileIdentificationBlock(stream=stream)
         self.header = HeaderBlock(stream=stream)
 
-        self.version = self.identification.version_str.decode("latin-1").strip(" \n\t\0")
+        self.version = self.identification.version_str.decode("latin-1").strip(
+            " \n\t\0"
+        )
 
         # this will hold mapping from channel address to Channel object
         # needed for linking dependency blocks to referenced channels after
@@ -792,7 +791,7 @@ class MDF3(object):
                     )
 
                     if self._remove_source_from_channel_names:
-                        new_ch.name = new_ch.name.split('\\')[0]
+                        new_ch.name = new_ch.name.split("\\")[0]
 
                     # check if it has channel dependencies
                     if new_ch.component_addr:
@@ -1079,7 +1078,10 @@ class MDF3(object):
                 if different:
                     times = [s.timestamps for s in signals]
                     timestampst = unique(concatenate(times)).astype(float64)
-                    signals = [s.interp(timestamps, interpolation_mode=interp_mode) for s in signals]
+                    signals = [
+                        s.interp(timestamps, interpolation_mode=interp_mode)
+                        for s in signals
+                    ]
                     times = None
         else:
             timestamps = array([])
@@ -2790,14 +2792,14 @@ class MDF3(object):
                         kind_ = dtype_.kind
 
                         if data_type in v23c.INT_TYPES:
-                            if kind_ == 'f':
+                            if kind_ == "f":
                                 if bits != size * 8:
                                     vals = self._get_not_byte_aligned_data(
                                         data_bytes, grp, ch_nr
                                     )
                                 else:
                                     dtype_fmt = get_fmt_v3(data_type, bits)
-                                    channel_dtype = dtype(dtype_fmt.split(')')[-1])
+                                    channel_dtype = dtype(dtype_fmt.split(")")[-1])
                                     vals = vals.view(channel_dtype)
                             else:
 
@@ -2818,7 +2820,9 @@ class MDF3(object):
 
                                     if bits != size << 3:
                                         if data_type in v23c.SIGNED_INT:
-                                            vals = as_non_byte_sized_signed_int(vals, bits)
+                                            vals = as_non_byte_sized_signed_int(
+                                                vals, bits
+                                            )
                                         else:
                                             mask = (1 << bits) - 1
                                             if vals.flags.writeable:
@@ -2833,16 +2837,14 @@ class MDF3(object):
                             else:
                                 if kind_ in "ui":
                                     dtype_fmt = get_fmt_v3(data_type, bits)
-                                    channel_dtype = dtype(dtype_fmt.split(')')[-1])
+                                    channel_dtype = dtype(dtype_fmt.split(")")[-1])
                                     vals = vals.view(channel_dtype)
 
                 else:
                     vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
 
                 if not samples_only or raster:
-                    timestamps.append(
-                        self.get_master(gp_nr, fragment)
-                    )
+                    timestamps.append(self.get_master(gp_nr, fragment))
 
                 if bits == 1 and self._single_bit_uint_as_bool:
                     vals = array(vals, dtype=bool)
@@ -2993,8 +2995,8 @@ class MDF3(object):
 
         if raster is not None:
             PendingDeprecationWarning(
-                'the argument raster is depreacted since version 5.13.0 '
-                'and will be removed in a future release'
+                "the argument raster is depreacted since version 5.13.0 "
+                "and will be removed in a future release"
             )
 
         fragment = data
@@ -3449,10 +3451,7 @@ class MDF3(object):
 
         for address, groups in common.items():
 
-            partial_records = {
-                id_: []
-                for (_, id_) in groups
-            }
+            partial_records = {id_: [] for (_, id_) in groups}
 
             group = self.groups[groups[0][0]]
 
@@ -3486,7 +3485,7 @@ class MDF3(object):
 
             for rec_id, new_data in partial_records.items():
                 if new_data:
-                    new_data = b''.join(new_data)
+                    new_data = b"".join(new_data)
                     size = len(new_data)
 
                     address = tell()

@@ -5,9 +5,9 @@ from PyQt5 import QtWidgets
 
 class TreeItem(QtWidgets.QTreeWidgetItem):
 
-    __slots__ = 'entry', 'name'
+    __slots__ = "entry", "name"
 
-    def __init__(self, entry, name='', parent=None, strings=None):
+    def __init__(self, entry, name="", parent=None, strings=None):
 
         super().__init__(parent, strings)
 
@@ -42,4 +42,3 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
 
     def __del__(self):
         self.entry = self.name = None
-

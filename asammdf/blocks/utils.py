@@ -202,8 +202,8 @@ def get_text_v3(address, stream, mapped=False):
         return ""
 
     if mapped:
-        size, = UINT16_uf(stream, address + 2)
-        text_bytes = stream[address + 4: address + size]
+        (size,) = UINT16_uf(stream, address + 2)
+        text_bytes = stream[address + 4 : address + size]
     else:
         stream.seek(address + 2)
         size = UINT16_u(stream.read(2))[0] - 4
@@ -212,7 +212,7 @@ def get_text_v3(address, stream, mapped=False):
         text = text_bytes.strip(b" \r\t\n\0").decode("latin-1")
     except UnicodeDecodeError:
         encoding = detect(text_bytes)["encoding"]
-        text = text_bytes.strip(b" \r\t\n\0").decode(encoding, 'ignore')
+        text = text_bytes.strip(b" \r\t\n\0").decode(encoding, "ignore")
 
     return text
 
@@ -238,8 +238,8 @@ def get_text_v4(address, stream, mapped=False):
         return ""
 
     if mapped:
-        size, = UINT64_uf(stream, address + 8)
-        text_bytes = stream[address + 24: address + size]
+        (size,) = UINT64_uf(stream, address + 8)
+        text_bytes = stream[address + 24 : address + size]
     else:
         stream.seek(address + 8)
         size, _ = TWO_UINT64_u(stream.read(16))
@@ -248,7 +248,7 @@ def get_text_v4(address, stream, mapped=False):
         text = text_bytes.strip(b" \r\t\n\0").decode("utf-8")
     except UnicodeDecodeError:
         encoding = detect(text_bytes)["encoding"]
-        text = text_bytes.strip(b" \r\t\n\0").decode(encoding, 'ignore')
+        text = text_bytes.strip(b" \r\t\n\0").decode(encoding, "ignore")
 
     return text
 
@@ -574,8 +574,10 @@ def as_non_byte_sized_signed_int(integer_array, bit_length):
             (1 << bit_length) - 1
         )  # Zero out the unwanted bits
     return where(
-        truncated_integers >> bit_length - 1,  # sign bit as a truth series (True when negative)
-        (2 ** bit_length - truncated_integers) * -1,  # when negative, do two's complement
+        truncated_integers
+        >> bit_length - 1,  # sign bit as a truth series (True when negative)
+        (2 ** bit_length - truncated_integers)
+        * -1,  # when negative, do two's complement
         truncated_integers,  # when positive, return the truncated int
     )
 
@@ -740,7 +742,6 @@ def validate_version_argument(version, hint=4):
 
 
 class ChannelsDB(dict):
-
     def __init__(self, version=4):
         super().__init__()
 
@@ -1011,13 +1012,8 @@ def block_fields(obj):
 
 
 def components(
-        channel,
-        channel_name,
-        unique_names,
-        prefix="",
-        master=None,
-        only_basenames=False,
-    ):
+    channel, channel_name, unique_names, prefix="", master=None, only_basenames=False,
+):
     """ yield pandas Series and unique name based on the ndarray object
 
     Parameters
@@ -1084,7 +1080,9 @@ def components(
 
             if values.dtype.names:
                 yield from components(
-                    values, name, unique_names,
+                    values,
+                    name,
+                    unique_names,
                     prefix=f"{prefix}.{channel_name}" if prefix else f"{channel_name}",
                     master=master,
                     only_basenames=only_basenames,
@@ -1093,7 +1091,9 @@ def components(
             else:
                 if not only_basenames:
                     name_ = unique_names.get_unique_name(
-                        f"{prefix}.{channel_name}.{name}" if prefix else f"{channel_name}.{name}"
+                        f"{prefix}.{channel_name}.{name}"
+                        if prefix
+                        else f"{channel_name}.{name}"
                     )
                 else:
                     name_ = unique_names.get_unique_name(name)
@@ -1106,22 +1106,23 @@ def components(
 class DataBlockInfo:
 
     __slots__ = (
-        'address',
-        'block_type',
-        'raw_size',
-        'size',
-        'param',
-        'invalidation_block',
+        "address",
+        "block_type",
+        "raw_size",
+        "size",
+        "param",
+        "invalidation_block",
     )
 
-    def __init__(self, address, block_type, raw_size, size, param, invalidation_block=None):
+    def __init__(
+        self, address, block_type, raw_size, size, param, invalidation_block=None
+    ):
         self.address = address
         self.block_type = block_type
         self.raw_size = raw_size
         self.size = size
         self.param = param
         self.invalidation_block = invalidation_block
-
 
     def __repr__(self):
         return (
@@ -1136,9 +1137,7 @@ class DataBlockInfo:
 
 class InvalidationBlockInfo(DataBlockInfo):
 
-    __slots__ = (
-        'all_valid',
-    )
+    __slots__ = ("all_valid",)
 
     def __init__(self, address, block_type, raw_size, size, param, all_valid=False):
         super().__init__(address, block_type, raw_size, size, param)
@@ -1158,10 +1157,10 @@ class InvalidationBlockInfo(DataBlockInfo):
 class SignalDataBlockInfo:
 
     __slots__ = (
-        'address',
-        'size',
-        'count',
-        'offsets',
+        "address",
+        "size",
+        "count",
+        "offsets",
     )
 
     def __init__(self, address, size, count, offsets=None):
@@ -1196,9 +1195,9 @@ def get_fields(obj):
 # code snippet taken from https://www.kaggle.com/arjanso/reducing-dataframe-memory-size-by-65
 def downcast(array):
     kind = array.dtype.kind
-    if kind == 'f':
+    if kind == "f":
         array = array.astype(np.float32)
-    elif kind in 'ui':
+    elif kind in "ui":
         min_ = array.min()
         max_ = array.max()
         if min_ >= 0:
@@ -1242,7 +1241,7 @@ def master_using_raster(mdf, raster, endpoint=False):
 
     """
     if not raster:
-        master = np.array([], dtype='<f8')
+        master = np.array([], dtype="<f8")
     else:
 
         t_min = []
@@ -1250,17 +1249,11 @@ def master_using_raster(mdf, raster, endpoint=False):
         for i, group in enumerate(mdf.groups):
             cycles_nr = group.channel_group.cycles_nr
             if cycles_nr:
-                master_min = mdf.get_master(
-                    i,
-                    record_offset=0,
-                    record_count=1,
-                )
+                master_min = mdf.get_master(i, record_offset=0, record_count=1,)
                 if len(master_min):
                     t_min.append(master_min[0])
                 master_max = mdf.get_master(
-                    i,
-                    record_offset=cycles_nr-1,
-                    record_count=1,
+                    i, record_offset=cycles_nr - 1, record_count=1,
                 )
                 if len(master_max):
                     t_max.append(master_max[0])
@@ -1278,7 +1271,7 @@ def master_using_raster(mdf, raster, endpoint=False):
                     master = np.concatenate([master, [t_max]])
 
         else:
-            master = np.array([], dtype='<f8')
+            master = np.array([], dtype="<f8")
 
     return master
 
@@ -1314,38 +1307,52 @@ def extract_can_signal(signal, payload):
 
             vals = np.column_stack(
                 [
-                    np.zeros(len(vals), dtype=f'<({extra_bytes},)u1'),
-                    vals[:, start_byte:start_byte+byte_size],
+                    np.zeros(len(vals), dtype=f"<({extra_bytes},)u1"),
+                    vals[:, start_byte : start_byte + byte_size],
                 ]
             )
             try:
-                vals = vals.view(f'>u{std_size}').ravel()
+                vals = vals.view(f">u{std_size}").ravel()
             except:
-                vals = np.frombuffer(vals.tobytes(), dtype=f'>u{std_size}')
+                vals = np.frombuffer(vals.tobytes(), dtype=f">u{std_size}")
 
         else:
             vals = np.column_stack(
                 [
-                    vals[:, start_byte:start_byte+byte_size],
-                    np.zeros(len(vals), dtype=f'<({extra_bytes},)u1'),
+                    vals[:, start_byte : start_byte + byte_size],
+                    np.zeros(len(vals), dtype=f"<({extra_bytes},)u1"),
                 ]
             )
             try:
-                vals = vals.view(f'<u{std_size}').ravel()
+                vals = vals.view(f"<u{std_size}").ravel()
             except:
-                vals = np.frombuffer(vals.tobytes(), dtype=f'<u{std_size}')
+                vals = np.frombuffer(vals.tobytes(), dtype=f"<u{std_size}")
 
     else:
         if big_endian:
             try:
-                vals = vals[:, start_byte:start_byte + byte_size].view(f'>u{std_size}').ravel()
+                vals = (
+                    vals[:, start_byte : start_byte + byte_size]
+                    .view(f">u{std_size}")
+                    .ravel()
+                )
             except:
-                vals = np.frombuffer(vals[:, start_byte:start_byte + byte_size].tobytes(), dtype=f'>u{std_size}')
+                vals = np.frombuffer(
+                    vals[:, start_byte : start_byte + byte_size].tobytes(),
+                    dtype=f">u{std_size}",
+                )
         else:
             try:
-                vals = vals[:, start_byte:start_byte+byte_size].view(f'<u{std_size}').ravel()
+                vals = (
+                    vals[:, start_byte : start_byte + byte_size]
+                    .view(f"<u{std_size}")
+                    .ravel()
+                )
             except:
-                vals = np.frombuffer(vals[:, start_byte:start_byte + byte_size].tobytes(), dtype=f'<u{std_size}')
+                vals = np.frombuffer(
+                    vals[:, start_byte : start_byte + byte_size].tobytes(),
+                    dtype=f"<u{std_size}",
+                )
 
     vals = vals >> bit_offset
     vals &= (2 ** bit_count) - 1
@@ -1394,12 +1401,12 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
     # mutiplexor and the same lower and upper mutiplexing values
     pairs = {}
     for signal in message:
-        if signal.multiplex == 'Multiplexor' or signal.muxer_for_signal != muxer:
+        if signal.multiplex == "Multiplexor" or signal.muxer_for_signal != muxer:
             continue
         try:
             entry = signal.mux_val_min, signal.mux_val_max
         except:
-            entry = tuple(signal.mux_val_grp[0]) if signal.mux_val_grp else (0,0)
+            entry = tuple(signal.mux_val_grp[0]) if signal.mux_val_grp else (0, 0)
         if entry not in pairs:
             pairs[entry] = []
         pairs[entry].append(signal)
@@ -1415,12 +1422,12 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
                 samples = extract_can_signal(sig, payload)
                 max_val = float(sig.calc_max())
                 signals[sig.name] = {
-                    'name': sig.name,
-                    'comment': sig.comment or "",
-                    'unit': sig.unit or "",
-                    'samples': samples,
-                    't': t,
-                    'is_max': np.all(samples == max_val),
+                    "name": sig.name,
+                    "comment": sig.comment or "",
+                    "unit": sig.unit or "",
+                    "samples": samples,
+                    "t": t,
+                    "is_max": np.all(samples == max_val),
                 }
         else:
             # select only the CAN messages where the multiplexor value is
@@ -1436,12 +1443,12 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
                 samples = extract_can_signal(sig, payload_)
                 max_val = float(sig.calc_max())
                 signals[sig.name] = {
-                    'name': sig.name,
-                    'comment': sig.comment or "",
-                    'unit': sig.unit or "",
-                    'samples': samples,
-                    't': t_,
-                    'is_max': np.all(samples == max_val),
+                    "name": sig.name,
+                    "comment": sig.comment or "",
+                    "unit": sig.unit or "",
+                    "samples": samples,
+                    "t": t_,
+                    "is_max": np.all(samples == max_val),
                 }
 
     # then handle mutiplexers signals
@@ -1450,13 +1457,13 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
     # and the same lower and upper mutiplexing values
     pairs = {}
     for signal in message:
-        if signal.multiplex != 'Multiplexor' or signal.muxer_for_signal != muxer:
+        if signal.multiplex != "Multiplexor" or signal.muxer_for_signal != muxer:
             continue
 
         try:
             entry = signal.mux_val_min, signal.mux_val_max
         except:
-            entry = tuple(signal.mux_val_grp[0]) if signal.mux_val_grp else (0,0)
+            entry = tuple(signal.mux_val_grp[0]) if signal.mux_val_grp else (0, 0)
         if entry not in pairs:
             pairs[entry] = []
         pairs[entry].append(signal)
@@ -1475,12 +1482,12 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
                 max_val = float(sig.calc_max())
                 muxer_values = extract_can_signal(sig, payload)
                 signals[sig.name] = {
-                    'name': sig.name,
-                    'comment': sig.comment or "",
-                    'unit': sig.unit or "",
-                    'samples': muxer_values,
-                    't': t,
-                    'is_max': np.all(muxer_values == max_val),
+                    "name": sig.name,
+                    "comment": sig.comment or "",
+                    "unit": sig.unit or "",
+                    "samples": muxer_values,
+                    "t": t,
+                    "is_max": np.all(muxer_values == max_val),
                 }
 
                 # feed the muxer values to the mutliplexed signals
@@ -1513,12 +1520,12 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
                 max_val = float(sig.calc_max())
                 muxer_values_ = extract_can_signal(sig, payload_)
                 signals[sig.name] = {
-                    'name': sig.name,
-                    'comment': sig.comment or "",
-                    'unit': sig.unit or "",
-                    'samples': muxer_values_,
-                    't': t_,
-                    'is_max': np.all(muxer_values == max_val),
+                    "name": sig.name,
+                    "comment": sig.comment or "",
+                    "unit": sig.unit or "",
+                    "samples": muxer_values_,
+                    "t": t_,
+                    "is_max": np.all(muxer_values == max_val),
                 }
 
                 extracted_signals.update(
@@ -1543,7 +1550,8 @@ def csv_int2hex(val):
 
     """
 
-    return f'{val:X}'
+    return f"{val:X}"
+
 
 csv_int2hex = np.vectorize(csv_int2hex, otypes=[str])
 
@@ -1556,12 +1564,10 @@ def csv_bytearray2hex(val):
     """
     val = val.tobytes().hex().upper()
 
-    vals = [
-        val[i: i + 2]
-        for i in range(0, len(val), 2)
-    ]
+    vals = [val[i : i + 2] for i in range(0, len(val), 2)]
 
-    return ' '.join(vals)
+    return " ".join(vals)
+
 
 csv_bytearray2hex = np.vectorize(csv_bytearray2hex, otypes=[str])
 
@@ -1569,14 +1575,14 @@ csv_bytearray2hex = np.vectorize(csv_bytearray2hex, otypes=[str])
 def pandas_query_compatible(name):
     """ adjust column name for usage in dataframe query string """
 
-    for c in '.$[] ':
-        name = name.replace(c, '_')
+    for c in ".$[] ":
+        name = name.replace(c, "_")
     try:
-        exec(f'from pandas import {name}')
+        exec(f"from pandas import {name}")
     except ImportError:
         pass
     else:
-        name = f'{name}__'
+        name = f"{name}__"
     return name
 
 
@@ -1586,27 +1592,21 @@ def load_can_database(file, contents=None):
 
     dbc = None
 
-    if file.suffix.lower() in ('.dbc', '.arxml'):
+    if file.suffix.lower() in (".dbc", ".arxml"):
         if contents is None and file.exists():
             contents = file.read_bytes()
 
         if contents:
-            import_type = file.suffix.lower().strip('.')
-            loads = dbc_load if import_type == 'dbc' else arxml_load
+            import_type = file.suffix.lower().strip(".")
+            loads = dbc_load if import_type == "dbc" else arxml_load
 
             contents = BytesIO(contents)
             try:
                 try:
-                    dbc = loads(
-                        contents,
-                        import_type=import_type,
-                        key="db",
-                    )
+                    dbc = loads(contents, import_type=import_type, key="db",)
                 except UnicodeDecodeError:
                     encoding = detect(contents)["encoding"]
-                    contents = contents.decode(
-                        encoding
-                    )
+                    contents = contents.decode(encoding)
                     dbc = loads(
                         contents,
                         importType=import_type,

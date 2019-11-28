@@ -32,7 +32,9 @@ class Ui_batch_widget(object):
         self.gridLayout_7.addWidget(self.concatenate_sync, 0, 0, 1, 2)
         self.concatenate_add_samples_origin = QtWidgets.QCheckBox(self.concatenate_tab)
         self.concatenate_add_samples_origin.setChecked(True)
-        self.concatenate_add_samples_origin.setObjectName("concatenate_add_samples_origin")
+        self.concatenate_add_samples_origin.setObjectName(
+            "concatenate_add_samples_origin"
+        )
         self.gridLayout_7.addWidget(self.concatenate_add_samples_origin, 1, 0, 1, 2)
         self.label_11 = QtWidgets.QLabel(self.concatenate_tab)
         self.label_11.setObjectName("label_11")
@@ -74,7 +76,9 @@ class Ui_batch_widget(object):
         self.concatenate_btn.setIcon(icon)
         self.concatenate_btn.setObjectName("concatenate_btn")
         self.gridLayout_7.addWidget(self.concatenate_btn, 9, 1, 1, 1)
-        spacerItem = QtWidgets.QSpacerItem(20, 502, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem = QtWidgets.QSpacerItem(
+            20, 502, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.gridLayout_7.addItem(spacerItem, 8, 1, 1, 1)
         self.aspects.addTab(self.concatenate_tab, icon, "")
         self.convert_tab = QtWidgets.QWidget()
@@ -120,11 +124,15 @@ class Ui_batch_widget(object):
         self.gridLayout_2.addWidget(self.line_2, 5, 0, 1, 2)
         self.convert_btn = QtWidgets.QPushButton(self.convert_tab)
         icon1 = QtGui.QIcon()
-        icon1.addPixmap(QtGui.QPixmap(":/convert.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon1.addPixmap(
+            QtGui.QPixmap(":/convert.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.convert_btn.setIcon(icon1)
         self.convert_btn.setObjectName("convert_btn")
         self.gridLayout_2.addWidget(self.convert_btn, 7, 1, 1, 1)
-        spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem1 = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.gridLayout_2.addItem(spacerItem1, 6, 1, 1, 1)
         self.verticalLayout_3.addLayout(self.gridLayout_2)
         self.aspects.addTab(self.convert_tab, icon1, "")
@@ -192,7 +200,9 @@ class Ui_batch_widget(object):
         self.label_7 = QtWidgets.QLabel(self.cut_tab)
         self.label_7.setObjectName("label_7")
         self.gridLayout_3.addWidget(self.label_7, 8, 0, 1, 1)
-        spacerItem2 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem2 = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.gridLayout_3.addItem(spacerItem2, 10, 1, 1, 1)
         self.cut_btn = QtWidgets.QPushButton(self.cut_tab)
         icon2 = QtGui.QIcon()
@@ -232,7 +242,9 @@ class Ui_batch_widget(object):
         self.gridLayout_6.addWidget(self.reduce_memory_usage, 7, 0, 1, 1)
         self.export_btn = QtWidgets.QPushButton(self.export_tab)
         icon3 = QtGui.QIcon()
-        icon3.addPixmap(QtGui.QPixmap(":/export.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon3.addPixmap(
+            QtGui.QPixmap(":/export.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.export_btn.setIcon(icon3)
         self.export_btn.setObjectName("export_btn")
         self.gridLayout_6.addWidget(self.export_btn, 15, 1, 1, 1)
@@ -240,7 +252,9 @@ class Ui_batch_widget(object):
         self.export_raster.setDecimals(6)
         self.export_raster.setObjectName("export_raster")
         self.gridLayout_6.addWidget(self.export_raster, 4, 1, 1, 1)
-        spacerItem3 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem3 = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.gridLayout_6.addItem(spacerItem3, 14, 1, 1, 1)
         self.label_20 = QtWidgets.QLabel(self.export_tab)
         self.label_20.setObjectName("label_20")
@@ -350,11 +364,15 @@ class Ui_batch_widget(object):
         self.gridLayout_4.addLayout(self.verticalLayout_2, 0, 1, 1, 1)
         self.resample_btn = QtWidgets.QPushButton(self.resample_tab)
         icon4 = QtGui.QIcon()
-        icon4.addPixmap(QtGui.QPixmap(":/resample.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon4.addPixmap(
+            QtGui.QPixmap(":/resample.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.resample_btn.setIcon(icon4)
         self.resample_btn.setObjectName("resample_btn")
         self.gridLayout_4.addWidget(self.resample_btn, 7, 1, 1, 1)
-        spacerItem4 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem4 = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.gridLayout_4.addItem(spacerItem4, 6, 1, 1, 1)
         self.verticalLayout_5.addLayout(self.gridLayout_4)
         self.aspects.addTab(self.resample_tab, icon4, "")
@@ -364,11 +382,15 @@ class Ui_batch_widget(object):
         self.gridLayout.setContentsMargins(25, 25, -1, -1)
         self.gridLayout.setSpacing(15)
         self.gridLayout.setObjectName("gridLayout")
-        spacerItem5 = QtWidgets.QSpacerItem(20, 572, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem5 = QtWidgets.QSpacerItem(
+            20, 572, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.gridLayout.addItem(spacerItem5, 1, 2, 1, 1)
         self.scramble_btn = QtWidgets.QPushButton(self.scramble_tab)
         icon5 = QtGui.QIcon()
-        icon5.addPixmap(QtGui.QPixmap(":/scramble.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon5.addPixmap(
+            QtGui.QPixmap(":/scramble.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.scramble_btn.setIcon(icon5)
         self.scramble_btn.setObjectName("scramble_btn")
         self.gridLayout.addWidget(self.scramble_btn, 2, 2, 1, 1)
@@ -423,11 +445,15 @@ class Ui_batch_widget(object):
         self.line_7.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_7.setObjectName("line_7")
         self.gridLayout_8.addWidget(self.line_7, 7, 0, 1, 2)
-        spacerItem6 = QtWidgets.QSpacerItem(20, 502, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem6 = QtWidgets.QSpacerItem(
+            20, 502, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.gridLayout_8.addItem(spacerItem6, 8, 1, 1, 1)
         self.stack_btn = QtWidgets.QPushButton(self.stack_tab)
         icon6 = QtGui.QIcon()
-        icon6.addPixmap(QtGui.QPixmap(":/stack.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon6.addPixmap(
+            QtGui.QPixmap(":/stack.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.stack_btn.setIcon(icon6)
         self.stack_btn.setObjectName("stack_btn")
         self.gridLayout_8.addWidget(self.stack_btn, 9, 1, 1, 1)
@@ -441,7 +467,9 @@ class Ui_batch_widget(object):
         self.gridLayout_11.addWidget(self.can_database_list, 1, 0, 1, 3)
         self.load_can_database_btn = QtWidgets.QPushButton(self.extract_can_tab)
         icon7 = QtGui.QIcon()
-        icon7.addPixmap(QtGui.QPixmap(":/open.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon7.addPixmap(
+            QtGui.QPixmap(":/open.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.load_can_database_btn.setIcon(icon7)
         self.load_can_database_btn.setObjectName("load_can_database_btn")
         self.gridLayout_11.addWidget(self.load_can_database_btn, 0, 0, 1, 1)
@@ -451,7 +479,9 @@ class Ui_batch_widget(object):
         self.gridLayout_5.setObjectName("gridLayout_5")
         self.extract_can_btn = QtWidgets.QPushButton(self.groupBox_2)
         icon8 = QtGui.QIcon()
-        icon8.addPixmap(QtGui.QPixmap(":/down.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon8.addPixmap(
+            QtGui.QPixmap(":/down.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.extract_can_btn.setIcon(icon8)
         self.extract_can_btn.setObjectName("extract_can_btn")
         self.gridLayout_5.addWidget(self.extract_can_btn, 5, 0, 1, 2)
@@ -459,11 +489,15 @@ class Ui_batch_widget(object):
         self.label__1.setObjectName("label__1")
         self.gridLayout_5.addWidget(self.label__1, 0, 0, 1, 1)
         self.extract_can_compression = QtWidgets.QComboBox(self.groupBox_2)
-        self.extract_can_compression.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
+        self.extract_can_compression.setSizeAdjustPolicy(
+            QtWidgets.QComboBox.AdjustToContents
+        )
         self.extract_can_compression.setObjectName("extract_can_compression")
         self.gridLayout_5.addWidget(self.extract_can_compression, 0, 1, 1, 1)
         self.extract_can_format = QtWidgets.QComboBox(self.groupBox_2)
-        self.extract_can_format.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
+        self.extract_can_format.setSizeAdjustPolicy(
+            QtWidgets.QComboBox.AdjustToContents
+        )
         self.extract_can_format.setObjectName("extract_can_format")
         self.gridLayout_5.addWidget(self.extract_can_format, 1, 1, 1, 1)
         self.label_24 = QtWidgets.QLabel(self.groupBox_2)
@@ -537,40 +571,58 @@ class Ui_batch_widget(object):
     def retranslateUi(self, batch_widget):
         _translate = QtCore.QCoreApplication.translate
         batch_widget.setWindowTitle(_translate("batch_widget", "Form"))
-        self.concatenate_sync.setText(_translate("batch_widget", "Sync using measurements timestamps"))
-        self.concatenate_add_samples_origin.setText(_translate("batch_widget", "Add samples origin file"))
+        self.concatenate_sync.setText(
+            _translate("batch_widget", "Sync using measurements timestamps")
+        )
+        self.concatenate_add_samples_origin.setText(
+            _translate("batch_widget", "Add samples origin file")
+        )
         self.label_11.setText(_translate("batch_widget", "Output format"))
         self.label_12.setText(_translate("batch_widget", "Compression"))
         self.concatenate_split.setText(_translate("batch_widget", "Split data blocks"))
         self.concatenate_split_size.setSuffix(_translate("batch_widget", "MB"))
         self.label_10.setText(_translate("batch_widget", "Split size "))
         self.concatenate_btn.setText(_translate("batch_widget", "Concatenate"))
-        self.aspects.setTabText(self.aspects.indexOf(self.concatenate_tab), _translate("batch_widget", "Concatenate"))
+        self.aspects.setTabText(
+            self.aspects.indexOf(self.concatenate_tab),
+            _translate("batch_widget", "Concatenate"),
+        )
         self.label_5.setText(_translate("batch_widget", "Split size "))
         self.convert_split.setText(_translate("batch_widget", "Split data blocks"))
         self.convert_split_size.setSuffix(_translate("batch_widget", "MB"))
         self.label_2.setText(_translate("batch_widget", "Output format"))
         self.label_3.setText(_translate("batch_widget", "Compression"))
         self.convert_btn.setText(_translate("batch_widget", "Convert"))
-        self.aspects.setTabText(self.aspects.indexOf(self.convert_tab), _translate("batch_widget", "Convert"))
-        self.aspects.setTabToolTip(self.aspects.indexOf(self.convert_tab), _translate("batch_widget", "conv"))
+        self.aspects.setTabText(
+            self.aspects.indexOf(self.convert_tab),
+            _translate("batch_widget", "Convert"),
+        )
+        self.aspects.setTabToolTip(
+            self.aspects.indexOf(self.convert_tab), _translate("batch_widget", "conv")
+        )
         self.label_6.setText(_translate("batch_widget", "Compression"))
         self.label_15.setText(_translate("batch_widget", "Output format"))
         self.label_13.setText(_translate("batch_widget", "Start"))
         self.cut_time_from_zero.setText(_translate("batch_widget", "Time from 0s"))
-        self.whence.setText(_translate("batch_widget", "Start relative to first time stamp"))
+        self.whence.setText(
+            _translate("batch_widget", "Start relative to first time stamp")
+        )
         self.cut_stop.setSuffix(_translate("batch_widget", "s"))
         self.cut_split.setText(_translate("batch_widget", "Split data blocks"))
         self.cut_start.setSuffix(_translate("batch_widget", "s"))
         self.label_14.setText(_translate("batch_widget", "End"))
         self.label_7.setText(_translate("batch_widget", "Split size [MB]"))
         self.cut_btn.setText(_translate("batch_widget", "Cut"))
-        self.aspects.setTabText(self.aspects.indexOf(self.cut_tab), _translate("batch_widget", "Cut"))
+        self.aspects.setTabText(
+            self.aspects.indexOf(self.cut_tab), _translate("batch_widget", "Cut")
+        )
         self.single_time_base.setText(_translate("batch_widget", "Single time base"))
         self.use_display_names.setText(_translate("batch_widget", "Use display names"))
         self.label_18.setText(_translate("batch_widget", ".mat format"))
         self.time_from_zero.setText(_translate("batch_widget", "Time from 0s"))
-        self.reduce_memory_usage.setText(_translate("batch_widget", "Reduce  memory usage"))
+        self.reduce_memory_usage.setText(
+            _translate("batch_widget", "Reduce  memory usage")
+        )
         self.export_btn.setText(_translate("batch_widget", "Export"))
         self.export_raster.setSuffix(_translate("batch_widget", "s"))
         self.label_20.setText(_translate("batch_widget", "Compression"))
@@ -579,7 +631,9 @@ class Ui_batch_widget(object):
         self.label_22.setText(_translate("batch_widget", "Raster"))
         self.label_16.setText(_translate("batch_widget", ".mat oned_as"))
         self.time_as_date.setText(_translate("batch_widget", "Time as date"))
-        self.aspects.setTabText(self.aspects.indexOf(self.export_tab), _translate("batch_widget", "Export"))
+        self.aspects.setTabText(
+            self.aspects.indexOf(self.export_tab), _translate("batch_widget", "Export")
+        )
         self.label_8.setText(_translate("batch_widget", "Compression"))
         self.resample_split_size.setSuffix(_translate("batch_widget", "MB"))
         self.resample_split.setText(_translate("batch_widget", "Split data blocks"))
@@ -592,37 +646,77 @@ class Ui_batch_widget(object):
         self.raster_type_channel.setText(_translate("batch_widget", "channel"))
         self.raster.setSuffix(_translate("batch_widget", "s"))
         self.resample_btn.setText(_translate("batch_widget", "Resample"))
-        self.aspects.setTabText(self.aspects.indexOf(self.resample_tab), _translate("batch_widget", "Resample"))
+        self.aspects.setTabText(
+            self.aspects.indexOf(self.resample_tab),
+            _translate("batch_widget", "Resample"),
+        )
         self.scramble_btn.setText(_translate("batch_widget", "Scramble texts"))
-        self.label_17.setText(_translate("batch_widget", "Anonymize the measurements: scramble all texts and replace them with random strings"))
-        self.aspects.setTabText(self.aspects.indexOf(self.scramble_tab), _translate("batch_widget", "Scramble"))
-        self.stack_sync.setText(_translate("batch_widget", "Sync using measurements timestamps"))
-        self.stack_add_samples_origin.setText(_translate("batch_widget", "Add samples origin file"))
+        self.label_17.setText(
+            _translate(
+                "batch_widget",
+                "Anonymize the measurements: scramble all texts and replace them with random strings",
+            )
+        )
+        self.aspects.setTabText(
+            self.aspects.indexOf(self.scramble_tab),
+            _translate("batch_widget", "Scramble"),
+        )
+        self.stack_sync.setText(
+            _translate("batch_widget", "Sync using measurements timestamps")
+        )
+        self.stack_add_samples_origin.setText(
+            _translate("batch_widget", "Add samples origin file")
+        )
         self.label_26.setText(_translate("batch_widget", "Output format"))
         self.label_25.setText(_translate("batch_widget", "Compression"))
         self.stack_split.setText(_translate("batch_widget", "Split data blocks"))
         self.label_23.setText(_translate("batch_widget", "Split size "))
         self.stack_split_size.setSuffix(_translate("batch_widget", "MB"))
         self.stack_btn.setText(_translate("batch_widget", "Stack"))
-        self.aspects.setTabText(self.aspects.indexOf(self.stack_tab), _translate("batch_widget", "Stack"))
-        self.load_can_database_btn.setText(_translate("batch_widget", "Load CAN database"))
+        self.aspects.setTabText(
+            self.aspects.indexOf(self.stack_tab), _translate("batch_widget", "Stack")
+        )
+        self.load_can_database_btn.setText(
+            _translate("batch_widget", "Load CAN database")
+        )
         self.groupBox_2.setTitle(_translate("batch_widget", "MDF"))
         self.extract_can_btn.setText(_translate("batch_widget", "Extract CAN signals"))
         self.label__1.setText(_translate("batch_widget", "Compression"))
         self.label_24.setText(_translate("batch_widget", "Version"))
-        self.ignore_invalid_signals_mdf.setToolTip(_translate("batch_widget", "checks if all samples are eauql to the maximum teoretical signal value"))
-        self.ignore_invalid_signals_mdf.setText(_translate("batch_widget", "Ignore invalid signals"))
+        self.ignore_invalid_signals_mdf.setToolTip(
+            _translate(
+                "batch_widget",
+                "checks if all samples are eauql to the maximum teoretical signal value",
+            )
+        )
+        self.ignore_invalid_signals_mdf.setText(
+            _translate("batch_widget", "Ignore invalid signals")
+        )
         self.groupBox_3.setTitle(_translate("batch_widget", "CSV"))
         self.time_from_zero_can.setText(_translate("batch_widget", "Time from 0s"))
         self.label_28.setText(_translate("batch_widget", "Raster"))
         self.export_raster_can.setSuffix(_translate("batch_widget", "s"))
-        self.extract_can_csv_btn.setText(_translate("batch_widget", "Export to CSV         "))
-        self.single_time_base_can.setText(_translate("batch_widget", "Single time base"))
-        self.ignore_invalid_signals_csv.setToolTip(_translate("batch_widget", "checks if all samples are eauql to the maximum teoretical signal value"))
-        self.ignore_invalid_signals_csv.setText(_translate("batch_widget", "Ignore invalid signals"))
+        self.extract_can_csv_btn.setText(
+            _translate("batch_widget", "Export to CSV         ")
+        )
+        self.single_time_base_can.setText(
+            _translate("batch_widget", "Single time base")
+        )
+        self.ignore_invalid_signals_csv.setToolTip(
+            _translate(
+                "batch_widget",
+                "checks if all samples are eauql to the maximum teoretical signal value",
+            )
+        )
+        self.ignore_invalid_signals_csv.setText(
+            _translate("batch_widget", "Ignore invalid signals")
+        )
         self.label_29.setText(_translate("batch_widget", "Empty channels"))
         self.can_time_as_date.setText(_translate("batch_widget", "Time as date"))
-        self.aspects.setTabText(self.aspects.indexOf(self.extract_can_tab), _translate("batch_widget", "CAN logging"))
+        self.aspects.setTabText(
+            self.aspects.indexOf(self.extract_can_tab),
+            _translate("batch_widget", "CAN logging"),
+        )
 
 
 from asammdf.gui.widgets.list import MinimalListWidget

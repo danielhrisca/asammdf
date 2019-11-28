@@ -5,6 +5,7 @@ from PyQt5 import QtCore
 from PyQt5 import QtGui
 from struct import pack
 
+
 class TreeWidget(QtWidgets.QTreeWidget):
     def __init__(self, *args, **kwargs):
 
@@ -26,7 +27,9 @@ class TreeWidget(QtWidgets.QTreeWidget):
                 else:
                     item.setCheckState(0, QtCore.Qt.Checked)
             else:
-                if any(item.checkState(0) == QtCore.Qt.Unchecked for item in selected_items):
+                if any(
+                    item.checkState(0) == QtCore.Qt.Unchecked for item in selected_items
+                ):
                     checked = QtCore.Qt.Checked
                 else:
                     checked = QtCore.Qt.Unchecked
@@ -51,22 +54,23 @@ class TreeWidget(QtWidgets.QTreeWidget):
                 for i in range(count):
                     child = item.child(i)
 
-                    name = child.name.encode('utf-8')
+                    name = child.name.encode("utf-8")
                     entry = child.entry
 
-                    data.append(pack(f'<3Q{len(name)}s', entry[0], entry[1], len(name), name))
+                    data.append(
+                        pack(f"<3Q{len(name)}s", entry[0], entry[1], len(name), name)
+                    )
             else:
 
-                name = item.name.encode('utf-8')
+                name = item.name.encode("utf-8")
                 entry = item.entry
                 if entry[1] != 0xFFFFFFFFFFFFFFFF:
-                    data.append(pack(f'<3Q{len(name)}s', entry[0], entry[1], len(name), name))
+                    data.append(
+                        pack(f"<3Q{len(name)}s", entry[0], entry[1], len(name), name)
+                    )
 
         mimeData.setData(
-            'application/octet-stream-asammdf',
-            QtCore.QByteArray(
-                b''.join(data)
-            )
+            "application/octet-stream-asammdf", QtCore.QByteArray(b"".join(data))
         )
 
         drag = QtGui.QDrag(self)

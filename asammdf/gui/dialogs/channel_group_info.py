@@ -17,7 +17,7 @@ class ChannelGroupInfoDialog(QtWidgets.QDialog):
         layout = QtWidgets.QVBoxLayout()
         self.setLayout(layout)
 
-        self.setWindowTitle(f'Channel group {index}')
+        self.setWindowTitle(f"Channel group {index}")
 
         layout.addWidget(ChannelGroupInfoWidget(channel_group, self))
 

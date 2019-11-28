@@ -27,8 +27,12 @@ class TabularValuesDialog(QtWidgets.QDialog):
         self.table.setRowCount(max(len(sig) for sig in signals))
         self.table.setHorizontalHeaderLabels(self.header)
 
-        self.table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
-        self.table.horizontalHeader().setMinimumSectionSize(QtWidgets.QHeaderView.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(
+            QtWidgets.QHeaderView.Stretch
+        )
+        self.table.horizontalHeader().setMinimumSectionSize(
+            QtWidgets.QHeaderView.Stretch
+        )
         self.table.horizontalHeader().setToolTip("")
         self.table.horizontalHeader().setMinimumSectionSize(100)
         self.table.horizontalHeader().sectionClicked.connect(self.show_name)
@@ -62,9 +66,13 @@ class TabularValuesDialog(QtWidgets.QDialog):
                 #     label,
                 # )
 
-                self.table.setItem(j, 2 * i, QtWidgets.QTableWidgetItem(str(sig.timestamps[j])))
+                self.table.setItem(
+                    j, 2 * i, QtWidgets.QTableWidgetItem(str(sig.timestamps[j]))
+                )
 
-                self.table.setItem(j, 2 * i + 1, QtWidgets.QTableWidgetItem(str(sig.samples[j])))
+                self.table.setItem(
+                    j, 2 * i + 1, QtWidgets.QTableWidgetItem(str(sig.samples[j]))
+                )
 
         layout.addWidget(self.table)
 

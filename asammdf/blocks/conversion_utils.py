@@ -295,8 +295,6 @@ def from_dict(conversion):
         conversion = v4b.ChannelConversion(**conversion)
 
     else:
-        conversion = v4b.ChannelConversion(
-            conversion_type=v4c.CONVERSION_TYPE_NON
-        )
+        conversion = v4b.ChannelConversion(conversion_type=v4c.CONVERSION_TYPE_NON)
 
     return conversion

@@ -44,5 +44,3 @@ class Ui_TabularFilter(object):
     def retranslateUi(self, TabularFilter):
         _translate = QtCore.QCoreApplication.translate
         TabularFilter.setWindowTitle(_translate("TabularFilter", "Form"))
-
-

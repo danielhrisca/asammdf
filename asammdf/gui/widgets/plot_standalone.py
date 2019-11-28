@@ -31,8 +31,8 @@ if not hasattr(pg.InfiniteLine, "addMarker"):
     )
     logger.warning(message)
 
-class PlotWindow(QtWidgets.QMainWindow):
 
+class PlotWindow(QtWidgets.QMainWindow):
     def __init__(self, signals, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
@@ -56,7 +56,7 @@ class PlotWindow(QtWidgets.QMainWindow):
             plot_background_option.addAction(action)
             action.triggered.connect(partial(self.set_plot_background, option))
 
-            if option == self._settings.value('plot_background', "Black"):
+            if option == self._settings.value("plot_background", "Black"):
                 action.setChecked(True)
                 action.triggered.emit()
 
@@ -74,7 +74,7 @@ class PlotWindow(QtWidgets.QMainWindow):
             theme_option.addAction(action)
             action.triggered.connect(partial(self.set_theme, option))
 
-            if option == self._settings.value('theme', "Light"):
+            if option == self._settings.value("theme", "Light"):
                 action.setChecked(True)
                 action.triggered.emit()
 
@@ -107,21 +107,27 @@ class PlotWindow(QtWidgets.QMainWindow):
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/list2.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(":/list2.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         action = QtWidgets.QAction(icon, "{: <20}\tS".format("Stack"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_S))
         action.setShortcut(QtCore.Qt.Key_S)
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/zoom-in.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(":/zoom-in.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         action = QtWidgets.QAction(icon, "{: <20}\tI".format("Zoom in"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_I))
         action.setShortcut(QtCore.Qt.Key_I)
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/zoom-out.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(":/zoom-out.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         action = QtWidgets.QAction(icon, "{: <20}\tO".format("Zoom out"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_O))
         action.setShortcut(QtCore.Qt.Key_O)
@@ -134,15 +140,25 @@ class PlotWindow(QtWidgets.QMainWindow):
 
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/plus.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        action = QtWidgets.QAction(icon, "{: <20}\tIns".format("Insert computation"), menu)
+        action = QtWidgets.QAction(
+            icon, "{: <20}\tIns".format("Insert computation"), menu
+        )
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_Insert))
         action.setShortcut(QtCore.Qt.Key_Insert)
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        action = QtWidgets.QAction(icon, "{: <20}\tCtrl+S".format("Save active subplot channels"), menu)
-        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_S, modifier=QtCore.Qt.ControlModifier))
+        action = QtWidgets.QAction(
+            icon, "{: <20}\tCtrl+S".format("Save active subplot channels"), menu
+        )
+        action.triggered.connect(
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key_S,
+                modifier=QtCore.Qt.ControlModifier,
+            )
+        )
         action.setShortcut(QtGui.QKeySequence("Ctrl+S"))
         plot_actions.addAction(action)
 
@@ -152,21 +168,33 @@ class PlotWindow(QtWidgets.QMainWindow):
 
         action = QtWidgets.QAction("{: <20}\tCtrl+H".format("Hex"), menu)
         action.triggered.connect(
-            partial(self.plot_action, key=QtCore.Qt.Key_H, modifier=QtCore.Qt.ControlModifier)
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key_H,
+                modifier=QtCore.Qt.ControlModifier,
+            )
         )
         action.setShortcut(QtGui.QKeySequence("Ctrl+H"))
         display_format_actions.addAction(action)
 
         action = QtWidgets.QAction("{: <20}\tCtrl+B".format("Bin"), menu)
         action.triggered.connect(
-            partial(self.plot_action, key=QtCore.Qt.Key_B, modifier=QtCore.Qt.ControlModifier)
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key_B,
+                modifier=QtCore.Qt.ControlModifier,
+            )
         )
         action.setShortcut(QtGui.QKeySequence("Ctrl+B"))
         display_format_actions.addAction(action)
 
         action = QtWidgets.QAction("{: <20}\tCtrl+P".format("Physical"), menu)
         action.triggered.connect(
-            partial(self.plot_action, key=QtCore.Qt.Key_P, modifier=QtCore.Qt.ControlModifier)
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key_P,
+                modifier=QtCore.Qt.ControlModifier,
+            )
         )
         action.setShortcut(QtGui.QKeySequence("Ctrl+P"))
         display_format_actions.addAction(action)
@@ -186,14 +214,18 @@ class PlotWindow(QtWidgets.QMainWindow):
         cursors_actions = QtWidgets.QActionGroup(self)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/cursor.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(":/cursor.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         action = QtWidgets.QAction(icon, "{: <20}\tC".format("Cursor"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_C))
         action.setShortcut(QtCore.Qt.Key_C)
         cursors_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/right.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(":/right.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         action = QtWidgets.QAction(icon, "{: <20}\t←".format("Move cursor left"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_Left))
         action.setShortcut(QtCore.Qt.Key_Left)
@@ -207,7 +239,9 @@ class PlotWindow(QtWidgets.QMainWindow):
         cursors_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/range.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(":/range.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         action = QtWidgets.QAction(icon, "{: <20}\tR".format("Range"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_R))
         action.setShortcut(QtCore.Qt.Key_R)
@@ -230,10 +264,12 @@ class PlotWindow(QtWidgets.QMainWindow):
         open_group.addAction(action)
         menu.addActions(open_group.actions())
 
-        self.with_dots = self._settings.value('dots', False, type=bool)
+        self.with_dots = self._settings.value("dots", False, type=bool)
 
         if not isinstance(signals, (list, tuple)):
-            signals = [signals,]
+            signals = [
+                signals,
+            ]
 
         self.plot = Plot(signals, self.with_dots)
 
@@ -251,23 +287,23 @@ class PlotWindow(QtWidgets.QMainWindow):
 
     def toggle_dots(self, key):
         self.with_dots = not self.with_dots
-        self._settings.setValue('dots', self.with_dots)
+        self._settings.setValue("dots", self.with_dots)
 
         self.plot.plot.update_lines(with_dots=self.with_dots)
 
     def set_plot_background(self, option):
-        self._settings.setValue('plot_background', option)
-        if option == 'Black':
-            pg.setConfigOption('background', 'k')
-            pg.setConfigOption('foreground', 'w')
+        self._settings.setValue("plot_background", option)
+        if option == "Black":
+            pg.setConfigOption("background", "k")
+            pg.setConfigOption("foreground", "w")
         else:
-            pg.setConfigOption('background', 'w')
-            pg.setConfigOption('foreground', 'k')
+            pg.setConfigOption("background", "w")
+            pg.setConfigOption("foreground", "k")
 
     def set_theme(self, option):
-        self._settings.setValue('theme', option)
+        self._settings.setValue("theme", option)
         app = QtWidgets.QApplication.instance()
-        if option == 'Light':
+        if option == "Light":
             app.setPalette(self._light_palette)
         else:
 
@@ -359,14 +395,15 @@ class PlotWindow(QtWidgets.QMainWindow):
             palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Shadow, brush)
             brush = QtGui.QBrush(QtGui.QColor(27, 27, 27))
             brush.setStyle(QtCore.Qt.SolidPattern)
-            palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.AlternateBase, brush)
+            palette.setBrush(
+                QtGui.QPalette.Inactive, QtGui.QPalette.AlternateBase, brush
+            )
             brush = QtGui.QBrush(QtGui.QColor(255, 255, 220))
             brush.setStyle(QtCore.Qt.SolidPattern)
             palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.ToolTipBase, brush)
             brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
             brush.setStyle(QtCore.Qt.SolidPattern)
             palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.ToolTipText, brush)
-
 
             brush = QtGui.QBrush(QtGui.QColor(27, 27, 27))
             brush.setStyle(QtCore.Qt.SolidPattern)
@@ -406,7 +443,9 @@ class PlotWindow(QtWidgets.QMainWindow):
             palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.Shadow, brush)
             brush = QtGui.QBrush(QtGui.QColor(55, 55, 55))
             brush.setStyle(QtCore.Qt.SolidPattern)
-            palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.AlternateBase, brush)
+            palette.setBrush(
+                QtGui.QPalette.Disabled, QtGui.QPalette.AlternateBase, brush
+            )
             brush = QtGui.QBrush(QtGui.QColor(255, 255, 220))
             brush.setStyle(QtCore.Qt.SolidPattern)
             palette.setBrush(QtGui.QPalette.Disabled, QtGui.QPalette.ToolTipBase, brush)
@@ -416,4 +455,4 @@ class PlotWindow(QtWidgets.QMainWindow):
             app.setPalette(palette)
 
     def help(self, event):
-        webbrowser.open_new(r'http://asammdf.readthedocs.io/en/master/gui.html')
+        webbrowser.open_new(r"http://asammdf.readthedocs.io/en/master/gui.html")

@@ -29,7 +29,7 @@ class TestMDF4(unittest.TestCase):
         print("Read 4.00 using seed =", seed)
 
         sig_int = Signal(
-            np.random.randint(-2 ** 31, 2 ** 31, CHANNEL_LEN),
+            np.random.randint(-(2 ** 31), 2 ** 31, CHANNEL_LEN),
             np.arange(CHANNEL_LEN),
             name="Integer Channel",
             unit="unit1",
@@ -61,7 +61,7 @@ class TestMDF4(unittest.TestCase):
         print("Read 4.10 using seed =", seed)
 
         sig_int = Signal(
-            np.random.randint(-2 ** 31, 2 ** 31, CHANNEL_LEN),
+            np.random.randint(-(2 ** 31), 2 ** 31, CHANNEL_LEN),
             np.arange(CHANNEL_LEN),
             name="Integer Channel",
             unit="unit1",
@@ -86,7 +86,7 @@ class TestMDF4(unittest.TestCase):
         self.assertTrue(np.array_equal(ret_sig_float.samples, sig_float.samples))
 
     def test_attachment_blocks_wo_filename(self):
-        original_data = b'Testing attachemnt block\nTest line 1'
+        original_data = b"Testing attachemnt block\nTest line 1"
         mdf = MDF()
         mdf.attach(
             original_data,
@@ -97,20 +97,19 @@ class TestMDF4(unittest.TestCase):
             embedded=True,
         )
         outfile = mdf.save(
-            Path(TestMDF4.tempdir.name) / "attachment.mf4",
-            overwrite=True,
+            Path(TestMDF4.tempdir.name) / "attachment.mf4", overwrite=True,
         )
 
         with MDF(outfile) as attachment_mdf:
             data, filename = attachment_mdf.extract_attachment(index=0)
             self.assertEqual(data, original_data)
-            self.assertEqual(filename, Path('bin.bin'))
+            self.assertEqual(filename, Path("bin.bin"))
 
         mdf.close()
 
     def test_attachment_blocks_w_filename(self):
-        original_data = b'Testing attachemnt block\nTest line 1'
-        original_file_name = 'file.txt'
+        original_data = b"Testing attachemnt block\nTest line 1"
+        original_file_name = "file.txt"
 
         mdf = MDF()
         mdf.attach(
@@ -122,8 +121,7 @@ class TestMDF4(unittest.TestCase):
             embedded=True,
         )
         outfile = mdf.save(
-            Path(TestMDF4.tempdir.name) / "attachment.mf4",
-            overwrite=True,
+            Path(TestMDF4.tempdir.name) / "attachment.mf4", overwrite=True,
         )
 
         with MDF(outfile) as attachment_mdf:

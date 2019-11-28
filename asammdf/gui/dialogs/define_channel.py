@@ -9,18 +9,18 @@ from PyQt5 import QtWidgets
 
 
 OPS_TO_STR = {
-    '+': '__add__',
-    '-': '__sub__',
-    '/': '__div__',
-    '//': '__floordiv__',
-    '*': '__mul__',
-    '%': '__mod__',
-    '**': '__pow__',
-    '^': '__xor__',
-    '>>': '__rshift__',
-    '<<': '__lsift__',
-    '&': '__and__',
-    '|': '__or__',
+    "+": "__add__",
+    "-": "__sub__",
+    "/": "__div__",
+    "//": "__floordiv__",
+    "*": "__mul__",
+    "%": "__mod__",
+    "**": "__pow__",
+    "^": "__xor__",
+    ">>": "__rshift__",
+    "<<": "__lsift__",
+    "&": "__and__",
+    "|": "__or__",
 }
 
 
@@ -42,63 +42,63 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         self.func_arg2 = None
 
         self.operand1.addItems(sorted(self.channels))
-        self.operand1.insertItem(0, 'CONSTANT')
+        self.operand1.insertItem(0, "CONSTANT")
         self.operand1.setCurrentIndex(-1)
 
         self.operand2.addItems(sorted(self.channels))
-        self.operand2.insertItem(0, 'CONSTANT')
+        self.operand2.insertItem(0, "CONSTANT")
         self.operand2.setCurrentIndex(-1)
         self.all_timebase = all_timebase
 
         self.op.addItems(
             [
-                '+ (add)',
-                '- (substract)',
-                '/ (divide)',
-                '// (floor divide)',
-                '* (multiply)',
-                '% (modulo)',
-                '** (power)',
-                '^ (xor)',
-                '& (and)',
-                '| (or)',
-                '>> (right shift)',
-                '<< (left shift)',
+                "+ (add)",
+                "- (substract)",
+                "/ (divide)",
+                "// (floor divide)",
+                "* (multiply)",
+                "% (modulo)",
+                "** (power)",
+                "^ (xor)",
+                "& (and)",
+                "| (or)",
+                ">> (right shift)",
+                "<< (left shift)",
             ]
         )
 
         self.function.addItems(
             sorted(
                 [
-                    'arccos',
-                    'arcsin',
-                    'arctan',
-                    'cos',
-                    'deg2rad',
-                    'degrees',
-                    'rad2deg',
-                    'radians',
-                    'sin',
-                    'tan',
-                    'ceil',
-                    'floor',
-                    'rint',
-                    'around',
-                    'fix',
-                    'trunc',
-                    'cumprod',
-                    'cumsum',
-                    'diff',
-                    'gradient',
-                    'exp',
-                    'log10',
-                    'log',
-                    'log2',
-                    'absolute',
-                    'cbrt',
-                    'clip',
-                    'sqrt',
-                    'square',
+                    "arccos",
+                    "arcsin",
+                    "arctan",
+                    "cos",
+                    "deg2rad",
+                    "degrees",
+                    "rad2deg",
+                    "radians",
+                    "sin",
+                    "tan",
+                    "ceil",
+                    "floor",
+                    "rint",
+                    "around",
+                    "fix",
+                    "trunc",
+                    "cumprod",
+                    "cumsum",
+                    "diff",
+                    "gradient",
+                    "exp",
+                    "log10",
+                    "log",
+                    "log2",
+                    "absolute",
+                    "cbrt",
+                    "clip",
+                    "sqrt",
+                    "square",
                 ]
             )
         )
@@ -115,9 +115,9 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         self.function.currentIndexChanged.connect(self.function_changed)
 
     def op1_changed(self, index):
-        if self.operand1.currentText() == 'CONSTANT':
+        if self.operand1.currentText() == "CONSTANT":
             self.op1_type = QtWidgets.QComboBox()
-            self.op1_type.addItems(['int', 'float'])
+            self.op1_type.addItems(["int", "float"])
             self.op1_type.setCurrentIndex(-1)
             self.op1_type.currentIndexChanged.connect(self.op1_constant_changed)
 
@@ -132,9 +132,9 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 self.op1_type = None
 
     def op2_changed(self, index):
-        if self.operand2.currentText() == 'CONSTANT':
+        if self.operand2.currentText() == "CONSTANT":
             self.op2_type = QtWidgets.QComboBox()
-            self.op2_type.addItems(['int', 'float'])
+            self.op2_type.addItems(["int", "float"])
             self.op2_type.setCurrentIndex(-1)
             self.op2_type.currentIndexChanged.connect(self.op2_constant_changed)
 
@@ -149,7 +149,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 self.op2_type = None
 
     def op1_constant_changed(self, index):
-        if self.op1_type.currentText() == 'int':
+        if self.op1_type.currentText() == "int":
             if self.op1_value is not None:
                 self.op1_value.setParent(None)
                 self.op1_value = None
@@ -162,11 +162,11 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 self.op1_value = None
             self.op1_value = QtWidgets.QDoubleSpinBox()
             self.op1_value.setDecimals(6)
-            self.op1_value.setRange(-2**64, 2**64-1)
+            self.op1_value.setRange(-(2 ** 64), 2 ** 64 - 1)
             self.gridLayout.addWidget(self.op1_value, 0, 3)
 
     def op2_constant_changed(self, index):
-        if self.op2_type.currentText() == 'int':
+        if self.op2_type.currentText() == "int":
             if self.op2_value is not None:
                 self.op2_value.setParent(None)
                 self.op2_value = None
@@ -179,53 +179,43 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 self.op2_value = None
             self.op2_value = QtWidgets.QDoubleSpinBox()
             self.op2_value.setDecimals(6)
-            self.op2_value.setRange(-2**64, 2**64-1)
+            self.op2_value.setRange(-(2 ** 64), 2 ** 64 - 1)
             self.gridLayout.addWidget(self.op2_value, 2, 3)
 
     def apply(self, event):
         if self.operand1.currentIndex() == -1:
             QtWidgets.QMessageBox.warning(
-                None,
-                "Can't compute new channel",
-                "Must select operand 1 first",
+                None, "Can't compute new channel", "Must select operand 1 first",
             )
             return
 
         if self.operand2.currentIndex() == -1:
             QtWidgets.QMessageBox.warning(
-                None,
-                "Can't compute new channel",
-                "Must select operand 2 first",
+                None, "Can't compute new channel", "Must select operand 2 first",
             )
             return
 
         if self.op1_type is not None and self.op1_type.currentIndex() == -1:
             QtWidgets.QMessageBox.warning(
-                None,
-                "Can't compute new channel",
-                "Must select operand 1 type first",
+                None, "Can't compute new channel", "Must select operand 1 type first",
             )
             return
 
         if self.op2_type is not None and self.op2_type.currentIndex() == -1:
             QtWidgets.QMessageBox.warning(
-                None,
-                "Can't compute new channel",
-                "Must select operand 2 type first",
+                None, "Can't compute new channel", "Must select operand 2 type first",
             )
 
         if self.op.currentIndex() == -1:
             QtWidgets.QMessageBox.warning(
-                None,
-                "Can't compute new channel",
-                "Must select operator",
+                None, "Can't compute new channel", "Must select operator",
             )
 
         operand1 = self.operand1.currentText()
         operand2 = self.operand2.currentText()
 
-        if operand1 == 'CONSTANT':
-            if self.op1_type.currentText() == 'int':
+        if operand1 == "CONSTANT":
+            if self.op1_type.currentText() == "int":
                 operand1 = int(self.op1_value.value())
             else:
                 operand1 = float(self.op1_value.value())
@@ -234,8 +224,8 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             operand1 = self.channels[operand1]
             operand1_str = operand1.name
 
-        if operand2 == 'CONSTANT':
-            if self.op2_type.currentText() == 'int':
+        if operand2 == "CONSTANT":
+            if self.op2_type.currentText() == "int":
                 operand2 = int(self.op2_value.value())
             else:
                 operand2 = float(self.op2_value.value())
@@ -244,45 +234,45 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             operand2 = self.channels[operand2]
             operand2_str = operand2.name
 
-        op = self.op.currentText().split(' ')[0]
+        op = self.op.currentText().split(" ")[0]
 
         try:
-            self.result = eval(f'operand1 {op} operand2')
-            if not hasattr(self.result, 'name'):
+            self.result = eval(f"operand1 {op} operand2")
+            if not hasattr(self.result, "name"):
                 self.result = AsamSignal(
-                    name='_',
-                    samples=np.ones(len(self.all_timebase))*self.result,
+                    name="_",
+                    samples=np.ones(len(self.all_timebase)) * self.result,
                     timestamps=self.all_timebase,
                 )
 
             name = self.name.text()
 
             if not name:
-                name = f'COMP_{operand1_str}{OPS_TO_STR[op]}{operand2_str}'
+                name = f"COMP_{operand1_str}{OPS_TO_STR[op]}{operand2_str}"
 
             self.result.name = name
             self.result.unit = self.unit.text()
             self.result.enable = True
             self.result.computation = {
-                'type': 'arithmetic',
-                'op': op,
+                "type": "arithmetic",
+                "op": op,
             }
 
             if isinstance(operand1, (int, float)):
-                self.result.computation['operand1'] = operand1
+                self.result.computation["operand1"] = operand1
             else:
                 if operand1.computed:
-                    self.result.computation['operand1'] = operand1.computation
+                    self.result.computation["operand1"] = operand1.computation
                 else:
-                    self.result.computation['operand1'] = operand1.name
+                    self.result.computation["operand1"] = operand1.name
 
             if isinstance(operand2, (int, float)):
-                self.result.computation['operand2'] = operand2
+                self.result.computation["operand2"] = operand2
             else:
                 if operand2.computed:
-                    self.result.computation['operand2'] = operand2.computation
+                    self.result.computation["operand2"] = operand2.computation
                 else:
-                    self.result.computation['operand2'] = operand2.name
+                    self.result.computation["operand2"] = operand2.name
         except:
             self.result = None
 
@@ -292,31 +282,31 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
     def function_changed(self, index):
         function = self.function.currentText()
         if function in [
-            'arccos',
-            'arcsin',
-            'arctan',
-            'cos',
-            'deg2rad',
-            'degrees',
-            'rad2deg',
-            'radians',
-            'sin',
-            'tan',
-            'floor',
-            'rint',
-            'fix',
-            'trunc',
-            'cumprod',
-            'cumsum',
-            'diff',
-            'exp',
-            'log10',
-            'log',
-            'log2',
-            'absolute',
-            'cbrt',
-            'sqrt',
-            'square',
+            "arccos",
+            "arcsin",
+            "arctan",
+            "cos",
+            "deg2rad",
+            "degrees",
+            "rad2deg",
+            "radians",
+            "sin",
+            "tan",
+            "floor",
+            "rint",
+            "fix",
+            "trunc",
+            "cumprod",
+            "cumsum",
+            "diff",
+            "exp",
+            "log10",
+            "log",
+            "log2",
+            "absolute",
+            "cbrt",
+            "sqrt",
+            "square",
         ]:
             if self.func_arg1 is not None:
                 self.func_arg1.setParent(None)
@@ -327,34 +317,29 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             if self.func_arg1 is None:
                 self.func_arg1 = QtWidgets.QDoubleSpinBox()
                 self.func_arg1.setDecimals(6)
-                self.func_arg1.setRange(-2**64, 2**64-1)
+                self.func_arg1.setRange(-(2 ** 64), 2 ** 64 - 1)
                 self.gridLayout_2.addWidget(self.func_arg1, 0, 2)
 
                 self.func_arg2 = QtWidgets.QDoubleSpinBox()
                 self.func_arg2.setDecimals(6)
-                self.func_arg2.setRange(-2**64, 2**64-1)
+                self.func_arg2.setRange(-(2 ** 64), 2 ** 64 - 1)
                 self.gridLayout_2.addWidget(self.func_arg2, 0, 3)
 
-            if function == 'round':
+            if function == "round":
                 self.func_arg2.setEnabled(False)
             else:
                 self.func_arg2.setEnabled(True)
 
-
     def apply_function(self, event):
         if self.function.currentIndex() == -1:
             QtWidgets.QMessageBox.warning(
-                None,
-                "Can't compute new channel",
-                "Must select a function first",
+                None, "Can't compute new channel", "Must select a function first",
             )
             return
 
         if self.channel.currentIndex() == -1:
             QtWidgets.QMessageBox.warning(
-                None,
-                "Can't compute new channel",
-                "Must select a channel first",
+                None, "Can't compute new channel", "Must select a channel first",
             )
             return
 
@@ -367,78 +352,73 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         try:
 
             if function in [
-                'arccos',
-                'arcsin',
-                'arctan',
-                'cos',
-                'deg2rad',
-                'degrees',
-                'rad2deg',
-                'radians',
-                'sin',
-                'tan',
-                'floor',
-                'rint',
-                'fix',
-                'trunc',
-                'cumprod',
-                'cumsum',
-                'diff',
-                'exp',
-                'log10',
-                'log',
-                'log2',
-                'absolute',
-                'cbrt',
-                'sqrt',
-                'square',
-                'gradient',
+                "arccos",
+                "arcsin",
+                "arctan",
+                "cos",
+                "deg2rad",
+                "degrees",
+                "rad2deg",
+                "radians",
+                "sin",
+                "tan",
+                "floor",
+                "rint",
+                "fix",
+                "trunc",
+                "cumprod",
+                "cumsum",
+                "diff",
+                "exp",
+                "log10",
+                "log",
+                "log2",
+                "absolute",
+                "cbrt",
+                "sqrt",
+                "square",
+                "gradient",
             ]:
 
                 samples = func(channel.samples)
-                if function == 'diff':
+                if function == "diff":
                     timestamps = channel.timestamps[1:]
                 else:
                     timestamps = channel.timestamps
-                name = f'{function}_{channel.name}'
+                name = f"{function}_{channel.name}"
                 args = []
 
-            elif function == 'around':
+            elif function == "around":
                 decimals = int(self.func_arg1.value())
                 samples = func(channel.samples, decimals)
                 timestamps = channel.timestamps
-                name = f'{function}_{channel.name}_{decimals}'
+                name = f"{function}_{channel.name}_{decimals}"
                 args = [decimals]
-            elif function == 'clip':
+            elif function == "clip":
                 lower = float(self.func_arg1.value())
                 upper = float(self.func_arg2.value())
                 samples = func(channel.samples, lower, upper)
                 timestamps = channel.timestamps
-                name = f'{function}_{channel.name}_{lower}_{upper}'
+                name = f"{function}_{channel.name}_{lower}_{upper}"
                 args = [lower, upper]
 
             name = self.function_name.text() or name
             unit = self.function_unit.text() or channel.unit
 
             self.result = AsamSignal(
-                samples=samples,
-                timestamps=timestamps,
-                name=name,
-                unit=unit,
+                samples=samples, timestamps=timestamps, name=name, unit=unit,
             )
             self.result.enabled = True
             self.result.computation = {
-                'type': 'function',
-                'channel': channel.computation or channel_name,
-                'name': function,
-                'args': args,
+                "type": "function",
+                "channel": channel.computation or channel_name,
+                "name": function,
+                "args": args,
             }
 
         except Exception as err:
             QtWidgets.QMessageBox.critical(
-                None,
-                "Function error",
-                str(err),
+                None, "Function error", str(err),
             )
             self.result = None
 

@@ -29,10 +29,16 @@ class Ui_ChannelInfo(object):
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.channel_label = QtWidgets.QLabel(self.scrollAreaWidgetContents)
-        self.channel_label.setTextInteractionFlags(QtCore.Qt.LinksAccessibleByMouse|QtCore.Qt.TextSelectableByKeyboard|QtCore.Qt.TextSelectableByMouse)
+        self.channel_label.setTextInteractionFlags(
+            QtCore.Qt.LinksAccessibleByMouse
+            | QtCore.Qt.TextSelectableByKeyboard
+            | QtCore.Qt.TextSelectableByMouse
+        )
         self.channel_label.setObjectName("channel_label")
         self.verticalLayout_3.addWidget(self.channel_label)
-        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.verticalLayout_3.addItem(spacerItem)
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
         self.verticalLayout_4.addWidget(self.scrollArea)
@@ -50,10 +56,16 @@ class Ui_ChannelInfo(object):
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.scrollAreaWidgetContents_2)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.conversion_label = QtWidgets.QLabel(self.scrollAreaWidgetContents_2)
-        self.conversion_label.setTextInteractionFlags(QtCore.Qt.LinksAccessibleByMouse|QtCore.Qt.TextSelectableByKeyboard|QtCore.Qt.TextSelectableByMouse)
+        self.conversion_label.setTextInteractionFlags(
+            QtCore.Qt.LinksAccessibleByMouse
+            | QtCore.Qt.TextSelectableByKeyboard
+            | QtCore.Qt.TextSelectableByMouse
+        )
         self.conversion_label.setObjectName("conversion_label")
         self.verticalLayout_2.addWidget(self.conversion_label)
-        spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem1 = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.verticalLayout_2.addItem(spacerItem1)
         self.scrollArea_2.setWidget(self.scrollAreaWidgetContents_2)
         self.verticalLayout_6.addWidget(self.scrollArea_2)
@@ -71,10 +83,16 @@ class Ui_ChannelInfo(object):
         self.verticalLayout = QtWidgets.QVBoxLayout(self.scrollAreaWidgetContents_3)
         self.verticalLayout.setObjectName("verticalLayout")
         self.source_label = QtWidgets.QLabel(self.scrollAreaWidgetContents_3)
-        self.source_label.setTextInteractionFlags(QtCore.Qt.LinksAccessibleByMouse|QtCore.Qt.TextSelectableByKeyboard|QtCore.Qt.TextSelectableByMouse)
+        self.source_label.setTextInteractionFlags(
+            QtCore.Qt.LinksAccessibleByMouse
+            | QtCore.Qt.TextSelectableByKeyboard
+            | QtCore.Qt.TextSelectableByMouse
+        )
         self.source_label.setObjectName("source_label")
         self.verticalLayout.addWidget(self.source_label)
-        spacerItem2 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem2 = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.verticalLayout.addItem(spacerItem2)
         self.scrollArea_3.setWidget(self.scrollAreaWidgetContents_3)
         self.verticalLayout_5.addWidget(self.scrollArea_3)
@@ -92,5 +110,3 @@ class Ui_ChannelInfo(object):
         self.conversion_label.setText(_translate("ChannelInfo", "No conversion"))
         self.groupBox_3.setTitle(_translate("ChannelInfo", "Source"))
         self.source_label.setText(_translate("ChannelInfo", "No source"))
-
-

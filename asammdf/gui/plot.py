@@ -4,6 +4,7 @@ import logging
 try:
     from PyQt5 import QtWidgets
     from .widgets.plot_standalone import PlotWindow
+
     QT = True
 except ImportError:
     QT = False
@@ -12,7 +13,7 @@ except ImportError:
 logger = logging.getLogger("asammdf")
 
 
-def plot(signals, title=''):
+def plot(signals, title=""):
     """ create a stand-alone plot using the input signal or signals
 
     Arguments
@@ -34,7 +35,7 @@ def plot(signals, title=''):
             main.setWindowTitle(title.strip())
         else:
             if isinstance(signals, (tuple, list)):
-                main.setWindowTitle(', '.join(sig.name for sig in signals))
+                main.setWindowTitle(", ".join(sig.name for sig in signals))
             else:
                 main.setWindowTitle(signals.name)
 

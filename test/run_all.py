@@ -13,7 +13,7 @@ import unittest
 def main():
     tests = unittest.TestLoader().discover(".", "test_*.py")
     testResult = xmlrunner.XMLTestRunner(
-        output=str(Path('.').resolve() / "test-reports")
+        output=str(Path(".").resolve() / "test-reports")
     ).run(tests)
 
     return not testResult.wasSuccessful()

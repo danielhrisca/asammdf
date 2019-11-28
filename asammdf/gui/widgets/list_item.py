@@ -5,9 +5,9 @@ from PyQt5 import QtWidgets
 
 class ListItem(QtWidgets.QListWidgetItem):
 
-    __slots__ = 'entry', 'name', 'computation'
+    __slots__ = "entry", "name", "computation"
 
-    def __init__(self, entry, name='', computation=None, parent=None):
+    def __init__(self, entry, name="", computation=None, parent=None):
 
         super().__init__(parent)
 

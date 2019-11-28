@@ -12,14 +12,12 @@ sys.excepthook = excepthook
 
 
 def _cmd_line_parser():
-    '''
-    '''
+    """
+    """
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        '--measurements',
-        nargs='*',
-        help='list of measurement files',
+        "--measurements", nargs="*", help="list of measurement files",
     )
     return parser
 

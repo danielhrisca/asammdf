@@ -29,10 +29,16 @@ class Ui_ChannelGroupInfo(object):
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.channel_group_label = QtWidgets.QLabel(self.scrollAreaWidgetContents)
-        self.channel_group_label.setTextInteractionFlags(QtCore.Qt.LinksAccessibleByMouse|QtCore.Qt.TextSelectableByKeyboard|QtCore.Qt.TextSelectableByMouse)
+        self.channel_group_label.setTextInteractionFlags(
+            QtCore.Qt.LinksAccessibleByMouse
+            | QtCore.Qt.TextSelectableByKeyboard
+            | QtCore.Qt.TextSelectableByMouse
+        )
         self.channel_group_label.setObjectName("channel_group_label")
         self.verticalLayout_3.addWidget(self.channel_group_label)
-        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.verticalLayout_3.addItem(spacerItem)
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
         self.verticalLayout_4.addWidget(self.scrollArea)
@@ -50,10 +56,16 @@ class Ui_ChannelGroupInfo(object):
         self.verticalLayout = QtWidgets.QVBoxLayout(self.scrollAreaWidgetContents_3)
         self.verticalLayout.setObjectName("verticalLayout")
         self.source_label = QtWidgets.QLabel(self.scrollAreaWidgetContents_3)
-        self.source_label.setTextInteractionFlags(QtCore.Qt.LinksAccessibleByMouse|QtCore.Qt.TextSelectableByKeyboard|QtCore.Qt.TextSelectableByMouse)
+        self.source_label.setTextInteractionFlags(
+            QtCore.Qt.LinksAccessibleByMouse
+            | QtCore.Qt.TextSelectableByKeyboard
+            | QtCore.Qt.TextSelectableByMouse
+        )
         self.source_label.setObjectName("source_label")
         self.verticalLayout.addWidget(self.source_label)
-        spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem1 = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.verticalLayout.addItem(spacerItem1)
         self.scrollArea_3.setWidget(self.scrollAreaWidgetContents_3)
         self.verticalLayout_5.addWidget(self.scrollArea_3)
@@ -66,8 +78,8 @@ class Ui_ChannelGroupInfo(object):
         _translate = QtCore.QCoreApplication.translate
         ChannelGroupInfo.setWindowTitle(_translate("ChannelGroupInfo", "Form"))
         self.groupBox.setTitle(_translate("ChannelGroupInfo", "Channel Group"))
-        self.channel_group_label.setText(_translate("ChannelGroupInfo", "Channel group metadata"))
+        self.channel_group_label.setText(
+            _translate("ChannelGroupInfo", "Channel group metadata")
+        )
         self.groupBox_3.setTitle(_translate("ChannelGroupInfo", "Source"))
         self.source_label.setText(_translate("ChannelGroupInfo", "No source"))
-
-

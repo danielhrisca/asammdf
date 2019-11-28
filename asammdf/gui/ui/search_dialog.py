@@ -38,7 +38,9 @@ class Ui_SearchDialog(object):
         self.status.setText("")
         self.status.setObjectName("status")
         self.grid_layout.addWidget(self.status, 10, 0, 1, 1)
-        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.grid_layout.addItem(spacerItem, 6, 1, 1, 1)
         self.label = QtWidgets.QLabel(SearchDialog)
         self.label.setObjectName("label")
@@ -55,12 +57,16 @@ class Ui_SearchDialog(object):
         self.cancel_btn = QtWidgets.QPushButton(SearchDialog)
         self.cancel_btn.setObjectName("cancel_btn")
         self.horizontalLayout.addWidget(self.cancel_btn)
-        spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem1 = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.horizontalLayout.addItem(spacerItem1)
         self.add_window_btn = QtWidgets.QPushButton(SearchDialog)
         self.add_window_btn.setObjectName("add_window_btn")
         self.horizontalLayout.addWidget(self.add_window_btn)
-        spacerItem2 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem2 = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.horizontalLayout.addItem(spacerItem2)
         self.apply_btn = QtWidgets.QPushButton(SearchDialog)
         self.apply_btn.setObjectName("apply_btn")
@@ -86,5 +92,7 @@ class Ui_SearchDialog(object):
         self.cancel_btn.setText(_translate("SearchDialog", "Cancel"))
         self.add_window_btn.setText(_translate("SearchDialog", "Add window"))
         self.apply_btn.setText(_translate("SearchDialog", "Apply"))
+
+
 from asammdf.gui.widgets.list import MinimalListWidget
 from . import resource_rc

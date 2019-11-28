@@ -36,14 +36,18 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
             for name_ in signals.columns:
                 col = signals[name_]
-                if col.dtype.kind == 'O':
-#                    dropped[name_] = pd.Series(csv_bytearray2hex(col), index=signals.index)
+                if col.dtype.kind == "O":
+                    #                    dropped[name_] = pd.Series(csv_bytearray2hex(col), index=signals.index)
                     self.signals_descr[name_] = 1
-                elif col.dtype.kind == 'S':
+                elif col.dtype.kind == "S":
                     try:
-                        dropped[name_] = pd.Series(npchar.decode(col, 'utf-8'), index=signals.index)
+                        dropped[name_] = pd.Series(
+                            npchar.decode(col, "utf-8"), index=signals.index
+                        )
                     except:
-                        dropped[name_] = pd.Series(npchar.decode(col, 'latin-1'), index=signals.index)
+                        dropped[name_] = pd.Series(
+                            npchar.decode(col, "latin-1"), index=signals.index
+                        )
                     self.signals_descr[name_] = 0
                 else:
                     self.signals_descr[name_] = 0
@@ -55,8 +59,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             self.signals = signals
 
         self.as_hex = [
-            name.endswith('CAN_DataFrame.ID')
-            for name in self.signals.columns
+            name.endswith("CAN_DataFrame.ID") for name in self.signals.columns
         ]
 
         self._original_index = self.signals.index.values
@@ -72,9 +75,9 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
         prefixes = set()
         for name in self.signals.columns:
-            while '.' in name:
+            while "." in name:
                 name = name.rsplit(".", 1)[0]
-                prefixes.add(f'{name}.')
+                prefixes.add(f"{name}.")
 
         self.prefix.insertItems(0, sorted(prefixes))
         self.prefix.setEnabled(False)
@@ -85,24 +88,36 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         self.tree.verticalScrollBar().valueChanged.connect(self._scroll_tree)
 
     def _scroll_tree(self, value):
-        if value == self.tree.verticalScrollBar().minimum() and self.tree_scroll.value() != self.tree_scroll.minimum():
-            self.tree_scroll.setValue(self.tree_scroll.value() - self.tree_scroll.singleStep())
-            self.tree.verticalScrollBar().setValue(self.tree.verticalScrollBar().value() + self.tree.verticalScrollBar().singleStep())
+        if (
+            value == self.tree.verticalScrollBar().minimum()
+            and self.tree_scroll.value() != self.tree_scroll.minimum()
+        ):
+            self.tree_scroll.setValue(
+                self.tree_scroll.value() - self.tree_scroll.singleStep()
+            )
+            self.tree.verticalScrollBar().setValue(
+                self.tree.verticalScrollBar().value()
+                + self.tree.verticalScrollBar().singleStep()
+            )
         elif value == self.tree.verticalScrollBar().maximum():
-            self.tree_scroll.setValue(self.tree_scroll.value() + self.tree_scroll.singleStep())
-            self.tree.verticalScrollBar().setValue(self.tree.verticalScrollBar().value() - self.tree.verticalScrollBar().singleStep())
+            self.tree_scroll.setValue(
+                self.tree_scroll.value() + self.tree_scroll.singleStep()
+            )
+            self.tree.verticalScrollBar().setValue(
+                self.tree.verticalScrollBar().value()
+                - self.tree.verticalScrollBar().singleStep()
+            )
 
     def _sort(self, index, mode):
         ascending = mode == QtCore.Qt.AscendingOrder
-        names = [
-            self.df.index.name,
-            *self.df.columns
-        ]
+        names = [self.df.index.name, *self.df.columns]
         name = names[index]
 
         if index:
             try:
-                self.df.sort_values(by=[name, 'timestamps'], ascending=ascending, inplace=True)
+                self.df.sort_values(
+                    by=[name, "timestamps"], ascending=ascending, inplace=True
+                )
             except:
                 pass
         else:
@@ -113,8 +128,8 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
     def add_filter(self, event=None):
         filter_widget = TabularFilter(
-            [(self.signals.index.name, self.signals.index.values.dtype.kind, 0)] +
-            [
+            [(self.signals.index.name, self.signals.index.values.dtype.kind, 0)]
+            + [
                 (name, self.signals[name].values.dtype.kind, self.signals_descr[name])
                 for name in self.signals.columns
             ]
@@ -128,15 +143,9 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
     def apply_filters(self, event=None):
         df = self.signals
 
-        friendly_names = {
-            name: pandas_query_compatible(name)
-            for name in df.columns
-        }
+        friendly_names = {name: pandas_query_compatible(name) for name in df.columns}
 
-        original_names = {
-            val: key
-            for key, val in friendly_names.items()
-        }
+        original_names = {val: key for key, val in friendly_names.items()}
 
         df.rename(columns=friendly_names, inplace=True)
 
@@ -167,41 +176,40 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                 # here we have NaN
                 nan = np.nan
 
-                if op in ('>', '>=', '<', '<='):
+                if op in (">", ">=", "<", "<="):
                     filters.append(column_name)
                     filters.append(op)
-                    filters.append('@nan')
-                elif op == '!=':
+                    filters.append("@nan")
+                elif op == "!=":
                     filters.append(column_name)
-                    filters.append('==')
+                    filters.append("==")
                     filters.append(column_name)
-                elif op == '==':
+                elif op == "==":
                     filters.append(column_name)
-                    filters.append('!=')
+                    filters.append("!=")
                     filters.append(column_name)
             else:
-                if column_name == df.index.name and df.index.dtype.kind == 'M':
+                if column_name == df.index.name and df.index.dtype.kind == "M":
 
                     ts = pd.Timestamp(target, tz=LOCAL_TIMEZONE)
-                    ts = ts.tz_convert('UTC').to_datetime64()
+                    ts = ts.tz_convert("UTC").to_datetime64()
 
                     filters.append(column_name)
                     filters.append(op)
-                    filters.append('@ts')
+                    filters.append("@ts")
 
                 elif is_byte_array:
-                    target = str(target).replace(' ', '').strip('"')
+                    target = str(target).replace(" ", "").strip('"')
 
-                    if f'{column_name}__as__bytes' not in df.columns:
-                        df[f'{column_name}__as__bytes'] = pd.Series(
-                            [bytes(s) for s in df[column_name]],
-                            index=df.index,
+                    if f"{column_name}__as__bytes" not in df.columns:
+                        df[f"{column_name}__as__bytes"] = pd.Series(
+                            [bytes(s) for s in df[column_name]], index=df.index,
                         )
                     val = bytes.fromhex(target)
 
-                    filters.append(f'{column_name}__as__bytes')
+                    filters.append(f"{column_name}__as__bytes")
                     filters.append(op)
-                    filters.append('@val')
+                    filters.append("@val")
 
                 else:
                     filters.append(column_name)
@@ -210,24 +218,22 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
         if filters:
             try:
-                new_df = df.query(' '.join(filters))
+                new_df = df.query(" ".join(filters))
             except:
-                logger.exception(f'Failed to apply filter for tabular window: {" ".join(filters)}')
+                logger.exception(
+                    f'Failed to apply filter for tabular window: {" ".join(filters)}'
+                )
                 self.query.setText(format_exc())
             else:
-                to_drop = [
-                    name
-                    for name in df.columns
-                    if name.endswith('__as__bytes')
-                ]
+                to_drop = [name for name in df.columns if name.endswith("__as__bytes")]
                 if to_drop:
                     df.drop(columns=to_drop, inplace=True)
                     new_df.drop(columns=to_drop, inplace=True)
-                self.query.setText(' '.join(filters))
+                self.query.setText(" ".join(filters))
                 new_df.rename(columns=original_names, inplace=True)
                 self.build(new_df)
         else:
-            self.query.setText('')
+            self.query.setText("")
             df.rename(columns=original_names, inplace=True)
             self.build(df)
 
@@ -257,10 +263,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             for name, s in dropped.items():
                 df[name[dim:]] = s
 
-        names = [
-            df.index.name,
-            *df.columns
-        ]
+        names = [df.index.name, *df.columns]
 
         if reset_header_names:
             self.header_names = names
@@ -284,30 +287,32 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         self.tree.setSortingEnabled(False)
         self.tree.clear()
 
-        df = self.df.iloc[max(0, position*10 - 50): max(0, position*10+100)]
+        df = self.df.iloc[max(0, position * 10 - 50) : max(0, position * 10 + 100)]
 
-        if df.index.dtype.kind == 'M':
-            index = df.index.tz_localize('UTC').tz_convert(LOCAL_TIMEZONE)
+        if df.index.dtype.kind == "M":
+            index = df.index.tz_localize("UTC").tz_convert(LOCAL_TIMEZONE)
         else:
             index = df.index
-        items = [index.astype(str),]
+        items = [
+            index.astype(str),
+        ]
 
         for i, name in enumerate(df.columns):
             column = df[name]
             kind = column.dtype.kind
 
             if self.as_hex[i]:
-                items.append(pd.Series(csv_int2hex(column.astype('<u4'))).values)
+                items.append(pd.Series(csv_int2hex(column.astype("<u4"))).values)
             else:
 
-                if kind in 'uif':
+                if kind in "uif":
                     items.append(column.astype(str))
-                elif kind == 'S':
+                elif kind == "S":
                     try:
-                        items.append(npchar.decode(column, 'utf-8'))
+                        items.append(npchar.decode(column, "utf-8"))
                     except:
-                        items.append(npchar.decode(column, 'latin-1'))
-                elif kind == 'O':
+                        items.append(npchar.decode(column, "latin-1"))
+                elif kind == "O":
                     items.append(pd.Series(csv_bytearray2hex(df[name])).values)
                 else:
                     items.append(column)
@@ -315,12 +320,11 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         if position == 0:
             self.tree.verticalScrollBar().setSliderPosition(0)
         elif position == self.tree_scroll.maximum():
-            self.tree.verticalScrollBar().setSliderPosition(self.tree.verticalScrollBar().maximum())
+            self.tree.verticalScrollBar().setSliderPosition(
+                self.tree.verticalScrollBar().maximum()
+            )
 
-        items = [
-            QtWidgets.QTreeWidgetItem(row)
-            for row in zip(*items)
-        ]
+        items = [QtWidgets.QTreeWidgetItem(row) for row in zip(*items)]
 
         self.tree.addTopLevelItems(items)
 
@@ -337,14 +341,14 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         count = self.filters.count()
 
         config = {
-            'sorted': self.sort.checkState() == QtCore.Qt.Checked,
-            'channels': list(self.signals.columns),
-            'filtered': bool(self.query.toPlainText()),
-            'filters': [
+            "sorted": self.sort.checkState() == QtCore.Qt.Checked,
+            "channels": list(self.signals.columns),
+            "filtered": bool(self.query.toPlainText()),
+            "filters": [
                 self.filters.itemWidget(self.filters.item(i)).to_config()
                 for i in range(count)
             ],
-            'time_as_date': self.time_as_date.checkState() == QtCore.Qt.Checked,
+            "time_as_date": self.time_as_date.checkState() == QtCore.Qt.Checked,
         }
 
         return config
@@ -364,22 +368,22 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         if state == QtCore.Qt.Checked:
             for i in range(count):
                 filter = self.filters.itemWidget(self.filters.item(i))
-                filter.dtype_kind[0] = 'M'
+                filter.dtype_kind[0] = "M"
                 filter._target = None
                 if filter.column.currentIndex() == 0:
                     filter.column_changed(0)
-            index = pd.to_datetime(self.signals.index + self.start, unit='s')
+            index = pd.to_datetime(self.signals.index + self.start, unit="s")
 
             self.signals.index = index
         else:
             for i in range(count):
                 filter = self.filters.itemWidget(self.filters.item(i))
-                filter.dtype_kind[0] = 'f'
+                filter.dtype_kind[0] = "f"
                 filter._target = None
                 if filter.column.currentIndex() == 0:
                     filter.column_changed(0)
             self.signals.index = self._original_index
-        self.signals.index.name = 'timestamps'
+        self.signals.index.name = "timestamps"
 
         if self.query.toPlainText():
             self.apply_filters()

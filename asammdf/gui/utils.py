@@ -57,28 +57,32 @@ def excepthook(exc_type, exc_value, tracebackobj):
     sections = [now, separator, errmsg, separator, info]
     msg = "\n".join(sections)
 
-    print(''.join(traceback.format_tb(tracebackobj)))
-    print('{0}: {1}'.format(exc_type, exc_value))
+    print("".join(traceback.format_tb(tracebackobj)))
+    print("{0}: {1}".format(exc_type, exc_value))
 
     QtWidgets.QMessageBox.warning(None, notice, msg)
 
 
 def extract_mime_names(data):
     names = []
-    if data.hasFormat('application/octet-stream-asammdf'):
-        data = bytes(data.data('application/octet-stream-asammdf'))
+    if data.hasFormat("application/octet-stream-asammdf"):
+        data = bytes(data.data("application/octet-stream-asammdf"))
         size = len(data)
         pos = 0
         while pos < size:
-            group_index, channel_index, name_length = unpack('<3Q', data[pos: pos + 24])
+            group_index, channel_index, name_length = unpack(
+                "<3Q", data[pos : pos + 24]
+            )
             pos += 24
-            name = data[pos: pos + name_length].decode('utf-8')
+            name = data[pos : pos + name_length].decode("utf-8")
             pos += name_length
             names.append((name, group_index, channel_index))
     return names
 
 
-def run_thread_with_progress(widget, target, kwargs, factor=100, offset=0, progress=None):
+def run_thread_with_progress(
+    widget, target, kwargs, factor=100, offset=0, progress=None
+):
     termination_request = False
 
     thr = WorkerThread(target=target, kwargs=kwargs)
@@ -132,7 +136,9 @@ def setup_progress(parent, title, message, icon_name):
     progress.setAutoClose(True)
     progress.setWindowTitle(title)
     icon = QtGui.QIcon()
-    icon.addPixmap(QtGui.QPixmap(f":/{icon_name}.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+    icon.addPixmap(
+        QtGui.QPixmap(f":/{icon_name}.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+    )
     progress.setWindowIcon(icon)
     progress.show()
 

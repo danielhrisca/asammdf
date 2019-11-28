@@ -12,7 +12,14 @@ import numpy as np
 from numexpr import evaluate
 
 from . import v2_v3_constants as v23c
-from .utils import MdfException, get_text_v3, SignalSource, UINT16_u, UINT16_uf, get_fields
+from .utils import (
+    MdfException,
+    get_text_v3,
+    SignalSource,
+    UINT16_u,
+    UINT16_uf,
+    get_fields,
+)
 from ..version import __version__
 
 
@@ -195,13 +202,17 @@ class Channel:
 
                     addr = self.long_name_addr
                     if addr:
-                        self.name = get_text_v3(address=addr, stream=stream, mapped=mapped)
+                        self.name = get_text_v3(
+                            address=addr, stream=stream, mapped=mapped
+                        )
                     else:
                         self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
 
                     addr = self.display_name_addr
                     if addr:
-                        self.display_name = get_text_v3(address=addr, stream=stream, mapped=mapped)
+                        self.display_name = get_text_v3(
+                            address=addr, stream=stream, mapped=mapped
+                        )
 
                 elif size == v23c.CN_LONGNAME_BLOCK_SIZE:
                     (
@@ -227,7 +238,9 @@ class Channel:
 
                     addr = self.long_name_addr
                     if addr:
-                        self.name = get_text_v3(address=addr, stream=stream, mapped=mapped)
+                        self.name = get_text_v3(
+                            address=addr, stream=stream, mapped=mapped
+                        )
                     else:
                         self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
 
@@ -254,13 +267,13 @@ class Channel:
 
                     self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
 
-                cc_map = kwargs.get('cc_map', {})
-                si_map = kwargs.get('si_map', {})
+                cc_map = kwargs.get("cc_map", {})
+                si_map = kwargs.get("si_map", {})
 
                 address = self.conversion_addr
                 if address:
-                    size, = UINT16_uf(stream, address + 2)
-                    raw_bytes = stream[address: address + size]
+                    (size,) = UINT16_uf(stream, address + 2)
+                    raw_bytes = stream[address : address + size]
 
                     if raw_bytes in cc_map:
                         conv = cc_map[raw_bytes]
@@ -281,7 +294,7 @@ class Channel:
 
                 address = self.source_addr
                 if address:
-                    raw_bytes = stream[address: address + v23c.CE_BLOCK_SIZE]
+                    raw_bytes = stream[address : address + v23c.CE_BLOCK_SIZE]
 
                     if raw_bytes in si_map:
                         source = si_map[raw_bytes]
@@ -295,7 +308,9 @@ class Channel:
                         si_map[raw_bytes] = source
                     self.source = source
 
-                self.comment = get_text_v3(address=self.comment_addr, stream=stream, mapped=mapped)
+                self.comment = get_text_v3(
+                    address=self.comment_addr, stream=stream, mapped=mapped
+                )
             else:
                 stream.seek(address + 2)
                 (size,) = UINT16_u(stream.read(2))
@@ -328,13 +343,17 @@ class Channel:
 
                     addr = self.long_name_addr
                     if addr:
-                        self.name = get_text_v3(address=addr, stream=stream, mapped=mapped)
+                        self.name = get_text_v3(
+                            address=addr, stream=stream, mapped=mapped
+                        )
                     else:
                         self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
 
                     addr = self.display_name_addr
                     if addr:
-                        self.display_name = get_text_v3(address=addr, stream=stream, mapped=mapped)
+                        self.display_name = get_text_v3(
+                            address=addr, stream=stream, mapped=mapped
+                        )
 
                 elif size == v23c.CN_LONGNAME_BLOCK_SIZE:
                     (
@@ -360,7 +379,9 @@ class Channel:
 
                     addr = self.long_name_addr
                     if addr:
-                        self.name = get_text_v3(address=addr, stream=stream, mapped=mapped)
+                        self.name = get_text_v3(
+                            address=addr, stream=stream, mapped=mapped
+                        )
                     else:
                         self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
 
@@ -387,13 +408,13 @@ class Channel:
 
                     self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
 
-                cc_map = kwargs.get('cc_map', {})
-                si_map = kwargs.get('si_map', {})
+                cc_map = kwargs.get("cc_map", {})
+                si_map = kwargs.get("si_map", {})
 
                 address = self.conversion_addr
                 if address:
                     stream.seek(address + 2)
-                    size, = UINT16_u(stream.read(2))
+                    (size,) = UINT16_u(stream.read(2))
                     stream.seek(address)
                     raw_bytes = stream.read(size)
 
@@ -426,7 +447,9 @@ class Channel:
                         si_map[raw_bytes] = source
                     self.source = source
 
-                self.comment = get_text_v3(address=self.comment_addr, stream=stream, mapped=mapped)
+                self.comment = get_text_v3(
+                    address=self.comment_addr, stream=stream, mapped=mapped
+                )
 
             if self.id != b"CN":
                 message = f'Expected "CN" block @{hex(address)} but found "{self.id}"'
@@ -545,7 +568,9 @@ display name: {self.display_name}
 address: {hex(self.address)}
 comment: {self.comment}
 
-""".split("\n")
+""".split(
+            "\n"
+        )
 
         keys = (
             "id",
@@ -855,7 +880,7 @@ class ChannelConversion(_ChannelConversionBase):
                 if mapped:
                     (self.id, self.block_len) = COMMON_uf(stream, address)
                     block_size = size = self.block_len
-                    block = stream[address+4: address + size]
+                    block = stream[address + 4 : address + size]
                 else:
                     stream.seek(address)
                     block = stream.read(4)
@@ -888,8 +913,7 @@ class ChannelConversion(_ChannelConversionBase):
             elif conv_type == v23c.CONVERSION_TYPE_FORMULA:
                 self.formula_field = block[v23c.CC_COMMON_SHORT_SIZE :]
                 self.formula = (
-                    self.formula_field
-                    .decode("latin-1")
+                    self.formula_field.decode("latin-1")
                     .strip(" \t\r\n\0")
                     .replace("x", "X")
                 )
@@ -995,8 +1019,7 @@ class ChannelConversion(_ChannelConversionBase):
 
                     if self.default_addr:
                         self.referenced_blocks["default_addr"] = TextBlock(
-                            address=self.default_addr, stream=stream,
-                            mapped=mapped,
+                            address=self.default_addr, stream=stream, mapped=mapped,
                         )
                     else:
                         self.referenced_blocks["default_addr"] = TextBlock(text="")
@@ -1013,9 +1036,7 @@ class ChannelConversion(_ChannelConversionBase):
                         )
                         if values[3 * i + 2]:
                             block = TextBlock(
-                                address=values[3 * i + 2],
-                                stream=stream,
-                                mapped=mapped,
+                                address=values[3 * i + 2], stream=stream, mapped=mapped,
                             )
                             self.referenced_blocks[f"text_{i}"] = block
 
@@ -1255,7 +1276,9 @@ class ChannelConversion(_ChannelConversionBase):
         lines = f"""
 address: {hex(self.address)}
 
-""".split("\n")
+""".split(
+            "\n"
+        )
         for key in keys:
             val = getattr(self, key)
             if key.endswith("addr") or key.startswith("text_"):
@@ -1325,13 +1348,11 @@ address: {hex(self.address)}
                 inds2 = inds - 1
                 inds2[inds2 < 0] = 0
 
-                cond = np.abs(values - raw_vals[inds]) >= np.abs(values - raw_vals[inds2])
-
-                values = np.where(
-                    cond,
-                    phys[inds2],
-                    phys[inds]
+                cond = np.abs(values - raw_vals[inds]) >= np.abs(
+                    values - raw_vals[inds2]
                 )
+
+                values = np.where(cond, phys[inds2], phys[inds])
 
         elif conversion_type == v23c.CONVERSION_TYPE_TABX:
             nr = self.ref_param_nr
@@ -1341,14 +1362,10 @@ address: {hex(self.address)}
             phys = np.array(phys)
 
             x = sorted(zip(raw_vals, phys))
-            raw_vals = np.array(
-                [e[0] for e in x], dtype='<i8'
-            )
-            phys = np.array(
-                [e[1] for e in x]
-            )
+            raw_vals = np.array([e[0] for e in x], dtype="<i8")
+            phys = np.array([e[1] for e in x])
 
-            default = b''
+            default = b""
 
             idx1 = np.searchsorted(raw_vals, values, side="right") - 1
             idx2 = np.searchsorted(raw_vals, values, side="left")
@@ -1385,7 +1402,7 @@ address: {hex(self.address)}
                 default = default.text
             else:
                 default = b""
-            default = default.strip(b'\0\r\n\t')
+            default = default.strip(b"\0\r\n\t")
 
             if b"{X}" in default:
                 default = default.decode("latin-1").replace("{X}", "X").split('"')[1]
@@ -1805,7 +1822,9 @@ class ChannelExtension:
                 if kwargs.get("mapped", False):
                     self.address = address = kwargs["address"]
 
-                    (self.id, self.block_len, self.type) = SOURCE_COMMON_uf(stream, address)
+                    (self.id, self.block_len, self.type) = SOURCE_COMMON_uf(
+                        stream, address
+                    )
 
                     if self.type == v23c.SOURCE_ECU:
                         (
@@ -1874,11 +1893,15 @@ class ChannelExtension:
         if self.type == v23c.SOURCE_ECU:
             self.path = self.ECU_identification.decode("latin-1").strip(" \t\n\r\0")
             self.name = self.description.decode("latin-1").strip(" \t\n\r\0")
-            self.comment = f"Module number={self.module_nr} @ address={self.module_address}"
+            self.comment = (
+                f"Module number={self.module_nr} @ address={self.module_address}"
+            )
         else:
             self.path = self.sender_name.decode("latin-1").strip(" \t\n\r\0")
             self.name = self.message_name.decode("latin-1").strip(" \t\n\r\0")
-            self.comment = f"Message ID={hex(self.CAN_id)} on CAN bus {self.CAN_ch_index}"
+            self.comment = (
+                f"Message ID={hex(self.CAN_id)} on CAN bus {self.CAN_ch_index}"
+            )
 
     def to_blocks(self, address, blocks, defined_texts, cc_map):
 
@@ -1951,7 +1974,9 @@ class ChannelExtension:
         lines = f"""
 address: {hex(self.address)}
 
-""".split("\n")
+""".split(
+            "\n"
+        )
 
         for key in keys:
             val = getattr(self, key)
@@ -2122,7 +2147,9 @@ class ChannelGroup:
 
                 raise MdfException(message.format(self.id))
             if self.comment_addr:
-                self.comment = get_text_v3(address=self.comment_addr, stream=stream, mapped=mapped)
+                self.comment = get_text_v3(
+                    address=self.comment_addr, stream=stream, mapped=mapped
+                )
         except KeyError:
             self.address = 0
             self.id = b"CG"
@@ -2167,17 +2194,20 @@ class ChannelGroup:
 
     def __bytes__(self):
         if self.block_len == v23c.CG_POST_330_BLOCK_SIZE:
-            return v23c.CHANNEL_GROUP_p(
-                self.id,
-                self.block_len,
-                self.next_cg_addr,
-                self.first_ch_addr,
-                self.comment_addr,
-                self.record_id,
-                self.ch_nr,
-                self.samples_byte_nr,
-                self.cycles_nr,
-            ) + b'\0'*4
+            return (
+                v23c.CHANNEL_GROUP_p(
+                    self.id,
+                    self.block_len,
+                    self.next_cg_addr,
+                    self.first_ch_addr,
+                    self.comment_addr,
+                    self.record_id,
+                    self.ch_nr,
+                    self.samples_byte_nr,
+                    self.cycles_nr,
+                )
+                + b"\0" * 4
+            )
         else:
             return v23c.CHANNEL_GROUP_p(
                 self.id,
@@ -2213,9 +2243,9 @@ class ChannelGroup:
 address: {hex(self.address)}
 comment: {self.comment}
 
-""".split("\n")
-
-
+""".split(
+            "\n"
+        )
 
         for key in keys:
             if not hasattr(self, key):
@@ -2352,7 +2382,11 @@ class DataGroup:
                 ) = v23c.DATA_GROUP_PRE_320_uf(stream, address)
 
                 if self.block_len == v23c.DG_POST_320_BLOCK_SIZE:
-                    self.reserved0 = stream[address + v23c.DG_PRE_320_BLOCK_SIZE: address + v23c.DG_POST_320_BLOCK_SIZE]
+                    self.reserved0 = stream[
+                        address
+                        + v23c.DG_PRE_320_BLOCK_SIZE : address
+                        + v23c.DG_POST_320_BLOCK_SIZE
+                    ]
             else:
                 stream.seek(address)
                 block = stream.read(v23c.DG_PRE_320_BLOCK_SIZE)
@@ -2841,16 +2875,20 @@ class TextBlock:
             if mapped:
                 (self.id, self.block_len) = COMMON_uf(stream, address)
                 if self.id != b"TX":
-                    message = f'Expected "TX" block @{hex(address)} but found "{self.id}"'
+                    message = (
+                        f'Expected "TX" block @{hex(address)} but found "{self.id}"'
+                    )
                     logger.exception(message)
                     raise MdfException(message)
 
-                self.text = stream[address + 4: address + self.block_len]
+                self.text = stream[address + 4 : address + self.block_len]
             else:
                 stream.seek(address)
                 (self.id, self.block_len) = COMMON_u(stream.read(4))
                 if self.id != b"TX":
-                    message = f'Expected "TX" block @{hex(address)} but found "{self.id}"'
+                    message = (
+                        f'Expected "TX" block @{hex(address)} but found "{self.id}"'
+                    )
                     logger.exception(message)
                     raise MdfException(message)
 
@@ -2868,11 +2906,11 @@ class TextBlock:
 
             self.id = b"TX"
             self.block_len = len(text) + 5
-            self.text = text + b'\0'
+            self.text = text + b"\0"
 
             if self.block_len > 65000:
                 self.block_len = 65000 + 5
-                self.text = self.text[:65000] + b'\0'
+                self.text = self.text[:65000] + b"\0"
 
     def __getitem__(self, item):
         return self.__getattribute__(item)
@@ -2881,10 +2919,7 @@ class TextBlock:
         self.__setattr__(item, value)
 
     def __bytes__(self):
-        return v23c.COMMON_p(
-            self.id,
-            self.block_len,
-        ) + self.text
+        return v23c.COMMON_p(self.id, self.block_len,) + self.text
 
     def __repr__(self):
         return (

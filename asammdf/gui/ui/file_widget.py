@@ -38,7 +38,9 @@ class Ui_file_widget(object):
         self.channels_layout.setObjectName("channels_layout")
         self.verticalLayout_8.addWidget(self.splitter)
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/graph.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(":/graph.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.aspects.addTab(self.channels_tab, icon, "")
         self.convert_tab = QtWidgets.QWidget()
         self.convert_tab.setObjectName("convert_tab")
@@ -71,12 +73,16 @@ class Ui_file_widget(object):
         self.convert_format.setMinimumSize(QtCore.QSize(200, 0))
         self.convert_format.setObjectName("convert_format")
         self.gridLayout_2.addWidget(self.convert_format, 0, 1, 1, 1)
-        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.gridLayout_2.addItem(spacerItem, 7, 0, 1, 1)
         self.label_3 = QtWidgets.QLabel(self.convert_tab)
         self.label_3.setObjectName("label_3")
         self.gridLayout_2.addWidget(self.label_3, 2, 0, 1, 1)
-        spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem1 = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.gridLayout_2.addItem(spacerItem1, 0, 2, 1, 1)
         self.label_5 = QtWidgets.QLabel(self.convert_tab)
         self.label_5.setObjectName("label_5")
@@ -88,7 +94,9 @@ class Ui_file_widget(object):
         self.gridLayout_2.addWidget(self.line_2, 5, 0, 1, 2)
         self.convert_btn = QtWidgets.QPushButton(self.convert_tab)
         icon1 = QtGui.QIcon()
-        icon1.addPixmap(QtGui.QPixmap(":/convert.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon1.addPixmap(
+            QtGui.QPixmap(":/convert.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.convert_btn.setIcon(icon1)
         self.convert_btn.setObjectName("convert_btn")
         self.gridLayout_2.addWidget(self.convert_btn, 6, 0, 1, 1)
@@ -124,7 +132,9 @@ class Ui_file_widget(object):
         self.cut_split.setChecked(True)
         self.cut_split.setObjectName("cut_split")
         self.gridLayout_3.addWidget(self.cut_split, 8, 0, 1, 1)
-        spacerItem2 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem2 = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.gridLayout_3.addItem(spacerItem2, 7, 2, 1, 1)
         self.cut_split_size = QtWidgets.QDoubleSpinBox(self.cut_tab)
         self.cut_split_size.setMaximum(4.0)
@@ -147,12 +157,16 @@ class Ui_file_widget(object):
         self.cut_compression = QtWidgets.QComboBox(self.cut_tab)
         self.cut_compression.setObjectName("cut_compression")
         self.gridLayout_3.addWidget(self.cut_compression, 7, 1, 1, 1)
-        spacerItem3 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem3 = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.gridLayout_3.addItem(spacerItem3, 1, 2, 1, 1)
         self.label_13 = QtWidgets.QLabel(self.cut_tab)
         self.label_13.setObjectName("label_13")
         self.gridLayout_3.addWidget(self.label_13, 1, 0, 1, 1)
-        spacerItem4 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem4 = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.gridLayout_3.addItem(spacerItem4, 12, 0, 1, 1)
         self.cut_interval = QtWidgets.QLabel(self.cut_tab)
         self.cut_interval.setObjectName("cut_interval")
@@ -186,9 +200,13 @@ class Ui_file_widget(object):
         self.mat_format = QtWidgets.QComboBox(self.export_tab)
         self.mat_format.setObjectName("mat_format")
         self.gridLayout_6.addWidget(self.mat_format, 11, 1, 1, 1)
-        spacerItem5 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem5 = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.gridLayout_6.addItem(spacerItem5, 11, 2, 1, 1)
-        spacerItem6 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem6 = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.gridLayout_6.addItem(spacerItem6, 15, 0, 1, 1)
         self.label_18 = QtWidgets.QLabel(self.export_tab)
         self.label_18.setObjectName("label_18")
@@ -218,7 +236,9 @@ class Ui_file_widget(object):
         self.line_10.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_10.setObjectName("line_10")
         self.gridLayout_6.addWidget(self.line_10, 13, 0, 1, 2)
-        spacerItem7 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem7 = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.gridLayout_6.addItem(spacerItem7, 2, 2, 1, 1)
         self.oned_as = QtWidgets.QComboBox(self.export_tab)
         self.oned_as.setObjectName("oned_as")
@@ -238,7 +258,9 @@ class Ui_file_widget(object):
         self.gridLayout_6.addWidget(self.export_raster, 5, 1, 1, 1)
         self.export_btn = QtWidgets.QPushButton(self.export_tab)
         icon3 = QtGui.QIcon()
-        icon3.addPixmap(QtGui.QPixmap(":/export.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon3.addPixmap(
+            QtGui.QPixmap(":/export.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.export_btn.setIcon(icon3)
         self.export_btn.setObjectName("export_btn")
         self.gridLayout_6.addWidget(self.export_btn, 14, 0, 1, 1)
@@ -270,15 +292,23 @@ class Ui_file_widget(object):
         self.filter_layout.setObjectName("filter_layout")
         self.filter_btn = QtWidgets.QPushButton(self.filter_tab)
         icon4 = QtGui.QIcon()
-        icon4.addPixmap(QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon4.addPixmap(
+            QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.filter_btn.setIcon(icon4)
         self.filter_btn.setObjectName("filter_btn")
         self.filter_layout.addWidget(self.filter_btn, 7, 1, 1, 1)
-        spacerItem8 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem8 = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.filter_layout.addItem(spacerItem8, 8, 1, 1, 1)
-        spacerItem9 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem9 = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.filter_layout.addItem(spacerItem9, 2, 3, 1, 1)
-        spacerItem10 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem10 = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.filter_layout.addItem(spacerItem10, 0, 1, 1, 1)
         self.label_12 = QtWidgets.QLabel(self.filter_tab)
         self.label_12.setObjectName("label_12")
@@ -294,7 +324,9 @@ class Ui_file_widget(object):
         self.line_8.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_8.setObjectName("line_8")
         self.filter_layout.addWidget(self.line_8, 3, 1, 1, 2)
-        spacerItem11 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem11 = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.filter_layout.addItem(spacerItem11, 4, 3, 1, 1)
         self.filter_format = QtWidgets.QComboBox(self.filter_tab)
         self.filter_format.setObjectName("filter_format")
@@ -313,7 +345,9 @@ class Ui_file_widget(object):
         self.filter_layout.addWidget(self.line_7, 6, 1, 1, 2)
         self.clear_filter_btn = QtWidgets.QPushButton(self.filter_tab)
         icon5 = QtGui.QIcon()
-        icon5.addPixmap(QtGui.QPixmap(":/erase.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon5.addPixmap(
+            QtGui.QPixmap(":/erase.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.clear_filter_btn.setIcon(icon5)
         self.clear_filter_btn.setObjectName("clear_filter_btn")
         self.filter_layout.addWidget(self.clear_filter_btn, 9, 0, 1, 1)
@@ -325,13 +359,17 @@ class Ui_file_widget(object):
         self.horizontalLayout_2.setObjectName("horizontalLayout_2")
         self.load_filter_list_btn = QtWidgets.QPushButton(self.filter_tab)
         icon6 = QtGui.QIcon()
-        icon6.addPixmap(QtGui.QPixmap(":/open.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon6.addPixmap(
+            QtGui.QPixmap(":/open.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.load_filter_list_btn.setIcon(icon6)
         self.load_filter_list_btn.setObjectName("load_filter_list_btn")
         self.horizontalLayout_2.addWidget(self.load_filter_list_btn)
         self.save_filter_list_btn = QtWidgets.QPushButton(self.filter_tab)
         icon7 = QtGui.QIcon()
-        icon7.addPixmap(QtGui.QPixmap(":/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon7.addPixmap(
+            QtGui.QPixmap(":/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.save_filter_list_btn.setIcon(icon7)
         self.save_filter_list_btn.setObjectName("save_filter_list_btn")
         self.horizontalLayout_2.addWidget(self.save_filter_list_btn)
@@ -346,7 +384,9 @@ class Ui_file_widget(object):
         self.gridLayout_4 = QtWidgets.QGridLayout()
         self.gridLayout_4.setContentsMargins(5, 5, 5, 5)
         self.gridLayout_4.setObjectName("gridLayout_4")
-        spacerItem12 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem12 = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.gridLayout_4.addItem(spacerItem12, 1, 2, 1, 1)
         self.label_8 = QtWidgets.QLabel(self.resample_tab)
         self.label_8.setObjectName("label_8")
@@ -375,7 +415,9 @@ class Ui_file_widget(object):
         self.resample_format.setMinimumSize(QtCore.QSize(200, 0))
         self.resample_format.setObjectName("resample_format")
         self.gridLayout_4.addWidget(self.resample_format, 1, 1, 1, 1)
-        spacerItem13 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem13 = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.gridLayout_4.addItem(spacerItem13, 9, 0, 1, 1)
         self.label_9 = QtWidgets.QLabel(self.resample_tab)
         self.label_9.setObjectName("label_9")
@@ -387,7 +429,9 @@ class Ui_file_widget(object):
         self.gridLayout_4.addWidget(self.line_6, 7, 0, 1, 2)
         self.resample_btn = QtWidgets.QPushButton(self.resample_tab)
         icon8 = QtGui.QIcon()
-        icon8.addPixmap(QtGui.QPixmap(":/resample.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon8.addPixmap(
+            QtGui.QPixmap(":/resample.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.resample_btn.setIcon(icon8)
         self.resample_btn.setObjectName("resample_btn")
         self.gridLayout_4.addWidget(self.resample_btn, 8, 0, 1, 1)
@@ -429,17 +473,25 @@ class Ui_file_widget(object):
         self.gridLayout.setContentsMargins(25, 25, -1, -1)
         self.gridLayout.setSpacing(15)
         self.gridLayout.setObjectName("gridLayout")
-        spacerItem14 = QtWidgets.QSpacerItem(20, 572, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem14 = QtWidgets.QSpacerItem(
+            20, 572, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.gridLayout.addItem(spacerItem14, 2, 0, 1, 1)
         self.scramble_btn = QtWidgets.QPushButton(self.scramble_tab)
         icon9 = QtGui.QIcon()
-        icon9.addPixmap(QtGui.QPixmap(":/scramble.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon9.addPixmap(
+            QtGui.QPixmap(":/scramble.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.scramble_btn.setIcon(icon9)
         self.scramble_btn.setObjectName("scramble_btn")
         self.gridLayout.addWidget(self.scramble_btn, 1, 0, 1, 1)
-        spacerItem15 = QtWidgets.QSpacerItem(321, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem15 = QtWidgets.QSpacerItem(
+            321, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.gridLayout.addItem(spacerItem15, 1, 2, 1, 1)
-        spacerItem16 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacerItem16 = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.gridLayout.addItem(spacerItem16, 1, 1, 1, 1)
         self.label_17 = QtWidgets.QLabel(self.scramble_tab)
         self.label_17.setObjectName("label_17")
@@ -460,7 +512,9 @@ class Ui_file_widget(object):
         self.gridLayout_7.addWidget(self.line_13, 7, 1, 1, 3)
         self.extract_can_csv_btn = QtWidgets.QPushButton(self.groupBox_3)
         icon10 = QtGui.QIcon()
-        icon10.addPixmap(QtGui.QPixmap(":/csv.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon10.addPixmap(
+            QtGui.QPixmap(":/csv.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.extract_can_csv_btn.setIcon(icon10)
         self.extract_can_csv_btn.setObjectName("extract_can_csv_btn")
         self.gridLayout_7.addWidget(self.extract_can_csv_btn, 8, 1, 1, 1)
@@ -500,7 +554,9 @@ class Ui_file_widget(object):
         self.gridLayout_5.setObjectName("gridLayout_5")
         self.extract_can_btn = QtWidgets.QPushButton(self.groupBox_2)
         icon11 = QtGui.QIcon()
-        icon11.addPixmap(QtGui.QPixmap(":/down.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon11.addPixmap(
+            QtGui.QPixmap(":/down.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.extract_can_btn.setIcon(icon11)
         self.extract_can_btn.setObjectName("extract_can_btn")
         self.gridLayout_5.addWidget(self.extract_can_btn, 5, 0, 1, 2)
@@ -508,11 +564,15 @@ class Ui_file_widget(object):
         self.label__1.setObjectName("label__1")
         self.gridLayout_5.addWidget(self.label__1, 0, 0, 1, 1)
         self.extract_can_compression = QtWidgets.QComboBox(self.groupBox_2)
-        self.extract_can_compression.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
+        self.extract_can_compression.setSizeAdjustPolicy(
+            QtWidgets.QComboBox.AdjustToContents
+        )
         self.extract_can_compression.setObjectName("extract_can_compression")
         self.gridLayout_5.addWidget(self.extract_can_compression, 0, 1, 1, 1)
         self.extract_can_format = QtWidgets.QComboBox(self.groupBox_2)
-        self.extract_can_format.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
+        self.extract_can_format.setSizeAdjustPolicy(
+            QtWidgets.QComboBox.AdjustToContents
+        )
         self.extract_can_format.setObjectName("extract_can_format")
         self.gridLayout_5.addWidget(self.extract_can_format, 1, 1, 1, 1)
         self.label_24 = QtWidgets.QLabel(self.groupBox_2)
@@ -548,7 +608,9 @@ class Ui_file_widget(object):
         self.info.setObjectName("info")
         self.gridLayout_9.addWidget(self.info, 0, 0, 1, 1)
         icon12 = QtGui.QIcon()
-        icon12.addPixmap(QtGui.QPixmap(":/info.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon12.addPixmap(
+            QtGui.QPixmap(":/info.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.aspects.addTab(self.info_tab, icon12, "")
         self.verticalLayout.addWidget(self.aspects)
 
@@ -559,15 +621,22 @@ class Ui_file_widget(object):
     def retranslateUi(self, file_widget):
         _translate = QtCore.QCoreApplication.translate
         file_widget.setWindowTitle(_translate("file_widget", "Form"))
-        self.aspects.setTabText(self.aspects.indexOf(self.channels_tab), _translate("file_widget", "Channels"))
+        self.aspects.setTabText(
+            self.aspects.indexOf(self.channels_tab),
+            _translate("file_widget", "Channels"),
+        )
         self.convert_split_size.setSuffix(_translate("file_widget", "MB"))
         self.label_2.setText(_translate("file_widget", "Output format"))
         self.convert_split.setText(_translate("file_widget", "Split data blocks"))
         self.label_3.setText(_translate("file_widget", "Compression"))
         self.label_5.setText(_translate("file_widget", "Split size "))
         self.convert_btn.setText(_translate("file_widget", "Convert"))
-        self.aspects.setTabText(self.aspects.indexOf(self.convert_tab), _translate("file_widget", "Convert"))
-        self.aspects.setTabToolTip(self.aspects.indexOf(self.convert_tab), _translate("file_widget", "conv"))
+        self.aspects.setTabText(
+            self.aspects.indexOf(self.convert_tab), _translate("file_widget", "Convert")
+        )
+        self.aspects.setTabToolTip(
+            self.aspects.indexOf(self.convert_tab), _translate("file_widget", "conv")
+        )
         self.label_7.setText(_translate("file_widget", "Split size [MB]"))
         self.cut_btn.setText(_translate("file_widget", "Cut"))
         self.cut_split.setText(_translate("file_widget", "Split data blocks"))
@@ -578,15 +647,21 @@ class Ui_file_widget(object):
         self.cut_interval.setText(_translate("file_widget", "TextLabel"))
         self.label_14.setText(_translate("file_widget", "End"))
         self.cut_stop.setSuffix(_translate("file_widget", "s"))
-        self.whence.setText(_translate("file_widget", "Start relative to first time stamp"))
+        self.whence.setText(
+            _translate("file_widget", "Start relative to first time stamp")
+        )
         self.cut_time_from_zero.setText(_translate("file_widget", "Time from 0s"))
-        self.aspects.setTabText(self.aspects.indexOf(self.cut_tab), _translate("file_widget", "Cut"))
+        self.aspects.setTabText(
+            self.aspects.indexOf(self.cut_tab), _translate("file_widget", "Cut")
+        )
         self.use_display_names.setText(_translate("file_widget", "Use display names"))
         self.label_18.setText(_translate("file_widget", ".mat format"))
         self.time_from_zero.setText(_translate("file_widget", "Time from 0s"))
         self.single_time_base.setText(_translate("file_widget", "Single time base"))
         self.label_21.setText(_translate("file_widget", "Type"))
-        self.reduce_memory_usage.setText(_translate("file_widget", "Reduce  memory usage"))
+        self.reduce_memory_usage.setText(
+            _translate("file_widget", "Reduce  memory usage")
+        )
         self.label_22.setText(_translate("file_widget", "Raster"))
         self.label_16.setText(_translate("file_widget", ".mat oned_as"))
         self.export_raster.setSuffix(_translate("file_widget", "s"))
@@ -594,7 +669,9 @@ class Ui_file_widget(object):
         self.label_20.setText(_translate("file_widget", "Compression"))
         self.label_19.setText(_translate("file_widget", "Empty channels"))
         self.time_as_date.setText(_translate("file_widget", "Time as date"))
-        self.aspects.setTabText(self.aspects.indexOf(self.export_tab), _translate("file_widget", "Export"))
+        self.aspects.setTabText(
+            self.aspects.indexOf(self.export_tab), _translate("file_widget", "Export")
+        )
         self.filter_btn.setText(_translate("file_widget", "Filter"))
         self.label_12.setText(_translate("file_widget", "Outpput format"))
         self.label_11.setText(_translate("file_widget", "Compression"))
@@ -603,7 +680,9 @@ class Ui_file_widget(object):
         self.clear_filter_btn.setText(_translate("file_widget", "Clear selection"))
         self.load_filter_list_btn.setText(_translate("file_widget", "Load selection"))
         self.save_filter_list_btn.setText(_translate("file_widget", "Save selection"))
-        self.aspects.setTabText(self.aspects.indexOf(self.filter_tab), _translate("file_widget", "Filter"))
+        self.aspects.setTabText(
+            self.aspects.indexOf(self.filter_tab), _translate("file_widget", "Filter")
+        )
         self.label_8.setText(_translate("file_widget", "Compression"))
         self.label_4.setText(_translate("file_widget", "Output format"))
         self.resample_split_size.setSuffix(_translate("file_widget", "MB"))
@@ -616,30 +695,66 @@ class Ui_file_widget(object):
         self.raster_type_channel.setText(_translate("file_widget", "channel"))
         self.raster.setSuffix(_translate("file_widget", "s"))
         self.resample_time_from_zero.setText(_translate("file_widget", "Time from 0s"))
-        self.aspects.setTabText(self.aspects.indexOf(self.resample_tab), _translate("file_widget", "Resample"))
+        self.aspects.setTabText(
+            self.aspects.indexOf(self.resample_tab),
+            _translate("file_widget", "Resample"),
+        )
         self.scramble_btn.setText(_translate("file_widget", "Scramble texts"))
-        self.label_17.setText(_translate("file_widget", "Anonymize the measurements: scramble all texts and replace them with random strings"))
-        self.aspects.setTabText(self.aspects.indexOf(self.scramble_tab), _translate("file_widget", "Scramble"))
+        self.label_17.setText(
+            _translate(
+                "file_widget",
+                "Anonymize the measurements: scramble all texts and replace them with random strings",
+            )
+        )
+        self.aspects.setTabText(
+            self.aspects.indexOf(self.scramble_tab),
+            _translate("file_widget", "Scramble"),
+        )
         self.groupBox_3.setTitle(_translate("file_widget", "CSV"))
-        self.extract_can_csv_btn.setText(_translate("file_widget", "Export to CSV         "))
+        self.extract_can_csv_btn.setText(
+            _translate("file_widget", "Export to CSV         ")
+        )
         self.label_25.setText(_translate("file_widget", "Empty channels"))
         self.single_time_base_can.setText(_translate("file_widget", "Single time base"))
         self.label_23.setText(_translate("file_widget", "Raster"))
         self.export_raster_can.setSuffix(_translate("file_widget", "s"))
-        self.ignore_invalid_signals_csv.setToolTip(_translate("file_widget", "checks if all samples are eauql to the maximum teoretical signal value"))
-        self.ignore_invalid_signals_csv.setText(_translate("file_widget", "Ignore invalid signals"))
+        self.ignore_invalid_signals_csv.setToolTip(
+            _translate(
+                "file_widget",
+                "checks if all samples are eauql to the maximum teoretical signal value",
+            )
+        )
+        self.ignore_invalid_signals_csv.setText(
+            _translate("file_widget", "Ignore invalid signals")
+        )
         self.time_from_zero_can.setText(_translate("file_widget", "Time from 0s"))
         self.can_time_as_date.setText(_translate("file_widget", "Time as date"))
-        self.load_can_database_btn.setText(_translate("file_widget", "Load CAN database"))
+        self.load_can_database_btn.setText(
+            _translate("file_widget", "Load CAN database")
+        )
         self.groupBox_2.setTitle(_translate("file_widget", "MDF"))
         self.extract_can_btn.setText(_translate("file_widget", "Extract CAN signals"))
         self.label__1.setText(_translate("file_widget", "Compression"))
         self.label_24.setText(_translate("file_widget", "Version"))
-        self.ignore_invalid_signals_mdf.setToolTip(_translate("file_widget", "checks if all samples are eauql to the maximum teoretical signal value"))
-        self.ignore_invalid_signals_mdf.setText(_translate("file_widget", "Ignore invalid signals"))
-        self.aspects.setTabText(self.aspects.indexOf(self.extract_can_tab), _translate("file_widget", "CAN logging"))
+        self.ignore_invalid_signals_mdf.setToolTip(
+            _translate(
+                "file_widget",
+                "checks if all samples are eauql to the maximum teoretical signal value",
+            )
+        )
+        self.ignore_invalid_signals_mdf.setText(
+            _translate("file_widget", "Ignore invalid signals")
+        )
+        self.aspects.setTabText(
+            self.aspects.indexOf(self.extract_can_tab),
+            _translate("file_widget", "CAN logging"),
+        )
         self.info.headerItem().setText(0, _translate("file_widget", "Cathegory"))
         self.info.headerItem().setText(1, _translate("file_widget", "Value"))
-        self.aspects.setTabText(self.aspects.indexOf(self.info_tab), _translate("file_widget", "Info"))
+        self.aspects.setTabText(
+            self.aspects.indexOf(self.info_tab), _translate("file_widget", "Info")
+        )
+
+
 from asammdf.gui.widgets.list import MinimalListWidget
 from . import resource_rc

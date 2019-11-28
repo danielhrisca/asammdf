@@ -44,7 +44,9 @@ class Ui_ChannelStats(object):
         self.gridLayout_5.addWidget(self.unit11, 7, 2, 1, 1)
         self.selected_rms = QtWidgets.QLabel(self.range_group)
         self.selected_rms.setText("")
-        self.selected_rms.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.selected_rms.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.selected_rms.setObjectName("selected_rms")
         self.gridLayout_5.addWidget(self.selected_rms, 7, 1, 1, 1)
         self.unit10 = QtWidgets.QLabel(self.range_group)
@@ -54,7 +56,9 @@ class Ui_ChannelStats(object):
         self.selected_average = QtWidgets.QLabel(self.range_group)
         self.selected_average.setAutoFillBackground(False)
         self.selected_average.setText("")
-        self.selected_average.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.selected_average.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.selected_average.setObjectName("selected_average")
         self.gridLayout_5.addWidget(self.selected_average, 6, 1, 1, 1)
         self.label_29 = QtWidgets.QLabel(self.range_group)
@@ -82,12 +86,16 @@ class Ui_ChannelStats(object):
         self.gridLayout_5.addWidget(self.label_20, 0, 2, 1, 1)
         self.selected_stop = QtWidgets.QLabel(self.range_group)
         self.selected_stop.setText("")
-        self.selected_stop.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.selected_stop.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.selected_stop.setObjectName("selected_stop")
         self.gridLayout_5.addWidget(self.selected_stop, 1, 1, 1, 1)
         self.selected_start = QtWidgets.QLabel(self.range_group)
         self.selected_start.setText("")
-        self.selected_start.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.selected_start.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.selected_start.setObjectName("selected_start")
         self.gridLayout_5.addWidget(self.selected_start, 0, 1, 1, 1)
         self.label_18 = QtWidgets.QLabel(self.range_group)
@@ -95,7 +103,9 @@ class Ui_ChannelStats(object):
         self.gridLayout_5.addWidget(self.label_18, 8, 0, 1, 1)
         self.selected_max = QtWidgets.QLabel(self.range_group)
         self.selected_max.setText("")
-        self.selected_max.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.selected_max.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.selected_max.setObjectName("selected_max")
         self.gridLayout_5.addWidget(self.selected_max, 5, 1, 1, 1)
         self.label_23 = QtWidgets.QLabel(self.range_group)
@@ -119,17 +129,23 @@ class Ui_ChannelStats(object):
         self.gridLayout_5.addWidget(self.unit4, 8, 2, 1, 1)
         self.selected_min = QtWidgets.QLabel(self.range_group)
         self.selected_min.setText("")
-        self.selected_min.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.selected_min.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.selected_min.setObjectName("selected_min")
         self.gridLayout_5.addWidget(self.selected_min, 4, 1, 1, 1)
         self.selected_delta_t = QtWidgets.QLabel(self.range_group)
         self.selected_delta_t.setText("")
-        self.selected_delta_t.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.selected_delta_t.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.selected_delta_t.setObjectName("selected_delta_t")
         self.gridLayout_5.addWidget(self.selected_delta_t, 3, 1, 1, 1)
         self.selected_delta = QtWidgets.QLabel(self.range_group)
         self.selected_delta.setText("")
-        self.selected_delta.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.selected_delta.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.selected_delta.setObjectName("selected_delta")
         self.gridLayout_5.addWidget(self.selected_delta, 8, 1, 1, 1)
         self.gridLayout_5.setColumnStretch(1, 1)
@@ -153,17 +169,23 @@ class Ui_ChannelStats(object):
         self.gridLayout_2.addWidget(self.unit15, 6, 2, 1, 1)
         self.overall_rms = QtWidgets.QLabel(self.overall_group)
         self.overall_rms.setText("")
-        self.overall_rms.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.overall_rms.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.overall_rms.setObjectName("overall_rms")
         self.gridLayout_2.addWidget(self.overall_rms, 6, 1, 1, 1)
         self.overall_min = QtWidgets.QLabel(self.overall_group)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.overall_min.sizePolicy().hasHeightForWidth())
         self.overall_min.setSizePolicy(sizePolicy)
         self.overall_min.setText("")
-        self.overall_min.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.overall_min.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.overall_min.setObjectName("overall_min")
         self.gridLayout_2.addWidget(self.overall_min, 3, 1, 1, 1)
         self.label_3 = QtWidgets.QLabel(self.overall_group)
@@ -184,12 +206,16 @@ class Ui_ChannelStats(object):
         self.gridLayout_2.addWidget(self.unit9, 4, 2, 1, 1)
         self.overall_max = QtWidgets.QLabel(self.overall_group)
         self.overall_max.setText("")
-        self.overall_max.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.overall_max.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.overall_max.setObjectName("overall_max")
         self.gridLayout_2.addWidget(self.overall_max, 4, 1, 1, 1)
         self.overall_start = QtWidgets.QLabel(self.overall_group)
         self.overall_start.setText("")
-        self.overall_start.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.overall_start.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.overall_start.setObjectName("overall_start")
         self.gridLayout_2.addWidget(self.overall_start, 0, 1, 1, 1)
         self.label_6 = QtWidgets.QLabel(self.overall_group)
@@ -200,12 +226,16 @@ class Ui_ChannelStats(object):
         self.gridLayout_2.addWidget(self.label_33, 6, 0, 1, 1)
         self.overall_average = QtWidgets.QLabel(self.overall_group)
         self.overall_average.setText("")
-        self.overall_average.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.overall_average.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.overall_average.setObjectName("overall_average")
         self.gridLayout_2.addWidget(self.overall_average, 5, 1, 1, 1)
         self.overall_stop = QtWidgets.QLabel(self.overall_group)
         self.overall_stop.setText("")
-        self.overall_stop.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.overall_stop.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.overall_stop.setObjectName("overall_stop")
         self.gridLayout_2.addWidget(self.overall_stop, 1, 1, 1, 1)
         self.unit8 = QtWidgets.QLabel(self.overall_group)
@@ -218,7 +248,9 @@ class Ui_ChannelStats(object):
         self.gridLayout_2.setColumnStretch(1, 1)
         self.gridLayout.addWidget(self.overall_group, 4, 0, 1, 2)
         self.name = QtWidgets.QTextEdit(self.scrollAreaWidgetContents)
-        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed
+        )
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(1)
         sizePolicy.setHeightForWidth(self.name.sizePolicy().hasHeightForWidth())
@@ -239,7 +271,9 @@ class Ui_ChannelStats(object):
         self.gridLayout_4.setObjectName("gridLayout_4")
         self.cursor_t = QtWidgets.QLabel(self.cursor_group)
         self.cursor_t.setText("")
-        self.cursor_t.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.cursor_t.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.cursor_t.setObjectName("cursor_t")
         self.gridLayout_4.addWidget(self.cursor_t, 0, 1, 1, 1)
         self.label_12 = QtWidgets.QLabel(self.cursor_group)
@@ -247,7 +281,9 @@ class Ui_ChannelStats(object):
         self.gridLayout_4.addWidget(self.label_12, 0, 0, 1, 1)
         self.cursor_value = QtWidgets.QLabel(self.cursor_group)
         self.cursor_value.setText("")
-        self.cursor_value.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.cursor_value.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.cursor_value.setObjectName("cursor_value")
         self.gridLayout_4.addWidget(self.cursor_value, 1, 1, 1, 1)
         self.label_11 = QtWidgets.QLabel(self.cursor_group)
@@ -287,12 +323,16 @@ class Ui_ChannelStats(object):
         self.gridLayout_3.addWidget(self.label_24, 0, 2, 1, 1)
         self.visible_start = QtWidgets.QLabel(self.visible_group)
         self.visible_start.setText("")
-        self.visible_start.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.visible_start.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.visible_start.setObjectName("visible_start")
         self.gridLayout_3.addWidget(self.visible_start, 0, 1, 1, 1)
         self.visible_stop = QtWidgets.QLabel(self.visible_group)
         self.visible_stop.setText("")
-        self.visible_stop.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.visible_stop.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.visible_stop.setObjectName("visible_stop")
         self.gridLayout_3.addWidget(self.visible_stop, 1, 1, 1, 1)
         self.label_10 = QtWidgets.QLabel(self.visible_group)
@@ -300,12 +340,16 @@ class Ui_ChannelStats(object):
         self.gridLayout_3.addWidget(self.label_10, 4, 0, 1, 1)
         self.visible_delta_t = QtWidgets.QLabel(self.visible_group)
         self.visible_delta_t.setText("")
-        self.visible_delta_t.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.visible_delta_t.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.visible_delta_t.setObjectName("visible_delta_t")
         self.gridLayout_3.addWidget(self.visible_delta_t, 2, 1, 1, 1)
         self.visible_max = QtWidgets.QLabel(self.visible_group)
         self.visible_max.setText("")
-        self.visible_max.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.visible_max.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.visible_max.setObjectName("visible_max")
         self.gridLayout_3.addWidget(self.visible_max, 4, 1, 1, 1)
         self.label_9 = QtWidgets.QLabel(self.visible_group)
@@ -329,12 +373,16 @@ class Ui_ChannelStats(object):
         self.gridLayout_3.addWidget(self.label_8, 1, 0, 1, 1)
         self.visible_delta = QtWidgets.QLabel(self.visible_group)
         self.visible_delta.setText("")
-        self.visible_delta.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.visible_delta.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.visible_delta.setObjectName("visible_delta")
         self.gridLayout_3.addWidget(self.visible_delta, 7, 1, 1, 1)
         self.visible_min = QtWidgets.QLabel(self.visible_group)
         self.visible_min.setText("")
-        self.visible_min.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.visible_min.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.visible_min.setObjectName("visible_min")
         self.gridLayout_3.addWidget(self.visible_min, 3, 1, 1, 1)
         self.label_30 = QtWidgets.QLabel(self.visible_group)
@@ -345,12 +393,16 @@ class Ui_ChannelStats(object):
         self.gridLayout_3.addWidget(self.label_31, 6, 0, 1, 1)
         self.visible_average = QtWidgets.QLabel(self.visible_group)
         self.visible_average.setText("")
-        self.visible_average.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.visible_average.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.visible_average.setObjectName("visible_average")
         self.gridLayout_3.addWidget(self.visible_average, 5, 1, 1, 1)
         self.visible_rms = QtWidgets.QLabel(self.visible_group)
         self.visible_rms.setText("")
-        self.visible_rms.setAlignment(QtCore.Qt.AlignRight|QtCore.Qt.AlignTrailing|QtCore.Qt.AlignVCenter)
+        self.visible_rms.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
         self.visible_rms.setObjectName("visible_rms")
         self.gridLayout_3.addWidget(self.visible_rms, 6, 1, 1, 1)
         self.unit12 = QtWidgets.QLabel(self.visible_group)
@@ -365,7 +417,9 @@ class Ui_ChannelStats(object):
         self.gridLayout.addWidget(self.visible_group, 3, 0, 1, 2)
         self.gridLayout.setRowStretch(0, 1)
         self.verticalLayout.addLayout(self.gridLayout)
-        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacerItem = QtWidgets.QSpacerItem(
+            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.verticalLayout.addItem(spacerItem)
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
         self.verticalLayout_2.addWidget(self.scrollArea)
@@ -397,11 +451,16 @@ class Ui_ChannelStats(object):
         self.label_6.setText(_translate("ChannelStats", "Max"))
         self.label_33.setText(_translate("ChannelStats", "RMS"))
         self.label_5.setText(_translate("ChannelStats", "Min"))
-        self.name.setHtml(_translate("ChannelStats", "<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
-"<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
-"p, li { white-space: pre-wrap; }\n"
-"</style></head><body style=\" font-family:\'Consolas\'; font-size:10pt; font-weight:400; font-style:normal;\">\n"
-"<p style=\"-qt-paragraph-type:empty; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;\"><br /></p></body></html>"))
+        self.name.setHtml(
+            _translate(
+                "ChannelStats",
+                '<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">\n'
+                '<html><head><meta name="qrichtext" content="1" /><style type="text/css">\n'
+                "p, li { white-space: pre-wrap; }\n"
+                "</style></head><body style=\" font-family:'Consolas'; font-size:10pt; font-weight:400; font-style:normal;\">\n"
+                '<p style="-qt-paragraph-type:empty; margin-top:12px; margin-bottom:12px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><br /></p></body></html>',
+            )
+        )
         self.cursor_group.setTitle(_translate("ChannelStats", "Cursor"))
         self.label_12.setText(_translate("ChannelStats", "Timestamp      "))
         self.label_11.setText(_translate("ChannelStats", "Value"))
@@ -418,5 +477,3 @@ class Ui_ChannelStats(object):
         self.label_8.setText(_translate("ChannelStats", "Last timestamp"))
         self.label_30.setText(_translate("ChannelStats", "Average"))
         self.label_31.setText(_translate("ChannelStats", "RMS"))
-
-

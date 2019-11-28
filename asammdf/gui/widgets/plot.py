@@ -42,6 +42,7 @@ if not hasattr(pg.InfiniteLine, "addMarker"):
     )
     logger.warning(message)
 
+
 class Plot(QtWidgets.QWidget):
 
     add_channels_request = QtCore.pyqtSignal(list)
@@ -88,7 +89,9 @@ class Plot(QtWidgets.QWidget):
         self.plot.cursor_moved.connect(self.cursor_moved)
         self.plot.cursor_move_finished.connect(self.cursor_move_finished)
         self.plot.xrange_changed.connect(self.xrange_changed)
-        self.plot.computation_channel_inserted.connect(self.computation_channel_inserted)
+        self.plot.computation_channel_inserted.connect(
+            self.computation_channel_inserted
+        )
         self.plot.curve_clicked.connect(self.channel_selection.setCurrentRow)
 
         self.splitter.addWidget(self.plot)
@@ -97,9 +100,7 @@ class Plot(QtWidgets.QWidget):
         self.splitter.addWidget(self.info)
 
         self.channel_selection.itemsDeleted.connect(self.channel_selection_reduced)
-        self.channel_selection.itemPressed.connect(
-            self.channel_selection_modified
-        )
+        self.channel_selection.itemPressed.connect(self.channel_selection_modified)
         self.channel_selection.currentRowChanged.connect(
             self.channel_selection_row_changed
         )
@@ -118,14 +119,17 @@ class Plot(QtWidgets.QWidget):
         self.splitter.setStretchFactor(1, 2)
         self.splitter.setStretchFactor(2, 0)
 
-        self.keyboard_events = set(
-            [
-                (QtCore.Qt.Key_M, QtCore.Qt.NoModifier),
-                (QtCore.Qt.Key_B, QtCore.Qt.ControlModifier),
-                (QtCore.Qt.Key_H, QtCore.Qt.ControlModifier),
-                (QtCore.Qt.Key_P, QtCore.Qt.ControlModifier),
-            ]
-        ) | self.plot.keyboard_events
+        self.keyboard_events = (
+            set(
+                [
+                    (QtCore.Qt.Key_M, QtCore.Qt.NoModifier),
+                    (QtCore.Qt.Key_B, QtCore.Qt.ControlModifier),
+                    (QtCore.Qt.Key_H, QtCore.Qt.ControlModifier),
+                    (QtCore.Qt.Key_P, QtCore.Qt.ControlModifier),
+                ]
+            )
+            | self.plot.keyboard_events
+        )
 
     def mousePressEvent(self, event):
         self.clicked.emit()
@@ -140,7 +144,9 @@ class Plot(QtWidgets.QWidget):
             if sig.enable:
 
                 self.plot.set_current_uuid(self.info_uuid)
-                stats = self.plot.get_stats(self.info_uuid, self.channel_selection.itemWidget(item).fmt)
+                stats = self.plot.get_stats(
+                    self.info_uuid, self.channel_selection.itemWidget(item).fmt
+                )
                 self.info.set_stats(stats)
 
     def channel_selection_row_changed(self, row):
@@ -153,7 +159,9 @@ class Plot(QtWidgets.QWidget):
             if sig.enable:
 
                 self.plot.set_current_uuid(self.info_uuid)
-                stats = self.plot.get_stats(self.info_uuid, self.channel_selection.itemWidget(item).fmt)
+                stats = self.plot.get_stats(
+                    self.info_uuid, self.channel_selection.itemWidget(item).fmt
+                )
                 self.info.set_stats(stats)
 
     def channel_selection_reduced(self, deleted):
@@ -219,10 +227,7 @@ class Plot(QtWidgets.QWidget):
                 for i in range(self.channel_selection.count())
             ]
 
-            uuids = [
-                self.channel_selection.itemWidget(item).uuid
-                for item in items
-            ]
+            uuids = [self.channel_selection.itemWidget(item).uuid for item in items]
 
             for uuid in uuids:
                 sig, idx = self.plot.signal_by_uuid(uuid)
@@ -254,10 +259,7 @@ class Plot(QtWidgets.QWidget):
                 for i in range(self.channel_selection.count())
             ]
 
-            uuids = [
-                self.channel_selection.itemWidget(item).uuid
-                for item in items
-            ]
+            uuids = [self.channel_selection.itemWidget(item).uuid for item in items]
 
             for i, uuid in enumerate(uuids):
                 signal, idx = self.plot.signal_by_uuid(uuid)
@@ -266,7 +268,7 @@ class Plot(QtWidgets.QWidget):
                     samples = cut_sig.samples
                     if signal.conversion and hasattr(signal.conversion, "text_0"):
                         samples = signal.conversion.convert(samples)
-                        if samples.dtype.kind == 'S':
+                        if samples.dtype.kind == "S":
                             try:
                                 samples = [s.decode("utf-8") for s in samples]
                             except:
@@ -274,7 +276,9 @@ class Plot(QtWidgets.QWidget):
                         else:
                             samples = samples.tolist()
                 else:
-                    t = np.argwhere(signal.plot_timestamps == cut_sig.timestamps).flatten()
+                    t = np.argwhere(
+                        signal.plot_timestamps == cut_sig.timestamps
+                    ).flatten()
                     try:
                         samples = [e.decode("utf-8") for e in signal.plot_texts[t]]
                     except:
@@ -403,13 +407,7 @@ class Plot(QtWidgets.QWidget):
 
             if self.info.isVisible():
                 self.info.hide()
-                self.splitter.setSizes(
-                    (
-                        ch_size,
-                        plt_size + info_size,
-                        0,
-                    )
-                )
+                self.splitter.setSizes((ch_size, plt_size + info_size, 0,))
 
             else:
 
@@ -433,10 +431,7 @@ class Plot(QtWidgets.QWidget):
                     for item in selected_items
                 ]
 
-                signals = [
-                    self.plot.signal_by_uuid(uuid)[0]
-                    for uuid in uuids
-                ]
+                signals = [self.plot.signal_by_uuid(uuid)[0] for uuid in uuids]
 
             for signal in signals:
                 if signal.samples.dtype.kind in "ui":
@@ -459,10 +454,7 @@ class Plot(QtWidgets.QWidget):
                     for item in selected_items
                 ]
 
-                signals = [
-                    self.plot.signal_by_uuid(uuid)[0]
-                    for uuid in uuids
-                ]
+                signals = [self.plot.signal_by_uuid(uuid)[0] for uuid in uuids]
 
             for signal in signals:
                 if signal.samples.dtype.kind in "ui":
@@ -485,10 +477,7 @@ class Plot(QtWidgets.QWidget):
                     for item in selected_items
                 ]
 
-                signals = [
-                    self.plot.signal_by_uuid(uuid)[0]
-                    for uuid in uuids
-                ]
+                signals = [self.plot.signal_by_uuid(uuid)[0] for uuid in uuids]
 
             for signal in signals:
                 if signal.samples.dtype.kind in "ui":
@@ -560,7 +549,12 @@ class Plot(QtWidgets.QWidget):
 
         for sig in channels:
 
-            item = ListItem((sig.group_index, sig.channel_index), sig.name, None, self.channel_selection)
+            item = ListItem(
+                (sig.group_index, sig.channel_index),
+                sig.name,
+                None,
+                self.channel_selection,
+            )
             item.setData(QtCore.Qt.UserRole, sig.name)
             it = ChannelDisplay(sig.uuid, sig.unit, sig.samples.dtype.kind, 3, self)
             it.setAttribute(QtCore.Qt.WA_StyledBackground)
@@ -592,44 +586,38 @@ class Plot(QtWidgets.QWidget):
             item = self.channel_selection.itemWidget(self.channel_selection.item(i))
             name = item._name
 
-            sig = [
-                s
-                for s in self.plot.signals
-                if s.name == name
-            ][0]
+            sig = [s for s in self.plot.signals if s.name == name][0]
 
-            channel['name'] = name
-            channel['unit'] = sig.unit
-            channel['enabled'] = item.display.checkState() == QtCore.Qt.Checked
-            channel['individual_axis'] = item.individual_axis.checkState() == QtCore.Qt.Checked
-            channel['common_axis'] = item.ylink.checkState() == QtCore.Qt.Checked
-            channel['color'] = sig.color
-            channel['computed'] = sig.computed
+            channel["name"] = name
+            channel["unit"] = sig.unit
+            channel["enabled"] = item.display.checkState() == QtCore.Qt.Checked
+            channel["individual_axis"] = (
+                item.individual_axis.checkState() == QtCore.Qt.Checked
+            )
+            channel["common_axis"] = item.ylink.checkState() == QtCore.Qt.Checked
+            channel["color"] = sig.color
+            channel["computed"] = sig.computed
             ranges = [
-                {
-                    'start': start,
-                    'stop': stop,
-                    'color': color,
-                }
+                {"start": start, "stop": stop, "color": color,}
                 for (start, stop), color in item.ranges.items()
             ]
-            channel['ranges'] = ranges
+            channel["ranges"] = ranges
 
-            channel['precision'] = item.precision
-            channel['fmt'] = item.fmt
+            channel["precision"] = item.precision
+            channel["fmt"] = item.fmt
             if sig.computed:
-                channel['computation'] = sig.computation
+                channel["computation"] = sig.computation
 
             channels.append(channel)
 
         config = {
-            'channels': channels,
+            "channels": channels,
         }
 
         return config
 
     def dragEnterEvent(self, e):
-        if e.mimeData().hasFormat('application/octet-stream-asammdf'):
+        if e.mimeData().hasFormat("application/octet-stream-asammdf"):
             e.accept()
         super().dragEnterEvent(e)
 
@@ -638,7 +626,7 @@ class Plot(QtWidgets.QWidget):
             super().dropEvent(e)
         else:
             data = e.mimeData()
-            if data.hasFormat('application/octet-stream-asammdf'):
+            if data.hasFormat("application/octet-stream-asammdf"):
                 names = extract_mime_names(data)
                 self.add_channels_request.emit(names)
             else:
@@ -823,8 +811,8 @@ class _Plot(pg.PlotWidget):
                         else:
                             curve.invalidateBounds()
                             curve._boundsCache = [
-                                 [(1, None), (t[0], t[-1])],
-                                 [(1, None), (sig.min, sig.max)]
+                                [(1, None), (t[0], t[-1])],
+                                [(1, None), (sig.min, sig.max)],
                             ]
 
                             curve.xData = t
@@ -864,9 +852,8 @@ class _Plot(pg.PlotWidget):
             self.view_boxes[index].setYLink(None)
             self.common_axis_items.remove(uuid)
 
-        self.common_axis_label = ', '.join(
-            self.signal_by_uuid(uuid)[0].name
-            for uuid in self.common_axis_items
+        self.common_axis_label = ", ".join(
+            self.signal_by_uuid(uuid)[0].name for uuid in self.common_axis_items
         )
 
         self.set_current_uuid(self.current_uuid, True)
@@ -979,10 +966,10 @@ class _Plot(pg.PlotWidget):
                     if x[0] <= position <= x[-1]:
                         idx = np.searchsorted(x, position)
                         val = sig.samples[idx]
-                        if sig.conversion and hasattr(sig.conversion,"text_0"):
+                        if sig.conversion and hasattr(sig.conversion, "text_0"):
                             vals = np.array([val])
                             vals = sig.conversion.convert(vals)
-                            if vals.dtype.kind == 'S':
+                            if vals.dtype.kind == "S":
                                 try:
                                     vals = [s.decode("utf-8") for s in vals]
                                 except UnicodeDecodeError:
@@ -1012,20 +999,24 @@ class _Plot(pg.PlotWidget):
                         cut = sig.cut(start, stop)
 
                         if len(cut):
-                            new_stats["selected_min"] = fmt.format(np.nanmin(cut.samples))
-                            new_stats["selected_max"] = fmt.format(np.nanmax(cut.samples))
+                            new_stats["selected_min"] = fmt.format(
+                                np.nanmin(cut.samples)
+                            )
+                            new_stats["selected_max"] = fmt.format(
+                                np.nanmax(cut.samples)
+                            )
                             new_stats["selected_average"] = np.mean(cut.samples)
-                            new_stats["selected_rms"] = (
-                                 np.sqrt(np.mean(np.square(cut.samples)))
+                            new_stats["selected_rms"] = np.sqrt(
+                                np.mean(np.square(cut.samples))
                             )
                             if cut.samples.dtype.kind in "ui":
-                                new_stats["selected_delta"] = fmt.format(int(
-                                    float(cut.samples[-1]) - (cut.samples[0])
-                                ))
+                                new_stats["selected_delta"] = fmt.format(
+                                    int(float(cut.samples[-1]) - (cut.samples[0]))
+                                )
                             else:
-                                new_stats["selected_delta"] = fmt.format((
-                                    cut.samples[-1] - cut.samples[0]
-                                ))
+                                new_stats["selected_delta"] = fmt.format(
+                                    (cut.samples[-1] - cut.samples[0])
+                                )
 
                         else:
                             new_stats["selected_min"] = "n.a."
@@ -1051,7 +1042,7 @@ class _Plot(pg.PlotWidget):
 
                 (start, stop), _ = self.viewbox.viewRange()
 
-                if sig._stats["visible"] != (start, stop)  or sig._stats["fmt"] != fmt:
+                if sig._stats["visible"] != (start, stop) or sig._stats["fmt"] != fmt:
                     new_stats = {}
                     new_stats["visible_start"] = start
                     new_stats["visible_stop"] = stop
@@ -1063,12 +1054,12 @@ class _Plot(pg.PlotWidget):
                         new_stats["visible_min"] = fmt.format(np.nanmin(cut.samples))
                         new_stats["visible_max"] = fmt.format(np.nanmax(cut.samples))
                         new_stats["visible_average"] = np.mean(cut.samples)
-                        new_stats["visible_rms"] = (
-                             np.sqrt(np.mean(np.square(cut.samples)))
+                        new_stats["visible_rms"] = np.sqrt(
+                            np.mean(np.square(cut.samples))
                         )
-                        if cut.samples.dtype.kind in 'ui':
-                            new_stats["visible_delta"] = (
-                                int(cut.samples[-1]) - int(cut.samples[0])
+                        if cut.samples.dtype.kind in "ui":
+                            new_stats["visible_delta"] = int(cut.samples[-1]) - int(
+                                cut.samples[0]
                             )
                         else:
                             new_stats["visible_delta"] = fmt.format(
@@ -1198,7 +1189,9 @@ class _Plot(pg.PlotWidget):
                     else:
                         with_common_axis = False
 
-                for i, (viewbox, signal) in enumerate(zip(self.view_boxes, self.signals)):
+                for i, (viewbox, signal) in enumerate(
+                    zip(self.view_boxes, self.signals)
+                ):
                     if len(signal.plot_samples):
                         if signal.uuid in self.common_axis_items:
                             if with_common_axis:
@@ -1208,7 +1201,9 @@ class _Plot(pg.PlotWidget):
                             else:
                                 continue
                         else:
-                            samples = signal.plot_samples[np.isfinite(signal.plot_samples)]
+                            samples = signal.plot_samples[
+                                np.isfinite(signal.plot_samples)
+                            ]
                             if len(samples):
                                 min_, max_ = (
                                     np.amin(samples),
@@ -1228,7 +1223,10 @@ class _Plot(pg.PlotWidget):
                 else:
                     self.showGrid(x=True, y=True)
 
-            elif key in (QtCore.Qt.Key_I, QtCore.Qt.Key_O) and modifier == QtCore.Qt.NoModifier:
+            elif (
+                key in (QtCore.Qt.Key_I, QtCore.Qt.Key_O)
+                and modifier == QtCore.Qt.NoModifier
+            ):
                 x_range, _ = self.viewbox.viewRange()
                 delta = x_range[1] - x_range[0]
                 step = delta * 0.05
@@ -1237,9 +1235,7 @@ class _Plot(pg.PlotWidget):
                 if self.cursor1:
                     pos = self.cursor1.value()
                     x_range = pos - delta / 2, pos + delta / 2
-                self.viewbox.setXRange(
-                    x_range[0] - step, x_range[1] + step, padding=0
-                )
+                self.viewbox.setXRange(x_range[0] - step, x_range[1] + step, padding=0)
 
             elif key == QtCore.Qt.Key_R and modifier == QtCore.Qt.NoModifier:
                 if self.region is None:
@@ -1270,7 +1266,8 @@ class _Plot(pg.PlotWidget):
             elif key == QtCore.Qt.Key_S and modifier == QtCore.Qt.ControlModifier:
                 file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
                     self,
-                    "Select output measurement file", "",
+                    "Select output measurement file",
+                    "",
                     "MDF version 4 files (*.mf4)",
                 )
 
@@ -1293,11 +1290,13 @@ class _Plot(pg.PlotWidget):
                 count = sum(
                     1
                     for i, (sig, curve) in enumerate(zip(self.signals, self.curves))
-                    if sig.min != 'n.a.' and curve.isVisible() and sig.uuid not in self.common_axis_items
+                    if sig.min != "n.a."
+                    and curve.isVisible()
+                    and sig.uuid not in self.common_axis_items
                 )
 
                 if any(
-                    sig.min != 'n.a.' and curve.isVisible()
+                    sig.min != "n.a." and curve.isVisible()
                     for (sig, curve) in zip(self.signals, self.curves)
                 ):
                     count += 1
@@ -1312,21 +1311,34 @@ class _Plot(pg.PlotWidget):
                         viewbox = self.view_boxes[index]
 
                         if not signal.empty and signal.enable:
-                            if with_common_axis and signal.uuid in self.common_axis_items:
+                            if (
+                                with_common_axis
+                                and signal.uuid in self.common_axis_items
+                            ):
                                 with_common_axis = False
 
                                 min_ = np.nanmin(
                                     [
-                                        np.nanmin(self.signal_by_uuid(uuid)[0].plot_samples)
+                                        np.nanmin(
+                                            self.signal_by_uuid(uuid)[0].plot_samples
+                                        )
                                         for uuid in self.common_axis_items
-                                        if len(self.signal_by_uuid(uuid)[0].plot_samples) and self.signal_by_uuid(uuid)[0].enable
+                                        if len(
+                                            self.signal_by_uuid(uuid)[0].plot_samples
+                                        )
+                                        and self.signal_by_uuid(uuid)[0].enable
                                     ]
                                 )
                                 max_ = np.nanmax(
                                     [
-                                        np.nanmax(self.signal_by_uuid(uuid)[0].plot_samples)
+                                        np.nanmax(
+                                            self.signal_by_uuid(uuid)[0].plot_samples
+                                        )
                                         for uuid in self.common_axis_items
-                                        if len(self.signal_by_uuid(uuid)[0].plot_samples) and self.signal_by_uuid(uuid)[0].enable
+                                        if len(
+                                            self.signal_by_uuid(uuid)[0].plot_samples
+                                        )
+                                        and self.signal_by_uuid(uuid)[0].enable
                                     ]
                                 )
 
@@ -1336,12 +1348,12 @@ class _Plot(pg.PlotWidget):
                                 min_ = signal.min
                                 max_ = signal.max
 
-                            if min_ == -float('inf') and max_ == float('inf'):
+                            if min_ == -float("inf") and max_ == float("inf"):
                                 min_ = 0
                                 max_ = 1
-                            elif min_ == -float('inf'):
+                            elif min_ == -float("inf"):
                                 min_ = max_ - 1
-                            elif max_ == float('inf'):
+                            elif max_ == float("inf"):
                                 max_ = min_ + 1
 
                             if min_ == max_:
@@ -1367,7 +1379,10 @@ class _Plot(pg.PlotWidget):
                 if self.cursor1:
                     self.cursor_moved.emit()
 
-            elif key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right) and modifier == QtCore.Qt.NoModifier:
+            elif (
+                key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right)
+                and modifier == QtCore.Qt.NoModifier
+            ):
                 if self.cursor1:
                     prev_pos = pos = self.cursor1.value()
                     dim = len(self.timebase)
@@ -1404,22 +1419,20 @@ class _Plot(pg.PlotWidget):
 
             elif key == QtCore.Qt.Key_H and modifier == QtCore.Qt.NoModifier:
                 start_ts = [
-                    sig.timestamps[0]
-                    for sig in self.signals
-                    if len(sig.timestamps)
+                    sig.timestamps[0] for sig in self.signals if len(sig.timestamps)
                 ]
 
                 stop_ts = [
-                    sig.timestamps[-1]
-                    for sig in self.signals
-                    if len(sig.timestamps)
+                    sig.timestamps[-1] for sig in self.signals if len(sig.timestamps)
                 ]
 
                 if start_ts:
                     start_t, stop_t = min(start_ts), max(stop_ts)
 
                     self.viewbox.setXRange(start_t, stop_t)
-                    event_ = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_F, QtCore.Qt.NoModifier)
+                    event_ = QtGui.QKeyEvent(
+                        QtCore.QEvent.KeyPress, QtCore.Qt.Key_F, QtCore.Qt.NoModifier
+                    )
                     self.keyPressEvent(event_)
 
                     if self.cursor1:
@@ -1460,12 +1473,8 @@ class _Plot(pg.PlotWidget):
 
                     visible = abs(int((stop_ - start_) / (stop - start) * width))
 
-                    start_ = np.searchsorted(
-                        sig.timestamps, start_, side="right"
-                    )
-                    stop_ = np.searchsorted(
-                        sig.timestamps, stop_, side="right"
-                    )
+                    start_ = np.searchsorted(sig.timestamps, start_, side="right")
+                    stop_ = np.searchsorted(sig.timestamps, stop_, side="right")
 
                     if visible:
                         raster = abs((stop_ - start_)) // visible
@@ -1475,24 +1484,24 @@ class _Plot(pg.PlotWidget):
                         rows = (stop_ - start_) // raster
                         stop_2 = start_ + rows * raster
 
-                        samples = sig.samples[start_: stop_2].reshape(rows, raster)
+                        samples = sig.samples[start_:stop_2].reshape(rows, raster)
                         max_ = np.nanmax(samples, axis=1)
                         min_ = np.nanmin(samples, axis=1)
                         samples = np.dstack((min_, max_)).ravel()
 
-                        timestamps = sig.timestamps[start_: stop_2].reshape(rows, raster)
+                        timestamps = sig.timestamps[start_:stop_2].reshape(rows, raster)
                         t_max = timestamps[:, -1]
                         t_min = timestamps[:, -0]
 
                         timestamps = np.dstack((t_min, t_max)).ravel()
 
                         if stop_2 != stop_:
-                            samples_ = sig.samples[stop_2: stop_]
+                            samples_ = sig.samples[stop_2:stop_]
                             max_ = np.nanmax(samples_)
                             min_ = np.nanmin(samples_)
                             samples = np.concatenate((samples, [min_, max_]))
 
-                            timestamps_ = sig.timestamps[stop_2: stop_]
+                            timestamps_ = sig.timestamps[stop_2:stop_]
                             t_max = timestamps_[-1]
                             t_min = timestamps_[0]
 
@@ -1553,7 +1562,7 @@ class _Plot(pg.PlotWidget):
                 self.common_viewbox.setYRange(*vbox.viewRange()[1], padding=0)
                 self.common_viewbox.setYLink(viewbox)
 
-                if self._settings.value('plot_background') == 'Black':
+                if self._settings.value("plot_background") == "Black":
                     axis.setPen("#FFFFFF")
                 else:
                     axis.setPen("#000000")
@@ -1569,9 +1578,9 @@ class _Plot(pg.PlotWidget):
             self.view_boxes[index].setYLink(viewbox)
             if len(sig.name) <= 32:
                 if sig.unit:
-                    axis.setLabel(f'{sig.name} [{sig.unit}]')
+                    axis.setLabel(f"{sig.name} [{sig.unit}]")
                 else:
-                    axis.setLabel(f'{sig.name}')
+                    axis.setLabel(f"{sig.name}")
             else:
                 if sig.unit:
                     axis.setLabel(f"{sig.name[:29]}...  [{sig.unit}]")
@@ -1605,17 +1614,9 @@ class _Plot(pg.PlotWidget):
         initial_index = len(self.signals)
 
         if initial_index == 0 and channels:
-            start_ts = [
-                sig.timestamps[0]
-                for sig in channels
-                if len(sig.timestamps)
-            ]
+            start_ts = [sig.timestamps[0] for sig in channels if len(sig.timestamps)]
 
-            stop_ts = [
-                sig.timestamps[-1]
-                for sig in channels
-                if len(sig.timestamps)
-            ]
+            stop_ts = [sig.timestamps[-1] for sig in channels if len(sig.timestamps)]
 
             if start_ts:
                 start_t, stop_t = min(start_ts), max(stop_ts)
@@ -1639,20 +1640,16 @@ class _Plot(pg.PlotWidget):
                     sig.plot_texts = None
             sig.enable = True
             sig.individual_axis = False
-            if not hasattr(sig, 'computed'):
+            if not hasattr(sig, "computed"):
                 sig.computed = computed
                 if not computed:
                     sig.computation = {}
 
             if sig.conversion:
                 vals = sig.conversion.convert(sig.samples)
-                if vals.dtype.kind != 'S':
+                if vals.dtype.kind != "S":
                     nans = np.isnan(vals)
-                    samples = np.where(
-                        nans,
-                        sig.samples,
-                        vals,
-                    )
+                    samples = np.where(nans, sig.samples, vals,)
                     sig.samples = samples
 
             sig.plot_samples = sig.samples
@@ -1677,19 +1674,19 @@ class _Plot(pg.PlotWidget):
                     sig.avg = np.mean(samples)
                     sig.rms = np.sqrt(np.mean(np.square(samples)))
                 else:
-                    sig.min = 'n.a.'
-                    sig.max = 'n.a.'
-                    sig.avg = 'n.a.'
-                    sig.rms = 'n.a.'
+                    sig.min = "n.a."
+                    sig.max = "n.a."
+                    sig.avg = "n.a."
+                    sig.rms = "n.a."
 
                 sig.empty = False
 
             else:
                 sig.empty = True
-                sig.min = 'n.a.'
-                sig.max = 'n.a.'
-                sig.rms = 'n.a.'
-                sig.avg = 'n.a.'
+                sig.min = "n.a."
+                sig.max = "n.a."
+                sig.rms = "n.a."
+                sig.avg = "n.a."
 
             axis = FormatedAxis("right", pen=color)
             if sig.conversion and hasattr(sig.conversion, "text_0"):
@@ -1725,7 +1722,7 @@ class _Plot(pg.PlotWidget):
                 symbolSize=4,
                 clickable=True,
                 mouseWidth=30,
-#                connect='finite',
+                #                connect='finite',
             )
             curve.hide()
 
@@ -1764,17 +1761,19 @@ class _Plot(pg.PlotWidget):
             if sig.uuid == uuid:
                 return sig, i
 
-        raise Exception('Signal not found')
+        raise Exception("Signal not found")
 
     def signal_by_name(self, name):
         for i, sig in enumerate(self.signals):
             if sig.name == name:
                 return sig, i
 
-        raise Exception(f'Signal not found: {name} {[sig.name for sig in self.signals]}')
+        raise Exception(
+            f"Signal not found: {name} {[sig.name for sig in self.signals]}"
+        )
 
     def dragEnterEvent(self, e):
-        if e.mimeData().hasFormat('application/octet-stream-asammdf'):
+        if e.mimeData().hasFormat("application/octet-stream-asammdf"):
             e.accept()
         super().dragEnterEvent(e)
 
@@ -1783,7 +1782,7 @@ class _Plot(pg.PlotWidget):
             super().dropEvent(e)
         else:
             data = e.mimeData()
-            if data.hasFormat('application/octet-stream-asammdf'):
+            if data.hasFormat("application/octet-stream-asammdf"):
                 names = extract_mime_names(data)
                 self.add_channels_request.emit(names)
             else:
@@ -1792,11 +1791,7 @@ class _Plot(pg.PlotWidget):
     def delete_channels(self, deleted):
 
         indexes = sorted(
-            [
-                (self.signal_by_uuid(uuid)[1], uuid)
-                for uuid in deleted
-            ],
-            reverse=True,
+            [(self.signal_by_uuid(uuid)[1], uuid) for uuid in deleted], reverse=True,
         )
 
         for i, uuid in indexes:
@@ -1817,10 +1812,7 @@ class _Plot(pg.PlotWidget):
             if uuid in self.common_axis_items:
                 self.common_axis_items.remove(uuid)
 
-        uuids = [
-            sig.uuid
-            for sig in self.signals
-        ]
+        uuids = [sig.uuid for sig in self.signals]
 
         if uuids:
             if self.current_uuid in uuids:
@@ -1829,4 +1821,3 @@ class _Plot(pg.PlotWidget):
                 self.set_current_uuid(uuids[0], True)
         else:
             self.current_uuid = None
-

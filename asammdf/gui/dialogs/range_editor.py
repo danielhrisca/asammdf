@@ -31,7 +31,7 @@ class RangeEditor(Ui_RangeDialog, QtWidgets.QDialog):
         for col in (0, 1):
             box = QtWidgets.QDoubleSpinBox(self.table)
             box.setSuffix(f" {self.unit}")
-            box.setRange(-10 ** 10, 10 ** 10)
+            box.setRange(-(10 ** 10), 10 ** 10)
             box.setDecimals(6)
             box.setValue(range[col])
 

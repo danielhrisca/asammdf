@@ -48,8 +48,7 @@ class ListWidget(QtWidgets.QListWidget):
                 return
 
             states = [
-                self.itemWidget(item).display.checkState()
-                for item in selected_items
+                self.itemWidget(item).display.checkState() for item in selected_items
             ]
 
             if any(state == QtCore.Qt.Unchecked for state in states):
@@ -84,7 +83,9 @@ class ListWidget(QtWidgets.QListWidget):
                 return
             self.itemWidget(selected_items[0]).keyPressEvent(event)
 
-        elif modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier ) and key in (QtCore.Qt.Key_C, QtCore.Qt.Key_P):
+        elif modifiers == (
+            QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier
+        ) and key in (QtCore.Qt.Key_C, QtCore.Qt.Key_P):
             selected_items = self.selectedItems()
             if not selected_items:
                 return
@@ -103,7 +104,7 @@ class ListWidget(QtWidgets.QListWidget):
 
         for item in selected_items:
 
-            name = item.name.encode('utf-8')
+            name = item.name.encode("utf-8")
             entry = item.entry
             computation = item.computation
 
@@ -112,17 +113,14 @@ class ListWidget(QtWidgets.QListWidget):
                     "name": name,
                     "computation": computation,
                 }
-                info = json.dumps(info).encode('utf-8')
+                info = json.dumps(info).encode("utf-8")
             else:
                 info = name
 
-            data.append(pack(f'<3Q{len(info)}s', entry[0], entry[1], len(info), info))
+            data.append(pack(f"<3Q{len(info)}s", entry[0], entry[1], len(info), info))
 
         mimeData.setData(
-            'application/octet-stream-asammdf',
-            QtCore.QByteArray(
-                b''.join(data)
-            )
+            "application/octet-stream-asammdf", QtCore.QByteArray(b"".join(data))
         )
 
         drag = QtGui.QDrag(self)
@@ -130,7 +128,7 @@ class ListWidget(QtWidgets.QListWidget):
         drag.exec(QtCore.Qt.CopyAction)
 
     def dragEnterEvent(self, e):
-        if e.mimeData().hasFormat('application/octet-stream-asammdf'):
+        if e.mimeData().hasFormat("application/octet-stream-asammdf"):
             e.accept()
         super().dragEnterEvent(e)
 
@@ -140,7 +138,7 @@ class ListWidget(QtWidgets.QListWidget):
             self.items_rearranged.emit()
         else:
             data = e.mimeData()
-            if data.hasFormat('application/octet-stream-asammdf'):
+            if data.hasFormat("application/octet-stream-asammdf"):
                 names = extract_mime_names(data)
                 self.add_channels_request.emit(names)
             else:
@@ -176,9 +174,7 @@ class ListWidget(QtWidgets.QListWidget):
 
         if action.text() == "Copy name (Ctrl+C)":
             event = QtGui.QKeyEvent(
-                QtCore.QEvent.KeyPress,
-                QtCore.Qt.Key_C,
-                QtCore.Qt.ControlModifier,
+                QtCore.QEvent.KeyPress, QtCore.Qt.Key_C, QtCore.Qt.ControlModifier,
             )
             self.itemWidget(item).keyPressEvent(event)
 
@@ -239,11 +235,7 @@ class ListWidget(QtWidgets.QListWidget):
         elif action.text() == "Set unit":
             selected_items = self.selectedItems()
 
-            unit, ok = QtWidgets.QInputDialog.getText(
-                None,
-                'Set new unit',
-                'Unit:',
-            )
+            unit, ok = QtWidgets.QInputDialog.getText(None, "Set new unit", "Unit:",)
 
             if ok:
 
@@ -259,9 +251,7 @@ class ListWidget(QtWidgets.QListWidget):
             selected_items = self.selectedItems()
 
             precision, ok = QtWidgets.QInputDialog.getInt(
-                None,
-                'Set new precision (float decimals)',
-                'Precision:',
+                None, "Set new precision (float decimals)", "Precision:",
             )
 
             if ok and 0 <= precision <= 15:
@@ -275,9 +265,7 @@ class ListWidget(QtWidgets.QListWidget):
 
         elif action.text() == "Delete (Del)":
             event = QtGui.QKeyEvent(
-                QtCore.QEvent.KeyPress,
-                QtCore.Qt.Key_Delete,
-                QtCore.Qt.NoModifier,
+                QtCore.QEvent.KeyPress, QtCore.Qt.Key_Delete, QtCore.Qt.NoModifier,
             )
             self.keyPressEvent(event)
 
@@ -331,8 +319,6 @@ class MinimalListWidget(QtWidgets.QListWidget):
 
         if action.text() == "Delete (Del)":
             event = QtGui.QKeyEvent(
-                QtCore.QEvent.KeyPress,
-                QtCore.Qt.Key_Delete,
-                QtCore.Qt.NoModifier,
+                QtCore.QEvent.KeyPress, QtCore.Qt.Key_Delete, QtCore.Qt.NoModifier,
             )
             self.keyPressEvent(event)

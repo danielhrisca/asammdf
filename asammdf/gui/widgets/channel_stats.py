@@ -19,32 +19,32 @@ class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
     def set_stats(self, stats):
         if stats:
             for name, value in stats.items():
-#                try:
-#                    if value.dtype.kind in "ui":
-#                        sign = "-" if value < 0 else ""
-#                        value = abs(value)
-#                        if self.fmt == "hex":
-#                            value = f"{sign}0x{value:X}"
-#                        elif self.fmt == "bin":
-#                            value = f"{sign}0b{value:b}"
-#                        else:
-#                            value = f"{sign}{value}"
-#                    else:
-#                        value = f"{value:.6f}"
-#                except AttributeError:
-#                    if isinstance(value, int):
-#                        sign = "-" if value < 0 else ""
-#                        value = abs(value)
-#                        if self.fmt == "hex":
-#                            value = f"{sign}0x{value:X}"
-#                        elif self.fmt == "bin":
-#                            value = f"{sign}0b{value:b}"
-#                        else:
-#                            value = f"{sign}{value}"
-#                    elif isinstance(value, float):
-#                        value = f"{value:.6f}"
-#                    else:
-#                        value = value
+                #                try:
+                #                    if value.dtype.kind in "ui":
+                #                        sign = "-" if value < 0 else ""
+                #                        value = abs(value)
+                #                        if self.fmt == "hex":
+                #                            value = f"{sign}0x{value:X}"
+                #                        elif self.fmt == "bin":
+                #                            value = f"{sign}0b{value:b}"
+                #                        else:
+                #                            value = f"{sign}{value}"
+                #                    else:
+                #                        value = f"{value:.6f}"
+                #                except AttributeError:
+                #                    if isinstance(value, int):
+                #                        sign = "-" if value < 0 else ""
+                #                        value = abs(value)
+                #                        if self.fmt == "hex":
+                #                            value = f"{sign}0x{value:X}"
+                #                        elif self.fmt == "bin":
+                #                            value = f"{sign}0b{value:b}"
+                #                        else:
+                #                            value = f"{sign}{value}"
+                #                    elif isinstance(value, float):
+                #                        value = f"{value:.6f}"
+                #                    else:
+                #                        value = value
 
                 if name == "unit":
                     for i in range(1, 16):
@@ -66,12 +66,14 @@ class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
         self._name = "Please select a single channel"
         self.color = "#000000"
         self.name.setText(self.name_template.format(self.color, self._name))
-        for k, group in enumerate((
-            self.cursor_group,
-            self.range_group,
-            self.visible_group,
-            self.overall_group,
-        )):
+        for k, group in enumerate(
+            (
+                self.cursor_group,
+                self.range_group,
+                self.visible_group,
+                self.overall_group,
+            )
+        ):
             layout = group.layout()
             rows = layout.rowCount()
             for i in range(rows):
@@ -82,5 +84,5 @@ class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
                 label = layout.itemAtPosition(i, 2)
                 if label is not None:
                     label = label.widget()
-                    if label.objectName().startswith('unit'):
+                    if label.objectName().startswith("unit"):
                         label.setText("")

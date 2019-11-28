@@ -37,13 +37,18 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
                 else:
                     item.setCheckState(0, QtCore.Qt.Checked)
             else:
-                if any(item.checkState(0) == QtCore.Qt.Unchecked for item in selected_items):
+                if any(
+                    item.checkState(0) == QtCore.Qt.Unchecked for item in selected_items
+                ):
                     checked = QtCore.Qt.Checked
                 else:
                     checked = QtCore.Qt.Unchecked
                 for item in selected_items:
                     item.setCheckState(0, checked)
-        elif event.key() == QtCore.Qt.Key_Delete and event.modifiers() == QtCore.Qt.NoModifier:
+        elif (
+            event.key() == QtCore.Qt.Key_Delete
+            and event.modifiers() == QtCore.Qt.NoModifier
+        ):
             selected = reversed(self.selectedItems())
             names = [item.text(0) for item in selected]
             for item in selected:
@@ -65,7 +70,7 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
 
         for item in selected_items:
 
-            name = item.name.encode('utf-8')
+            name = item.name.encode("utf-8")
             entry = item.entry
 
             if entry == (-1, -1):
@@ -73,17 +78,14 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
                     "name": name,
                     "computation": {},
                 }
-                info = json.dumps(info).encode('utf-8')
+                info = json.dumps(info).encode("utf-8")
             else:
                 info = name
 
-            data.append(pack(f'<3Q{len(info)}s', entry[0], entry[1], len(info), info))
+            data.append(pack(f"<3Q{len(info)}s", entry[0], entry[1], len(info), info))
 
         mimeData.setData(
-            'application/octet-stream-asammdf',
-            QtCore.QByteArray(
-                b''.join(data)
-            )
+            "application/octet-stream-asammdf", QtCore.QByteArray(b"".join(data))
         )
 
         drag = QtGui.QDrag(self)
@@ -100,7 +102,7 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
             self.items_rearranged.emit()
         else:
             data = e.mimeData()
-            if data.hasFormat('application/octet-stream-asammdf'):
+            if data.hasFormat("application/octet-stream-asammdf"):
                 names = extract_mime_names(data)
                 self.add_channels_request.emit(names)
             else:
