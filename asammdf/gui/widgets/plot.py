@@ -1765,6 +1765,13 @@ class _Plot(pg.PlotWidget):
 
         raise Exception('Signal not found')
 
+    def signal_by_name(self, name):
+        for i, sig in enumerate(self.signals):
+            if sig.name == name:
+                return sig, i
+
+        raise Exception(f'Signal not found: {name} {[sig.name for sig in self.signals]}')
+
     def dragEnterEvent(self, e):
         if e.mimeData().hasFormat('application/octet-stream-asammdf'):
             e.accept()
