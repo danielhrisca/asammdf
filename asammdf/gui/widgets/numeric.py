@@ -258,7 +258,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             self.match.setText(f'invalid input values')
             return
 
-        op = self.op.currentText()
+        operator = self.op.currentText()
 
         pattern = self.pattern.text().strip().replace("*", "_WILDCARD_")
         pattern = re.escape(pattern)
@@ -292,7 +292,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                 sig = self.signals[name].cut(start=start)
                 samples = sig.samples[1:]
 
-                op = getattr(samples, OPS[op])
+                op = getattr(samples, OPS[operator])
                 try:
                     idx = np.argwhere(op(target)).flatten()
                     if len(idx):
@@ -321,7 +321,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             self.match.setText(f'invalid input values')
             return
 
-        op = self.op.currentText()
+        operator = self.op.currentText()
 
         pattern = self.pattern.text().strip().replace("*", "_WILDCARD_")
         pattern = re.escape(pattern)
@@ -355,7 +355,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                 sig = self.signals[name].cut(stop=stop)
                 samples = sig.samples[:-1]
 
-                op = getattr(samples, OPS[op])
+                op = getattr(samples, OPS[operator])
                 try:
                     idx = np.argwhere(op(target)).flatten()
                     if len(idx):
