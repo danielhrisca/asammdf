@@ -986,11 +986,14 @@ class MDF4(object):
                     logger.error(f"could not parse acq_source comment; {e}")
                 else:
                     common_properties = comment_xml.find(".//common_properties")
-                    for e in common_properties:
-                        name = e.get("name")
-                        if name == "ChannelNo":
-                            grp.CAN_id = f"CAN{e.text}"
-                            break
+                    grp.CAN_id = next(
+                        (
+                            f"CAN{e.text}"
+                            for e in common_properties
+                            if e.get("name") == "ChannelNo"
+                        ),
+                        None,
+                    )
 
             if grp.CAN_id:
                 if message_name == "CAN_DataFrame":
