@@ -1,13 +1,25 @@
 # -*- coding: utf-8 -*-
+import re
 
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
 from natsort import natsorted
+import numpy as np
 from numpy import searchsorted
 
 from ..ui import resource_rc as resource_rc
 from ..ui.numeric import Ui_NumericDisplay
 from .tree_item import TreeItem
+
+
+OPS = {
+    '!=': '__ne__',
+    '==': '__eq__',
+    '>': '__gt__',
+    '>=': '__ge__',
+    '<': '__lt__',
+    '<=': '__le__',
+}
 
 
 class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
@@ -17,6 +29,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
     def __init__(self, signals, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
+        for sig in signals:
+            sig.timestamps = np.around(sig.timestamps, 9)
         self.signals = {
             sig.name: sig
             for sig in signals
@@ -32,6 +46,10 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         self.channels.items_deleted.connect(self.items_deleted)
 
         self._inhibit = False
+
+        self.forward.clicked.connect(self.search_forward)
+        self.backward.clicked.connect(self.search_backward)
+        self.op.addItems(['>', '>=', '<', '<=', '==', '!='])
 
         self.build()
 
@@ -230,3 +248,129 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         }
 
         return config
+
+    def search_forward(self):
+        if (
+            self.op.currentIndex() < 0
+            or not self.target.text().strip()
+            or not self.pattern.text().strip()
+        ):
+            self.match.setText(f'invalid input values')
+            return
+
+        op = self.op.currentText()
+
+        pattern = self.pattern.text().strip().replace("*", "_WILDCARD_")
+        pattern = re.escape(pattern)
+        pattern = pattern.replace("_WILDCARD_", ".*")
+
+        pattern = re.compile(f"(?i){pattern}")
+        matches = [
+            name
+            for name in self.signals
+            if pattern.match(name)
+        ]
+
+        if not matches:
+            self.match.setText(f'the pattern does not match any channel name')
+            return
+
+        try:
+            target = float(self.target.text().strip())
+        except:
+            self.match.setText(f'the target must a numeric value')
+        else:
+
+            if target.is_integer():
+                target = int(target)
+
+            start = self.timestamp.value()
+
+            timestamp = None
+            signal_name = ''
+            for name in matches:
+                sig = self.signals[name].cut(start=start)
+                samples = sig.samples[1:]
+
+                op = getattr(samples, OPS[op])
+                try:
+                    idx = np.argwhere(op(target)).flatten()
+                    if len(idx):
+                        if timestamp is None:
+                            timestamp = sig.timestamps[idx[0] + 1]
+                            signal_name = name
+                        else:
+                            if sig.timestamps[idx[0] + 1] < timestamp:
+                                timestamp = sig.timestamps[idx[0] + 1]
+                                signal_name = name
+                except:
+                    continue
+
+            if timestamp is not None:
+                self.timestamp.setValue(timestamp)
+                self.match.setText(f'condition found for {signal_name}')
+            else:
+                self.match.setText(f'condition not found')
+
+    def search_backward(self):
+        if (
+            self.op.currentIndex() < 0
+            or not self.target.text().strip()
+            or not self.pattern.text().strip()
+        ):
+            self.match.setText(f'invalid input values')
+            return
+
+        op = self.op.currentText()
+
+        pattern = self.pattern.text().strip().replace("*", "_WILDCARD_")
+        pattern = re.escape(pattern)
+        pattern = pattern.replace("_WILDCARD_", ".*")
+
+        pattern = re.compile(f"(?i){pattern}")
+        matches = [
+            name
+            for name in self.signals
+            if pattern.match(name)
+        ]
+
+        if not matches:
+            self.match.setText(f'the pattern does not match any channel name')
+            return
+
+        try:
+            target = float(self.target.text().strip())
+        except:
+            self.match.setText(f'the target must a numeric value')
+        else:
+
+            if target.is_integer():
+                target = int(target)
+
+            stop = self.timestamp.value()
+
+            timestamp = None
+            signal_name = ''
+            for name in matches:
+                sig = self.signals[name].cut(stop=stop)
+                samples = sig.samples[:-1]
+
+                op = getattr(samples, OPS[op])
+                try:
+                    idx = np.argwhere(op(target)).flatten()
+                    if len(idx):
+                        if timestamp is None:
+                            timestamp = sig.timestamps[idx[-1]]
+                            signal_name = name
+                        else:
+                            if sig.timestamps[idx[-1]] > timestamp:
+                                timestamp = sig.timestamps[idx[-1]]
+                                signal_name = name
+                except:
+                    continue
+
+            if timestamp is not None:
+                self.timestamp.setValue(timestamp)
+                self.match.setText(f'condition found for {signal_name}')
+            else:
+                self.match.setText(f'condition not found')

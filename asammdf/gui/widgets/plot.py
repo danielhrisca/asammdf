@@ -1439,8 +1439,9 @@ class _Plot(pg.PlotWidget):
             else:
                 self.parent().keyPressEvent(event)
 
-    def trim(self, width, start, stop, signals):
-        for sig in signals:
+    def trim(self, width, start, stop):
+
+        for sig in self.signals:
             dim = len(sig.samples)
             if dim:
 
@@ -1517,7 +1518,7 @@ class _Plot(pg.PlotWidget):
         (start, stop), _ = self.viewbox.viewRange()
 
         width = self.width() - self.axis.width()
-        self.trim(width, start, stop, self.signals)
+        self.trim(width, start, stop)
 
         self.update_lines(force=True)
 
