@@ -17,13 +17,16 @@ struct node {
     struct rec_info info;
 };
 
+
+
+
 static PyObject* sort_data_block(PyObject* self, PyObject* args)
 {
     int i=0, id_size;
     unsigned long rec_size, length, rec_id;
     PyObject *signal_data, *partial_records, *record_size, *optional, *mlist;
     PyObject *bts, *key, *value;
-    char *buf, *end;
+    unsigned char *buf, *end;
     struct node * head = NULL, *last=NULL, *item;
 
     if (!PyArg_ParseTuple(args, "OOOi|O", &signal_data, &partial_records, &record_size, &id_size, &optional))
@@ -103,7 +106,7 @@ static PyObject* extract(PyObject* self, PyObject* args)
     int pos=0;
     int size;
     PyObject *signal_data;
-    char *buf;
+    unsigned char *buf;
     PyArrayObject *vals;
     PyArray_Descr *descr;
     void *addr;
@@ -121,7 +124,7 @@ static PyObject* extract(PyObject* self, PyObject* args)
 
         while (pos < PyBytes_GET_SIZE(signal_data))
         {
-            size = (buf[pos+3] << 24) + (buf[pos+2] << 16) +(buf[pos+1] << 8) +buf[pos];
+            size = (buf[pos+3] << 24) + (buf[pos+2] << 16) +(buf[pos+1] << 8) + buf[pos];
             if (max < size)
                 max = size;
             pos += 4 + size;
@@ -134,7 +137,7 @@ static PyObject* extract(PyObject* self, PyObject* args)
             npy_intp dims[2];
             dims[0] = count;
             dims[1] = max;
-
+            
             vals = (PyArrayObject *) PyArray_ZEROS(2, dims, NPY_UBYTE, 0);
 
             addr = PyArray_GETPTR2(vals, 0, 0);
@@ -183,7 +186,7 @@ static PyObject* extract_parent(PyObject* self, PyObject* args)
 {
     int i=0, j, count, max=0, is_byte_array;
     PyObject *data, *dtype, *dimensions_vals, *bts;
-    char *buf, *buf2;
+    unsigned char *buf, *buf2;
     PyArrayObject *vals;
     PyArray_Descr *descr;
     void *addr;
@@ -299,6 +302,93 @@ static PyObject* get_vlsd_offsets(PyObject* self, PyObject* args)
 }
 
 
+static PyObject* get_text_bytes(PyObject* self, PyObject* args)
+{
+    int i=0;
+    unsigned char mapped;
+    unsigned long long address, size;
+    Py_ssize_t count;
+    int pos=0;
+    PyObject *lst, *item, *stream, *bts, *text, *result;
+    npy_intp dim[1];
+    PyArrayObject *values;
+    unsigned char *data;
+
+    if(!PyArg_ParseTuple(args, "KOB", &address, &stream, &lst))
+    {
+        printf("get_vlsd_offsets called with wrong parameters\n");
+        result = Py_None;
+        Py_INCREF(Py_None);
+    }
+    else
+    {
+        if (address == 0)
+        {
+            result = PyUnicode_New(0, 127);
+        }
+        else
+        {
+            
+            PyObject* STRIP = PyBytes_FromStringAndSize(" \r\t\n\n", 5);
+            char *d_ = PyBytes_AS_STRING(STRIP);
+            d_[4] = "\0";
+            
+            PyObject_CallMethod(
+                stream,
+                "seek",
+                "K",
+                address + 8
+            );
+            
+            bts = PyObject_CallMethod(
+                stream,
+                "read",
+                "K",
+                16
+            );
+            
+            data = PyBytes_AS_STRING(bts);
+            memcpy(
+                &size,
+                data,
+                8
+            );
+            
+            Py_DECREF(bts);
+            
+            bts = PyObject_CallMethod(
+                stream,
+                "read",
+                "K",
+                size
+            );
+          
+            
+            text = PyObject_CallMethod(
+                bts,
+                "strip",
+                "O",
+                STRIP
+            );
+            
+            Py_DECREF(bts);
+            bts = text;
+            
+            text = PyObject_CallMethod(
+                bts,
+                "decode",
+                "O",
+                PyUnicode_New("utf-8", 255)
+            );
+            Py_DECREF(bts);
+            
+            result = text;
+        }
+    }
+    return result;
+}
+
+
 
 // Our Module's Function Definition struct
 // We require this `NULL` to signal the end of our method
@@ -310,6 +400,7 @@ static PyMethodDef myMethods[] =
     { "lengths", lengths, METH_VARARGS, "lengths" },
     { "get_vlsd_offsets", get_vlsd_offsets, METH_VARARGS, "get_vlsd_offsets" },
     { "sort_data_block", sort_data_block, METH_VARARGS, "sort raw data group block" },
+    { "get_text_bytes", get_text_bytes, METH_VARARGS, "sort raw data group block" },
     { NULL, NULL, 0, NULL }
 };
 

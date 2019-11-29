@@ -358,6 +358,7 @@ class MDF(object):
                         included_channels.remove(ch_nr)
         else:
             if group.CAN_logging:
+                found = True
                 where = (
                     self.whereis("CAN_DataFrame")
                     + self.whereis("CAN_ErrorFrame")
@@ -368,34 +369,38 @@ class MDF(object):
                     if dg_cntr == index:
                         break
                 else:
-                    raise MdfException(
-                        f"CAN_DataFrame or CAN_ErrorFrame not found in group {index}"
+                    found = False
+#                    raise MdfException(
+#                        f"CAN_DataFrame or CAN_ErrorFrame not found in group {index}"
+#                    )
+                    group.CAN_logging = False
+
+                if found:
+                    channel = channels[ch_cntr]
+
+                    frame_bytes = range(
+                        channel.byte_offset, channel.byte_offset + channel.bit_count // 8
                     )
-                channel = channels[ch_cntr]
 
-                frame_bytes = range(
-                    channel.byte_offset, channel.byte_offset + channel.bit_count // 8
-                )
+                    for i, channel in enumerate(channels):
+                        if channel.byte_offset in frame_bytes:
+                            included_channels.remove(i)
 
-                for i, channel in enumerate(channels):
-                    if channel.byte_offset in frame_bytes:
-                        included_channels.remove(i)
+                    included_channels.add(ch_cntr)
 
-                included_channels.add(ch_cntr)
+                    if group.CAN_database:
+                        dbc_addr = group.dbc_addr
+                        message_id = group.message_id
+                        for m_ in message_id:
+                            try:
+                                can_msg = self._dbc_cache[dbc_addr].frameById(m_)
+                            except AttributeError:
+                                can_msg = self._dbc_cache[dbc_addr].frame_by_id(
+                                    canmatrix.ArbitrationId(m_)
+                                )
 
-                if group.CAN_database:
-                    dbc_addr = group.dbc_addr
-                    message_id = group.message_id
-                    for m_ in message_id:
-                        try:
-                            can_msg = self._dbc_cache[dbc_addr].frameById(m_)
-                        except AttributeError:
-                            can_msg = self._dbc_cache[dbc_addr].frame_by_id(
-                                canmatrix.ArbitrationId(m_)
-                            )
-
-                        for i, _ in enumerate(can_msg.signals, 1):
-                            included_channels.add(-i)
+                            for i, _ in enumerate(can_msg.signals, 1):
+                                included_channels.add(-i)
 
             for dependencies in group.channel_dependencies:
                 if dependencies is None:
