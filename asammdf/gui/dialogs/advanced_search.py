@@ -25,7 +25,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.add_window_btn.clicked.connect(self._add_window)
         self.cancel_btn.clicked.connect(self._cancel)
 
-        self.search_box.textChanged.connect(self.search_text_changed)
+        self.search_box.editingFinished.connect(self.search_text_changed)
         self.match_kind.currentTextChanged.connect(self.search_box.textChanged.emit)
 
         self._return_names = return_names
@@ -35,7 +35,8 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
         self.setWindowTitle("Search & select channels")
 
-    def search_text_changed(self, text):
+    def search_text_changed(self):
+        text = self.search_box.text().strip()
         if len(text) >= 2:
             if self.match_kind.currentText() == "Wildcard":
                 pattern = text.replace("*", "_WILDCARD_")
