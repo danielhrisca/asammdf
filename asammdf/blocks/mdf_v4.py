@@ -1798,8 +1798,9 @@ class MDF4(object):
         """
 
         parents, dtypes = group.parents, group.types
-        no_parent = None, None
+
         if parents is None:
+            no_parent = None, None
             channel_group = group.channel_group
             channels = group.channels
 
@@ -5585,11 +5586,14 @@ class MDF4(object):
                             ),
                         )
 
-            elif channel_type in {v4c.CHANNEL_TYPE_VALUE, v4c.CHANNEL_TYPE_MLSD,} and (
+            elif not (
                 v4c.DATA_TYPE_STRING_LATIN_1
                 <= data_type
                 <= v4c.DATA_TYPE_STRING_UTF_16_BE
             ):
+                pass
+
+            elif channel_type in {v4c.CHANNEL_TYPE_VALUE, v4c.CHANNEL_TYPE_MLSD,}:
 
                 if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
                     encoding = "utf-16-be"
@@ -5608,70 +5612,73 @@ class MDF4(object):
                         f'wrong data type "{data_type}" for string channel'
                     )
 
-            # CANopen date
-            if data_type == v4c.DATA_TYPE_CANOPEN_DATE:
+            if data_type < v4c.DATA_TYPE_CANOPEN_DATE or data_type > v4c.DATA_TYPE_CANOPEN_TIME:
+                pass
+            else:
+                # CANopen date
+                if data_type == v4c.DATA_TYPE_CANOPEN_DATE:
 
-                #                vals = vals.tostring()
+                    #                vals = vals.tostring()
 
-                types = dtype(
-                    [
-                        ("ms", "<u2"),
-                        ("min", "<u1"),
-                        ("hour", "<u1"),
-                        ("day", "<u1"),
-                        ("month", "<u1"),
-                        ("year", "<u1"),
+                    types = dtype(
+                        [
+                            ("ms", "<u2"),
+                            ("min", "<u1"),
+                            ("hour", "<u1"),
+                            ("day", "<u1"),
+                            ("month", "<u1"),
+                            ("year", "<u1"),
+                        ]
+                    )
+                    vals = vals.view(types)
+
+                    arrays = []
+                    arrays.append(vals["ms"])
+                    # bit 6 and 7 of minutes are reserved
+                    arrays.append(vals["min"] & 0x3F)
+                    # only firt 4 bits of hour are used
+                    arrays.append(vals["hour"] & 0xF)
+                    # the first 4 bits are the day number
+                    arrays.append(vals["day"] & 0xF)
+                    # bit 6 and 7 of month are reserved
+                    arrays.append(vals["month"] & 0x3F)
+                    # bit 7 of year is reserved
+                    arrays.append(vals["year"] & 0x7F)
+                    # add summer or standard time information for hour
+                    arrays.append((vals["hour"] & 0x80) >> 7)
+                    # add day of week information
+                    arrays.append((vals["day"] & 0xF0) >> 4)
+
+                    names = [
+                        "ms",
+                        "min",
+                        "hour",
+                        "day",
+                        "month",
+                        "year",
+                        "summer_time",
+                        "day_of_week",
                     ]
-                )
-                vals = vals.view(types)
+                    vals = fromarrays(arrays, names=names)
 
-                arrays = []
-                arrays.append(vals["ms"])
-                # bit 6 and 7 of minutes are reserved
-                arrays.append(vals["min"] & 0x3F)
-                # only firt 4 bits of hour are used
-                arrays.append(vals["hour"] & 0xF)
-                # the first 4 bits are the day number
-                arrays.append(vals["day"] & 0xF)
-                # bit 6 and 7 of month are reserved
-                arrays.append(vals["month"] & 0x3F)
-                # bit 7 of year is reserved
-                arrays.append(vals["year"] & 0x7F)
-                # add summer or standard time information for hour
-                arrays.append((vals["hour"] & 0x80) >> 7)
-                # add day of week information
-                arrays.append((vals["day"] & 0xF0) >> 4)
+                    del arrays
+                    conversion = None
 
-                names = [
-                    "ms",
-                    "min",
-                    "hour",
-                    "day",
-                    "month",
-                    "year",
-                    "summer_time",
-                    "day_of_week",
-                ]
-                vals = fromarrays(arrays, names=names)
+                # CANopen time
+                elif data_type == v4c.DATA_TYPE_CANOPEN_TIME:
 
-                del arrays
-                conversion = None
+                    types = dtype([("ms", "<u4"), ("days", "<u2")])
+                    vals = vals.view(types)
 
-            # CANopen time
-            elif data_type == v4c.DATA_TYPE_CANOPEN_TIME:
+                    arrays = []
+                    # bits 28 to 31 are reserverd for ms
+                    arrays.append(vals["ms"] & 0xFFFFFFF)
+                    arrays.append(vals["days"] & 0x3F)
 
-                types = dtype([("ms", "<u4"), ("days", "<u2")])
-                vals = vals.view(types)
+                    names = ["ms", "days"]
+                    vals = fromarrays(arrays, names=names)
 
-                arrays = []
-                # bits 28 to 31 are reserverd for ms
-                arrays.append(vals["ms"] & 0xFFFFFFF)
-                arrays.append(vals["days"] & 0x3F)
-
-                names = ["ms", "days"]
-                vals = fromarrays(arrays, names=names)
-
-                del arrays
+                    del arrays
 
             if not raw:
                 if conversion:

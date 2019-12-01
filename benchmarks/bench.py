@@ -879,7 +879,7 @@ def main(text_output, fmt):
     v3_version = mdf.version
 
     mdf = MDF("test.mf4", "minimum")
-    mdf.get_master(0, copy_master=True)
+    mdf.get_master(0)
     v4_size = os.path.getsize("test.mf4") // 1024 // 1024
     v4_groups = len(mdf.groups)
     v4_channels = sum(len(gp["channels"]) for gp in mdf.groups)
@@ -912,7 +912,7 @@ def main(text_output, fmt):
     output.append("    * {} groups".format(v4_groups))
     output.append("    * {} channels\n\n".format(v4_channels))
 
-    OPEN, SAVE, GET, CONVERT, MERGE, FILTER, CUT = 1, 1, 1, 1, 1, 0, 0
+    OPEN, SAVE, GET, CONVERT, MERGE, FILTER, CUT = 0, 0, 1, 0, 0, 0, 0
 
     tests = (
         open_mdf3,
@@ -959,14 +959,14 @@ def main(text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-        get_all_mdf3,
-        get_all_reader3,
-        get_all_reader3_nodata,
-        get_all_reader3_compression,
+#        get_all_mdf3,
+#        get_all_reader3,
+#        get_all_reader3_nodata,
+#        get_all_reader3_compression,
         get_all_mdf4,
-        get_all_reader4,
-        get_all_reader4_compression,
-        get_all_reader4_nodata,
+#        get_all_reader4,
+#        get_all_reader4_compression,
+#        get_all_reader4_nodata,
     )
 
     if tests and GET:
