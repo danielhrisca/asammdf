@@ -4603,7 +4603,6 @@ class MDF4(object):
         source=None,
         record_offset=0,
         record_count=None,
-        copy_master=None,
     ):
         """Gets channel samples. The raw data group samples are not loaded to
         memory so it is advised to use ``filter`` or ``select`` instead of
@@ -4656,9 +4655,6 @@ class MDF4(object):
         record_count : int
             number of records to read; default *None* and in this case all
             available records are used
-        copy_master : bool
-            .. deprecated:: 5.12.0
-
 
 
         Returns
@@ -4752,19 +4748,11 @@ class MDF4(object):
 
         """
 
-        if copy_master is not None:
-            logger.warning(
-                "the argument copy_master is depreacted since version 5.12.0 "
-                "and will be removed in a future release"
-            )
-
         gp_nr, ch_nr = self._validate_channel_selection(
             name, group, index, source=source
         )
 
         grp = self.groups[gp_nr]
-
-        interp_mode = self._integer_interpolation
 
         if ch_nr >= 0:
 
@@ -4781,13 +4769,14 @@ class MDF4(object):
                 data = self._load_data(
                     grp, record_offset=record_offset, record_count=record_count
                 )
+                one_piece = False
             else:
                 data = (data,)
+                one_piece = True
 
             channel_invalidation_present = (
                 channel.flags
-                & (v4c.FLAG_INVALIDATION_BIT_VALID | v4c.FLAG_ALL_SAMPLES_VALID)
-                == v4c.FLAG_INVALIDATION_BIT_VALID
+                & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT)
             )
 
             bit_count = channel.bit_count
@@ -4807,14 +4796,15 @@ class MDF4(object):
                 data = self._load_data(
                     grp, record_offset=record_offset, record_count=record_count
                 )
+                one_piece = False
             else:
                 data = (data,)
+                one_piece = True
 
             bit_count = channel.bit_count
 
         data_type = channel.data_type
         channel_type = channel.channel_type
-        stream_sync = channel_type == v4c.CHANNEL_TYPE_SYNC
 
         encoding = None
 
@@ -4948,7 +4938,7 @@ class MDF4(object):
                     t = arange(timestamps[0], timestamps[-1], raster)
 
                     vals = Signal(vals, timestamps, name="_").interp(
-                        t, interpolation_mode=interp_mode
+                        t, interpolation_mode=self._integer_interpolation
                     )
 
                     vals, timestamps, invalidation_bits = (
@@ -5224,7 +5214,7 @@ class MDF4(object):
                     t = arange(timestamps[0], timestamps[-1], raster)
 
                     vals = Signal(vals, timestamps, name="_").interp(
-                        t, interpolation_mode=interp_mode
+                        t, interpolation_mode=self._integer_interpolation
                     )
 
                     vals, timestamps, invalidation_bits = (
@@ -5309,7 +5299,7 @@ class MDF4(object):
                         t = arange(timestamps[0], timestamps[-1], raster)
 
                     vals = Signal(vals, timestamps, name="_").interp(
-                        t, interpolation_mode=interp_mode
+                        t, interpolation_mode=self._integer_interpolation
                     )
 
                     vals, timestamps, invalidation_bits = (
@@ -5319,17 +5309,12 @@ class MDF4(object):
                     )
 
             else:
-                channel_values = []
-                timestamps = []
-                invalidation_bits = []
+                if one_piece:
 
-                count = 0
-
-                for kk, fragment in enumerate(data):
+                    fragment = data[0]
                     data_bytes, offset, _count, invalidation_bytes = fragment
-                    if kk == 0:
-                        record_start = offset
-                        record_count = _count
+                    record_start = offset
+                    record_count = _count
                     try:
                         parent, bit_offset = parents[ch_nr]
                     except KeyError:
@@ -5452,51 +5437,199 @@ class MDF4(object):
                             vals = vals.astype(channel_dtype)
 
                     if master_is_required:
-                        timestamps.append(self.get_master(gp_nr, fragment))
+                        timestamps = self.get_master(gp_nr, fragment, one_piece=True)
+
+                    if not vals.flags.owndata:
+                        vals = vals.copy()
+
                     if channel_invalidation_present:
-                        invalidation_bits.append(
-                            self.get_invalidation_bits(gp_nr, channel, fragment)
+                        invalidation_bits = self.get_invalidation_bits(
+                            gp_nr, channel, fragment
                         )
 
-                    if vals.flags.writeable:
-                        channel_values.append(vals)
-                    else:
-                        channel_values.append(vals.copy())
-                    count += 1
-
-                if count > 1:
-                    total_size = sum(len(_) for _ in channel_values)
-                    shape = (total_size,) + channel_values[0].shape[1:]
-
-                if count > 1:
-                    out = empty(shape, dtype=channel_values[0].dtype)
-                    vals = concatenate(channel_values, out=out)
-                elif count == 1:
-                    vals = channel_values[0]
+                        if not ignore_invalidation_bits:
+                            vals = vals[nonzero(~invalidation_bits)[0]]
+                            if master_is_required:
+                                timestamps = timestamps[nonzero(~invalidation_bits)[0]]
                 else:
-                    vals = []
+                    channel_values = []
+                    timestamps = []
+                    invalidation_bits = []
 
-                if master_is_required:
-                    if count > 1:
-                        out = empty(total_size, dtype=timestamps[0].dtype)
-                        timestamps = concatenate(timestamps, out=out)
-                    elif count == 1:
-                        timestamps = timestamps[0]
-                    else:
-                        timestamps = []
+                    count = 0
 
-                if channel_invalidation_present:
-                    if count > 1:
-                        out = empty(total_size, dtype=invalidation_bits[0].dtype)
-                        invalidation_bits = concatenate(invalidation_bits, out=out)
-                    elif count == 1:
-                        invalidation_bits = invalidation_bits[0]
-                    else:
-                        invalidation_bits = []
-                    if not ignore_invalidation_bits:
-                        vals = vals[nonzero(~invalidation_bits)[0]]
+                    for kk, fragment in enumerate(data):
+                        data_bytes, offset, _count, invalidation_bytes = fragment
+                        if kk == 0:
+                            record_start = offset
+                            record_count = _count
+                        try:
+                            parent, bit_offset = parents[ch_nr]
+                        except KeyError:
+                            parent, bit_offset = None, None
+
+                        if parent is not None:
+                            record = grp.record
+                            if record is None:
+                                record = fromstring(data_bytes, dtype=dtypes)
+
+                            vals = record[parent]
+
+                            dtype_ = vals.dtype
+                            shape_ = vals.shape
+                            size = dtype_.itemsize
+                            for dim in shape_[1:]:
+                                size *= dim
+
+                            kind_ = dtype_.kind
+
+                            if kind_ == "b":
+                                pass
+                            elif len(shape_) > 1 and data_type != v4c.DATA_TYPE_BYTEARRAY:
+                                vals = self._get_not_byte_aligned_data(
+                                    data_bytes, grp, ch_nr
+                                )
+                            elif kind_ not in "ui":
+                                if bit_offset:
+                                    vals = self._get_not_byte_aligned_data(
+                                        data_bytes, grp, ch_nr
+                                    )
+                                else:
+                                    if bit_count != size * 8:
+                                        if (
+                                            bit_count % 8 == 0
+                                            and size in (2, 4, 8)
+                                            and data_type <= 3
+                                        ):  # integer types
+                                            vals = vals.view(f"<u{size}")
+                                            if data_type in v4c.SIGNED_INT:
+                                                vals = as_non_byte_sized_signed_int(
+                                                    vals, bit_count
+                                                )
+                                            else:
+                                                mask = (1 << bit_count) - 1
+                                                if vals.flags.owndata:
+                                                    vals &= mask
+                                                else:
+                                                    vals = vals & mask
+                                        else:
+                                            vals = self._get_not_byte_aligned_data(
+                                                data_bytes, grp, ch_nr
+                                            )
+                                    else:
+                                        if data_type <= 3:
+                                            if not channel.dtype_fmt:
+                                                channel.dtype_fmt = get_fmt_v4(
+                                                    data_type, bit_count, channel_type
+                                                )
+                                            channel_dtype = dtype(
+                                                channel.dtype_fmt.split(")")[-1]
+                                            )
+                                            vals = vals.view(channel_dtype)
+
+                            else:
+                                if data_type <= 3:
+                                    if dtype_.byteorder == ">":
+                                        if bit_offset or bit_count != size << 3:
+                                            vals = self._get_not_byte_aligned_data(
+                                                data_bytes, grp, ch_nr
+                                            )
+                                    else:
+                                        if bit_offset:
+                                            if kind_ == "i":
+                                                vals = vals.astype(
+                                                    dtype(f"{dtype_.byteorder}u{size}")
+                                                )
+                                                vals >>= bit_offset
+                                            else:
+                                                vals = vals >> bit_offset
+
+                                        if bit_count != size << 3:
+                                            if data_type in v4c.SIGNED_INT:
+                                                vals = as_non_byte_sized_signed_int(
+                                                    vals, bit_count
+                                                )
+                                            else:
+                                                mask = (1 << bit_count) - 1
+                                                if vals.flags.writeable:
+                                                    vals &= mask
+                                                else:
+                                                    vals = vals & mask
+                                else:
+                                    if bit_count != size * 8:
+                                        vals = self._get_not_byte_aligned_data(
+                                            data_bytes, grp, ch_nr
+                                        )
+                                    else:
+                                        if not channel.dtype_fmt:
+                                            channel.dtype_fmt = get_fmt_v4(
+                                                data_type, bit_count, channel_type
+                                            )
+                                        channel_dtype = dtype(
+                                            channel.dtype_fmt.split(")")[-1]
+                                        )
+                                        vals = vals.view(channel_dtype)
+
+                        else:
+                            vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
+
+                        if bit_count == 1 and self._single_bit_uint_as_bool:
+                            vals = array(vals, dtype=bool)
+                        else:
+                            if not channel.dtype_fmt:
+                                channel.dtype_fmt = get_fmt_v4(
+                                    data_type, bit_count, channel_type,
+                                )
+                            channel_dtype = dtype(channel.dtype_fmt.split(")")[-1])
+                            if vals.dtype != channel_dtype:
+                                vals = vals.astype(channel_dtype)
+
                         if master_is_required:
-                            timestamps = timestamps[nonzero(~invalidation_bits)[0]]
+                            timestamps.append(self.get_master(gp_nr, fragment, one_piece=True))
+                        if channel_invalidation_present:
+                            invalidation_bits.append(
+                                self.get_invalidation_bits(gp_nr, channel, fragment)
+                            )
+
+                        if vals.flags.writeable:
+                            channel_values.append(vals)
+                        else:
+                            channel_values.append(vals.copy())
+                        count += 1
+
+                    if count > 1:
+                        total_size = sum(len(_) for _ in channel_values)
+                        shape = (total_size,) + channel_values[0].shape[1:]
+
+                    if count > 1:
+                        out = empty(shape, dtype=channel_values[0].dtype)
+                        vals = concatenate(channel_values, out=out)
+                    elif count == 1:
+                        vals = channel_values[0]
+                    else:
+                        vals = []
+
+                    if master_is_required:
+                        if count > 1:
+                            out = empty(total_size, dtype=timestamps[0].dtype)
+                            timestamps = concatenate(timestamps, out=out)
+                        elif count == 1:
+                            timestamps = timestamps[0]
+                        else:
+                            timestamps = []
+
+                    if channel_invalidation_present:
+                        if count > 1:
+                            out = empty(total_size, dtype=invalidation_bits[0].dtype)
+                            invalidation_bits = concatenate(invalidation_bits, out=out)
+                        elif count == 1:
+                            invalidation_bits = invalidation_bits[0]
+                        else:
+                            invalidation_bits = []
+                        if not ignore_invalidation_bits:
+                            vals = vals[nonzero(~invalidation_bits)[0]]
+                            if master_is_required:
+                                timestamps = timestamps[nonzero(~invalidation_bits)[0]]
 
                 if raster and len(timestamps) > 1:
 
@@ -5507,7 +5640,7 @@ class MDF4(object):
                         t = arange(timestamps[0], timestamps[-1], raster)
 
                     vals = Signal(vals, timestamps, name="_").interp(
-                        t, interpolation_mode=interp_mode
+                        t, interpolation_mode=self._integer_interpolation
                     )
 
                     vals, timestamps, invalidation_bits = (
@@ -5593,7 +5726,7 @@ class MDF4(object):
             ):
                 pass
 
-            elif channel_type in {v4c.CHANNEL_TYPE_VALUE, v4c.CHANNEL_TYPE_MLSD,}:
+            elif channel_type in {v4c.CHANNEL_TYPE_VALUE, v4c.CHANNEL_TYPE_MLSD}:
 
                 if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
                     encoding = "utf-16-be"
@@ -5680,10 +5813,9 @@ class MDF4(object):
 
                     del arrays
 
-            if not raw:
-                if conversion:
-                    vals = conversion.convert(vals)
-                    conversion = None
+            if not raw and conversion:
+                vals = conversion.convert(vals)
+                conversion = None
 
         if samples_only:
             if not channel_invalidation_present or not ignore_invalidation_bits:
@@ -5701,7 +5833,7 @@ class MDF4(object):
             comment = channel.comment
 
             source = channel.source
-            cg_source = grp.channel_group.acq_source
+
             if source:
                 source = SignalSource(
                     source.name,
@@ -5710,16 +5842,18 @@ class MDF4(object):
                     source.source_type,
                     source.bus_type,
                 )
-            elif cg_source:
-                source = SignalSource(
-                    cg_source.name,
-                    cg_source.path,
-                    cg_source.comment,
-                    cg_source.source_type,
-                    cg_source.bus_type,
-                )
             else:
-                source = None
+                cg_source = grp.channel_group.acq_source
+                if cg_source:
+                    source = SignalSource(
+                        cg_source.name,
+                        cg_source.path,
+                        cg_source.comment,
+                        cg_source.source_type,
+                        cg_source.bus_type,
+                    )
+                else:
+                    source = None
 
             if hasattr(channel, "attachment_addr"):
                 index = self._attachments_map[channel.attachment_addr]
@@ -5734,6 +5868,8 @@ class MDF4(object):
 
             if not channel_invalidation_present or not ignore_invalidation_bits:
                 invalidation_bits = None
+
+            stream_sync = channel_type == v4c.CHANNEL_TYPE_SYNC
 
             try:
                 res = Signal(
