@@ -12,6 +12,7 @@ from PyQt5 import QtWidgets
 from PyQt5 import QtCore
 
 from ..mdf import MDF, MDF2, MDF3, MDF4
+from .dialogs.error_dialog import ErrorDialog
 
 
 COLORS = [
@@ -60,7 +61,7 @@ def excepthook(exc_type, exc_value, tracebackobj):
     print("".join(traceback.format_tb(tracebackobj)))
     print("{0}: {1}".format(exc_type, exc_value))
 
-    QtWidgets.QMessageBox.warning(None, notice, msg)
+    ErrorDialog(message=errmsg, trace=msg, title="The following error was triggered").exec_()
 
 
 def extract_mime_names(data):
@@ -156,3 +157,4 @@ class WorkerThread(Thread):
             self.output = self._target(*self._args, **self._kwargs)
         except:
             self.error = traceback.format_exc()
+

@@ -33,5 +33,6 @@
     <file alias="plus.png">images/plus.png</file>
     <file alias="numeric.png">images/numeric.png</file>
     <file alias="csv.png">images/csv.png</file>
+    <file alias="error.png">images/error.png</file>
 </qresource>
 </RCC>
