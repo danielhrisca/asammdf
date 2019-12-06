@@ -32,3 +32,9 @@ class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
         self.setWindowTitle(title)
 
         self.error_message.setText(message)
+
+        self.copy_to_clipboard_btn.clicked.connect(self.copy_to_clipboard)
+
+    def copy_to_clipboard(self, event):
+        text = f'Error: {self.error_message.text()}\n\nDetails: {self.label.toPlainText()}'
+        QtWidgets.QApplication.instance().clipboard().setText(text)
