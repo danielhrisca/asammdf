@@ -18,9 +18,9 @@ class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
         self.layout.insertWidget(0, self.error_box)
 
         lay = QtWidgets.QVBoxLayout()
-        label = QtWidgets.QTextEdit(trace)
-        label.setReadOnly(True)
-        lay.addWidget(label)
+        self.trace = QtWidgets.QTextEdit(trace)
+        self.trace.setReadOnly(True)
+        lay.addWidget(self.trace)
 
         self.error_box.setContentLayout(lay)
 
@@ -36,5 +36,5 @@ class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
         self.copy_to_clipboard_btn.clicked.connect(self.copy_to_clipboard)
 
     def copy_to_clipboard(self, event):
-        text = f'Error: {self.error_message.text()}\n\nDetails: {self.label.toPlainText()}'
+        text = f'Error: {self.error_message.text()}\n\nDetails: {self.trace.toPlainText()}'
         QtWidgets.QApplication.instance().clipboard().setText(text)
