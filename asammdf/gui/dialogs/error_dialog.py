@@ -8,7 +8,7 @@ from ..widgets.collapsiblebox import CollapsibleBox
 
 class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
     def __init__(
-        self, title, trace, message, *args, **kwargs
+        self, title, message, trace, *args, **kwargs
     ):
 
         super().__init__(*args, **kwargs)
@@ -18,7 +18,8 @@ class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
         self.layout.insertWidget(0, self.error_box)
 
         lay = QtWidgets.QVBoxLayout()
-        label = QtWidgets.QLabel(trace)
+        label = QtWidgets.QTextEdit(trace)
+        label.setReadOnly(True)
         lay.addWidget(label)
 
         self.error_box.setContentLayout(lay)
