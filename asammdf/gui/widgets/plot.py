@@ -1452,7 +1452,10 @@ class _Plot(pg.PlotWidget):
             else:
                 self.parent().keyPressEvent(event)
 
-    def trim(self, width, start, stop):
+    def trim(self):
+        (start, stop), _ = self.viewbox.viewRange()
+
+        width = self.width() - self.axis.width()
 
         for sig in self.signals:
             dim = len(sig.samples)
@@ -1524,10 +1527,7 @@ class _Plot(pg.PlotWidget):
                             sig.plot_texts = sig.texts[start_:stop_]
 
     def xrange_changed_handle(self):
-        (start, stop), _ = self.viewbox.viewRange()
-
-        width = self.width() - self.axis.width()
-        self.trim(width, start, stop)
+        self.trim()
 
         self.update_lines(force=True)
 

@@ -364,7 +364,7 @@ class MDF4(object):
             message = f"Unfinalised file {self.name}: Update of length for last DT block required"
 
             logger.warning(message)
-        if flags & 1 << 3:
+        if flags & 1 * 8:
             message = f"Unfinalised file {self.name}: Update of length for last RD block required"
 
             logger.warning(message)
@@ -2409,7 +2409,7 @@ class MDF4(object):
                 for d in shape:
                     dim *= d
                 size *= dim
-                bit_count = size << 3
+                bit_count = size * 8
 
         byte_size = bit_offset + bit_count
         if byte_size % 8:
@@ -2427,7 +2427,7 @@ class MDF4(object):
 
         vals = vals["vals"]
 
-        if byte_size in (1, 2, 4, 8):
+        if byte_size in {1, 2, 4, 8}:
             extra_bytes = 0
         else:
             extra_bytes = 4 - (byte_size % 4)
@@ -2472,7 +2472,7 @@ class MDF4(object):
                     vals = frombuffer(vals.tobytes(), dtype=f"<u{std_size}")
 
         vals = vals >> bit_offset
-        vals &= (2 ** bit_count) - 1
+        vals &= (1 << bit_count) - 1
 
         data_type = channel.data_type
 
@@ -3503,7 +3503,7 @@ class MDF4(object):
                     byte_size = 7
                     s_type = v4c.DATA_TYPE_CANOPEN_DATE
 
-                s_size = byte_size << 3
+                s_size = byte_size * 8
 
                 # there is no channel dependency
                 gp_dep.append(None)
@@ -5382,7 +5382,7 @@ class MDF4(object):
                         else:
                             if data_type <= 3:
                                 if dtype_.byteorder == ">":
-                                    if bit_offset or bit_count != size << 3:
+                                    if bit_offset or bit_count != size * 8:
                                         vals = self._get_not_byte_aligned_data(
                                             data_bytes, grp, ch_nr
                                         )
@@ -5396,7 +5396,7 @@ class MDF4(object):
                                         else:
                                             vals = vals >> bit_offset
 
-                                    if bit_count != size << 3:
+                                    if bit_count != size * 8:
                                         if data_type in v4c.SIGNED_INT:
                                             vals = as_non_byte_sized_signed_int(
                                                 vals, bit_count
@@ -5438,9 +5438,6 @@ class MDF4(object):
 
                     if master_is_required:
                         timestamps = self.get_master(gp_nr, fragment, one_piece=True)
-
-                    if not vals.flags.owndata:
-                        vals = vals.copy()
 
                     if channel_invalidation_present:
                         invalidation_bits = self.get_invalidation_bits(
@@ -5530,7 +5527,7 @@ class MDF4(object):
                             else:
                                 if data_type <= 3:
                                     if dtype_.byteorder == ">":
-                                        if bit_offset or bit_count != size << 3:
+                                        if bit_offset or bit_count != size * 8:
                                             vals = self._get_not_byte_aligned_data(
                                                 data_bytes, grp, ch_nr
                                             )
@@ -5544,7 +5541,7 @@ class MDF4(object):
                                             else:
                                                 vals = vals >> bit_offset
 
-                                        if bit_count != size << 3:
+                                        if bit_count != size * 8:
                                             if data_type in v4c.SIGNED_INT:
                                                 vals = as_non_byte_sized_signed_int(
                                                     vals, bit_count
@@ -5816,6 +5813,9 @@ class MDF4(object):
             if not raw and conversion:
                 vals = conversion.convert(vals)
                 conversion = None
+
+        if not vals.flags.owndata:
+            vals = vals.copy()
 
         if samples_only:
             if not channel_invalidation_present or not ignore_invalidation_bits:

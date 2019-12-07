@@ -2889,13 +2889,14 @@ class ChannelConversion(_ChannelConversionBase):
                     else:
                         ret[idx[idx_]] = item.convert(values[idx[idx_]])
 
-            if all(isinstance(v, bytes) for v in ret):
-                ret = ret.astype(bytes)
-            else:
+            if any(not isinstance(v, bytes) for v in ret):
                 try:
                     ret = ret.astype("<f8")
                 except:
                     ret = np.array([np.nan if isinstance(v, bytes) else v for v in ret])
+
+            else:
+                ret = ret.astype(bytes)
 
             values = ret
 
