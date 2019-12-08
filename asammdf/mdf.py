@@ -92,7 +92,8 @@ class MDF(object):
         *False*
     remove_source_from_channel_names (\*\*kwargs) : bool
         remove source from channel names ("Speed\XCP3" -> "Speed")
-
+    copy_on_get (\*\*kwargs) : bool
+        copy arrays in the get method; default *True*
 
     """
 
@@ -144,15 +145,17 @@ class MDF(object):
                 )
                 raise MdfException(message)
 
+        self._initial_attributes = set(dir(self))
+        self._link_attributes()
+
+    def _link_attributes(self):
         # link underlying _mdf attributes and methods to the new MDF object
-        for attr in set(dir(self._mdf)) - set(dir(self)):
+        for attr in set(dir(self._mdf)) - self._initial_attributes:
             setattr(self, attr, getattr(self._mdf, attr))
 
         for attr in set(dir(self)) - set(dir(self._mdf)):
             if not attr.startswith("_"):
                 setattr(self._mdf, attr, getattr(self, attr))
-
-        self._master_channel_cache = {}
 
     def __enter__(self):
         return self
@@ -164,6 +167,7 @@ class MDF(object):
         self.close()
 
     def _transfer_events(self, other):
+        self._link_attributes()
         def get_scopes(event, events):
             if event.scopes:
                 return event.scopes
@@ -339,6 +343,7 @@ class MDF(object):
             set of excluded channels
 
         """
+        self._link_attributes()
 
         group = self.groups[index]
 
@@ -471,6 +476,7 @@ class MDF(object):
             new *MDF* object
 
         """
+        self._link_attributes()
         version = validate_version_argument(version)
 
         out = MDF(version=version)
@@ -681,6 +687,8 @@ class MDF(object):
             new MDF object
 
         """
+
+        self._link_attributes()
 
         if version is None:
             version = self.version
@@ -1052,6 +1060,8 @@ class MDF(object):
 
 
         """
+
+        self._link_attributes()
 
         header_items = (
             "date",
@@ -1611,6 +1621,8 @@ class MDF(object):
 
         """
 
+        self._link_attributes()
+
         if version is None:
             version = self.version
         else:
@@ -1896,6 +1908,8 @@ class MDF(object):
             `False`
 
         """
+        self._link_attributes()
+
         gp_nr, ch_nr = self._validate_channel_selection(name, group, index)
 
         grp = self.groups[gp_nr]
@@ -1942,6 +1956,7 @@ class MDF(object):
         MdfException : if there are inconsistencies between the files
 
         """
+        self._link_attributes()
         if not files:
             raise MdfException("No files given for merge")
 
@@ -2327,6 +2342,7 @@ class MDF(object):
             new *MDF* object with stacked channels
 
         """
+        self._link_attributes()
         if not files:
             raise MdfException("No files given for stack")
 
@@ -2574,6 +2590,8 @@ class MDF(object):
 
         """
 
+        self._link_attributes()
+
         for i, group in enumerate(self.groups):
 
             included_channels = self._included_channels(i, skip_master=skip_master)
@@ -2592,6 +2610,8 @@ class MDF(object):
         (<original_name>_<counter>)
 
         """
+
+        self._link_attributes()
 
         for i, _ in enumerate(self.groups):
             yield self.get_group(i)
@@ -2742,6 +2762,8 @@ class MDF(object):
                 attachment=()>
         ]
         """
+
+        self._link_attributes()
 
         if version is None:
             version = self.version
@@ -2903,6 +2925,8 @@ class MDF(object):
         ]
 
         """
+
+        self._link_attributes()
 
         # group channels by group index
         gps = {}
@@ -3093,6 +3117,8 @@ class MDF(object):
         ()
 
         """
+        self._link_attributes()
+
         if channel in self:
             return tuple(self.channels_db[channel])
         else:
@@ -3429,6 +3455,8 @@ class MDF(object):
 
         """
 
+        self._link_attributes()
+
         included_channels = self._included_channels(index)
 
         channels = [(None, index, ch_index) for ch_index in included_channels]
@@ -3529,6 +3557,8 @@ class MDF(object):
         dataframe : pandas.DataFrame
 
         """
+
+        self._link_attributes()
 
         if channels:
             mdf = self.filter(channels)
@@ -3719,6 +3749,8 @@ class MDF(object):
             new MDF file that contains the succesfully extracted signals
 
         """
+        self._link_attributes()
+
         if version is None:
             version = self.version
         else:
@@ -3952,6 +3984,49 @@ class MDF(object):
             )
 
         return out
+
+    def configure(
+        self,
+        *,
+        read_fragment_size=None,
+        write_fragment_size=None,
+        use_display_names=None,
+        single_bit_uint_as_bool=None,
+        integer_interpolation=None,
+    ):
+        """ configure MDF parameters
+
+        Parameters
+        ----------
+        read_fragment_size : int
+            size hint of split data blocks, default 8MB; if the initial size is
+            smaller, then no data list is used. The actual split size depends on
+            the data groups' records size
+        write_fragment_size : int
+            size hint of split data blocks, default 4MB; if the initial size is
+            smaller, then no data list is used. The actual split size depends on
+            the data groups' records size. Maximum size is 4MB to ensure
+            compatibility with CANape
+        use_display_names : bool
+            search for display name in the Channel XML comment
+        single_bit_uint_as_bool : bool
+            return single bit channels are np.bool arrays
+        integer_interpolation : int
+            interpolation mode for integer channels:
+
+                * 0 - repeat previous sample
+                * 1 - use linear interpolation
+
+        """
+
+        self._mdf.configure(
+            read_fragment_size=read_fragment_size,
+            write_fragment_size=write_fragment_size,
+            use_display_names=use_display_names,
+            single_bit_uint_as_bool=single_bit_uint_as_bool,
+            integer_interpolation=integer_interpolation,
+        )
+        self._link_attributes()
 
 
 if __name__ == "__main__":

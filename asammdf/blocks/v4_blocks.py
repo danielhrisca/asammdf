@@ -2889,7 +2889,13 @@ class ChannelConversion(_ChannelConversionBase):
                     else:
                         ret[idx[idx_]] = item.convert(values[idx[idx_]])
 
-            if any(not isinstance(v, bytes) for v in ret):
+            all_bytes = True
+            for v in ret:
+                if not isinstance(v, bytes):
+                    all_bytes = False
+                    break
+
+            if not all_bytes:
                 try:
                     ret = ret.astype("<f8")
                 except:

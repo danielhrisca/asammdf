@@ -299,6 +299,7 @@ class MDF4(object):
         self._remove_source_from_channel_names = kwargs.get(
             "remove_source_from_channel_names", False
         )
+        self.copy_on_get = kwargs.get("copy_on_get", True)
         self._single_bit_uint_as_bool = False
         self._integer_interpolation = 0
 
@@ -5814,7 +5815,7 @@ class MDF4(object):
                 vals = conversion.convert(vals)
                 conversion = None
 
-        if not vals.flags.owndata:
+        if not vals.flags.owndata and self.copy_on_get:
             vals = vals.copy()
 
         if samples_only:
