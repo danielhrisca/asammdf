@@ -1956,7 +1956,6 @@ class MDF(object):
         MdfException : if there are inconsistencies between the files
 
         """
-        self._link_attributes()
         if not files:
             raise MdfException("No files given for merge")
 
@@ -2342,7 +2341,6 @@ class MDF(object):
             new *MDF* object with stacked channels
 
         """
-        self._link_attributes()
         if not files:
             raise MdfException("No files given for stack")
 
