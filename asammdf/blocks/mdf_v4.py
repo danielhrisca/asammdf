@@ -1512,8 +1512,6 @@ class MDF4(object):
             split_size = int(split_size)
             invalidation_split_size = int(invalidation_split_size)
 
-            print(split_size)
-
             if not group.sorted:
                 cg_size = group.record_size
                 record_id = channel_group.record_id
