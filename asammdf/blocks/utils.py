@@ -1112,10 +1112,11 @@ class DataBlockInfo:
         "size",
         "param",
         "invalidation_block",
+        "block_limit",
     )
 
     def __init__(
-        self, address, block_type, raw_size, size, param, invalidation_block=None
+        self, address, block_type, raw_size, size, param, invalidation_block=None, block_limit=None
     ):
         self.address = address
         self.block_type = block_type
@@ -1123,6 +1124,7 @@ class DataBlockInfo:
         self.size = size
         self.param = param
         self.invalidation_block = invalidation_block
+        self.block_limit = block_limit
 
     def __repr__(self):
         return (
@@ -1131,7 +1133,8 @@ class DataBlockInfo:
             f"raw_size={self.raw_size}, "
             f"size={self.size}, "
             f"param={self.param}, "
-            f"invalidation_block={self.invalidation_block})"
+            f"invalidation_block={self.invalidation_block}, "
+            f"block_limit={self.block_limit})"
         )
 
 
@@ -1139,9 +1142,10 @@ class InvalidationBlockInfo(DataBlockInfo):
 
     __slots__ = ("all_valid",)
 
-    def __init__(self, address, block_type, raw_size, size, param, all_valid=False):
-        super().__init__(address, block_type, raw_size, size, param)
+    def __init__(self, address, block_type, raw_size, size, param, all_valid=False, block_limit=None):
+        super().__init__(address, block_type, raw_size, size, param, block_limit)
         self.all_valid = all_valid
+
 
     def __repr__(self):
         return (
@@ -1150,7 +1154,8 @@ class InvalidationBlockInfo(DataBlockInfo):
             f"raw_size={self.raw_size}, "
             f"size={self.size}, "
             f"param={self.param}, "
-            f"all_valid={self.all_valid})"
+            f"all_valid={self.all_valid}, "
+            f"block_limit={self.block_limit})"
         )
 
 

@@ -556,13 +556,22 @@ class MDF4(object):
                 channel_group = new_groups[0].channel_group
                 if channel_group.flags & v4c.FLAG_CG_REMOTE_MASTER:
                     block_type = b"##DV"
+                    total_size = channel_group.samples_byte_nr * channel_group.cycles_nr
+                    inval_total_size = channel_group.invalidation_bytes_nr * channel_group.cycles_nr
                 else:
                     block_type = b"##DT"
+                    total_size = (channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr) * channel_group.cycles_nr
+                    inval_total_size = 0
             else:
                 block_type = b"##DT"
 
             info = self._get_data_blocks_info(
-                address=address, stream=stream, block_type=block_type, mapped=mapped,
+                address=address,
+                stream=stream,
+                block_type=block_type,
+                mapped=mapped,
+                total_size=total_size,
+                inval_total_size=inval_total_size,
             )
 
             for grp in new_groups:
@@ -1503,6 +1512,8 @@ class MDF4(object):
             split_size = int(split_size)
             invalidation_split_size = int(invalidation_split_size)
 
+            print(split_size)
+
             if not group.sorted:
                 cg_size = group.record_size
                 record_id = channel_group.record_id
@@ -1533,12 +1544,13 @@ class MDF4(object):
                 while True:
                     try:
                         info = next(blocks)
-                        address, size, block_size, block_type, param = (
+                        address, size, block_size, block_type, param, block_limit = (
                             info.address,
                             info.raw_size,
                             info.size,
                             info.block_type,
                             info.param,
+                            info.block_limit,
                         )
 
                         if rm:
@@ -1569,6 +1581,9 @@ class MDF4(object):
                         nd = frombuffer(new_data[: lines * cols], dtype=uint8)
                         nd = nd.reshape((cols, lines))
                         new_data = nd.T.tostring() + new_data[lines * cols :]
+
+                    if block_limit is not None:
+                        new_data = new_data[:block_limit]
 
                     if not group.sorted:
                         rec_data = []
@@ -1629,6 +1644,8 @@ class MDF4(object):
                                     nd.T.tostring()
                                     + new_invalidation_data[lines * cols :]
                                 )
+                            if invalidation_info.block_limit is not None:
+                                new_invalidation_data = new_invalidation_data[:invalidation_info.block_limit]
 
                         inv_size = len(new_invalidation_data)
 
@@ -1685,6 +1702,8 @@ class MDF4(object):
                                 else:
                                     yield data_, offset // samples_size, _count, None
                                 has_yielded = True
+
+                            data = []
 
                         else:
                             data_, new_data = (
@@ -1743,10 +1762,12 @@ class MDF4(object):
                     if size:
                         data.append(new_data)
                         cur_size += size
+                        size = 0
 
                         if rm:
                             invalidation_data.append(new_invalidation_data)
                             cur_invalidation_size += inv_size
+
                 if data:
                     data_ = b"".join(data)
                     if rm:
@@ -1771,6 +1792,7 @@ class MDF4(object):
                         else:
                             yield data_, offset // samples_size, _count, None
                         has_yielded = True
+                    data = []
 
                 if not has_yielded:
                     if rm:
@@ -2591,7 +2613,7 @@ class MDF4(object):
     def _set_temporary_master(self, master):
         self._master = master
 
-    def _get_data_blocks_info(self, address, stream, block_type=b"##DT", mapped=False):
+    def _get_data_blocks_info(self, address, stream, block_type=b"##DT", mapped=False, total_size=0, inval_total_size=0):
         info = []
         mapped = not is_file_like(stream)
 
@@ -2603,6 +2625,11 @@ class MDF4(object):
                 if id_string == block_type:
                     size = block_len - 24
                     if size:
+                        if total_size < size:
+                            block_limit = total_size
+                        else:
+                            block_limit = None
+                        total_size -= size
                         info.append(
                             DataBlockInfo(
                                 address=address + COMMON_SIZE,
@@ -2610,6 +2637,7 @@ class MDF4(object):
                                 raw_size=size,
                                 size=size,
                                 param=0,
+                                block_limit=block_limit,
                             )
                         )
                 # or a DataZippedBlock
@@ -2633,6 +2661,11 @@ class MDF4(object):
                             param = 0
                         else:
                             block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                        if total_size < original_size:
+                            block_limit = total_size
+                        else:
+                            block_limit = None
+                        total_size -= original_size
                         info.append(
                             DataBlockInfo(
                                 address=address + v4c.DZ_COMMON_SIZE,
@@ -2640,6 +2673,7 @@ class MDF4(object):
                                 raw_size=original_size,
                                 size=zip_size,
                                 param=param,
+                                block_limit=block_limit,
                             )
                         )
 
@@ -2655,6 +2689,11 @@ class MDF4(object):
                             if id_string == block_type:
                                 size = block_len - 24
                                 if size:
+                                    if total_size < size:
+                                        block_limit = total_size
+                                    else:
+                                        block_limit = None
+                                    total_size -= size
                                     info.append(
                                         DataBlockInfo(
                                             address=addr + COMMON_SIZE,
@@ -2662,6 +2701,7 @@ class MDF4(object):
                                             raw_size=size,
                                             size=size,
                                             param=0,
+                                            block_limit=block_limit,
                                         )
                                     )
                             # or a DataZippedBlock
@@ -2685,6 +2725,11 @@ class MDF4(object):
                                         param = 0
                                     else:
                                         block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                                    if total_size < original_size:
+                                        block_limit = total_size
+                                    else:
+                                        block_limit = None
+                                    total_size -= original_size
                                     info.append(
                                         DataBlockInfo(
                                             address=addr + v4c.DZ_COMMON_SIZE,
@@ -2692,6 +2737,7 @@ class MDF4(object):
                                             raw_size=original_size,
                                             size=zip_size,
                                             param=param,
+                                            block_limit=block_limit,
                                         )
                                     )
                         address = dl.next_dl_addr
@@ -2709,6 +2755,11 @@ class MDF4(object):
                             if id_string == block_type:
                                 size = block_len - 24
                                 if size:
+                                    if total_size < size:
+                                        block_limit = total_size
+                                    else:
+                                        block_limit = None
+                                    total_size -= size
                                     info.append(
                                         DataBlockInfo(
                                             address=addr + COMMON_SIZE,
@@ -2716,6 +2767,7 @@ class MDF4(object):
                                             raw_size=size,
                                             size=size,
                                             param=0,
+                                            block_limit=block_limit,
                                         )
                                     )
                             # or a DataZippedBlock
@@ -2739,6 +2791,11 @@ class MDF4(object):
                                         param = 0
                                     else:
                                         block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                                    if total_size < original_size:
+                                        block_limit = total_size
+                                    else:
+                                        block_limit = None
+                                    total_size -= original_size
                                     info.append(
                                         DataBlockInfo(
                                             address=addr + v4c.DZ_COMMON_SIZE,
@@ -2746,6 +2803,7 @@ class MDF4(object):
                                             raw_size=original_size,
                                             size=zip_size,
                                             param=param,
+                                            block_limit=block_limit,
                                         )
                                     )
 
@@ -2758,6 +2816,11 @@ class MDF4(object):
                                     if id_string == b"##DI":
                                         size = block_len - 24
                                         if size:
+                                            if inval_total_size < size:
+                                                block_limit = inval_total_size
+                                            else:
+                                                block_limit = None
+                                            inval_total_size -= size
                                             info[
                                                 -1
                                             ].invalidation_block = InvalidationBlockInfo(
@@ -2766,6 +2829,7 @@ class MDF4(object):
                                                 raw_size=size,
                                                 size=size,
                                                 param=0,
+                                                block_limit=block_limit,
                                             )
                                     else:
                                         (
@@ -2787,6 +2851,11 @@ class MDF4(object):
                                                 param = 0
                                             else:
                                                 block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                                            if inval_total_size < original_size:
+                                                block_limit = inval_total_size
+                                            else:
+                                                block_limit = None
+                                            inval_total_size -= original_size
                                             info[
                                                 -1
                                             ].invalidation_block = InvalidationBlockInfo(
@@ -2795,6 +2864,7 @@ class MDF4(object):
                                                 raw_size=original_size,
                                                 size=zip_size,
                                                 param=param,
+                                                block_limit=block_limit,
                                             )
                                 else:
                                     info[-1].invalidation_block = InvalidationBlockInfo(
@@ -2814,7 +2884,7 @@ class MDF4(object):
                     address = hl.first_dl_addr
 
                     info = self._get_data_blocks_info(
-                        address, stream, block_type, mapped,
+                        address, stream, block_type, mapped, total_size, inval_total_size
                     )
         else:
 
@@ -2828,6 +2898,11 @@ class MDF4(object):
                 if id_string == block_type:
                     size = block_len - 24
                     if size:
+                        if total_size < size:
+                            block_limit = total_size
+                        else:
+                            block_limit = None
+                        total_size -= size
                         info.append(
                             DataBlockInfo(
                                 address=address + COMMON_SIZE,
@@ -2835,6 +2910,7 @@ class MDF4(object):
                                 raw_size=size,
                                 size=size,
                                 param=0,
+                                block_limit=block_limit,
                             )
                         )
                 # or a DataZippedBlock
@@ -2859,6 +2935,11 @@ class MDF4(object):
                             param = 0
                         else:
                             block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                        if total_size < original_size:
+                            block_limit = total_size
+                        else:
+                            block_limit = None
+                        total_size -= original_size
                         info.append(
                             DataBlockInfo(
                                 address=address + v4c.DZ_COMMON_SIZE,
@@ -2866,6 +2947,7 @@ class MDF4(object):
                                 raw_size=original_size,
                                 size=zip_size,
                                 param=param,
+                                block_limit=block_limit,
                             )
                         )
 
@@ -2884,6 +2966,11 @@ class MDF4(object):
                             if id_string == block_type:
                                 size = block_len - 24
                                 if size:
+                                    if total_size < size:
+                                        block_limit = total_size
+                                    else:
+                                        block_limit = None
+                                    total_size -= size
                                     info.append(
                                         DataBlockInfo(
                                             address=addr + COMMON_SIZE,
@@ -2891,6 +2978,7 @@ class MDF4(object):
                                             raw_size=size,
                                             size=size,
                                             param=0,
+                                            block_limit=block_limit,
                                         )
                                     )
                             # or a DataZippedBlock
@@ -2915,6 +3003,11 @@ class MDF4(object):
                                         param = 0
                                     else:
                                         block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                                    if total_size < original_size:
+                                        block_limit = total_size
+                                    else:
+                                        block_limit = None
+                                    total_size -= original_size
                                     info.append(
                                         DataBlockInfo(
                                             address=addr + v4c.DZ_COMMON_SIZE,
@@ -2922,6 +3015,7 @@ class MDF4(object):
                                             raw_size=original_size,
                                             size=zip_size,
                                             param=param,
+                                            block_limit=block_limit,
                                         )
                                     )
                         address = dl.next_dl_addr
@@ -2942,6 +3036,11 @@ class MDF4(object):
                             if id_string == block_type:
                                 size = block_len - 24
                                 if size:
+                                    if total_size < size:
+                                        block_limit = total_size
+                                    else:
+                                        block_limit = None
+                                    total_size -= size
                                     info.append(
                                         DataBlockInfo(
                                             address=addr + COMMON_SIZE,
@@ -2949,6 +3048,7 @@ class MDF4(object):
                                             raw_size=size,
                                             size=size,
                                             param=0,
+                                            block_limit=block_limit,
                                         )
                                     )
                             # or a DataZippedBlock
@@ -2973,6 +3073,11 @@ class MDF4(object):
                                         param = 0
                                     else:
                                         block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                                    if total_size < original_size:
+                                        block_limit = total_size
+                                    else:
+                                        block_limit = None
+                                    total_size -= original_size
                                     info.append(
                                         DataBlockInfo(
                                             address=addr + v4c.DZ_COMMON_SIZE,
@@ -2980,6 +3085,7 @@ class MDF4(object):
                                             raw_size=original_size,
                                             size=zip_size,
                                             param=param,
+                                            block_limit=block_limit,
                                         )
                                     )
 
@@ -2993,6 +3099,11 @@ class MDF4(object):
                                     if id_string == b"##DI":
                                         size = block_len - 24
                                         if size:
+                                            if inval_total_size < size:
+                                                block_limit = inval_total_size
+                                            else:
+                                                block_limit = None
+                                            inval_total_size -= size
                                             info[
                                                 -1
                                             ].invalidation_block = InvalidationBlockInfo(
@@ -3001,6 +3112,7 @@ class MDF4(object):
                                                 raw_size=size,
                                                 size=size,
                                                 param=0,
+                                                block_limit=block_limit,
                                             )
                                     else:
                                         (
@@ -3024,6 +3136,11 @@ class MDF4(object):
                                                 param = 0
                                             else:
                                                 block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                                            if inval_total_size < original_size:
+                                                block_limit = inval_total_size
+                                            else:
+                                                block_limit = None
+                                            inval_total_size -= original_size
                                             info[
                                                 -1
                                             ].invalidation_block = InvalidationBlockInfo(
@@ -3032,6 +3149,7 @@ class MDF4(object):
                                                 raw_size=original_size,
                                                 size=zip_size,
                                                 param=param,
+                                                block_limit=block_limit,
                                             )
                                 else:
                                     info[-1].invalidation_block = InvalidationBlockInfo(
@@ -3050,7 +3168,7 @@ class MDF4(object):
                     address = hl.first_dl_addr
 
                     info = self._get_data_blocks_info(
-                        address, stream, block_type, mapped,
+                        address, stream, block_type, mapped, total_size, inval_total_size
                     )
 
         return info
@@ -5657,7 +5775,6 @@ class MDF4(object):
                 )
 
                 if signal_data:
-
                     if data_type == v4c.DATA_TYPE_BYTEARRAY:
                         vals = extract(signal_data, 1)
                     else:

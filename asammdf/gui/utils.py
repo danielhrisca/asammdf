@@ -94,7 +94,6 @@ def run_thread_with_progress(
         sleep(0.1)
 
     while thr.is_alive():
-        QtWidgets.QApplication.processEvents()
         termination_request = progress.wasCanceled()
         if termination_request:
             MDF._terminate = True

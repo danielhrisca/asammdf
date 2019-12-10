@@ -1206,8 +1206,8 @@ class _Plot(pg.PlotWidget):
                             ]
                             if len(samples):
                                 min_, max_ = (
-                                    np.amin(samples),
-                                    np.amax(samples),
+                                    np.nanmin(samples),
+                                    np.nanmax(samples),
                                 )
                             else:
                                 min_, max_ = 0, 1
@@ -1669,8 +1669,8 @@ class _Plot(pg.PlotWidget):
             if len(sig.samples):
                 samples = sig.samples[np.isfinite(sig.samples)]
                 if len(samples):
-                    sig.min = np.amin(samples)
-                    sig.max = np.amax(samples)
+                    sig.min = np.nanmin(samples)
+                    sig.max = np.nanmax(samples)
                     sig.avg = np.mean(samples)
                     sig.rms = np.sqrt(np.mean(np.square(samples)))
                 else:

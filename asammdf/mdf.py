@@ -2974,6 +2974,8 @@ class MDF(object):
 
             current_pos = 0
 
+            ss = 0
+
             for i, fragment in enumerate(data):
 
                 if dtypes.itemsize:
@@ -3000,7 +3002,7 @@ class MDF(object):
 
                     next_pos = current_pos + len(sigs[0])
 
-                    master = np.empty(cycles, dtype=sigs[0].timestamps.dtype,)
+                    master = np.empty(cycles, dtype=sigs[0].timestamps.dtype)
 
                     master[current_pos:next_pos] = sigs[0].timestamps
 
@@ -3017,9 +3019,11 @@ class MDF(object):
                         else:
                             invalidation_bits.append(None)
 
+                    ss += next_pos - current_pos
+
                 else:
                     next_pos = current_pos + len(self._mdf._master)
-                    master[current_pos:next_pos] = self._mdf._master
+                    ss += next_pos - current_pos
 
                     for signal, inval, index in zip(
                         signals, invalidation_bits, channel_indexes
@@ -3033,9 +3037,28 @@ class MDF(object):
                             ignore_invalidation_bits=True,
                         )
 
-                        signal[current_pos:next_pos] = sig[0]
-                        if inval is not None:
-                            inval[current_pos:next_pos] = sig[1]
+                        break
+
+                    try:
+                        master[current_pos:next_pos] = self._mdf._master
+
+                        for signal, inval, index in zip(
+                            signals, invalidation_bits, channel_indexes
+                        ):
+                            sig = self.get(
+                                group=group,
+                                index=index,
+                                data=fragment,
+                                raw=True,
+                                samples_only=True,
+                                ignore_invalidation_bits=True,
+                            )
+
+                            signal[current_pos:next_pos] = sig[0]
+                            if inval is not None:
+                                inval[current_pos:next_pos] = sig[1]
+                    except:
+                        break
 
                 current_pos = next_pos
 
