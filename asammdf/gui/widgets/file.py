@@ -70,6 +70,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         self.with_dots = with_dots
 
         self._window_counter = 1
+        self._show_filter_tree = False
 
         progress = QtWidgets.QProgressDialog(
             f'Opening "{self.file_name}"', "", 0, 100, self.parent()
@@ -161,6 +162,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 return
 
         channels_db_items = sorted(self.mdf.channels_db, key=lambda x: x.lower())
+        self.channels_db_items = channels_db_items
 
         progress.setLabelText("Loading graphical elements")
 
@@ -293,8 +295,6 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         )
 
         progress.setValue(70)
-
-        self.raster_channel.addItems(channels_db_items)
 
         self.raster_type_channel.toggled.connect(self.set_raster_type)
 
@@ -512,6 +512,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
         self.aspects.setCurrentIndex(0)
 
+        self.aspects.currentChanged.connect(self.aspect_changed)
+
         progress.setValue(100)
 
         self.load_channel_list_btn.clicked.connect(self.load_channel_list)
@@ -537,7 +539,12 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
     def _update_channel_tree(self, index=None):
         if self.channel_view.currentIndex() == -1:
             return
-        for widget in (self.channels_tree, self.filter_tree):
+
+        if self._show_filter_tree:
+            widgets = (self.channels_tree, self.filter_tree)
+        else:
+            widgets = (self.channels_tree, )
+        for widget in widgets:
             iterator = QtWidgets.QTreeWidgetItemIterator(widget)
             signals = set()
 
@@ -962,6 +969,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         )
 
         if file_name:
+            self.aspects.setCurrentIndex(4)
             with open(file_name, "r") as infile:
                 channels = [line.strip() for line in infile.readlines()]
                 channels = [name for name in channels if name]
@@ -2509,3 +2517,78 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             self.search()
         else:
             super().keyPressEvent(event)
+
+    def aspect_changed(self, index):
+        if self.aspects.tabText(self.aspects.currentIndex()) == "Resample" and not self.raster_channel.count():
+            self.raster_channel.addItems(self.channels_db_items)
+        elif self.aspects.tabText(self.aspects.currentIndex()) == "Filter" and not self._show_filter_tree:
+            self._show_filter_tree = True
+
+            widget = self.filter_tree
+
+            if self.channel_view.currentIndex() == 0:
+                items = []
+                for i, group in enumerate(self.mdf.groups):
+                    for j, ch in enumerate(group.channels):
+                        entry = i, j
+
+                        channel = TreeItem(entry, ch.name)
+                        channel.setText(0, ch.name)
+                        channel.setCheckState(0, QtCore.Qt.Unchecked)
+                        items.append(channel)
+
+                    if self.mdf.version >= "4.00":
+                        for j, ch in enumerate(group.logging_channels, 1):
+                            entry = i, -j
+
+                            channel = TreeItem(entry, ch.name)
+                            channel.setText(0, ch.name)
+                            channel.setCheckState(0, QtCore.Qt.Unchecked)
+                            items.append(channel)
+                if len(items) < 30000:
+                    items = natsorted(items, key=lambda x: x.name)
+                else:
+                    items.sort(key=lambda x: x.name)
+                widget.addTopLevelItems(items)
+            else:
+                for i, group in enumerate(self.mdf.groups):
+                    entry = i, 0xFFFFFFFFFFFFFFFF
+                    channel_group = TreeItem(entry)
+                    comment = group.channel_group.comment
+                    comment = extract_cncomment_xml(comment)
+
+                    if comment:
+                        channel_group.setText(0, f"Channel group {i} ({comment})")
+                    else:
+                        channel_group.setText(0, f"Channel group {i}")
+                    channel_group.setFlags(
+                        channel_group.flags()
+                        | QtCore.Qt.ItemIsTristate
+                        | QtCore.Qt.ItemIsUserCheckable
+                    )
+
+                    widget.addTopLevelItem(channel_group)
+
+                    group_children = []
+
+                    for j, ch in enumerate(group.channels):
+                        entry = i, j
+
+                        channel = TreeItem(entry, ch.name)
+                        channel.setText(0, ch.name)
+                        channel.setCheckState(0, QtCore.Qt.Unchecked)
+                        group_children.append(channel)
+
+                    if self.mdf.version >= "4.00":
+                        for j, ch in enumerate(group.logging_channels, 1):
+                            name = ch.name
+                            entry = i, -j
+
+                            channel = TreeItem(entry, name)
+                            channel.setText(0, name)
+                            channel.setCheckState(0, QtCore.Qt.Unchecked)
+                            group_children.append(channel)
+
+                    channel_group.addChildren(group_children)
+
+                    del group_children
