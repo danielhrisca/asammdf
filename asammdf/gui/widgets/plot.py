@@ -1751,13 +1751,13 @@ class _Plot(pg.PlotWidget):
             self.set_current_uuid(self.signals[0].uuid)
 
         if self.signals:
+            ids = {id(s.timestamps): s.timestamps for s in self.signals}
+
             self.all_timebase = self.timebase = np.unique(
-                np.concatenate([sig.timestamps for sig in self.signals])
+                np.concatenate([v for v in ids.values()])
             )
         else:
             self.all_timebase = self.timebase = None
-
-        QtWidgets.QApplication.processEvents()
 
     def signal_by_uuid(self, uuid):
         for i, sig in enumerate(self.signals):
