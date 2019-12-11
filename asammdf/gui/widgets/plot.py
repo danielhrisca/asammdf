@@ -1742,6 +1742,7 @@ class _Plot(pg.PlotWidget):
             view_box.addItem(curve)
 
         self.trim()
+        self.update_lines(force=True)
 
         for curve in self.curves[initial_index:]:
             curve.show()
