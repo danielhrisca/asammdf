@@ -3,6 +3,7 @@
 
 import csv
 from datetime import datetime, timezone
+from functools import reduce
 import logging
 import xml.etree.ElementTree as ET
 from collections import OrderedDict, defaultdict
@@ -2846,6 +2847,7 @@ class MDF(object):
         raw=False,
         copy_master=True,
         ignore_value2text_conversions=False,
+        record_count=None,
     ):
         """ retrieve the channels listed in *channels* argument as *Signal*
         objects
@@ -2960,7 +2962,7 @@ class MDF(object):
 
         for group in gps:
             grp = self.groups[group]
-            data = self._load_data(grp, record_offset=record_offset)
+            data = self._load_data(grp, record_offset=record_offset, record_count=record_count)
             parents, dtypes = self._prepare_record(grp)
 
             channel_indexes = list(gps[group])
@@ -3488,6 +3490,7 @@ class MDF(object):
         ignore_value2text_conversions=False,
         use_interpolation=True,
         only_basenames=False,
+        chunked=False,
     ):
         """ generate pandas DataFrame
 
@@ -3550,6 +3553,11 @@ class MDF(object):
 
             .. versionadded:: 5.13.0
 
+        chunked (False) : bool
+            yield DataFrame's in chunks that should not exceed 200MB of RAM
+
+            .. versionadded:: 5.15.0
+
 
         Returns
         -------
@@ -3574,6 +3582,7 @@ class MDF(object):
                 ignore_value2text_conversions=ignore_value2text_conversions,
                 use_interpolation=use_interpolation,
                 only_basenames=only_basenames,
+                chunked=chunked,
             )
 
             mdf.close()
@@ -3597,135 +3606,287 @@ class MDF(object):
         else:
             masters = [self.get_master(i) for i, _ in enumerate(self.groups)]
 
-            masters = [master for master in masters if len(master)]
-
             if masters:
-                master = np.unique(np.concatenate(masters))
+                master = reduce(np.union1d, masters)
             else:
                 master = np.array([], dtype="<f4")
 
-        df["timestamps"] = pd.Series(master, index=np.arange(len(master)))
-        df.set_index("timestamps", inplace=True)
+        if chunked:
+            master_ = master
+            channel_count = sum(len(gp.channels)-1 for gp in self.groups) + 1
+            # approximation with all fload64 dtype
+            itemsize = channel_count * 8
+            # use 200MB DataFrame chunks
+            chunk_count = 200 * 1024 * 1024 // itemsize
+            chunk_count = 2
 
-        used_names = UniqueDB()
-        used_names.get_unique_name("timestamps")
+            chunks, r = divmod(len(master), chunk_count)
+            if r:
+                chunks += 1
 
-        groups_nr = len(self.groups)
+            for i in range(chunks):
 
-        for group_index, grp in enumerate(self.groups):
-            if grp.channel_group.cycles_nr == 0 and empty_channels == "skip":
-                continue
+                master = master_[chunk_count*i: chunk_count*(i+1)]
+                start = master[0]
+                end = master[-1]
 
-            included_channels = [
-                (None, group_index, channel_index)
-                for channel_index in self._included_channels(group_index)
-            ]
+                df = pd.DataFrame()
+                self._set_temporary_master(None)
 
-            signals = [
-                signal.validate(copy=False)
-                for signal in self.select(
-                    included_channels, raw=True, copy_master=False,
-                )
-            ]
+                df["timestamps"] = pd.Series(master, index=np.arange(len(master)))
+                df.set_index("timestamps", inplace=True)
 
-            if not signals:
-                continue
+                used_names = UniqueDB()
+                used_names.get_unique_name("timestamps")
 
-            for sig in signals:
-                if len(sig) == 0:
-                    if empty_channels == "zeros":
-                        sig.samples = np.zeros(len(df.index), dtype=sig.samples.dtype)
-                        sig.timestamps = master
-                    else:
+                groups_nr = len(self.groups)
+
+                for group_index, grp in enumerate(self.groups):
+                    if grp.channel_group.cycles_nr == 0 and empty_channels == "skip":
                         continue
 
-            if not raw:
-                if ignore_value2text_conversions:
-                    if self.version < "4.00":
-                        text_conversion = 11
-                    else:
-                        text_conversion = 7
+                    record_offset = np.searchsorted(masters[group_index], start).flatten()[0]
+                    stop = np.searchsorted(masters[group_index], end).flatten()[0]
+                    record_count = stop - record_offset
 
-                    for signal in signals:
-                        conversion = signal.conversion
-                        if conversion and conversion.conversion_type < text_conversion:
-                            signal.samples = conversion.convert(signal.samples)
+                    included_channels = [
+                        (None, group_index, channel_index)
+                        for channel_index in self._included_channels(group_index)
+                    ]
 
-                else:
-                    for signal in signals:
-                        if signal.conversion:
-                            signal.samples = signal.conversion.convert(signal.samples)
+                    signals = [
+                        signal.validate(copy=False)
+                        for signal in self.select(
+                            included_channels,
+                            raw=True,
+                            copy_master=False,
+                            record_offset=record_offset,
+                            record_count=record_count,
+                        )
+                    ]
 
-            if use_interpolation and not np.array_equal(master, signals[0].timestamps):
-                signals = [
-                    signal.interp(master, self._integer_interpolation,)
-                    for signal in signals
+                    if not signals:
+                        continue
+
+                    for sig in signals:
+                        if len(sig) == 0:
+                            if empty_channels == "zeros":
+                                sig.samples = np.zeros(len(df.index), dtype=sig.samples.dtype)
+                                sig.timestamps = master
+                            else:
+                                continue
+
+                    if not raw:
+                        if ignore_value2text_conversions:
+                            if self.version < "4.00":
+                                text_conversion = 11
+                            else:
+                                text_conversion = 7
+
+                            for signal in signals:
+                                conversion = signal.conversion
+                                if conversion and conversion.conversion_type < text_conversion:
+                                    signal.samples = conversion.convert(signal.samples)
+
+                        else:
+                            for signal in signals:
+                                if signal.conversion:
+                                    signal.samples = signal.conversion.convert(signal.samples)
+
+                    if use_interpolation and not np.array_equal(master, signals[0].timestamps):
+                        signals = [
+                            signal.interp(master, self._integer_interpolation,)
+                            for signal in signals
+                        ]
+
+                    signals = [sig for sig in signals if len(sig)]
+
+                    for k, sig in enumerate(signals):
+                        # byte arrays
+                        if len(sig.samples.shape) > 1:
+
+                            if use_display_names:
+                                channel_name = sig.display_name or sig.name
+                            else:
+                                channel_name = sig.name
+
+                            channel_name = used_names.get_unique_name(channel_name)
+
+                            df[channel_name] = pd.Series(
+                                list(sig.samples), index=sig.timestamps,
+                            )
+
+                        # arrays and structures
+                        elif sig.samples.dtype.names:
+                            for name, series in components(
+                                sig.samples,
+                                sig.name,
+                                used_names,
+                                master=sig.timestamps,
+                                only_basenames=only_basenames,
+                            ):
+                                df[name] = series
+
+                        # scalars
+                        else:
+                            if use_display_names:
+                                channel_name = sig.display_name or sig.name
+                            else:
+                                channel_name = sig.name
+
+                            channel_name = used_names.get_unique_name(channel_name)
+
+                            if reduce_memory_usage and sig.samples.dtype.kind in "SU":
+                                unique = np.unique(sig.samples)
+                                if len(sig.samples) / len(unique) >= 2:
+                                    df[channel_name] = pd.Series(
+                                        sig.samples, index=sig.timestamps, dtype="category"
+                                    )
+                                else:
+                                    df[channel_name] = pd.Series(
+                                        sig.samples, index=sig.timestamps
+                                    )
+                            else:
+                                if reduce_memory_usage:
+                                    sig.samples = downcast(sig.samples)
+                                df[channel_name] = pd.Series(sig.samples, index=sig.timestamps)
+
+                    if self._callback:
+                        self._callback(group_index + 1, groups_nr)
+
+                if time_as_date:
+                    new_index = np.array(df.index) + self.header.start_time.timestamp()
+                    new_index = pd.to_datetime(new_index, unit="s")
+
+                    df.set_index(new_index, inplace=True)
+                elif time_from_zero and len(master):
+                    df.set_index(df.index - df.index[0], inplace=True)
+
+                yield df
+        else:
+
+            df["timestamps"] = pd.Series(master, index=np.arange(len(master)))
+            df.set_index("timestamps", inplace=True)
+
+            used_names = UniqueDB()
+            used_names.get_unique_name("timestamps")
+
+            groups_nr = len(self.groups)
+
+            for group_index, grp in enumerate(self.groups):
+                if grp.channel_group.cycles_nr == 0 and empty_channels == "skip":
+                    continue
+
+                included_channels = [
+                    (None, group_index, channel_index)
+                    for channel_index in self._included_channels(group_index)
                 ]
 
-            signals = [sig for sig in signals if len(sig)]
-
-            for k, sig in enumerate(signals):
-                # byte arrays
-                if len(sig.samples.shape) > 1:
-
-                    if use_display_names:
-                        channel_name = sig.display_name or sig.name
-                    else:
-                        channel_name = sig.name
-
-                    channel_name = used_names.get_unique_name(channel_name)
-
-                    df[channel_name] = pd.Series(
-                        list(sig.samples), index=sig.timestamps,
+                signals = [
+                    signal.validate(copy=False)
+                    for signal in self.select(
+                        included_channels, raw=True, copy_master=False,
                     )
+                ]
 
-                # arrays and structures
-                elif sig.samples.dtype.names:
-                    for name, series in components(
-                        sig.samples,
-                        sig.name,
-                        used_names,
-                        master=sig.timestamps,
-                        only_basenames=only_basenames,
-                    ):
-                        df[name] = series
+                if not signals:
+                    continue
 
-                # scalars
-                else:
-                    if use_display_names:
-                        channel_name = sig.display_name or sig.name
-                    else:
-                        channel_name = sig.name
-
-                    channel_name = used_names.get_unique_name(channel_name)
-
-                    if reduce_memory_usage and sig.samples.dtype.kind in "SU":
-                        unique = np.unique(sig.samples)
-                        if len(sig.samples) / len(unique) >= 2:
-                            df[channel_name] = pd.Series(
-                                sig.samples, index=sig.timestamps, dtype="category"
-                            )
+                for sig in signals:
+                    if len(sig) == 0:
+                        if empty_channels == "zeros":
+                            sig.samples = np.zeros(len(df.index), dtype=sig.samples.dtype)
+                            sig.timestamps = master
                         else:
-                            df[channel_name] = pd.Series(
-                                sig.samples, index=sig.timestamps
-                            )
+                            continue
+
+                if not raw:
+                    if ignore_value2text_conversions:
+                        if self.version < "4.00":
+                            text_conversion = 11
+                        else:
+                            text_conversion = 7
+
+                        for signal in signals:
+                            conversion = signal.conversion
+                            if conversion and conversion.conversion_type < text_conversion:
+                                signal.samples = conversion.convert(signal.samples)
+
                     else:
-                        if reduce_memory_usage:
-                            sig.samples = downcast(sig.samples)
-                        df[channel_name] = pd.Series(sig.samples, index=sig.timestamps)
+                        for signal in signals:
+                            if signal.conversion:
+                                signal.samples = signal.conversion.convert(signal.samples)
 
-            if self._callback:
-                self._callback(group_index + 1, groups_nr)
+                if use_interpolation and not np.array_equal(master, signals[0].timestamps):
+                    signals = [
+                        signal.interp(master, self._integer_interpolation,)
+                        for signal in signals
+                    ]
 
-        if time_as_date:
-            new_index = np.array(df.index) + self.header.start_time.timestamp()
-            new_index = pd.to_datetime(new_index, unit="s")
+                signals = [sig for sig in signals if len(sig)]
 
-            df.set_index(new_index, inplace=True)
-        elif time_from_zero and len(master):
-            df.set_index(df.index - df.index[0], inplace=True)
+                for k, sig in enumerate(signals):
+                    # byte arrays
+                    if len(sig.samples.shape) > 1:
 
-        return df
+                        if use_display_names:
+                            channel_name = sig.display_name or sig.name
+                        else:
+                            channel_name = sig.name
+
+                        channel_name = used_names.get_unique_name(channel_name)
+
+                        df[channel_name] = pd.Series(
+                            list(sig.samples), index=sig.timestamps,
+                        )
+
+                    # arrays and structures
+                    elif sig.samples.dtype.names:
+                        for name, series in components(
+                            sig.samples,
+                            sig.name,
+                            used_names,
+                            master=sig.timestamps,
+                            only_basenames=only_basenames,
+                        ):
+                            df[name] = series
+
+                    # scalars
+                    else:
+                        if use_display_names:
+                            channel_name = sig.display_name or sig.name
+                        else:
+                            channel_name = sig.name
+
+                        channel_name = used_names.get_unique_name(channel_name)
+
+                        if reduce_memory_usage and sig.samples.dtype.kind in "SU":
+                            unique = np.unique(sig.samples)
+                            if len(sig.samples) / len(unique) >= 2:
+                                df[channel_name] = pd.Series(
+                                    sig.samples, index=sig.timestamps, dtype="category"
+                                )
+                            else:
+                                df[channel_name] = pd.Series(
+                                    sig.samples, index=sig.timestamps
+                                )
+                        else:
+                            if reduce_memory_usage:
+                                sig.samples = downcast(sig.samples)
+                            df[channel_name] = pd.Series(sig.samples, index=sig.timestamps)
+
+                if self._callback:
+                    self._callback(group_index + 1, groups_nr)
+
+            if time_as_date:
+                new_index = np.array(df.index) + self.header.start_time.timestamp()
+                new_index = pd.to_datetime(new_index, unit="s")
+
+                df.set_index(new_index, inplace=True)
+            elif time_from_zero and len(master):
+                df.set_index(df.index - df.index[0], inplace=True)
+
+            return df
 
     def extract_can_logging(
         self, dbc_files, version=None, ignore_invalid_signals=False
