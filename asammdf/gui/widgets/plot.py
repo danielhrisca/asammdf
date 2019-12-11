@@ -1741,6 +1741,8 @@ class _Plot(pg.PlotWidget):
             axis.hide()
             view_box.addItem(curve)
 
+        self.trim()
+
         for curve in self.curves[initial_index:]:
             curve.show()
 
