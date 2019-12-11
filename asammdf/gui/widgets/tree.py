@@ -13,7 +13,6 @@ class TreeWidget(QtWidgets.QTreeWidget):
 
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.setUniformRowHeights(True)
-        self.display_all = True
 
     def keyPressEvent(self, event):
         key = event.key()

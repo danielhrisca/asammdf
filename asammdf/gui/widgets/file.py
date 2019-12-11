@@ -162,6 +162,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 return
 
         channels_db_items = sorted(self.mdf.channels_db, key=lambda x: x.lower())
+        self.channels_db_items = channels_db_items
 
         progress.setLabelText("Loading graphical elements")
 
@@ -294,8 +295,6 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         )
 
         progress.setValue(70)
-
-        self.raster_channel.addItems(channels_db_items)
 
         self.raster_type_channel.toggled.connect(self.set_raster_type)
 
@@ -2520,7 +2519,9 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             super().keyPressEvent(event)
 
     def aspect_changed(self, index):
-        if self.aspects.tabText(self.aspects.currentIndex()) == "Filter":
+        if self.aspects.tabText(self.aspects.currentIndex()) == "Resample" and not self.raster_channel.count():
+            self.raster_channel.addItems(self.channels_db_items)
+        elif self.aspects.tabText(self.aspects.currentIndex()) == "Filter" and not self._show_filter_tree:
             self._show_filter_tree = True
 
             widget = self.filter_tree
