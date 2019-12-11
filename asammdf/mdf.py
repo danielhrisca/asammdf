@@ -3618,7 +3618,6 @@ class MDF(object):
             itemsize = channel_count * 8
             # use 200MB DataFrame chunks
             chunk_count = 200 * 1024 * 1024 // itemsize
-            chunk_count = 2
 
             chunks, r = divmod(len(master), chunk_count)
             if r:
