@@ -3,7 +3,7 @@ import os
 
 bin_ = bin
 import logging
-from functools import partial
+from functools import partial, reduce
 from time import perf_counter
 from struct import unpack
 from uuid import uuid4
@@ -1753,8 +1753,11 @@ class _Plot(pg.PlotWidget):
         if self.signals:
             ids = {id(s.timestamps): s.timestamps for s in self.signals}
 
+#            self.all_timebase = self.timebase = np.unique(
+#                np.concatenate([v for v in ids.values()])
+#            )
             self.all_timebase = self.timebase = np.unique(
-                np.concatenate([v for v in ids.values()])
+                reduce(np.union1d, [v for v in ids.values()])
             )
         else:
             self.all_timebase = self.timebase = None
