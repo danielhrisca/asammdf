@@ -3631,6 +3631,14 @@ class MDF(object):
             if not signals:
                 continue
 
+            for sig in signals:
+                if len(sig) == 0:
+                    if empty_channels == "zeros":
+                        sig.samples = np.zeros(len(df.index), dtype=sig.samples.dtype)
+                        sig.timestamps = master
+                    else:
+                        continue
+
             if not raw:
                 if ignore_value2text_conversions:
                     if self.version < "4.00":
@@ -3653,13 +3661,6 @@ class MDF(object):
                     signal.interp(master, self._integer_interpolation,)
                     for signal in signals
                 ]
-
-            for sig in signals:
-                if len(sig) == 0:
-                    if empty_channels == "zeros":
-                        sig.samples = np.zeros(len(df.index), dtype=sig.samples.dtype)
-                    else:
-                        continue
 
             signals = [sig for sig in signals if len(sig)]
 
