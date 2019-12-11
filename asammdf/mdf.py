@@ -3491,7 +3491,8 @@ class MDF(object):
         use_interpolation=True,
         only_basenames=False,
     ):
-        """ generate pandas DataFrame
+        """ generator that yields pandas DataFrame's that should not exceed
+        200MB of RAM
 
         Parameters
         ----------
@@ -3576,7 +3577,6 @@ class MDF(object):
                 ignore_value2text_conversions=ignore_value2text_conversions,
                 use_interpolation=use_interpolation,
                 only_basenames=only_basenames,
-                chunked=chunked,
             )
 
             for df in result:
