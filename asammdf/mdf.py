@@ -3639,12 +3639,17 @@ class MDF(object):
             groups_nr = len(self.groups)
 
             for group_index, grp in enumerate(self.groups):
-                if grp.channel_group.cycles_nr == 0 and empty_channels == "skip":
+                group_cycles = grp.channel_group.cycles_nr
+                if group_cycles == 0 and empty_channels == "skip":
                     continue
 
                 record_offset = np.searchsorted(masters[group_index], start).flatten()[0]
                 stop = np.searchsorted(masters[group_index], end).flatten()[0]
                 record_count = stop - record_offset
+
+#                record_offset = max(np.searchsorted(masters[group_index], start).flatten()[0] - 1, 0)
+#                stop = np.searchsorted(masters[group_index], end).flatten()[0]
+#                record_count = min(stop - record_offset + 1, group_cycles)
 
                 included_channels = [
                     (None, group_index, channel_index)
