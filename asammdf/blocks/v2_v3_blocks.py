@@ -1279,9 +1279,10 @@ address: {hex(self.address)}
 """.split(
             "\n"
         )
+
         for key in keys:
             val = getattr(self, key)
-            if key.endswith("addr") or key.startswith("text_"):
+            if key.endswith("addr") or key.startswith("text_") and isinstance(val, int):
                 lines.append(template.format(key, hex(val)))
             elif isinstance(val, float):
                 lines.append(template.format(key, round(val, 6)))
