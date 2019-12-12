@@ -5148,7 +5148,10 @@ class MDF4(object):
 
                                     if axis is None:
                                         axisname = f"axis_{i}"
-                                        axis_values = array([arange(shape[0])] * cycles)
+                                        if cycles:
+                                            axis_values = array([arange(shape[0])] * cycles)
+                                        else:
+                                            axis_values = array([], dtype=f'({shape[0]},)f8')
 
                                     else:
                                         try:
@@ -5199,8 +5202,9 @@ class MDF4(object):
                                                 record_count=cycles,
                                             )[0]
                                             axis_values = ref[start:end].copy()
+
                                         axis_values = axis_values[axisname]
-                                        if len(axis_values) == 0:
+                                        if len(axis_values) == 0 and cycles:
                                             axis_values = array(
                                                 [arange(shape[0])] * cycles
                                             )
@@ -5235,7 +5239,10 @@ class MDF4(object):
 
                                 if axis is None:
                                     axisname = f"axis_{i}"
-                                    axis_values = array([arange(shape[0])] * cycles)
+                                    if cycles:
+                                        axis_values = array([arange(shape[0])] * cycles)
+                                    else:
+                                        axis_values = array([], dtype=f'({shape[0]},)f8')
 
                                 else:
                                     try:
@@ -5278,7 +5285,7 @@ class MDF4(object):
                                         )[0]
                                         axis_values = ref[start:end].copy()
                                     axis_values = axis_values[axisname]
-                                    if len(axis_values) == 0:
+                                    if len(axis_values) == 0 and cycles:
                                         axis_values = array([arange(shape[0])] * cycles)
 
                                 arrays.append(axis_values)
@@ -5926,9 +5933,9 @@ class MDF4(object):
 
                     del arrays
 
-            if not raw and conversion:
-                vals = conversion.convert(vals)
-                conversion = None
+        if not raw and conversion:
+            vals = conversion.convert(vals)
+            conversion = None
 
         if not vals.flags.owndata and self.copy_on_get:
             vals = vals.copy()

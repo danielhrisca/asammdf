@@ -2967,7 +2967,10 @@ class MDF(object):
 
             channel_indexes = list(gps[group])
 
-            cycles = grp.channel_group.cycles_nr
+            if record_count is None:
+                cycles = grp.channel_group.cycles_nr
+            else:
+                cycles = record_count
 
             signals = []
             invalidation_bits = []

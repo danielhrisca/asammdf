@@ -2752,10 +2752,27 @@ class ChannelConversion(_ChannelConversionBase):
         elif conversion_type == v4c.CONVERSION_TYPE_LIN:
             a = self.a
             b = self.b
-            if (a, b) != (1, 0):
-                values = values * a
-                if b:
-                    values += b
+
+            names = values.dtype.names
+            if names:
+                name = names[0]
+                vals = values[name]
+                if (a, b) != (1, 0):
+                    vals = vals * a
+                    if b:
+                        vals += b
+                    values = np.core.records.fromarrays(
+                        [vals] + [values[name] for name in names[1:]],
+                        dtype=[
+                            (name, vals.dtype, vals.shape[1:])
+                        ] + [(name, values[name].dtype, values[name].shape[1:]) for name in names[1:]],
+                    )
+
+            else:
+                if (a, b) != (1, 0):
+                    values = values * a
+                    if b:
+                        values += b
         elif conversion_type == v4c.CONVERSION_TYPE_RAT:
             P1 = self.P1
             P2 = self.P2
@@ -2764,22 +2781,53 @@ class ChannelConversion(_ChannelConversionBase):
             P5 = self.P5
             P6 = self.P6
 
-            X = values
-            if (P1, P4, P5, P6) == (0, 0, 0, 1):
-                if (P2, P3) != (1, 0):
-                    values = values * P2
-                    if P3:
-                        values += P3
-            elif (P3, P4, P5, P6) == (0, 0, 1, 0):
-                if (P1, P2) != (1, 0):
-                    values = values * P1
-                    if P2:
-                        values += P2
+            names = values.dtype.names
+            if names:
+                name = names[0]
+                vals = values[name]
+                if (P1, P4, P5, P6) == (0, 0, 0, 1):
+                    if (P2, P3) != (1, 0):
+                        vals = values[name] * P2
+                        if P3:
+                            vals = vals + P3
+
+                elif (P3, P4, P5, P6) == (0, 0, 1, 0):
+                    if (P1, P2) != (1, 0):
+                        vals = values[name] * P1
+                        if P2:
+                            vals = vals + P2
+
+                else:
+                    X = vals
+                    try:
+                        vals = evaluate(v4c.CONV_RAT_TEXT)
+                    except TypeError:
+                        vals = (P1 * X ** 2 + P2 * X + P3) / (P4 * X ** 2 + P5 * X + P6)
+
+                values = np.core.records.fromarrays(
+                    [vals] + [values[name] for name in names[1:]],
+                    dtype=[
+                        (name, vals.dtype, vals.shape[1:])
+                    ] + [(name, values[name].dtype, values[name].shape[1:]) for name in names[1:]],
+                )
+
             else:
-                try:
-                    values = evaluate(v4c.CONV_RAT_TEXT)
-                except TypeError:
-                    values = (P1 * X ** 2 + P2 * X + P3) / (P4 * X ** 2 + P5 * X + P6)
+                X = values
+                if (P1, P4, P5, P6) == (0, 0, 0, 1):
+                    if (P2, P3) != (1, 0):
+                        values = values * P2
+                        if P3:
+                            values = values + P3
+                elif (P3, P4, P5, P6) == (0, 0, 1, 0):
+                    if (P1, P2) != (1, 0):
+                        values = values * P1
+                        if P2:
+                            values += P2
+                else:
+                    try:
+                        values = evaluate(v4c.CONV_RAT_TEXT)
+                    except TypeError:
+                        values = (P1 * X ** 2 + P2 * X + P3) / (P4 * X ** 2 + P5 * X + P6)
 
         elif conversion_type == v4c.CONVERSION_TYPE_ALG:
             X = values
@@ -2866,45 +2914,106 @@ class ChannelConversion(_ChannelConversionBase):
             raw_vals = np.array([e[0] for e in x], dtype="<i8")
             phys = [e[1] for e in x]
 
-            idx1 = np.searchsorted(raw_vals, values, side="right") - 1
-            idx2 = np.searchsorted(raw_vals, values, side="left")
 
-            idx = np.argwhere(idx1 != idx2).flatten()
 
-            if isinstance(default, bytes):
-                ret[idx] = default
+            names = values.dtype.names
+
+            if names:
+                name = names[0]
+                vals = values[name]
+                shape = vals.shape
+                vals = vals.flatten()
+
+                ret = np.array([None] * len(vals), dtype="O")
+
+                idx1 = np.searchsorted(raw_vals, vals, side="right") - 1
+                idx2 = np.searchsorted(raw_vals, vals, side="left")
+
+                idx = np.argwhere(idx1 != idx2).flatten()
+
+                if isinstance(default, bytes):
+                    ret[idx] = default
+                else:
+                    ret[idx] = default.convert(vals[idx])
+
+                idx = np.argwhere(idx1 == idx2).flatten()
+                if len(idx):
+                    indexes = idx1[idx]
+                    unique = np.unique(indexes)
+                    for val in unique:
+
+                        item = phys[val]
+                        idx_ = np.argwhere(indexes == val).flatten()
+                        if isinstance(item, bytes):
+                            ret[idx[idx_]] = item
+                        else:
+                            ret[idx[idx_]] = item.convert(vals[idx[idx_]])
+
+                all_bytes = True
+                for v in ret:
+                    if not isinstance(v, bytes):
+                        all_bytes = False
+                        break
+
+                if not all_bytes:
+                    try:
+                        ret = ret.astype("<f8")
+                    except:
+                        ret = np.array([np.nan if isinstance(v, bytes) else v for v in ret])
+
+                else:
+                    ret = ret.astype(bytes)
+
+                ret = ret.reshape(shape)
+                values = np.core.records.fromarrays(
+                    [ret] + [values[name] for name in names[1:]],
+                    dtype=[
+                        (name, ret.dtype, ret.shape[1:])
+                    ] + [(name, values[name].dtype, values[name].shape[1:]) for name in names[1:]],
+                )
             else:
-                ret[idx] = default.convert(values[idx])
 
-            idx = np.argwhere(idx1 == idx2).flatten()
-            if len(idx):
-                indexes = idx1[idx]
-                unique = np.unique(indexes)
-                for val in unique:
+                ret = np.array([None] * len(values), dtype="O")
 
-                    item = phys[val]
-                    idx_ = np.argwhere(indexes == val).flatten()
-                    if isinstance(item, bytes):
-                        ret[idx[idx_]] = item
-                    else:
-                        ret[idx[idx_]] = item.convert(values[idx[idx_]])
+                idx1 = np.searchsorted(raw_vals, values, side="right") - 1
+                idx2 = np.searchsorted(raw_vals, values, side="left")
 
-            all_bytes = True
-            for v in ret:
-                if not isinstance(v, bytes):
-                    all_bytes = False
-                    break
+                idx = np.argwhere(idx1 != idx2).flatten()
 
-            if not all_bytes:
-                try:
-                    ret = ret.astype("<f8")
-                except:
-                    ret = np.array([np.nan if isinstance(v, bytes) else v for v in ret])
+                if isinstance(default, bytes):
+                    ret[idx] = default
+                else:
+                    ret[idx] = default.convert(values[idx])
 
-            else:
-                ret = ret.astype(bytes)
+                idx = np.argwhere(idx1 == idx2).flatten()
+                if len(idx):
+                    indexes = idx1[idx]
+                    unique = np.unique(indexes)
+                    for val in unique:
 
-            values = ret
+                        item = phys[val]
+                        idx_ = np.argwhere(indexes == val).flatten()
+                        if isinstance(item, bytes):
+                            ret[idx[idx_]] = item
+                        else:
+                            ret[idx[idx_]] = item.convert(values[idx[idx_]])
+
+                all_bytes = True
+                for v in ret:
+                    if not isinstance(v, bytes):
+                        all_bytes = False
+                        break
+
+                if not all_bytes:
+                    try:
+                        ret = ret.astype("<f8")
+                    except:
+                        ret = np.array([np.nan if isinstance(v, bytes) else v for v in ret])
+
+                else:
+                    ret = ret.astype(bytes)
+
+                values = ret
 
         elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
             nr = self.val_param_nr // 2
