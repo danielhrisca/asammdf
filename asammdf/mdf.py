@@ -2968,7 +2968,7 @@ class MDF(object):
             channel_indexes = list(gps[group])
 
             if record_count is None:
-                cycles = grp.channel_group.cycles_nr
+                cycles = grp.channel_group.cycles_nr - record_offset
             else:
                 if grp.channel_group.cycles_nr < record_count + record_offset:
                     cycles = grp.channel_group.cycles_nr - record_offset
