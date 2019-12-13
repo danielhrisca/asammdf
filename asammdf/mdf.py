@@ -2970,7 +2970,10 @@ class MDF(object):
             if record_count is None:
                 cycles = grp.channel_group.cycles_nr
             else:
-                cycles = record_count
+                if grp.channel_group.cycles_nr < record_count + record_offset:
+                    cycles = grp.channel_group.cycles_nr - record_offset
+                else:
+                    cycles = record_count
 
             signals = []
             invalidation_bits = []
@@ -3643,13 +3646,9 @@ class MDF(object):
                 if group_cycles == 0 and empty_channels == "skip":
                     continue
 
-                record_offset = np.searchsorted(masters[group_index], start).flatten()[0]
+                record_offset = max(np.searchsorted(masters[group_index], start).flatten()[0] - 1, 0)
                 stop = np.searchsorted(masters[group_index], end).flatten()[0]
-                record_count = stop - record_offset
-
-#                record_offset = max(np.searchsorted(masters[group_index], start).flatten()[0] - 1, 0)
-#                stop = np.searchsorted(masters[group_index], end).flatten()[0]
-#                record_count = min(stop - record_offset + 1, group_cycles)
+                record_count = min(stop - record_offset + 1, group_cycles)
 
                 included_channels = [
                     (None, group_index, channel_index)
