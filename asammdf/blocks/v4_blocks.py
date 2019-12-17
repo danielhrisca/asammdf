@@ -2914,8 +2914,6 @@ class ChannelConversion(_ChannelConversionBase):
             raw_vals = np.array([e[0] for e in x], dtype="<i8")
             phys = [e[1] for e in x]
 
-
-
             names = values.dtype.names
 
             if names:

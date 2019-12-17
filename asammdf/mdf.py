@@ -3496,9 +3496,12 @@ class MDF(object):
         ignore_value2text_conversions=False,
         use_interpolation=True,
         only_basenames=False,
+        chunk_ram_size=200*1024*1024,
     ):
         """ generator that yields pandas DataFrame's that should not exceed
         200MB of RAM
+
+        .. versionadded:: 5.15.0
 
         Parameters
         ----------
@@ -3535,29 +3538,20 @@ class MDF(object):
             in integer columns; default *False*
         raw (False) : bool
             the columns will contain the raw values
-
-            .. versionadded:: 5.7.0
-
         ignore_value2text_conversions (False) : bool
             valid only for the channels that have value to text conversions and
             if *raw=False*. If this is True then the raw numeric values will be
             used, and the conversion will not be applied.
-
-            .. versionadded:: 5.8.0
-
         use_interpolation (True) : bool
             option to perform interpoaltions when multiple timestamp raster are
             present. If *False* then dataframe columns will be automatically
             filled with NaN's were the dataframe index values are not found in
             the current column's timestamps
-
-            .. versionadded:: 5.11.0
-
         only_basenames (False) : bool
             use jsut the field names, without prefix, for structures and channel
             arrays
-
-            .. versionadded:: 5.13.0
+        chunk_ram_size : int
+            desired data frame RAM usage in bytes; default 200 MB
 
         Returns
         -------
@@ -3583,6 +3577,7 @@ class MDF(object):
                 ignore_value2text_conversions=ignore_value2text_conversions,
                 use_interpolation=use_interpolation,
                 only_basenames=only_basenames,
+                chunk_ram_size=chunk_ram_size,
             )
 
             for df in result:
@@ -3615,10 +3610,10 @@ class MDF(object):
 
         master_ = master
         channel_count = sum(len(gp.channels)-1 for gp in self.groups) + 1
-        # approximation with all fload64 dtype
+        # approximation with all float64 dtype
         itemsize = channel_count * 8
         # use 200MB DataFrame chunks
-        chunk_count = 200 * 1024 * 1024 // itemsize
+        chunk_count = chunk_ram_size // itemsize or 1
 
         chunks, r = divmod(len(master), chunk_count)
         if r:
