@@ -3497,6 +3497,7 @@ class MDF(object):
         use_interpolation=True,
         only_basenames=False,
         chunk_ram_size=200*1024*1024,
+        interpolate_outwards_with_nan=False,
     ):
         """ generator that yields pandas DataFrame's that should not exceed
         200MB of RAM
@@ -3550,8 +3551,12 @@ class MDF(object):
         only_basenames (False) : bool
             use jsut the field names, without prefix, for structures and channel
             arrays
+        interpolate_outwards_with_nan : bool
+            use NaN values for the samples that lie outside of the original
+            signal's timestamps
         chunk_ram_size : int
             desired data frame RAM usage in bytes; default 200 MB
+
 
         Returns
         -------
@@ -3690,10 +3695,20 @@ class MDF(object):
                                 signal.samples = signal.conversion.convert(signal.samples)
 
                 if use_interpolation and not np.array_equal(master, signals[0].timestamps):
-                    signals = [
-                        signal.interp(master, self._integer_interpolation,)
-                        for signal in signals
-                    ]
+                    if interpolate_outwards_with_nan:
+                        for k, sig in enumerate(signals):
+                            interpolated = signal.interp(master, self._integer_interpolation)
+                            idx1 = np.argwhere(interpolated.timestamps >= signal.timestamps[0]).flatten()
+                            idx2 = np.argwhere(interpolated.timestamps <= signal.timestamps[-1]).flatten()
+                            idx = np.intersect1d(idx1, idx2)
+                            interpolated.timestamps = interpolated.timestamps[idx]
+                            interpolated.samples = interpolated.samples[idx]
+                            signals[k] = interpolated
+                    else:
+                        signals = [
+                            signal.interp(master, self._integer_interpolation)
+                            for signal in signals
+                        ]
 
                 signals = [sig for sig in signals if len(sig)]
 
@@ -3774,6 +3789,7 @@ class MDF(object):
         ignore_value2text_conversions=False,
         use_interpolation=True,
         only_basenames=False,
+        interpolate_outwards_with_nan=False,
     ):
         """ generate pandas DataFrame
 
@@ -3836,6 +3852,12 @@ class MDF(object):
 
             .. versionadded:: 5.13.0
 
+        interpolate_outwards_with_nan : bool
+            use NaN values for the samples that lie outside of the original
+            signal's timestamps
+
+            .. versionadded:: 5.15.0
+
         Returns
         -------
         dataframe : pandas.DataFrame
@@ -3859,6 +3881,7 @@ class MDF(object):
                 ignore_value2text_conversions=ignore_value2text_conversions,
                 use_interpolation=use_interpolation,
                 only_basenames=only_basenames,
+                interpolate_outwards_with_nan=interpolate_outwards_with_nan,
             )
 
             mdf.close()
@@ -3940,10 +3963,20 @@ class MDF(object):
                             signal.samples = signal.conversion.convert(signal.samples)
 
             if use_interpolation and not np.array_equal(master, signals[0].timestamps):
-                signals = [
-                    signal.interp(master, self._integer_interpolation,)
-                    for signal in signals
-                ]
+                if interpolate_outwards_with_nan:
+                    for k, sig in enumerate(signals):
+                        interpolated = signal.interp(master, self._integer_interpolation)
+                        idx1 = np.argwhere(interpolated.timestamps >= signal.timestamps[0]).flatten()
+                        idx2 = np.argwhere(interpolated.timestamps <= signal.timestamps[-1]).flatten()
+                        idx = np.intersect1d(idx1, idx2)
+                        interpolated.timestamps = interpolated.timestamps[idx]
+                        interpolated.samples = interpolated.samples[idx]
+                        signals[k] = interpolated
+                else:
+                    signals = [
+                        signal.interp(master, self._integer_interpolation)
+                        for signal in signals
+                    ]
 
             signals = [sig for sig in signals if len(sig)]
 
