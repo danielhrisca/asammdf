@@ -3695,20 +3695,24 @@ class MDF(object):
                                 signal.samples = signal.conversion.convert(signal.samples)
 
                 if use_interpolation and not np.array_equal(master, signals[0].timestamps):
+
                     if interpolate_outwards_with_nan:
-                        for k, sig in enumerate(signals):
-                            interpolated = signal.interp(master, self._integer_interpolation)
-                            idx1 = np.argwhere(interpolated.timestamps >= signal.timestamps[0]).flatten()
-                            idx2 = np.argwhere(interpolated.timestamps <= signal.timestamps[-1]).flatten()
-                            idx = np.intersect1d(idx1, idx2)
-                            interpolated.timestamps = interpolated.timestamps[idx]
-                            interpolated.samples = interpolated.samples[idx]
-                            signals[k] = interpolated
-                    else:
-                        signals = [
-                            signal.interp(master, self._integer_interpolation)
-                            for signal in signals
-                        ]
+                        timestamps = signals[0].timestamps
+                        idx = np.argwhere(
+                            (master >= timestamps[0])
+                            &
+                            (master <= timestamps[-1])
+                        ).flatten()
+
+                    signals = [
+                        signal.interp(master, self._integer_interpolation)
+                        for signal in signals
+                    ]
+
+                    if interpolate_outwards_with_nan:
+                        for sig in signals:
+                            sig.timestamps = sig.timestamps[idx]
+                            sig.samples = sig.samples[idx]
 
                 signals = [sig for sig in signals if len(sig)]
 
@@ -3963,20 +3967,24 @@ class MDF(object):
                             signal.samples = signal.conversion.convert(signal.samples)
 
             if use_interpolation and not np.array_equal(master, signals[0].timestamps):
+
                 if interpolate_outwards_with_nan:
-                    for k, sig in enumerate(signals):
-                        interpolated = signal.interp(master, self._integer_interpolation)
-                        idx1 = np.argwhere(interpolated.timestamps >= signal.timestamps[0]).flatten()
-                        idx2 = np.argwhere(interpolated.timestamps <= signal.timestamps[-1]).flatten()
-                        idx = np.intersect1d(idx1, idx2)
-                        interpolated.timestamps = interpolated.timestamps[idx]
-                        interpolated.samples = interpolated.samples[idx]
-                        signals[k] = interpolated
-                else:
-                    signals = [
-                        signal.interp(master, self._integer_interpolation)
-                        for signal in signals
-                    ]
+                    timestamps = signals[0].timestamps
+                    idx = np.argwhere(
+                        (master >= timestamps[0])
+                        &
+                        (master <= timestamps[-1])
+                    ).flatten()
+
+                signals = [
+                    signal.interp(master, self._integer_interpolation)
+                    for signal in signals
+                ]
+
+                if interpolate_outwards_with_nan:
+                    for sig in signals:
+                        sig.timestamps = sig.timestamps[idx]
+                        sig.samples = sig.samples[idx]
 
             signals = [sig for sig in signals if len(sig)]
 
