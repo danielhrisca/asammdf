@@ -2059,7 +2059,7 @@ class ChannelConversion(_ChannelConversionBase):
     * ``address`` - int : channel conversion address
     * ``comment`` - str : channel conversion comment
     * ``formula`` - str : algebraic conversion formula; default ''
-    * ``referenced_blocks`` - list :  list of refenced blocks; can be TextBlock
+    * ``referenced_blocks`` - dict : dict of refenced blocks; can be TextBlock
       objects for value to text, and text to text conversions; for partial
       conversions the referenced blocks can be ChannelConversion obejct as well
     * ``name`` - str : channel conversion name
@@ -2068,8 +2068,7 @@ class ChannelConversion(_ChannelConversionBase):
     """
 
     def __init__(self, **kwargs):
-        self.name = self.unit = self.comment = self.formula = ""
-        self.referenced_blocks = None
+
 
         if "stream" in kwargs:
             stream = kwargs["stream"]
@@ -2348,11 +2347,11 @@ class ChannelConversion(_ChannelConversionBase):
                     self.max_phy_value,
                 ) = unpack_from("<2B3H2d", block, 32 + links_nr * 8)
 
+            self.referenced_blocks = None
+
             self.name = get_text_v4(self.name_addr, stream, mapped=mapped)
             self.unit = get_text_v4(self.unit_addr, stream, mapped=mapped)
             self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
-            self.formula = ""
-            self.referenced_blocks = None
 
             conv_type = conv
 
@@ -2360,76 +2359,78 @@ class ChannelConversion(_ChannelConversionBase):
                 self.formula = get_text_v4(
                     self.formula_addr, stream, mapped=mapped,
                 ).replace("x", "X")
+            else:
+                self.formula = ""
 
-            elif conv_type in v4c.TABULAR_CONVERSIONS:
-                refs = self.referenced_blocks = {}
-                if conv_type == v4c.CONVERSION_TYPE_TTAB:
-                    tabs = self.links_nr - 4
-                else:
-                    tabs = self.links_nr - 4 - 1
-                for i in range(tabs):
-                    address = self[f"text_{i}"]
-                    if address:
-                        stream.seek(address)
-                        _id = stream.read(4)
-
-                        if _id == b"##TX":
-                            block = TextBlock(
-                                address=address, stream=stream, mapped=mapped
-                            )
-                            refs[f"text_{i}"] = block
-                        elif _id == b"##CC":
-                            block = ChannelConversion(
-                                address=address, stream=stream, mapped=mapped
-                            )
-                            refs[f"text_{i}"] = block
-                        else:
-                            message = f'Expected "##TX" or "##CC" block @{hex(address)} but found "{_id}"'
-                            logger.exception(message)
-                            raise MdfException(message)
-
+                if conv_type in v4c.TABULAR_CONVERSIONS:
+                    refs = self.referenced_blocks = {}
+                    if conv_type == v4c.CONVERSION_TYPE_TTAB:
+                        tabs = self.links_nr - 4
                     else:
-                        refs[f"text_{i}"] = None
-                if conv_type != v4c.CONVERSION_TYPE_TTAB:
+                        tabs = self.links_nr - 4 - 1
+                    for i in range(tabs):
+                        address = self[f"text_{i}"]
+                        if address:
+                            stream.seek(address)
+                            _id = stream.read(4)
+
+                            if _id == b"##TX":
+                                block = TextBlock(
+                                    address=address, stream=stream, mapped=mapped
+                                )
+                                refs[f"text_{i}"] = block
+                            elif _id == b"##CC":
+                                block = ChannelConversion(
+                                    address=address, stream=stream, mapped=mapped
+                                )
+                                refs[f"text_{i}"] = block
+                            else:
+                                message = f'Expected "##TX" or "##CC" block @{hex(address)} but found "{_id}"'
+                                logger.exception(message)
+                                raise MdfException(message)
+
+                        else:
+                            refs[f"text_{i}"] = None
+                    if conv_type != v4c.CONVERSION_TYPE_TTAB:
+                        address = self.default_addr
+                        if address:
+                            stream.seek(address)
+                            _id = stream.read(4)
+
+                            if _id == b"##TX":
+                                block = TextBlock(
+                                    address=address, stream=stream, mapped=mapped
+                                )
+                                refs["default_addr"] = block
+                            elif _id == b"##CC":
+                                block = ChannelConversion(
+                                    address=address, stream=stream, mapped=mapped
+                                )
+                                refs["default_addr"] = block
+                            else:
+                                message = f'Expected "##TX" or "##CC" block @{hex(address)} but found "{_id}"'
+                                logger.exception(message)
+                                raise MdfException(message)
+                        else:
+                            refs["default_addr"] = None
+
+                elif conv_type == v4c.CONVERSION_TYPE_TRANS:
+                    refs = self.referenced_blocks = {}
+                    # link_nr - common links (4) - default text link (1)
+                    for i in range((self.links_nr - 4 - 1) // 2):
+                        for key in (f"input_{i}_addr", f"output_{i}_addr"):
+                            address = self[key]
+                            if address:
+                                block = TextBlock(
+                                    address=address, stream=stream, mapped=mapped
+                                )
+                                refs[key] = block
                     address = self.default_addr
                     if address:
-                        stream.seek(address)
-                        _id = stream.read(4)
-
-                        if _id == b"##TX":
-                            block = TextBlock(
-                                address=address, stream=stream, mapped=mapped
-                            )
-                            refs["default_addr"] = block
-                        elif _id == b"##CC":
-                            block = ChannelConversion(
-                                address=address, stream=stream, mapped=mapped
-                            )
-                            refs["default_addr"] = block
-                        else:
-                            message = f'Expected "##TX" or "##CC" block @{hex(address)} but found "{_id}"'
-                            logger.exception(message)
-                            raise MdfException(message)
+                        block = TextBlock(address=address, stream=stream, mapped=mapped)
+                        refs["default_addr"] = block
                     else:
                         refs["default_addr"] = None
-
-            elif conv_type == v4c.CONVERSION_TYPE_TRANS:
-                refs = self.referenced_blocks = {}
-                # link_nr - common links (4) - default text link (1)
-                for i in range((self.links_nr - 4 - 1) // 2):
-                    for key in (f"input_{i}_addr", f"output_{i}_addr"):
-                        address = self[key]
-                        if address:
-                            block = TextBlock(
-                                address=address, stream=stream, mapped=mapped
-                            )
-                            refs[key] = block
-                address = self.default_addr
-                if address:
-                    block = TextBlock(address=address, stream=stream, mapped=mapped)
-                    refs["default_addr"] = block
-                else:
-                    refs["default_addr"] = None
 
         else:
 
