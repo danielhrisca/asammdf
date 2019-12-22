@@ -1018,11 +1018,11 @@ class ChannelConversion(_ChannelConversionBase):
                     ) = unpack_from("<2dI", block, v23c.CC_COMMON_SHORT_SIZE)
 
                     if self.default_addr:
-                        self.referenced_blocks["default_addr"] = TextBlock(
-                            address=self.default_addr, stream=stream, mapped=mapped,
+                        self.referenced_blocks["default_addr"] = get_text_v3(
+                            address=self.default_addr, stream=stream, mapped=mapped, decode=False
                         )
                     else:
-                        self.referenced_blocks["default_addr"] = TextBlock(text="")
+                        self.referenced_blocks["default_addr"] = b""
 
                     values = unpack_from(
                         "<" + "2dI" * nr, block, v23c.CC_COMMON_SHORT_SIZE + 20
@@ -1035,13 +1035,13 @@ class ChannelConversion(_ChannelConversionBase):
                             values[3 * i + 2],
                         )
                         if values[3 * i + 2]:
-                            block = TextBlock(
-                                address=values[3 * i + 2], stream=stream, mapped=mapped,
+                            block = get_text_v3(
+                                address=values[3 * i + 2], stream=stream, mapped=mapped, decode=False
                             )
                             self.referenced_blocks[f"text_{i}"] = block
 
                         else:
-                            self.referenced_blocks[f"text_{i}"] = TextBlock(text="")
+                            self.referenced_blocks[f"text_{i}"] = b""
 
             if self.id != b"CC":
                 message = f'Expected "CC" block @{hex(address)} but found "{self.id}"'
@@ -1177,16 +1177,16 @@ class ChannelConversion(_ChannelConversionBase):
                 self.default_addr = 0
                 key = "default_addr"
                 if key in kwargs:
-                    self.referenced_blocks[key] = TextBlock(text=kwargs[key])
+                    self.referenced_blocks[key] = kwargs[key]
                 else:
-                    self.referenced_blocks[key] = None
+                    self.referenced_blocks[key] = b""
 
                 for i in range(nr - 1):
                     self[f"lower_{i}"] = kwargs[f"lower_{i}"]
                     self[f"upper_{i}"] = kwargs[f"upper_{i}"]
                     key = f"text_{i}"
                     self[key] = 0
-                    self.referenced_blocks[key] = TextBlock(text=kwargs[key])
+                    self.referenced_blocks[key] = kwargs[key]
             else:
                 message = (
                     f'Conversion type "{kwargs["conversion_type"]}" not implemented'
@@ -1207,18 +1207,19 @@ class ChannelConversion(_ChannelConversionBase):
 
         for key, block in self.referenced_blocks.items():
             if block:
-                if block.id == b"TX":
-                    text = block.text
+                if isinstance(block, ChannelConversion):
+                    address = block.to_blocks(address, blocks, defined_texts, cc_map)
+                    self[key] = block.address
+                else:
+                    text = block
                     if text in defined_texts:
                         self[key] = defined_texts[text]
                     else:
+                        block = TextBlock(text=text)
                         defined_texts[text] = address
                         blocks.append(block)
                         self[key] = address
                         address += block.block_len
-                else:
-                    address = block.to_blocks(address, blocks, defined_texts, cc_map)
-                    self[key] = block.address
             else:
                 self[key] = 0
 
@@ -1298,11 +1299,11 @@ address: {hex(self.address)}
             lines.append("")
             lines.append("Referenced blocks:")
             for key, block in self.referenced_blocks.items():
-                if isinstance(block, TextBlock):
-                    lines.append(template.format(key, block.text.strip(b"\0")))
-                else:
+                if isinstance(block, ChannelConversion):
                     lines.append(template.format(key, ""))
                     lines.extend(block.metadata(indent + "    ").split("\n"))
+                else:
+                    lines.append(template.format(key, block))
 
         for line in lines:
             if not line:
@@ -1390,20 +1391,11 @@ address: {hex(self.address)}
             phys = []
             for i in range(nr):
                 value = self.referenced_blocks[f"text_{i}"]
-                if value:
-                    value = value.text
-                else:
-                    value = b""
                 phys.append(value)
 
             phys = np.array(phys)
 
             default = self.referenced_blocks["default_addr"]
-            if default:
-                default = default.text
-            else:
-                default = b""
-            default = default.strip(b"\0\r\n\t")
 
             if b"{X}" in default:
                 default = default.decode("latin-1").replace("{X}", "X").split('"')[1]

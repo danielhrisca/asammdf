@@ -2375,8 +2375,8 @@ class ChannelConversion(_ChannelConversionBase):
                             _id = stream.read(4)
 
                             if _id == b"##TX":
-                                block = TextBlock(
-                                    address=address, stream=stream, mapped=mapped
+                                block = get_text_v4(
+                                    address=address, stream=stream, mapped=mapped, decode=False,
                                 )
                                 refs[f"text_{i}"] = block
                             elif _id == b"##CC":
@@ -2390,7 +2390,7 @@ class ChannelConversion(_ChannelConversionBase):
                                 raise MdfException(message)
 
                         else:
-                            refs[f"text_{i}"] = None
+                            refs[f"text_{i}"] = b""
                     if conv_type != v4c.CONVERSION_TYPE_TTAB:
                         address = self.default_addr
                         if address:
@@ -2398,8 +2398,8 @@ class ChannelConversion(_ChannelConversionBase):
                             _id = stream.read(4)
 
                             if _id == b"##TX":
-                                block = TextBlock(
-                                    address=address, stream=stream, mapped=mapped
+                                block = get_text_v4(
+                                    address=address, stream=stream, mapped=mapped, decode=False
                                 )
                                 refs["default_addr"] = block
                             elif _id == b"##CC":
@@ -2412,7 +2412,7 @@ class ChannelConversion(_ChannelConversionBase):
                                 logger.exception(message)
                                 raise MdfException(message)
                         else:
-                            refs["default_addr"] = None
+                            refs["default_addr"] = b""
 
                 elif conv_type == v4c.CONVERSION_TYPE_TRANS:
                     refs = self.referenced_blocks = {}
@@ -2421,16 +2421,16 @@ class ChannelConversion(_ChannelConversionBase):
                         for key in (f"input_{i}_addr", f"output_{i}_addr"):
                             address = self[key]
                             if address:
-                                block = TextBlock(
-                                    address=address, stream=stream, mapped=mapped
+                                block = get_text_v4(
+                                    address=address, stream=stream, mapped=mapped, decode=False
                                 )
                                 refs[key] = block
                     address = self.default_addr
                     if address:
-                        block = TextBlock(address=address, stream=stream, mapped=mapped)
+                        block = get_text_v4(address=address, stream=stream, mapped=mapped, decode=False)
                         refs["default_addr"] = block
                     else:
-                        refs["default_addr"] = None
+                        refs["default_addr"] = b""
 
         else:
 
@@ -2566,17 +2566,14 @@ class ChannelConversion(_ChannelConversionBase):
                 for i in range(nr):
                     key = f"text_{i}"
                     self[key] = 0
-                    self.referenced_blocks[key] = TextBlock(text=kwargs[key])
+                    self.referenced_blocks[key] = kwargs[key]
                 self.default_addr = 0
                 key = "default_addr"
                 if "default_addr" in kwargs:
                     default = kwargs["default_addr"]
                 else:
                     default = kwargs.get("default", b"")
-                if default:
-                    self.referenced_blocks[key] = TextBlock(text=default)
-                else:
-                    self.referenced_blocks[key] = None
+                self.referenced_blocks[key] = default
                 self.conversion_type = v4c.CONVERSION_TYPE_TABX
                 self.precision = kwargs.get("precision", 0)
                 self.flags = kwargs.get("flags", 0)
@@ -2599,26 +2596,23 @@ class ChannelConversion(_ChannelConversionBase):
                 for i in range(nr):
                     key = f"text_{i}"
                     self[key] = 0
-                    self.referenced_blocks[key] = TextBlock(text=kwargs[key])
+                    self.referenced_blocks[key] = kwargs[key]
                 self.default_addr = 0
                 self.default_lower = self.default_upper = 0
                 if "default_addr" in kwargs:
                     default = kwargs["default_addr"]
                 else:
                     default = kwargs.get("default", b"")
-                if default:
-                    if b"{X}" in default:
-                        default = (
-                            default.decode("latin-1").replace("{X}", "X").split('"')[1]
-                        )
-                        default = ChannelConversion(
-                            conversion_type=v4c.CONVERSION_TYPE_ALG, formula=default
-                        )
-                        self.referenced_blocks["default_addr"] = default
-                    else:
-                        self.referenced_blocks["default_addr"] = TextBlock(text=default)
+                if b"{X}" in default:
+                    default = (
+                        default.decode("latin-1").replace("{X}", "X").split('"')[1]
+                    )
+                    default = ChannelConversion(
+                        conversion_type=v4c.CONVERSION_TYPE_ALG, formula=default
+                    )
+                    self.referenced_blocks["default_addr"] = default
                 else:
-                    self.referenced_blocks["default_addr"] = None
+                    self.referenced_blocks["default_addr"] = default
                 self.conversion_type = v4c.CONVERSION_TYPE_RTABX
                 self.precision = kwargs.get("precision", 0)
                 self.flags = kwargs.get("flags", 0)
@@ -2718,20 +2712,22 @@ class ChannelConversion(_ChannelConversionBase):
         if self.referenced_blocks:
             for key, block in self.referenced_blocks.items():
                 if block:
-                    if block["id"] == b"##TX":
-                        text = block["text"]
-                        if text in defined_texts:
-                            self[key] = defined_texts[text]
-                        else:
-                            defined_texts[text] = address
-                            blocks.append(block)
-                            self[key] = address
-                            address += block["block_len"]
-                    else:
+                    if isinstance(block, ChannelConversion):
                         address = block.to_blocks(
                             address, blocks, defined_texts, cc_map
                         )
                         self[key] = block.address
+                    else:
+                        text = block
+                        if text in defined_texts:
+                            self[key] = defined_texts[text]
+                        else:
+                            block = TextBlock(text=text)
+                            defined_texts[text] = address
+                            blocks.append(block)
+                            self[key] = address
+                            address += block["block_len"]
+
                 else:
                     self[key] = 0
 
@@ -2890,26 +2886,12 @@ class ChannelConversion(_ChannelConversionBase):
 
             ret = np.array([None] * len(values), dtype="O")
 
-            phys = []
-            for i in range(nr):
-                try:
-                    value = self.referenced_blocks[f"text_{i}"].text
-                except AttributeError:
-                    value = self.referenced_blocks[f"text_{i}"]
-                except TypeError:
-                    value = b""
-                phys.append(value)
+            phys = [
+                self.referenced_blocks[f"text_{i}"]
+                for i in range(nr)
+            ]
 
-            default = self.referenced_blocks.get("default_addr", {})
-            if default is None:
-                default = b""
-            else:
-                try:
-                    default = default.text
-                except AttributeError:
-                    pass
-                except TypeError:
-                    default = b""
+            default = self.referenced_blocks["default_addr"]
 
             x = sorted(zip(raw_vals, phys))
             raw_vals = np.array([e[0] for e in x], dtype="<i8")
@@ -3017,26 +2999,12 @@ class ChannelConversion(_ChannelConversionBase):
         elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
             nr = self.val_param_nr // 2
 
-            phys = []
-            for i in range(nr):
-                try:
-                    value = self.referenced_blocks[f"text_{i}"].text
-                except AttributeError:
-                    value = self.referenced_blocks[f"text_{i}"]
-                except TypeError:
-                    value = b""
-                phys.append(value)
+            phys = [
+                self.referenced_blocks[f"text_{i}"]
+                for i in range(nr)
+            ]
 
-            default = self.referenced_blocks.get("default_addr", {})
-            if default is None:
-                default = b""
-            else:
-                try:
-                    default = default.text
-                except AttributeError:
-                    pass
-                except TypeError:
-                    default = b""
+            default = self.referenced_blocks["default_addr"]
 
             lower = [self[f"lower_{i}"] for i in range(nr)]
             upper = [self[f"upper_{i}"] for i in range(nr)]
@@ -3085,7 +3053,7 @@ class ChannelConversion(_ChannelConversionBase):
             nr = self.val_param_nr - 1
 
             raw_values = [
-                self.referenced_blocks[f"text_{i}"].text.strip(b"\0") for i in range(nr)
+                self.referenced_blocks[f"text_{i}"] for i in range(nr)
             ]
             phys = [self[f"val_{i}"] for i in range(nr)]
             default = self.val_default
@@ -3104,15 +3072,15 @@ class ChannelConversion(_ChannelConversionBase):
             nr = (self.ref_param_nr - 1) // 2
 
             in_ = [
-                self.referenced_blocks[f"input_{i}_addr"].text.strip(b"\0")
+                self.referenced_blocks[f"input_{i}_addr"]
                 for i in range(nr)
             ]
 
             out_ = [
-                self.referenced_blocks[f"output_{i}_addr"].text.strip(b"\0")
+                self.referenced_blocks[f"output_{i}_addr"]
                 for i in range(nr)
             ]
-            default = self.referenced_blocks["default_addr"].text.strip(b"\0")
+            default = self.referenced_blocks["default_addr"]
 
             new_values = []
             for val in values:
@@ -3274,13 +3242,11 @@ formula: {self.formula}
             lines.append("")
             lines.append("Referenced blocks:")
             for key, block in self.referenced_blocks.items():
-                if block is None:
-                    lines.append(template.format(key, b""))
-                elif isinstance(block, TextBlock):
-                    lines.append(template.format(key, block["text"].strip(b"\0")))
-                else:
+                if isinstance(block, ChannelConversion):
                     lines.append(template.format(key, ""))
                     lines.extend(block.metadata(indent + "    ").split("\n"))
+                else:
+                    lines.append(template.format(key, block))
 
         for line in lines:
             if not line:

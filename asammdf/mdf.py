@@ -3267,11 +3267,11 @@ class MDF(object):
                         if conv.referenced_blocks:
                             for key, block in conv.referenced_blocks.items():
                                 if block:
-                                    if block.id == b"##TX":
-                                        addr = block.address
+                                    if isinstance(block, bytes):
+                                        addr = conv[key]
                                         if addr not in texts:
                                             stream.seek(addr + 8)
-                                            size = block.block_len - 24
+                                            size = len(block)
                                             texts[addr] = randomized_string(size)
 
                 if callback:
@@ -3365,8 +3365,8 @@ class MDF(object):
                         if conv.referenced_blocks:
                             for key, block in conv.referenced_blocks.items():
                                 if block:
-                                    if block.id == b"TX":
-                                        addr = block.address
+                                    if isinstance(block, bytes):
+                                        addr = conv[key]
                                         if addr and addr not in texts:
                                             stream.seek(addr + 2)
                                             size = UINT16_u(stream.read(2))[0] - 4

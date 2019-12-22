@@ -181,7 +181,7 @@ def matlab_compatible(name):
     return compatible_name[:60]
 
 
-def get_text_v3(address, stream, mapped=False):
+def get_text_v3(address, stream, mapped=False, decode=True):
     """ faster way to extract strings from mdf versions 2 and 3 TextBlock
 
     Parameters
@@ -203,21 +203,24 @@ def get_text_v3(address, stream, mapped=False):
 
     if mapped:
         (size,) = UINT16_uf(stream, address + 2)
-        text_bytes = stream[address + 4 : address + size]
+        text_bytes = stream[address + 4 : address + size].strip(b" \r\t\n\0")
     else:
         stream.seek(address + 2)
         size = UINT16_u(stream.read(2))[0] - 4
-        text_bytes = stream.read(size)
-    try:
-        text = text_bytes.strip(b" \r\t\n\0").decode("latin-1")
-    except UnicodeDecodeError:
-        encoding = detect(text_bytes)["encoding"]
-        text = text_bytes.strip(b" \r\t\n\0").decode(encoding, "ignore")
+        text_bytes = stream.read(size).strip(b" \r\t\n\0")
+    if decode:
+        try:
+            text = text_bytes.decode("latin-1")
+        except UnicodeDecodeError:
+            encoding = detect(text_bytes)["encoding"]
+            text = text_bytes.decode(encoding, "ignore")
+    else:
+        text = text_bytes
 
     return text
 
 
-def get_text_v4(address, stream, mapped=False):
+def get_text_v4(address, stream, mapped=False, decode=True):
     """ faster way to extract strings from mdf version 4 TextBlock
 
     Parameters
@@ -239,16 +242,19 @@ def get_text_v4(address, stream, mapped=False):
 
     if mapped:
         (size,) = UINT64_uf(stream, address + 8)
-        text_bytes = stream[address + 24 : address + size]
+        text_bytes = stream[address + 24 : address + size].strip(b" \r\t\n\0")
     else:
         stream.seek(address + 8)
         size, _ = TWO_UINT64_u(stream.read(16))
-        text_bytes = stream.read(size - 24)
-    try:
-        text = text_bytes.strip(b" \r\t\n\0").decode("utf-8")
-    except UnicodeDecodeError:
-        encoding = detect(text_bytes)["encoding"]
-        text = text_bytes.strip(b" \r\t\n\0").decode(encoding, "ignore")
+        text_bytes = stream.read(size - 24).strip(b" \r\t\n\0")
+    if decode:
+        try:
+            text = text_bytes.decode("utf-8")
+        except UnicodeDecodeError:
+            encoding = detect(text_bytes)["encoding"]
+            text = text_bytes.decode(encoding, "ignore")
+    else:
+        text = text_bytes
 
     return text
 
