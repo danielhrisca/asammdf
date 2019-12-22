@@ -288,6 +288,7 @@ class MDF4(object):
         self._cg_map = {}
         self._cn_data_map = {}
         self._dbc_cache = {}
+        self._interned_strings = {}
 
         self._tempfile = TemporaryFile()
         self._file = None
@@ -885,6 +886,8 @@ class MDF4(object):
         self._si_map.clear()
         self._ch_map.clear()
         self._cc_map.clear()
+        print('>>>>', len(self._interned_strings))
+        self._interned_strings.clear()
 
         self.progress = cg_count, cg_count
 
@@ -926,6 +929,7 @@ class MDF4(object):
                 at_map=self._attachments_map,
                 use_display_names=self._use_display_names,
                 mapped=mapped,
+                tx_map=self._interned_strings,
             )
 
             if self._remove_source_from_channel_names:
