@@ -759,17 +759,17 @@ class ChannelsDB(dict):
         """
         if channel_name:
             if channel_name not in self:
-                self[channel_name] = [entry]
+                self[channel_name] = (entry,)
             else:
-                self[channel_name].append(entry)
+                self[channel_name] += entry
 
             if "\\" in channel_name:
-                channel_name = channel_name.split("\\")[0]
+                channel_name, _ = channel_name.split("\\", 1)
 
                 if channel_name not in self:
-                    self[channel_name] = [entry]
+                    self[channel_name] = (entry,)
                 else:
-                    self[channel_name].append(entry)
+                    self[channel_name] += entry
 
 
 def randomized_string(size):
@@ -1293,6 +1293,13 @@ def extract_can_signal(signal, payload):
 
     bit_count = signal.size
 
+    if start_bit + bit_count < vals.shape[1] * 8:
+        raise MdfException(
+            f'Could not extract signal "{signal.name}" with start '
+            f'bit {signal.get_startbit()} and bit count {signal.size} '
+            f'from the payload with shape {vals.shape}'
+        )
+
     byte_size, r = divmod(bit_offset + bit_count, 8)
     if r:
         byte_size += 1
@@ -1401,6 +1408,9 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
     """
     extracted_signals = {}
 
+    if message.size > payload.shape[1]:
+        return extracted_signals
+
     # first go through the non-mutiplexers signals
     # create lists of signals that are not mutiplexed or they ahve the same
     # mutiplexor and the same lower and upper mutiplexing values
@@ -1425,6 +1435,8 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
 
             for sig in pair_signals:
                 samples = extract_can_signal(sig, payload)
+                if len(samples) == 0 and len(t):
+                    continue
                 max_val = float(sig.calc_max())
                 signals[sig.name] = {
                     "name": sig.name,
@@ -1434,6 +1446,8 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
                     "t": t,
                     "is_max": np.all(samples == max_val),
                 }
+
+
         else:
             # select only the CAN messages where the multiplexor value is
             # within the range

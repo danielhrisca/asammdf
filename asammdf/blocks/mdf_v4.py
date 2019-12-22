@@ -130,7 +130,6 @@ __all__ = ["MDF4"]
 try:
     from .cutils import extract, sort_data_block, lengths, get_vlsd_offsets
 except:
-
     def extract(signal_data, is_byte_array):
         size = len(signal_data)
         positions = []
@@ -423,6 +422,7 @@ class MDF4(object):
                 message = f"Attempting finalization of {self.name}"
                 logger.info(message)
                 self._finalize()
+                self._mapped = mapped = False
 
         stream = self._file
 
@@ -752,7 +752,7 @@ class MDF4(object):
                                     can_msg.signals, key=lambda x: x.name
                                 ):
 
-                                    sig_vals = extract_can_signal(signal, data,)
+                                    sig_vals = extract_can_signal(signal, data)
 
                                     # conversion = ChannelConversion(
                                     #     a=float(signal.factor),
@@ -809,7 +809,7 @@ class MDF4(object):
                             break
                     new_entry.append((new_group_index, entry[1]))
                 if new_entry:
-                    self.channels_db[name] = new_entry
+                    self.channels_db[name] = tuple(new_entry)
                 else:
                     excluded_channels.append(name)
             for name in excluded_channels:
@@ -939,7 +939,8 @@ class MDF4(object):
                 composition.append(entry)
                 composition_channels.append(channel)
 
-            self.channels_db.add(channel.display_name, entry)
+            if channel.display_name:
+                self.channels_db.add(channel.display_name, entry)
             self.channels_db.add(channel.name, entry)
 
             # signal data

@@ -469,7 +469,7 @@ class Channel:
             self.address = address = kwargs["address"]
             self.dtype_fmt = self.attachment = None
             stream = kwargs["stream"]
-            mapped = not is_file_like(stream)
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
 
             if mapped:
 
@@ -2073,7 +2073,7 @@ class ChannelConversion(_ChannelConversionBase):
 
         if "stream" in kwargs:
             stream = kwargs["stream"]
-            mapped = not is_file_like(stream)
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
 
             try:
                 self.address = address = kwargs.get("address", 0)
@@ -2195,7 +2195,7 @@ class ChannelConversion(_ChannelConversionBase):
                 ) = unpack_from(v4c.FMT_CONVERSION_NONE_INIT, block)
 
                 nr = self.val_param_nr
-                values = unpack(f"<{nr}d", block[56:])
+                values = unpack_from(f"<{nr}d", block, 56)
                 for i in range(nr // 2):
                     self[f"raw_{i}"], self[f"phys_{i}"] = (
                         values[i * 2],
@@ -2217,7 +2217,7 @@ class ChannelConversion(_ChannelConversionBase):
                     self.max_phy_value,
                 ) = unpack_from(v4c.FMT_CONVERSION_NONE_INIT, block)
                 nr = self.val_param_nr
-                values = unpack(f"<{nr}d", block[56:])
+                values = unpack_from(f"<{nr}d", block, 56)
                 for i in range((nr - 1) // 3):
                     (self[f"lower_{i}"], self[f"upper_{i}"], self[f"phys_{i}"]) = (
                         values[i * 3],
@@ -5276,7 +5276,7 @@ class SourceInformation:
         if "stream" in kwargs:
 
             stream = kwargs["stream"]
-            mapped = not is_file_like(stream)
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
             try:
                 block = kwargs["raw_bytes"]
                 self.address = kwargs.get("address", 0)
@@ -5492,7 +5492,7 @@ class TextBlock:
 
         if "stream" in kwargs:
             stream = kwargs["stream"]
-            mapped = not is_file_like(stream)
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
             self.address = address = kwargs["address"]
 
             if mapped:

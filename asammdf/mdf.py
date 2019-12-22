@@ -1267,7 +1267,7 @@ class MDF(object):
 
                         master_index = self.masters_db.get(i, -1)
 
-                        if master_index:
+                        if master_index >= 0:
                             group.attrs["master"] = grp.channels[master_index].name
 
                         channels = self.select(
