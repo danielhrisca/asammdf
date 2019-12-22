@@ -761,7 +761,7 @@ class ChannelsDB(dict):
             if channel_name not in self:
                 self[channel_name] = (entry,)
             else:
-                self[channel_name] += entry
+                self[channel_name] += (entry,)
 
             if "\\" in channel_name:
                 channel_name, _ = channel_name.split("\\", 1)
@@ -769,7 +769,7 @@ class ChannelsDB(dict):
                 if channel_name not in self:
                     self[channel_name] = (entry,)
                 else:
-                    self[channel_name] += entry
+                    self[channel_name] += (entry,)
 
 
 def randomized_string(size):
