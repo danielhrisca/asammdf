@@ -806,7 +806,10 @@ class Channel:
                     else:
                         try:
                             conv = ChannelConversion(
-                                raw_bytes=raw_bytes, stream=stream, address=address, tx_map=tx_map,
+                                raw_bytes=raw_bytes,
+                                stream=stream,
+                                address=address,
+                                tx_map=tx_map,
                             )
                             cc_map[raw_bytes] = conv
                         except Exception as err:
@@ -826,7 +829,10 @@ class Channel:
                         source = si_map[raw_bytes]
                     else:
                         source = SourceInformation(
-                            raw_bytes=raw_bytes, stream=stream, address=address, tx_map=tx_map,
+                            raw_bytes=raw_bytes,
+                            stream=stream,
+                            address=address,
+                            tx_map=tx_map,
                         )
                         si_map[raw_bytes] = source
                     self.source = source
@@ -2083,7 +2089,6 @@ class ChannelConversion(_ChannelConversionBase):
 
     def __init__(self, **kwargs):
 
-
         if "stream" in kwargs:
             stream = kwargs["stream"]
             mapped = kwargs.get("mapped", False) or not is_file_like(stream)
@@ -2399,13 +2404,19 @@ class ChannelConversion(_ChannelConversionBase):
 
                                 if _id == b"##TX":
                                     block = get_text_v4(
-                                        address=address, stream=stream, mapped=mapped, decode=False,
+                                        address=address,
+                                        stream=stream,
+                                        mapped=mapped,
+                                        decode=False,
                                     )
                                     tx_map[address] = block
                                     refs[f"text_{i}"] = block
                                 elif _id == b"##CC":
                                     block = ChannelConversion(
-                                        address=address, stream=stream, mapped=mapped, tx_map=tx_map,
+                                        address=address,
+                                        stream=stream,
+                                        mapped=mapped,
+                                        tx_map=tx_map,
                                     )
                                     refs[f"text_{i}"] = block
                                 else:
@@ -2426,13 +2437,19 @@ class ChannelConversion(_ChannelConversionBase):
 
                                 if _id == b"##TX":
                                     block = get_text_v4(
-                                        address=address, stream=stream, mapped=mapped, decode=False
+                                        address=address,
+                                        stream=stream,
+                                        mapped=mapped,
+                                        decode=False,
                                     )
                                     tx_map[address] = block
                                     refs["default_addr"] = block
                                 elif _id == b"##CC":
                                     block = ChannelConversion(
-                                        address=address, stream=stream, mapped=mapped, tx_map=tx_map,
+                                        address=address,
+                                        stream=stream,
+                                        mapped=mapped,
+                                        tx_map=tx_map,
                                     )
                                     refs["default_addr"] = block
                                 else:
@@ -2454,7 +2471,10 @@ class ChannelConversion(_ChannelConversionBase):
                                     refs[key] = tx_map[address]
                                 else:
                                     block = get_text_v4(
-                                        address=address, stream=stream, mapped=mapped, decode=False
+                                        address=address,
+                                        stream=stream,
+                                        mapped=mapped,
+                                        decode=False,
                                     )
                                     tx_map[address] = block
                                     refs[key] = block
@@ -2465,7 +2485,12 @@ class ChannelConversion(_ChannelConversionBase):
                         if address in tx_map:
                             refs[key] = tx_map[address]
                         else:
-                            block = get_text_v4(address=address, stream=stream, mapped=mapped, decode=False)
+                            block = get_text_v4(
+                                address=address,
+                                stream=stream,
+                                mapped=mapped,
+                                decode=False,
+                            )
                             refs["default_addr"] = block
                             tx_map[address] = block
                     else:
@@ -2799,9 +2824,11 @@ class ChannelConversion(_ChannelConversionBase):
                         vals += b
                     values = np.core.records.fromarrays(
                         [vals] + [values[name] for name in names[1:]],
-                        dtype=[
-                            (name, vals.dtype, vals.shape[1:])
-                        ] + [(name, values[name].dtype, values[name].shape[1:]) for name in names[1:]],
+                        dtype=[(name, vals.dtype, vals.shape[1:])]
+                        + [
+                            (name, values[name].dtype, values[name].shape[1:])
+                            for name in names[1:]
+                        ],
                     )
 
             else:
@@ -2842,9 +2869,11 @@ class ChannelConversion(_ChannelConversionBase):
 
                 values = np.core.records.fromarrays(
                     [vals] + [values[name] for name in names[1:]],
-                    dtype=[
-                        (name, vals.dtype, vals.shape[1:])
-                    ] + [(name, values[name].dtype, values[name].shape[1:]) for name in names[1:]],
+                    dtype=[(name, vals.dtype, vals.shape[1:])]
+                    + [
+                        (name, values[name].dtype, values[name].shape[1:])
+                        for name in names[1:]
+                    ],
                 )
 
             else:
@@ -2863,7 +2892,9 @@ class ChannelConversion(_ChannelConversionBase):
                     try:
                         values = evaluate(v4c.CONV_RAT_TEXT)
                     except TypeError:
-                        values = (P1 * X ** 2 + P2 * X + P3) / (P4 * X ** 2 + P5 * X + P6)
+                        values = (P1 * X ** 2 + P2 * X + P3) / (
+                            P4 * X ** 2 + P5 * X + P6
+                        )
 
         elif conversion_type == v4c.CONVERSION_TYPE_ALG:
             X = values
@@ -2925,10 +2956,7 @@ class ChannelConversion(_ChannelConversionBase):
 
             ret = np.array([None] * len(values), dtype="O")
 
-            phys = [
-                self.referenced_blocks[f"text_{i}"]
-                for i in range(nr)
-            ]
+            phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
 
             default = self.referenced_blocks["default_addr"]
 
@@ -2979,7 +3007,9 @@ class ChannelConversion(_ChannelConversionBase):
                     try:
                         ret = ret.astype("<f8")
                     except:
-                        ret = np.array([np.nan if isinstance(v, bytes) else v for v in ret])
+                        ret = np.array(
+                            [np.nan if isinstance(v, bytes) else v for v in ret]
+                        )
 
                 else:
                     ret = ret.astype(bytes)
@@ -2987,9 +3017,11 @@ class ChannelConversion(_ChannelConversionBase):
                 ret = ret.reshape(shape)
                 values = np.core.records.fromarrays(
                     [ret] + [values[name] for name in names[1:]],
-                    dtype=[
-                        (name, ret.dtype, ret.shape[1:])
-                    ] + [(name, values[name].dtype, values[name].shape[1:]) for name in names[1:]],
+                    dtype=[(name, ret.dtype, ret.shape[1:])]
+                    + [
+                        (name, values[name].dtype, values[name].shape[1:])
+                        for name in names[1:]
+                    ],
                 )
             else:
 
@@ -3028,7 +3060,9 @@ class ChannelConversion(_ChannelConversionBase):
                     try:
                         ret = ret.astype("<f8")
                     except:
-                        ret = np.array([np.nan if isinstance(v, bytes) else v for v in ret])
+                        ret = np.array(
+                            [np.nan if isinstance(v, bytes) else v for v in ret]
+                        )
 
                 else:
                     ret = ret.astype(bytes)
@@ -3038,10 +3072,7 @@ class ChannelConversion(_ChannelConversionBase):
         elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
             nr = self.val_param_nr // 2
 
-            phys = [
-                self.referenced_blocks[f"text_{i}"]
-                for i in range(nr)
-            ]
+            phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
 
             default = self.referenced_blocks["default_addr"]
 
@@ -3091,9 +3122,7 @@ class ChannelConversion(_ChannelConversionBase):
         elif conversion_type == v4c.CONVERSION_TYPE_TTAB:
             nr = self.val_param_nr - 1
 
-            raw_values = [
-                self.referenced_blocks[f"text_{i}"] for i in range(nr)
-            ]
+            raw_values = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
             phys = [self[f"val_{i}"] for i in range(nr)]
             default = self.val_default
 
@@ -3110,15 +3139,9 @@ class ChannelConversion(_ChannelConversionBase):
         elif conversion_type == v4c.CONVERSION_TYPE_TRANS:
             nr = (self.ref_param_nr - 1) // 2
 
-            in_ = [
-                self.referenced_blocks[f"input_{i}_addr"]
-                for i in range(nr)
-            ]
+            in_ = [self.referenced_blocks[f"input_{i}_addr"] for i in range(nr)]
 
-            out_ = [
-                self.referenced_blocks[f"output_{i}_addr"]
-                for i in range(nr)
-            ]
+            out_ = [self.referenced_blocks[f"output_{i}_addr"] for i in range(nr)]
             default = self.referenced_blocks["default_addr"]
 
             new_values = []

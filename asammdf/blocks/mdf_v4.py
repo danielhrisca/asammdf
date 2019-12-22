@@ -130,6 +130,7 @@ __all__ = ["MDF4"]
 try:
     from .cutils import extract, sort_data_block, lengths, get_vlsd_offsets
 except:
+
     def extract(signal_data, is_byte_array):
         size = len(signal_data)
         positions = []
@@ -558,10 +559,15 @@ class MDF4(object):
                 if channel_group.flags & v4c.FLAG_CG_REMOTE_MASTER:
                     block_type = b"##DV"
                     total_size = channel_group.samples_byte_nr * channel_group.cycles_nr
-                    inval_total_size = channel_group.invalidation_bytes_nr * channel_group.cycles_nr
+                    inval_total_size = (
+                        channel_group.invalidation_bytes_nr * channel_group.cycles_nr
+                    )
                 else:
                     block_type = b"##DT"
-                    total_size = (channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr) * channel_group.cycles_nr
+                    total_size = (
+                        channel_group.samples_byte_nr
+                        + channel_group.invalidation_bytes_nr
+                    ) * channel_group.cycles_nr
                     inval_total_size = 0
             else:
                 block_type = b"##DT"
@@ -886,7 +892,7 @@ class MDF4(object):
         self._si_map.clear()
         self._ch_map.clear()
         self._cc_map.clear()
-        print('>>>>', len(self._interned_strings))
+        print(">>>>", len(self._interned_strings))
         self._interned_strings.clear()
 
         self.progress = cg_count, cg_count
@@ -1648,7 +1654,9 @@ class MDF4(object):
                                     + new_invalidation_data[lines * cols :]
                                 )
                             if invalidation_info.block_limit is not None:
-                                new_invalidation_data = new_invalidation_data[:invalidation_info.block_limit]
+                                new_invalidation_data = new_invalidation_data[
+                                    : invalidation_info.block_limit
+                                ]
 
                         inv_size = len(new_invalidation_data)
 
@@ -2616,7 +2624,15 @@ class MDF4(object):
     def _set_temporary_master(self, master):
         self._master = master
 
-    def _get_data_blocks_info(self, address, stream, block_type=b"##DT", mapped=False, total_size=0, inval_total_size=0):
+    def _get_data_blocks_info(
+        self,
+        address,
+        stream,
+        block_type=b"##DT",
+        mapped=False,
+        total_size=0,
+        inval_total_size=0,
+    ):
         info = []
         mapped = not is_file_like(stream)
 
@@ -2887,7 +2903,12 @@ class MDF4(object):
                     address = hl.first_dl_addr
 
                     info = self._get_data_blocks_info(
-                        address, stream, block_type, mapped, total_size, inval_total_size
+                        address,
+                        stream,
+                        block_type,
+                        mapped,
+                        total_size,
+                        inval_total_size,
                     )
         else:
 
@@ -3171,7 +3192,12 @@ class MDF4(object):
                     address = hl.first_dl_addr
 
                     info = self._get_data_blocks_info(
-                        address, stream, block_type, mapped, total_size, inval_total_size
+                        address,
+                        stream,
+                        block_type,
+                        mapped,
+                        total_size,
+                        inval_total_size,
                     )
 
         return info
@@ -4896,9 +4922,8 @@ class MDF4(object):
                 data = (data,)
                 one_piece = True
 
-            channel_invalidation_present = (
-                channel.flags
-                & (v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT)
+            channel_invalidation_present = channel.flags & (
+                v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT
             )
 
             bit_count = channel.bit_count
@@ -5154,9 +5179,13 @@ class MDF4(object):
                                     if axis is None:
                                         axisname = f"axis_{i}"
                                         if cycles:
-                                            axis_values = array([arange(shape[0])] * cycles)
+                                            axis_values = array(
+                                                [arange(shape[0])] * cycles
+                                            )
                                         else:
-                                            axis_values = array([], dtype=f'({shape[0]},)f8')
+                                            axis_values = array(
+                                                [], dtype=f"({shape[0]},)f8"
+                                            )
 
                                     else:
                                         try:
@@ -5247,7 +5276,9 @@ class MDF4(object):
                                     if cycles:
                                         axis_values = array([arange(shape[0])] * cycles)
                                     else:
-                                        axis_values = array([], dtype=f'({shape[0]},)f8')
+                                        axis_values = array(
+                                            [], dtype=f"({shape[0]},)f8"
+                                        )
 
                                 else:
                                     try:
@@ -5611,7 +5642,9 @@ class MDF4(object):
 
                             if kind_ == "b":
                                 pass
-                            elif len(shape_) > 1 and data_type != v4c.DATA_TYPE_BYTEARRAY:
+                            elif (
+                                len(shape_) > 1 and data_type != v4c.DATA_TYPE_BYTEARRAY
+                            ):
                                 vals = self._get_not_byte_aligned_data(
                                     data_bytes, grp, ch_nr
                                 )
@@ -5697,7 +5730,9 @@ class MDF4(object):
                                         vals = vals.view(channel_dtype)
 
                         else:
-                            vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
+                            vals = self._get_not_byte_aligned_data(
+                                data_bytes, grp, ch_nr
+                            )
 
                         if bit_count == 1 and self._single_bit_uint_as_bool:
                             vals = array(vals, dtype=bool)
@@ -5711,7 +5746,9 @@ class MDF4(object):
                                 vals = vals.astype(channel_dtype)
 
                         if master_is_required:
-                            timestamps.append(self.get_master(gp_nr, fragment, one_piece=True))
+                            timestamps.append(
+                                self.get_master(gp_nr, fragment, one_piece=True)
+                            )
                         if channel_invalidation_present:
                             invalidation_bits.append(
                                 self.get_invalidation_bits(gp_nr, channel, fragment)
@@ -5870,7 +5907,10 @@ class MDF4(object):
                         f'wrong data type "{data_type}" for string channel'
                     )
 
-            if data_type < v4c.DATA_TYPE_CANOPEN_DATE or data_type > v4c.DATA_TYPE_CANOPEN_TIME:
+            if (
+                data_type < v4c.DATA_TYPE_CANOPEN_DATE
+                or data_type > v4c.DATA_TYPE_CANOPEN_TIME
+            ):
                 pass
             else:
                 # CANopen date

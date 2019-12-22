@@ -1019,7 +1019,10 @@ class ChannelConversion(_ChannelConversionBase):
 
                     if self.default_addr:
                         self.referenced_blocks["default_addr"] = get_text_v3(
-                            address=self.default_addr, stream=stream, mapped=mapped, decode=False
+                            address=self.default_addr,
+                            stream=stream,
+                            mapped=mapped,
+                            decode=False,
                         )
                     else:
                         self.referenced_blocks["default_addr"] = b""
@@ -1036,7 +1039,10 @@ class ChannelConversion(_ChannelConversionBase):
                         )
                         if values[3 * i + 2]:
                             block = get_text_v3(
-                                address=values[3 * i + 2], stream=stream, mapped=mapped, decode=False
+                                address=values[3 * i + 2],
+                                stream=stream,
+                                mapped=mapped,
+                                decode=False,
                             )
                             self.referenced_blocks[f"text_{i}"] = block
 

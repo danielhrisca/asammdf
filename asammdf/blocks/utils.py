@@ -1122,7 +1122,14 @@ class DataBlockInfo:
     )
 
     def __init__(
-        self, address, block_type, raw_size, size, param, invalidation_block=None, block_limit=None
+        self,
+        address,
+        block_type,
+        raw_size,
+        size,
+        param,
+        invalidation_block=None,
+        block_limit=None,
     ):
         self.address = address
         self.block_type = block_type
@@ -1148,10 +1155,18 @@ class InvalidationBlockInfo(DataBlockInfo):
 
     __slots__ = ("all_valid",)
 
-    def __init__(self, address, block_type, raw_size, size, param, all_valid=False, block_limit=None):
+    def __init__(
+        self,
+        address,
+        block_type,
+        raw_size,
+        size,
+        param,
+        all_valid=False,
+        block_limit=None,
+    ):
         super().__init__(address, block_type, raw_size, size, param, block_limit)
         self.all_valid = all_valid
-
 
     def __repr__(self):
         return (
@@ -1302,8 +1317,8 @@ def extract_can_signal(signal, payload):
     if start_bit + bit_count < vals.shape[1] * 8:
         raise MdfException(
             f'Could not extract signal "{signal.name}" with start '
-            f'bit {signal.get_startbit()} and bit count {signal.size} '
-            f'from the payload with shape {vals.shape}'
+            f"bit {signal.get_startbit()} and bit count {signal.size} "
+            f"from the payload with shape {vals.shape}"
         )
 
     byte_size, r = divmod(bit_offset + bit_count, 8)
@@ -1452,7 +1467,6 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
                     "t": t,
                     "is_max": np.all(samples == max_val),
                 }
-
 
         else:
             # select only the CAN messages where the multiplexor value is

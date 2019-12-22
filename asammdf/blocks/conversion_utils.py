@@ -141,7 +141,9 @@ def conversion_transfer(conversion, version=3):
                         kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"]
 
                     new_conversion = v3b.ChannelConversion(**kargs)
-                    new_conversion.referenced_blocks["default_addr"] = conversion.referenced_blocks["default_addr"]
+                    new_conversion.referenced_blocks[
+                        "default_addr"
+                    ] = conversion.referenced_blocks["default_addr"]
 
                     conversion = new_conversion
 

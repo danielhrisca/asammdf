@@ -543,7 +543,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         if self._show_filter_tree:
             widgets = (self.channels_tree, self.filter_tree)
         else:
-            widgets = (self.channels_tree, )
+            widgets = (self.channels_tree,)
         for widget in widgets:
             iterator = QtWidgets.QTreeWidgetItemIterator(widget)
             signals = set()
@@ -2519,9 +2519,15 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             super().keyPressEvent(event)
 
     def aspect_changed(self, index):
-        if self.aspects.tabText(self.aspects.currentIndex()) == "Resample" and not self.raster_channel.count():
+        if (
+            self.aspects.tabText(self.aspects.currentIndex()) == "Resample"
+            and not self.raster_channel.count()
+        ):
             self.raster_channel.addItems(self.channels_db_items)
-        elif self.aspects.tabText(self.aspects.currentIndex()) == "Filter" and not self._show_filter_tree:
+        elif (
+            self.aspects.tabText(self.aspects.currentIndex()) == "Filter"
+            and not self._show_filter_tree
+        ):
             self._show_filter_tree = True
 
             widget = self.filter_tree

@@ -61,7 +61,9 @@ def excepthook(exc_type, exc_value, tracebackobj):
     print("".join(traceback.format_tb(tracebackobj)))
     print("{0}: {1}".format(exc_type, exc_value))
 
-    ErrorDialog(message=errmsg, trace=msg, title="The following error was triggered").exec_()
+    ErrorDialog(
+        message=errmsg, trace=msg, title="The following error was triggered"
+    ).exec_()
 
 
 def extract_mime_names(data):
@@ -156,4 +158,3 @@ class WorkerThread(Thread):
             self.output = self._target(*self._args, **self._kwargs)
         except:
             self.error = traceback.format_exc()
-

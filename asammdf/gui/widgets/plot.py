@@ -1753,9 +1753,9 @@ class _Plot(pg.PlotWidget):
         if self.signals:
             ids = {id(s.timestamps): s.timestamps for s in self.signals}
 
-#            self.all_timebase = self.timebase = np.unique(
-#                np.concatenate([v for v in ids.values()])
-#            )
+            #            self.all_timebase = self.timebase = np.unique(
+            #                np.concatenate([v for v in ids.values()])
+            #            )
             self.all_timebase = self.timebase = np.unique(
                 reduce(np.union1d, [v for v in ids.values()])
             )

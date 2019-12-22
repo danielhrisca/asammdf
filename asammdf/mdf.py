@@ -169,6 +169,7 @@ class MDF(object):
 
     def _transfer_events(self, other):
         self._link_attributes()
+
         def get_scopes(event, events):
             if event.scopes:
                 return event.scopes
@@ -376,16 +377,17 @@ class MDF(object):
                         break
                 else:
                     found = False
-#                    raise MdfException(
-#                        f"CAN_DataFrame or CAN_ErrorFrame not found in group {index}"
-#                    )
+                    #                    raise MdfException(
+                    #                        f"CAN_DataFrame or CAN_ErrorFrame not found in group {index}"
+                    #                    )
                     group.CAN_logging = False
 
                 if found:
                     channel = channels[ch_cntr]
 
                     frame_bytes = range(
-                        channel.byte_offset, channel.byte_offset + channel.bit_count // 8
+                        channel.byte_offset,
+                        channel.byte_offset + channel.bit_count // 8,
                     )
 
                     for i, channel in enumerate(channels):
@@ -2962,7 +2964,9 @@ class MDF(object):
 
         for group in gps:
             grp = self.groups[group]
-            data = self._load_data(grp, record_offset=record_offset, record_count=record_count)
+            data = self._load_data(
+                grp, record_offset=record_offset, record_count=record_count
+            )
             parents, dtypes = self._prepare_record(grp)
 
             channel_indexes = list(gps[group])
@@ -3496,7 +3500,7 @@ class MDF(object):
         ignore_value2text_conversions=False,
         use_interpolation=True,
         only_basenames=False,
-        chunk_ram_size=200*1024*1024,
+        chunk_ram_size=200 * 1024 * 1024,
         interpolate_outwards_with_nan=False,
     ):
         """ generator that yields pandas DataFrame's that should not exceed
@@ -3614,7 +3618,7 @@ class MDF(object):
                 master = np.array([], dtype="<f4")
 
         master_ = master
-        channel_count = sum(len(gp.channels)-1 for gp in self.groups) + 1
+        channel_count = sum(len(gp.channels) - 1 for gp in self.groups) + 1
         # approximation with all float64 dtype
         itemsize = channel_count * 8
         # use 200MB DataFrame chunks
@@ -3626,7 +3630,7 @@ class MDF(object):
 
         for i in range(chunks):
 
-            master = master_[chunk_count*i: chunk_count*(i+1)]
+            master = master_[chunk_count * i : chunk_count * (i + 1)]
             start = master[0]
             end = master[-1]
 
@@ -3646,7 +3650,9 @@ class MDF(object):
                 if group_cycles == 0 and empty_channels == "skip":
                     continue
 
-                record_offset = max(np.searchsorted(masters[group_index], start).flatten()[0] - 1, 0)
+                record_offset = max(
+                    np.searchsorted(masters[group_index], start).flatten()[0] - 1, 0
+                )
                 stop = np.searchsorted(masters[group_index], end).flatten()[0]
                 record_count = min(stop - record_offset + 1, group_cycles)
 
@@ -3672,7 +3678,9 @@ class MDF(object):
                 for sig in signals:
                     if len(sig) == 0:
                         if empty_channels == "zeros":
-                            sig.samples = np.zeros(len(df.index), dtype=sig.samples.dtype)
+                            sig.samples = np.zeros(
+                                len(df.index), dtype=sig.samples.dtype
+                            )
                             sig.timestamps = master
                         else:
                             continue
@@ -3686,22 +3694,27 @@ class MDF(object):
 
                         for signal in signals:
                             conversion = signal.conversion
-                            if conversion and conversion.conversion_type < text_conversion:
+                            if (
+                                conversion
+                                and conversion.conversion_type < text_conversion
+                            ):
                                 signal.samples = conversion.convert(signal.samples)
 
                     else:
                         for signal in signals:
                             if signal.conversion:
-                                signal.samples = signal.conversion.convert(signal.samples)
+                                signal.samples = signal.conversion.convert(
+                                    signal.samples
+                                )
 
-                if use_interpolation and not np.array_equal(master, signals[0].timestamps):
+                if use_interpolation and not np.array_equal(
+                    master, signals[0].timestamps
+                ):
 
                     if interpolate_outwards_with_nan:
                         timestamps = signals[0].timestamps
                         idx = np.argwhere(
-                            (master >= timestamps[0])
-                            &
-                            (master <= timestamps[-1])
+                            (master >= timestamps[0]) & (master <= timestamps[-1])
                         ).flatten()
 
                     signals = [
@@ -3764,7 +3777,9 @@ class MDF(object):
                         else:
                             if reduce_memory_usage:
                                 sig.samples = downcast(sig.samples)
-                            df[channel_name] = pd.Series(sig.samples, index=sig.timestamps)
+                            df[channel_name] = pd.Series(
+                                sig.samples, index=sig.timestamps
+                            )
 
                 if self._callback:
                     self._callback(group_index + 1, groups_nr)
@@ -3971,9 +3986,7 @@ class MDF(object):
                 if interpolate_outwards_with_nan:
                     timestamps = signals[0].timestamps
                     idx = np.argwhere(
-                        (master >= timestamps[0])
-                        &
-                        (master <= timestamps[-1])
+                        (master >= timestamps[0]) & (master <= timestamps[-1])
                     ).flatten()
 
                 signals = [
