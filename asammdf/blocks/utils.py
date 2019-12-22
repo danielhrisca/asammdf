@@ -199,7 +199,7 @@ def get_text_v3(address, stream, mapped=False, decode=True):
     """
 
     if address == 0:
-        return ""
+        return "" if decode else b""
 
     if mapped:
         (size,) = UINT16_uf(stream, address + 2)
@@ -238,7 +238,7 @@ def get_text_v4(address, stream, mapped=False, decode=True):
     """
 
     if address == 0:
-        return ""
+        return "" if decode else b""
 
     if mapped:
         (size,) = UINT64_uf(stream, address + 8)

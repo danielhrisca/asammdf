@@ -892,7 +892,7 @@ class MDF4(object):
         self._si_map.clear()
         self._ch_map.clear()
         self._cc_map.clear()
-        print(">>>>", len(self._interned_strings))
+
         self._interned_strings.clear()
 
         self.progress = cg_count, cg_count
@@ -914,10 +914,15 @@ class MDF4(object):
 
         unique_names = UniqueDB()
 
-        composition = []
-        composition_channels = []
+        if channel_composition:
+            composition = []
+            composition_channels = []
 
-        path_separator = chr(grp.channel_group.path_separator or ord("\\"))
+        if grp.channel_group.path_separator:
+            path_separator = chr(grp.channel_group.path_separator)
+        else:
+            path_separator = "\\"
+
         while ch_addr:
             # read channel block and create channel object
 
@@ -939,7 +944,7 @@ class MDF4(object):
             )
 
             if self._remove_source_from_channel_names:
-                channel.name = channel.name.split(path_separator)[0]
+                channel.name, _ = channel.name.split(path_separator, 1)
 
             entry = (dg_cntr, ch_cntr)
             self._ch_map[ch_addr] = entry
@@ -1026,10 +1031,16 @@ class MDF4(object):
             # go to next channel of the current channel group
             ch_addr = channel.next_ch_addr
 
-        composition_dtype = [
-            (unique_names.get_unique_name(channel.name), channel.dtype_fmt)
-            for channel in sorted(composition_channels)
-        ]
+        if channel_composition:
+            composition_channels.sort()
+            composition_dtype = [
+                (unique_names.get_unique_name(channel.name), channel.dtype_fmt)
+                for channel in composition_channels
+            ]
+
+        else:
+            composition = None
+            composition_dtype = None
 
         return ch_cntr, composition, composition_dtype
 

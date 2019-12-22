@@ -2368,15 +2368,28 @@ class ChannelConversion(_ChannelConversionBase):
 
             self.referenced_blocks = None
 
-            self.name = get_text_v4(self.name_addr, stream, mapped=mapped)
             tx_map = kwargs.get("tx_map", {})
+
+            addr = self.name_addr
+            if addr in tx_map:
+                self.name = tx_map[addr]
+            else:
+                self.name = get_text_v4(addr, stream, mapped=mapped)
+                tx_map[addr] = self.name
+
             addr = self.unit_addr
             if addr in tx_map:
                 self.unit = tx_map[addr]
             else:
                 self.unit = get_text_v4(addr, stream, mapped=mapped)
                 tx_map[addr] = self.unit
-            self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
+
+            addr = self.comment_addr
+            if addr in tx_map:
+                self.comment = tx_map[addr]
+            else:
+                self.comment = get_text_v4(addr, stream, mapped=mapped)
+                tx_map[addr] = self.comment
 
             conv_type = conv
 
@@ -2430,7 +2443,7 @@ class ChannelConversion(_ChannelConversionBase):
                         address = self.default_addr
                         if address:
                             if address in tx_map:
-                                refs[f"default_addr"] = tx_map[address]
+                                refs[f"default_addr"] = tx_map[address] or b""
                             else:
                                 stream.seek(address)
                                 _id = stream.read(4)
@@ -2483,7 +2496,7 @@ class ChannelConversion(_ChannelConversionBase):
                     address = self.default_addr
                     if address:
                         if address in tx_map:
-                            refs[key] = tx_map[address]
+                            refs[key] = tx_map[address] or b""
                         else:
                             block = get_text_v4(
                                 address=address,
