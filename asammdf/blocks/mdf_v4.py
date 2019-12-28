@@ -357,19 +357,19 @@ class MDF4(object):
                 " Update of cycle counters for CG/CA blocks required"
             )
 
-            logger.warning(message)
+            logger.info(message)
         if flags & 1 << 1:
             message = f"Unfinalised file {self.name}: Update of cycle counters for SR blocks required"
 
-            logger.warning(message)
+            logger.info(message)
         if flags & 1 << 2:
             message = f"Unfinalised file {self.name}: Update of length for last DT block required"
 
-            logger.warning(message)
+            logger.info(message)
         if flags & 1 * 8:
             message = f"Unfinalised file {self.name}: Update of length for last RD block required"
 
-            logger.warning(message)
+            logger.info(message)
         if flags & 1 << 4:
             message = (
                 f"Unfinalised file {self.name}:"
@@ -377,7 +377,7 @@ class MDF4(object):
                 " of DL blocks required"
             )
 
-            logger.warning(message)
+            logger.info(message)
         if flags & 1 << 5:
             message = (
                 f"Unfinalised file {self.name}:"
@@ -385,7 +385,7 @@ class MDF4(object):
                 " in VLSD CG block required"
             )
 
-            logger.warning(message)
+            logger.info(message)
         if flags & 1 << 6:
             message = (
                 f"Unfinalised file {self.name}:"
@@ -393,7 +393,7 @@ class MDF4(object):
                 " in case a VLSD CG block is used"
             )
 
-            logger.warning(message)
+            logger.info(message)
 
         return flags == 0
 
@@ -3271,6 +3271,7 @@ class MDF4(object):
         use_display_names=None,
         single_bit_uint_as_bool=None,
         integer_interpolation=None,
+        copy_on_get=None,
     ):
         """ configure MDF parameters
 
@@ -3294,6 +3295,8 @@ class MDF4(object):
 
                 * 0 - repeat previous sample
                 * 1 - use linear interpolation
+        copy_on_get : bool
+            copy arrays in the get method
 
         """
 
@@ -3311,6 +3314,9 @@ class MDF4(object):
 
         if integer_interpolation in (0, 1):
             self._integer_interpolation = int(integer_interpolation)
+
+        if copy_on_get is not None:
+            self.copy_on_get = copy_on_get
 
     def append(self, signals, source_info="Python", common_timebase=False, units=None):
         """

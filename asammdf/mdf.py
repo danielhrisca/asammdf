@@ -11,6 +11,7 @@ from copy import deepcopy
 from struct import unpack
 from shutil import copy
 from pathlib import Path
+from time import perf_counter
 
 import canmatrix
 import numpy as np
@@ -166,6 +167,33 @@ class MDF(object):
 
     def __del__(self):
         self.close()
+
+    def __lt__(self, other):
+        if self.header.start_time < other.header.start_time:
+            return True
+        elif self.header.start_time > other.header.start_time:
+            return False
+        else:
+            t_min = []
+            for i, group in enumerate(self.groups):
+                cycles_nr = group.channel_group.cycles_nr
+                if cycles_nr:
+                    master_min = self.get_master(i, record_offset=0, record_count=1)
+                    if len(master_min):
+                        t_min.append(master_min[0])
+
+            other_t_min = []
+            for i, group in enumerate(other.groups):
+                cycles_nr = group.channel_group.cycles_nr
+                if cycles_nr:
+                    master_min = other.get_master(i, record_offset=0, record_count=1)
+                    if len(master_min):
+                        other_t_min.append(master_min[0])
+
+            if not t_min or not other_t_min:
+                return True
+            else:
+                return min(t_min) < min(other_t_min)
 
     def _transfer_events(self, other):
         self._link_attributes()
@@ -501,6 +529,8 @@ class MDF(object):
 
         cg_nr = -1
 
+        self.configure(copy_on_get=False)
+
         # walk through all groups and get all channels
         for i, group in enumerate(self.groups):
 
@@ -643,6 +673,7 @@ class MDF(object):
                 return
 
         out._transfer_events(self)
+        self.configure(copy_on_get=True)
         if self._callback:
             out._callback = out._mdf._callback = self._callback
         return out
@@ -699,6 +730,7 @@ class MDF(object):
             version = validate_version_argument(version)
 
         out = MDF(version=version)
+        self.configure(copy_on_get=False)
 
         if whence == 1:
             timestamps = []
@@ -983,6 +1015,8 @@ class MDF(object):
 
             if self._terminate:
                 return
+
+        self.configure(copy_on_get=True)
 
         out._transfer_events(self)
         if self._callback:
@@ -1656,6 +1690,8 @@ class MDF(object):
                 else:
                     gps[group].add(index)
 
+        self.configure(copy_on_get=False)
+
         # see if there are excluded channels in the filter list
         for group_index, indexes in gps.items():
             grp = self.groups[group_index]
@@ -1872,6 +1908,8 @@ class MDF(object):
             if self._terminate:
                 return
 
+        self.configure(copy_on_get=True)
+
         mdf._transfer_events(self)
         if self._callback:
             mdf._callback = mdf._mdf._callback = self._callback
@@ -2055,6 +2093,8 @@ class MDF(object):
         for mdf_index, (offset, mdf) in enumerate(zip(offsets, files)):
             if not isinstance(mdf, MDF):
                 mdf = MDF(mdf)
+
+            mdf.configure(copy_on_get=False)
 
             try:
                 for can_id, info in mdf.can_logging_db.items():
@@ -2312,6 +2352,8 @@ class MDF(object):
 
                 last_timestamps[i] = last_timestamp
 
+            mdf.configure(copy_on_get=True)
+
             if not input_types[mdf_index]:
                 mdf.close()
 
@@ -2400,6 +2442,8 @@ class MDF(object):
         for mdf_index, (offset, mdf) in enumerate(zip(offsets, files)):
             if not isinstance(mdf, MDF):
                 mdf = MDF(mdf)
+
+            mdf.configure(copy_on_get=False)
 
             cg_offset = cg_nr + 1
 
@@ -2570,6 +2614,8 @@ class MDF(object):
 
             if callback:
                 callback(mdf_index, files_nr)
+
+            mdf.configure(copy_on_get=True)
 
             if not input_types[mdf_index]:
                 mdf.close()
@@ -4330,6 +4376,7 @@ class MDF(object):
         use_display_names=None,
         single_bit_uint_as_bool=None,
         integer_interpolation=None,
+        copy_on_get=None,
     ):
         """ configure MDF parameters
 
@@ -4353,6 +4400,8 @@ class MDF(object):
 
                 * 0 - repeat previous sample
                 * 1 - use linear interpolation
+        copy_on_get : bool
+            copy arrays in the get method
 
         """
 
@@ -4362,6 +4411,7 @@ class MDF(object):
             use_display_names=use_display_names,
             single_bit_uint_as_bool=single_bit_uint_as_bool,
             integer_interpolation=integer_interpolation,
+            copy_on_get=copy_on_get,
         )
         self._link_attributes()
 

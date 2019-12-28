@@ -148,6 +148,8 @@ Thanks to all who contributed with commits to *asammdf*:
 
 ```shell
 pip install asammdf
+# for the GUI 
+pip install asammdf[gui]
 # or for anaconda
 conda install -c conda-forge asammdf
 ```
