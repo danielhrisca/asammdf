@@ -1632,6 +1632,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             signals = self.mdf.select(
                 signals_,
                 ignore_value2text_conversions=self.ignore_value2text_conversions,
+                copy_master=False,
             )
 
             for sig, sig_ in zip(signals, signals_):
@@ -1830,6 +1831,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 for sig in self.mdf.select(
                     measured_signals_,
                     ignore_value2text_conversions=self.ignore_value2text_conversions,
+                    copy_master=False,
                 )
             }
 
@@ -1869,6 +1871,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 for sig in self.mdf.select(
                     required_channels,
                     ignore_value2text_conversions=self.ignore_value2text_conversions,
+                    copy_master=False,
                 )
             }
 

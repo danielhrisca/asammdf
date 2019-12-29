@@ -804,7 +804,10 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                     new_signals = []
                     for file_index in sorted(selections):
                         channels = selections[file_index]
-                        signals = self.files.widget(file_index).mdf.select(channels)
+                        signals = self.files.widget(file_index).mdf.select(
+                            channels,
+                            copy_master=False,
+                        )
                         for sig, entry in zip(signals, channels):
                             sig.tooltip = f'{sig.name}\n@ {self.files.widget(file_index).file_name}'
                             sig.name = f'{file_index+1}: {sig.name}'

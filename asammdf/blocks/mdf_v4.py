@@ -5489,9 +5489,8 @@ class MDF4(object):
                 if one_piece:
 
                     fragment = data[0]
-                    data_bytes, offset, _count, invalidation_bytes = fragment
-                    record_start = offset
-                    record_count = _count
+                    data_bytes, record_start, record_count, invalidation_bytes = fragment
+
                     try:
                         parent, bit_offset = parents[ch_nr]
                     except KeyError:
@@ -5602,7 +5601,7 @@ class MDF4(object):
                     else:
                         vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
 
-                    if bit_count == 1 and self._single_bit_uint_as_bool:
+                    if self._single_bit_uint_as_bool and bit_count == 1:
                         vals = array(vals, dtype=bool)
                     else:
                         if not channel.dtype_fmt:
