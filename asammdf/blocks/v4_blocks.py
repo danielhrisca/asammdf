@@ -2410,7 +2410,10 @@ class ChannelConversion(_ChannelConversionBase):
                         address = self[f"text_{i}"]
                         if address:
                             if address in tx_map:
-                                refs[f"text_{i}"] = tx_map[address]
+                                txt = tx_map[address]
+                                if not isinstance(txt, bytes):
+                                    txt = txt.encode('utf-8')
+                                refs[f"text_{i}"] = txt
                             else:
                                 stream.seek(address)
                                 _id = stream.read(4)
@@ -2443,7 +2446,10 @@ class ChannelConversion(_ChannelConversionBase):
                         address = self.default_addr
                         if address:
                             if address in tx_map:
-                                refs[f"default_addr"] = tx_map[address] or b""
+                                txt = tx_map[address] or b""
+                                if not isinstance(txt, bytes):
+                                    txt = txt.encode('utf-8')
+                                refs[f"default_addr"] = txt
                             else:
                                 stream.seek(address)
                                 _id = stream.read(4)
@@ -2481,7 +2487,10 @@ class ChannelConversion(_ChannelConversionBase):
 
                             if address:
                                 if address in tx_map:
-                                    refs[key] = tx_map[address]
+                                    txt = tx_map[address] or b""
+                                    if not isinstance(txt, bytes):
+                                        txt = txt.encode('utf-8')
+                                    refs[key] = txt
                                 else:
                                     block = get_text_v4(
                                         address=address,
@@ -2496,7 +2505,10 @@ class ChannelConversion(_ChannelConversionBase):
                     address = self.default_addr
                     if address:
                         if address in tx_map:
-                            refs[key] = tx_map[address] or b""
+                            txt = tx_map[address] or b""
+                            if not isinstance(txt, bytes):
+                                txt = txt.encode('utf-8')
+                            refs["default_addr"] = txt
                         else:
                             block = get_text_v4(
                                 address=address,
@@ -3121,7 +3133,11 @@ class ChannelConversion(_ChannelConversionBase):
                     if isinstance(item, bytes):
                         ret[idx_eq[idx_]] = item
                     else:
-                        ret[idx_eq[idx_]] = item.convert(values[idx_eq[idx_]])
+                        try:
+                            ret[idx_eq[idx_]] = item.convert(values[idx_eq[idx_]])
+                        except:
+                            print(self)
+                            raise
 
             if all(isinstance(v, bytes) for v in ret):
                 ret = ret.astype(bytes)
