@@ -345,6 +345,11 @@ class MDF4(object):
             self.version = version
             self.name = Path("new.mf4")
 
+        if self.version >= "4.20":
+            self._column_storage = kwargs.get("column_storage", True)
+        else:
+            self._column_storage = False
+
     def __del__(self):
         self.close()
 
@@ -3338,7 +3343,7 @@ class MDF4(object):
             if you know for sure that all appended channels share the same
             time base
         units : dict
-            will contain the signal units mapped to the singal names when
+            will contain the signal units mapped to the signal names when
             appending a pandas DataFrame
 
         Examples
@@ -3375,6 +3380,12 @@ class MDF4(object):
             self._append_dataframe(signals, source_info, units=units)
             return
 
+        if not signals:
+            return
+
+        source_block = SourceInformation()
+        source_block.name = source_block.path = source_info
+
         interp_mode = self._integer_interpolation
 
         prepare_record = True
@@ -3405,6 +3416,10 @@ class MDF4(object):
         else:
             t = []
 
+        _column_storage = True
+        if _column_storage:
+            return self._append_column_oriented(signals, source_block)
+
         dg_cntr = len(self.groups)
 
         gp = Group(None)
@@ -3417,6 +3432,10 @@ class MDF4(object):
 
         # channel group
         kwargs = {"cycles_nr": 0, "samples_byte_nr": 0}
+        if self.version < "4.20":
+            kwargs["block_len"] = v4c.CG_BLOCK_SIZE
+        else:
+            kwargs["block_len"] = v4c.CG_RM_BLOCK_SIZE
         gp.channel_group = ChannelGroup(**kwargs)
         gp.channel_group.acq_name = source_info
 
@@ -3470,9 +3489,6 @@ class MDF4(object):
         else:
             time_name, sync_type = "time", v4c.SYNC_TYPE_TIME
             time_unit = "s"
-
-        source_block = SourceInformation()
-        source_block.name = source_block.path = source_info
 
         gp.channel_group.acq_source = source_block
 
@@ -4064,8 +4080,10 @@ class MDF4(object):
                 )
             )
 
-            fields.append(inval_bits)
-            types.append(("invalidation_bytes", inval_bits.dtype, inval_bits.shape[1:]))
+            if self.version < "4.20":
+
+                fields.append(inval_bits)
+                types.append(("invalidation_bytes", inval_bits.dtype, inval_bits.shape[1:]))
 
         gp.channel_group.cycles_nr = cycles_nr
         gp.channel_group.samples_byte_nr = offset
@@ -4090,6 +4108,211 @@ class MDF4(object):
         del signals
 
         size = len(samples) * samples.itemsize
+
+        if size:
+            if self.version < "4.20":
+                data_address = self._tempfile.tell()
+                gp.data_location = v4c.LOCATION_TEMPORARY_FILE
+                samples.tofile(self._tempfile)
+
+                chunk = self._write_fragment_size // samples.itemsize
+                chunk *= samples.itemsize
+
+                while size:
+
+                    if size > chunk:
+                        gp.data_blocks.append(
+                            DataBlockInfo(
+                                address=data_address,
+                                block_type=v4c.DT_BLOCK,
+                                raw_size=chunk,
+                                size=chunk,
+                                param=0,
+                            )
+                        )
+                        data_address += chunk
+                        size -= chunk
+                    else:
+                        gp.data_blocks.append(
+                            DataBlockInfo(
+                                address=data_address,
+                                block_type=v4c.DT_BLOCK,
+                                raw_size=size,
+                                size=size,
+                                param=0,
+                            )
+                        )
+                        size = 0
+            else:
+                data_address = self._tempfile.tell()
+                gp.data_location = v4c.LOCATION_TEMPORARY_FILE
+                samples.tofile(self._tempfile)
+
+                chunk = self._write_fragment_size // samples.itemsize
+                chunk *= samples.itemsize
+
+                if invalidation_bytes_nr:
+                    invalidation_address = self._tempfile.tell()
+                    inval_bits.tofile(self._tempfile)
+
+                while size:
+
+                    if size > chunk:
+                        gp.data_blocks.append(
+                            DataBlockInfo(
+                                address=data_address,
+                                block_type=v4c.DT_BLOCK,
+                                raw_size=chunk,
+                                size=chunk,
+                                param=0,
+                            )
+                        )
+                        data_address += chunk
+                        size -= chunk
+                        if invalidation_bytes_nr:
+                            count = chunk // samples.itemsize
+                            gp.data_blocks[-1].invalidation_block = InvalidationBlockInfo(
+                                address=invalidation_address,
+                                block_type=v4c.DT_BLOCK,
+                                raw_size=count*invalidation_bytes_nr,
+                                size=count*invalidation_bytes_nr,
+                                param=None,
+                            )
+                            invalidation_address += count*invalidation_bytes_nr
+                    else:
+                        gp.data_blocks.append(
+                            DataBlockInfo(
+                                address=data_address,
+                                block_type=v4c.DT_BLOCK,
+                                raw_size=size,
+                                size=size,
+                                param=0,
+                            )
+                        )
+                        if invalidation_bytes_nr:
+                            count = size // samples.itemsize
+                            gp.data_blocks[-1].invalidation_block = InvalidationBlockInfo(
+                                address=invalidation_address,
+                                block_type=v4c.DT_BLOCK,
+                                raw_size=count*invalidation_bytes_nr,
+                                size=count*invalidation_bytes_nr,
+                                param=None,
+                            )
+                        size = 0
+        else:
+            gp.data_location = v4c.LOCATION_TEMPORARY_FILE
+
+    def _append_column_oriented(self, signals, source_block):
+        defined_texts = {}
+        si_map = self._si_map
+        cc_map = self._cc_map
+
+        # setup all blocks related to the time master channel
+
+        file = self._tempfile
+        tell = file.tell
+        seek = file.seek
+
+        seek(0, 2)
+
+        dg_cntr = len(self.groups)
+
+        # add the master group
+
+        gp = Group(None)
+        gp.signal_data = gp_sdata = []
+        gp.signal_data_size = gp_sdata_size = []
+        gp.channels = gp_channels = []
+        gp.channel_dependencies = gp_dep = []
+        gp.signal_types = gp_sig_types = []
+        gp.logging_channels = []
+
+        samples = signals[0].timestamps
+
+        cycles_nr = len(samples)
+
+        # channel group
+        kwargs = {"cycles_nr": cycles_nr, "samples_byte_nr": 0, "block_len": v4c.CG_RM_BLOCK_SIZE}
+        gp.channel_group = ChannelGroup(**kwargs)
+        gp.channel_group.acq_name = source_block.name
+
+        self.groups.append(gp)
+
+        ch_cntr = 0
+        types = []
+        parents = {}
+        ch_cntr = 0
+        offset = 0
+
+        prepare_record = True
+
+        master_metadata = signals[0].master_metadata
+        if master_metadata:
+            time_name, sync_type = master_metadata
+            if sync_type in (0, 1):
+                time_unit = "s"
+            elif sync_type == 2:
+                time_unit = "deg"
+            elif sync_type == 3:
+                time_unit = "m"
+            elif sync_type == 4:
+                time_unit = "index"
+        else:
+            time_name, sync_type = "time", v4c.SYNC_TYPE_TIME
+            time_unit = "s"
+
+        gp.channel_group.acq_source = source_block
+        # time channel
+        t_type, t_size = fmt_to_datatype_v4(samples.dtype, samples.shape)
+        kwargs = {
+            "channel_type": v4c.CHANNEL_TYPE_MASTER,
+            "data_type": t_type,
+            "sync_type": sync_type,
+            "byte_offset": 0,
+            "bit_offset": 0,
+            "bit_count": t_size,
+        }
+
+        ch = Channel(**kwargs)
+        ch.unit = time_unit
+        ch.name = time_name
+        ch.source = source_block
+        name = time_name
+
+        gp_channels.append(ch)
+
+        gp_sdata.append(None)
+        gp_sdata_size.append(0)
+        self.channels_db.add(name, (dg_cntr, ch_cntr))
+        self.masters_db[dg_cntr] = 0
+        # data group record parents
+        parents[ch_cntr] = name, 0
+
+        # time channel doesn't have channel dependencies
+        gp_dep.append(None)
+
+        types.append((name, samples.dtype))
+
+        offset += t_size // 8
+        ch_cntr += 1
+
+        gp_sig_types.append(0)
+
+        gp.channel_group.samples_byte_nr = offset
+
+        # data group
+        gp.data_group = DataGroup()
+
+        # data block
+        types = dtype(types)
+
+        gp.sorted = True
+        gp.types = types
+        gp.parents = parents
+
+        size = cycles_nr * samples.itemsize
+
+        dg_cntr += 1
 
         if size:
             data_address = self._tempfile.tell()
@@ -4126,6 +4349,620 @@ class MDF4(object):
                     size = 0
         else:
             gp.data_location = v4c.LOCATION_TEMPORARY_FILE
+
+        for signal in signals:
+            gp = Group(None)
+            gp.signal_data = gp_sdata = []
+            gp.signal_data_size = gp_sdata_size = []
+            gp.channels = gp_channels = []
+            gp.channel_dependencies = gp_dep = []
+            gp.signal_types = gp_sig_types = []
+            gp.logging_channels = []
+
+            # channel group
+            kwargs = {"cycles_nr": cycles_nr, "samples_byte_nr": 0, "block_len": v4c.CG_RM_BLOCK_SIZE}
+            gp.channel_group = ChannelGroup(**kwargs)
+            gp.channel_group.acq_name = source_block.name
+            gp.channel_group.acq_source = source_block
+
+            self.groups.append(gp)
+
+            types = []
+            parents = {}
+            ch_cntr = 0
+            offset = 0
+            field_names = UniqueDB()
+
+            sig = signal
+            samples = sig.samples
+            sig_dtype = samples.dtype
+            sig_shape = samples.shape
+            names = sig_dtype.names
+            name = signal.name
+
+            if names is None:
+                sig_type = v4c.SIGNAL_TYPE_SCALAR
+                if sig_dtype.kind in "SV":
+                    sig_type = v4c.SIGNAL_TYPE_STRING
+            else:
+                prepare_record = False
+                if names in (v4c.CANOPEN_TIME_FIELDS, v4c.CANOPEN_DATE_FIELDS):
+                    sig_type = v4c.SIGNAL_TYPE_CANOPEN
+                elif names[0] != sig.name:
+                    sig_type = v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION
+                else:
+                    sig_type = v4c.SIGNAL_TYPE_ARRAY
+
+            gp_sig_types.append(sig_type)
+
+            # first add the signals in the simple signal list
+            if sig_type == v4c.SIGNAL_TYPE_SCALAR:
+
+                # compute additional byte offset for large records size
+                s_type, s_size = fmt_to_datatype_v4(sig_dtype, sig_shape)
+
+                byte_size = s_size // 8 or 1
+
+                if sig_dtype.kind == "u" and signal.bit_count <= 4:
+                    s_size = signal.bit_count
+
+                if signal.stream_sync:
+                    channel_type = v4c.CHANNEL_TYPE_SYNC
+                    if signal.attachment:
+                        at_data, at_name = signal.attachment
+                        attachment_addr = self.attach(
+                            at_data, at_name, mime="video/avi", embedded=False
+                        )
+                        data_block_addr = attachment_addr
+                    else:
+                        data_block_addr = 0
+
+                    sync_type = v4c.SYNC_TYPE_TIME
+                else:
+                    channel_type = v4c.CHANNEL_TYPE_VALUE
+                    data_block_addr = 0
+                    sync_type = v4c.SYNC_TYPE_NONE
+
+                kwargs = {
+                    "channel_type": channel_type,
+                    "sync_type": sync_type,
+                    "bit_count": s_size,
+                    "byte_offset": offset,
+                    "bit_offset": 0,
+                    "data_type": s_type,
+                    "data_block_addr": data_block_addr,
+                    "flags": 0,
+                }
+
+                if signal.invalidation_bits is not None:
+                    invalidation_bits = signal.invalidation_bits
+                    kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                    kwargs["pos_invalidation_bit"] = 0
+                else:
+                    invalidation_bits = None
+
+                ch = Channel(**kwargs)
+                ch.name = name
+                ch.unit = signal.unit
+                ch.comment = signal.comment
+                ch.display_name = signal.display_name
+
+                # conversions for channel
+                if signal.raw:
+                    ch.conversion = conversion_transfer(signal.conversion, version=4)
+
+                # source for channel
+                source = signal.source
+                if source:
+                    if source in si_map:
+                        ch.source = si_map[source]
+                    else:
+                        new_source = SourceInformation(
+                            source_type=source.source_type, bus_type=source.bus_type
+                        )
+                        new_source.name = source.name
+                        new_source.path = source.path
+                        new_source.comment = source.comment
+
+                        si_map[source] = new_source
+
+                        ch.source = new_source
+
+                gp_channels.append(ch)
+
+                offset = byte_size
+
+                gp_sdata.append(None)
+                gp_sdata_size.append(0)
+                entry = (dg_cntr, ch_cntr)
+                self.channels_db.add(name, entry)
+                if ch.display_name:
+                    self.channels_db.add(ch.display_name, entry)
+
+                # update the parents as well
+                parents[ch_cntr] = name, 0
+
+                _shape = sig_shape[1:]
+                types.append((name, sig_dtype, _shape))
+                gp.single_channel_dtype = dtype(f'{_shape}{sig_dtype}')
+
+                # simple channels don't have channel dependencies
+                gp_dep.append(None)
+
+            elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
+
+                if names == v4c.CANOPEN_TIME_FIELDS:
+
+                    types.append((name, "V6"))
+                    gp.single_channel_dtype = dtype("V6")
+                    byte_size = 6
+                    s_type = v4c.DATA_TYPE_CANOPEN_TIME
+
+                else:
+                    vals = []
+                    for field in ("ms", "min", "hour", "day", "month", "year"):
+                        if field == "hour":
+                            vals.append(
+                                signal.samples[field]
+                                + (signal.samples["summer_time"] << 7)
+                            )
+                        elif field == "day":
+                            vals.append(
+                                signal.samples[field]
+                                + (signal.samples["day_of_week"] << 4)
+                            )
+                        else:
+                            vals.append(signal.samples[field])
+                    samples = fromarrays(vals)
+
+                    types.append((name, "V7"))
+                    gp.single_channel_dtype = dtype("V7")
+                    byte_size = 7
+                    s_type = v4c.DATA_TYPE_CANOPEN_DATE
+
+                s_size = byte_size * 8
+
+                # there is no channel dependency
+                gp_dep.append(None)
+
+                # add channel block
+                kwargs = {
+                    "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                    "bit_count": s_size,
+                    "byte_offset": offset,
+                    "bit_offset": 0,
+                    "data_type": s_type,
+                    "flags": 0,
+                }
+                if signal.invalidation_bits is not None:
+                    invalidation_bits = signal.invalidation_bits
+                    kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                    kwargs["pos_invalidation_bit"] = 0
+                else:
+                    invalidation_bits = None
+
+                ch = Channel(**kwargs)
+                ch.name = name
+                ch.unit = signal.unit
+                ch.comment = signal.comment
+                ch.display_name = signal.display_name
+
+                # source for channel
+                source = signal.source
+                if source:
+                    if source in si_map:
+                        ch.source = si_map[source]
+                    else:
+                        new_source = SourceInformation(
+                            source_type=source.source_type, bus_type=source.bus_type
+                        )
+                        new_source.name = source.name
+                        new_source.path = source.path
+                        new_source.comment = source.comment
+
+                        si_map[source] = new_source
+
+                        ch.source = new_source
+
+                gp_channels.append(ch)
+
+                offset = byte_size
+
+                entry = (dg_cntr, ch_cntr)
+                self.channels_db.add(name, entry)
+                if ch.display_name:
+                    self.channels_db.add(ch.display_name, entry)
+
+                # update the parents as well
+                parents[ch_cntr] = name, 0
+
+                gp_sdata.append(0)
+                gp_sdata_size.append(0)
+
+            elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
+                (
+                    offset,
+                    dg_cntr,
+                    ch_cntr,
+                    struct_self,
+                    new_fields,
+                    new_types,
+                    inval_cntr,
+                ) = self._append_structure_composition(
+                    gp,
+                    signal,
+                    field_names,
+                    offset,
+                    dg_cntr,
+                    ch_cntr,
+                    parents,
+                    defined_texts,
+                    invalidation_bytes_nr,
+                    inval_bits,
+                    inval_cntr,
+                )
+                fields.extend(new_fields)
+                types.extend(new_types)
+
+            elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
+                fields = []
+                # here we have channel arrays or mdf v3 channel dependencies
+                samples = signal.samples[names[0]]
+                shape = samples.shape[1:]
+
+                if len(names) > 1 or len(shape) > 1:
+                    # add channel dependency block for composed parent channel
+                    dims_nr = len(shape)
+                    names_nr = len(names)
+
+                    if names_nr == 0:
+                        kwargs = {
+                            "dims": dims_nr,
+                            "ca_type": v4c.CA_TYPE_LOOKUP,
+                            "flags": v4c.FLAG_CA_FIXED_AXIS,
+                            "byte_offset_base": samples.dtype.itemsize,
+                        }
+                        for i in range(dims_nr):
+                            kwargs[f"dim_size_{i}"] = shape[i]
+
+                    elif len(names) == 1:
+                        kwargs = {
+                            "dims": dims_nr,
+                            "ca_type": v4c.CA_TYPE_ARRAY,
+                            "flags": 0,
+                            "byte_offset_base": samples.dtype.itemsize,
+                        }
+                        for i in range(dims_nr):
+                            kwargs[f"dim_size_{i}"] = shape[i]
+
+                    else:
+                        kwargs = {
+                            "dims": dims_nr,
+                            "ca_type": v4c.CA_TYPE_LOOKUP,
+                            "flags": v4c.FLAG_CA_AXIS,
+                            "byte_offset_base": samples.dtype.itemsize,
+                        }
+                        for i in range(dims_nr):
+                            kwargs[f"dim_size_{i}"] = shape[i]
+
+                    parent_dep = ChannelArrayBlock(**kwargs)
+                    gp_dep.append([parent_dep])
+
+                else:
+                    # add channel dependency block for composed parent channel
+                    kwargs = {
+                        "dims": 1,
+                        "ca_type": v4c.CA_TYPE_SCALE_AXIS,
+                        "flags": 0,
+                        "byte_offset_base": samples.dtype.itemsize,
+                        "dim_size_0": shape[0],
+                    }
+                    parent_dep = ChannelArrayBlock(**kwargs)
+                    gp_dep.append([parent_dep])
+
+                field_name = field_names.get_unique_name(name)
+
+                fields.append(samples)
+                dtype_pair = field_name, samples.dtype, shape
+                types.append(dtype_pair)
+
+                # first we add the structure channel
+                s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape, True)
+
+                # add channel block
+                kwargs = {
+                    "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                    "bit_count": s_size,
+                    "byte_offset": offset,
+                    "bit_offset": 0,
+                    "data_type": s_type,
+                    "flags": 0,
+                }
+
+                if signal.invalidation_bits is not None:
+                    invalidation_bits = signal.invalidation_bits
+                    kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                    kwargs["pos_invalidation_bit"] = 0
+                else:
+                    invalidation_bits = None
+
+                ch = Channel(**kwargs)
+                ch.name = name
+                ch.unit = signal.unit
+                ch.comment = signal.comment
+                ch.display_name = signal.display_name
+
+                # source for channel
+                source = signal.source
+                if source:
+                    if source in si_map:
+                        ch.source = si_map[source]
+                    else:
+                        new_source = SourceInformation(
+                            source_type=source.source_type, bus_type=source.bus_type
+                        )
+                        new_source.name = source.name
+                        new_source.path = source.path
+                        new_source.comment = source.comment
+
+                        si_map[source] = new_source
+
+                        ch.source = new_source
+
+                gp_channels.append(ch)
+
+                size = s_size // 8
+                for dim in shape:
+                    size *= dim
+                offset += size
+
+                gp_sdata.append(None)
+                entry = (dg_cntr, ch_cntr)
+                self.channels_db.add(name, entry)
+                if ch.display_name:
+                    self.channels_db.add(ch.display_name, entry)
+
+                # update the parents as well
+                parents[ch_cntr] = name, 0
+
+                ch_cntr += 1
+
+                for name in names[1:]:
+                    field_name = field_names.get_unique_name(name)
+
+                    samples = signal.samples[name]
+                    shape = samples.shape[1:]
+                    fields.append(samples)
+                    types.append((field_name, samples.dtype, shape))
+
+                    # add channel dependency block
+                    kwargs = {
+                        "dims": 1,
+                        "ca_type": v4c.CA_TYPE_SCALE_AXIS,
+                        "flags": 0,
+                        "byte_offset_base": samples.dtype.itemsize,
+                        "dim_size_0": shape[0],
+                    }
+                    dep = ChannelArrayBlock(**kwargs)
+                    gp_dep.append([dep])
+
+                    # add components channel
+                    s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
+                    byte_size = s_size // 8 or 1
+                    kwargs = {
+                        "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                        "bit_count": s_size,
+                        "byte_offset": offset,
+                        "bit_offset": 0,
+                        "data_type": s_type,
+                        "flags": 0,
+                    }
+
+                    if signal.invalidation_bits is not None:
+                        invalidation_bits = signal.invalidation_bits
+                        kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["pos_invalidation_bit"] = 0
+                    else:
+                        invalidation_bits = None
+
+                    ch = Channel(**kwargs)
+                    ch.name = name
+                    ch.unit = signal.unit
+                    ch.comment = signal.comment
+                    ch.display_name = signal.display_name
+
+                    gp_channels.append(ch)
+
+                    entry = dg_cntr, ch_cntr
+                    parent_dep.axis_channels.append(entry)
+                    for dim in shape:
+                        byte_size *= dim
+                    offset += byte_size
+
+                    gp_sdata.append(None)
+                    gp_sdata_size.append(0)
+                    self.channels_db.add(name, entry)
+
+                    # update the parents as well
+                    parents[ch_cntr] = field_name, 0
+
+                    ch_cntr += 1
+
+                samples = fromarrays(fields, dtype=types)
+
+            else:
+
+                encoding = signal.encoding
+                samples = signal.samples
+                sig_dtype = samples.dtype
+
+                if encoding == "utf-8":
+                    data_type = v4c.DATA_TYPE_STRING_UTF_8
+                elif encoding == "latin-1":
+                    data_type = v4c.DATA_TYPE_STRING_LATIN_1
+                elif encoding == "utf-16-be":
+                    data_type = v4c.DATA_TYPE_STRING_UTF_16_BE
+                elif encoding == "utf-16-le":
+                    data_type = v4c.DATA_TYPE_STRING_UTF_16_LE
+                else:
+                    raise MdfException(f'wrong encoding "{encoding}" for string signal')
+
+                offsets = arange(len(samples), dtype=uint64) * (
+                    signal.samples.itemsize + 4
+                )
+
+                values = [full(len(samples), samples.itemsize, dtype=uint32), samples]
+
+                types_ = [("o", uint32), ("s", sig_dtype)]
+
+                data = fromarrays(values, dtype=types_)
+
+                data_size = len(data) * data.itemsize
+                if data_size:
+                    data_addr = tell()
+                    info = SignalDataBlockInfo(
+                        address=data_addr,
+                        size=data_size,
+                        count=len(data),
+                        offsets=offsets,
+                    )
+                    gp_sdata.append([info])
+                    data.tofile(file)
+                else:
+                    data_addr = 0
+                    gp_sdata.append([])
+
+                # compute additional byte offset for large records size
+                byte_size = 8
+                kwargs = {
+                    "channel_type": v4c.CHANNEL_TYPE_VLSD,
+                    "bit_count": 64,
+                    "byte_offset": offset,
+                    "bit_offset": 0,
+                    "data_type": data_type,
+                    "data_block_addr": data_addr,
+                    "flags": 0,
+                }
+
+                if signal.invalidation_bits is not None:
+                    invalidation_bits = signal.invalidation_bits
+                    kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                    kwargs["pos_invalidation_bit"] = 0
+                else:
+                    invalidation_bits = None
+
+                ch = Channel(**kwargs)
+                ch.name = name
+                ch.unit = signal.unit
+                ch.comment = signal.comment
+                ch.display_name = signal.display_name
+
+                # conversions for channel
+                conversion = conversion_transfer(signal.conversion, version=4)
+                if signal.raw:
+                    ch.conversion = conversion
+
+                # source for channel
+                source = signal.source
+                if source:
+                    if source in si_map:
+                        ch.source = si_map[source]
+                    else:
+                        new_source = SourceInformation(
+                            source_type=source.source_type, bus_type=source.bus_type
+                        )
+                        new_source.name = source.name
+                        new_source.path = source.path
+                        new_source.comment = source.comment
+
+                        si_map[source] = new_source
+
+                        ch.source = new_source
+
+                gp_channels.append(ch)
+
+                offset = byte_size
+
+                entry = (dg_cntr, ch_cntr)
+                self.channels_db.add(name, entry)
+                if ch.display_name:
+                    self.channels_db.add(ch.display_name, entry)
+
+                # update the parents as well
+                parents[ch_cntr] = name, 0
+
+                types.append((name, uint64))
+                gp.single_channel_dtype = uint64
+
+                samples = offsets
+
+                # simple channels don't have channel dependencies
+                gp_dep.append(None)
+
+            gp.channel_group.samples_byte_nr = offset
+            if invalidation_bits is not None:
+                gp.channel_group.invalidation_bytes_nr = 1
+
+            dg_cntr += 1
+            size = cycles_nr * samples.itemsize
+            if size:
+                data_address = self._tempfile.tell()
+                gp.data_location = v4c.LOCATION_TEMPORARY_FILE
+                samples.tofile(self._tempfile)
+
+                chunk = self._write_fragment_size // samples.itemsize
+                chunk *= samples.itemsize
+
+                if invalidation_bits is not None:
+                    invalidation_address = self._tempfile.tell()
+                    invalidation_bits.tofile(self._tempfile)
+
+                while size:
+
+                    if size > chunk:
+                        gp.data_blocks.append(
+                            DataBlockInfo(
+                                address=data_address,
+                                block_type=v4c.DT_BLOCK,
+                                raw_size=chunk,
+                                size=chunk,
+                                param=0,
+                            )
+                        )
+                        data_address += chunk
+                        size -= chunk
+                        if invalidation_bits is not None:
+                            count = chunk // samples.itemsize
+                            gp.data_blocks[-1].invalidation_block = InvalidationBlockInfo(
+                                address=invalidation_address,
+                                block_type=v4c.DT_BLOCK,
+                                raw_size=count,
+                                size=count,
+                                param=None,
+                            )
+                            invalidation_address += count
+                    else:
+                        gp.data_blocks.append(
+                            DataBlockInfo(
+                                address=data_address,
+                                block_type=v4c.DT_BLOCK,
+                                raw_size=size,
+                                size=size,
+                                param=0,
+                            )
+                        )
+                        if invalidation_bits is not None:
+                            count = size // samples.itemsize
+                            gp.data_blocks[-1].invalidation_block = InvalidationBlockInfo(
+                                address=invalidation_address,
+                                block_type=v4c.DT_BLOCK,
+                                raw_size=count,
+                                size=count,
+                                param=None,
+                            )
+                        size = 0
+            else:
+                gp.data_location = v4c.LOCATION_TEMPORARY_FILE
 
     def _append_dataframe(self, df, source_info="", units=None):
         """
@@ -4545,8 +5382,9 @@ class MDF4(object):
                 )
             )
 
-            fields.append(inval_bits)
-            types.append(("invalidation_bytes", inval_bits.dtype, inval_bits.shape[1:]))
+            if self.version < "4.20":
+                fields.append(inval_bits)
+                types.append(("invalidation_bytes", inval_bits.dtype, inval_bits.shape[1:]))
 
         samples = fromarrays(fields, dtype=types)
 
@@ -4558,23 +5396,55 @@ class MDF4(object):
         size = len(samples) * samples.itemsize
 
         if size:
-            samples.tofile(stream)
 
-            gp.data_blocks.append(
-                DataBlockInfo(
-                    address=addr,
-                    block_type=v4c.DT_BLOCK,
-                    raw_size=size,
-                    size=size,
-                    param=0,
+            if self.version < "4.20":
+
+                samples.tofile(stream)
+
+                gp.data_blocks.append(
+                    DataBlockInfo(
+                        address=addr,
+                        block_type=v4c.DT_BLOCK,
+                        raw_size=size,
+                        size=size,
+                        param=0,
+                    )
                 )
-            )
 
-            record_size = gp.channel_group.samples_byte_nr
-            record_size += gp.data_group.record_id_len
-            record_size += gp.channel_group.invalidation_bytes_nr
-            added_cycles = size // record_size
-            gp.channel_group.cycles_nr += added_cycles
+                record_size = gp.channel_group.samples_byte_nr
+                record_size += gp.data_group.record_id_len
+                record_size += gp.channel_group.invalidation_bytes_nr
+                added_cycles = size // record_size
+                gp.channel_group.cycles_nr += added_cycles
+            else:
+                samples.tofile(stream)
+
+                gp.data_blocks.append(
+                    DataBlockInfo(
+                        address=addr,
+                        block_type=v4c.DT_BLOCK,
+                        raw_size=size,
+                        size=size,
+                        param=0,
+                    )
+                )
+
+                record_size = gp.channel_group.samples_byte_nr
+                added_cycles = size // record_size
+                gp.channel_group.cycles_nr += added_cycles
+
+                if invalidation_bytes_nr:
+                    addr = stream.tell()
+                    inval_bits.tofile(stream)
+                    gp.data_blocks[-1].invalidation_block(
+                        InvalidationBlockInfo(
+                            address=addr,
+                            block_type=v4c.DT_BLOCK,
+                            raw_size=invalidation_bytes_nr*added_cycles,
+                            size=invalidation_bytes_nr*added_cycles,
+                            param=None,
+                        )
+                    )
 
         del samples
 

@@ -1083,7 +1083,7 @@ class MDF3(object):
 
                 if different:
                     times = [s.timestamps for s in signals]
-                    timestampst = unique(concatenate(times)).astype(float64)
+                    timestamps = unique(concatenate(times)).astype(float64)
                     signals = [
                         s.interp(timestamps, interpolation_mode=interp_mode)
                         for s in signals

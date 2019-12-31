@@ -965,6 +965,7 @@ class Group:
         "signal_types",
         "trigger",
         "string_dtypes",
+        "single_channel_dtype",
     )
 
     def __init__(self, data_group):
@@ -988,6 +989,7 @@ class Group:
         self.trigger = None
         self.string_dtypes = None
         self.data_blocks = []
+        self.single_channel_dtype = None
 
     def __getitem__(self, item):
         return self.__getattribute__(item)
