@@ -3416,8 +3416,7 @@ class MDF4(object):
         else:
             t = []
 
-        _column_storage = True
-        if _column_storage:
+        if self._column_storage:
             return self._append_column_oriented(signals, source_block)
 
         dg_cntr = len(self.groups)
