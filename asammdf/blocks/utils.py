@@ -967,6 +967,7 @@ class Group:
         "string_dtypes",
         "single_channel_dtype",
         "uses_ld",
+        "ignore_during_save",
     )
 
     def __init__(self, data_group):
@@ -992,6 +993,7 @@ class Group:
         self.data_blocks = []
         self.single_channel_dtype = None
         self.uses_ld = False
+        self.ignore_during_save = False
 
     def __getitem__(self, item):
         return self.__getattribute__(item)

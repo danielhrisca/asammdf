@@ -140,7 +140,7 @@ class AttachmentBlock:
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            mapped = not is_file_like(stream)
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
 
             if mapped:
                 (
@@ -1224,7 +1224,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
 
-            mapped = not is_file_like(stream)
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
 
             if mapped:
 
@@ -1660,42 +1660,30 @@ class ChannelGroup:
         "reserved1",
         "samples_byte_nr",
         "invalidation_bytes_nr",
+        "cg_master_index",
     )
 
     def __init__(self, **kwargs):
 
         self.acq_name = self.comment = ""
         self.acq_source = None
+        self.cg_master_index = None
 
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            mapped = not is_file_like(stream)
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
+            version = kwargs["version"]
 
             if mapped:
-                (self.id, self.reserved0, self.block_len, self.links_nr,) = COMMON_uf(
-                    stream, address
-                )
 
-                if self.block_len == v4c.CG_BLOCK_SIZE:
-                    (
-                        self.next_cg_addr,
-                        self.first_ch_addr,
-                        self.acq_name_addr,
-                        self.acq_source_addr,
-                        self.first_sample_reduction_addr,
-                        self.comment_addr,
-                        self.record_id,
-                        self.cycles_nr,
-                        self.flags,
-                        self.path_separator,
-                        self.reserved1,
-                        self.samples_byte_nr,
-                        self.invalidation_bytes_nr,
-                    ) = v4c.CHANNEL_GROUP_SHORT_uf(stream, address + COMMON_SIZE)
+                if version >= "4.20":
 
-                else:
                     (
+                        self.id,
+                        self.reserved0,
+                        self.block_len,
+                        self.links_nr,
                         self.next_cg_addr,
                         self.first_ch_addr,
                         self.acq_name_addr,
@@ -1710,40 +1698,42 @@ class ChannelGroup:
                         self.reserved1,
                         self.samples_byte_nr,
                         self.invalidation_bytes_nr,
-                    ) = v4c.CHANNEL_GROUP_RM_SHORT_uf(stream, address + COMMON_SIZE)
+                    ) = v4c.CHANNEL_GROUP_RM_uf(stream, address)
+
+                else:
+                    (
+                        self.id,
+                        self.reserved0,
+                        self.block_len,
+                        self.links_nr,
+                        self.next_cg_addr,
+                        self.first_ch_addr,
+                        self.acq_name_addr,
+                        self.acq_source_addr,
+                        self.first_sample_reduction_addr,
+                        self.comment_addr,
+                        self.record_id,
+                        self.cycles_nr,
+                        self.flags,
+                        self.path_separator,
+                        self.reserved1,
+                        self.samples_byte_nr,
+                        self.invalidation_bytes_nr,
+                    )  = v4c.CHANNEL_GROUP_uf(stream, address)
 
             else:
 
                 stream.seek(address)
 
-                (
-                    self.id,
-                    self.reserved0,
-                    self.block_len,
-                    self.links_nr,
-                ) = v4c.COMMON_u(stream.read(COMMON_SIZE))
+                if version >= "4.20":
 
-                if self.block_len == v4c.CG_BLOCK_SIZE:
-                    (
-                        self.next_cg_addr,
-                        self.first_ch_addr,
-                        self.acq_name_addr,
-                        self.acq_source_addr,
-                        self.first_sample_reduction_addr,
-                        self.comment_addr,
-                        self.record_id,
-                        self.cycles_nr,
-                        self.flags,
-                        self.path_separator,
-                        self.reserved1,
-                        self.samples_byte_nr,
-                        self.invalidation_bytes_nr,
-                    ) = v4c.CHANNEL_GROUP_SHORT_u(
-                        stream.read(v4c.CG_BLOCK_SIZE - COMMON_SIZE)
-                    )
+                    bts = stream.read(v4c.CG_RM_BLOCK_SIZE)
 
-                else:
                     (
+                        self.id,
+                        self.reserved0,
+                        self.block_len,
+                        self.links_nr,
                         self.next_cg_addr,
                         self.first_ch_addr,
                         self.acq_name_addr,
@@ -1758,9 +1748,29 @@ class ChannelGroup:
                         self.reserved1,
                         self.samples_byte_nr,
                         self.invalidation_bytes_nr,
-                    ) = v4c.CHANNEL_GROUP_RM_SHORT_u(
-                        stream.read(v4c.CG_RM_BLOCK_SIZE - COMMON_SIZE)
-                    )
+                    ) = v4c.CHANNEL_GROUP_RM_u(bts)
+
+                else:
+                    bts = stream.read(v4c.CG_BLOCK_SIZE)
+                    (
+                        self.id,
+                        self.reserved0,
+                        self.block_len,
+                        self.links_nr,
+                        self.next_cg_addr,
+                        self.first_ch_addr,
+                        self.acq_name_addr,
+                        self.acq_source_addr,
+                        self.first_sample_reduction_addr,
+                        self.comment_addr,
+                        self.record_id,
+                        self.cycles_nr,
+                        self.flags,
+                        self.path_separator,
+                        self.reserved1,
+                        self.samples_byte_nr,
+                        self.invalidation_bytes_nr,
+                    )  = v4c.CHANNEL_GROUP_u(bts)
 
             if self.id != b"##CG":
                 message = f'Expected "##CG" block @{hex(address)} but found "{self.id}"'
@@ -1771,10 +1781,28 @@ class ChannelGroup:
             self.acq_name = get_text_v4(self.acq_name_addr, stream, mapped=mapped)
             self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
 
-            if self.acq_source_addr:
-                self.acq_source = SourceInformation(
-                    address=self.acq_source_addr, stream=stream, mapped=mapped
-                )
+            si_map = kwargs.get("si_map", {})
+
+            address = self.acq_source_addr
+            if address:
+                if mapped:
+                    raw_bytes = stream[address : address + v4c.SI_BLOCK_SIZE]
+                else:
+                    stream.seek(address)
+                    raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
+                if raw_bytes in si_map:
+                    source = si_map[raw_bytes]
+                else:
+                    source = SourceInformation(
+                        raw_bytes=raw_bytes,
+                        stream=stream,
+                        address=address,
+                        mapped=mapped,
+                    )
+                    si_map[raw_bytes] = source
+                self.acq_source = source
+            else:
+                self.acq_source = None
 
         except KeyError:
             self.address = 0
@@ -3615,7 +3643,7 @@ class DataBlock:
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            mapped = not is_file_like(stream)
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
 
             if mapped:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(
@@ -3921,10 +3949,9 @@ class DataGroup:
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            mapped = not is_file_like(stream)
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
 
             if mapped:
-                stream.seek(address)
 
                 (
                     self.id,
@@ -4093,7 +4120,7 @@ class DataList(_DataListBase):
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            mapped = not is_file_like(stream)
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
 
             if mapped:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(
@@ -5106,7 +5133,7 @@ class ListData(_ListDataBase):
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            mapped = not is_file_like(stream)
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
 
             if mapped:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(
@@ -5294,9 +5321,6 @@ class ListData(_ListDataBase):
         if self.flags & v4c.FLAG_LD_DISTANCE_VALUES:
             fmt += f"8s" * self.data_block_nr
             keys += tuple(f"distance_value_{i}" for i in range(self.data_block_nr))
-
-        print(fmt, bool((self.flags & v4c.FLAG_LD_INVALIDATION_PRESENT)))
-        print(keys)
 
         result = pack(fmt, *[getattr(self, key) for key in keys])
         return result

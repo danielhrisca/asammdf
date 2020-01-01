@@ -295,6 +295,12 @@ def open_mdf4(output, fmt):
         MDF(r"test.mf4")
     output.send([timer.output, timer.error])
 
+def open_mdf4_column(output, fmt):
+
+    with Timer("Open file", f"asammdf {asammdf_version} mdfv4", fmt) as timer:
+        MDF(r"test_column.mf4")
+    output.send([timer.output, timer.error])
+
 
 def save_mdf3(output, fmt):
 
@@ -325,6 +331,26 @@ def get_all_mdf3(output, fmt):
 def get_all_mdf4(output, fmt):
 
     x = MDF(r"test.mf4")
+    with Timer("Get all channels", f"asammdf {asammdf_version} mdfv4", fmt) as timer:
+        t = perf_counter()
+        counter = 0
+        to_break = False
+        for i, gp in enumerate(x.groups):
+            if to_break:
+                break
+            for j in range(len(gp["channels"])):
+                t2 = perf_counter()
+                if t2 - t > 60:
+                    timer.message += " {}/s".format(counter / (t2 - t))
+                    to_break = True
+                    break
+                x.get(group=i, index=j, samples_only=True)
+                counter += 1
+    output.send([timer.output, timer.error])
+
+def get_all_mdf4_column(output, fmt):
+
+    x = MDF(r"test_column.mf4")
     with Timer("Get all channels", f"asammdf {asammdf_version} mdfv4", fmt) as timer:
         t = perf_counter()
         counter = 0
@@ -912,7 +938,7 @@ def main(text_output, fmt):
     output.append("    * {} groups".format(v4_groups))
     output.append("    * {} channels\n\n".format(v4_channels))
 
-    OPEN, SAVE, GET, CONVERT, MERGE, FILTER, CUT = 1, 1, 1, 1, 1, 0, 0
+    OPEN, SAVE, GET, CONVERT, MERGE, FILTER, CUT = 1, 0, 1, 0, 0, 0, 0
 
     tests = (
         open_mdf3,
@@ -920,6 +946,7 @@ def main(text_output, fmt):
         open_reader3_nodata,
         open_reader3_compression,
         open_mdf4,
+        open_mdf4_column,
         open_reader4,
         open_reader4_nodata,
         open_reader4_compression,
@@ -964,6 +991,7 @@ def main(text_output, fmt):
         get_all_reader3_nodata,
         get_all_reader3_compression,
         get_all_mdf4,
+        get_all_mdf4_column,
         get_all_reader4,
         get_all_reader4_nodata,
         get_all_reader4_compression,
@@ -1111,3 +1139,23 @@ if __name__ == "__main__":
     args = cmd_parser.parse_args(sys.argv[1:])
 
     main(args.text_output, args.format)
+
+#    x = MDF(r"test.mf4", copy_on_get=False)
+#    with Timer("Get all channels", f"asammdf {asammdf_version} mdfv4", 'rst') as timer:
+#        t = perf_counter()
+#        counter = 0
+#        to_break = False
+#        for i, gp in enumerate(x.groups):
+#            if to_break:
+#                break
+#            for j in range(len(gp["channels"])):
+#                t2 = perf_counter()
+#                if t2 - t > 60:
+#                    timer.message += " {}/s".format(counter / (t2 - t))
+#                    to_break = True
+#                    break
+#
+#                x.get(group=i, index=j, samples_only=True)
+#                counter += 1
+#
+#    print(timer.output, timer.error)
