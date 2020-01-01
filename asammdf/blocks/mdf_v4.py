@@ -1576,13 +1576,15 @@ class MDF4(object):
 
                         if rm and invalidation_size:
                             invalidation_info = info.invalidation_block
+                        else:
+                            invalidation_info = None
                     except StopIteration:
                         break
 
                     if group.sorted:
                         if offset + size < record_offset + 1:
                             offset += size
-                            if rm:
+                            if rm and invalidation_size:
                                 if invalidation_info.all_valid:
                                     count = size // samples_size
                                     invalidation_offset += count * invalidation_size
@@ -1690,7 +1692,7 @@ class MDF4(object):
                             new_data = new_data[split_size - cur_size :]
                             data_ = b"".join(data)
 
-                            if invalidation_info:
+                            if rm and invalidation_size:
                                 invalidation_data.append(
                                     new_invalidation_data[
                                         : invalidation_split_size
