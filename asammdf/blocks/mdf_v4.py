@@ -346,7 +346,7 @@ class MDF4(object):
             self.name = Path("new.mf4")
 
         if self.version >= "4.20":
-            self._column_storage = kwargs.get("column_storage", True)
+            self._column_storage = kwargs.get("column_storage", False)
         else:
             self._column_storage = False
 
@@ -577,7 +577,7 @@ class MDF4(object):
             else:
                 block_type = b"##DT"
 
-            info = self._get_data_blocks_info(
+            info, uses_ld = self._get_data_blocks_info(
                 address=address,
                 stream=stream,
                 block_type=block_type,
@@ -589,6 +589,7 @@ class MDF4(object):
             for grp in new_groups:
                 grp.data_location = v4c.LOCATION_ORIGINAL_FILE
                 grp.set_blocks_info(info)
+                grp.uses_ld = uses_ld
 
             self.groups.extend(new_groups)
 
@@ -1483,7 +1484,7 @@ class MDF4(object):
         read = stream.read
         seek = stream.seek
 
-        if channel_group.flags & v4c.FLAG_CG_REMOTE_MASTER:
+        if group.uses_ld:
             samples_size = channel_group.samples_byte_nr
             invalidation_size = channel_group.invalidation_bytes_nr
             invalidation_record_offset = record_offset * invalidation_size
@@ -1643,7 +1644,7 @@ class MDF4(object):
 
                         else:
                             seek(invalidation_info.address)
-                            new_invalidation_data = read(invalidation_info.block_size)
+                            new_invalidation_data = read(invalidation_info.size)
                             if invalidation_info.block_type == v4c.DZ_BLOCK_DEFLATE:
                                 new_invalidation_data = decompress(
                                     new_invalidation_data,
@@ -1984,7 +1985,7 @@ class MDF4(object):
                 dtype_pair = "", f"V{gap}"
                 types.append(dtype_pair)
 
-            if not channel_group.flags & v4c.FLAG_CG_REMOTE_MASTER:
+            if not group.uses_ld:
 
                 dtype_pair = "invalidation_bytes", "<u1", (invalidation_bytes_nr,)
                 types.append(dtype_pair)
@@ -2651,6 +2652,7 @@ class MDF4(object):
     ):
         info = []
         mapped = not is_file_like(stream)
+        uses_ld = False
 
         if mapped:
             if address:
@@ -2779,6 +2781,7 @@ class MDF4(object):
 
                 # or a ListData
                 elif id_string == b"##LD":
+                    uses_ld = True
                     while address:
                         ld = ListData(address=address, stream=stream, mapped=mapped)
                         has_invalidation = ld.flags & v4c.FLAG_LD_INVALIDATION_PRESENT
@@ -2787,7 +2790,7 @@ class MDF4(object):
 
                             id_string, _1, block_len = COMMON_SHORT_uf(stream, addr)
                             # can be a DataBlock
-                            if id_string == block_type:
+                            if id_string == b"##DV":
                                 size = block_len - 24
                                 if size:
                                     if total_size < size:
@@ -2918,7 +2921,7 @@ class MDF4(object):
                     hl = HeaderList(address=address, stream=stream, mapped=mapped)
                     address = hl.first_dl_addr
 
-                    info = self._get_data_blocks_info(
+                    info, uses_ld = self._get_data_blocks_info(
                         address,
                         stream,
                         block_type,
@@ -3062,6 +3065,7 @@ class MDF4(object):
 
                 # or a DataList
                 elif id_string == b"##LD":
+                    uses_ld = True
                     while address:
                         ld = ListData(address=address, stream=stream)
                         has_invalidation = ld.flags & v4c.FLAG_LD_INVALIDATION_PRESENT
@@ -3073,7 +3077,7 @@ class MDF4(object):
                                 stream.read(COMMON_SHORT_SIZE)
                             )
                             # can be a DataBlock
-                            if id_string == block_type:
+                            if id_string == b"##DV":
                                 size = block_len - 24
                                 if size:
                                     if total_size < size:
@@ -3207,7 +3211,7 @@ class MDF4(object):
                     hl = HeaderList(address=address, stream=stream)
                     address = hl.first_dl_addr
 
-                    info = self._get_data_blocks_info(
+                    info, uses_ld = self._get_data_blocks_info(
                         address,
                         stream,
                         block_type,
@@ -3216,7 +3220,7 @@ class MDF4(object):
                         inval_total_size,
                     )
 
-        return info
+        return info, uses_ld
 
     def get_invalidation_bits(self, group_index, channel, fragment):
         """ get invalidation indexes for the channel
@@ -3245,7 +3249,8 @@ class MDF4(object):
             invalidation = self._invalidation_cache[(group_index, offset, _count)]
         except KeyError:
             if invalidation_bytes is not None:
-                invalidation = invalidation_bytes
+                size = group.channel_group.invalidation_bytes_nr
+                invalidation = frombuffer(invalidation_bytes, dtype=f'({size},)u1')
             else:
                 record = group.record
                 if record is None:
@@ -4145,6 +4150,7 @@ class MDF4(object):
             else:
                 data_address = self._tempfile.tell()
                 gp.data_location = v4c.LOCATION_TEMPORARY_FILE
+                gp.uses_ld = True
                 samples.tofile(self._tempfile)
 
                 chunk = self._write_fragment_size // samples.itemsize
@@ -4225,6 +4231,7 @@ class MDF4(object):
         gp.channel_dependencies = gp_dep = []
         gp.signal_types = gp_sig_types = []
         gp.logging_channels = []
+        gp.uses_ld = True
 
         samples = signals[0].timestamps
 
@@ -7550,56 +7557,77 @@ class MDF4(object):
                     data = self._load_data(gp)
 
                     if chunks == 1:
-                        data_ = next(data)[0]
-                        if compression and self.version > "4.00":
-                            if compression == 1:
-                                param = 0
-                            else:
-                                param = (
-                                    gp.channel_group.samples_byte_nr
-                                    + gp.channel_group.invalidation_bytes_nr
-                                )
-                            kwargs = {
-                                "data": data_,
-                                "zip_type": zip_type,
-                                "param": param,
-                            }
-                            data_block = DataZippedBlock(**kwargs)
-                        else:
-                            data_block = DataBlock(data=data_)
-                        write(bytes(data_block))
+                        data_, _1, _2, inval_ = next(data)
+                        if self.version >= "4.20" and gp.uses_ld:
 
-                        align = data_block.block_len % 8
-                        if align:
-                            write(b"\0" * (8 - align))
-
-                        if gp.channel_group.cycles_nr:
-                            gp.data_group.data_block_addr = address
-                        else:
-                            gp.data_group.data_block_addr = 0
-                    else:
-                        kwargs = {
-                            "flags": v4c.FLAG_DL_EQUAL_LENGHT,
-                            "zip_type": zip_type,
-                        }
-                        hl_block = HeaderList(**kwargs)
-
-                        kwargs = {
-                            "flags": v4c.FLAG_DL_EQUAL_LENGHT,
-                            "links_nr": chunks + 1,
-                            "data_block_nr": chunks,
-                            "data_block_len": split_size,
-                        }
-                        dl_block = DataList(**kwargs)
-
-                        for i, data__ in enumerate(data):
-                            data_ = data__[0]
-
-                            if compression and self.version > "4.00":
+                            if compression:
                                 if compression == 1:
-                                    zip_type = v4c.FLAG_DZ_DEFLATE
+                                    param = 0
                                 else:
-                                    zip_type = v4c.FLAG_DZ_TRANPOSED_DEFLATE
+                                    param = gp.channel_group.samples_byte_nr
+                                kwargs = {
+                                    "data": data_,
+                                    "zip_type": zip_type,
+                                    "param": param,
+                                    "original_type": b"DV",
+                                }
+                                data_block = DataZippedBlock(**kwargs)
+                            else:
+                                data_block = DataBlock(data=data_, type="DV")
+                            write(bytes(data_block))
+                            data_address = address
+
+                            align = data_block.block_len % 8
+                            if align:
+                                write(b"\0" * (8 - align))
+
+                            if inval_ is not None:
+                                inval_address = address = tell()
+                                if compression:
+                                    if compression == 1:
+                                        param = 0
+                                    else:
+                                        param = gp.channel_group.invalidation_bytes_nr
+                                    kwargs = {
+                                        "data": inval_,
+                                        "zip_type": zip_type,
+                                        "param": param,
+                                        "original_type": b"DI",
+                                    }
+                                    inval_block = DataZippedBlock(**kwargs)
+                                else:
+                                    inval_block = DataBlock(data=inval_, type="DI")
+                                write(bytes(inval_block))
+
+                                align = inval_block.block_len % 8
+                                if align:
+                                    write(b"\0" * (8 - align))
+
+                            address = tell()
+
+                            kwargs = {
+                                "flags": v4c.FLAG_LD_EQUAL_LENGHT,
+                                "data_block_nr": 1,
+                                "data_block_len": len(data_),
+                                "data_block_addr_0": data_address,
+                            }
+                            if inval_:
+                                kwargs['flags'] |= v4c.FLAG_LD_INVALIDATION_PRESENT
+                                kwargs["invalidation_bits_addr_0"] = inval_address
+                            ld_block = ListData(**kwargs)
+                            write(bytes(ld_block))
+
+                            align = ld_block.block_len % 8
+                            if align:
+                                write(b"\0" * (8 - align))
+
+                            if gp.channel_group.cycles_nr:
+                                gp.data_group.data_block_addr = address
+                            else:
+                                gp.data_group.data_block_addr = 0
+
+                        else:
+                            if compression and self.version >= "4.10":
                                 if compression == 1:
                                     param = 0
                                 else:
@@ -7612,30 +7640,157 @@ class MDF4(object):
                                     "zip_type": zip_type,
                                     "param": param,
                                 }
-                                block = DataZippedBlock(**kwargs)
+                                data_block = DataZippedBlock(**kwargs)
                             else:
-                                block = DataBlock(data=data_)
-                            address = tell()
-                            block.address = address
+                                data_block = DataBlock(data=data_)
+                            write(bytes(data_block))
 
-                            write(bytes(block))
-
-                            align = block.block_len % 8
+                            align = data_block.block_len % 8
                             if align:
                                 write(b"\0" * (8 - align))
-                            dl_block[f"data_block_addr{i}"] = address
 
-                        address = tell()
-                        dl_block.address = address
-                        write(bytes(dl_block))
+                            if gp.channel_group.cycles_nr:
+                                gp.data_group.data_block_addr = address
+                            else:
+                                gp.data_group.data_block_addr = 0
+                    else:
+                        if self.version >= "4.20" and gp.uses_ld:
+                            dv_addr = []
+                            di_addr = []
+                            block_size = 0
+                            for i, (data_, _1, _2, inval_) in enumerate(data):
+                                if i == 0:
+                                    block_size = len(data_)
+                                if compression:
+                                    if compression == 1:
+                                        param = 0
+                                    else:
+                                        param = gp.channel_group.samples_byte_nr
+                                    kwargs = {
+                                        "data": data_,
+                                        "zip_type": zip_type,
+                                        "param": param,
+                                        "original_type": b"DV",
+                                    }
+                                    data_block = DataZippedBlock(**kwargs)
+                                else:
+                                    data_block = DataBlock(data=data_, type="DV")
+                                dv_addr.append(tell())
+                                write(bytes(data_block))
 
-                        if compression and self.version != "4.00":
-                            hl_block.first_dl_addr = address
+                                align = data_block.block_len % 8
+                                if align:
+                                    write(b"\0" * (8 - align))
+
+                                if inval_ is not None:
+
+                                    if compression:
+                                        if compression == 1:
+                                            param = 0
+                                        else:
+                                            param = gp.channel_group.invalidation_bytes_nr
+                                        kwargs = {
+                                            "data": inval_,
+                                            "zip_type": zip_type,
+                                            "param": param,
+                                            "original_type": b"DI",
+                                        }
+                                        inval_block = DataZippedBlock(**kwargs)
+                                    else:
+                                        inval_block = DataBlock(data=inval_, type="DI")
+                                    di_addr.append(tell())
+                                    write(bytes(inval_block))
+
+                                    align = inval_block.block_len % 8
+                                    if align:
+                                        write(b"\0" * (8 - align))
+
                             address = tell()
-                            hl_block.address = address
-                            write(bytes(hl_block))
 
-                        gp.data_group.data_block_addr = address
+                            kwargs = {
+                                "flags": v4c.FLAG_LD_EQUAL_LENGHT,
+                                "data_block_nr": len(dv_addr),
+                                "data_block_len": block_size,
+                            }
+                            for i, addr in enumerate(dv_addr):
+                                kwargs[f"data_block_addr_{i}"] = addr
+
+                            if di_addr:
+                                kwargs['flags'] |= v4c.FLAG_LD_INVALIDATION_PRESENT
+                                for i, addr in enumerate(di_addr):
+                                    kwargs[f"invalidation_bits_addr_{i}"] = addr
+
+                            ld_block = ListData(**kwargs)
+                            write(bytes(ld_block))
+
+                            align = ld_block.block_len % 8
+                            if align:
+                                write(b"\0" * (8 - align))
+
+                            if gp.channel_group.cycles_nr:
+                                gp.data_group.data_block_addr = address
+                            else:
+                                gp.data_group.data_block_addr = 0
+
+                        else:
+                            kwargs = {
+                                "flags": v4c.FLAG_DL_EQUAL_LENGHT,
+                                "zip_type": zip_type,
+                            }
+                            hl_block = HeaderList(**kwargs)
+
+                            kwargs = {
+                                "flags": v4c.FLAG_DL_EQUAL_LENGHT,
+                                "links_nr": chunks + 1,
+                                "data_block_nr": chunks,
+                                "data_block_len": split_size,
+                            }
+                            dl_block = DataList(**kwargs)
+
+                            for i, data__ in enumerate(data):
+                                data_ = data__[0]
+
+                                if compression and self.version >= "4.10":
+                                    if compression == 1:
+                                        zip_type = v4c.FLAG_DZ_DEFLATE
+                                    else:
+                                        zip_type = v4c.FLAG_DZ_TRANPOSED_DEFLATE
+                                    if compression == 1:
+                                        param = 0
+                                    else:
+                                        param = (
+                                            gp.channel_group.samples_byte_nr
+                                            + gp.channel_group.invalidation_bytes_nr
+                                        )
+                                    kwargs = {
+                                        "data": data_,
+                                        "zip_type": zip_type,
+                                        "param": param,
+                                    }
+                                    block = DataZippedBlock(**kwargs)
+                                else:
+                                    block = DataBlock(data=data_)
+                                address = tell()
+                                block.address = address
+
+                                write(bytes(block))
+
+                                align = block.block_len % 8
+                                if align:
+                                    write(b"\0" * (8 - align))
+                                dl_block[f"data_block_addr{i}"] = address
+
+                            address = tell()
+                            dl_block.address = address
+                            write(bytes(dl_block))
+
+                            if compression and self.version != "4.00":
+                                hl_block.first_dl_addr = address
+                                address = tell()
+                                hl_block.address = address
+                                write(bytes(hl_block))
+
+                            gp.data_group.data_block_addr = address
                 else:
                     gp.data_group.data_block_addr = 0
 

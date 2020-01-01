@@ -5158,12 +5158,12 @@ class ListData(_ListDataBase):
 
                 self.next_ld_addr = links[0]
 
-                for i in range(self.data_block_nr, 1):
-                    self[f"data_block_addr_{i}"] = links[i]
+                for i in range(self.data_block_nr):
+                    self[f"data_block_addr_{i}"] = links[i+1]
 
                 if self.flags & v4c.FLAG_LD_INVALIDATION_PRESENT:
-                    for i in range(self.data_block_nr, self.data_block_nr + 1):
-                        self[f"invalidation_bits_addr_{i}"] = links[i]
+                    for i in range(self.data_block_nr):
+                        self[f"invalidation_bits_addr_{i}"] = links[self.data_block_nr + 1 +i]
             else:
 
                 stream.seek(address)
@@ -5224,9 +5224,27 @@ class ListData(_ListDataBase):
                         self[f"invalidation_bits_addr_{i}"] = links[i]
 
         except KeyError:
+            self.address = 0
 
-            # TODO: add implementation for creating new LDBLOCK
-            raise NotImplementedError("New LDBLOCK not implemented")
+            self.id = b"##LD"
+            self.reserved0 = 0
+
+            self.data_block_nr = kwargs["data_block_nr"]
+            self.flags = kwargs["flags"]
+            self.data_block_len = kwargs["data_block_len"]
+            self.next_ld_addr = 0
+
+            for i in range(self.data_block_nr):
+                self[f'data_block_addr_{i}'] = kwargs[f'data_block_addr_{i}']
+            if self.flags & v4c.FLAG_LD_INVALIDATION_PRESENT:
+                self.links_nr = 2 * self.data_block_nr + 1
+
+                for i in range(self.data_block_nr):
+                    self[f'invalidation_bits_addr_{i}'] = kwargs[f'invalidation_bits_addr_{i}']
+            else:
+                self.links_nr = self.data_block_nr + 1
+
+            self.block_len = 24 + self.links_nr * 8 + 16
 
     def __getitem__(self, item):
         return self.__getattribute__(item)
@@ -5235,7 +5253,7 @@ class ListData(_ListDataBase):
         self.__setattr__(item, value)
 
     def __bytes__(self):
-        fmt = "<4sI2Q"
+        fmt = "<4sI3Q"
         keys = (
             "id",
             "reserved0",
@@ -5248,7 +5266,7 @@ class ListData(_ListDataBase):
         keys += tuple(f"data_block_addr_{i}" for i in range(self.data_block_nr))
 
         if self.flags & v4c.FLAG_LD_INVALIDATION_PRESENT:
-            fmt += f"8s" * self.data_block_nr
+            fmt += f"{self.data_block_nr}Q"
             keys += tuple(
                 f"invalidation_bits_addr_{i}" for i in range(self.data_block_nr)
             )
@@ -5276,6 +5294,9 @@ class ListData(_ListDataBase):
         if self.flags & v4c.FLAG_LD_DISTANCE_VALUES:
             fmt += f"8s" * self.data_block_nr
             keys += tuple(f"distance_value_{i}" for i in range(self.data_block_nr))
+
+        print(fmt, bool((self.flags & v4c.FLAG_LD_INVALIDATION_PRESENT)))
+        print(keys)
 
         result = pack(fmt, *[getattr(self, key) for key in keys])
         return result
