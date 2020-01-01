@@ -174,10 +174,11 @@ class MDF(object):
         elif self.header.start_time > other.header.start_time:
             return False
         else:
+
             t_min = []
             for i, group in enumerate(self.groups):
                 cycles_nr = group.channel_group.cycles_nr
-                if cycles_nr:
+                if cycles_nr and i in self.masters_db:
                     master_min = self.get_master(i, record_offset=0, record_count=1)
                     if len(master_min):
                         t_min.append(master_min[0])
@@ -185,7 +186,7 @@ class MDF(object):
             other_t_min = []
             for i, group in enumerate(other.groups):
                 cycles_nr = group.channel_group.cycles_nr
-                if cycles_nr:
+                if cycles_nr and i in other.masters_db:
                     master_min = other.get_master(i, record_offset=0, record_count=1)
                     if len(master_min):
                         other_t_min.append(master_min[0])
