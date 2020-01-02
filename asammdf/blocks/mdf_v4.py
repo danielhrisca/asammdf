@@ -2187,7 +2187,7 @@ class MDF4(object):
 
                 ch = Channel(**kwargs)
                 ch.name = name
-                ch.dtype_fmt = samples.dtype
+                ch.dtype_fmt = dtype(f'{samples.shape[1:]}{samples.dtype}')
 
                 entry = (dg_cntr, ch_cntr)
                 gp_channels.append(ch)
@@ -3610,7 +3610,7 @@ class MDF4(object):
                 ch.unit = signal.unit
                 ch.comment = signal.comment
                 ch.display_name = signal.display_name
-                ch.dtype_fmt = sig_dtype
+                ch.dtype_fmt = dtype(f'{sig_shape[1:]}{sig_dtype}')
 
                 # conversions for channel
                 if signal.raw:
@@ -5122,7 +5122,7 @@ class MDF4(object):
                 ch = Channel(**kwargs)
                 ch.name = name
                 ch.unit = units.get(name, "")
-                ch.dtype_fmt = sig.dtype
+                ch.dtype_fmt = dtype(f'{sig.shape[1:]}{sig.dtype}')
 
                 gp_channels.append(ch)
 
@@ -6499,16 +6499,12 @@ class MDF4(object):
                     if self._single_bit_uint_as_bool and bit_count == 1:
                         vals = array(vals, dtype=bool)
                     else:
-                        try:
-                            if channel.dtype_fmt.subdtype:
-                                channel_dtype = channel.dtype_fmt.subdtype[0]
-                            else:
-                                channel_dtype = channel.dtype_fmt
-                            if vals.dtype != channel_dtype:
-                                vals = vals.astype(channel_dtype)
-                        except:
-                            print(channel)
-                            raise
+                        if channel.dtype_fmt.subdtype:
+                            channel_dtype = channel.dtype_fmt.subdtype[0]
+                        else:
+                            channel_dtype = channel.dtype_fmt
+                        if vals.dtype != channel_dtype:
+                            vals = vals.astype(channel_dtype)
 
                     if master_is_required:
                         timestamps = self.get_master(gp_nr, fragment, one_piece=True)
@@ -6891,6 +6887,8 @@ class MDF4(object):
 
         if not vals.flags.owndata and self.copy_on_get:
             vals = vals.copy()
+
+
 
         if samples_only:
             if not channel_invalidation_present or not ignore_invalidation_bits:

@@ -622,7 +622,7 @@ def debug_channel(mdf, group, channel, dependency, file=None):
 
     cg = group["channel_group"]
     print("CHANNEL GROUP", "=" * 66, file=file)
-    print(cg, file=file)
+    print(cg, cg.cycles_nr, cg.samples_byte_nr, cg.invalidation_bytes_nr, file=file)
     print(file=file)
 
     print("CHANNEL", "=" * 72, file=file)

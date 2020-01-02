@@ -1401,6 +1401,7 @@ class MDF(object):
 
                 gp_count = len(self.groups)
                 for i, grp in enumerate(self.groups):
+
                     if self._terminate:
                         return
                     if not len(grp.channels):
