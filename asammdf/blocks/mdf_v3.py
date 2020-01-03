@@ -1913,6 +1913,8 @@ class MDF3(object):
         # data group trigger
         gp.trigger = None
 
+        return dg_cntr
+
     def _append_dataframe(self, df, source_info="", units=None):
         """
         Appends a new data group from a Pandas data frame.

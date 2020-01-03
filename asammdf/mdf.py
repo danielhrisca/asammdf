@@ -528,7 +528,7 @@ class MDF(object):
         if self._callback:
             self._callback(0, groups_nr)
 
-        cg_nr = -1
+        cg_nr = None
 
         self.configure(copy_on_get=False)
 
@@ -537,9 +537,7 @@ class MDF(object):
 
             encodings = []
             included_channels = self._included_channels(i)
-            if included_channels:
-                cg_nr += 1
-            else:
+            if not included_channels:
                 continue
 
             parents, dtypes = self._prepare_record(group)
@@ -601,7 +599,7 @@ class MDF(object):
                     source_info = f"Converted from {self.version} to {version}"
 
                     if sigs:
-                        out.append(sigs, source_info, common_timebase=True)
+                        cg_nr = out.append(sigs, source_info, common_timebase=True)
                         try:
                             if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
                                 out.groups[

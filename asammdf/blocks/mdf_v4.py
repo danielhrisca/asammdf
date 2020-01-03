@@ -1467,7 +1467,7 @@ class MDF4(object):
         offset = 0
         invalidation_offset = 0
         has_yielded = False
-        _count = record_count
+        _count = 0
         data_group = group.data_group
         channel_group = group.channel_group
 
@@ -1706,16 +1706,16 @@ class MDF4(object):
 
                             if record_count is not None:
                                 if rm and invalidation_size:
-                                    yield data_[
-                                        :record_count
-                                    ], offset // samples_size, _count, invalidation_data_[
+                                    __data = data_[:record_count]
+                                    _count = len(__data) // samples_size
+                                    yield __data, offset // samples_size, _count, invalidation_data_[
                                         :invalidation_record_count
                                     ]
                                     invalidation_record_count -= len(invalidation_data_)
                                 else:
-                                    yield data_[
-                                        :record_count
-                                    ], offset // samples_size, _count, None
+                                    __data = data_[:record_count]
+                                    _count = len(__data) // samples_size
+                                    yield __data, offset // samples_size, _count, None
                                 has_yielded = True
                                 record_count -= len(data_)
                                 if record_count <= 0:
@@ -1723,8 +1723,10 @@ class MDF4(object):
                                     break
                             else:
                                 if rm and invalidation_size:
+                                    _count = len(data_) // samples_size
                                     yield data_, offset // samples_size, _count, invalidation_data_
                                 else:
+                                    _count = len(data_) // samples_size
                                     yield data_, offset // samples_size, _count, None
                                 has_yielded = True
 
@@ -1752,9 +1754,9 @@ class MDF4(object):
                                     ]
                                     invalidation_record_count -= len(invalidation_data_)
                                 else:
-                                    yield data_[
-                                        :record_count
-                                    ], offset // samples_size, _count, None
+                                    __data = data_[:record_count]
+                                    _count = len(__data) // samples_size
+                                    yield __data, offset // samples_size, _count, None
                                 has_yielded = True
                                 record_count -= len(data_)
                                 if record_count <= 0:
@@ -1762,8 +1764,10 @@ class MDF4(object):
                                     break
                             else:
                                 if rm and invalidation_size:
+                                    _count = len(data_) // samples_size
                                     yield data_, offset // samples_size, _count, invalidation_data_
                                 else:
+                                    _count = len(data_) // samples_size
                                     yield data_, offset // samples_size, _count, None
                                 has_yielded = True
 
@@ -1799,36 +1803,38 @@ class MDF4(object):
                         invalidation_data_ = b"".join(invalidation_data)
                     if record_count is not None:
                         if rm and invalidation_size:
-                            yield data_[
-                                :record_count
-                            ], offset // samples_size, _count, invalidation_data_[
+                            __data = data_[:record_count]
+                            _count = len(__data) // samples_size
+                            yield __data, offset // samples_size, _count, invalidation_data_[
                                 :invalidation_record_count
                             ]
                             invalidation_record_count -= len(invalidation_data_)
                         else:
-                            yield data_[
-                                :record_count
-                            ], offset // samples_size, _count, None
+                            __data = data_[:record_count]
+                            _count = len(__data) // samples_size
+                            yield __data, offset // samples_size, _count, None
                         has_yielded = True
                         record_count -= len(data_)
                     else:
                         if rm and invalidation_size:
+                            _count = len(data_) // samples_size
                             yield data_, offset // samples_size, _count, invalidation_data_
                         else:
+                            _count = len(data_) // samples_size
                             yield data_, offset // samples_size, _count, None
                         has_yielded = True
                     data = []
 
                 if not has_yielded:
                     if rm and invalidation_size:
-                        yield b"", 0, _count, b""
+                        yield b"", 0, 0, b""
                     else:
-                        yield b"", 0, _count, None
+                        yield b"", 0, 0, None
             else:
                 if rm and invalidation_size:
-                    yield b"", offset, _count, b""
+                    yield b"", offset, 0, b""
                 else:
-                    yield b"", offset, _count, None
+                    yield b"", offset, 0, None
 
     def _prepare_record(self, group):
         """ compute record dtype and parents dict fro this group
@@ -3422,7 +3428,7 @@ class MDF4(object):
         else:
             t = []
 
-        if self._column_storage:
+        if self.version >= "4.20" and (self._column_storage or 1):
             return self._append_column_oriented(signals, source_block)
 
         dg_cntr = len(self.groups)
@@ -4216,6 +4222,8 @@ class MDF4(object):
         else:
             gp.data_location = v4c.LOCATION_TEMPORARY_FILE
 
+        return dg_cntr
+
     def _append_column_oriented(self, signals, source_block):
         defined_texts = {}
         si_map = self._si_map
@@ -4229,7 +4237,7 @@ class MDF4(object):
 
         seek(0, 2)
 
-        dg_cntr = len(self.groups)
+        dg_cntr = initial_dg_cntr = len(self.groups)
 
         # add the master group
 
@@ -4387,6 +4395,7 @@ class MDF4(object):
             gp.channel_group.acq_name = source_block.name
             gp.channel_group.acq_source = source_block
             gp.channel_group.cg_master_index = cg_master_index
+            gp.channel_group.flags |= v4c.FLAG_CG_REMOTE_MASTER
 
             self.groups.append(gp)
 
@@ -4987,6 +4996,8 @@ class MDF4(object):
             else:
                 gp.data_location = v4c.LOCATION_TEMPORARY_FILE
 
+        return initial_dg_cntr
+
     def _append_dataframe(self, df, source_info="", units=None):
         """
         Appends a new data group from a Pandas data frame.
@@ -5280,6 +5291,8 @@ class MDF4(object):
         >>> mdf2.extend(0, [(t, None), (s1.samples, None), (s2.samples, None), (s3.samples, None)])
 
         """
+        if self.version >= "4.20" and (self._column_storage or 1):
+            return self._extend_column_oriented(index, signals)
         gp = self.groups[index]
         if not signals:
             message = '"append" requires a non-empty list of Signal objects'
@@ -5473,6 +5486,139 @@ class MDF4(object):
                     )
 
         del samples
+
+    def _extend_column_oriented(self, index, signals):
+        """
+        Extend a group with new samples. *signals* contains (values, invalidation_bits)
+        pairs for each extended signal. The first pair is the master channel's pair, and the
+        next pairs must respect the same order in which the signals were appended. The samples must have raw
+        or physical values according to the *Signals* used for the initial append.
+
+        Parameters
+        ----------
+        index : int
+            group index
+        signals : list
+            list on (numpy.ndarray, numpy.ndarray) objects
+
+        Examples
+        --------
+        >>> # case 1 conversion type None
+        >>> s1 = np.array([1, 2, 3, 4, 5])
+        >>> s2 = np.array([-1, -2, -3, -4, -5])
+        >>> s3 = np.array([0.1, 0.04, 0.09, 0.16, 0.25])
+        >>> t = np.array([0.001, 0.002, 0.003, 0.004, 0.005])
+        >>> names = ['Positive', 'Negative', 'Float']
+        >>> units = ['+', '-', '.f']
+        >>> s1 = Signal(samples=s1, timestamps=t, unit='+', name='Positive')
+        >>> s2 = Signal(samples=s2, timestamps=t, unit='-', name='Negative')
+        >>> s3 = Signal(samples=s3, timestamps=t, unit='flts', name='Floats')
+        >>> mdf = MDF4('new.mdf')
+        >>> mdf.append([s1, s2, s3], 'created by asammdf v1.1.0')
+        >>> t = np.array([0.006, 0.007, 0.008, 0.009, 0.010])
+        >>> # extend without invalidation bits
+        >>> mdf2.extend(0, [(t, None), (s1, None), (s2, None), (s3, None)])
+        >>> # some invaldiation btis
+        >>> s1_inv = np.array([0,0,0,1,1], dtype=np.bool)
+        >>> mdf2.extend(0, [(t, None), (s1.samples, None), (s2.samples, None), (s3.samples, None)])
+
+        """
+        gp = self.groups[index]
+        if not signals:
+            message = '"append" requires a non-empty list of Signal objects'
+            raise MdfException(message)
+
+        stream = self._tempfile
+
+        for i, (signal, invalidation_bits) in enumerate(signals):
+            gp = self.groups[index + i]
+            invalidation_bytes_nr = gp.channel_group.invalidation_bytes_nr
+            sig_type = gp.signal_types[0]
+
+            # first add the signals in the simple signal list
+            if sig_type == v4c.SIGNAL_TYPE_SCALAR:
+                samples = signal
+
+            elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
+                names = signal.dtype.names
+
+                if names == v4c.CANOPEN_TIME_FIELDS:
+                    samples = signal
+
+                else:
+                    vals = []
+                    for field in ("ms", "min", "hour", "day", "month", "year"):
+                        vals.append(signal[field])
+                    samples = fromarrays(vals)
+
+            elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
+
+                samples = signal
+
+            elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
+                samples = signal
+
+            else:
+                cur_offset = sum(blk.size for blk in gp.signal_data[0])
+
+                offsets = arange(len(signal), dtype=uint64) * (signal.itemsize + 4)
+
+                values = [full(len(signal), signal.itemsize, dtype=uint32), signal]
+
+                types_ = [("", uint32), ("", signal.dtype)]
+
+                values = fromarrays(values, dtype=types_)
+
+                stream.seek(0, 2)
+                addr = stream.tell()
+                block_size = len(values) * values.itemsize
+                if block_size:
+                    info = SignalDataBlockInfo(
+                        address=addr,
+                        size=block_size,
+                        count=len(values),
+                        offsets=offsets,
+                    )
+                    gp.signal_data[i].append(info)
+                    values.tofile(stream)
+
+                offsets += cur_offset
+
+                samples = offsets
+
+            stream.seek(0, 2)
+            addr = stream.tell()
+            size = len(samples) * samples.itemsize
+
+            if size:
+
+                samples.tofile(stream)
+
+                gp.data_blocks.append(
+                    DataBlockInfo(
+                        address=addr,
+                        block_type=v4c.DT_BLOCK,
+                        raw_size=size,
+                        size=size,
+                        param=0,
+                    )
+                )
+
+                added_cycles = len(samples)
+                gp.channel_group.cycles_nr += added_cycles
+
+                if invalidation_bits is not None:
+                    addr = stream.tell()
+                    invalidation_bits.tofile(stream)
+                    gp.data_blocks[-1].invalidation_block(
+                        InvalidationBlockInfo(
+                            address=addr,
+                            block_type=v4c.DT_BLOCK,
+                            raw_size=invalidation_bytes_nr*added_cycles,
+                            size=invalidation_bytes_nr*added_cycles,
+                            param=None,
+                        )
+                    )
 
     def attach(
         self,
@@ -7027,7 +7173,10 @@ class MDF4(object):
         channel_group = group.channel_group
         record_size = channel_group.samples_byte_nr
         record_size += channel_group.invalidation_bytes_nr
-        cycles_nr = group.channel_group.cycles_nr
+        if record_count is not None:
+            cycles_nr = record_count
+        else:
+            cycles_nr = group.channel_group.cycles_nr
 
         fragment = data
         if fragment:
@@ -7071,8 +7220,8 @@ class MDF4(object):
                 # check if the channel group contains just the master channel
                 # and that there are no padding bytes
                 if len(group.channels) == 1 and time_ch.dtype_fmt.itemsize == record_size:
-
                     if one_piece:
+
                         data_bytes, offset, _count, _ = data
 
                         t = frombuffer(data_bytes, dtype=time_ch.dtype_fmt)

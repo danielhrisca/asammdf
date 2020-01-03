@@ -297,7 +297,7 @@ def open_mdf4(output, fmt):
 
 def open_mdf4_column(output, fmt):
 
-    with Timer("Open file", f"asammdf {asammdf_version} mdfv4", fmt) as timer:
+    with Timer("Open file", f"asammdf {asammdf_version} column mdfv4", fmt) as timer:
         MDF(r"test_column.mf4")
     output.send([timer.output, timer.error])
 
@@ -351,7 +351,7 @@ def get_all_mdf4(output, fmt):
 def get_all_mdf4_column(output, fmt):
 
     x = MDF(r"test_column.mf4")
-    with Timer("Get all channels", f"asammdf {asammdf_version} mdfv4", fmt) as timer:
+    with Timer("Get all channels", f"asammdf {asammdf_version} column mdfv4", fmt) as timer:
         t = perf_counter()
         counter = 0
         to_break = False
@@ -364,7 +364,7 @@ def get_all_mdf4_column(output, fmt):
                     timer.message += " {}/s".format(counter / (t2 - t))
                     to_break = True
                     break
-                x.get(group=i, index=j, samples_only=True)
+                x.get(group=i, index=j, samples_only=False)
                 counter += 1
     output.send([timer.output, timer.error])
 
@@ -377,13 +377,23 @@ def convert_v3_v4(output, fmt):
     output.send([timer.output, timer.error])
 
 
-def convert_v4_v3(output, fmt):
+def convert_v4_v410(output, fmt):
 
     with MDF(r"test.mf4") as x:
-        with Timer("Convert file", f"asammdf {asammdf_version} v4 to v3", fmt) as timer:
+        with Timer("Convert file", f"asammdf {asammdf_version} v4 to v410", fmt) as timer:
             y = x.convert("4.10")
             y.close()
     output.send([timer.output, timer.error])
+
+
+def convert_v4_v420(output, fmt):
+
+    with MDF(r"test.mf4") as x:
+        with Timer("Convert file", f"asammdf {asammdf_version} v4 to v420", fmt) as timer:
+            y = x.convert("4.20")
+            y.close()
+    output.send([timer.output, timer.error])
+
 
 
 def merge_v3(output, fmt):
@@ -938,18 +948,18 @@ def main(text_output, fmt):
     output.append("    * {} groups".format(v4_groups))
     output.append("    * {} channels\n\n".format(v4_channels))
 
-    OPEN, SAVE, GET, CONVERT, MERGE, FILTER, CUT = 1, 0, 1, 0, 0, 0, 0
+    OPEN, SAVE, GET, CONVERT, MERGE, FILTER, CUT = 0, 0, 0, 1, 0, 0, 0
 
     tests = (
-        open_mdf3,
-        open_reader3,
-        open_reader3_nodata,
-        open_reader3_compression,
+#        open_mdf3,
+#        open_reader3,
+#        open_reader3_nodata,
+#        open_reader3_compression,
         open_mdf4,
         open_mdf4_column,
         open_reader4,
         open_reader4_nodata,
-        open_reader4_compression,
+#        open_reader4_compression,
     )
 
     if tests and OPEN:
@@ -986,15 +996,15 @@ def main(text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-        get_all_mdf3,
-        get_all_reader3,
-        get_all_reader3_nodata,
-        get_all_reader3_compression,
+#        get_all_mdf3,
+#        get_all_reader3,
+#        get_all_reader3_nodata,
+#        get_all_reader3_compression,
         get_all_mdf4,
         get_all_mdf4_column,
-        get_all_reader4,
-        get_all_reader4_nodata,
-        get_all_reader4_compression,
+#        get_all_reader4,
+#        get_all_reader4_nodata,
+#        get_all_reader4_compression,
 
     )
 
@@ -1011,7 +1021,8 @@ def main(text_output, fmt):
 
     tests = (
         convert_v3_v4,
-        convert_v4_v3,
+        convert_v4_v410,
+        convert_v4_v420,
     )
 
     if tests and CONVERT:
@@ -1139,9 +1150,9 @@ if __name__ == "__main__":
     args = cmd_parser.parse_args(sys.argv[1:])
 
     main(args.text_output, args.format)
-
-#    x = MDF(r"test.mf4", copy_on_get=False)
-#    with Timer("Get all channels", f"asammdf {asammdf_version} mdfv4", 'rst') as timer:
+#
+#    x = MDF(r"test_column.mf4")
+#    with Timer("Get all channels", f"asammdf {asammdf_version} column mdfv4", "rst") as timer:
 #        t = perf_counter()
 #        counter = 0
 #        to_break = False
@@ -1154,7 +1165,6 @@ if __name__ == "__main__":
 #                    timer.message += " {}/s".format(counter / (t2 - t))
 #                    to_break = True
 #                    break
-#
 #                x.get(group=i, index=j, samples_only=True)
 #                counter += 1
 #
