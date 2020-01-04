@@ -1320,7 +1320,7 @@ def extract_can_signal(signal, payload):
 
     bit_count = signal.size
 
-    if start_bit + bit_count < vals.shape[1] * 8:
+    if start_bit + bit_count > vals.shape[1] * 8:
         raise MdfException(
             f'Could not extract signal "{signal.name}" with start '
             f"bit {signal.get_startbit()} and bit count {signal.size} "
