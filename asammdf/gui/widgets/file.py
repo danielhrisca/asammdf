@@ -950,16 +950,25 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
                 signals = []
-                while iterator.value():
-                    item = iterator.value()
-                    if item.parent() is None:
+                if self.channel_view.currentIndex() == 1:
+                    while iterator.value():
+                        item = iterator.value()
+                        if item.parent() is None:
+                            iterator += 1
+                            continue
+
+                        if item.checkState(0) == QtCore.Qt.Checked:
+                            signals.append(item.text(0))
+
                         iterator += 1
-                        continue
+                else:
+                    while iterator.value():
+                        item = iterator.value()
 
-                    if item.checkState(0) == QtCore.Qt.Checked:
-                        signals.append(item.text(0))
+                        if item.checkState(0) == QtCore.Qt.Checked:
+                            signals.append(item.text(0))
 
-                    iterator += 1
+                        iterator += 1
 
                 output.write("\n".join(signals))
 
@@ -976,20 +985,33 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
             iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
-            while iterator.value():
-                item = iterator.value()
-                if item.parent() is None:
+            if self.channel_view.currentIndex() == 1:
+                while iterator.value():
+                    item = iterator.value()
+                    if item.parent() is None:
+                        iterator += 1
+                        continue
+
+                    channel_name = item.text(0)
+                    if channel_name in channels:
+                        item.setCheckState(0, QtCore.Qt.Checked)
+                        channels.pop(channels.index(channel_name))
+                    else:
+                        item.setCheckState(0, QtCore.Qt.Unchecked)
+
                     iterator += 1
-                    continue
+            else:
+                while iterator.value():
+                    item = iterator.value()
 
-                channel_name = item.text(0)
-                if channel_name in channels:
-                    item.setCheckState(0, QtCore.Qt.Checked)
-                    channels.pop(channels.index(channel_name))
-                else:
-                    item.setCheckState(0, QtCore.Qt.Unchecked)
+                    channel_name = item.text(0)
+                    if channel_name in channels:
+                        item.setCheckState(0, QtCore.Qt.Checked)
+                        channels.pop(channels.index(channel_name))
+                    else:
+                        item.setCheckState(0, QtCore.Qt.Unchecked)
 
-                iterator += 1
+                    iterator += 1
 
     def compute_cut_hints(self):
         t_min = []
@@ -2124,22 +2146,33 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
     def filter(self, event):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
-        group = -1
-        index = 0
         channels = []
-        while iterator.value():
-            item = iterator.value()
-            if item.parent() is None:
+
+        if self.channel_view.currentIndex() == 1:
+            while iterator.value():
+                item = iterator.value()
+                if item.parent() is None:
+                    iterator += 1
+                    continue
+
+                if item.checkState(0) == QtCore.Qt.Checked:
+                    group, index = item.entry
+                    ch = self.mdf.groups[group].channels[index]
+                    if not ch.component_addr:
+                        channels.append((None, group, index))
+
                 iterator += 1
-                group += 1
-                index = 0
-                continue
+        else:
+            while iterator.value():
+                item = iterator.value()
 
-            if item.checkState(0) == QtCore.Qt.Checked:
-                channels.append((None, group, index))
+                if item.checkState(0) == QtCore.Qt.Checked:
+                    group, index = item.entry
+                    ch = self.mdf.groups[group].channels[index]
+                    if not ch.component_addr:
+                        channels.append((None, group, index))
 
-            index += 1
-            iterator += 1
+                iterator += 1
 
         version = self.filter_format.itemText(self.filter_format.currentIndex())
 
