@@ -5425,7 +5425,6 @@ class MDF4(object):
                 fields.append(inval_bits)
                 types.append(("invalidation_bytes", inval_bits.dtype, inval_bits.shape[1:]))
 
-        print('====\n',fields, '\n', types)
         samples = fromarrays(fields, dtype=types)
 
         del fields
