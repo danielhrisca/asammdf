@@ -2880,153 +2880,73 @@ class MDF(object):
 
         self._link_attributes()
 
-        # group channels by group index
-        gps = {}
-
-        indexes = []
-
-        for item in channels:
-            if isinstance(item, (list, tuple)):
-                if len(item) not in (2, 3):
-                    raise MdfException(
-                        "The items used for filtering must be strings, "
-                        "or they must match the first 3 argumens of the get "
-                        "method"
-                    )
-                else:
-                    group, index = self._validate_channel_selection(*item)
-                    indexes.append((group, index))
-                    if group not in gps:
-                        gps[group] = {index}
-                    else:
-                        gps[group].add(index)
-            else:
-                name = item
-                group, index = self._validate_channel_selection(name)
-
-                indexes.append((group, index))
-                if group not in gps:
-                    gps[group] = {index}
-                else:
-                    gps[group].add(index)
+        virtual_groups = self.included_channels(channels=channels)
 
         output_signals = {}
 
-        for group in gps:
-            grp = self.groups[group]
-            data = self._load_data(
-                grp, record_offset=record_offset, record_count=record_count
-            )
-            parents, dtypes = self._prepare_record(grp)
-
-            channel_indexes = list(gps[group])
+        for virtual_group, groups in virtual_groups.items():
+            cycles_nr = self._mdf._virtual_groups[virtual_group].cycles_nr
+            pairs = [
+                (gp_index, ch_index)
+                for gp_index, channel_indexes in groups.items()
+                for ch_index in channel_indexes
+            ]
 
             if record_count is None:
-                cycles = grp.channel_group.cycles_nr - record_offset
+                cycles = cycles_nr - record_offset
             else:
-                if grp.channel_group.cycles_nr < record_count + record_offset:
-                    cycles = grp.channel_group.cycles_nr - record_offset
+                if cycles_nr < record_count + record_offset:
+                    cycles = cycles_nr - record_offset
                 else:
                     cycles = record_count
 
             signals = []
-            invalidation_bits = []
-
-            sigs = []
 
             current_pos = 0
 
-            for i, fragment in enumerate(data):
-
-                if dtypes.itemsize:
-                    # TODO: optimize for channel groups with a single channel
-                    # and LDBLOCK (records 6us; array 0.5us)
-                    grp.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
-                else:
-                    grp.record = None
-
-                self._set_temporary_master(None)
-                self._set_temporary_master(self.get_master(group, data=fragment))
-
-                if i == 0:
-                    for index in channel_indexes:
-                        signal = self.get(
-                            group=group,
-                            index=index,
-                            data=fragment,
-                            raw=True,
-                            ignore_invalidation_bits=True,
-                        )
-
-                        sigs.append(signal)
-
+            for idx, sigs in enumerate(self.get_(virtual_group, groups=groups, record_offset=record_offset, record_count=record_count)):
+                if idx == 0:
                     next_pos = current_pos + len(sigs[0])
 
                     master = np.empty(cycles, dtype=sigs[0].timestamps.dtype)
-
                     master[current_pos:next_pos] = sigs[0].timestamps
 
                     for sig in sigs:
                         shape = (cycles,) + sig.samples.shape[1:]
                         signal = np.empty(shape, dtype=sig.samples.dtype)
-                        signals.append(signal)
                         signal[current_pos:next_pos] = sig.samples
+                        sig.samples = signal
+                        signals.append(sig)
 
                         if sig.invalidation_bits is not None:
                             inval = np.empty(cycles, dtype=sig.invalidation_bits.dtype)
-                            invalidation_bits.append(inval)
                             inval[current_pos:next_pos] = sig.invalidation_bits
-                        else:
-                            invalidation_bits.append(None)
+                            sig.invalidation_bits = inval
 
                 else:
-                    next_pos = current_pos + len(self._mdf._master)
 
-                    master[current_pos:next_pos] = self._mdf._master
+                    for j, (signal, (sig, inval)) in enumerate(zip(signals, sigs)):
+                        if j == 0:
+                            next_pos = current_pos + len(sig)
+                            master[current_pos:next_pos] = sig
+                        else:
 
-                    for signal, inval, index in zip(
-                        signals, invalidation_bits, channel_indexes
-                    ):
-                        sig = self.get(
-                            group=group,
-                            index=index,
-                            data=fragment,
-                            raw=True,
-                            samples_only=True,
-                            ignore_invalidation_bits=True,
-                        )
-
-                        signal[current_pos:next_pos] = sig[0]
-                        if inval is not None:
-                            inval[current_pos:next_pos] = sig[1]
+                            signal.samples[current_pos:next_pos] = sig
+                            if signal.invalidation is not None:
+                                signal.invalidation[current_pos:next_pos] = inval
 
                 current_pos = next_pos
 
-                grp.record = None
-                self._set_temporary_master(None)
+            for signal, pair in zip(signals, pairs):
+                signal.timestamps = master
+                output_signals[pair] = signal
 
-            for signal, inval, index, sig in zip(
-                signals, invalidation_bits, channel_indexes, sigs
-            ):
-                pair = group, index
+        indexes = []
 
-                output_signals[pair] = Signal(
-                    samples=signal,
-                    timestamps=master,
-                    name=sig.name,
-                    unit=sig.unit,
-                    bit_count=sig.bit_count,
-                    attachment=sig.attachment,
-                    comment=sig.comment,
-                    conversion=sig.conversion,
-                    display_name=sig.display_name,
-                    encoding=sig.encoding,
-                    master_metadata=sig.master_metadata,
-                    raw=True,
-                    source=sig.source,
-                    stream_sync=sig.stream_sync,
-                    invalidation_bits=inval,
-                )
+        for item in channels:
+            if not isinstance(item, (list, tuple)):
+                item = [item]
+            indexes.append(self._validate_channel_selection(*item))
 
         signals = [output_signals[pair] for pair in indexes]
 

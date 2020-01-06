@@ -1015,11 +1015,13 @@ class VirtualChannelGroup:
     __slots__ = (
         "groups",
         "record_size",
+        "cycles_nr",
     )
 
     def __init__(self):
         self.groups = []
         self.record_size = 0
+        self.cycles_nr = 0
 
 
 def block_fields(obj):

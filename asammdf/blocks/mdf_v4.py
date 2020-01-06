@@ -633,6 +633,7 @@ class MDF4(object):
                 grp.channel_group.samples_byte_nr
                 + grp.channel_group.invalidation_bytes_nr
             )
+            virtual_channel_group.cycles_nr = grp.channel_group.cycles_nr
 
             for ch_index, dep_list in enumerate(grp.channel_dependencies):
                 if not dep_list:
@@ -2994,7 +2995,7 @@ class MDF4(object):
         gp.channel_group.acq_source = source_block
 
         if signals:
-            self._virtual_groups[dg_cntr] = [dg_cntr]
+
             # time channel
             t_type, t_size = fmt_to_datatype_v4(t.dtype, t.shape)
             kwargs = {
@@ -3600,6 +3601,13 @@ class MDF4(object):
         gp.channel_group.cycles_nr = cycles_nr
         gp.channel_group.samples_byte_nr = offset
 
+        virtual_group = VirtualChannelGroup()
+        self._virtual_groups[dg_cntr] = virtual_group
+        self._virtual_groups_map[dg_cntr] = dg_cntr
+        virtual_group.groups.append(dg_cntr)
+        virtual_group.record_size = offset + invalidation_bytes_nr
+        virtual_group.cycles_nr = cycles_nr
+
         # data group
         gp.data_group = DataGroup()
 
@@ -3835,7 +3843,12 @@ class MDF4(object):
 
         cg_master_index = dg_cntr
 
-        self._virtual_groups[cg_master_index] = virtual_group = []
+        virtual_group = VirtualChannelGroup()
+        self._virtual_groups[cg_master_index] = virtual_group
+        self._virtual_groups_map[dg_cntr] = dg_cntr
+        virtual_group.groups.append(dg_cntr)
+        virtual_group.record_size = offset
+        virtual_group.cycles_nr = cycles_nr
 
         dg_cntr += 1
 
@@ -3886,8 +3899,6 @@ class MDF4(object):
             gp.data_group = DataGroup()
             gp.sorted = True
             gp.uses_ld = True
-
-            virtual_group.append(dg_cntr)
 
             # channel group
             kwargs = {
@@ -4139,6 +4150,7 @@ class MDF4(object):
                     invalidation_bits = None
 
                 gp["types"] = dtype(new_types)
+                offset = gp['types'].itemsize
 
                 samples = signal.samples
 
@@ -4443,6 +4455,13 @@ class MDF4(object):
             if invalidation_bits is not None:
                 gp.channel_group.invalidation_bytes_nr = 1
 
+            virtual_group.groups.append(dg_cntr)
+            self._virtual_groups_map[dg_cntr] = cg_master_index
+
+            virtual_group.record_size += offset
+            if signal.invalidation_bits:
+                virtual_group.record_size += 1
+
             dg_cntr += 1
             size = cycles_nr * samples.itemsize
             if size:
@@ -4565,7 +4584,12 @@ class MDF4(object):
         source_block.name = source_block.path = source_info
 
         if df.shape[0]:
-            self._virtual_groups[dg_cntr] = dg_cntr
+            virtual_group = VirtualChannelGroup()
+            self._virtual_groups[dg_cntr] = virtual_group
+            self._virtual_groups_map[dg_cntr] = dg_cntr
+            virtual_group.groups.append(dg_cntr)
+            virtual_group.cycles_nr = cycles_nr
+
             # time channel
             t_type, t_size = fmt_to_datatype_v4(t.dtype, t.shape)
             kwargs = {
@@ -4730,6 +4754,9 @@ class MDF4(object):
 
                 # simple channels don't have channel dependencies
                 gp_dep.append(None)
+
+        virtual_group.record_size = offset
+        virtual_group.cycles_nr = cycles_nr
 
         gp.channel_group.cycles_nr = cycles_nr
         gp.channel_group.samples_byte_nr = offset
@@ -5818,6 +5845,7 @@ class MDF4(object):
                 record_size += gp.channel_group.invalidation_bytes_nr
                 added_cycles = size // record_size
                 gp.channel_group.cycles_nr += added_cycles
+                self._virtual_groups[index].cycles_nr += added_cycles
             else:
                 samples.tofile(stream)
 
