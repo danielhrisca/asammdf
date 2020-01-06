@@ -20,8 +20,15 @@ from .gui import plot
 from .signal import Signal
 from .version import __version__
 
+try: 
+    from .blocks import cutils
+    __cextension__ = True
+except ImportError:
+    __cextension__ = False
+
 
 __all__ = [
+    "__cextension__",
     "__version__",
     "MDF",
     "MDF2",

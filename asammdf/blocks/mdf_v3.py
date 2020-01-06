@@ -884,6 +884,7 @@ class MDF3(object):
         use_display_names=None,
         single_bit_uint_as_bool=None,
         integer_interpolation=None,
+        copy_on_get=None,
     ):
         """ configure MDF parameters
 
@@ -907,6 +908,8 @@ class MDF3(object):
 
                 * 0 - repeat previous sample
                 * 1 - use linear interpolation
+        copy_on_get : bool
+            copy arrays in the get method
 
         """
 
@@ -924,6 +927,9 @@ class MDF3(object):
 
         if integer_interpolation in (0, 1):
             self._integer_interpolation = int(integer_interpolation)
+
+        if copy_on_get is not None:
+            self.copy_on_get = copy_on_get
 
     def add_trigger(self, group, timestamp, pre_time=0, post_time=0, comment=""):
         """ add trigger to data group
@@ -1077,7 +1083,7 @@ class MDF3(object):
 
                 if different:
                     times = [s.timestamps for s in signals]
-                    timestampst = unique(concatenate(times)).astype(float64)
+                    timestamps = unique(concatenate(times)).astype(float64)
                     signals = [
                         s.interp(timestamps, interpolation_mode=interp_mode)
                         for s in signals
@@ -1906,6 +1912,8 @@ class MDF3(object):
 
         # data group trigger
         gp.trigger = None
+
+        return dg_cntr
 
     def _append_dataframe(self, df, source_info="", units=None):
         """

@@ -543,7 +543,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         if self._show_filter_tree:
             widgets = (self.channels_tree, self.filter_tree)
         else:
-            widgets = (self.channels_tree, )
+            widgets = (self.channels_tree,)
         for widget in widgets:
             iterator = QtWidgets.QTreeWidgetItemIterator(widget)
             signals = set()
@@ -950,16 +950,25 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
                 signals = []
-                while iterator.value():
-                    item = iterator.value()
-                    if item.parent() is None:
+                if self.channel_view.currentIndex() == 1:
+                    while iterator.value():
+                        item = iterator.value()
+                        if item.parent() is None:
+                            iterator += 1
+                            continue
+
+                        if item.checkState(0) == QtCore.Qt.Checked:
+                            signals.append(item.text(0))
+
                         iterator += 1
-                        continue
+                else:
+                    while iterator.value():
+                        item = iterator.value()
 
-                    if item.checkState(0) == QtCore.Qt.Checked:
-                        signals.append(item.text(0))
+                        if item.checkState(0) == QtCore.Qt.Checked:
+                            signals.append(item.text(0))
 
-                    iterator += 1
+                        iterator += 1
 
                 output.write("\n".join(signals))
 
@@ -976,20 +985,33 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
             iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
-            while iterator.value():
-                item = iterator.value()
-                if item.parent() is None:
+            if self.channel_view.currentIndex() == 1:
+                while iterator.value():
+                    item = iterator.value()
+                    if item.parent() is None:
+                        iterator += 1
+                        continue
+
+                    channel_name = item.text(0)
+                    if channel_name in channels:
+                        item.setCheckState(0, QtCore.Qt.Checked)
+                        channels.pop(channels.index(channel_name))
+                    else:
+                        item.setCheckState(0, QtCore.Qt.Unchecked)
+
                     iterator += 1
-                    continue
+            else:
+                while iterator.value():
+                    item = iterator.value()
 
-                channel_name = item.text(0)
-                if channel_name in channels:
-                    item.setCheckState(0, QtCore.Qt.Checked)
-                    channels.pop(channels.index(channel_name))
-                else:
-                    item.setCheckState(0, QtCore.Qt.Unchecked)
+                    channel_name = item.text(0)
+                    if channel_name in channels:
+                        item.setCheckState(0, QtCore.Qt.Checked)
+                        channels.pop(channels.index(channel_name))
+                    else:
+                        item.setCheckState(0, QtCore.Qt.Unchecked)
 
-                iterator += 1
+                    iterator += 1
 
     def compute_cut_hints(self):
         t_min = []
@@ -1632,6 +1654,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             signals = self.mdf.select(
                 signals_,
                 ignore_value2text_conversions=self.ignore_value2text_conversions,
+                copy_master=False,
             )
 
             for sig, sig_ in zip(signals, signals_):
@@ -1830,6 +1853,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 for sig in self.mdf.select(
                     measured_signals_,
                     ignore_value2text_conversions=self.ignore_value2text_conversions,
+                    copy_master=False,
                 )
             }
 
@@ -1869,6 +1893,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 for sig in self.mdf.select(
                     required_channels,
                     ignore_value2text_conversions=self.ignore_value2text_conversions,
+                    copy_master=False,
                 )
             }
 
@@ -2121,22 +2146,33 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
     def filter(self, event):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
-        group = -1
-        index = 0
         channels = []
-        while iterator.value():
-            item = iterator.value()
-            if item.parent() is None:
+
+        if self.channel_view.currentIndex() == 1:
+            while iterator.value():
+                item = iterator.value()
+                if item.parent() is None:
+                    iterator += 1
+                    continue
+
+                if item.checkState(0) == QtCore.Qt.Checked:
+                    group, index = item.entry
+                    ch = self.mdf.groups[group].channels[index]
+                    if not ch.component_addr:
+                        channels.append((None, group, index))
+
                 iterator += 1
-                group += 1
-                index = 0
-                continue
+        else:
+            while iterator.value():
+                item = iterator.value()
 
-            if item.checkState(0) == QtCore.Qt.Checked:
-                channels.append((None, group, index))
+                if item.checkState(0) == QtCore.Qt.Checked:
+                    group, index = item.entry
+                    ch = self.mdf.groups[group].channels[index]
+                    if not ch.component_addr:
+                        channels.append((None, group, index))
 
-            index += 1
-            iterator += 1
+                iterator += 1
 
         version = self.filter_format.itemText(self.filter_format.currentIndex())
 
@@ -2519,9 +2555,15 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             super().keyPressEvent(event)
 
     def aspect_changed(self, index):
-        if self.aspects.tabText(self.aspects.currentIndex()) == "Resample" and not self.raster_channel.count():
+        if (
+            self.aspects.tabText(self.aspects.currentIndex()) == "Resample"
+            and not self.raster_channel.count()
+        ):
             self.raster_channel.addItems(self.channels_db_items)
-        elif self.aspects.tabText(self.aspects.currentIndex()) == "Filter" and not self._show_filter_tree:
+        elif (
+            self.aspects.tabText(self.aspects.currentIndex()) == "Filter"
+            and not self._show_filter_tree
+        ):
             self._show_filter_tree = True
 
             widget = self.filter_tree

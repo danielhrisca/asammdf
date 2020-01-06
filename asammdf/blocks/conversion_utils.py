@@ -124,9 +124,7 @@ def conversion_transfer(conversion, version=3):
                     }
                     for i in range(nr):
                         kargs[f"param_val_{i}"] = conversion[f"val_{i}"]
-                        kargs[f"text_{i}"] = conversion.referenced_blocks[
-                            f"text_{i}"
-                        ].text
+                        kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"]
 
                     conversion = v3b.ChannelConversion(**kargs)
 
@@ -140,16 +138,12 @@ def conversion_transfer(conversion, version=3):
                     for i in range(nr):
                         kargs[f"lower_{i}"] = conversion[f"lower_{i}"]
                         kargs[f"upper_{i}"] = conversion[f"upper_{i}"]
-                        kargs[f"text_{i}"] = conversion.referenced_blocks[
-                            f"text_{i}"
-                        ].text
+                        kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"]
 
                     new_conversion = v3b.ChannelConversion(**kargs)
-
-                    new_conversion.referenced_blocks["default_addr"] = v3b.TextBlock(
-                        text=conversion.referenced_blocks["default_addr"].text
-                    )
-                    new_conversion
+                    new_conversion.referenced_blocks[
+                        "default_addr"
+                    ] = conversion.referenced_blocks["default_addr"]
 
                     conversion = new_conversion
 
@@ -232,12 +226,12 @@ def conversion_transfer(conversion, version=3):
                     "val_param_nr": nr * 2,
                     "ref_param_nr": nr + 1,
                     "conversion_type": v4c.CONVERSION_TYPE_RTABX,
-                    "default_addr": conversion.referenced_blocks["default_addr"].text,
+                    "default_addr": conversion.referenced_blocks["default_addr"],
                 }
                 for i in range(nr):
                     kargs[f"lower_{i}"] = conversion[f"lower_{i}"]
                     kargs[f"upper_{i}"] = conversion[f"upper_{i}"]
-                    kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"].text
+                    kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"]
 
                 conversion = v4b.ChannelConversion(**kargs)
 

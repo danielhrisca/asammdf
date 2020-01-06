@@ -13,17 +13,13 @@ class CollapsibleBox(QtWidgets.QWidget):
             text=title, checkable=True, checked=False
         )
         self.toggle_button.setStyleSheet("QToolButton { border: none; }")
-        self.toggle_button.setToolButtonStyle(
-            QtCore.Qt.ToolButtonTextBesideIcon
-        )
+        self.toggle_button.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
         self.toggle_button.setArrowType(QtCore.Qt.RightArrow)
         self.toggle_button.pressed.connect(self.on_pressed)
 
         self.toggle_animation = QtCore.QParallelAnimationGroup(self)
 
-        self.content_area = QtWidgets.QScrollArea(
-            maximumHeight=0, minimumHeight=0
-        )
+        self.content_area = QtWidgets.QScrollArea(maximumHeight=0, minimumHeight=0)
         self.content_area.setSizePolicy(
             QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed
         )
@@ -62,9 +58,7 @@ class CollapsibleBox(QtWidgets.QWidget):
         lay = self.content_area.layout()
         del lay
         self.content_area.setLayout(layout)
-        collapsed_height = (
-            self.sizeHint().height() - self.content_area.maximumHeight()
-        )
+        collapsed_height = self.sizeHint().height() - self.content_area.maximumHeight()
         content_height = layout.sizeHint().height()
         for i in range(self.toggle_animation.animationCount()):
             animation = self.toggle_animation.animationAt(i)

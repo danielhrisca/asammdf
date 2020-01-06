@@ -22,7 +22,7 @@ from asammdf import MDF, Signal, SUPPORTED_VERSIONS
 from asammdf.blocks.utils import MdfException
 from pandas import DataFrame
 
-SUPPORTED_VERSIONS = [version for version in SUPPORTED_VERSIONS if version >= "4.00"]
+SUPPORTED_VERSIONS = [version for version in SUPPORTED_VERSIONS if "4.20" > version >= "4.00" ]
 
 CHANNEL_LEN = 100000
 

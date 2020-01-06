@@ -556,7 +556,8 @@ class Plot(QtWidgets.QWidget):
                 self.channel_selection,
             )
             item.setData(QtCore.Qt.UserRole, sig.name)
-            it = ChannelDisplay(sig.uuid, sig.unit, sig.samples.dtype.kind, 3, self)
+            tooltip = getattr(sig, "tooltip", "")
+            it = ChannelDisplay(sig.uuid, sig.unit, sig.samples.dtype.kind, 3, tooltip, self)
             it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
             it.set_name(sig.name)
@@ -1753,9 +1754,9 @@ class _Plot(pg.PlotWidget):
         if self.signals:
             ids = {id(s.timestamps): s.timestamps for s in self.signals}
 
-#            self.all_timebase = self.timebase = np.unique(
-#                np.concatenate([v for v in ids.values()])
-#            )
+            #            self.all_timebase = self.timebase = np.unique(
+            #                np.concatenate([v for v in ids.values()])
+            #            )
             self.all_timebase = self.timebase = np.unique(
                 reduce(np.union1d, [v for v in ids.values()])
             )

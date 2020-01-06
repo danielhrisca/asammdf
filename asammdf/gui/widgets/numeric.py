@@ -281,19 +281,19 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             signal_name = ""
             for name in matches:
                 sig = self.signals[name].cut(start=start)
-                samples = sig.samples[1:]
+                samples = sig.samples
 
                 op = getattr(samples, OPS[operator])
                 try:
                     idx = np.argwhere(op(target)).flatten()
                     if len(idx):
-                        if timestamp is None:
-                            timestamp = sig.timestamps[idx[0] + 1]
-                            signal_name = name
+                        if len(idx) > 1:
+                            timestamp_ = sig.timestamps[idx[1]]
                         else:
-                            if sig.timestamps[idx[0] + 1] < timestamp:
-                                timestamp = sig.timestamps[idx[0] + 1]
-                                signal_name = name
+                            timestamp_ = sig.timestamps[idx[0]]
+                        if timestamp is None or timestamp_ < timestamp:
+                            timestamp = timestamp_
+                            signal_name = name
                 except:
                     continue
 
@@ -346,13 +346,13 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                 try:
                     idx = np.argwhere(op(target)).flatten()
                     if len(idx):
-                        if timestamp is None:
-                            timestamp = sig.timestamps[idx[-1]]
-                            signal_name = name
+                        if len(idx) > 1:
+                            timestamp_ = sig.timestamps[idx[1]]
                         else:
-                            if sig.timestamps[idx[-1]] > timestamp:
-                                timestamp = sig.timestamps[idx[-1]]
-                                signal_name = name
+                            timestamp_ = sig.timestamps[idx[0]]
+                        if timestamp is None or timestamp_ > timestamp:
+                            timestamp = timestamp_
+                            signal_name = name
                 except:
                     continue
 

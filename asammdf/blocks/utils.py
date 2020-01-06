@@ -181,7 +181,7 @@ def matlab_compatible(name):
     return compatible_name[:60]
 
 
-def get_text_v3(address, stream, mapped=False):
+def get_text_v3(address, stream, mapped=False, decode=True):
     """ faster way to extract strings from mdf versions 2 and 3 TextBlock
 
     Parameters
@@ -199,25 +199,28 @@ def get_text_v3(address, stream, mapped=False):
     """
 
     if address == 0:
-        return ""
+        return "" if decode else b""
 
     if mapped:
         (size,) = UINT16_uf(stream, address + 2)
-        text_bytes = stream[address + 4 : address + size]
+        text_bytes = stream[address + 4 : address + size].strip(b" \r\t\n\0")
     else:
         stream.seek(address + 2)
         size = UINT16_u(stream.read(2))[0] - 4
-        text_bytes = stream.read(size)
-    try:
-        text = text_bytes.strip(b" \r\t\n\0").decode("latin-1")
-    except UnicodeDecodeError:
-        encoding = detect(text_bytes)["encoding"]
-        text = text_bytes.strip(b" \r\t\n\0").decode(encoding, "ignore")
+        text_bytes = stream.read(size).strip(b" \r\t\n\0")
+    if decode:
+        try:
+            text = text_bytes.decode("latin-1")
+        except UnicodeDecodeError:
+            encoding = detect(text_bytes)["encoding"]
+            text = text_bytes.decode(encoding, "ignore")
+    else:
+        text = text_bytes
 
     return text
 
 
-def get_text_v4(address, stream, mapped=False):
+def get_text_v4(address, stream, mapped=False, decode=True):
     """ faster way to extract strings from mdf version 4 TextBlock
 
     Parameters
@@ -235,20 +238,23 @@ def get_text_v4(address, stream, mapped=False):
     """
 
     if address == 0:
-        return ""
+        return "" if decode else b""
 
     if mapped:
         (size,) = UINT64_uf(stream, address + 8)
-        text_bytes = stream[address + 24 : address + size]
+        text_bytes = stream[address + 24 : address + size].strip(b" \r\t\n\0")
     else:
         stream.seek(address + 8)
         size, _ = TWO_UINT64_u(stream.read(16))
-        text_bytes = stream.read(size - 24)
-    try:
-        text = text_bytes.strip(b" \r\t\n\0").decode("utf-8")
-    except UnicodeDecodeError:
-        encoding = detect(text_bytes)["encoding"]
-        text = text_bytes.strip(b" \r\t\n\0").decode(encoding, "ignore")
+        text_bytes = stream.read(size - 24).strip(b" \r\t\n\0")
+    if decode:
+        try:
+            text = text_bytes.decode("utf-8")
+        except UnicodeDecodeError:
+            encoding = detect(text_bytes)["encoding"]
+            text = text_bytes.decode(encoding, "ignore")
+    else:
+        text = text_bytes
 
     return text
 
@@ -616,7 +622,7 @@ def debug_channel(mdf, group, channel, dependency, file=None):
 
     cg = group["channel_group"]
     print("CHANNEL GROUP", "=" * 66, file=file)
-    print(cg, file=file)
+    print(cg, cg.cycles_nr, cg.samples_byte_nr, cg.invalidation_bytes_nr, file=file)
     print(file=file)
 
     print("CHANNEL", "=" * 72, file=file)
@@ -759,17 +765,17 @@ class ChannelsDB(dict):
         """
         if channel_name:
             if channel_name not in self:
-                self[channel_name] = [entry]
+                self[channel_name] = (entry,)
             else:
-                self[channel_name].append(entry)
+                self[channel_name] += (entry,)
 
             if "\\" in channel_name:
-                channel_name = channel_name.split("\\")[0]
+                channel_name, _ = channel_name.split("\\", 1)
 
                 if channel_name not in self:
-                    self[channel_name] = [entry]
+                    self[channel_name] = (entry,)
                 else:
-                    self[channel_name].append(entry)
+                    self[channel_name] += (entry,)
 
 
 def randomized_string(size):
@@ -959,6 +965,9 @@ class Group:
         "signal_types",
         "trigger",
         "string_dtypes",
+        "single_channel_dtype",
+        "uses_ld",
+        "ignore_during_save",
     )
 
     def __init__(self, data_group):
@@ -982,6 +991,9 @@ class Group:
         self.trigger = None
         self.string_dtypes = None
         self.data_blocks = []
+        self.single_channel_dtype = None
+        self.uses_ld = False
+        self.ignore_during_save = False
 
     def __getitem__(self, item):
         return self.__getattribute__(item)
@@ -1116,7 +1128,14 @@ class DataBlockInfo:
     )
 
     def __init__(
-        self, address, block_type, raw_size, size, param, invalidation_block=None, block_limit=None
+        self,
+        address,
+        block_type,
+        raw_size,
+        size,
+        param,
+        invalidation_block=None,
+        block_limit=None,
     ):
         self.address = address
         self.block_type = block_type
@@ -1142,10 +1161,18 @@ class InvalidationBlockInfo(DataBlockInfo):
 
     __slots__ = ("all_valid",)
 
-    def __init__(self, address, block_type, raw_size, size, param, all_valid=False, block_limit=None):
+    def __init__(
+        self,
+        address,
+        block_type,
+        raw_size,
+        size,
+        param,
+        all_valid=False,
+        block_limit=None,
+    ):
         super().__init__(address, block_type, raw_size, size, param, block_limit)
         self.all_valid = all_valid
-
 
     def __repr__(self):
         return (
@@ -1293,6 +1320,13 @@ def extract_can_signal(signal, payload):
 
     bit_count = signal.size
 
+    if start_bit + bit_count > vals.shape[1] * 8:
+        raise MdfException(
+            f'Could not extract signal "{signal.name}" with start '
+            f"bit {signal.get_startbit()} and bit count {signal.size} "
+            f"from the payload with shape {vals.shape}"
+        )
+
     byte_size, r = divmod(bit_offset + bit_count, 8)
     if r:
         byte_size += 1
@@ -1401,6 +1435,9 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
     """
     extracted_signals = {}
 
+    if message.size > payload.shape[1]:
+        return extracted_signals
+
     # first go through the non-mutiplexers signals
     # create lists of signals that are not mutiplexed or they ahve the same
     # mutiplexor and the same lower and upper mutiplexing values
@@ -1425,6 +1462,8 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
 
             for sig in pair_signals:
                 samples = extract_can_signal(sig, payload)
+                if len(samples) == 0 and len(t):
+                    continue
                 max_val = float(sig.calc_max())
                 signals[sig.name] = {
                     "name": sig.name,
@@ -1434,6 +1473,7 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
                     "t": t,
                     "is_max": np.all(samples == max_val),
                 }
+
         else:
             # select only the CAN messages where the multiplexor value is
             # within the range

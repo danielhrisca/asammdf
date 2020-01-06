@@ -29,7 +29,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         "_transparent",
     )
 
-    def __init__(self, uuid, unit="", kind="f", precision=3, *args, **kwargs):
+    def __init__(self, uuid, unit="", kind="f", precision=3, tooltip="", *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
@@ -45,6 +45,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self.precision = precision
 
         self._transparent = True
+        self._tooltip = tooltip
 
         self.color_btn.clicked.connect(self.select_color)
         self.display.stateChanged.connect(self.display_changed)
@@ -53,7 +54,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
         self.fm = QtGui.QFontMetrics(self.name.font())
 
-        self.setToolTip(self._name)
+        self.setToolTip(self._tooltip or self._name)
 
         if kind in "SUVui":
             self.fmt = "{}"
@@ -108,7 +109,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self.color_btn.setStyleSheet(f"background-color: {color};")
 
     def set_name(self, text=""):
-        self.setToolTip(text)
+        self.setToolTip(self._tooltip or text)
         self._name = text
 
     def set_prefix(self, text=""):

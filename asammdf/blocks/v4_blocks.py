@@ -140,7 +140,7 @@ class AttachmentBlock:
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            mapped = not is_file_like(stream)
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
 
             if mapped:
                 (
@@ -469,7 +469,7 @@ class Channel:
             self.address = address = kwargs["address"]
             self.dtype_fmt = self.attachment = None
             stream = kwargs["stream"]
-            mapped = not is_file_like(stream)
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
 
             if mapped:
 
@@ -579,7 +579,13 @@ class Channel:
                     ) = params
 
                 self.name = get_text_v4(self.name_addr, stream, mapped=mapped)
-                self.unit = get_text_v4(self.unit_addr, stream, mapped=mapped)
+                tx_map = kwargs.get("tx_map", {})
+                addr = self.unit_addr
+                if addr in tx_map:
+                    self.unit = tx_map[addr]
+                else:
+                    self.unit = get_text_v4(addr, stream, mapped=mapped)
+                    tx_map[addr] = self.unit
                 self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
 
                 if kwargs.get("use_display_names", True):
@@ -618,6 +624,7 @@ class Channel:
                                 stream=stream,
                                 address=address,
                                 mapped=mapped,
+                                tx_map=tx_map,
                             )
                             cc_map[raw_bytes] = conv
                         except Exception as err:
@@ -645,6 +652,7 @@ class Channel:
                             stream=stream,
                             address=address,
                             mapped=mapped,
+                            tx_map=tx_map,
                         )
                         si_map[raw_bytes] = source
                     self.source = source
@@ -761,7 +769,13 @@ class Channel:
                     ) = params
 
                 self.name = get_text_v4(self.name_addr, stream)
-                self.unit = get_text_v4(self.unit_addr, stream)
+                tx_map = kwargs.get("tx_map", {})
+                addr = self.unit_addr
+                if addr in tx_map:
+                    self.unit = tx_map[addr]
+                else:
+                    self.unit = get_text_v4(addr, stream)
+                    tx_map[addr] = self.unit
                 self.comment = get_text_v4(self.comment_addr, stream)
 
                 if kwargs.get("use_display_names", True):
@@ -792,7 +806,10 @@ class Channel:
                     else:
                         try:
                             conv = ChannelConversion(
-                                raw_bytes=raw_bytes, stream=stream, address=address
+                                raw_bytes=raw_bytes,
+                                stream=stream,
+                                address=address,
+                                tx_map=tx_map,
                             )
                             cc_map[raw_bytes] = conv
                         except Exception as err:
@@ -812,7 +829,10 @@ class Channel:
                         source = si_map[raw_bytes]
                     else:
                         source = SourceInformation(
-                            raw_bytes=raw_bytes, stream=stream, address=address
+                            raw_bytes=raw_bytes,
+                            stream=stream,
+                            address=address,
+                            tx_map=tx_map,
                         )
                         si_map[raw_bytes] = source
                     self.source = source
@@ -1204,7 +1224,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
 
-            mapped = not is_file_like(stream)
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
 
             if mapped:
 
@@ -1640,42 +1660,30 @@ class ChannelGroup:
         "reserved1",
         "samples_byte_nr",
         "invalidation_bytes_nr",
+        "cg_master_index",
     )
 
     def __init__(self, **kwargs):
 
         self.acq_name = self.comment = ""
         self.acq_source = None
+        self.cg_master_index = None
 
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            mapped = not is_file_like(stream)
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
+            version = kwargs["version"]
 
             if mapped:
-                (self.id, self.reserved0, self.block_len, self.links_nr,) = COMMON_uf(
-                    stream, address
-                )
 
-                if self.block_len == v4c.CG_BLOCK_SIZE:
-                    (
-                        self.next_cg_addr,
-                        self.first_ch_addr,
-                        self.acq_name_addr,
-                        self.acq_source_addr,
-                        self.first_sample_reduction_addr,
-                        self.comment_addr,
-                        self.record_id,
-                        self.cycles_nr,
-                        self.flags,
-                        self.path_separator,
-                        self.reserved1,
-                        self.samples_byte_nr,
-                        self.invalidation_bytes_nr,
-                    ) = v4c.CHANNEL_GROUP_SHORT_uf(stream, address + COMMON_SIZE)
+                if version >= "4.20":
 
-                else:
                     (
+                        self.id,
+                        self.reserved0,
+                        self.block_len,
+                        self.links_nr,
                         self.next_cg_addr,
                         self.first_ch_addr,
                         self.acq_name_addr,
@@ -1690,40 +1698,42 @@ class ChannelGroup:
                         self.reserved1,
                         self.samples_byte_nr,
                         self.invalidation_bytes_nr,
-                    ) = v4c.CHANNEL_GROUP_RM_SHORT_uf(stream, address + COMMON_SIZE)
+                    ) = v4c.CHANNEL_GROUP_RM_uf(stream, address)
+
+                else:
+                    (
+                        self.id,
+                        self.reserved0,
+                        self.block_len,
+                        self.links_nr,
+                        self.next_cg_addr,
+                        self.first_ch_addr,
+                        self.acq_name_addr,
+                        self.acq_source_addr,
+                        self.first_sample_reduction_addr,
+                        self.comment_addr,
+                        self.record_id,
+                        self.cycles_nr,
+                        self.flags,
+                        self.path_separator,
+                        self.reserved1,
+                        self.samples_byte_nr,
+                        self.invalidation_bytes_nr,
+                    )  = v4c.CHANNEL_GROUP_uf(stream, address)
 
             else:
 
                 stream.seek(address)
 
-                (
-                    self.id,
-                    self.reserved0,
-                    self.block_len,
-                    self.links_nr,
-                ) = v4c.COMMON_u(stream.read(COMMON_SIZE))
+                if version >= "4.20":
 
-                if self.block_len == v4c.CG_BLOCK_SIZE:
-                    (
-                        self.next_cg_addr,
-                        self.first_ch_addr,
-                        self.acq_name_addr,
-                        self.acq_source_addr,
-                        self.first_sample_reduction_addr,
-                        self.comment_addr,
-                        self.record_id,
-                        self.cycles_nr,
-                        self.flags,
-                        self.path_separator,
-                        self.reserved1,
-                        self.samples_byte_nr,
-                        self.invalidation_bytes_nr,
-                    ) = v4c.CHANNEL_GROUP_SHORT_u(
-                        stream.read(v4c.CG_BLOCK_SIZE - COMMON_SIZE)
-                    )
+                    bts = stream.read(v4c.CG_RM_BLOCK_SIZE)
 
-                else:
                     (
+                        self.id,
+                        self.reserved0,
+                        self.block_len,
+                        self.links_nr,
                         self.next_cg_addr,
                         self.first_ch_addr,
                         self.acq_name_addr,
@@ -1738,9 +1748,29 @@ class ChannelGroup:
                         self.reserved1,
                         self.samples_byte_nr,
                         self.invalidation_bytes_nr,
-                    ) = v4c.CHANNEL_GROUP_RM_SHORT_u(
-                        stream.read(v4c.CG_RM_BLOCK_SIZE - COMMON_SIZE)
-                    )
+                    ) = v4c.CHANNEL_GROUP_RM_u(bts)
+
+                else:
+                    bts = stream.read(v4c.CG_BLOCK_SIZE)
+                    (
+                        self.id,
+                        self.reserved0,
+                        self.block_len,
+                        self.links_nr,
+                        self.next_cg_addr,
+                        self.first_ch_addr,
+                        self.acq_name_addr,
+                        self.acq_source_addr,
+                        self.first_sample_reduction_addr,
+                        self.comment_addr,
+                        self.record_id,
+                        self.cycles_nr,
+                        self.flags,
+                        self.path_separator,
+                        self.reserved1,
+                        self.samples_byte_nr,
+                        self.invalidation_bytes_nr,
+                    )  = v4c.CHANNEL_GROUP_u(bts)
 
             if self.id != b"##CG":
                 message = f'Expected "##CG" block @{hex(address)} but found "{self.id}"'
@@ -1751,10 +1781,28 @@ class ChannelGroup:
             self.acq_name = get_text_v4(self.acq_name_addr, stream, mapped=mapped)
             self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
 
-            if self.acq_source_addr:
-                self.acq_source = SourceInformation(
-                    address=self.acq_source_addr, stream=stream, mapped=mapped
-                )
+            si_map = kwargs.get("si_map", {})
+
+            address = self.acq_source_addr
+            if address:
+                if mapped:
+                    raw_bytes = stream[address : address + v4c.SI_BLOCK_SIZE]
+                else:
+                    stream.seek(address)
+                    raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
+                if raw_bytes in si_map:
+                    source = si_map[raw_bytes]
+                else:
+                    source = SourceInformation(
+                        raw_bytes=raw_bytes,
+                        stream=stream,
+                        address=address,
+                        mapped=mapped,
+                    )
+                    si_map[raw_bytes] = source
+                self.acq_source = source
+            else:
+                self.acq_source = None
 
         except KeyError:
             self.address = 0
@@ -2059,7 +2107,7 @@ class ChannelConversion(_ChannelConversionBase):
     * ``address`` - int : channel conversion address
     * ``comment`` - str : channel conversion comment
     * ``formula`` - str : algebraic conversion formula; default ''
-    * ``referenced_blocks`` - list :  list of refenced blocks; can be TextBlock
+    * ``referenced_blocks`` - dict : dict of refenced blocks; can be TextBlock
       objects for value to text, and text to text conversions; for partial
       conversions the referenced blocks can be ChannelConversion obejct as well
     * ``name`` - str : channel conversion name
@@ -2068,12 +2116,10 @@ class ChannelConversion(_ChannelConversionBase):
     """
 
     def __init__(self, **kwargs):
-        self.name = self.unit = self.comment = self.formula = ""
-        self.referenced_blocks = None
 
         if "stream" in kwargs:
             stream = kwargs["stream"]
-            mapped = not is_file_like(stream)
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
 
             try:
                 self.address = address = kwargs.get("address", 0)
@@ -2195,7 +2241,7 @@ class ChannelConversion(_ChannelConversionBase):
                 ) = unpack_from(v4c.FMT_CONVERSION_NONE_INIT, block)
 
                 nr = self.val_param_nr
-                values = unpack(f"<{nr}d", block[56:])
+                values = unpack_from(f"<{nr}d", block, 56)
                 for i in range(nr // 2):
                     self[f"raw_{i}"], self[f"phys_{i}"] = (
                         values[i * 2],
@@ -2217,7 +2263,7 @@ class ChannelConversion(_ChannelConversionBase):
                     self.max_phy_value,
                 ) = unpack_from(v4c.FMT_CONVERSION_NONE_INIT, block)
                 nr = self.val_param_nr
-                values = unpack(f"<{nr}d", block[56:])
+                values = unpack_from(f"<{nr}d", block, 56)
                 for i in range((nr - 1) // 3):
                     (self[f"lower_{i}"], self[f"upper_{i}"], self[f"phys_{i}"]) = (
                         values[i * 3],
@@ -2348,11 +2394,30 @@ class ChannelConversion(_ChannelConversionBase):
                     self.max_phy_value,
                 ) = unpack_from("<2B3H2d", block, 32 + links_nr * 8)
 
-            self.name = get_text_v4(self.name_addr, stream, mapped=mapped)
-            self.unit = get_text_v4(self.unit_addr, stream, mapped=mapped)
-            self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
-            self.formula = ""
             self.referenced_blocks = None
+
+            tx_map = kwargs.get("tx_map", {})
+
+            addr = self.name_addr
+            if addr in tx_map:
+                self.name = tx_map[addr]
+            else:
+                self.name = get_text_v4(addr, stream, mapped=mapped)
+                tx_map[addr] = self.name
+
+            addr = self.unit_addr
+            if addr in tx_map:
+                self.unit = tx_map[addr]
+            else:
+                self.unit = get_text_v4(addr, stream, mapped=mapped)
+                tx_map[addr] = self.unit
+
+            addr = self.comment_addr
+            if addr in tx_map:
+                self.comment = tx_map[addr]
+            else:
+                self.comment = get_text_v4(addr, stream, mapped=mapped)
+                tx_map[addr] = self.comment
 
             conv_type = conv
 
@@ -2360,76 +2425,129 @@ class ChannelConversion(_ChannelConversionBase):
                 self.formula = get_text_v4(
                     self.formula_addr, stream, mapped=mapped,
                 ).replace("x", "X")
+            else:
+                self.formula = ""
 
-            elif conv_type in v4c.TABULAR_CONVERSIONS:
-                refs = self.referenced_blocks = {}
-                if conv_type == v4c.CONVERSION_TYPE_TTAB:
-                    tabs = self.links_nr - 4
-                else:
-                    tabs = self.links_nr - 4 - 1
-                for i in range(tabs):
-                    address = self[f"text_{i}"]
-                    if address:
-                        stream.seek(address)
-                        _id = stream.read(4)
-
-                        if _id == b"##TX":
-                            block = TextBlock(
-                                address=address, stream=stream, mapped=mapped
-                            )
-                            refs[f"text_{i}"] = block
-                        elif _id == b"##CC":
-                            block = ChannelConversion(
-                                address=address, stream=stream, mapped=mapped
-                            )
-                            refs[f"text_{i}"] = block
-                        else:
-                            message = f'Expected "##TX" or "##CC" block @{hex(address)} but found "{_id}"'
-                            logger.exception(message)
-                            raise MdfException(message)
-
+                if conv_type in v4c.TABULAR_CONVERSIONS:
+                    refs = self.referenced_blocks = {}
+                    if conv_type == v4c.CONVERSION_TYPE_TTAB:
+                        tabs = self.links_nr - 4
                     else:
-                        refs[f"text_{i}"] = None
-                if conv_type != v4c.CONVERSION_TYPE_TTAB:
+                        tabs = self.links_nr - 4 - 1
+                    for i in range(tabs):
+                        address = self[f"text_{i}"]
+                        if address:
+                            if address in tx_map:
+                                txt = tx_map[address]
+                                if not isinstance(txt, bytes):
+                                    txt = txt.encode('utf-8')
+                                refs[f"text_{i}"] = txt
+                            else:
+                                stream.seek(address)
+                                _id = stream.read(4)
+
+                                if _id == b"##TX":
+                                    block = get_text_v4(
+                                        address=address,
+                                        stream=stream,
+                                        mapped=mapped,
+                                        decode=False,
+                                    )
+                                    tx_map[address] = block
+                                    refs[f"text_{i}"] = block
+                                elif _id == b"##CC":
+                                    block = ChannelConversion(
+                                        address=address,
+                                        stream=stream,
+                                        mapped=mapped,
+                                        tx_map=tx_map,
+                                    )
+                                    refs[f"text_{i}"] = block
+                                else:
+                                    message = f'Expected "##TX" or "##CC" block @{hex(address)} but found "{_id}"'
+                                    logger.exception(message)
+                                    raise MdfException(message)
+
+                        else:
+                            refs[f"text_{i}"] = b""
+                    if conv_type != v4c.CONVERSION_TYPE_TTAB:
+                        address = self.default_addr
+                        if address:
+                            if address in tx_map:
+                                txt = tx_map[address] or b""
+                                if not isinstance(txt, bytes):
+                                    txt = txt.encode('utf-8')
+                                refs[f"default_addr"] = txt
+                            else:
+                                stream.seek(address)
+                                _id = stream.read(4)
+
+                                if _id == b"##TX":
+                                    block = get_text_v4(
+                                        address=address,
+                                        stream=stream,
+                                        mapped=mapped,
+                                        decode=False,
+                                    )
+                                    tx_map[address] = block
+                                    refs["default_addr"] = block
+                                elif _id == b"##CC":
+                                    block = ChannelConversion(
+                                        address=address,
+                                        stream=stream,
+                                        mapped=mapped,
+                                        tx_map=tx_map,
+                                    )
+                                    refs["default_addr"] = block
+                                else:
+                                    message = f'Expected "##TX" or "##CC" block @{hex(address)} but found "{_id}"'
+                                    logger.exception(message)
+                                    raise MdfException(message)
+                        else:
+                            refs["default_addr"] = b""
+
+                elif conv_type == v4c.CONVERSION_TYPE_TRANS:
+                    refs = self.referenced_blocks = {}
+                    # link_nr - common links (4) - default text link (1)
+                    for i in range((self.links_nr - 4 - 1) // 2):
+                        for key in (f"input_{i}_addr", f"output_{i}_addr"):
+                            address = self[key]
+
+                            if address:
+                                if address in tx_map:
+                                    txt = tx_map[address] or b""
+                                    if not isinstance(txt, bytes):
+                                        txt = txt.encode('utf-8')
+                                    refs[key] = txt
+                                else:
+                                    block = get_text_v4(
+                                        address=address,
+                                        stream=stream,
+                                        mapped=mapped,
+                                        decode=False,
+                                    )
+                                    tx_map[address] = block
+                                    refs[key] = block
+                            else:
+                                refs[key] = b""
                     address = self.default_addr
                     if address:
-                        stream.seek(address)
-                        _id = stream.read(4)
-
-                        if _id == b"##TX":
-                            block = TextBlock(
-                                address=address, stream=stream, mapped=mapped
-                            )
-                            refs["default_addr"] = block
-                        elif _id == b"##CC":
-                            block = ChannelConversion(
-                                address=address, stream=stream, mapped=mapped
-                            )
-                            refs["default_addr"] = block
+                        if address in tx_map:
+                            txt = tx_map[address] or b""
+                            if not isinstance(txt, bytes):
+                                txt = txt.encode('utf-8')
+                            refs["default_addr"] = txt
                         else:
-                            message = f'Expected "##TX" or "##CC" block @{hex(address)} but found "{_id}"'
-                            logger.exception(message)
-                            raise MdfException(message)
-                    else:
-                        refs["default_addr"] = None
-
-            elif conv_type == v4c.CONVERSION_TYPE_TRANS:
-                refs = self.referenced_blocks = {}
-                # link_nr - common links (4) - default text link (1)
-                for i in range((self.links_nr - 4 - 1) // 2):
-                    for key in (f"input_{i}_addr", f"output_{i}_addr"):
-                        address = self[key]
-                        if address:
-                            block = TextBlock(
-                                address=address, stream=stream, mapped=mapped
+                            block = get_text_v4(
+                                address=address,
+                                stream=stream,
+                                mapped=mapped,
+                                decode=False,
                             )
-                            refs[key] = block
-                address = self.default_addr
-                if address:
-                    block = TextBlock(address=address, stream=stream, mapped=mapped)
-                    refs["default_addr"] = block
-                else:
-                    refs["default_addr"] = None
+                            refs["default_addr"] = block
+                            tx_map[address] = block
+                    else:
+                        refs["default_addr"] = b""
 
         else:
 
@@ -2565,17 +2683,14 @@ class ChannelConversion(_ChannelConversionBase):
                 for i in range(nr):
                     key = f"text_{i}"
                     self[key] = 0
-                    self.referenced_blocks[key] = TextBlock(text=kwargs[key])
+                    self.referenced_blocks[key] = kwargs[key]
                 self.default_addr = 0
                 key = "default_addr"
                 if "default_addr" in kwargs:
                     default = kwargs["default_addr"]
                 else:
                     default = kwargs.get("default", b"")
-                if default:
-                    self.referenced_blocks[key] = TextBlock(text=default)
-                else:
-                    self.referenced_blocks[key] = None
+                self.referenced_blocks[key] = default
                 self.conversion_type = v4c.CONVERSION_TYPE_TABX
                 self.precision = kwargs.get("precision", 0)
                 self.flags = kwargs.get("flags", 0)
@@ -2598,26 +2713,23 @@ class ChannelConversion(_ChannelConversionBase):
                 for i in range(nr):
                     key = f"text_{i}"
                     self[key] = 0
-                    self.referenced_blocks[key] = TextBlock(text=kwargs[key])
+                    self.referenced_blocks[key] = kwargs[key]
                 self.default_addr = 0
                 self.default_lower = self.default_upper = 0
                 if "default_addr" in kwargs:
                     default = kwargs["default_addr"]
                 else:
                     default = kwargs.get("default", b"")
-                if default:
-                    if b"{X}" in default:
-                        default = (
-                            default.decode("latin-1").replace("{X}", "X").split('"')[1]
-                        )
-                        default = ChannelConversion(
-                            conversion_type=v4c.CONVERSION_TYPE_ALG, formula=default
-                        )
-                        self.referenced_blocks["default_addr"] = default
-                    else:
-                        self.referenced_blocks["default_addr"] = TextBlock(text=default)
+                if b"{X}" in default:
+                    default = (
+                        default.decode("latin-1").replace("{X}", "X").split('"')[1]
+                    )
+                    default = ChannelConversion(
+                        conversion_type=v4c.CONVERSION_TYPE_ALG, formula=default
+                    )
+                    self.referenced_blocks["default_addr"] = default
                 else:
-                    self.referenced_blocks["default_addr"] = None
+                    self.referenced_blocks["default_addr"] = default
                 self.conversion_type = v4c.CONVERSION_TYPE_RTABX
                 self.precision = kwargs.get("precision", 0)
                 self.flags = kwargs.get("flags", 0)
@@ -2717,20 +2829,22 @@ class ChannelConversion(_ChannelConversionBase):
         if self.referenced_blocks:
             for key, block in self.referenced_blocks.items():
                 if block:
-                    if block["id"] == b"##TX":
-                        text = block["text"]
-                        if text in defined_texts:
-                            self[key] = defined_texts[text]
-                        else:
-                            defined_texts[text] = address
-                            blocks.append(block)
-                            self[key] = address
-                            address += block["block_len"]
-                    else:
+                    if isinstance(block, ChannelConversion):
                         address = block.to_blocks(
                             address, blocks, defined_texts, cc_map
                         )
                         self[key] = block.address
+                    else:
+                        text = block
+                        if text in defined_texts:
+                            self[key] = defined_texts[text]
+                        else:
+                            block = TextBlock(text=text)
+                            defined_texts[text] = address
+                            blocks.append(block)
+                            self[key] = address
+                            address += block["block_len"]
+
                 else:
                     self[key] = 0
 
@@ -2752,10 +2866,29 @@ class ChannelConversion(_ChannelConversionBase):
         elif conversion_type == v4c.CONVERSION_TYPE_LIN:
             a = self.a
             b = self.b
-            if (a, b) != (1, 0):
-                values = values * a
-                if b:
-                    values += b
+
+            names = values.dtype.names
+            if names:
+                name = names[0]
+                vals = values[name]
+                if (a, b) != (1, 0):
+                    vals = vals * a
+                    if b:
+                        vals += b
+                    values = np.core.records.fromarrays(
+                        [vals] + [values[name] for name in names[1:]],
+                        dtype=[(name, vals.dtype, vals.shape[1:])]
+                        + [
+                            (name, values[name].dtype, values[name].shape[1:])
+                            for name in names[1:]
+                        ],
+                    )
+
+            else:
+                if (a, b) != (1, 0):
+                    values = values * a
+                    if b:
+                        values += b
         elif conversion_type == v4c.CONVERSION_TYPE_RAT:
             P1 = self.P1
             P2 = self.P2
@@ -2764,22 +2897,57 @@ class ChannelConversion(_ChannelConversionBase):
             P5 = self.P5
             P6 = self.P6
 
-            X = values
-            if (P1, P4, P5, P6) == (0, 0, 0, 1):
-                if (P2, P3) != (1, 0):
-                    values = values * P2
-                    if P3:
-                        values += P3
-            elif (P3, P4, P5, P6) == (0, 0, 1, 0):
-                if (P1, P2) != (1, 0):
-                    values = values * P1
-                    if P2:
-                        values += P2
+            names = values.dtype.names
+            if names:
+                name = names[0]
+                vals = values[name]
+                if (P1, P4, P5, P6) == (0, 0, 0, 1):
+                    if (P2, P3) != (1, 0):
+                        vals = values[name] * P2
+                        if P3:
+                            vals = vals + P3
+
+                elif (P3, P4, P5, P6) == (0, 0, 1, 0):
+                    if (P1, P2) != (1, 0):
+                        vals = values[name] * P1
+                        if P2:
+                            vals = vals + P2
+
+                else:
+                    X = vals
+                    try:
+                        vals = evaluate(v4c.CONV_RAT_TEXT)
+                    except TypeError:
+                        vals = (P1 * X ** 2 + P2 * X + P3) / (P4 * X ** 2 + P5 * X + P6)
+
+                values = np.core.records.fromarrays(
+                    [vals] + [values[name] for name in names[1:]],
+                    dtype=[(name, vals.dtype, vals.shape[1:])]
+                    + [
+                        (name, values[name].dtype, values[name].shape[1:])
+                        for name in names[1:]
+                    ],
+                )
+
             else:
-                try:
-                    values = evaluate(v4c.CONV_RAT_TEXT)
-                except TypeError:
-                    values = (P1 * X ** 2 + P2 * X + P3) / (P4 * X ** 2 + P5 * X + P6)
+                X = values
+                if (P1, P4, P5, P6) == (0, 0, 0, 1):
+                    if (P2, P3) != (1, 0):
+                        values = values * P2
+                        if P3:
+                            values = values + P3
+                elif (P3, P4, P5, P6) == (0, 0, 1, 0):
+                    if (P1, P2) != (1, 0):
+                        values = values * P1
+                        if P2:
+                            values += P2
+                else:
+                    try:
+                        values = evaluate(v4c.CONV_RAT_TEXT)
+                    except TypeError:
+                        values = (P1 * X ** 2 + P2 * X + P3) / (
+                            P4 * X ** 2 + P5 * X + P6
+                        )
 
         elif conversion_type == v4c.CONVERSION_TYPE_ALG:
             X = values
@@ -2841,94 +3009,125 @@ class ChannelConversion(_ChannelConversionBase):
 
             ret = np.array([None] * len(values), dtype="O")
 
-            phys = []
-            for i in range(nr):
-                try:
-                    value = self.referenced_blocks[f"text_{i}"].text
-                except AttributeError:
-                    value = self.referenced_blocks[f"text_{i}"]
-                except TypeError:
-                    value = b""
-                phys.append(value)
+            phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
 
-            default = self.referenced_blocks.get("default_addr", {})
-            if default is None:
-                default = b""
-            else:
-                try:
-                    default = default.text
-                except AttributeError:
-                    pass
-                except TypeError:
-                    default = b""
+            default = self.referenced_blocks["default_addr"]
 
             x = sorted(zip(raw_vals, phys))
             raw_vals = np.array([e[0] for e in x], dtype="<i8")
             phys = [e[1] for e in x]
 
-            idx1 = np.searchsorted(raw_vals, values, side="right") - 1
-            idx2 = np.searchsorted(raw_vals, values, side="left")
+            names = values.dtype.names
 
-            idx = np.argwhere(idx1 != idx2).flatten()
+            if names:
+                name = names[0]
+                vals = values[name]
+                shape = vals.shape
+                vals = vals.flatten()
 
-            if isinstance(default, bytes):
-                ret[idx] = default
+                ret = np.array([None] * len(vals), dtype="O")
+
+                idx1 = np.searchsorted(raw_vals, vals, side="right") - 1
+                idx2 = np.searchsorted(raw_vals, vals, side="left")
+
+                idx = np.argwhere(idx1 != idx2).flatten()
+
+                if isinstance(default, bytes):
+                    ret[idx] = default
+                else:
+                    ret[idx] = default.convert(vals[idx])
+
+                idx = np.argwhere(idx1 == idx2).flatten()
+                if len(idx):
+                    indexes = idx1[idx]
+                    unique = np.unique(indexes)
+                    for val in unique:
+
+                        item = phys[val]
+                        idx_ = np.argwhere(indexes == val).flatten()
+                        if isinstance(item, bytes):
+                            ret[idx[idx_]] = item
+                        else:
+                            ret[idx[idx_]] = item.convert(vals[idx[idx_]])
+
+                all_bytes = True
+                for v in ret:
+                    if not isinstance(v, bytes):
+                        all_bytes = False
+                        break
+
+                if not all_bytes:
+                    try:
+                        ret = ret.astype("<f8")
+                    except:
+                        ret = np.array(
+                            [np.nan if isinstance(v, bytes) else v for v in ret]
+                        )
+
+                else:
+                    ret = ret.astype(bytes)
+
+                ret = ret.reshape(shape)
+                values = np.core.records.fromarrays(
+                    [ret] + [values[name] for name in names[1:]],
+                    dtype=[(name, ret.dtype, ret.shape[1:])]
+                    + [
+                        (name, values[name].dtype, values[name].shape[1:])
+                        for name in names[1:]
+                    ],
+                )
             else:
-                ret[idx] = default.convert(values[idx])
 
-            idx = np.argwhere(idx1 == idx2).flatten()
-            if len(idx):
-                indexes = idx1[idx]
-                unique = np.unique(indexes)
-                for val in unique:
+                ret = np.array([None] * len(values), dtype="O")
 
-                    item = phys[val]
-                    idx_ = np.argwhere(indexes == val).flatten()
-                    if isinstance(item, bytes):
-                        ret[idx[idx_]] = item
-                    else:
-                        ret[idx[idx_]] = item.convert(values[idx[idx_]])
+                idx1 = np.searchsorted(raw_vals, values, side="right") - 1
+                idx2 = np.searchsorted(raw_vals, values, side="left")
 
-            all_bytes = True
-            for v in ret:
-                if not isinstance(v, bytes):
-                    all_bytes = False
-                    break
+                idx = np.argwhere(idx1 != idx2).flatten()
 
-            if not all_bytes:
-                try:
-                    ret = ret.astype("<f8")
-                except:
-                    ret = np.array([np.nan if isinstance(v, bytes) else v for v in ret])
+                if isinstance(default, bytes):
+                    ret[idx] = default
+                else:
+                    ret[idx] = default.convert(values[idx])
 
-            else:
-                ret = ret.astype(bytes)
+                idx = np.argwhere(idx1 == idx2).flatten()
+                if len(idx):
+                    indexes = idx1[idx]
+                    unique = np.unique(indexes)
+                    for val in unique:
 
-            values = ret
+                        item = phys[val]
+                        idx_ = np.argwhere(indexes == val).flatten()
+                        if isinstance(item, bytes):
+                            ret[idx[idx_]] = item
+                        else:
+                            ret[idx[idx_]] = item.convert(values[idx[idx_]])
+
+                all_bytes = True
+                for v in ret:
+                    if not isinstance(v, bytes):
+                        all_bytes = False
+                        break
+
+                if not all_bytes:
+                    try:
+                        ret = ret.astype("<f8")
+                    except:
+                        ret = np.array(
+                            [np.nan if isinstance(v, bytes) else v for v in ret]
+                        )
+
+                else:
+                    ret = ret.astype(bytes)
+
+                values = ret
 
         elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
             nr = self.val_param_nr // 2
 
-            phys = []
-            for i in range(nr):
-                try:
-                    value = self.referenced_blocks[f"text_{i}"].text
-                except AttributeError:
-                    value = self.referenced_blocks[f"text_{i}"]
-                except TypeError:
-                    value = b""
-                phys.append(value)
+            phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
 
-            default = self.referenced_blocks.get("default_addr", {})
-            if default is None:
-                default = b""
-            else:
-                try:
-                    default = default.text
-                except AttributeError:
-                    pass
-                except TypeError:
-                    default = b""
+            default = self.referenced_blocks["default_addr"]
 
             lower = [self[f"lower_{i}"] for i in range(nr)]
             upper = [self[f"upper_{i}"] for i in range(nr)]
@@ -2962,7 +3161,11 @@ class ChannelConversion(_ChannelConversionBase):
                     if isinstance(item, bytes):
                         ret[idx_eq[idx_]] = item
                     else:
-                        ret[idx_eq[idx_]] = item.convert(values[idx_eq[idx_]])
+                        try:
+                            ret[idx_eq[idx_]] = item.convert(values[idx_eq[idx_]])
+                        except:
+                            print(self)
+                            raise
 
             if all(isinstance(v, bytes) for v in ret):
                 ret = ret.astype(bytes)
@@ -2976,9 +3179,7 @@ class ChannelConversion(_ChannelConversionBase):
         elif conversion_type == v4c.CONVERSION_TYPE_TTAB:
             nr = self.val_param_nr - 1
 
-            raw_values = [
-                self.referenced_blocks[f"text_{i}"].text.strip(b"\0") for i in range(nr)
-            ]
+            raw_values = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
             phys = [self[f"val_{i}"] for i in range(nr)]
             default = self.val_default
 
@@ -2995,16 +3196,10 @@ class ChannelConversion(_ChannelConversionBase):
         elif conversion_type == v4c.CONVERSION_TYPE_TRANS:
             nr = (self.ref_param_nr - 1) // 2
 
-            in_ = [
-                self.referenced_blocks[f"input_{i}_addr"].text.strip(b"\0")
-                for i in range(nr)
-            ]
+            in_ = [self.referenced_blocks[f"input_{i}_addr"] for i in range(nr)]
 
-            out_ = [
-                self.referenced_blocks[f"output_{i}_addr"].text.strip(b"\0")
-                for i in range(nr)
-            ]
-            default = self.referenced_blocks["default_addr"].text.strip(b"\0")
+            out_ = [self.referenced_blocks[f"output_{i}_addr"] for i in range(nr)]
+            default = self.referenced_blocks["default_addr"]
 
             new_values = []
             for val in values:
@@ -3166,13 +3361,11 @@ formula: {self.formula}
             lines.append("")
             lines.append("Referenced blocks:")
             for key, block in self.referenced_blocks.items():
-                if block is None:
-                    lines.append(template.format(key, b""))
-                elif isinstance(block, TextBlock):
-                    lines.append(template.format(key, block["text"].strip(b"\0")))
-                else:
+                if isinstance(block, ChannelConversion):
                     lines.append(template.format(key, ""))
                     lines.extend(block.metadata(indent + "    ").split("\n"))
+                else:
+                    lines.append(template.format(key, block))
 
         for line in lines:
             if not line:
@@ -3450,7 +3643,7 @@ class DataBlock:
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            mapped = not is_file_like(stream)
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
 
             if mapped:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(
@@ -3756,10 +3949,9 @@ class DataGroup:
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            mapped = not is_file_like(stream)
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
 
             if mapped:
-                stream.seek(address)
 
                 (
                     self.id,
@@ -3928,7 +4120,7 @@ class DataList(_DataListBase):
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            mapped = not is_file_like(stream)
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
 
             if mapped:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(
@@ -4941,7 +5133,7 @@ class ListData(_ListDataBase):
         try:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
-            mapped = not is_file_like(stream)
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
 
             if mapped:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(
@@ -4993,12 +5185,12 @@ class ListData(_ListDataBase):
 
                 self.next_ld_addr = links[0]
 
-                for i in range(self.data_block_nr, 1):
-                    self[f"data_block_addr_{i}"] = links[i]
+                for i in range(self.data_block_nr):
+                    self[f"data_block_addr_{i}"] = links[i+1]
 
                 if self.flags & v4c.FLAG_LD_INVALIDATION_PRESENT:
-                    for i in range(self.data_block_nr, self.data_block_nr + 1):
-                        self[f"invalidation_bits_addr_{i}"] = links[i]
+                    for i in range(self.data_block_nr):
+                        self[f"invalidation_bits_addr_{i}"] = links[self.data_block_nr + 1 +i]
             else:
 
                 stream.seek(address)
@@ -5059,9 +5251,27 @@ class ListData(_ListDataBase):
                         self[f"invalidation_bits_addr_{i}"] = links[i]
 
         except KeyError:
+            self.address = 0
 
-            # TODO: add implementation for creating new LDBLOCK
-            raise NotImplementedError("New LDBLOCK not implemented")
+            self.id = b"##LD"
+            self.reserved0 = 0
+
+            self.data_block_nr = kwargs["data_block_nr"]
+            self.flags = kwargs["flags"]
+            self.data_block_len = kwargs["data_block_len"]
+            self.next_ld_addr = 0
+
+            for i in range(self.data_block_nr):
+                self[f'data_block_addr_{i}'] = kwargs[f'data_block_addr_{i}']
+            if self.flags & v4c.FLAG_LD_INVALIDATION_PRESENT:
+                self.links_nr = 2 * self.data_block_nr + 1
+
+                for i in range(self.data_block_nr):
+                    self[f'invalidation_bits_addr_{i}'] = kwargs[f'invalidation_bits_addr_{i}']
+            else:
+                self.links_nr = self.data_block_nr + 1
+
+            self.block_len = 24 + self.links_nr * 8 + 16
 
     def __getitem__(self, item):
         return self.__getattribute__(item)
@@ -5070,7 +5280,7 @@ class ListData(_ListDataBase):
         self.__setattr__(item, value)
 
     def __bytes__(self):
-        fmt = "<4sI2Q"
+        fmt = "<4sI3Q"
         keys = (
             "id",
             "reserved0",
@@ -5083,7 +5293,7 @@ class ListData(_ListDataBase):
         keys += tuple(f"data_block_addr_{i}" for i in range(self.data_block_nr))
 
         if self.flags & v4c.FLAG_LD_INVALIDATION_PRESENT:
-            fmt += f"8s" * self.data_block_nr
+            fmt += f"{self.data_block_nr}Q"
             keys += tuple(
                 f"invalidation_bits_addr_{i}" for i in range(self.data_block_nr)
             )
@@ -5169,7 +5379,7 @@ class SourceInformation:
         if "stream" in kwargs:
 
             stream = kwargs["stream"]
-            mapped = not is_file_like(stream)
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
             try:
                 block = kwargs["raw_bytes"]
                 self.address = kwargs.get("address", 0)
@@ -5198,15 +5408,34 @@ class SourceInformation:
                 logger.exception(message)
                 raise MdfException(message)
 
-            self.name = get_text_v4(
-                address=self.name_addr, stream=stream, mapped=mapped
-            )
-            self.path = get_text_v4(
-                address=self.path_addr, stream=stream, mapped=mapped
-            )
-            self.comment = get_text_v4(
-                address=self.comment_addr, stream=stream, mapped=mapped
-            )
+            tx_map = kwargs.get("tx_map", {})
+
+            address = self.name_addr
+            if address in tx_map:
+                self.name = tx_map[address]
+            else:
+                self.name = get_text_v4(
+                    address=self.name_addr, stream=stream, mapped=mapped
+                )
+                tx_map[address] = self.name
+
+            address = self.path_addr
+            if address in tx_map:
+                self.path = tx_map[address]
+            else:
+                self.path = get_text_v4(
+                    address=self.path_addr, stream=stream, mapped=mapped
+                )
+                tx_map[address] = self.path
+
+            address = self.comment_addr
+            if address in tx_map:
+                self.comment = tx_map[address]
+            else:
+                self.comment = get_text_v4(
+                    address=self.comment_addr, stream=stream, mapped=mapped
+                )
+                tx_map[address] = self.comment
 
         else:
             self.address = 0
@@ -5385,7 +5614,7 @@ class TextBlock:
 
         if "stream" in kwargs:
             stream = kwargs["stream"]
-            mapped = not is_file_like(stream)
+            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
             self.address = address = kwargs["address"]
 
             if mapped:

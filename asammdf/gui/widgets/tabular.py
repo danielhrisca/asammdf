@@ -313,7 +313,10 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                     except:
                         items.append(npchar.decode(column, "latin-1"))
                 elif kind == "O":
-                    items.append(pd.Series(csv_bytearray2hex(df[name])).values)
+                    try:
+                        items.append(pd.Series(csv_bytearray2hex(df[name])).values)
+                    except:
+                        items.append(pd.Series(df[name]).values)
                 else:
                     items.append(column)
 
