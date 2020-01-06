@@ -1673,17 +1673,31 @@ class ChannelGroup:
             self.address = address = kwargs["address"]
             stream = kwargs["stream"]
             mapped = kwargs.get("mapped", False) or not is_file_like(stream)
-            version = kwargs["version"]
 
             if mapped:
+                (self.id, self.reserved0, self.block_len, self.links_nr,) = COMMON_uf(
+                    stream, address
+                )
 
-                if version >= "4.20":
-
+                if self.block_len == v4c.CG_BLOCK_SIZE:
                     (
-                        self.id,
-                        self.reserved0,
-                        self.block_len,
-                        self.links_nr,
+                        self.next_cg_addr,
+                        self.first_ch_addr,
+                        self.acq_name_addr,
+                        self.acq_source_addr,
+                        self.first_sample_reduction_addr,
+                        self.comment_addr,
+                        self.record_id,
+                        self.cycles_nr,
+                        self.flags,
+                        self.path_separator,
+                        self.reserved1,
+                        self.samples_byte_nr,
+                        self.invalidation_bytes_nr,
+                    ) = v4c.CHANNEL_GROUP_SHORT_uf(stream, address + COMMON_SIZE)
+
+                else:
+                    (
                         self.next_cg_addr,
                         self.first_ch_addr,
                         self.acq_name_addr,
@@ -1698,42 +1712,40 @@ class ChannelGroup:
                         self.reserved1,
                         self.samples_byte_nr,
                         self.invalidation_bytes_nr,
-                    ) = v4c.CHANNEL_GROUP_RM_uf(stream, address)
-
-                else:
-                    (
-                        self.id,
-                        self.reserved0,
-                        self.block_len,
-                        self.links_nr,
-                        self.next_cg_addr,
-                        self.first_ch_addr,
-                        self.acq_name_addr,
-                        self.acq_source_addr,
-                        self.first_sample_reduction_addr,
-                        self.comment_addr,
-                        self.record_id,
-                        self.cycles_nr,
-                        self.flags,
-                        self.path_separator,
-                        self.reserved1,
-                        self.samples_byte_nr,
-                        self.invalidation_bytes_nr,
-                    )  = v4c.CHANNEL_GROUP_uf(stream, address)
+                    ) = v4c.CHANNEL_GROUP_RM_SHORT_uf(stream, address + COMMON_SIZE)
 
             else:
 
                 stream.seek(address)
 
-                if version >= "4.20":
+                (
+                    self.id,
+                    self.reserved0,
+                    self.block_len,
+                    self.links_nr,
+                ) = v4c.COMMON_u(stream.read(COMMON_SIZE))
 
-                    bts = stream.read(v4c.CG_RM_BLOCK_SIZE)
-
+                if self.block_len == v4c.CG_BLOCK_SIZE:
                     (
-                        self.id,
-                        self.reserved0,
-                        self.block_len,
-                        self.links_nr,
+                        self.next_cg_addr,
+                        self.first_ch_addr,
+                        self.acq_name_addr,
+                        self.acq_source_addr,
+                        self.first_sample_reduction_addr,
+                        self.comment_addr,
+                        self.record_id,
+                        self.cycles_nr,
+                        self.flags,
+                        self.path_separator,
+                        self.reserved1,
+                        self.samples_byte_nr,
+                        self.invalidation_bytes_nr,
+                    ) = v4c.CHANNEL_GROUP_SHORT_u(
+                        stream.read(v4c.CG_BLOCK_SIZE - COMMON_SIZE)
+                    )
+
+                else:
+                    (
                         self.next_cg_addr,
                         self.first_ch_addr,
                         self.acq_name_addr,
@@ -1748,29 +1760,9 @@ class ChannelGroup:
                         self.reserved1,
                         self.samples_byte_nr,
                         self.invalidation_bytes_nr,
-                    ) = v4c.CHANNEL_GROUP_RM_u(bts)
-
-                else:
-                    bts = stream.read(v4c.CG_BLOCK_SIZE)
-                    (
-                        self.id,
-                        self.reserved0,
-                        self.block_len,
-                        self.links_nr,
-                        self.next_cg_addr,
-                        self.first_ch_addr,
-                        self.acq_name_addr,
-                        self.acq_source_addr,
-                        self.first_sample_reduction_addr,
-                        self.comment_addr,
-                        self.record_id,
-                        self.cycles_nr,
-                        self.flags,
-                        self.path_separator,
-                        self.reserved1,
-                        self.samples_byte_nr,
-                        self.invalidation_bytes_nr,
-                    )  = v4c.CHANNEL_GROUP_u(bts)
+                    ) = v4c.CHANNEL_GROUP_RM_SHORT_u(
+                        stream.read(v4c.CG_RM_BLOCK_SIZE - COMMON_SIZE)
+                    )
 
             if self.id != b"##CG":
                 message = f'Expected "##CG" block @{hex(address)} but found "{self.id}"'
@@ -1808,8 +1800,7 @@ class ChannelGroup:
             self.address = 0
             self.id = b"##CG"
             self.reserved0 = kwargs.get("reserved0", 0)
-            self.block_len = kwargs.get("block_len", v4c.CG_BLOCK_SIZE)
-            self.links_nr = kwargs.get("links_nr", 6)
+
             self.next_cg_addr = kwargs.get("next_cg_addr", 0)
             self.first_ch_addr = kwargs.get("first_ch_addr", 0)
             self.acq_name_addr = kwargs.get("acq_name_addr", 0)
@@ -1826,8 +1817,13 @@ class ChannelGroup:
             self.samples_byte_nr = kwargs.get("samples_byte_nr", 0)
             self.invalidation_bytes_nr = kwargs.get("invalidation_bytes_nr", 0)
 
-            if self.block_len == v4c.CG_RM_BLOCK_SIZE:
+            if self.flags == v4c.FLAG_CG_REMOTE_MASTER:
                 self.cg_master_addr = kwargs.get("cg_master_addr", 0)
+                self.block_len = v4c.CG_RM_BLOCK_SIZE
+                self.links_nr = 7
+            else:
+                self.block_len = v4c.CG_BLOCK_SIZE
+                self.links_nr = 6
 
     def __getitem__(self, item):
         return self.__getattribute__(item)

@@ -2910,10 +2910,6 @@ class MDF4(object):
 
         # channel group
         kwargs = {"cycles_nr": 0, "samples_byte_nr": 0}
-        if self.version < "4.20":
-            kwargs["block_len"] = v4c.CG_BLOCK_SIZE
-        else:
-            kwargs["block_len"] = v4c.CG_RM_BLOCK_SIZE
         gp.channel_group = ChannelGroup(**kwargs)
         gp.channel_group.acq_name = source_info
 
@@ -2940,7 +2936,6 @@ class MDF4(object):
 
         defined_texts = {}
         si_map = self._si_map
-        cc_map = self._cc_map
 
         # setup all blocks related to the time master channel
 
@@ -3695,7 +3690,6 @@ class MDF4(object):
     def _append_column_oriented(self, signals, source_block):
         defined_texts = {}
         si_map = self._si_map
-        cc_map = self._cc_map
 
         # setup all blocks related to the time master channel
 
@@ -3725,7 +3719,7 @@ class MDF4(object):
         cycles_nr = len(samples)
 
         # channel group
-        kwargs = {"cycles_nr": cycles_nr, "samples_byte_nr": 0, "block_len": v4c.CG_RM_BLOCK_SIZE}
+        kwargs = {"cycles_nr": cycles_nr, "samples_byte_nr": 0}
         gp.channel_group = ChannelGroup(**kwargs)
         gp.channel_group.acq_name = source_block.name
 
@@ -3862,12 +3856,11 @@ class MDF4(object):
             virtual_group.append(dg_cntr)
 
             # channel group
-            kwargs = {"cycles_nr": cycles_nr, "samples_byte_nr": 0, "block_len": v4c.CG_RM_BLOCK_SIZE}
+            kwargs = {"cycles_nr": cycles_nr, "samples_byte_nr": 0, "flags": v4c.FLAG_CG_REMOTE_MASTER}
             gp.channel_group = ChannelGroup(**kwargs)
             gp.channel_group.acq_name = source_block.name
             gp.channel_group.acq_source = source_block
             gp.channel_group.cg_master_index = cg_master_index
-            gp.channel_group.flags |= v4c.FLAG_CG_REMOTE_MASTER
 
             self.groups.append(gp)
 
@@ -7681,6 +7674,22 @@ class MDF4(object):
             return vals.view(get_fmt_v4(data_type, bit_count))
         else:
             return vals
+
+    def get(
+        self,
+        name=None,
+        group=None,
+        index=None,
+        raster=None,
+        samples_only=False,
+        data=None,
+        raw=False,
+        ignore_invalidation_bits=False,
+        source=None,
+        record_offset=0,
+        record_count=None,
+    ):
+        pass
 
     def get_master(
         self,

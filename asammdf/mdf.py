@@ -593,7 +593,7 @@ class MDF(object):
                                         )
                             else:
                                 encodings.append(None)
-                        if not sig.samples.flags.writeable:
+                        if not sig.samples.flags.owndata:
                             sig.samples = sig.samples.copy()
                         sigs.append(sig)
                     source_info = f"Converted from {self.version} to {version}"
@@ -657,7 +657,7 @@ class MDF(object):
                                         )
                                     sig.samples = samples
 
-                        if not sig[0].flags.writeable:
+                        if not sig[0].flags.owndata:
                             sig = sig[0].copy(), sig[1]
                         sigs.append(sig)
                     out.extend(cg_nr, sigs)
@@ -892,7 +892,7 @@ class MDF(object):
                         #     )
                         #     sig.attachment = attachment, _name
 
-                        if not sig.samples.flags.writeable:
+                        if not sig.samples.flags.owndata:
                             sig.samples = sig.samples.copy()
                         sigs.append(sig)
 
@@ -1833,7 +1833,7 @@ class MDF(object):
                                         )
                             else:
                                 encodings.append(None)
-                        if not sig.samples.flags.writeable:
+                        if not sig.samples.flags.owndata:
                             sig.samples = sig.samples.copy()
                         sigs.append(sig)
 
@@ -2215,7 +2215,7 @@ class MDF(object):
                                 else:
                                     encodings_.append(None)
 
-                            if not sig.samples.flags.writeable:
+                            if not sig.samples.flags.owndata:
                                 sig.samples = sig.samples.copy()
                             signals.append(sig)
 
@@ -2525,7 +2525,7 @@ class MDF(object):
                                 else:
                                     encodings.append(None)
 
-                            if not sig.samples.flags.writeable:
+                            if not sig.samples.flags.owndata:
                                 sig.samples = sig.samples.copy()
                             signals.append(sig)
 
