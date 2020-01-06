@@ -9,9 +9,7 @@ from ..ui.multi_search_dialog import Ui_MultiSearchDialog
 
 
 class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
-    def __init__(
-        self, channels_dbs, tooltips, *args, **kwargs
-    ):
+    def __init__(self, channels_dbs, tooltips, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
         self.setupUi(self)
@@ -39,7 +37,9 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
             description.setSizePolicy(sizePolicy)
             description.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
             description.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-            description.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
+            description.setSizeAdjustPolicy(
+                QtWidgets.QAbstractScrollArea.AdjustToContents
+            )
             description.setText(description_template.format(*tooltip.splitlines()))
             description.setReadOnly(True)
 
@@ -77,8 +77,12 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
 
             try:
                 pattern = re.compile(f"(?i){pattern}")
-                for i, (channels_db, matches) in enumerate(zip(self.channels_dbs, self.match_lists)):
-                    match_results = [name for name in channels_db if pattern.match(name)]
+                for i, (channels_db, matches) in enumerate(
+                    zip(self.channels_dbs, self.match_lists)
+                ):
+                    match_results = [
+                        name for name in channels_db if pattern.match(name)
+                    ]
                     matches.clear()
                     matches.addItems(match_results)
                     if match_results:
@@ -98,7 +102,7 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
 
         for i, matches in enumerate(self.match_lists, 1):
 
-            to_add = set(f'{i}: {item.text()}' for item in matches.selectedItems())
+            to_add = set(f"{i}: {item.text()}" for item in matches.selectedItems())
 
             names = names | to_add
 
@@ -115,10 +119,7 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
         self.result = set()
         for i in range(count):
             text = self.selection.item(i).text()
-            file_index, channel_name = [
-                item.strip()
-                for item in text.split(':')
-            ]
+            file_index, channel_name = [item.strip() for item in text.split(":")]
             file_index = int(file_index) - 1
             for entry in self.channels_dbs[file_index][channel_name]:
                 self.result.add((file_index, entry))

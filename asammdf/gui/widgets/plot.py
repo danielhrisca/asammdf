@@ -557,7 +557,9 @@ class Plot(QtWidgets.QWidget):
             )
             item.setData(QtCore.Qt.UserRole, sig.name)
             tooltip = getattr(sig, "tooltip", "")
-            it = ChannelDisplay(sig.uuid, sig.unit, sig.samples.dtype.kind, 3, tooltip, self)
+            it = ChannelDisplay(
+                sig.uuid, sig.unit, sig.samples.dtype.kind, 3, tooltip, self
+            )
             it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
             it.set_name(sig.name)

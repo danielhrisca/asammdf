@@ -523,7 +523,7 @@ class MDF(object):
         except AttributeError:
             pass
 
-        groups_nr = len(self.groups)
+        groups_nr = len(self._virtual_groups)
 
         if self._callback:
             self._callback(0, groups_nr)
@@ -533,71 +533,14 @@ class MDF(object):
         self.configure(copy_on_get=False)
 
         # walk through all groups and get all channels
-        for i, group in enumerate(self.groups):
+        for i, group in enumerate(self._virtual_groups):
 
-            encodings = []
-            included_channels = self._included_channels(i)
-            if not included_channels:
-                continue
-
-            parents, dtypes = self._prepare_record(group)
-
-            data = self._load_data(group, optimize_read=False)
-            for idx, fragment in enumerate(data):
-                if dtypes.itemsize:
-                    group.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
-                else:
-                    group.record = None
-                    continue
-
-                self._set_temporary_master(self.get_master(i, data=fragment))
-
+            for idx, sigs in enumerate(self.get_(group, version=version)):
                 # the first fragment triggers and append that will add the
                 # metadata for all channels
                 if idx == 0:
-                    sigs = []
-                    for j in included_channels:
-                        sig = self.get(
-                            group=i,
-                            index=j,
-                            data=fragment,
-                            raw=True,
-                            ignore_invalidation_bits=True,
-                        )
-                        if version < "4.00":
-                            if sig.samples.dtype.kind == "S":
-                                encodings.append(sig.encoding)
-                                strsig = self.get(
-                                    group=i,
-                                    index=j,
-                                    samples_only=True,
-                                    ignore_invalidation_bits=True,
-                                )[0]
-                                sig.samples = sig.samples.astype(strsig.dtype)
-                                del strsig
-                                if sig.encoding != "latin-1":
 
-                                    if sig.encoding == "utf-16-le":
-                                        sig.samples = (
-                                            sig.samples.view(np.uint16)
-                                            .byteswap()
-                                            .view(sig.samples.dtype)
-                                        )
-                                        sig.samples = encode(
-                                            decode(sig.samples, "utf-16-be"), "latin-1",
-                                        )
-                                    else:
-                                        sig.samples = encode(
-                                            decode(sig.samples, sig.encoding),
-                                            "latin-1",
-                                        )
-                            else:
-                                encodings.append(None)
-                        if not sig.samples.flags.owndata:
-                            sig.samples = sig.samples.copy()
-                        sigs.append(sig)
                     source_info = f"Converted from {self.version} to {version}"
-
                     if sigs:
                         cg_nr = out.append(sigs, source_info, common_timebase=True)
                         try:
@@ -624,46 +567,7 @@ class MDF(object):
                 # the other fragments will trigger onl the extension of
                 # samples records to the data block
                 else:
-                    sigs = [(self.get_master(i, data=fragment), None)]
-
-                    for k, j in enumerate(included_channels):
-                        sig = self.get(
-                            group=i,
-                            index=j,
-                            data=fragment,
-                            raw=True,
-                            samples_only=True,
-                            ignore_invalidation_bits=True,
-                        )
-
-                        if version < "4.00":
-                            encoding = encodings[k]
-                            samples = sig[0]
-                            if encoding:
-                                if encoding != "latin-1":
-
-                                    if encoding == "utf-16-le":
-                                        samples = (
-                                            samples.view(np.uint16)
-                                            .byteswap()
-                                            .view(samples.dtype)
-                                        )
-                                        samples = encode(
-                                            decode(samples, "utf-16-be"), "latin-1"
-                                        )
-                                    else:
-                                        samples = encode(
-                                            decode(samples, encoding), "latin-1"
-                                        )
-                                    sig.samples = samples
-
-                        if not sig[0].flags.owndata:
-                            sig = sig[0].copy(), sig[1]
-                        sigs.append(sig)
                     out.extend(cg_nr, sigs)
-
-                group.record = None
-                self._set_temporary_master(None)
 
             if self._callback:
                 self._callback(i + 1, groups_nr)
@@ -3649,14 +3553,14 @@ class MDF(object):
                 assert raster > 0
             except (TypeError, ValueError):
                 if isinstance(raster, str):
-                    raster = self.get(raster).timestamps
+                    raster = self.get(raster, raw=True, ignore_invalidation_bits=True).timestamps
                 else:
                     raster = np.array(raster)
             else:
                 raster = master_using_raster(self, raster)
             master = raster
         else:
-            masters = [self.get_master(i) for i, _ in enumerate(self.groups)]
+            masters = [self.get_master(index) for index in enumerate(self._virtual_groups)]
 
             if masters:
                 master = reduce(np.union1d, masters)

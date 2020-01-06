@@ -123,7 +123,9 @@ class Signal(object):
 
             self.stream_sync = stream_sync
 
-            if invalidation_bits is not None and not isinstance(invalidation_bits, np.ndarray):
+            if invalidation_bits is not None and not isinstance(
+                invalidation_bits, np.ndarray
+            ):
                 invalidation_bits = np.array(invalidation_bits)
             self.invalidation_bits = invalidation_bits
 

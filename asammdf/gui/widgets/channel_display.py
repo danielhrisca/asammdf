@@ -29,7 +29,9 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         "_transparent",
     )
 
-    def __init__(self, uuid, unit="", kind="f", precision=3, tooltip="", *args, **kwargs):
+    def __init__(
+        self, uuid, unit="", kind="f", precision=3, tooltip="", *args, **kwargs
+    ):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 

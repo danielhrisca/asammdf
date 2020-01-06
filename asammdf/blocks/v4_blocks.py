@@ -2436,7 +2436,7 @@ class ChannelConversion(_ChannelConversionBase):
                             if address in tx_map:
                                 txt = tx_map[address]
                                 if not isinstance(txt, bytes):
-                                    txt = txt.encode('utf-8')
+                                    txt = txt.encode("utf-8")
                                 refs[f"text_{i}"] = txt
                             else:
                                 stream.seek(address)
@@ -2472,7 +2472,7 @@ class ChannelConversion(_ChannelConversionBase):
                             if address in tx_map:
                                 txt = tx_map[address] or b""
                                 if not isinstance(txt, bytes):
-                                    txt = txt.encode('utf-8')
+                                    txt = txt.encode("utf-8")
                                 refs[f"default_addr"] = txt
                             else:
                                 stream.seek(address)
@@ -2513,7 +2513,7 @@ class ChannelConversion(_ChannelConversionBase):
                                 if address in tx_map:
                                     txt = tx_map[address] or b""
                                     if not isinstance(txt, bytes):
-                                        txt = txt.encode('utf-8')
+                                        txt = txt.encode("utf-8")
                                     refs[key] = txt
                                 else:
                                     block = get_text_v4(
@@ -2531,7 +2531,7 @@ class ChannelConversion(_ChannelConversionBase):
                         if address in tx_map:
                             txt = tx_map[address] or b""
                             if not isinstance(txt, bytes):
-                                txt = txt.encode('utf-8')
+                                txt = txt.encode("utf-8")
                             refs["default_addr"] = txt
                         else:
                             block = get_text_v4(
@@ -5182,11 +5182,13 @@ class ListData(_ListDataBase):
                 self.next_ld_addr = links[0]
 
                 for i in range(self.data_block_nr):
-                    self[f"data_block_addr_{i}"] = links[i+1]
+                    self[f"data_block_addr_{i}"] = links[i + 1]
 
                 if self.flags & v4c.FLAG_LD_INVALIDATION_PRESENT:
                     for i in range(self.data_block_nr):
-                        self[f"invalidation_bits_addr_{i}"] = links[self.data_block_nr + 1 +i]
+                        self[f"invalidation_bits_addr_{i}"] = links[
+                            self.data_block_nr + 1 + i
+                        ]
             else:
 
                 stream.seek(address)
@@ -5258,12 +5260,14 @@ class ListData(_ListDataBase):
             self.next_ld_addr = 0
 
             for i in range(self.data_block_nr):
-                self[f'data_block_addr_{i}'] = kwargs[f'data_block_addr_{i}']
+                self[f"data_block_addr_{i}"] = kwargs[f"data_block_addr_{i}"]
             if self.flags & v4c.FLAG_LD_INVALIDATION_PRESENT:
                 self.links_nr = 2 * self.data_block_nr + 1
 
                 for i in range(self.data_block_nr):
-                    self[f'invalidation_bits_addr_{i}'] = kwargs[f'invalidation_bits_addr_{i}']
+                    self[f"invalidation_bits_addr_{i}"] = kwargs[
+                        f"invalidation_bits_addr_{i}"
+                    ]
             else:
                 self.links_nr = self.data_block_nr + 1
 

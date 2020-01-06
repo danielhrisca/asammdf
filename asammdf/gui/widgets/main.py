@@ -72,7 +72,9 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         mode_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/compare.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(":/compare.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         action = QtWidgets.QAction(icon, "{: <20}".format("Comparison"), menu)
         action.triggered.connect(partial(self.stackedWidget.setCurrentIndex, 2))
         mode_actions.addAction(action)
@@ -780,18 +782,13 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             elif self.files.count() and self.stackedWidget.currentIndex() == 2:
                 count = self.files.count()
                 channels_dbs = [
-                    self.files.widget(i).mdf.channels_db
-                    for i in range(count)
+                    self.files.widget(i).mdf.channels_db for i in range(count)
                 ]
                 tooltips = [
                     f'Search results for file\n "{self.files.widget(i).file_name}"'
                     for i in range(count)
                 ]
-                dlg = MultiSearch(
-                    channels_dbs,
-                    tooltips,
-                    parent=self,
-                )
+                dlg = MultiSearch(channels_dbs, tooltips, parent=self,)
                 dlg.setModal(True)
                 dlg.exec_()
                 result = dlg.result
@@ -800,17 +797,18 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                     for file_index, (group_index, channel_index) in result:
                         if file_index not in selections:
                             selections[file_index] = []
-                        selections[file_index].append((None, group_index, channel_index))
+                        selections[file_index].append(
+                            (None, group_index, channel_index)
+                        )
                     new_signals = []
                     for file_index in sorted(selections):
                         channels = selections[file_index]
                         signals = self.files.widget(file_index).mdf.select(
-                            channels,
-                            copy_master=False,
+                            channels, copy_master=False,
                         )
                         for sig, entry in zip(signals, channels):
-                            sig.tooltip = f'{sig.name}\n@ {self.files.widget(file_index).file_name}'
-                            sig.name = f'{file_index+1}: {sig.name}'
+                            sig.tooltip = f"{sig.name}\n@ {self.files.widget(file_index).file_name}"
+                            sig.name = f"{file_index+1}: {sig.name}"
                             sig.group_index = entry[1]
                             sig.channel_index = entry[2]
                         new_signals.extend(signals)

@@ -20,8 +20,9 @@ from .gui import plot
 from .signal import Signal
 from .version import __version__
 
-try: 
+try:
     from .blocks import cutils
+
     __cextension__ = True
 except ImportError:
     __cextension__ = False
