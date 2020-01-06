@@ -89,6 +89,7 @@ from .utils import (
     InvalidationBlockInfo,
     extract_can_signal,
     load_can_database,
+    VirtualChannelGroup,
 )
 from .v4_blocks import (
     AttachmentBlock,
@@ -606,14 +607,19 @@ class MDF4(object):
 
             if self.version >= "4.20" and grp.channel_group.cg_master_addr:
                 grp.channel_group.cg_master_index = self._cg_map[grp.channel_group.cg_master_addr]
-
-                if grp.channel_group.cg_master_index not in self._virtual_groups:
-                    self._virtual_groups[grp.channel_group.cg_master_index] = []
-                self._virtual_groups[grp.channel_group.cg_master_index].append(gp_index)
+                index = grp.channel_group.cg_master_index
             else:
-                if gp_index not in self._virtual_groups:
-                    self._virtual_groups[gp_index] = []
-                self._virtual_groups[gp_index].append(gp_index)
+                index = gp_index
+
+            if index not in self._virtual_groups:
+                self._virtual_groups[index] = VirtualChannelGroup()
+
+            virtual_channel_group = self._virtual_groups[index]
+            virtual_channel_group.groups.append(gp_index)
+            virtual_channel_group.record_size += (
+                grp.channel_group.samples_byte_nr
+                + grp.channel_group.invalidation_bytes_nr
+            )
 
             for ch_index, dep_list in enumerate(grp.channel_dependencies):
                 if not dep_list:
@@ -681,6 +687,11 @@ class MDF4(object):
                         break
 
         self._sort()
+
+        for grp in self.groups:
+            channels = grp.channels
+            if len(channels) == 1 and channels[0].dtype_fmt.itemsize == grp.channel_group.samples_byte_nr:
+                grp.single_channel_dtype = channels[0].dtype_fmt
 
         self._process_can_logging()
 
@@ -1514,10 +1525,11 @@ class MDF4(object):
                 yield b"", offset, _count, None
         else:
 
-            if optimize_read and group.data_blocks and not self._read_fragment_size:
-                split_size = group.data_blocks[0].raw_size
-
+            if group.read_split_count:
+                split_size = group.read_split_count * samples_size
+                invalidation_split_size = group.read_split_count * invalidation_size
             else:
+
                 if self._read_fragment_size:
                     split_size = self._read_fragment_size // samples_size
                     invalidation_split_size = split_size * invalidation_size
@@ -7573,10 +7585,13 @@ class MDF4(object):
             v4c.DATA_TYPE_SIGNED_MOTOROLA,
         )
 
-        record_size = (
-            group.channel_group.samples_byte_nr
-            + group.channel_group.invalidation_bytes_nr
-        )
+        if group.uses_ld:
+            record_size = group.channel_group.samples_byte_nr
+        else:
+            record_size = (
+                group.channel_group.samples_byte_nr
+                + group.channel_group.invalidation_bytes_nr
+            )
 
         if ch_nr >= 0:
             channel = group.channels[ch_nr]
@@ -7675,21 +7690,218 @@ class MDF4(object):
         else:
             return vals
 
-    def get(
+    def get_(
         self,
-        name=None,
-        group=None,
         index=None,
-        raster=None,
-        samples_only=False,
-        data=None,
-        raw=False,
-        ignore_invalidation_bits=False,
-        source=None,
+        channels=None,
         record_offset=0,
         record_count=None,
+        skip_master=True,
     ):
-        pass
+        virtual_channel_group = self._virtual_groups[index]
+        record_size = virtual_channel_group.record_size
+        groups = virtual_channel_group.groups
+        if channels is None:
+            gps = {}
+
+            for gp_index in groups:
+
+                group = self.groups[gp_index]
+
+                included_channels = set(range(len(group.channels)))
+                master_index = self.masters_db.get(index, None)
+                if master_index is not None and skip_master:
+                    included_channels.remove(master_index)
+
+                channels = group.channels
+
+                if group.CAN_logging:
+                    found = True
+                    where = (
+                        self.whereis("CAN_DataFrame")
+                        + self.whereis("CAN_ErrorFrame")
+                        + self.whereis("CAN_RemoteFrame")
+                    )
+
+                    for dg_cntr, ch_cntr in where:
+                        if dg_cntr == index:
+                            break
+                    else:
+                        found = False
+                        group.CAN_logging = False
+
+                    if found:
+                        channel = channels[ch_cntr]
+
+                        frame_bytes = range(
+                            channel.byte_offset,
+                            channel.byte_offset + channel.bit_count // 8,
+                        )
+
+                        for i, channel in enumerate(channels):
+                            if channel.byte_offset in frame_bytes:
+                                included_channels.remove(i)
+
+                        included_channels.add(ch_cntr)
+
+                        if group.CAN_database:
+                            dbc_addr = group.dbc_addr
+                            message_id = group.message_id
+                            for m_ in message_id:
+                                try:
+                                    can_msg = self._dbc_cache[dbc_addr].frameById(m_)
+                                except AttributeError:
+                                    can_msg = self._dbc_cache[dbc_addr].frame_by_id(
+                                        canmatrix.ArbitrationId(m_)
+                                    )
+
+                                for i, _ in enumerate(can_msg.signals, 1):
+                                    included_channels.add(-i)
+
+                for dependencies in group.channel_dependencies:
+                    if dependencies is None:
+                        continue
+                    if all(not isinstance(dep, ChannelArrayBlock) for dep in dependencies):
+                        for _, ch_nr in dependencies:
+                            try:
+                                included_channels.remove(ch_nr)
+                            except KeyError:
+                                pass
+                    else:
+                        for dep in dependencies:
+                            for referenced_channels in (
+                                dep.axis_channels,
+                                dep.dynamic_size_channels,
+                                dep.input_quantity_channels,
+                            ):
+                                for gp_nr, ch_nr in referenced_channels:
+                                    if gp_nr == index:
+                                        try:
+                                            included_channels.remove(ch_nr)
+                                        except KeyError:
+                                            pass
+
+                            if dep.output_quantity_channel:
+                                gp_nr, ch_nr = dep.output_quantity_channel
+                                if gp_nr == index:
+                                    try:
+                                        included_channels.remove(ch_nr)
+                                    except KeyError:
+                                        pass
+
+                            if dep.comparison_quantity_channel:
+                                gp_nr, ch_nr = dep.comparison_quantity_channel
+                                if gp_nr == index:
+                                    try:
+                                        included_channels.remove(ch_nr)
+                                    except KeyError:
+                                        pass
+
+                if included_channels:
+                    gps[gp_index] = included_channels
+        else:
+            gps = {}
+            for item in channels:
+                if isinstance(item, (list, tuple)):
+                    if len(item) not in (2, 3):
+                        raise MdfException(
+                            "The items used for filtering must be strings, "
+                            "or they must match the first 3 argumens of the get "
+                            "method"
+                        )
+                    else:
+                        group, idx = self._validate_channel_selection(*item)
+                        if group not in gps:
+                            gps[group] = {idx}
+                        else:
+                            gps[group].add(idx)
+                else:
+                    name = item
+                    group, idx = self._validate_channel_selection(name)
+                    if group not in gps:
+                        gps[group] = {idx}
+                    else:
+                        gps[group].add(idx)
+
+        groups = gps
+
+        record_size = 0
+        for group_index in groups:
+            grp = self.groups[group_index]
+            record_size += (
+                grp.channel_group.samples_byte_nr
+                + grp.channel_group.invalidation_bytes_nr
+            )
+
+        if self._read_fragment_size:
+            count = self._read_fragment_size // record_size or 1
+        else:
+            count = 10 * 1024 * 1024 // record_size or 1
+
+        data_streams = []
+        for group_index in groups:
+            grp = self.groups[group_index]
+            grp.read_split_count = count
+            data_streams.append(
+                self._load_data(
+                    grp,
+                    record_offset=record_offset,
+                    record_count=record_count,
+                )
+            )
+
+        idx = 0
+
+        while True:
+            try:
+                fragments = [
+                    next(stream)
+                    for stream in data_streams
+                ]
+            except:
+                break
+
+            self._set_temporary_master(self.get_master(index, data=fragments[0]))
+
+            if idx == 0:
+                signals = []
+            else:
+                signals = [(self._master, None)]
+
+            for fragment, (group_index, channels) in zip(fragments, groups.items()):
+                grp = self.groups[group_index]
+                if not group.single_channel_dtype:
+                    parents, dtypes = self._prepare_record(grp)
+                    if dtypes.itemsize:
+                        grp.record = fromstring(fragment[0], dtype=dtypes)
+                    else:
+                        grp.record = None
+                        continue
+
+                # the first fragment triggers and append that will add the
+                # metadata for all channels
+                samples_only = bool(idx)
+
+                signals.extend(
+                    [
+                        self.get(
+                            group=group_index,
+                            index=channel_index,
+                            data=fragment,
+                            raw=True,
+                            ignore_invalidation_bits=True,
+                            samples_only=samples_only,
+                        )
+                        for channel_index in channels
+                    ]
+                )
+
+                grp.record = None
+
+            yield signals
+            self._set_temporary_master(None)
+            idx += 1
+
 
     def get_master(
         self,

@@ -968,6 +968,7 @@ class Group:
         "single_channel_dtype",
         "uses_ld",
         "ignore_during_save",
+        "read_split_count",
     )
 
     def __init__(self, data_group):
@@ -994,6 +995,7 @@ class Group:
         self.single_channel_dtype = None
         self.uses_ld = False
         self.ignore_during_save = False
+        self.read_split_count = 0
 
     def __getitem__(self, item):
         return self.__getattribute__(item)
@@ -1006,6 +1008,18 @@ class Group:
 
     def __contains__(self, item):
         return hasattr(self, item)
+
+
+class VirtualChannelGroup:
+
+    __slots__ = (
+        "groups",
+        "record_size",
+    )
+
+    def __init__(self):
+        self.groups = []
+        self.record_size = 0
 
 
 def block_fields(obj):
