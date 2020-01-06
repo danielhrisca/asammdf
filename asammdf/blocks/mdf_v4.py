@@ -2971,7 +2971,7 @@ class MDF4(object):
         gp.channel_group.acq_source = source_block
 
         if signals:
-            self._virtualgroups[dg_cntr] = [dg_cntr]
+            self._virtual_groups[dg_cntr] = [dg_cntr]
             # time channel
             t_type, t_size = fmt_to_datatype_v4(t.dtype, t.shape)
             kwargs = {
