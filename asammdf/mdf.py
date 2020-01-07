@@ -358,128 +358,6 @@ class MDF(object):
                     event.scopes.append(group)
                     self.events.append(event)
 
-    def _included_channels(self, index, skip_master=True):
-        """ get the minimum channels needed to extract all information from the
-        channel group (for example keep onl the structure channel and exclude the
-        strucutre fields channels)
-
-        Parameters
-        ----------
-        index : int
-            channel group index
-
-        Returns
-        -------
-        included_channels : set
-            set of excluded channels
-
-        """
-        self._link_attributes()
-
-        group = self.groups[index]
-
-        included_channels = set(range(len(group.channels)))
-        master_index = self.masters_db.get(index, None)
-        if master_index is not None and skip_master:
-            included_channels.remove(master_index)
-
-        channels = group.channels
-
-        if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
-            for dep in group.channel_dependencies:
-                if dep is None:
-                    continue
-                for gp_nr, ch_nr in dep.referenced_channels:
-                    if gp_nr == index:
-                        included_channels.remove(ch_nr)
-        else:
-            if group.CAN_logging:
-                found = True
-                where = (
-                    self.whereis("CAN_DataFrame")
-                    + self.whereis("CAN_ErrorFrame")
-                    + self.whereis("CAN_RemoteFrame")
-                )
-
-                for dg_cntr, ch_cntr in where:
-                    if dg_cntr == index:
-                        break
-                else:
-                    found = False
-                    #                    raise MdfException(
-                    #                        f"CAN_DataFrame or CAN_ErrorFrame not found in group {index}"
-                    #                    )
-                    group.CAN_logging = False
-
-                if found:
-                    channel = channels[ch_cntr]
-
-                    frame_bytes = range(
-                        channel.byte_offset,
-                        channel.byte_offset + channel.bit_count // 8,
-                    )
-
-                    for i, channel in enumerate(channels):
-                        if channel.byte_offset in frame_bytes:
-                            included_channels.remove(i)
-
-                    included_channels.add(ch_cntr)
-
-                    if group.CAN_database:
-                        dbc_addr = group.dbc_addr
-                        message_id = group.message_id
-                        for m_ in message_id:
-                            try:
-                                can_msg = self._dbc_cache[dbc_addr].frameById(m_)
-                            except AttributeError:
-                                can_msg = self._dbc_cache[dbc_addr].frame_by_id(
-                                    canmatrix.ArbitrationId(m_)
-                                )
-
-                            for i, _ in enumerate(can_msg.signals, 1):
-                                included_channels.add(-i)
-
-            for dependencies in group.channel_dependencies:
-                if dependencies is None:
-                    continue
-                if all(not isinstance(dep, ChannelArrayBlock) for dep in dependencies):
-                    for _, ch_nr in dependencies:
-                        try:
-                            included_channels.remove(ch_nr)
-                        except KeyError:
-                            pass
-                else:
-                    for dep in dependencies:
-                        for referenced_channels in (
-                            dep.axis_channels,
-                            dep.dynamic_size_channels,
-                            dep.input_quantity_channels,
-                        ):
-                            for gp_nr, ch_nr in referenced_channels:
-                                if gp_nr == index:
-                                    try:
-                                        included_channels.remove(ch_nr)
-                                    except KeyError:
-                                        pass
-
-                        if dep.output_quantity_channel:
-                            gp_nr, ch_nr = dep.output_quantity_channel
-                            if gp_nr == index:
-                                try:
-                                    included_channels.remove(ch_nr)
-                                except KeyError:
-                                    pass
-
-                        if dep.comparison_quantity_channel:
-                            gp_nr, ch_nr = dep.comparison_quantity_channel
-                            if gp_nr == index:
-                                try:
-                                    included_channels.remove(ch_nr)
-                                except KeyError:
-                                    pass
-
-        return included_channels
-
     def __contains__(self, channel):
         """ if *'channel name'* in *'mdf file'* """
         return channel in self.channels_db
@@ -985,10 +863,7 @@ class MDF(object):
                 if self._terminate:
                     return
 
-                included_channels = self._included_channels(i)
-
-                for j in included_channels:
-                    ch = grp.channels[j]
+                for ch in grp.channels:
 
                     if use_display_names:
                         channel_name = ch.display_name or ch.name
@@ -1072,26 +947,41 @@ class MDF(object):
                     # each HDF5 group will have a string attribute "master"
                     # that will hold the name of the master channel
 
-                    groups_nr = len(self.groups)
-                    for i, grp in enumerate(self.groups):
-                        if not len(grp.channels):
+                    groups_nr = len(self.virtual_groups)
+                    for i, (group_index, virtual_group) in enumerate(self.virtual_groups.items()):
+                        channels = self.included_channels(group_index)[group_index]
+
+                        if not channels:
                             continue
+
                         names = UniqueDB()
                         if self._terminate:
                             return
+
+                        if len(virtual_group.groups) == 1:
+                            comment = self.groups[
+                                virtual_group.groups[0]
+                            ].channel_group.comment
+                        else:
+                            comment = 'Virtual group i'
+
                         group_name = r"/" + f"ChannelGroup_{i}"
                         group = hdf.create_group(group_name)
 
-                        group.attrs["comment"] = grp.channel_group.comment
+                        group.attrs["comment"] = comment
 
-                        master_index = self.masters_db.get(i, -1)
+                        master_index = self.masters_db.get(group_index, -1)
 
                         if master_index >= 0:
-                            group.attrs["master"] = grp.channels[master_index].name
+                            group.attrs["master"] = self.groups[group_index].channels[master_index].name
 
-                        channels = self.select(
-                            [(ch.name, i, None) for ch in grp.channels]
-                        )
+                        channels = [
+                            (None, gp_index, ch_index)
+                            for gp_index, channel_indexes in channels.items()
+                            for ch_index in channel_indexes
+                        ]
+
+                        channels = self.select(channels)
 
                         for j, sig in enumerate(channels):
                             if use_display_names:
@@ -1181,8 +1071,8 @@ class MDF(object):
 
                 filename = filename.with_suffix(".csv")
 
-                gp_count = len(self.groups)
-                for i, grp in enumerate(self.groups):
+                gp_count = len(self.virtual_groups)
+                for i, (group_index, virtual_group) in enumerate(self.groups.items()):
 
                     if self._terminate:
                         return
@@ -1191,7 +1081,13 @@ class MDF(object):
                     message = f"Exporting group {i+1} of {gp_count}"
                     logger.info(message)
 
-                    comment = grp.channel_group.comment
+                    if len(virtual_group.groups) == 1:
+                        comment = self.groups[
+                            virtual_group.groups[0]
+                        ].channel_group.comment
+                    else:
+                        comment = ""
+
                     if comment:
                         for char in r" \/:":
                             comment = comment.replace(char, "_")
@@ -1205,7 +1101,7 @@ class MDF(object):
                         )
 
                     df = self.get_group(
-                        i,
+                        group_index,
                         raster=raster,
                         time_from_zero=time_from_zero,
                         use_display_names=use_display_names,
@@ -1272,31 +1168,38 @@ class MDF(object):
                 channel_name_template = "DG{}_{}"
                 used_names = UniqueDB()
 
-                groups_nr = len(self.groups)
+                groups_nr = len(self.virtual_groups)
 
-                for i, grp in enumerate(self.groups):
+                for i, (group_index, virtual_group) in enumerate(self.virtual_groups.items()):
                     if self._terminate:
                         return
-                    if not len(grp.channels):
+
+                    channels = self.included_channels(group_index)[group_index]
+
+                    if not channels:
                         continue
 
-                    included_channels = self._included_channels(i)
-
-                    master_index = self.masters_db.get(i, -1)
-
-                    if master_index >= 0:
-                        included_channels.add(master_index)
+                    channels = [
+                        (None, gp_index, ch_index)
+                        for gp_index, channel_indexes in channels.items()
+                        for ch_index in channel_indexes
+                    ]
 
                     channels = self.select(
-                        [(None, i, idx) for idx in included_channels],
+                        channels,
                         ignore_value2text_conversions=ignore_value2text_conversions,
                     )
 
-                    for j, sig in zip(included_channels, channels):
+                    master = channels[0].copy()
+                    master.samples = master.timestamps
 
-                        if j == master_index:
-                            channel_name = master_name_template.format(i, sig.name)
+                    channels.insert(0, master)
+
+                    for j, sig in enumerate(channels):
+                        if j == 0:
+                            channel_name = master_name_template.format(i, "timestamps")
                         else:
+
                             if use_display_names:
                                 channel_name = sig.display_name or sig.name
                             else:
