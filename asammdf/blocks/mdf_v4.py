@@ -6392,6 +6392,7 @@ class MDF4(object):
                     record_count=record_count,
                     master_is_required=master_is_required,
                 )
+
         else:
             vals, timestamps, invalidation_bits, encoding = self._get_scalar(
                 channel=channel,
@@ -7863,7 +7864,7 @@ class MDF4(object):
             count = 10 * 1024 * 1024 // record_size or 1
 
         data_streams = []
-        for group_index in groups:
+        for idx, group_index in enumerate(groups):
             grp = self.groups[group_index]
             grp.read_split_count = count
             data_streams.append(
@@ -7871,9 +7872,13 @@ class MDF4(object):
                     grp, record_offset=record_offset, record_count=record_count,
                 )
             )
+            if group_index == index:
+                master_index = idx
 
-        idx = 0
         encodings = {group_index: [None,] for groups_index in groups}
+
+        self._set_temporary_master(None)
+        idx = 0
 
         while True:
             try:
@@ -7881,7 +7886,8 @@ class MDF4(object):
             except:
                 break
 
-            self._set_temporary_master(self.get_master(index, data=fragments[0]))
+            _master = self.get_master(index, data=fragments[master_index])
+            self._set_temporary_master(_master)
 
             for fragment, (group_index, channels) in zip(fragments, groups.items()):
                 grp = self.groups[group_index]
@@ -7977,9 +7983,9 @@ class MDF4(object):
 
                 grp.record = None
 
-            yield signals
             self._set_temporary_master(None)
             idx += 1
+            yield signals
 
     def get_master(
         self,

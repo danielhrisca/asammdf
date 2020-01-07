@@ -3631,6 +3631,8 @@ class MDF3(object):
             None,
         ]
 
+        self._set_temporary_master(None)
+
         for idx, fragment in enumerate(
             self._load_data(
                 group, record_offset=record_offset, record_count=record_count,
@@ -3728,9 +3730,8 @@ class MDF3(object):
                                 signals[i] = (samples, sig[1])
 
             group.record = None
-
-            yield signals
             self._set_temporary_master(None)
+            yield signals
 
 
 if __name__ == "__main__":

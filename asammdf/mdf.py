@@ -617,8 +617,8 @@ class MDF(object):
 
         if whence == 1:
             timestamps = []
-            for i, group in enumerate(self.groups):
-                master = self.get_master(i, record_offset=0, record_count=1,)
+            for group in self.virtual_groups:
+                master = self.get_master(group, record_offset=0, record_count=1)
                 if master.size:
                     timestamps.append(master[0])
 
@@ -640,40 +640,27 @@ class MDF(object):
             delta = 0
             out.header.start_time = self.header.start_time
 
-        groups_nr = len(self.groups)
+        groups_nr = len(self.virtual_groups)
 
         if self._callback:
             self._callback(0, groups_nr)
 
-        cg_nr = -1
-
         interpolation_mode = self._integer_interpolation
 
         # walk through all groups and get all channels
-        for i, group in enumerate(self.groups):
-            included_channels = self._included_channels(i)
-            if included_channels:
-                cg_nr += 1
-            else:
+        for i, (group_index, virtual_group) in enumerate(self.virtual_groups.items()):
+
+            included_channels = self.included_channels(group_index)[group_index]
+            if not included_channels:
                 continue
 
-            data = self._load_data(group, optimize_read=False)
-            parents, dtypes = self._prepare_record(group)
-
             idx = 0
-            for fragment in data:
-                if dtypes.itemsize:
-                    group.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
+            for j, sigs in enumerate(self.get_(group_index, groups=included_channels)):
+                if j == 0:
+                    master = sigs[0].timestamps
+                    signals = sigs
                 else:
-                    group.record = None
-                #                master = self.get_master(i, data=fragment, one_piece=True)
-                self._set_temporary_master(None)
-                master = self.get_master(i, data=fragment)
-
-                self._set_temporary_master(master)
-                if not len(master):
-                    self._set_temporary_master(None)
-                    continue
+                    master = sigs[0][0]
 
                 needs_cutting = True
 
@@ -726,8 +713,15 @@ class MDF(object):
                         if start_index == 0 and stop_index == len(master):
                             needs_cutting = False
 
+                # update the signal is this is not the first yield
+                if j:
+                    for signal, (samples, invalidation) in zip (signals, sigs[1:]):
+                        signal.samples = samples
+                        signal.timestamps = master
+                        signal.invalidation_bits = invalidation
+
                 if needs_cutting:
-                    cut_timebase = (
+                    master = (
                         Signal(master, master, name="_")
                         .cut(
                             fragment_start,
@@ -738,148 +732,52 @@ class MDF(object):
                         .timestamps
                     )
 
-                # the first fragment triggers and append that will add the
-                # metadata for all channels
+                    signals = [
+                        sig.interp(
+                            master,
+                            interpolation_mode=interpolation_mode,
+                        )
+                        for sig in signals
+                    ]
+
+                if time_from_zero:
+                    master = master - delta
+                    for sig in signals:
+                        sig.timestamps = master
+
                 if idx == 0:
-                    sigs = []
-                    for j in included_channels:
-                        sig = self.get(
-                            group=i,
-                            index=j,
-                            data=fragment,
-                            raw=True,
-                            ignore_invalidation_bits=True,
-                        )
-                        if needs_cutting:
-                            sig = sig.interp(
-                                cut_timebase, interpolation_mode=interpolation_mode
-                            )
 
-                        # if sig.stream_sync and False:
-                        #     attachment, _name = sig.attachment
-                        #     duration = get_video_stream_duration(attachment)
-                        #     if start is None:
-                        #         start_t = 0
-                        #     else:
-                        #         start_t = start
-                        #
-                        #     if stop is None:
-                        #         end_t = duration
-                        #     else:
-                        #         end_t = stop
-                        #
-                        #     attachment = cut_video_stream(
-                        #         attachment,
-                        #         start_t,
-                        #         end_t,
-                        #         Path(_name).suffix,
-                        #     )
-                        #     sig.attachment = attachment, _name
-
-                        if not sig.samples.flags.owndata:
-                            sig.samples = sig.samples.copy()
-                        sigs.append(sig)
-
-                    if sigs:
-                        if time_from_zero:
-                            new_timestamps = cut_timebase - delta
-                            for sig in sigs:
-                                sig.timestamps = new_timestamps
-                        if start:
-                            start_ = f"{start}s"
-                        else:
-                            start_ = "start of measurement"
-                        if stop:
-                            stop_ = f"{stop}s"
-                        else:
-                            stop_ = "end of measurement"
-                        out.append(
-                            sigs, f"Cut from {start_} to {stop_}", common_timebase=True
-                        )
-                        try:
-                            if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
-                                out.groups[
-                                    -1
-                                ].channel_group.flags = group.channel_group.flags
-                                out.groups[
-                                    -1
-                                ].channel_group.acq_name = group.channel_group.acq_name
-                                out.groups[
-                                    -1
-                                ].channel_group.acq_source = (
-                                    group.channel_group.acq_source
-                                )
-                                out.groups[
-                                    -1
-                                ].channel_group.comment = group.channel_group.comment
-                        except AttributeError:
-                            pass
+                    if start:
+                        start_ = f"{start}s"
                     else:
-                        break
-
-                    idx += 1
-
-                # the other fragments will trigger onl the extension of
-                # samples records to the data block
+                        start_ = "start of measurement"
+                    if stop:
+                        stop_ = f"{stop}s"
+                    else:
+                        stop_ = "end of measurement"
+                    cg_nr = out.append(
+                        signals,
+                        f"Cut from {start_} to {stop_}",
+                        common_timebase=True,
+                    )
                 else:
-                    if needs_cutting:
-                        timestamps = cut_timebase
-                    else:
-                        timestamps = master
+                    sigs = [
+                        (sig.samples, sig.invalidation_bits)
+                        for sig in signals
+                    ]
+                    sigs.insert(0, (master, None))
+                    out.extend(cg_nr, sigs)
 
-                    if time_from_zero:
-                        timestamps = timestamps - delta
-
-                    sigs = [(timestamps, None)]
-
-                    for j in included_channels:
-                        sig = self.get(
-                            group=i,
-                            index=j,
-                            data=fragment,
-                            raw=True,
-                            samples_only=True,
-                            ignore_invalidation_bits=True,
-                        )
-                        if needs_cutting:
-                            _sig = Signal(
-                                sig[0], master, name="_", invalidation_bits=sig[1]
-                            ).interp(
-                                cut_timebase, interpolation_mode=interpolation_mode
-                            )
-                            sig = (_sig.samples, _sig.invalidation_bits)
-
-                            del _sig
-                        sigs.append(sig)
-
-                    if sigs:
-                        out.extend(cg_nr, sigs)
-
-                    idx += 1
-
-                group.record = None
-                self._set_temporary_master(None)
+                idx += 1
 
             # if the cut interval is not found in the measurement
-            # then append an empty data group
+            # then append a data group with 0 cycles
             if idx == 0:
-
-                self.configure(read_fragment_size=1)
-                sigs = []
-
-                fragment = next(self._load_data(group, optimize_read=False))
-
-                for j in included_channels:
-                    sig = self.get(
-                        group=i,
-                        index=j,
-                        data=fragment,
-                        raw=True,
-                        ignore_invalidation_bits=True,
-                    )
+                for sig in signals:
                     sig.samples = sig.samples[:0]
                     sig.timestamps = sig.timestamps[:0]
-                    sigs.append(sig)
+                    if sig.invalidation_bits is not None:
+                        sig.invaldiation_bits = sig.invalidation_bits[:0]
 
                 if start:
                     start_ = f"{start}s"
@@ -889,9 +787,11 @@ class MDF(object):
                     stop_ = f"{stop}s"
                 else:
                     stop_ = "end of measurement"
-                out.append(sigs, f"Cut from {start_} to {stop_}", common_timebase=True)
-
-                self.configure(read_fragment_size=0)
+                out.append(
+                    signals,
+                    f"Cut from {start_} to {stop_}",
+                    common_timebase=True,
+                )
 
             if self._callback:
                 self._callback(i + 1, groups_nr)
@@ -1568,12 +1468,9 @@ class MDF(object):
         if self._callback:
             self._callback(0, groups_nr)
 
-        # append filtered channels to new MDF
         for i, (group_index, groups) in enumerate(gps.items()):
 
             for idx, sigs in enumerate(self.get_(group_index, groups=groups, version=version)):
-                # the first fragment triggers and append that will add the
-                # metadata for all channels
                 if not sigs:
                     break
 
