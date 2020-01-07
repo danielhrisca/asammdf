@@ -58,6 +58,7 @@ from .utils import (
     is_file_like,
     Group,
     DataBlockInfo,
+    VirtualChannelGroup,
 )
 from .v2_v3_blocks import (
     Channel,
@@ -181,6 +182,9 @@ class MDF3(object):
         self.last_call_info = None
         self._master = None
 
+        self.virtual_groups_map = {}
+        self.virtual_groups = {}
+
         if name:
             if is_file_like(name):
                 self._file = name
@@ -214,7 +218,16 @@ class MDF3(object):
 
         self._sort()
 
-        self._virtual_groups = list(range(len(self.groups)))
+        for index, grp in enumerate(self.groups):
+
+            self.virtual_groups_map[index] = index
+            if index not in self.virtual_groups:
+                self.virtual_groups[index] = VirtualChannelGroup()
+
+            virtual_channel_group = self.virtual_groups[index]
+            virtual_channel_group.groups.append(index)
+            virtual_channel_group.record_size =  grp.channel_group.samples_byte_nr
+            virtual_channel_group.cycles_nr = grp.channel_group.cycles_nr
 
     def __del__(self):
         self.close()
@@ -1914,6 +1927,15 @@ class MDF3(object):
         else:
             gp.data_location = v23c.LOCATION_TEMPORARY_FILE
 
+        self.virtual_groups_map[dg_cntr] = dg_cntr
+        if dg_cntr not in self.virtual_groups:
+            self.virtual_groups[dg_cntr] = VirtualChannelGroup()
+
+        virtual_channel_group = self.virtual_groups[dg_cntr]
+        virtual_channel_group.groups.append(dg_cntr)
+        virtual_channel_group.record_size =  gp.channel_group.samples_byte_nr
+        virtual_channel_group.cycles_nr = gp.channel_group.cycles_nr
+
         # data group trigger
         gp.trigger = None
 
@@ -2153,6 +2175,16 @@ class MDF3(object):
             )
         else:
             gp.data_location = v23c.LOCATION_TEMPORARY_FILE
+
+        self.virtual_groups_map[dg_cntr] = dg_cntr
+        if dg_cntr not in self.virtual_groups:
+            self.virtual_groups[dg_cntr] = VirtualChannelGroup()
+
+        virtual_channel_group = self.virtual_groups[dg_cntr]
+        virtual_channel_group.groups.append(dg_cntr)
+        virtual_channel_group.record_size =  gp.channel_group.samples_byte_nr
+        virtual_channel_group.cycles_nr = gp.channel_group.cycles_nr
+
         # data group trigger
         gp.trigger = None
 
@@ -2362,6 +2394,9 @@ class MDF3(object):
                     param=0,
                 )
             )
+
+        virtual_channel_group = self.virtual_groups[index]
+        virtual_channel_group.cycles_nr += cycles_nr
 
     def get_channel_name(self, group, index):
         """Gets channel name.

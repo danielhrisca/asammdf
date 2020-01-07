@@ -865,8 +865,8 @@ class TestMDF(unittest.TestCase):
 
         for input_file in Path(TestMDF.tempdir_demo.name).iterdir():
 
-#            if MDF(input_file).version == "2.00":
-            if MDF(input_file).version < "4.00":
+            if MDF(input_file).version == "2.00":
+#            if MDF(input_file).version < "4.00":
                 continue
 
             print(input_file)

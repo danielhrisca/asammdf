@@ -523,7 +523,7 @@ class MDF(object):
         except AttributeError:
             pass
 
-        groups_nr = len(self._virtual_groups)
+        groups_nr = len(self.virtual_groups)
 
         if self._callback:
             self._callback(0, groups_nr)
@@ -533,9 +533,9 @@ class MDF(object):
         self.configure(copy_on_get=False)
 
         # walk through all groups and get all channels
-        for i, group in enumerate(self._virtual_groups):
+        for i, virtual_group in enumerate(self.virtual_groups):
 
-            for idx, sigs in enumerate(self.get_(group, version=version)):
+            for idx, sigs in enumerate(self.get_(virtual_group, version=version)):
                 # the first fragment triggers and append that will add the
                 # metadata for all channels
                 if idx == 0:
@@ -543,24 +543,26 @@ class MDF(object):
                     source_info = f"Converted from {self.version} to {version}"
                     if sigs:
                         cg_nr = out.append(sigs, source_info, common_timebase=True)
-                        try:
-                            if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
-                                out.groups[
-                                    -1
-                                ].channel_group.flags = group.channel_group.flags
-                                out.groups[
-                                    -1
-                                ].channel_group.acq_name = group.channel_group.acq_name
-                                out.groups[
-                                    -1
-                                ].channel_group.acq_source = (
-                                    group.channel_group.acq_source
-                                )
-                                out.groups[
-                                    -1
-                                ].channel_group.comment = group.channel_group.comment
-                        except AttributeError:
-                            pass
+                        for dg_nr in range(cg_nr, len(out.groups)):
+                            group = out.groups[dg_nr]
+                            try:
+                                if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
+                                    out.groups[
+                                        -1
+                                    ].channel_group.flags = group.channel_group.flags
+                                    out.groups[
+                                        -1
+                                    ].channel_group.acq_name = group.channel_group.acq_name
+                                    out.groups[
+                                        -1
+                                    ].channel_group.acq_source = (
+                                        group.channel_group.acq_source
+                                    )
+                                    out.groups[
+                                        -1
+                                    ].channel_group.comment = group.channel_group.comment
+                            except AttributeError:
+                                pass
                     else:
                         break
 
@@ -1570,99 +1572,9 @@ class MDF(object):
             version = validate_version_argument(version)
 
         # group channels by group index
-        gps = {}
-
-        for item in channels:
-            if isinstance(item, (list, tuple)):
-                if len(item) not in (2, 3):
-                    raise MdfException(
-                        "The items used for filtering must be strings, "
-                        "or they must match the first 3 argumens of the get "
-                        "method"
-                    )
-                else:
-                    group, index = self._validate_channel_selection(*item)
-                    if group not in gps:
-                        gps[group] = {index}
-                    else:
-                        gps[group].add(index)
-            else:
-                name = item
-                group, index = self._validate_channel_selection(name)
-                if group not in gps:
-                    gps[group] = {index}
-                else:
-                    gps[group].add(index)
+        gps = self.included_channels(channels=channels)
 
         self.configure(copy_on_get=False)
-
-        # see if there are excluded channels in the filter list
-        for group_index, indexes in gps.items():
-            grp = self.groups[group_index]
-            included_channels = set(indexes)
-            master_index = self.masters_db.get(group_index, None)
-            if master_index is not None:
-                to_exclude = {master_index}
-            else:
-                to_exclude = set()
-
-            if included_channels == to_exclude:
-                gps[group_index] = [
-                    master_index,
-                ]
-                continue
-
-            for index in indexes:
-                if self.version in MDF2_VERSIONS + MDF3_VERSIONS:
-                    dep = grp.channel_dependencies[index]
-                    if dep:
-                        for gp_nr, ch_nr in dep.referenced_channels:
-                            if gp_nr == group:
-                                try:
-                                    included_channels.remove(ch_nr)
-                                except:
-                                    pass
-                else:
-                    dependencies = grp.channel_dependencies[index]
-                    if dependencies is None:
-                        continue
-                    if all(
-                        not isinstance(dep, ChannelArrayBlock) for dep in dependencies
-                    ):
-                        channels = grp.channels
-                        for _, channel in dependencies:
-                            to_exclude.add(channel)
-                    else:
-                        for dep in dependencies:
-                            for referenced_channels in (
-                                dep.axis_channels,
-                                dep.dynamic_size_channels,
-                                dep.input_quantity_channels,
-                            ):
-                                for gp_nr, ch_nr in referenced_channels:
-                                    if gp_nr == index:
-                                        try:
-                                            included_channels.remove(ch_nr)
-                                        except KeyError:
-                                            pass
-
-                            if dep.output_quantity_channel:
-                                gp_nr, ch_nr = dep.output_quantity_channel
-                                if gp_nr == index:
-                                    try:
-                                        included_channels.remove(ch_nr)
-                                    except KeyError:
-                                        pass
-
-                            if dep.comparison_quantity_channel:
-                                gp_nr, ch_nr = dep.comparison_quantity_channel
-                                if gp_nr == index:
-                                    try:
-                                        included_channels.remove(ch_nr)
-                                    except KeyError:
-                                        pass
-
-            gps[group_index] = sorted(included_channels - to_exclude)
 
         mdf = MDF(version=version)
 
@@ -1679,135 +1591,46 @@ class MDF(object):
             self._callback(0, groups_nr)
 
         # append filtered channels to new MDF
-        for new_index, (group_index, indexes) in enumerate(gps.items()):
-            if version < "4.00":
-                encodings = []
+        for i, (group_index, groups) in enumerate(gps.items()):
 
-            group = self.groups[group_index]
-
-            data = self._load_data(group, optimize_read=False)
-            _, dtypes = self._prepare_record(group)
-
-            for idx, fragment in enumerate(data):
-
-                if dtypes.itemsize:
-                    group.record = np.core.records.fromstring(fragment[0], dtype=dtypes)
-                else:
-                    group.record = None
-
-                self._set_temporary_master(self.get_master(group_index, data=fragment))
-
+            for idx, sigs in enumerate(self.get_(group_index, groups=groups, version=version)):
                 # the first fragment triggers and append that will add the
                 # metadata for all channels
                 if idx == 0:
-                    sigs = []
-                    for j in indexes:
-                        sig = self.get(
-                            group=group_index,
-                            index=j,
-                            data=fragment,
-                            raw=True,
-                            ignore_invalidation_bits=True,
-                        )
-                        if version < "4.00":
-                            if sig.samples.dtype.kind == "S":
-                                encodings.append(sig.encoding)
-                                strsig = self.get(
-                                    group=group_index,
-                                    index=j,
-                                    samples_only=True,
-                                    ignore_invalidation_bits=True,
-                                )[0]
-                                sig.samples = sig.samples.astype(strsig.dtype)
-                                del strsig
-                                if sig.encoding != "latin-1":
-
-                                    if sig.encoding == "utf-16-le":
-                                        sig.samples = (
-                                            sig.samples.view(np.uint16)
-                                            .byteswap()
-                                            .view(sig.samples.dtype)
-                                        )
-                                        sig.samples = encode(
-                                            decode(sig.samples, "utf-16-be"), "latin-1"
-                                        )
-                                    else:
-                                        sig.samples = encode(
-                                            decode(sig.samples, sig.encoding), "latin-1"
-                                        )
-                            else:
-                                encodings.append(None)
-                        if not sig.samples.flags.owndata:
-                            sig.samples = sig.samples.copy()
-                        sigs.append(sig)
 
                     source_info = f"Signals filtered from <{origin}>"
-
                     if sigs:
-                        mdf.append(sigs, source_info, common_timebase=True)
-                        try:
-                            mdf.groups[
-                                -1
-                            ].channel_group.flags = group.channel_group.flags
-                            mdf.groups[
-                                -1
-                            ].channel_group.acq_name = group.channel_group.acq_name
-                            mdf.groups[
-                                -1
-                            ].channel_group.acq_source = group.channel_group.acq_source
-                            mdf.groups[
-                                -1
-                            ].channel_group.comment = group.channel_group.comment
-                        except AttributeError:
-                            pass
+                        cg_nr = mdf.append(sigs, source_info, common_timebase=True)
+                        for dg_nr in range(cg_nr, len(mdf.groups)):
+                            group = mdf.groups[dg_nr]
+                            try:
+                                if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
+                                    mdf.groups[
+                                        -1
+                                    ].channel_group.flags = group.channel_group.flags
+                                    mdf.groups[
+                                        -1
+                                    ].channel_group.acq_name = group.channel_group.acq_name
+                                    mdf.groups[
+                                        -1
+                                    ].channel_group.acq_source = (
+                                        group.channel_group.acq_source
+                                    )
+                                    mdf.groups[
+                                        -1
+                                    ].channel_group.comment = group.channel_group.comment
+                            except AttributeError:
+                                pass
                     else:
                         break
 
                 # the other fragments will trigger onl the extension of
                 # samples records to the data block
                 else:
-                    sigs = [(self.get_master(group_index, data=fragment,), None,)]
-
-                    for k, j in enumerate(indexes):
-                        sig = self.get(
-                            group=group_index,
-                            index=j,
-                            data=fragment,
-                            samples_only=True,
-                            raw=True,
-                            ignore_invalidation_bits=True,
-                        )
-                        if version < "4.00":
-                            encoding = encodings[k]
-                            samples = sig[0]
-                            if encoding:
-                                if encoding != "latin-1":
-
-                                    if encoding == "utf-16-le":
-                                        samples = (
-                                            samples.view(np.uint16)
-                                            .byteswap()
-                                            .view(samples.dtype)
-                                        )
-                                        samples = encode(
-                                            decode(samples, "utf-16-be"), "latin-1"
-                                        )
-                                    else:
-                                        samples = encode(
-                                            decode(samples, encoding), "latin-1"
-                                        )
-                                    sig.samples = samples
-
-                        sigs.append(sig)
-
-                    if sigs:
-                        mdf.extend(new_index, sigs)
-
-                group.record = None
-                self._set_temporary_master(None)
+                    mdf.extend(cg_nr, sigs)
 
             if self._callback:
-                self._callback(new_index + 1, groups_nr)
+                self._callback(i + 1, groups_nr)
 
             if self._terminate:
                 return
@@ -2543,13 +2366,15 @@ class MDF(object):
 
         self._link_attributes()
 
-        for i, group in enumerate(self.groups):
+        for index in self.virtual_groups:
 
-            included_channels = self._included_channels(i, skip_master=skip_master)
+            channels = [
+                (None, gp_index, ch_index)
+                for gp_index, channel_indexes in self.included_channels(index)[index].items()
+                for ch_index in channel_indexes
+            ]
 
-            channels = [(None, i, idx) for idx in included_channels]
-
-            channels = self.select(channels, copy_master=copy_master,)
+            channels = self.select(channels, copy_master=copy_master)
 
             for channel in channels:
                 yield channel
@@ -2564,7 +2389,7 @@ class MDF(object):
 
         self._link_attributes()
 
-        for i, _ in enumerate(self.groups):
+        for i in self.virtual_groups:
             yield self.get_group(i)
 
     def resample(self, raster, version=None, time_from_zero=False):
@@ -2727,7 +2552,7 @@ class MDF(object):
 
         mdf.header.start_time = self.header.start_time
 
-        groups_nr = len(self.groups)
+        groups_nr = len(self.virtual_groups)
 
         if self._callback:
             self._callback(0, groups_nr)
@@ -2753,10 +2578,13 @@ class MDF(object):
             new_raster = None
             mdf.header.start_time = self.header.start_time
 
-        for i, group in enumerate(self.groups):
-            included_channels = self._included_channels(i)
-            channels = [(None, i, idx) for idx in included_channels]
-            sigs = self.select(channels, raw=True,)
+        for i, (group_index, virtual_group) in enumerate(self.virtual_groups.items()):
+            channels = [
+                (None, gp_index, ch_index)
+                for gp_index, channel_indexes in self.included_channels(group_index)[group_index].items()
+                for ch_index in channel_indexes
+            ]
+            sigs = self.select(channels, raw=True)
             sigs = [
                 sig.interp(raster, interpolation_mode=interpolation_mode)
                 for sig in sigs
@@ -2766,17 +2594,19 @@ class MDF(object):
                 for sig in sigs:
                     sig.timestamps = new_raster
 
-            mdf.append(sigs, common_timebase=True)
-            try:
-                if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
-                    mdf.groups[-1].channel_group.flags = group.channel_group.flags
-                    mdf.groups[-1].channel_group.acq_name = group.channel_group.acq_name
-                    mdf.groups[
-                        -1
-                    ].channel_group.acq_source = group.channel_group.acq_source
-                    mdf.groups[-1].channel_group.comment = group.channel_group.comment
-            except AttributeError:
-                pass
+            start_dg = mdf.append(sigs, common_timebase=True)
+            for dg_index in range(start_dg, len(mdf.groups)):
+                group = mdf.groups[dg_index]
+                try:
+                    if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
+                        mdf.groups[-1].channel_group.flags = group.channel_group.flags
+                        mdf.groups[-1].channel_group.acq_name = group.channel_group.acq_name
+                        mdf.groups[
+                            -1
+                        ].channel_group.acq_source = group.channel_group.acq_source
+                        mdf.groups[-1].channel_group.comment = group.channel_group.comment
+                except AttributeError:
+                    pass
 
             if self._callback:
                 self._callback(i + 1, groups_nr)
@@ -2885,7 +2715,7 @@ class MDF(object):
         output_signals = {}
 
         for virtual_group, groups in virtual_groups.items():
-            cycles_nr = self._mdf._virtual_groups[virtual_group].cycles_nr
+            cycles_nr = self._mdf.virtual_groups[virtual_group].cycles_nr
             pairs = [
                 (gp_index, ch_index)
                 for gp_index, channel_indexes in groups.items()
@@ -3338,9 +3168,11 @@ class MDF(object):
 
         self._link_attributes()
 
-        included_channels = self._included_channels(index)
-
-        channels = [(None, index, ch_index) for ch_index in included_channels]
+        channels = [
+            (None, gp_index, ch_index)
+            for gp_index, channel_indexes in self.included_channels(index)[index].items()
+            for ch_index in channel_indexes
+        ]
 
         return self.to_dataframe(
             channels=channels,
@@ -3480,10 +3312,10 @@ class MDF(object):
                 raster = master_using_raster(self, raster)
             master = raster
         else:
-            masters = [self.get_master(index) for index in enumerate(self._virtual_groups)]
+            masters = {index: self.get_master(index) for index in self.virtual_groups}
 
             if masters:
-                master = reduce(np.union1d, masters)
+                master = reduce(np.union1d, masters.values())
             else:
                 master = np.array([], dtype="<f4")
 
@@ -3513,10 +3345,10 @@ class MDF(object):
             used_names = UniqueDB()
             used_names.get_unique_name("timestamps")
 
-            groups_nr = len(self.groups)
+            groups_nr = len(self.virtual_groups)
 
-            for group_index, grp in enumerate(self.groups):
-                group_cycles = grp.channel_group.cycles_nr
+            for group_index, virtual_group in self.virtual_groups.items():
+                group_cycles = virtual_group.cycles_nr
                 if group_cycles == 0 and empty_channels == "skip":
                     continue
 
@@ -3526,15 +3358,15 @@ class MDF(object):
                 stop = np.searchsorted(masters[group_index], end).flatten()[0]
                 record_count = min(stop - record_offset + 1, group_cycles)
 
-                included_channels = [
-                    (None, group_index, channel_index)
-                    for channel_index in self._included_channels(group_index)
+                channels = [
+                    (None, gp_index, ch_index)
+                    for gp_index, channel_indexes in self.included_channels(group_index)[group_index].items()
+                    for ch_index in channel_indexes
                 ]
-
                 signals = [
                     signal.validate(copy=False)
                     for signal in self.select(
-                        included_channels,
+                        channels,
                         raw=True,
                         copy_master=False,
                         record_offset=record_offset,
@@ -3792,12 +3624,14 @@ class MDF(object):
                 raster = master_using_raster(self, raster)
             master = raster
         else:
-            masters = [self.get_master(i) for i, _ in enumerate(self.groups)]
+            masters = {index: self.get_master(index) for index in self.virtual_groups}
 
             if masters:
-                master = reduce(np.union1d, masters)
+                master = reduce(np.union1d, masters.values())
             else:
                 master = np.array([], dtype="<f4")
+
+            del masters
 
         df["timestamps"] = pd.Series(master, index=np.arange(len(master)))
         df.set_index("timestamps", inplace=True)
@@ -3805,21 +3639,22 @@ class MDF(object):
         used_names = UniqueDB()
         used_names.get_unique_name("timestamps")
 
-        groups_nr = len(self.groups)
+        groups_nr = len(self.virtual_groups)
 
-        for group_index, grp in enumerate(self.groups):
-            if grp.channel_group.cycles_nr == 0 and empty_channels == "skip":
+        for group_index, virtual_group in self.virtual_groups.items():
+            if virtual_group.cycles_nr == 0 and empty_channels == "skip":
                 continue
 
-            included_channels = [
-                (None, group_index, channel_index)
-                for channel_index in self._included_channels(group_index)
+            channels = [
+                (None, gp_index, ch_index)
+                for gp_index, channel_indexes in self.included_channels(group_index)[group_index].items()
+                for ch_index in channel_indexes
             ]
 
             signals = [
                 signal.validate(copy=False)
                 for signal in self.select(
-                    included_channels, raw=True, copy_master=False,
+                    channels, raw=True, copy_master=False,
                 )
             ]
 

@@ -306,8 +306,8 @@ class MDF4(object):
         self.copy_on_get = kwargs.get("copy_on_get", True)
         self._single_bit_uint_as_bool = False
         self._integer_interpolation = 0
-        self._virtual_groups = {} # master group 2 referencing groups
-        self._virtual_groups_map = {} # group index 2 master group
+        self.virtual_groups = {} # master group 2 referencing groups
+        self.virtual_groups_map = {} # group index 2 master group
 
         self._master = None
 
@@ -623,11 +623,11 @@ class MDF4(object):
             else:
                 index = gp_index
 
-            self._virtual_groups_map[gp_index] = index
-            if index not in self._virtual_groups:
-                self._virtual_groups[index] = VirtualChannelGroup()
+            self.virtual_groups_map[gp_index] = index
+            if index not in self.virtual_groups:
+                self.virtual_groups[index] = VirtualChannelGroup()
 
-            virtual_channel_group = self._virtual_groups[index]
+            virtual_channel_group = self.virtual_groups[index]
             virtual_channel_group.groups.append(gp_index)
             virtual_channel_group.record_size += (
                 grp.channel_group.samples_byte_nr
@@ -970,7 +970,7 @@ class MDF4(object):
             )
 
             if self._remove_source_from_channel_names:
-                channel.name, _ = channel.name.split(path_separator, 1)
+                channel.name = channel.name.split(path_separator, 1)[0]
 
             entry = (dg_cntr, ch_cntr)
             self._ch_map[ch_addr] = entry
@@ -3602,8 +3602,8 @@ class MDF4(object):
         gp.channel_group.samples_byte_nr = offset
 
         virtual_group = VirtualChannelGroup()
-        self._virtual_groups[dg_cntr] = virtual_group
-        self._virtual_groups_map[dg_cntr] = dg_cntr
+        self.virtual_groups[dg_cntr] = virtual_group
+        self.virtual_groups_map[dg_cntr] = dg_cntr
         virtual_group.groups.append(dg_cntr)
         virtual_group.record_size = offset + invalidation_bytes_nr
         virtual_group.cycles_nr = cycles_nr
@@ -3844,8 +3844,8 @@ class MDF4(object):
         cg_master_index = dg_cntr
 
         virtual_group = VirtualChannelGroup()
-        self._virtual_groups[cg_master_index] = virtual_group
-        self._virtual_groups_map[dg_cntr] = dg_cntr
+        self.virtual_groups[cg_master_index] = virtual_group
+        self.virtual_groups_map[dg_cntr] = dg_cntr
         virtual_group.groups.append(dg_cntr)
         virtual_group.record_size = offset
         virtual_group.cycles_nr = cycles_nr
@@ -4133,7 +4133,7 @@ class MDF4(object):
                     struct_self,
                     new_fields,
                     new_types,
-                ) = self._append_structure_composition_column(
+                ) = self._append_structure_composition_column_oriented(
                     gp,
                     signal,
                     field_names,
@@ -4456,7 +4456,7 @@ class MDF4(object):
                 gp.channel_group.invalidation_bytes_nr = 1
 
             virtual_group.groups.append(dg_cntr)
-            self._virtual_groups_map[dg_cntr] = cg_master_index
+            self.virtual_groups_map[dg_cntr] = cg_master_index
 
             virtual_group.record_size += offset
             if signal.invalidation_bits:
@@ -4585,8 +4585,8 @@ class MDF4(object):
 
         if df.shape[0]:
             virtual_group = VirtualChannelGroup()
-            self._virtual_groups[dg_cntr] = virtual_group
-            self._virtual_groups_map[dg_cntr] = dg_cntr
+            self.virtual_groups[dg_cntr] = virtual_group
+            self.virtual_groups_map[dg_cntr] = dg_cntr
             virtual_group.groups.append(dg_cntr)
             virtual_group.cycles_nr = cycles_nr
 
@@ -5228,7 +5228,7 @@ class MDF4(object):
 
         return offset, dg_cntr, ch_cntr, struct_self, fields, types, inval_cntr
 
-    def _append_structure_composition_column(
+    def _append_structure_composition_column_oriented(
         self,
         grp,
         signal,
@@ -5627,7 +5627,7 @@ class MDF4(object):
                     sub_structure,
                     new_fields,
                     new_types,
-                ) = self._append_structure_composition_column(
+                ) = self._append_structure_composition_column_oriented(
                     grp,
                     struct,
                     field_names,
@@ -5845,7 +5845,7 @@ class MDF4(object):
                 record_size += gp.channel_group.invalidation_bytes_nr
                 added_cycles = size // record_size
                 gp.channel_group.cycles_nr += added_cycles
-                self._virtual_groups[index].cycles_nr += added_cycles
+                self.virtual_groups[index].cycles_nr += added_cycles
             else:
                 samples.tofile(stream)
 
@@ -7697,7 +7697,7 @@ class MDF4(object):
     ):
 
         if channels is None:
-            virtual_channel_group = self._virtual_groups[index]
+            virtual_channel_group = self.virtual_groups[index]
             groups = virtual_channel_group.groups
 
             gps = {}
@@ -7827,7 +7827,7 @@ class MDF4(object):
 
             result = {}
             for group, channels in gps.items():
-                master = self._virtual_groups_map[group]
+                master = self.virtual_groups_map[group]
                 if master not in result:
                     result[master] = {}
                 result[master][group] = sorted(channels)
@@ -7843,7 +7843,7 @@ class MDF4(object):
         skip_master=True,
         version="4.20",
     ):
-        virtual_channel_group = self._virtual_groups[index]
+        virtual_channel_group = self.virtual_groups[index]
         record_size = virtual_channel_group.record_size
 
         if groups is None:
