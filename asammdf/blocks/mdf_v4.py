@@ -218,7 +218,7 @@ class MDF4(object):
         * if *minimum* only minimal data is memorized into RAM
 
     version : string
-        mdf file version ('4.00', '4.10', '4.11'); default '4.10'
+        mdf file version ('4.00', '4.10', '4.11', '4.20'); default '4.10'
     callback : function
         keyword only argument: function to call to update the progress; the
         function must accept two arguments (the current progress and maximum

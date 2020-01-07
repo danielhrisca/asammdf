@@ -489,9 +489,7 @@ class MDF(object):
         are skipped from iteration
 
         """
-
-        for signal in self.iter_channels():
-            yield signal
+        yield from self.iter_channels()
 
     def convert(self, version):
         """convert *MDF* to other version
@@ -2222,8 +2220,7 @@ class MDF(object):
 
             channels = self.select(channels, copy_master=copy_master)
 
-            for channel in channels:
-                yield channel
+            yield from channels
 
     def iter_groups(self):
         """ generator that yields channel groups as pandas DataFrames. If there

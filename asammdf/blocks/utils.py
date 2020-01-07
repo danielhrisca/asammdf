@@ -1294,14 +1294,17 @@ def master_using_raster(mdf, raster, endpoint=False):
 
         t_min = []
         t_max = []
-        for i, group in enumerate(mdf.groups):
+        for group_index in mdf.virtual_groups:
+            group = mdf.groups[group_index]
             cycles_nr = group.channel_group.cycles_nr
             if cycles_nr:
-                master_min = mdf.get_master(i, record_offset=0, record_count=1,)
+                master_min = mdf.get_master(
+                    group_index, record_offset=0, record_count=1,
+                )
                 if len(master_min):
                     t_min.append(master_min[0])
                 master_max = mdf.get_master(
-                    i, record_offset=cycles_nr - 1, record_count=1,
+                    group_index, record_offset=cycles_nr - 1, record_count=1,
                 )
                 if len(master_max):
                     t_max.append(master_max[0])
