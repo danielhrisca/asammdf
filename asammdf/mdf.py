@@ -541,26 +541,6 @@ class MDF(object):
                     source_info = f"Converted from {self.version} to {version}"
                     if sigs:
                         cg_nr = out.append(sigs, source_info, common_timebase=True)
-                        for dg_nr in range(cg_nr, len(out.groups)):
-                            group = out.groups[dg_nr]
-                            try:
-                                if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
-                                    out.groups[
-                                        -1
-                                    ].channel_group.flags = group.channel_group.flags
-                                    out.groups[
-                                        -1
-                                    ].channel_group.acq_name = group.channel_group.acq_name
-                                    out.groups[
-                                        -1
-                                    ].channel_group.acq_source = (
-                                        group.channel_group.acq_source
-                                    )
-                                    out.groups[
-                                        -1
-                                    ].channel_group.comment = group.channel_group.comment
-                            except AttributeError:
-                                pass
                     else:
                         break
 
@@ -1605,8 +1585,6 @@ class MDF(object):
                     else:
                         break
 
-                # the other fragments will trigger onl the extension of
-                # samples records to the data block
                 else:
                     mdf.extend(cg_nr, sigs)
 
@@ -2437,19 +2415,7 @@ class MDF(object):
                 for sig in sigs:
                     sig.timestamps = new_raster
 
-            start_dg = mdf.append(sigs, common_timebase=True)
-            for dg_index in range(start_dg, len(mdf.groups)):
-                group = mdf.groups[dg_index]
-                try:
-                    if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
-                        mdf.groups[-1].channel_group.flags = group.channel_group.flags
-                        mdf.groups[-1].channel_group.acq_name = group.channel_group.acq_name
-                        mdf.groups[
-                            -1
-                        ].channel_group.acq_source = group.channel_group.acq_source
-                        mdf.groups[-1].channel_group.comment = group.channel_group.comment
-                except AttributeError:
-                    pass
+            mdf.append(sigs, common_timebase=True)
 
             if self._callback:
                 self._callback(i + 1, groups_nr)
