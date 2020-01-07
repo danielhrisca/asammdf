@@ -77,6 +77,7 @@ The main goals for this library are:
 
 * for version 4
 
+    * experiemental support for MDF v4.20 column oriented storage
     * functionality related to sample reduction block: the samples reduction blocks are simply ignored
     * handling of channel hierarchy: channel hierarchy is ignored
     * full handling of bus logging measurements: currently only CAN bus logging is implemented with the

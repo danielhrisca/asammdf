@@ -1596,31 +1596,14 @@ class MDF(object):
             for idx, sigs in enumerate(self.get_(group_index, groups=groups, version=version)):
                 # the first fragment triggers and append that will add the
                 # metadata for all channels
+                if not sigs:
+                    break
+
                 if idx == 0:
 
                     source_info = f"Signals filtered from <{origin}>"
                     if sigs:
                         cg_nr = mdf.append(sigs, source_info, common_timebase=True)
-                        for dg_nr in range(cg_nr, len(mdf.groups)):
-                            group = mdf.groups[dg_nr]
-                            try:
-                                if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
-                                    mdf.groups[
-                                        -1
-                                    ].channel_group.flags = group.channel_group.flags
-                                    mdf.groups[
-                                        -1
-                                    ].channel_group.acq_name = group.channel_group.acq_name
-                                    mdf.groups[
-                                        -1
-                                    ].channel_group.acq_source = (
-                                        group.channel_group.acq_source
-                                    )
-                                    mdf.groups[
-                                        -1
-                                    ].channel_group.comment = group.channel_group.comment
-                            except AttributeError:
-                                pass
                     else:
                         break
 
@@ -2165,179 +2148,42 @@ class MDF(object):
         else:
             offsets = [0 for file in files]
 
-        cg_nr = -1
         for mdf_index, (offset, mdf) in enumerate(zip(offsets, files)):
             if not isinstance(mdf, MDF):
                 mdf = MDF(mdf)
 
             mdf.configure(copy_on_get=False)
 
-            cg_offset = cg_nr + 1
-
-            for i, group in enumerate(mdf.groups):
-                idx = 0
-                if version < "4.00":
-                    encodings = []
-                included_channels = mdf._included_channels(i)
-                if included_channels:
-                    cg_nr += 1
-                else:
+            for i, group in enumerate(mdf.virtual_groups):
+                dg_cntr = None
+                included_channels = mdf.included_channels(group)[group]
+                if not included_channels:
                     continue
 
-                try:
-                    for can_id, info in mdf.can_logging_db.items():
-                        if can_id not in mdf.can_logging_db:
-                            mdf.can_logging_db[can_id] = {}
-                        mdf.can_logging_db[can_id].update(
-                            {
-                                message_id: cg_index + cg_offset
-                                for message_id, cg_index in info.items()
-                            }
-                        )
-                except AttributeError:
-                    pass
+                for idx, signals in enumerate(mdf.get_(group, groups=included_channels, version=version)):
 
-                _, dtypes = mdf._prepare_record(group)
-
-                data = mdf._load_data(group, optimize_read=False)
-
-                for fragment in data:
-
-                    if dtypes.itemsize:
-                        group.record = np.core.records.fromstring(
-                            fragment[0], dtype=dtypes
-                        )
-                    else:
-                        group.record = None
-                    mdf._set_temporary_master(mdf.get_master(i, data=fragment))
                     if idx == 0:
-                        signals = []
-                        for j in included_channels:
-                            sig = mdf.get(
-                                group=i,
-                                index=j,
-                                data=fragment,
-                                raw=True,
-                                ignore_invalidation_bits=True,
-                            )
-
-                            if version < "4.00":
-                                if sig.samples.dtype.kind == "S":
-                                    encodings.append(sig.encoding)
-                                    strsig = mdf.get(
-                                        group=i,
-                                        index=j,
-                                        samples_only=True,
-                                        ignore_invalidation_bits=True,
-                                    )[0]
-                                    sig.samples = sig.samples.astype(strsig.dtype)
-                                    del strsig
-                                    if sig.encoding != "latin-1":
-
-                                        if sig.encoding == "utf-16-le":
-                                            sig.samples = (
-                                                sig.samples.view(np.uint16)
-                                                .byteswap()
-                                                .view(sig.samples.dtype)
-                                            )
-                                            sig.samples = encode(
-                                                decode(sig.samples, "utf-16-be"),
-                                                "latin-1",
-                                            )
-                                        else:
-                                            sig.samples = encode(
-                                                decode(sig.samples, sig.encoding),
-                                                "latin-1",
-                                            )
-                                else:
-                                    encodings.append(None)
-
-                            if not sig.samples.flags.owndata:
-                                sig.samples = sig.samples.copy()
-                            signals.append(sig)
-
-                        if signals:
-                            if sync:
-                                timestamps = signals[0].timestamps + offset
-                                for sig in signals:
-                                    sig.timestamps = timestamps
-                            stacked.append(signals, common_timebase=True)
-                            try:
-                                if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
-                                    stacked.groups[
-                                        -1
-                                    ].channel_group.flags = group.channel_group.flags
-                                    stacked.groups[
-                                        -1
-                                    ].channel_group.acq_name = (
-                                        group.channel_group.acq_name
-                                    )
-                                    stacked.groups[
-                                        -1
-                                    ].channel_group.acq_source = (
-                                        group.channel_group.acq_source
-                                    )
-                                    stacked.groups[
-                                        -1
-                                    ].channel_group.comment = (
-                                        group.channel_group.comment
-                                    )
-                            except AttributeError:
-                                pass
-                        idx += 1
+                        if sync:
+                            timestamps = signals[0].timestamps + offset
+                            for sig in signals:
+                                sig.timestamps = timestamps
+                        dg_cntr = stacked.append(signals, common_timebase=True)
                     else:
-                        master = mdf.get_master(i, fragment)
+                        master = signals[0][0]
                         if sync:
                             master = master + offset
-                        if len(master):
+                            signals[0] = master, None
 
-                            signals = [(master, None)]
+                        stacked.extend(dg_cntr, signals)
 
-                            for k, j in enumerate(included_channels):
-                                sig = mdf.get(
-                                    group=i,
-                                    index=j,
-                                    data=fragment,
-                                    raw=True,
-                                    samples_only=True,
-                                    ignore_invalidation_bits=True,
-                                )
-                                signals.append(sig)
+                if dg_cntr is not None:
+                    for index in range(dg_cntr, len(stacked.groups)):
 
-                                if version < "4.00":
-                                    encoding = encodings[k]
-                                    samples = sig[0]
-                                    if encoding:
-                                        if encoding != "latin-1":
-
-                                            if encoding == "utf-16-le":
-                                                samples = (
-                                                    samples.view(np.uint16)
-                                                    .byteswap()
-                                                    .view(samples.dtype)
-                                                )
-                                                samples = encode(
-                                                    decode(samples, "utf-16-be"),
-                                                    "latin-1",
-                                                )
-                                            else:
-                                                samples = encode(
-                                                    decode(samples, encoding), "latin-1"
-                                                )
-                                            sig.samples = samples
-
-                            if signals:
-                                stacked.extend(cg_nr, signals)
-                        idx += 1
-
-                    group.record = None
-                    mdf._set_temporary_master(None)
-
-                stacked.groups[
-                    -1
-                ].channel_group.comment = (
-                    f'stacked from channel group {i} of "{mdf.name.parent}"'
-                )
+                        stacked.groups[
+                            index
+                        ].channel_group.comment = (
+                            f'stacked from channel group {i} of "{mdf.name.parent}"'
+                        )
 
             if callback:
                 callback(mdf_index, files_nr)
