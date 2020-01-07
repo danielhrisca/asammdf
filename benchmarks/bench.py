@@ -751,7 +751,7 @@ def merge_reader_v4_nodata(output, fmt):
 def filter_asam(output, fmt):
     with Timer("Filter file", f"asammdf {asammdf_version} mdfv4", fmt) as timer:
         x = MDF(r"test.mf4").filter(
-            [f"Channel_{i}_{j}5" for i in range(10) for j in range(1, 20)]
+            [(None, i, int(f'{j}5')) for i in range(10, 20) for j in range(1, 20)]
         )
         t = perf_counter()
         counter = 0
@@ -955,7 +955,7 @@ def main(text_output, fmt):
     output.append("    * {} groups".format(v4_groups))
     output.append("    * {} channels\n\n".format(v4_channels))
 
-    OPEN, SAVE, GET, CONVERT, MERGE, FILTER, CUT = 1, 1, 1, 1, 0, 0, 0
+    OPEN, SAVE, GET, CONVERT, MERGE, FILTER, CUT = 0, 0, 0, 0, 1, 1, 0
 
     tests = (
 #        open_mdf3,
@@ -1046,13 +1046,13 @@ def main(text_output, fmt):
 
     tests = (
         merge_v3,
-        merge_reader_v3,
-        merge_reader_v3_nodata,
-        merge_reader_v3_compress,
+#        merge_reader_v3,
+#        merge_reader_v3_nodata,
+#        merge_reader_v3_compress,
         merge_v4,
-        merge_reader_v4,
-        merge_reader_v4_nodata,
-        merge_reader_v4_compress,
+#        merge_reader_v4,
+#        merge_reader_v4_nodata,
+#        merge_reader_v4_compress,
     )
 
     if tests and MERGE:
@@ -1068,9 +1068,9 @@ def main(text_output, fmt):
 
     tests = (
         filter_asam,
-        filter_reader4,
-        filter_reader4_compression,
-        filter_reader4_nodata,
+#        filter_reader4,
+#        filter_reader4_compression,
+#        filter_reader4_nodata,
     )
 
     if tests and FILTER:
