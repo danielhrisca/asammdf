@@ -1068,12 +1068,11 @@ class MDF(object):
                 filename = filename.with_suffix(".csv")
 
                 gp_count = len(self.virtual_groups)
-                for i, (group_index, virtual_group) in enumerate(self.groups.items()):
+                for i, (group_index, virtual_group) in enumerate(self.virtual_groups.items()):
 
                     if self._terminate:
                         return
-                    if not len(grp.channels):
-                        continue
+
                     message = f"Exporting group {i+1} of {gp_count}"
                     logger.info(message)
 

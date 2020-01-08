@@ -7716,7 +7716,7 @@ class MDF4(object):
 
                 group = self.groups[gp_index]
 
-                skip_master_ = len(group.channels) > 1 and skip_master
+                skip_master_ = True
 
                 included_channels = set(range(len(group.channels)))
                 master_index = self.masters_db.get(gp_index, None)
@@ -7809,8 +7809,7 @@ class MDF4(object):
                                     except KeyError:
                                         pass
 
-                if included_channels:
-                    gps[gp_index] = sorted(included_channels)
+                gps[gp_index] = sorted(included_channels)
 
             result = {index: gps}
         else:
