@@ -12,7 +12,7 @@ from hashlib import md5
 from itertools import chain
 from math import ceil
 from tempfile import TemporaryFile
-from zlib import decompress
+from zlib import decompress, compress
 from pathlib import Path
 import mmap
 from functools import lru_cache
@@ -614,7 +614,7 @@ class MDF4(object):
         # channel dependencies and load the signal data for VLSD channels
         for gp_index, grp in enumerate(self.groups):
 
-            if self.version >= "4.20" and grp.channel_group.cg_master_addr:
+            if self.version >= "4.20" and grp.channel_group.flags & v4c.FLAG_CG_REMOTE_MASTER:
                 grp.channel_group.cg_master_index = self._cg_map[
                     grp.channel_group.cg_master_addr
                 ]
@@ -3619,6 +3619,11 @@ class MDF4(object):
             gp.types = types
             gp.parents = parents
 
+#        print(signals)
+#
+#        print(*[(f.dtype, f.shape) for f in fields], sep='\n')
+#        print(types)
+
         if signals and cycles_nr:
             samples = fromarrays(fields, dtype=types)
         else:
@@ -4859,7 +4864,7 @@ class MDF4(object):
         if source_bus:
             kwargs["flags"] = v4c.FLAG_CN_BUS_EVENT
             flags_ = v4c.FLAG_CN_BUS_EVENT
-            grp.channel_group.flags = v4c.FLAG_CG_BUS_EVENT
+            grp.channel_group.flags |= v4c.FLAG_CG_BUS_EVENT
         else:
             kwargs["flags"] = 0
             flags_ = 0
@@ -5289,7 +5294,7 @@ class MDF4(object):
         if source_bus:
             kwargs["flags"] = v4c.FLAG_CN_BUS_EVENT
             flags_ = v4c.FLAG_CN_BUS_EVENT
-            grp.channel_group.flags = v4c.FLAG_CG_BUS_EVENT
+            grp.channel_group.flags |= v4c.FLAG_CG_BUS_EVENT
         else:
             kwargs["flags"] = 0
             flags_ = 0
@@ -5830,14 +5835,27 @@ class MDF4(object):
 
             if self.version < "4.20":
 
-#                samples.tofile(stream)
-                stream.write(samples.tobytes())
-
+#                stream.write(samples.tobytes())
+#                gp.data_blocks.append(
+#                    DataBlockInfo(
+#                        address=addr,
+#                        block_type=v4c.DT_BLOCK,
+#                        raw_size=size,
+#                        size=size,
+#                        param=0,
+#                    )
+#                )
+#
+                data = samples.tobytes()
+                raw_size = len(data)
+                data = compress(samples.tobytes(), 1)
+                size = len(data)
+                stream.write(data)
                 gp.data_blocks.append(
                     DataBlockInfo(
                         address=addr,
-                        block_type=v4c.DT_BLOCK,
-                        raw_size=size,
+                        block_type=v4c.DZ_BLOCK_DEFLATE,
+                        raw_size=raw_size,
                         size=size,
                         param=0,
                     )
@@ -5927,6 +5945,10 @@ class MDF4(object):
         write = stream.write
         tell = stream.tell
 
+        added_cycles = len(signals[0][0])
+
+        self.virtual_groups[index].cycles_nr += added_cycles
+
         for i, (signal, invalidation_bits) in enumerate(signals):
             gp = self.groups[index + i]
             invalidation_bytes_nr = gp.channel_group.invalidation_bytes_nr
@@ -5986,19 +6008,33 @@ class MDF4(object):
             size = len(samples) * samples.itemsize
 
             if size:
-                write(samples.tobytes())
+#                write(samples.tobytes())
+#
+#                gp.data_blocks.append(
+#                    DataBlockInfo(
+#                        address=addr,
+#                        block_type=v4c.DT_BLOCK,
+#                        raw_size=size,
+#                        size=size,
+#                        param=0,
+#                    )
+#                )
+                data = samples.tobytes()
+                raw_size = len(data)
+                data = compress(data, 1)
+                size = len(data)
+                write(data)
 
                 gp.data_blocks.append(
                     DataBlockInfo(
                         address=addr,
-                        block_type=v4c.DT_BLOCK,
-                        raw_size=size,
+                        block_type=v4c.DZ_BLOCK_DEFLATE,
+                        raw_size=raw_size,
                         size=size,
                         param=0,
                     )
                 )
 
-                added_cycles = len(samples)
                 gp.channel_group.cycles_nr += added_cycles
 
                 if invalidation_bits is not None:
@@ -7897,6 +7933,11 @@ class MDF4(object):
             _master = self.get_master(index, data=fragments[master_index])
             self._set_temporary_master(_master)
 
+            if idx == 0:
+                signals = []
+            else:
+                signals = [(_master, None)]
+
             for fragment, (group_index, channels) in zip(fragments, groups.items()):
                 grp = self.groups[group_index]
                 if not grp.single_channel_dtype:
@@ -7908,20 +7949,19 @@ class MDF4(object):
                         continue
 
                 if idx == 0:
-                    signals = [
-                        self.get(
-                            group=group_index,
-                            index=channel_index,
-                            data=fragment,
-                            raw=True,
-                            ignore_invalidation_bits=True,
-                            samples_only=False,
-                        )
-                        for channel_index in channels
-                    ]
-                else:
-                    signals = [(self._master, None)]
+                    for channel_index in channels:
+                        signals.append(
+                            self.get(
+                                group=group_index,
+                                index=channel_index,
+                                data=fragment,
+                                raw=True,
+                                ignore_invalidation_bits=True,
+                                samples_only=False,
+                            )
+                         )
 
+                else:
                     for channel_index in channels:
                         signals.append(
                             self.get(

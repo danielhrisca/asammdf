@@ -2058,14 +2058,16 @@ class MDF(object):
                 for ch_index in channel_indexes
             ]
             sigs = self.select(channels, raw=True)
+
             sigs = [
                 sig.interp(raster, interpolation_mode=interpolation_mode)
                 for sig in sigs
             ]
 
-            if new_raster is not None:
+            if new_raster is not None :
                 for sig in sigs:
-                    sig.timestamps = new_raster
+                    if len(sig):
+                        sig.timestamps = new_raster
 
             mdf.append(sigs, common_timebase=True)
 
@@ -2223,8 +2225,8 @@ class MDF(object):
                         else:
 
                             signal.samples[current_pos:next_pos] = sig
-                            if signal.invalidation is not None:
-                                signal.invalidation[current_pos:next_pos] = inval
+                            if signal.invalidation_bits is not None:
+                                signal.invalidation_bits[current_pos:next_pos] = inval
 
                 current_pos = next_pos
 

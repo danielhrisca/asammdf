@@ -1200,8 +1200,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 progress=progress,
             )
 
-        self.progress = None
-        progress.cancel()
+            self.progress = None
+            progress.cancel()
 
     def resample(self, event):
         version = self.resample_format.currentText()
@@ -1285,8 +1285,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 progress=progress,
             )
 
-        self.progress = None
-        progress.cancel()
+            self.progress = None
+            progress.cancel()
 
     def cut(self, event):
         version = self.cut_format.currentText()
@@ -1373,8 +1373,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 progress=progress,
             )
 
-        self.progress = None
-        progress.cancel()
+            self.progress = None
+            progress.cancel()
 
     def export(self, event):
         export_type = self.export_type.currentText()
@@ -2244,8 +2244,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 progress=progress,
             )
 
-        self.progress = None
-        progress.cancel()
+            self.progress = None
+            progress.cancel()
 
     def scramble(self, event):
 
