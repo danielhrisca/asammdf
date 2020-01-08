@@ -11,11 +11,8 @@ from copy import deepcopy
 from struct import unpack
 from shutil import copy
 from pathlib import Path
-from time import perf_counter
 
-import canmatrix
 import numpy as np
-from numpy.core.defchararray import encode, decode
 import pandas as pd
 
 from .blocks.conversion_utils import from_dict
@@ -24,8 +21,6 @@ from .blocks.mdf_v3 import MDF3
 from .blocks.mdf_v4 import MDF4
 from .signal import Signal
 from .blocks.utils import (
-    CHANNEL_COUNT,
-    MERGE,
     MdfException,
     matlab_compatible,
     validate_version_argument,
@@ -55,7 +50,7 @@ from .blocks.v2_v3_blocks import ChannelExtension
 from .blocks.v4_blocks import SourceInformation
 from .blocks.v4_blocks import ChannelConversion as ChannelConversionV4
 from .blocks.v4_blocks import HeaderBlock as HeaderV4
-from .blocks.v4_blocks import ChannelArrayBlock, EventBlock
+from .blocks.v4_blocks import EventBlock
 from .blocks import v4_constants as v4c
 from .blocks import v2_v3_constants as v23c
 
@@ -376,7 +371,7 @@ class MDF(object):
         ----------
         version : str
             new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
-            '3.20', '3.30', '4.00', '4.10', '4.11'); default '4.10'
+            '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default '4.10'
 
         Returns
         -------
@@ -467,7 +462,7 @@ class MDF(object):
             * 1 : relative to first timestamp
         version : str
             new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
-            '3.20', '3.30', '4.00', '4.10', '4.11'); default *None* and in this
+            '3.20', '3.30', '4.00', '4.10', '4.11', 4.20'); default *None* and in this
             case the original file version is used
         include_ends : bool
             include the *start* and *stop* timestamps after cutting the signal.
@@ -1295,7 +1290,7 @@ class MDF(object):
 
         version : str
             new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
-            '3.20', '3.30', '4.00', '4.10', '4.11'); default *None* and in this
+            '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default *None* and in this
             case the original file version is used
 
         Returns
@@ -1885,8 +1880,8 @@ class MDF(object):
 
         version : str
             new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
-            '3.20', '3.30', '4.00', '4.10', '4.11'); default *None* and in this
-            case the original file version is used
+            '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default *None* and
+            in this case the original file version is used
 
         time_from_zero : bool
             start time stamps from 0s in the cut measurement
@@ -2621,7 +2616,7 @@ class MDF(object):
             .. versionadded:: 5.8.0
 
         only_basenames (False) : bool
-            use jsut the field names, without prefix, for structures and channel
+            use just the field names, without prefix, for structures and channel
             arrays
 
             .. versionadded:: 5.13.0

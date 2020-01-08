@@ -3667,7 +3667,8 @@ class MDF4(object):
                 data_address = self._tempfile.tell()
                 gp.data_location = v4c.LOCATION_TEMPORARY_FILE
                 gp.uses_ld = True
-                samples.tofile(self._tempfile)
+#                samples.tofile(self._tempfile)
+                self._tempfile.write(samples.tobytes())
 
                 chunk = self._write_fragment_size // samples.itemsize
                 chunk *= samples.itemsize
@@ -3738,6 +3739,7 @@ class MDF4(object):
         file = self._tempfile
         tell = file.tell
         seek = file.seek
+        write = file.write
 
         seek(0, 2)
 
@@ -3853,9 +3855,9 @@ class MDF4(object):
         dg_cntr += 1
 
         if size:
-            data_address = self._tempfile.tell()
+            data_address = tell()
             gp.data_location = v4c.LOCATION_TEMPORARY_FILE
-            samples.tofile(self._tempfile)
+            write(samples.tobytes())
 
             chunk = self._write_fragment_size // samples.itemsize
             chunk *= samples.itemsize
@@ -4465,16 +4467,16 @@ class MDF4(object):
             dg_cntr += 1
             size = cycles_nr * samples.itemsize
             if size:
-                data_address = self._tempfile.tell()
+                data_address = tell()
                 gp.data_location = v4c.LOCATION_TEMPORARY_FILE
-                samples.tofile(self._tempfile)
+                write(samples.tobytes())
 
                 chunk = self._write_fragment_size // samples.itemsize
                 chunk *= samples.itemsize
 
                 if invalidation_bits is not None:
-                    invalidation_address = self._tempfile.tell()
-                    invalidation_bits.tofile(self._tempfile)
+                    invalidation_address = tell()
+                    write(invalidation_bits.tobytes())
 
                 while size:
 
@@ -5828,7 +5830,8 @@ class MDF4(object):
 
             if self.version < "4.20":
 
-                samples.tofile(stream)
+#                samples.tofile(stream)
+                stream.write(samples.tobytes())
 
                 gp.data_blocks.append(
                     DataBlockInfo(
@@ -5920,6 +5923,9 @@ class MDF4(object):
             raise MdfException(message)
 
         stream = self._tempfile
+        stream.seek(0, 2)
+        write = stream.write
+        tell = stream.tell
 
         for i, (signal, invalidation_bits) in enumerate(signals):
             gp = self.groups[index + i]
@@ -5960,8 +5966,7 @@ class MDF4(object):
 
                 values = fromarrays(values, dtype=types_)
 
-                stream.seek(0, 2)
-                addr = stream.tell()
+                addr = tell()
                 block_size = len(values) * values.itemsize
                 if block_size:
                     info = SignalDataBlockInfo(
@@ -5971,19 +5976,17 @@ class MDF4(object):
                         offsets=offsets,
                     )
                     gp.signal_data[i].append(info)
-                    values.tofile(stream)
+                    write(values.tobytes())
 
                 offsets += cur_offset
 
                 samples = offsets
 
-            stream.seek(0, 2)
-            addr = stream.tell()
+            addr = tell()
             size = len(samples) * samples.itemsize
 
             if size:
-
-                samples.tofile(stream)
+                write(samples.tobytes())
 
                 gp.data_blocks.append(
                     DataBlockInfo(
@@ -5999,8 +6002,8 @@ class MDF4(object):
                 gp.channel_group.cycles_nr += added_cycles
 
                 if invalidation_bits is not None:
-                    addr = stream.tell()
-                    invalidation_bits.tofile(stream)
+                    addr = tell()
+                    write(invalidation_bits.tobytes())
                     gp.data_blocks[-1].invalidation_block(
                         InvalidationBlockInfo(
                             address=addr,
@@ -7707,9 +7710,11 @@ class MDF4(object):
 
                 group = self.groups[gp_index]
 
+                skip_master_ = len(group.channels) > 1 and skip_master
+
                 included_channels = set(range(len(group.channels)))
-                master_index = self.masters_db.get(index, None)
-                if master_index is not None and skip_master:
+                master_index = self.masters_db.get(gp_index, None)
+                if master_index is not None and skip_master_:
                     included_channels.remove(master_index)
 
                 channels = group.channels
@@ -7848,7 +7853,7 @@ class MDF4(object):
         record_size = virtual_channel_group.record_size
 
         if groups is None:
-            groups = self.included_channels(index)[index]
+            groups = self.included_channels(index, skip_master=skip_master)[index]
 
         record_size = 0
         for group_index in groups:
@@ -7861,7 +7866,10 @@ class MDF4(object):
         if self._read_fragment_size:
             count = self._read_fragment_size // record_size or 1
         else:
-            count = 10 * 1024 * 1024 // record_size or 1
+            if version < "4.20":
+                count = 32 * 1024 * 1024 // record_size or 1
+            else:
+                count = 128 * 1024 * 1024 // record_size or 1
 
         data_streams = []
         for idx, group_index in enumerate(groups):

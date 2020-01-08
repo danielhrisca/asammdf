@@ -1011,6 +1011,10 @@ class Group:
 
 
 class VirtualChannelGroup:
+    """ starting with MDF v4.20 it is possible to use remote masters and column
+    oriented storage. This means we now have virtual channel groups that can
+    span over multiple regular channel groups. This class facilitates the
+    handling of this virtual groups """
 
     __slots__ = (
         "groups",
@@ -1022,6 +1026,9 @@ class VirtualChannelGroup:
         self.groups = []
         self.record_size = 0
         self.cycles_nr = 0
+
+    def __repr__(self):
+        return f'VirtualChannelGroup(groups={self.groups}, records_size={self.record_size}, cycles_nr={self.cycles_nr})'
 
 
 def block_fields(obj):

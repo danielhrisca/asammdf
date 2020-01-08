@@ -1817,7 +1817,7 @@ class ChannelGroup:
             self.samples_byte_nr = kwargs.get("samples_byte_nr", 0)
             self.invalidation_bytes_nr = kwargs.get("invalidation_bytes_nr", 0)
 
-            if self.flags == v4c.FLAG_CG_REMOTE_MASTER:
+            if self.flags & v4c.FLAG_CG_REMOTE_MASTER:
                 self.cg_master_addr = kwargs.get("cg_master_addr", 0)
                 self.block_len = v4c.CG_RM_BLOCK_SIZE
                 self.links_nr = 7
@@ -1875,27 +1875,7 @@ class ChannelGroup:
         return address
 
     def __bytes__(self):
-        if self.block_len == v4c.CG_BLOCK_SIZE:
-            result = v4c.CHANNEL_GROUP_p(
-                self.id,
-                self.reserved0,
-                self.block_len,
-                self.links_nr,
-                self.next_cg_addr,
-                self.first_ch_addr,
-                self.acq_name_addr,
-                self.acq_source_addr,
-                self.first_sample_reduction_addr,
-                self.comment_addr,
-                self.record_id,
-                self.cycles_nr,
-                self.flags,
-                self.path_separator,
-                self.reserved1,
-                self.samples_byte_nr,
-                self.invalidation_bytes_nr,
-            )
-        else:
+        if self.flags & v4c.FLAG_CG_REMOTE_MASTER:
             result = v4c.CHANNEL_GROUP_RM_p(
                 self.id,
                 self.reserved0,
@@ -1908,6 +1888,26 @@ class ChannelGroup:
                 self.first_sample_reduction_addr,
                 self.comment_addr,
                 self.cg_master_addr,
+                self.record_id,
+                self.cycles_nr,
+                self.flags,
+                self.path_separator,
+                self.reserved1,
+                self.samples_byte_nr,
+                self.invalidation_bytes_nr,
+            )
+        else:
+            result = v4c.CHANNEL_GROUP_p(
+                self.id,
+                self.reserved0,
+                self.block_len,
+                self.links_nr,
+                self.next_cg_addr,
+                self.first_ch_addr,
+                self.acq_name_addr,
+                self.acq_source_addr,
+                self.first_sample_reduction_addr,
+                self.comment_addr,
                 self.record_id,
                 self.cycles_nr,
                 self.flags,
