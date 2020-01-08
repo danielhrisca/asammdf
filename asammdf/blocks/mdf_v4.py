@@ -2937,8 +2937,10 @@ class MDF4(object):
         gp.signal_types = gp_sig_types = []
         gp.logging_channels = []
 
+        cycles_nr = len(t)
+
         # channel group
-        kwargs = {"cycles_nr": 0, "samples_byte_nr": 0}
+        kwargs = {"cycles_nr": cycles_nr, "samples_byte_nr": 0}
         gp.channel_group = ChannelGroup(**kwargs)
         gp.channel_group.acq_name = source_info
 
@@ -2955,7 +2957,6 @@ class MDF4(object):
 
         self.groups.append(gp)
 
-        cycles_nr = len(t)
         fields = []
         types = []
         parents = {}
@@ -3633,7 +3634,7 @@ class MDF4(object):
             if self.version < "4.20":
                 data_address = self._tempfile.tell()
                 gp.data_location = v4c.LOCATION_TEMPORARY_FILE
-                samples.tofile(self._tempfile)
+                self._tempfile.write(samples.tobytes())
 
                 chunk = self._write_fragment_size // samples.itemsize
                 chunk *= samples.itemsize
@@ -3667,7 +3668,6 @@ class MDF4(object):
                 data_address = self._tempfile.tell()
                 gp.data_location = v4c.LOCATION_TEMPORARY_FILE
                 gp.uses_ld = True
-#                samples.tofile(self._tempfile)
                 self._tempfile.write(samples.tobytes())
 
                 chunk = self._write_fragment_size // samples.itemsize
@@ -3675,7 +3675,7 @@ class MDF4(object):
 
                 if invalidation_bytes_nr:
                     invalidation_address = self._tempfile.tell()
-                    inval_bits.tofile(self._tempfile)
+                    self._tempfile.write(inval_bits.tobytes())
 
                 while size:
 
@@ -3933,7 +3933,6 @@ class MDF4(object):
                 if sig_dtype.kind in "SV":
                     sig_type = v4c.SIGNAL_TYPE_STRING
             else:
-                prepare_record = False
                 if names in (v4c.CANOPEN_TIME_FIELDS, v4c.CANOPEN_DATE_FIELDS):
                     sig_type = v4c.SIGNAL_TYPE_CANOPEN
                 elif names[0] != sig.name:
@@ -4537,8 +4536,6 @@ class MDF4(object):
 
         """
 
-        prepare_record = True
-
         units = units or {}
 
         t = df.index
@@ -4557,16 +4554,15 @@ class MDF4(object):
         gp.signal_types = gp_sig_types = []
         gp.logging_channels = []
 
+        cycles_nr = len(t)
+
         # channel group
-        kwargs = {"cycles_nr": 0, "samples_byte_nr": 0}
+        kwargs = {"cycles_nr": cycles_nr, "samples_byte_nr": 0}
         gp.channel_group = ChannelGroup(**kwargs)
         gp.channel_group.acq_name = source_info
 
-        invalidation_bytes_nr = 0
-
         self.groups.append(gp)
 
-        cycles_nr = len(t)
         fields = []
         types = []
         parents = {}
@@ -4784,6 +4780,8 @@ class MDF4(object):
             gp.data_location = v4c.LOCATION_TEMPORARY_FILE
 
             samples.tofile(self._tempfile)
+
+            self._tempfile.write(samples.tobytes())
 
             gp.data_blocks.append(
                 DataBlockInfo(
@@ -5694,6 +5692,8 @@ class MDF4(object):
         types = []
         inval_bits = []
 
+        added_cycles = len(signals[0][0])
+
         invalidation_bytes_nr = gp.channel_group.invalidation_bytes_nr
         for i, ((signal, invalidation_bits), sig_type) in enumerate(
             zip(signals, gp.signal_types)
@@ -5829,18 +5829,6 @@ class MDF4(object):
         if size:
 
             if self.version < "4.20":
-
-#                stream.write(samples.tobytes())
-#                gp.data_blocks.append(
-#                    DataBlockInfo(
-#                        address=addr,
-#                        block_type=v4c.DT_BLOCK,
-#                        raw_size=size,
-#                        size=size,
-#                        param=0,
-#                    )
-#                )
-#
                 data = samples.tobytes()
                 raw_size = len(data)
                 data = compress(samples.tobytes(), 1)
@@ -5856,12 +5844,9 @@ class MDF4(object):
                     )
                 )
 
-                record_size = gp.channel_group.samples_byte_nr
-                record_size += gp.data_group.record_id_len
-                record_size += gp.channel_group.invalidation_bytes_nr
-                added_cycles = size // record_size
                 gp.channel_group.cycles_nr += added_cycles
                 self.virtual_groups[index].cycles_nr += added_cycles
+
             else:
                 samples.tofile(stream)
 
@@ -5875,9 +5860,8 @@ class MDF4(object):
                     )
                 )
 
-                record_size = gp.channel_group.samples_byte_nr
-                added_cycles = size // record_size
                 gp.channel_group.cycles_nr += added_cycles
+                self.virtual_groups[index].cycles_nr += added_cycles
 
                 if invalidation_bytes_nr:
                     addr = stream.tell()
@@ -5891,8 +5875,6 @@ class MDF4(object):
                             param=None,
                         )
                     )
-
-        del samples
 
     def _extend_column_oriented(self, index, signals):
         """
@@ -5946,7 +5928,6 @@ class MDF4(object):
 
         for i, (signal, invalidation_bits) in enumerate(signals):
             gp = self.groups[index + i]
-            invalidation_bytes_nr = gp.channel_group.invalidation_bytes_nr
             sig_type = gp.signal_types[0]
 
             # first add the signals in the simple signal list
@@ -6003,17 +5984,6 @@ class MDF4(object):
             size = len(samples) * samples.itemsize
 
             if size:
-#                write(samples.tobytes())
-#
-#                gp.data_blocks.append(
-#                    DataBlockInfo(
-#                        address=addr,
-#                        block_type=v4c.DT_BLOCK,
-#                        raw_size=size,
-#                        size=size,
-#                        param=0,
-#                    )
-#                )
                 data = samples.tobytes()
                 raw_size = len(data)
                 data = compress(data, 1)
@@ -6034,13 +6004,18 @@ class MDF4(object):
 
                 if invalidation_bits is not None:
                     addr = tell()
-                    write(invalidation_bits.tobytes())
+                    data = invalidation_bits.tobytes()
+                    raw_size = len(data)
+                    data = compress(data, 1)
+                    size = len(data)
+                    write(data)
+
                     gp.data_blocks[-1].invalidation_block(
                         InvalidationBlockInfo(
                             address=addr,
-                            block_type=v4c.DT_BLOCK,
-                            raw_size=invalidation_bytes_nr * added_cycles,
-                            size=invalidation_bytes_nr * added_cycles,
+                            block_type=v4c.DZ_BLOCK_DEFLATE,
+                            raw_size=raw_size,
+                            size=size,
                             param=None,
                         )
                     )

@@ -633,6 +633,7 @@ class MDF(object):
                         f"Cut from {start_} to {stop_}",
                         common_timebase=True,
                     )
+
                 else:
                     sigs = [
                         (sig.samples, sig.invalidation_bits)
