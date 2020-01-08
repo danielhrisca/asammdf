@@ -2543,7 +2543,7 @@ class MDF(object):
 
             mdf.close()
 
-            dst = name.with_suffix(".scrambled.mf4")
+            dst = name.with_suffix(".scrambled.mdf")
 
             copy(name, dst)
 

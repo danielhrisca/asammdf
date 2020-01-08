@@ -3619,11 +3619,6 @@ class MDF4(object):
             gp.types = types
             gp.parents = parents
 
-#        print(signals)
-#
-#        print(*[(f.dtype, f.shape) for f in fields], sep='\n')
-#        print(types)
-
         if signals and cycles_nr:
             samples = fromarrays(fields, dtype=types)
         else:
