@@ -7716,11 +7716,9 @@ class MDF4(object):
 
                 group = self.groups[gp_index]
 
-                skip_master_ = True
-
                 included_channels = set(range(len(group.channels)))
                 master_index = self.masters_db.get(gp_index, None)
-                if master_index is not None and skip_master_:
+                if master_index is not None:
                     included_channels.remove(master_index)
 
                 channels = group.channels
@@ -7841,6 +7839,9 @@ class MDF4(object):
                 master = self.virtual_groups_map[group]
                 if master not in result:
                     result[master] = {}
+                master_index = self.masters_db.get(group, None)
+                if master_index is not None and master_index in channels:
+                    channels.remove(master_index)
                 result[master][group] = sorted(channels)
 
         return result
