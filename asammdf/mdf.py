@@ -414,6 +414,7 @@ class MDF(object):
                     source_info = f"Converted from {self.version} to {version}"
                     if sigs:
                         cg_nr = out.append(sigs, source_info, common_timebase=True)
+                        out.groups[cg_nr].channel_group.comment = self.groups[virtual_group].channel_group.comment
                     else:
                         break
 
@@ -633,6 +634,7 @@ class MDF(object):
                         f"Cut from {start_} to {stop_}",
                         common_timebase=True,
                     )
+                    out.groups[cg_nr].channel_group.comment = self.groups[virtual_group].channel_group.comment
 
                 else:
                     sigs = [
@@ -1377,6 +1379,7 @@ class MDF(object):
                     source_info = f"Signals filtered from <{origin}>"
                     if sigs:
                         cg_nr = mdf.append(sigs, source_info, common_timebase=True)
+                        out.groups[cg_nr].channel_group.comment = self.groups[virtual_group].channel_group.comment
                     else:
                         break
 
@@ -1639,6 +1642,7 @@ class MDF(object):
                             )
 
                         cg_nr = merged.append(signals, common_timebase=True)
+                        merged.groups[cg_nr].channel_group.comment = mdf.groups[group_index].channel_group.comment
                         cg_map[group_index] = cg_nr
 
                     else:
@@ -1796,6 +1800,7 @@ class MDF(object):
                             for sig in signals:
                                 sig.timestamps = timestamps
                         dg_cntr = stacked.append(signals, common_timebase=True)
+                        stacked.groups[dg_cntr].channel_group.comment = mdf.groups[group].channel_group.comment
                     else:
                         master = signals[0][0]
                         if sync:
@@ -2069,7 +2074,8 @@ class MDF(object):
                     if len(sig):
                         sig.timestamps = new_raster
 
-            mdf.append(sigs, common_timebase=True)
+            dg_cntr = mdf.append(sigs, common_timebase=True)
+            mdf.groups[dg_cntr].channel_group.comment = self.groups[group_index].channel_group.comment
 
             if self._callback:
                 self._callback(i + 1, groups_nr)
