@@ -21,6 +21,8 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
 
         self.is_bytearray = [item[2] for item in signals]
 
+        self.as_hex = [item[3] for item in signals]
+
         self.relation.addItems(["AND", "OR"])
         self.column.addItems(self.names)
         self.op.addItems([">", ">=", "<", "<=", "==", "!="])
@@ -51,9 +53,7 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
                             f"{column_name} requires an integer target value",
                         )
                 else:
-                    try:
-                        self._target = int(target)
-                    except:
+                    if self.as_hex:
                         try:
                             self._target = int(target, 16)
                             self.target.setText(f"0x{self._target:X}")
@@ -63,6 +63,20 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
                                 "Wrong target value",
                                 f"{column_name} requires an integer target value",
                             )
+                    else:
+
+                        try:
+                            self._target = int(target)
+                        except:
+                            try:
+                                self._target = int(target, 16)
+                                self.target.setText(f"0x{self._target:X}")
+                            except:
+                                QtWidgets.QMessageBox.warning(
+                                    None,
+                                    "Wrong target value",
+                                    f"{column_name} requires an integer target value",
+                                )
             elif kind == "f":
                 try:
                     self._target = float(target)

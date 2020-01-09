@@ -128,10 +128,10 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
     def add_filter(self, event=None):
         filter_widget = TabularFilter(
-            [(self.signals.index.name, self.signals.index.values.dtype.kind, 0)]
+            [(self.signals.index.name, self.signals.index.values.dtype.kind, 0, False)]
             + [
-                (name, self.signals[name].values.dtype.kind, self.signals_descr[name])
-                for name in self.signals.columns
+                (name, self.signals[name].values.dtype.kind, self.signals_descr[name], as_hex)
+                for name, as_hex in zip(self.signals.columns, self.as_hex)
             ]
         )
 
