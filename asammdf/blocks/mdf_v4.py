@@ -7732,7 +7732,7 @@ class MDF4(object):
                     )
 
                     for dg_cntr, ch_cntr in where:
-                        if dg_cntr == index:
+                        if dg_cntr == gp_index:
                             break
                     else:
                         found = False
@@ -7769,9 +7769,11 @@ class MDF4(object):
                 for dependencies in group.channel_dependencies:
                     if dependencies is None:
                         continue
+
                     if all(
                         not isinstance(dep, ChannelArrayBlock) for dep in dependencies
                     ):
+
                         for _, ch_nr in dependencies:
                             try:
                                 included_channels.remove(ch_nr)
@@ -7785,7 +7787,7 @@ class MDF4(object):
                                 dep.input_quantity_channels,
                             ):
                                 for gp_nr, ch_nr in referenced_channels:
-                                    if gp_nr == index:
+                                    if gp_nr == gp_index:
                                         try:
                                             included_channels.remove(ch_nr)
                                         except KeyError:
@@ -7793,7 +7795,7 @@ class MDF4(object):
 
                             if dep.output_quantity_channel:
                                 gp_nr, ch_nr = dep.output_quantity_channel
-                                if gp_nr == index:
+                                if gp_nr == gp_index:
                                     try:
                                         included_channels.remove(ch_nr)
                                     except KeyError:
@@ -7801,7 +7803,7 @@ class MDF4(object):
 
                             if dep.comparison_quantity_channel:
                                 gp_nr, ch_nr = dep.comparison_quantity_channel
-                                if gp_nr == index:
+                                if gp_nr == gp_index:
                                     try:
                                         included_channels.remove(ch_nr)
                                     except KeyError:
@@ -7835,14 +7837,58 @@ class MDF4(object):
                         gps[group].add(idx)
 
             result = {}
-            for group, channels in gps.items():
-                master = self.virtual_groups_map[group]
+            for gp_index, channels in gps.items():
+                master = self.virtual_groups_map[gp_index]
+                group = self.groups[gp_index]
+                for dependencies in group.channel_dependencies:
+                    if dependencies is None:
+                        continue
+
+                    if all(
+                        not isinstance(dep, ChannelArrayBlock) for dep in dependencies
+                    ):
+
+                        for _, ch_nr in dependencies:
+                            try:
+                                channels.remove(ch_nr)
+                            except KeyError:
+                                pass
+                    else:
+                        for dep in dependencies:
+                            for referenced_channels in (
+                                dep.axis_channels,
+                                dep.dynamic_size_channels,
+                                dep.input_quantity_channels,
+                            ):
+                                for gp_nr, ch_nr in referenced_channels:
+                                    if gp_nr == gp_index:
+                                        try:
+                                            channels.remove(ch_nr)
+                                        except KeyError:
+                                            pass
+
+                            if dep.output_quantity_channel:
+                                gp_nr, ch_nr = dep.output_quantity_channel
+                                if gp_nr == gp_index:
+                                    try:
+                                        channels.remove(ch_nr)
+                                    except KeyError:
+                                        pass
+
+                            if dep.comparison_quantity_channel:
+                                gp_nr, ch_nr = dep.comparison_quantity_channel
+                                if gp_nr == gp_index:
+                                    try:
+                                        channels.remove(ch_nr)
+                                    except KeyError:
+                                        pass
+
                 if master not in result:
                     result[master] = {}
-                master_index = self.masters_db.get(group, None)
+                master_index = self.masters_db.get(gp_index, None)
                 if master_index is not None and master_index in channels:
                     channels.remove(master_index)
-                result[master][group] = sorted(channels)
+                result[master][gp_index] = sorted(channels)
 
         return result
 

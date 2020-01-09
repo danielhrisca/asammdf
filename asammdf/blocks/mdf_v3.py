@@ -3565,7 +3565,7 @@ class MDF3(object):
             gps = {}
             included_channels = set(range(len(group.channels)))
             master_index = self.masters_db.get(index, None)
-            if master_index is not None and skip_master:
+            if master_index is not None:
                 included_channels.remove(master_index)
 
             for dep in group.channel_dependencies:
@@ -3603,10 +3603,26 @@ class MDF3(object):
                     else:
                         gps[group].add(idx)
 
-            result = {
-                group: {group: sorted(channels)}
-                for group, channels in gps.items()
-            }
+            result = {}
+
+            for group_index, channels in gps.items():
+                group = self.groups[group_index]
+
+                master_index = self.masters_db.get(group_index, None)
+                if master_index is not None and master_index in channels:
+                    channels.remove(master_index)
+
+                for dep in group.channel_dependencies:
+                    if dep is None:
+                        continue
+                    for gp_nr, ch_nr in dep.referenced_channels:
+                        if gp_nr == group_index:
+                            try:
+                                channels.remove(ch_nr)
+                            except KeyError:
+                                pass
+
+                result[group_index] = {group_index: sorted(channels)}
 
         return result
 
