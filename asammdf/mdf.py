@@ -1379,7 +1379,7 @@ class MDF(object):
                     source_info = f"Signals filtered from <{origin}>"
                     if sigs:
                         cg_nr = mdf.append(sigs, source_info, common_timebase=True)
-                        out.groups[cg_nr].channel_group.comment = self.groups[virtual_group].channel_group.comment
+                        mdf.groups[cg_nr].channel_group.comment = self.groups[group_index].channel_group.comment
                     else:
                         break
 
