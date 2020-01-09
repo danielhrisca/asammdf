@@ -634,7 +634,7 @@ class MDF(object):
                         f"Cut from {start_} to {stop_}",
                         common_timebase=True,
                     )
-                    out.groups[cg_nr].channel_group.comment = self.groups[virtual_group].channel_group.comment
+                    out.groups[cg_nr].channel_group.comment = self.groups[group_index].channel_group.comment
 
                 else:
                     sigs = [
