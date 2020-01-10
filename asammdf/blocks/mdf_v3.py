@@ -3608,11 +3608,16 @@ class MDF3(object):
             for group_index, channels in gps.items():
                 group = self.groups[group_index]
 
+                channel_dependencies = [
+                    group.channel_dependencies[ch_nr]
+                    for ch_nr in channels
+                ]
+
                 master_index = self.masters_db.get(group_index, None)
                 if master_index is not None and master_index in channels:
                     channels.remove(master_index)
 
-                for dep in group.channel_dependencies:
+                for dep in channel_dependencies:
                     if dep is None:
                         continue
                     for gp_nr, ch_nr in dep.referenced_channels:

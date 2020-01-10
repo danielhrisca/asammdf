@@ -386,14 +386,6 @@ class MDF(object):
 
         out.header.start_time = self.header.start_time
 
-        try:
-            for can_id, info in self.can_logging_db.items():
-                if can_id not in out.can_logging_db:
-                    out.can_logging_db[can_id] = {}
-                out.can_logging_db[can_id].update(info)
-        except AttributeError:
-            pass
-
         groups_nr = len(self.virtual_groups)
 
         if self._callback:
@@ -407,19 +399,13 @@ class MDF(object):
         for i, virtual_group in enumerate(self.virtual_groups):
 
             for idx, sigs in enumerate(self.get_(virtual_group, version=version)):
-                # the first fragment triggers and append that will add the
-                # metadata for all channels
                 if idx == 0:
-
                     source_info = f"Converted from {self.version} to {version}"
                     if sigs:
                         cg_nr = out.append(sigs, source_info, common_timebase=True)
                         out.groups[cg_nr].channel_group.comment = self.groups[virtual_group].channel_group.comment
                     else:
                         break
-
-                # the other fragments will trigger onl the extension of
-                # samples records to the data block
                 else:
                     out.extend(cg_nr, sigs)
 
