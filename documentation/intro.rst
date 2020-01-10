@@ -80,6 +80,7 @@ asammdf uses the following libraries
 * natsort
 * cChardet : to detect non-standard unicode encodings
 * lxml : for canmatrix arxml support
+* lz4 : to speed up the disk IO peformance
 
 optional dependencies needed for exports
 
