@@ -10,3 +10,4 @@ numexpr
 wheel
 lxml
 cChardet
+lz4
