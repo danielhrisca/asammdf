@@ -17,6 +17,8 @@ from pathlib import Path
 import mmap
 from functools import lru_cache
 from time import perf_counter
+from lz4.frame import compress as lz_compress
+from lz4.frame import decompress as lz_decompress
 
 from numpy import (
     arange,
@@ -1642,6 +1644,8 @@ class MDF4(object):
                         nd = frombuffer(new_data[: lines * cols], dtype=uint8)
                         nd = nd.reshape((cols, lines))
                         new_data = nd.T.tostring() + new_data[lines * cols :]
+                    elif block_type == v4c.DZ_BLOCK_LZ:
+                        new_data = lz_decompress(new_data)
 
                     if block_limit is not None:
                         new_data = new_data[:block_limit]
@@ -3632,101 +3636,66 @@ class MDF4(object):
 
         if size:
             if self.version < "4.20":
+
                 data_address = self._tempfile.tell()
-                gp.data_location = v4c.LOCATION_TEMPORARY_FILE
-                self._tempfile.write(samples.tobytes())
 
-                chunk = self._write_fragment_size // samples.itemsize
-                chunk *= samples.itemsize
+                data = samples.tobytes()
+                raw_size = len(data)
+                data = lz_compress(data)
 
-                while size:
+                size = len(data)
+                self._tempfile.write(data)
 
-                    if size > chunk:
-                        gp.data_blocks.append(
-                            DataBlockInfo(
-                                address=data_address,
-                                block_type=v4c.DT_BLOCK,
-                                raw_size=chunk,
-                                size=chunk,
-                                param=0,
-                            )
-                        )
-                        data_address += chunk
-                        size -= chunk
-                    else:
-                        gp.data_blocks.append(
-                            DataBlockInfo(
-                                address=data_address,
-                                block_type=v4c.DT_BLOCK,
-                                raw_size=size,
-                                size=size,
-                                param=0,
-                            )
-                        )
-                        size = 0
+                gp.data_blocks.append(
+                    DataBlockInfo(
+                        address=data_address,
+                        block_type=v4c.DZ_BLOCK_LZ,
+                        raw_size=raw_size,
+                        size=size,
+                        param=0,
+                    )
+                )
+
             else:
                 data_address = self._tempfile.tell()
-                gp.data_location = v4c.LOCATION_TEMPORARY_FILE
                 gp.uses_ld = True
-                self._tempfile.write(samples.tobytes())
+                data_address = tell()
 
-                chunk = self._write_fragment_size // samples.itemsize
-                chunk *= samples.itemsize
+                data = samples.tobytes()
+                raw_size = len(data)
+                data = lz_compress(data)
 
-                if invalidation_bytes_nr:
-                    invalidation_address = self._tempfile.tell()
-                    self._tempfile.write(inval_bits.tobytes())
+                size = len(data)
+                self._tempfile.write(data)
 
-                while size:
+                gp.data_blocks.append(
+                    DataBlockInfo(
+                        address=data_address,
+                        block_type=v4c.DZ_BLOCK_LZ,
+                        raw_size=raw_size,
+                        size=size,
+                        param=0,
+                    )
+                )
 
-                    if size > chunk:
-                        gp.data_blocks.append(
-                            DataBlockInfo(
-                                address=data_address,
-                                block_type=v4c.DT_BLOCK,
-                                raw_size=chunk,
-                                size=chunk,
-                                param=0,
-                            )
+                if inval_bits is not None:
+                    addr = tell()
+                    data = inval_bits.tobytes()
+                    raw_size = len(data)
+                    data = lz_compress(data)
+                    size = len(data)
+                    self._tempfile.write(data)
+
+                    gp.data_blocks[-1].invalidation_block(
+                        InvalidationBlockInfo(
+                            address=addr,
+                            block_type=v4c.DZ_BLOCK_LZ,
+                            raw_size=raw_size,
+                            size=size,
+                            param=None,
                         )
-                        data_address += chunk
-                        size -= chunk
-                        if invalidation_bytes_nr:
-                            count = chunk // samples.itemsize
-                            gp.data_blocks[
-                                -1
-                            ].invalidation_block = InvalidationBlockInfo(
-                                address=invalidation_address,
-                                block_type=v4c.DT_BLOCK,
-                                raw_size=count * invalidation_bytes_nr,
-                                size=count * invalidation_bytes_nr,
-                                param=None,
-                            )
-                            invalidation_address += count * invalidation_bytes_nr
-                    else:
-                        gp.data_blocks.append(
-                            DataBlockInfo(
-                                address=data_address,
-                                block_type=v4c.DT_BLOCK,
-                                raw_size=size,
-                                size=size,
-                                param=0,
-                            )
-                        )
-                        if invalidation_bytes_nr:
-                            count = size // samples.itemsize
-                            gp.data_blocks[
-                                -1
-                            ].invalidation_block = InvalidationBlockInfo(
-                                address=invalidation_address,
-                                block_type=v4c.DT_BLOCK,
-                                raw_size=count * invalidation_bytes_nr,
-                                size=count * invalidation_bytes_nr,
-                                param=None,
-                            )
-                        size = 0
-        else:
-            gp.data_location = v4c.LOCATION_TEMPORARY_FILE
+                    )
+        gp.data_location = v4c.LOCATION_TEMPORARY_FILE
 
         return dg_cntr
 
@@ -4466,67 +4435,45 @@ class MDF4(object):
             dg_cntr += 1
             size = cycles_nr * samples.itemsize
             if size:
-                data_address = tell()
-                gp.data_location = v4c.LOCATION_TEMPORARY_FILE
-                write(samples.tobytes())
 
-                chunk = self._write_fragment_size // samples.itemsize
-                chunk *= samples.itemsize
+                data_address = tell()
+
+                data = samples.tobytes()
+                raw_size = len(data)
+                data = lz_compress(data)
+
+                size = len(data)
+                write(data)
+
+                gp.data_blocks.append(
+                    DataBlockInfo(
+                        address=data_address,
+                        block_type=v4c.DZ_BLOCK_LZ,
+                        raw_size=raw_size,
+                        size=size,
+                        param=0,
+                    )
+                )
 
                 if invalidation_bits is not None:
-                    invalidation_address = tell()
-                    write(invalidation_bits.tobytes())
+                    addr = tell()
+                    data = invalidation_bits.tobytes()
+                    raw_size = len(data)
+                    data = lz_compress(data)
+                    size = len(data)
+                    write(data)
 
-                while size:
+                    gp.data_blocks[-1].invalidation_block(
+                        InvalidationBlockInfo(
+                            address=addr,
+                            block_type=v4c.DZ_BLOCK_LZ,
+                            raw_size=raw_size,
+                            size=size,
+                            param=None,
+                        )
+                    )
 
-                    if size > chunk:
-                        gp.data_blocks.append(
-                            DataBlockInfo(
-                                address=data_address,
-                                block_type=v4c.DT_BLOCK,
-                                raw_size=chunk,
-                                size=chunk,
-                                param=0,
-                            )
-                        )
-                        data_address += chunk
-                        size -= chunk
-                        if invalidation_bits is not None:
-                            count = chunk // samples.itemsize
-                            gp.data_blocks[
-                                -1
-                            ].invalidation_block = InvalidationBlockInfo(
-                                address=invalidation_address,
-                                block_type=v4c.DT_BLOCK,
-                                raw_size=count,
-                                size=count,
-                                param=None,
-                            )
-                            invalidation_address += count
-                    else:
-                        gp.data_blocks.append(
-                            DataBlockInfo(
-                                address=data_address,
-                                block_type=v4c.DT_BLOCK,
-                                raw_size=size,
-                                size=size,
-                                param=0,
-                            )
-                        )
-                        if invalidation_bits is not None:
-                            count = size // samples.itemsize
-                            gp.data_blocks[
-                                -1
-                            ].invalidation_block = InvalidationBlockInfo(
-                                address=invalidation_address,
-                                block_type=v4c.DT_BLOCK,
-                                raw_size=count,
-                                size=count,
-                                param=None,
-                            )
-                        size = 0
-            else:
-                gp.data_location = v4c.LOCATION_TEMPORARY_FILE
+            gp.data_location = v4c.LOCATION_TEMPORARY_FILE
 
         return initial_dg_cntr
 
@@ -5831,13 +5778,13 @@ class MDF4(object):
             if self.version < "4.20":
                 data = samples.tobytes()
                 raw_size = len(data)
-                data = compress(samples.tobytes(), 1)
+                data = lz_compress(data)
                 size = len(data)
                 stream.write(data)
                 gp.data_blocks.append(
                     DataBlockInfo(
                         address=addr,
-                        block_type=v4c.DZ_BLOCK_DEFLATE,
+                        block_type=v4c.DZ_BLOCK_LZ,
                         raw_size=raw_size,
                         size=size,
                         param=0,
@@ -5848,13 +5795,17 @@ class MDF4(object):
                 self.virtual_groups[index].cycles_nr += added_cycles
 
             else:
-                samples.tofile(stream)
+                data = samples.tobytes()
+                raw_size = len(data)
+                data = lz_compress(data)
+                size = len(data)
+                stream.write(data)
 
                 gp.data_blocks.append(
                     DataBlockInfo(
                         address=addr,
-                        block_type=v4c.DT_BLOCK,
-                        raw_size=size,
+                        block_type=v4c.DT_BLOCK_LZ,
+                        raw_size=raw_size,
                         size=size,
                         param=0,
                     )
@@ -5865,13 +5816,19 @@ class MDF4(object):
 
                 if invalidation_bytes_nr:
                     addr = stream.tell()
-                    inval_bits.tofile(stream)
+
+                    data = inval_bits.tobytes()
+                    raw_size = len(data)
+                    data = lz_compress(data)
+                    size = len(data)
+                    stream.write(data)
+
                     gp.data_blocks[-1].invalidation_block(
                         InvalidationBlockInfo(
                             address=addr,
-                            block_type=v4c.DT_BLOCK,
-                            raw_size=invalidation_bytes_nr * added_cycles,
-                            size=invalidation_bytes_nr * added_cycles,
+                            block_type=v4c.DT_BLOCK_LZ,
+                            raw_size=raw_size,
+                            size=size,
                             param=None,
                         )
                     )
@@ -5981,19 +5938,19 @@ class MDF4(object):
                 samples = offsets
 
             addr = tell()
-            size = len(samples) * samples.itemsize
 
-            if size:
+            if added_cycles:
                 data = samples.tobytes()
                 raw_size = len(data)
-                data = compress(data, 1)
+                data = lz_compress(data)
+
                 size = len(data)
                 write(data)
 
                 gp.data_blocks.append(
                     DataBlockInfo(
                         address=addr,
-                        block_type=v4c.DZ_BLOCK_DEFLATE,
+                        block_type=v4c.DZ_BLOCK_LZ,
                         raw_size=raw_size,
                         size=size,
                         param=0,
@@ -6006,14 +5963,14 @@ class MDF4(object):
                     addr = tell()
                     data = invalidation_bits.tobytes()
                     raw_size = len(data)
-                    data = compress(data, 1)
+                    data = lz_compress(data)
                     size = len(data)
                     write(data)
 
                     gp.data_blocks[-1].invalidation_block(
                         InvalidationBlockInfo(
                             address=addr,
-                            block_type=v4c.DZ_BLOCK_DEFLATE,
+                            block_type=v4c.DZ_BLOCK_LZ,
                             raw_size=raw_size,
                             size=size,
                             param=None,
