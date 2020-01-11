@@ -3777,6 +3777,7 @@ class MDF4(object):
         ch.unit = time_unit
         ch.name = time_name
         ch.source = source_block
+        ch.dtype_fmt = samples.dtype
         name = time_name
 
         gp_channels.append(ch)
@@ -4000,7 +4001,7 @@ class MDF4(object):
 
                 _shape = sig_shape[1:]
                 types.append((name, sig_dtype, _shape))
-                gp.single_channel_dtype = dtype(f"{_shape}{sig_dtype}")
+                gp.single_channel_dtype = ch.dtype_fmt = dtype(f"{_shape}{sig_dtype}")
 
                 # simple channels don't have channel dependencies
                 gp_dep.append(None)
@@ -4062,6 +4063,7 @@ class MDF4(object):
                 ch.unit = signal.unit
                 ch.comment = signal.comment
                 ch.display_name = signal.display_name
+                ch.dtype_fmt = gp.single_channel_dtype
 
                 # source for channel
                 source = signal.source
@@ -4211,6 +4213,7 @@ class MDF4(object):
                 ch.unit = signal.unit
                 ch.comment = signal.comment
                 ch.display_name = signal.display_name
+                ch.dtype_fmt = samples.dtype
 
                 # source for channel
                 source = signal.source
@@ -4290,6 +4293,7 @@ class MDF4(object):
                     ch.unit = signal.unit
                     ch.comment = signal.comment
                     ch.display_name = signal.display_name
+                    ch.dtype_fmt = samples.dtype
 
                     gp_channels.append(ch)
 
@@ -4414,7 +4418,7 @@ class MDF4(object):
                 parents[ch_cntr] = name, 0
 
                 types.append((name, uint64))
-                gp.single_channel_dtype = uint64
+                gp.single_channel_dtype = ch.dtype_fmt = uint64
 
                 samples = offsets
 

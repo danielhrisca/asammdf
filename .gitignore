@@ -9,6 +9,8 @@ __pycache__/
 # MDF files
 *.mf4
 *.mdf
+*.bak
+*.zip
 
 test/proxy.py
 

@@ -2559,7 +2559,9 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             self.aspects.tabText(self.aspects.currentIndex()) == "Resample"
             and not self.raster_channel.count()
         ):
+            self.raster_channel.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon)
             self.raster_channel.addItems(self.channels_db_items)
+            self.raster_channel.setMinimumWidth(100)
         elif (
             self.aspects.tabText(self.aspects.currentIndex()) == "Filter"
             and not self._show_filter_tree
