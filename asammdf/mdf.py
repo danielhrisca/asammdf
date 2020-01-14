@@ -398,7 +398,7 @@ class MDF(object):
         # walk through all groups and get all channels
         for i, virtual_group in enumerate(self.virtual_groups):
 
-            for idx, sigs in enumerate(self.get_(virtual_group, version=version)):
+            for idx, sigs in enumerate(self._yield_selected_signals(virtual_group, version=version)):
                 if idx == 0:
                     source_info = f"Converted from {self.version} to {version}"
                     if sigs:
@@ -515,7 +515,7 @@ class MDF(object):
                 continue
 
             idx = 0
-            for j, sigs in enumerate(self.get_(group_index, groups=included_channels)):
+            for j, sigs in enumerate(self._yield_selected_signals(group_index, groups=included_channels)):
                 if j == 0:
                     master = sigs[0].timestamps
                     signals = sigs
@@ -1356,7 +1356,7 @@ class MDF(object):
 
         for i, (group_index, groups) in enumerate(gps.items()):
 
-            for idx, sigs in enumerate(self.get_(group_index, groups=groups, version=version)):
+            for idx, sigs in enumerate(self._yield_selected_signals(group_index, groups=groups, version=version)):
                 if not sigs:
                     break
 
@@ -1604,7 +1604,7 @@ class MDF(object):
                 first_timestamp = None
                 original_first_timestamp = None
 
-                for idx, signals in enumerate(mdf.get_(group_index, groups=included_channels)):
+                for idx, signals in enumerate(mdf._yield_selected_signals(group_index, groups=included_channels)):
                     if mdf_index == 0 and idx == 0:
 
                         first_signal = signals[0]
@@ -1778,7 +1778,7 @@ class MDF(object):
                 if not included_channels:
                     continue
 
-                for idx, signals in enumerate(mdf.get_(group, groups=included_channels, version=version)):
+                for idx, signals in enumerate(mdf._yield_selected_signals(group, groups=included_channels, version=version)):
 
                     if idx == 0:
                         if sync:
@@ -2189,7 +2189,7 @@ class MDF(object):
 
             current_pos = 0
 
-            for idx, sigs in enumerate(self.get_(virtual_group, groups=groups, record_offset=record_offset, record_count=record_count)):
+            for idx, sigs in enumerate(self._yield_selected_signals(virtual_group, groups=groups, record_offset=record_offset, record_count=record_count)):
                 if idx == 0:
                     next_pos = current_pos + len(sigs[0])
 
@@ -3096,13 +3096,13 @@ class MDF(object):
 
         groups_nr = len(self.virtual_groups)
 
-        for group_index, virtual_group in self.virtual_groups.items():
+        for group_index, (virtual_group_index, virtual_group) in enumerate(self.virtual_groups.items()):
             if virtual_group.cycles_nr == 0 and empty_channels == "skip":
                 continue
 
             channels = [
                 (None, gp_index, ch_index)
-                for gp_index, channel_indexes in self.included_channels(group_index)[group_index].items()
+                for gp_index, channel_indexes in self.included_channels(virtual_group_index)[virtual_group_index].items()
                 for ch_index in channel_indexes
             ]
 

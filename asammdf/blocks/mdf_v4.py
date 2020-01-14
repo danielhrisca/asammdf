@@ -2098,7 +2098,8 @@ class MDF4(object):
                     try:
                         grp.channels[ch_nr]
                     except IndexError:
-                        raise MdfException("Channel index out of range")
+                        print(len(self.groups), len(grp.channels))
+                        raise MdfException(f"Channel index out of range: {(name, group, index)}")
         else:
             if name not in self.channels_db:
                 raise MdfException(f'Channel "{name}" not found')
@@ -7489,8 +7490,6 @@ class MDF4(object):
             # CANopen date
             if data_type == v4c.DATA_TYPE_CANOPEN_DATE:
 
-                #                vals = vals.tostring()
-
                 types = dtype(
                     [
                         ("ms", "<u2"),
@@ -7859,7 +7858,7 @@ class MDF4(object):
 
         return result
 
-    def get_(
+    def _yield_selected_signals(
         self,
         index,
         groups=None,

@@ -3631,7 +3631,7 @@ class MDF3(object):
 
         return result
 
-    def get_(
+    def _yield_selected_signals(
         self,
         index,
         groups=None,
