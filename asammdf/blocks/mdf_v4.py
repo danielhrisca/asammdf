@@ -6086,6 +6086,7 @@ class MDF4(object):
         self._cg_map.clear()
         self._cn_data_map.clear()
         self._dbc_cache.clear()
+        self.virtual_groups.clear()
 
     def extract_attachment(self, address=None, index=None):
         """ extract attachment data by original address or by index. If it is an embedded attachment,

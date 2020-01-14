@@ -515,6 +515,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         self.aspects.currentChanged.connect(self.aspect_changed)
 
         progress.setValue(100)
+        progress.deleteLater()
 
         self.load_channel_list_btn.clicked.connect(self.load_channel_list)
         self.save_channel_list_btn.clicked.connect(self.save_channel_list)

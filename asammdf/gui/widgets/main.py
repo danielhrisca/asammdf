@@ -3,6 +3,7 @@ from functools import partial
 import os
 from pathlib import Path
 import webbrowser
+import gc
 
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
@@ -680,10 +681,14 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             "All files (*.dat *.mdf *.mf4 *.dl3 *.erg)",
         )
 
+        if file_names:
+            gc.collect()
+
         for file_name in natsorted(file_names):
             self._open_file(file_name)
 
     def open_folder(self, event):
+
         folder = QtWidgets.QFileDialog.getExistingDirectory(
             self,
             "Select folder",
@@ -693,6 +698,9 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         )
         if not folder:
             return
+
+        gc.collect()
+
         if self.stackedWidget.currentIndex() == 0:
             for root, dirs, files in os.walk(folder):
                 for file in natsorted(files):
