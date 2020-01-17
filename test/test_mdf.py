@@ -40,7 +40,7 @@ class TestMDF(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
 
-        url = "https://github.com/danielhrisca/asammdf/files/3111848/test.demo.zip"
+        url = "https://github.com/danielhrisca/asammdf/files/4077303/test.demo.zip"
         urllib.request.urlretrieve(url, "test.zip")
 
         cls.tempdir_demo = tempfile.TemporaryDirectory()
@@ -258,44 +258,44 @@ class TestMDF(unittest.TestCase):
 
         ret = True
 
-        for enable in (True, False):
-            for mdf in Path(TestMDF.tempdir_demo.name).iterdir():
+        mdf_files = [
+            file
+            for file in Path(TestMDF.tempdir_demo.name).iterdir()
+            if file.suffix in ('.mdf', '.mf4')
+        ]
 
-                for inp in (mdf, BytesIO(mdf.read_bytes())):
+        signals = [
+            file
+            for file in Path(TestMDF.tempdir_demo.name).iterdir()
+            if file.suffix == '.npy'
+        ]
 
-                    with MDF(inp) as input_file:
-                        if input_file.version == "2.00":
-                            continue
-                        print(mdf)
-                        for name in set(input_file.channels_db) - {"time", "t"}:
+        for file in mdf_files:
+            print(file)
 
-                            if (
-                                name.endswith("[0]")
-                                or name.startswith("DI")
-                                or "\\" in name
-                            ):
-                                continue
-                            signal = input_file.get(name)
+            for inp in (file, BytesIO(file.read_bytes())):
 
-                            try:
-                                original_samples = CHANNELS_DEMO[name.split("\\")[0]]
-                            except:
-                                print(name)
-                                raise
-                            if signal.samples.dtype.kind == "f":
-                                signal = signal.astype(np.float32)
-                            res = np.array_equal(signal.samples, original_samples)
-                            if not res:
-                                raw = input_file.get(name, raw=True).samples
+                with MDF(inp, use_display_names=True) as input_file:
 
-                                print(repr(signal.samples))
-                                ret = False
-                                print(
-                                    name,
-                                    *zip(raw, signal.samples, original_samples),
-                                    sep="\n",
-                                )
-                                1 / 0
+                    for signal in signals:
+                        name = signal.stem
+                        target = np.load(signal)
+                        values = input_file.get(name).samples
+
+                        res = np.array_equal(target, values)
+                        if not res:
+                            print(repr(values))
+                            ret = False
+                            print(
+                                name,
+                                len(values),
+                                len(target),
+                                values.tolist(),
+                                target,
+#                                *zip(values, target),
+                                sep="\n",
+                            )
+                            1 / 0
 
         self.assertTrue(ret)
 
