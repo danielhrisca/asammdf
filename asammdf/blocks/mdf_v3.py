@@ -1308,6 +1308,7 @@ class MDF3(object):
                 channel.comment = signal.comment
                 channel.source = new_source
                 channel.conversion = conversion
+                channel.display_name = display_name
                 gp_channels.append(channel)
 
                 offset += s_size

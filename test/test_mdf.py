@@ -40,7 +40,7 @@ class TestMDF(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
 
-        url = "https://github.com/danielhrisca/asammdf/files/4077303/test.demo.zip"
+        url = "https://github.com/danielhrisca/asammdf/files/4078993/test.demo.zip"
         urllib.request.urlretrieve(url, "test.zip")
 
         cls.tempdir_demo = tempfile.TemporaryDirectory()
