@@ -8319,7 +8319,7 @@ class MDF4(object):
 
         if db is None:
 
-            if not database.lower().endswith(("dbc", "arxml")):
+            if not str(database).lower().endswith(("dbc", "arxml")):
                 message = f'Expected .dbc or .arxml file as CAN channel attachment but got "{database}"'
                 logger.exception(message)
                 raise MdfException(message)
@@ -8333,6 +8333,8 @@ class MDF4(object):
                     db = load_can_database(database, db_string)
                     if db is None:
                         raise MdfException("failed to load database")
+
+        is_j1939 = db.contains_j1939
 
         name_ = name.split(".")
 
@@ -8397,14 +8399,31 @@ class MDF4(object):
             )
 
         if can_id is None:
+            index = None
             for _can_id, messages in self.can_logging_db.items():
-                message_id = message.arbitration_id.id
 
-                if message_id > 0x80000000:
-                    message_id -= 0x80000000
+                if is_j1939:
+                    test_ids = [
+                        canmatrix.ArbitrationId(id_, extended=True).pgn
+                        for id_ in self.can_logging_db[_can_id]
+                    ]
 
-                if message_id in messages:
-                    index = messages[message.arbitration_id.id]
+                    id_ = message.arbitration_id.pgn
+
+                else:
+                    id_ = message.arbitration_id.id
+                    test_ids = self.can_logging_db[_can_id]
+
+                if id_ in test_ids:
+                    if is_j1939:
+                        for id__, idx in self.can_logging_db[_can_id].items():
+                            if canmatrix.ArbitrationId(id__, extended=True).pgn == id_:
+                                index = idx
+                                break
+                    else:
+                        index = self.can_logging_db[can_id][message.arbitration_id.id]
+
+                if index is not None:
                     break
             else:
                 raise MdfException(
@@ -8412,7 +8431,7 @@ class MDF4(object):
                 )
         else:
             if can_id in self.can_logging_db:
-                if message.is_j1939:
+                if is_j1939:
                     test_ids = [
                         canmatrix.ArbitrationId(id_, extended=True).pgn
                         for id_ in self.can_logging_db[can_id]
@@ -8424,7 +8443,7 @@ class MDF4(object):
                     test_ids = self.can_logging_db[can_id]
 
                 if id_ in test_ids:
-                    if message.is_j1939:
+                    if is_j1939:
                         for id__, idx in self.can_logging_db[can_id].items():
                             if canmatrix.ArbitrationId(id__, extended=True).pgn == id_:
                                 index = idx
@@ -8452,7 +8471,7 @@ class MDF4(object):
             ignore_invalidation_bits=ignore_invalidation_bits,
         )[0]
 
-        if message.is_j1939:
+        if is_j1939:
             ps = (can_ids.samples >> 8) & 0xFF
             pf = (can_ids.samples >> 16) & 0xFF
             _pgn = pf << 8
