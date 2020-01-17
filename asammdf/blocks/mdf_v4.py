@@ -7888,6 +7888,8 @@ class MDF4(object):
                 + grp.channel_group.invalidation_bytes_nr
             )
 
+        record_size = record_size or 1
+
         if self._read_fragment_size:
             count = self._read_fragment_size // record_size or 1
         else:
