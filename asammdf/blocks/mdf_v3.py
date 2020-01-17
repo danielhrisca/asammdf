@@ -2935,19 +2935,13 @@ class MDF3(object):
 
                     timestamps = t
 
-            if conversion is None:
-                conversion_type = v23c.CONVERSION_TYPE_NONE
-            else:
-                conversion_type = conversion.conversion_type
-
-            if conversion_type == v23c.CONVERSION_TYPE_NONE:
-                if vals.dtype.kind == "S":
-                    encoding = "latin-1"
-
             if not raw:
                 if conversion:
                     vals = conversion.convert(vals)
                     conversion = None
+
+        if vals.dtype.kind == "S":
+            encoding = "latin-1"
 
         if samples_only:
             res = vals, None

@@ -5554,6 +5554,17 @@ comment: {self.comment}
             self.name, self.path, self.comment, self.source_type, self.bus_type
         )
 
+    @classmethod
+    def from_common_source(cls, source):
+        obj = cls()
+        obj.name = source.name
+        obj.path = source.path
+        obj.comment = source.comment
+        obj.source_type = source.source_type
+        obj.bus_type = source.bus_type
+
+        return obj
+
     def __bytes__(self):
         return v4c.SOURCE_INFORMATION_PACK(
             self.id,

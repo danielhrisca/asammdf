@@ -499,7 +499,7 @@ class Channel:
             else:
                 self[key] = 0
 
-        self.short_name = text.encode("latin-1")[:31]
+        self.short_name = text.encode("latin-1", "backslashreplace")[:31]
 
         key = "display_name_addr"
         text = self.display_name
@@ -521,7 +521,7 @@ class Channel:
         text = self.comment
         if text:
             if len(text) < 128:
-                self.description = text.encode("latin-1")[:127]
+                self.description = text.encode("latin-1", "backslashreplace")[:127]
                 self[key] = 0
             else:
                 if text in defined_texts:
@@ -1201,8 +1201,7 @@ class ChannelConversion(_ChannelConversionBase):
                 raise MdfException(message)
 
     def to_blocks(self, address, blocks, defined_texts, cc_map):
-
-        self.unit_field = self.unit.encode("latin-1")[:19]
+        self.unit_field = self.unit.encode("latin-1", "ignore")[:19]
 
         if self.conversion_type == v23c.CONVERSION_TYPE_FORMULA:
             formula = self.formula
@@ -2899,7 +2898,7 @@ class TextBlock:
             text = kwargs["text"]
 
             try:
-                text = text.encode("latin-1", "replace")
+                text = text.encode("latin-1", "backslashreplace")
             except AttributeError:
                 pass
 

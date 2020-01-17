@@ -4828,36 +4828,38 @@ class MDF4(object):
         ch.attachment = attachment
         ch.dtype_fmt = signal.samples.dtype
 
+        if source_bus:
+            grp.channel_group.acq_source = SourceInformation.from_common_source(signal.source)
+
         if source_bus and signal.source.bus_type == v4c.BUS_TYPE_CAN:
             grp.channel_group.path_separator = 46
             grp.CAN_logging = True
             grp.channel_group.acq_name = "CAN"
-            grp.channel_group.acq_source = SourceInformation(
-                source_type=v4c.SOURCE_BUS, bus_type=v4c.BUS_TYPE_CAN,
-            )
 
             can_ids = unique(signal.samples[f"{name}.BusChannel"])
 
-            if len(can_ids) == 1:
-                can_id = f"CAN{int(can_ids[0])}"
+            if name in ('CAN_DataFrame', 'CAN_RemoteFrame'):
 
-                message_ids = set(unique(signal.samples[f"{name}.ID"]))
+                if len(can_ids) == 1:
+                    can_id = f"CAN{int(can_ids[0])}"
 
-                if can_id not in self.can_logging_db:
-                    self.can_logging_db[can_id] = {}
-                for message_id in message_ids:
-                    self.can_logging_db[can_id][message_id] = dg_cntr
-            else:
-                for can_id in can_ids:
-                    idx = argwhere(
-                        signal.samples[f"{name}.BusChannel"] == can_id
-                    ).ravel()
-                    message_ids = set(unique(signal.samples[f"{name}.ID"][idx]))
-                    can_id = f"CAN{can_id}"
+                    message_ids = set(unique(signal.samples[f"{name}.ID"]))
+
                     if can_id not in self.can_logging_db:
                         self.can_logging_db[can_id] = {}
                     for message_id in message_ids:
                         self.can_logging_db[can_id][message_id] = dg_cntr
+                else:
+                    for can_id in can_ids:
+                        idx = argwhere(
+                            signal.samples[f"{name}.BusChannel"] == can_id
+                        ).ravel()
+                        message_ids = set(unique(signal.samples[f"{name}.ID"][idx]))
+                        can_id = f"CAN{can_id}"
+                        if can_id not in self.can_logging_db:
+                            self.can_logging_db[can_id] = {}
+                        for message_id in message_ids:
+                            self.can_logging_db[can_id][message_id] = dg_cntr
 
         # source for channel
         source = signal.source
@@ -4895,7 +4897,6 @@ class MDF4(object):
         gp_dep.append(dep_list)
 
         # then we add the fields
-
         for name in names:
             field_name = field_names.get_unique_name(name)
 
@@ -4914,7 +4915,7 @@ class MDF4(object):
                 else:
                     sig_type = v4c.SIGNAL_TYPE_ARRAY
 
-            if sig_type == v4c.SIGNAL_TYPE_SCALAR:
+            if sig_type in (v4c.SIGNAL_TYPE_SCALAR, v4c.SIGNAL_TYPE_STRING):
 
                 s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape)
                 byte_size = s_size // 8
@@ -5256,36 +5257,38 @@ class MDF4(object):
         ch.attachment = attachment
         ch.dtype_fmt = signal.samples.dtype
 
+        if source_bus:
+            grp.channel_group.acq_source = SourceInformation.from_common_source(signal.source)
+
         if source_bus and signal.source.bus_type == v4c.BUS_TYPE_CAN:
             grp.channel_group.path_separator = 46
             grp.CAN_logging = True
             grp.channel_group.acq_name = "CAN"
-            grp.channel_group.acq_source = SourceInformation(
-                source_type=v4c.SOURCE_BUS, bus_type=v4c.BUS_TYPE_CAN,
-            )
 
             can_ids = unique(signal.samples[f"{name}.BusChannel"])
 
-            if len(can_ids) == 1:
-                can_id = f"CAN{int(can_ids[0])}"
+            if name in ('CAN_DataFrame', 'CAN_RemoteFrame'):
 
-                message_ids = set(unique(signal.samples[f"{name}.ID"]))
+                if len(can_ids) == 1:
+                    can_id = f"CAN{int(can_ids[0])}"
 
-                if can_id not in self.can_logging_db:
-                    self.can_logging_db[can_id] = {}
-                for message_id in message_ids:
-                    self.can_logging_db[can_id][message_id] = dg_cntr
-            else:
-                for can_id in can_ids:
-                    idx = argwhere(
-                        signal.samples[f"{name}.BusChannel"] == can_id
-                    ).ravel()
-                    message_ids = set(unique(signal.samples[f"{name}.ID"][idx]))
-                    can_id = f"CAN{can_id}"
+                    message_ids = set(unique(signal.samples[f"{name}.ID"]))
+
                     if can_id not in self.can_logging_db:
                         self.can_logging_db[can_id] = {}
                     for message_id in message_ids:
                         self.can_logging_db[can_id][message_id] = dg_cntr
+                else:
+                    for can_id in can_ids:
+                        idx = argwhere(
+                            signal.samples[f"{name}.BusChannel"] == can_id
+                        ).ravel()
+                        message_ids = set(unique(signal.samples[f"{name}.ID"][idx]))
+                        can_id = f"CAN{can_id}"
+                        if can_id not in self.can_logging_db:
+                            self.can_logging_db[can_id] = {}
+                        for message_id in message_ids:
+                            self.can_logging_db[can_id][message_id] = dg_cntr
 
         # source for channel
         source = signal.source
@@ -5342,7 +5345,7 @@ class MDF4(object):
                 else:
                     sig_type = v4c.SIGNAL_TYPE_ARRAY
 
-            if sig_type == v4c.SIGNAL_TYPE_SCALAR:
+            if sig_type in (v4c.SIGNAL_TYPE_SCALAR, v4c.SIGNAL_TYPE_STRING):
 
                 s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape)
                 byte_size = s_size // 8
@@ -6385,6 +6388,9 @@ class MDF4(object):
         if not raw and conversion:
             vals = conversion.convert(vals)
             conversion = None
+
+            if vals.dtype.kind == 'S':
+                encoding = 'utf-8'
 
         if not vals.flags.owndata and self.copy_on_get:
             vals = vals.copy()
