@@ -524,6 +524,9 @@ class MDF(object):
                 else:
                     master = sigs[0][0]
 
+                if not len(master):
+                    continue
+
                 needs_cutting = True
 
                 # check if this fragement is within the cut interval or
@@ -3421,14 +3424,14 @@ class MDF(object):
                                                 "is_max"
                                             ]
 
-                                    out.append(
+                                    cg_nr = out.append(
                                         sigs,
                                         f"from CAN{bus} message ID=0x{msg_id:X}",
                                         common_timebase=True,
                                     )
 
                                     out.groups[
-                                        -1
+                                        cg_nr
                                     ].channel_group.comment = f"{message} 0x{msg_id:X}"
 
                                 else:
