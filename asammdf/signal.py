@@ -1100,6 +1100,10 @@ class Signal(object):
             samples = self.samples.copy()
         else:
             samples = self.conversion.convert(self.samples)
+            if samples.dtype.kind == 'S':
+                encoding = 'utf-8' if self.conversion.id == b'##CC' else 'latin-1'
+            else:
+                encoding = None
 
         return Signal(
             samples,
@@ -1114,7 +1118,7 @@ class Signal(object):
             stream_sync=self.stream_sync,
             invalidation_bits=self.invalidation_bits,
             source=self.source,
-            encoding=self.encoding,
+            encoding=encoding,
         )
 
     def validate(self, copy=True):

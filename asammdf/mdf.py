@@ -516,6 +516,8 @@ class MDF(object):
 
             idx = 0
             for j, sigs in enumerate(self._yield_selected_signals(group_index, groups=included_channels)):
+                if not sigs:
+                    break
                 if j == 0:
                     master = sigs[0].timestamps
                     signals = sigs
@@ -1605,6 +1607,8 @@ class MDF(object):
                 original_first_timestamp = None
 
                 for idx, signals in enumerate(mdf._yield_selected_signals(group_index, groups=included_channels)):
+                    if not signals:
+                        break
                     if mdf_index == 0 and idx == 0:
 
                         first_signal = signals[0]
@@ -1779,7 +1783,8 @@ class MDF(object):
                     continue
 
                 for idx, signals in enumerate(mdf._yield_selected_signals(group, groups=included_channels, version=version)):
-
+                    if not signals:
+                        break
                     if idx == 0:
                         if sync:
                             timestamps = signals[0].timestamps + offset
@@ -2190,6 +2195,8 @@ class MDF(object):
             current_pos = 0
 
             for idx, sigs in enumerate(self._yield_selected_signals(virtual_group, groups=groups, record_offset=record_offset, record_count=record_count)):
+                if not sigs:
+                    break
                 if idx == 0:
                     next_pos = current_pos + len(sigs[0])
 
