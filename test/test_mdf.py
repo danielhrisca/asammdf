@@ -297,9 +297,6 @@ class TestMDF(unittest.TestCase):
 
                     equal = True
 
-                    import shutil
-                    shutil.copy(outfile, r'D:\TMP\out.mf4')
-
                     with MDF(outfile) as mdf:
                         mdf.configure(read_fragment_size=8000)
 
