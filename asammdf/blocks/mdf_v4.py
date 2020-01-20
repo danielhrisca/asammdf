@@ -7969,14 +7969,17 @@ class MDF4(object):
                     if idx == 0:
                         for sig, channel_index in zip(signals, channels):
                             if sig.samples.dtype.kind == "S":
-                                encodings[group_index].append(sig.encoding)
+
                                 strsig = self.get(
                                     group=group_index,
                                     index=channel_index,
                                     samples_only=True,
                                     ignore_invalidation_bits=True,
                                 )[0]
-                                sig.samples = sig.samples.astype(strsig.dtype)
+
+                                _dtype = strsig.dtype
+                                sig.samples = sig.samples.astype(_dtype)
+                                encodings[group_index].append((sig.encoding, _dtype))
                                 del strsig
                                 if sig.encoding != "latin-1":
 
@@ -7994,14 +7997,16 @@ class MDF4(object):
                                             decode(sig.samples, sig.encoding),
                                             "latin-1",
                                         )
+                                sig.samples = sig.samples.astype(_dtype)
                             else:
                                 encodings[group_index].append(None)
                     else:
-                        for i, (sig, encoding) in enumerate(
+                        for i, (sig, encoding_tuple) in enumerate(
                             zip(signals, encodings[group_index])
                         ):
 
-                            if encoding:
+                            if encoding_tuple:
+                                encoding, _dtype = encoding_tuple
                                 samples = sig[0]
                                 if encoding != "latin-1":
 
@@ -8018,7 +8023,8 @@ class MDF4(object):
                                         samples = encode(
                                             decode(samples, encoding), "latin-1"
                                         )
-                                    signals[i] = (samples, sig[1])
+                                samples = samples.astype(_dtype)
+                                signals[i] = (samples, sig[1])
 
                 grp.record = None
 

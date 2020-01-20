@@ -743,8 +743,8 @@ class Signal(object):
         """
         if not len(self.samples) or not len(new_timestamps):
             return Signal(
-                self.samples.copy(),
-                self.timestamps.copy(),
+                self.samples[:0].copy(),
+                self.timestamps[:0].copy(),
                 self.unit,
                 self.name,
                 comment=self.comment,
@@ -754,9 +754,7 @@ class Signal(object):
                 display_name=self.display_name,
                 attachment=self.attachment,
                 stream_sync=self.stream_sync,
-                invalidation_bits=self.invalidation_bits.copy()
-                if self.invalidation_bits is not None
-                else None,
+                invalidation_bits=None,
                 encoding=self.encoding,
             )
         else:

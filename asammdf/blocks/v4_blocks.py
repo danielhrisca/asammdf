@@ -923,8 +923,8 @@ class Channel:
         comment = self.comment
         display_name = self.display_name
 
-        if display_name and not text:
-            text = v4c.CN_COMMENT_TEMPLATE.format(comment, display_name)
+        if display_name and not comment:
+            text = v4c.CN_COMMENT_TEMPLATE.format("", display_name)
         elif display_name and comment:
             if not comment.startswith("<CNcomment"):
                 text = v4c.CN_COMMENT_TEMPLATE.format(comment, display_name)

@@ -193,7 +193,7 @@ def conversion_transfer(conversion, version=3):
             elif conversion_type == v3c.CONVERSION_TYPE_TAB:
                 conversion_ = {}
                 conversion_["val_param_nr"] = conversion.ref_param_nr * 2
-                for i in range(conversion.val_param_nr):
+                for i in range(conversion.ref_param_nr):
                     conversion_[f"raw_{i}"] = conversion[f"raw_{i}"]
                     conversion_[f"phys_{i}"] = conversion[f"phys_{i}"]
 

@@ -2273,7 +2273,7 @@ class MDF3(object):
         cycles_nr = len(signals[0][0])
         string_counter = 0
 
-        for signal, _ in signals:
+        for k_i,( signal, _ )in enumerate(signals):
             sig = signal
             names = sig.dtype.names
 
@@ -2295,6 +2295,7 @@ class MDF3(object):
                     str_dtype = gp.string_dtypes[string_counter]
                     signal = signal.astype(str_dtype)
                     string_counter += 1
+
                 fields.append(signal)
 
                 if signal.shape[1:]:

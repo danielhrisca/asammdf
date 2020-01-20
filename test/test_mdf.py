@@ -11,10 +11,7 @@ from io import BytesIO
 import numpy as np
 
 from .utils import (
-    CHANNELS_DEMO,
-    CHANNELS_ARRAY,
     cycles,
-    channels_count,
     generate_test_file,
     generate_arrays_test_file,
 )
@@ -22,7 +19,7 @@ from asammdf import MDF, Signal, SUPPORTED_VERSIONS
 from asammdf.blocks.utils import MdfException
 from pandas import DataFrame
 
-SUPPORTED_VERSIONS = [version for version in SUPPORTED_VERSIONS if "4.20" > version >= "4.00" ]
+SUPPORTED_VERSIONS = [version for version in SUPPORTED_VERSIONS if "4.20" > version >= "3.20" ]
 
 CHANNEL_LEN = 100000
 
@@ -256,8 +253,6 @@ class TestMDF(unittest.TestCase):
 
         print("MDF read tests")
 
-        ret = True
-
         mdf_files = [
             file
             for file in Path(TestMDF.tempdir_demo.name).iterdir()
@@ -282,27 +277,10 @@ class TestMDF(unittest.TestCase):
                         target = np.load(signal)
                         values = input_file.get(name).samples
 
-                        res = np.array_equal(target, values)
-                        if not res:
-                            print(repr(values))
-                            ret = False
-                            print(
-                                name,
-                                len(values),
-                                len(target),
-                                values.tolist(),
-                                target,
-#                                *zip(values, target),
-                                sep="\n",
-                            )
-                            1 / 0
-
-        self.assertTrue(ret)
+                        self.assertTrue(np.array_equal(target, values))
 
     def test_convert(self):
         print("MDF convert big files tests")
-
-        t = np.arange(cycles, dtype=np.float64)
 
         for out in SUPPORTED_VERSIONS:
             for input_file in Path(TestMDF.tempdir_general.name).iterdir():
@@ -318,6 +296,9 @@ class TestMDF(unittest.TestCase):
                         )
 
                     equal = True
+
+                    import shutil
+                    shutil.copy(outfile, r'D:\TMP\out.mf4')
 
                     with MDF(outfile) as mdf:
                         mdf.configure(read_fragment_size=8000)
@@ -427,42 +408,41 @@ class TestMDF(unittest.TestCase):
                     self.assertTrue(equal)
 
     def test_convert_demo(self):
-        print("MDF convert tests")
+        print("MDF convert demo tests")
 
-        for out in SUPPORTED_VERSIONS:
-            for input_file in Path(TestMDF.tempdir_demo.name).iterdir():
-                if MDF(input_file).version == "2.00":
-                    continue
-                print(input_file, out)
-                with MDF(input_file) as mdf:
-                    outfile = mdf.convert(out).save(
+        mdf_files = [
+            file
+            for file in Path(TestMDF.tempdir_demo.name).iterdir()
+            if file.suffix in ('.mdf', '.mf4')
+        ]
+
+        signals = [
+            file
+            for file in Path(TestMDF.tempdir_demo.name).iterdir()
+            if file.suffix == '.npy'
+        ]
+
+        for file in mdf_files:
+
+            for inp in (file, BytesIO(file.read_bytes())):
+
+                with MDF(inp, use_display_names=True) as input_file:
+
+                    for out in SUPPORTED_VERSIONS:
+                        print(file, out, type(inp))
+
+                    outfile = input_file.convert(out).save(
                         Path(TestMDF.tempdir_demo.name) / "tmp", overwrite=True,
                     )
 
-                equal = True
+                    with MDF(outfile, use_display_names=True) as mdf:
 
-                with MDF(input_file) as mdf, MDF(outfile) as mdf2:
+                        for signal in signals:
+                            name = signal.stem
+                            target = np.load(signal)
+                            values = mdf.get(name).samples
 
-                    for name in set(mdf2.channels_db) - {"t", "time"}:
-                        original = mdf.get(name)
-                        converted = mdf2.get(name)
-                        raw = mdf.get(name, raw=True)
-                        if not np.array_equal(original.samples, converted.samples):
-                            equal = False
-                            print(
-                                name,
-                                *zip(raw.samples, original.samples, converted.samples),
-                                outfile,
-                                sep="\n",
-                            )
-                            1 / 0
-                        if not np.array_equal(
-                            original.timestamps, converted.timestamps
-                        ):
-                            equal = False
-                            1 / 0
-
-                self.assertTrue(equal)
+                            self.assertTrue(np.array_equal(target, values))
 
     def test_cut(self):
         print("MDF cut big files tests")
@@ -763,146 +743,157 @@ class TestMDF(unittest.TestCase):
             self.assertTrue(equal)
 
     def test_cut_demo(self):
-        print("MDF cut absolute tests")
+        print("MDF cut demo tests")
 
-        for input_file in Path(TestMDF.tempdir_demo.name).iterdir():
+        mdf_files = [
+            file
+            for file in Path(TestMDF.tempdir_demo.name).iterdir()
+            if file.suffix in ('.mdf', '.mf4')
+        ]
 
-            if "2.00" in input_file.name:
-                continue
-            for whence in (0, 1):
-                print(input_file, whence)
+        signals = [
+            file
+            for file in Path(TestMDF.tempdir_demo.name).iterdir()
+            if file.suffix == '.npy'
+        ]
 
-                outfile1 = (
-                    MDF(input_file)
-                    .cut(stop=2, whence=whence, include_ends=False)
-                    .save(Path(TestMDF.tempdir.name) / "tmp1", overwrite=True)
-                )
-                outfile2 = (
-                    MDF(input_file)
-                    .cut(start=2, stop=6, whence=whence, include_ends=False)
-                    .save(Path(TestMDF.tempdir.name) / "tmp2", overwrite=True)
-                )
-                outfile3 = (
-                    MDF(input_file)
-                    .cut(start=6, whence=whence, include_ends=False)
-                    .save(Path(TestMDF.tempdir.name) / "tmp3", overwrite=True)
-                )
+        for file in mdf_files:
+            print(file)
 
-                outfile = MDF.concatenate(
-                    [outfile1, outfile2, outfile3], version=MDF(input_file).version
-                ).save(Path(TestMDF.tempdir.name) / "tmp", overwrite=True)
+            for inp in (file, BytesIO(file.read_bytes())):
 
-                print("OUT", outfile)
+                with MDF(inp, use_display_names=True) as input_file:
 
-                equal = True
+                    for whence in (0, 1):
+                        print(file, whence)
 
-                with MDF(input_file) as mdf, MDF(outfile) as mdf2:
+                        outfile1 = (
+                            input_file
+                            .cut(stop=2, whence=whence, include_ends=False)
+                            .save(Path(TestMDF.tempdir.name) / "tmp1", overwrite=True)
+                        )
+                        outfile2 = (
+                            input_file
+                            .cut(start=2, stop=6, whence=whence, include_ends=False)
+                            .save(Path(TestMDF.tempdir.name) / "tmp2", overwrite=True)
+                        )
+                        outfile3 = (
+                            input_file
+                            .cut(start=6, whence=whence, include_ends=False)
+                            .save(Path(TestMDF.tempdir.name) / "tmp3", overwrite=True)
+                        )
 
-                    for i, group in enumerate(mdf.groups):
-                        for j, _ in enumerate(group["channels"][1:], 1):
-                            original = mdf.get(group=i, index=j)
-                            converted = mdf2.get(group=i, index=j)
-                            if not np.array_equal(original.samples, converted.samples):
-                                equal = False
-                            if not np.array_equal(
-                                original.timestamps, converted.timestamps
-                            ):
-                                equal = False
+                        outfile = MDF.concatenate(
+                            [outfile1, outfile2, outfile3], version=input_file.version,
+                            use_display_names=True,
+                        ).save(Path(TestMDF.tempdir.name) / "tmp", overwrite=True)
 
-                self.assertTrue(equal)
+                        print("OUT", outfile)
+
+                        with MDF(outfile, use_display_names=True) as mdf2:
+
+                            for signal in signals:
+                                target = np.load(signal)
+                                sig = mdf2.get(signal.stem)
+                                timestamps = input_file.get(signal.stem).timestamps
+
+                                self.assertTrue(np.array_equal(sig.samples, target))
+                                self.assertTrue(np.array_equal(timestamps, sig.timestamps))
 
     def test_filter(self):
-        print("MDF filter tests")
 
-        for input_file in Path(TestMDF.tempdir_demo.name).iterdir():
+        print("MDF read tests")
 
-            if MDF(input_file).version <= "2.00":
-                # if MDF(input_file, memory=memory).version < '4.00':
-                continue
+        mdf_files = [
+            file
+            for file in Path(TestMDF.tempdir_demo.name).iterdir()
+            if file.suffix in ('.mdf', '.mf4')
+        ]
 
-            channels_nr = np.random.randint(1, len(CHANNELS_DEMO) + 1)
+        signals = {
+            file.stem: file
+            for file in Path(TestMDF.tempdir_demo.name).iterdir()
+            if file.suffix == '.npy'
+        }
 
-            channel_list = random.sample(list(CHANNELS_DEMO), channels_nr)
+        for file in mdf_files:
+            print(file)
 
-            filtered_mdf = MDF(input_file).filter(channel_list)
+            for inp in (file, BytesIO(file.read_bytes())):
 
-            target = set(
-                k
-                for k in filtered_mdf.channels_db
-                if not k.endswith("[0]") and not k.startswith("DI") and "\\" not in k
-            )
+                with MDF(inp, use_display_names=True) as input_file:
 
-            self.assertTrue((target - {"t", "time"}) == set(channel_list))
+                    names = [
+                        ch.name
+                        for gp in input_file.groups
+                        for ch in gp.channels[1:]
+                    ]
 
-            equal = True
+                    channels_nr = np.random.randint(1, len(names) + 1)
 
-            with MDF(input_file) as mdf:
-                print(input_file)
-                names = list(channel_list)
-                for name in channel_list:
-                    self.assertTrue(name in mdf)
+                    channel_list = random.sample(names, channels_nr)
 
-                names = [name + "_" for name in names]
-                for name in names:
-                    self.assertFalse(name in mdf)
+                    filtered_mdf = input_file.filter(channel_list)
 
-                names = [name[:-3] for name in names]
-                for name in names:
-                    self.assertFalse(name in mdf)
+                    target_names = set(filtered_mdf.channels_db)
 
-                for name in channel_list:
-                    original = mdf.get(name)
-                    filtered = filtered_mdf.get(name)
-                    if not np.array_equal(original.samples, filtered.samples):
-                        equal = False
-                    if not np.array_equal(original.timestamps, filtered.timestamps):
-                        equal = False
 
-            self.assertTrue(equal)
+                    self.assertFalse(set(channel_list) - (target_names - {'time'}))
+
+                    for name in channel_list:
+                        target = np.load(signals[name])
+                        filtered = filtered_mdf.get(name)
+                        self.assertTrue(np.array_equal(target, filtered.samples))
 
     def test_select(self):
         print("MDF select tests")
 
-        for input_file in Path(TestMDF.tempdir_demo.name).iterdir():
+        mdf_files = [
+            file
+            for file in Path(TestMDF.tempdir_demo.name).iterdir()
+            if file.suffix in ('.mdf', '.mf4')
+        ]
 
-            if MDF(input_file).version == "2.00":
-#            if MDF(input_file).version < "4.00":
-                continue
+        signals = {
+            file.stem: file
+            for file in Path(TestMDF.tempdir_demo.name).iterdir()
+            if file.suffix == '.npy'
+        }
 
-            print(input_file)
+        for file in mdf_files:
+            print(file)
 
-            channels_nr = np.random.randint(1, len(CHANNELS_DEMO) + 1)
+            for inp in (file, BytesIO(file.read_bytes())):
 
-            channel_list = random.sample(list(CHANNELS_DEMO), channels_nr)
+                with MDF(inp, use_display_names=True) as input_file:
 
-            selected_signals = MDF(input_file).select(channel_list)
+                    names = [
+                        ch.name
+                        for gp in input_file.groups
+                        for ch in gp.channels[1:]
+                    ]
 
-            self.assertTrue(len(selected_signals) == len(channel_list))
+                    channels_nr = np.random.randint(1, len(names) + 1)
+                    channel_list = random.sample(names, channels_nr)
 
-            self.assertTrue(
-                all(ch.name == name for ch, name in zip(selected_signals, channel_list))
-            )
+                    selected_signals = input_file.select(channel_list)
 
-            equal = True
+                    target_names = set(s.name for s in selected_signals)
 
-            with MDF(input_file) as mdf:
+                    self.assertFalse(set(target_names) - set(channel_list))
 
-                for selected in selected_signals:
-                    original = mdf.get(selected.name)
-                    if not np.array_equal(original.samples, selected.samples):
-                        equal = False
-                    if not np.array_equal(original.timestamps, selected.timestamps):
-                        equal = False
-
-            self.assertTrue(equal)
+                    for name, sig in zip(channel_list, selected_signals):
+                        target = np.load(signals[name])
+                        self.assertTrue(np.array_equal(target, sig.samples))
 
     def test_scramble(self):
         print("MDF scramble tests")
 
         for input_file in Path(TestMDF.tempdir_demo.name).iterdir():
-            scrambled = MDF.scramble(input_file)
-            self.assertTrue(scrambled)
-            Path(scrambled).unlink()
+            if input_file.suffix.lower() in ('.mdf', '.mf4'):
+                scrambled = MDF.scramble(input_file)
+                self.assertTrue(scrambled)
+                Path(scrambled).unlink()
 
     def test_iter_groups(self):
         dfs = [

@@ -516,6 +516,7 @@ class MDF(object):
 
             idx = 0
             for j, sigs in enumerate(self._yield_selected_signals(group_index, groups=included_channels)):
+
                 if not sigs:
                     break
                 if j == 0:
@@ -549,6 +550,7 @@ class MDF(object):
                         )
                         if stop_index == len(master):
                             needs_cutting = False
+
                 elif stop is None:
                     fragment_stop = None
                     if master[-1] < start:
@@ -1462,6 +1464,10 @@ class MDF(object):
             option to create a new "__samples_origin" channel that will hold
             the index of the measurement from where each timestamp originated
 
+        kwargs :
+
+            use_display_names (False) : bool
+
         Returns
         -------
         concatenate : MDF
@@ -1482,6 +1488,7 @@ class MDF(object):
         mdf_nr = len(files)
 
         input_types = [isinstance(mdf, MDF) for mdf in files]
+        use_display_names = kwargs.get("use_display_names", False)
 
         versions = []
         if sync:
@@ -1567,7 +1574,7 @@ class MDF(object):
 
         for mdf_index, (offset, mdf) in enumerate(zip(offsets, files)):
             if not isinstance(mdf, MDF):
-                mdf = MDF(mdf)
+                mdf = MDF(mdf, use_display_names=use_display_names)
 
             mdf.configure(copy_on_get=False)
 
@@ -1715,6 +1722,10 @@ class MDF(object):
         sync : bool
             sync the files based on the start of measurement, default *True*
 
+        kwargs :
+
+            use_display_names (False) : bool
+
         Returns
         -------
         stacked : MDF
@@ -1727,6 +1738,7 @@ class MDF(object):
         version = validate_version_argument(version)
 
         callback = kwargs.get("callback", None)
+        use_display_names = kwargs.get("use_display_names", False)
 
         stacked = MDF(version=version, callback=callback)
 
@@ -1775,7 +1787,7 @@ class MDF(object):
 
         for mdf_index, (offset, mdf) in enumerate(zip(offsets, files)):
             if not isinstance(mdf, MDF):
-                mdf = MDF(mdf)
+                mdf = MDF(mdf, use_display_names=use_display_names)
 
             mdf.configure(copy_on_get=False)
 
