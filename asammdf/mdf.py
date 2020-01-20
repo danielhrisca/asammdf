@@ -2231,16 +2231,14 @@ class MDF(object):
                             sig.invalidation_bits = inval
 
                 else:
+                    sig, _ = sigs[0]
+                    next_pos = current_pos + len(sig)
+                    master[current_pos:next_pos] = sig
 
-                    for j, (signal, (sig, inval)) in enumerate(zip(signals, sigs)):
-                        if j == 0:
-                            next_pos = current_pos + len(sig)
-                            master[current_pos:next_pos] = sig
-                        else:
-
-                            signal.samples[current_pos:next_pos] = sig
-                            if signal.invalidation_bits is not None:
-                                signal.invalidation_bits[current_pos:next_pos] = inval
+                    for signal, (sig, inval) in zip(signals, sigs[1:]):
+                        signal.samples[current_pos:next_pos] = sig
+                        if signal.invalidation_bits is not None:
+                            signal.invalidation_bits[current_pos:next_pos] = inval
 
                 current_pos = next_pos
 
