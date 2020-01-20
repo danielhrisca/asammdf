@@ -2231,11 +2231,11 @@ class MDF(object):
                             sig.invalidation_bits = inval
 
                 else:
-                    sig, _ = sigs.pop(0)
+                    sig, _ = sigs[0]
                     next_pos = current_pos + len(sig)
                     master[current_pos:next_pos] = sig
 
-                    for signal, (sig, inval) in zip(signals, sigs):
+                    for signal, (sig, inval) in zip(signals, sigs[1:]):
                         signal.samples[current_pos:next_pos] = sig
                         if signal.invalidation_bits is not None:
                             signal.invalidation_bits[current_pos:next_pos] = inval
