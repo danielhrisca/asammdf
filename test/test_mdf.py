@@ -870,6 +870,8 @@ class TestMDF(unittest.TestCase):
                         for ch in gp.channels[1:]
                     ]
 
+                    input_file.configure(read_fragment_size=200)
+
                     channels_nr = np.random.randint(1, len(names) + 1)
                     channel_list = random.sample(names, channels_nr)
 
