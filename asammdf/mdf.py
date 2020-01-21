@@ -599,6 +599,9 @@ class MDF(object):
                         .timestamps
                     )
 
+                    if not len(master):
+                        continue
+
                     signals = [
                         sig.cut(
                             master[0],
