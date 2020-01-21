@@ -739,7 +739,9 @@ class MDF4(object):
                     continue
 
                 can_ids = Signal(
-                    _sig.samples["CAN_DataFrame.ID"], _sig.timestamps, name="can_ids",
+                    _sig.samples["CAN_DataFrame.ID"] & 0x1fffffff,
+                    _sig.timestamps,
+                    name="can_ids",
                 )
 
                 all_can_ids = unique(can_ids.samples).tolist()
@@ -1174,7 +1176,7 @@ class MDF4(object):
                             group=i,
                             data=fragment,
                             samples_only=True,
-                        )[0]
+                        )[0] & 0x1fffffff
 
                         if len(bus_ids):
 
@@ -8469,6 +8471,7 @@ class MDF4(object):
             group=index,
             ignore_invalidation_bits=ignore_invalidation_bits,
         )
+        can_ids.samples = can_ids.samples & 0x1fffffff
         payload = self.get(
             "CAN_DataFrame.DataBytes",
             group=index,
