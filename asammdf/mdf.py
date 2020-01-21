@@ -600,8 +600,10 @@ class MDF(object):
                     )
 
                     signals = [
-                        sig.interp(
-                            master,
+                        sig.cut(
+                            master[0],
+                            master[-1],
+                            include_ends=include_ends,
                             interpolation_mode=interpolation_mode,
                         )
                         for sig in signals

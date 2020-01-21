@@ -3609,10 +3609,6 @@ class MDF3(object):
                     for ch_nr in channels
                 ]
 
-                master_index = self.masters_db.get(group_index, None)
-                if master_index is not None and master_index in channels:
-                    channels.remove(master_index)
-
                 for dep in channel_dependencies:
                     if dep is None:
                         continue

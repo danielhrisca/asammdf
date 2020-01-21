@@ -7858,9 +7858,7 @@ class MDF4(object):
 
                 if master not in result:
                     result[master] = {}
-                master_index = self.masters_db.get(gp_index, None)
-                if master_index is not None and master_index in channels:
-                    channels.remove(master_index)
+
                 result[master][gp_index] = sorted(channels)
 
         return result
@@ -7872,8 +7870,9 @@ class MDF4(object):
         record_offset=0,
         record_count=None,
         skip_master=True,
-        version="4.20",
+        version=None,
     ):
+        version = version or self.version
         virtual_channel_group = self.virtual_groups[index]
         record_size = virtual_channel_group.record_size
 
@@ -7894,7 +7893,7 @@ class MDF4(object):
             count = self._read_fragment_size // record_size or 1
         else:
             if version < "4.20":
-                count = 32 * 1024 * 1024 // record_size or 1
+                count = 8 * 1024 * 1024 // record_size or 1
             else:
                 count = 128 * 1024 * 1024 // record_size or 1
 
