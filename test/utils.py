@@ -191,9 +191,6 @@ def generate_test_file(tmpdir, version="4.10"):
 
     name = mdf.save(filename, overwrite=True)
 
-    import shutil
-    shutil.copy(name, Path(r'D:\TMP\in.mf4'))
-
 
 def generate_arrays_test_file(tmpdir):
     version = "4.10"
@@ -290,8 +287,6 @@ def generate_arrays_test_file(tmpdir):
     mdf.append(sigs, common_timebase=True)
 
     name = mdf.save(filename, overwrite=True)
-
-
 
 
 if __name__ == "__main__":

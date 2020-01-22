@@ -133,24 +133,24 @@ __all__ = ["MDF4"]
 
 
 try:
-    from .cutils import extract, sort_data_block, lengths, get_vlsd_offsets2
+    from .cutils import extract, sort_data_block, lengths, get_vlsd_offsets
 except:
 
-    def extract(signal_data, is_byte_array, offsets):
-        offsets_ = set(offsets)
+    def extract(signal_data, is_byte_array, offsets=()):
+#        offsets_ = set(offsets)
         size = len(signal_data)
         positions = []
         values = []
         pos = 0
 
         while pos < size:
+
             positions.append(pos)
+#            if offsets_ and pos not in offsets_:
+#                raise Exception(f"VLSD offsets do not match the signal data:\n{positions}\n{offsets[:len(positions)]}")
             (str_size,) = UINT32_uf(signal_data, pos)
             pos = pos + 4 + str_size
             values.append(signal_data[pos - str_size : pos])
-
-            if pos not in offsets_:
-                raise Exception("VLSD offsets do not match the signal data:\n{positions}\n{offsets[:len(positions)}")
 
         if is_byte_array:
 
@@ -7410,15 +7410,16 @@ class MDF4(object):
 
         if channel_type == v4c.CHANNEL_TYPE_VLSD:
             count_ = len(vals)
+
             signal_data, with_bounds = self._load_signal_data(
                 group=grp, index=ch_nr, offset=record_start, count=count_,
             )
 
             if signal_data:
                 if data_type == v4c.DATA_TYPE_BYTEARRAY:
-                    vals = extract(signal_data, 1, vals)
+                    vals = extract(signal_data, 1)
                 else:
-                    vals = extract(signal_data, 0, vals)
+                    vals = extract(signal_data, 0)
 
                 if not with_bounds:
                     vals = vals[record_start : record_start + count_]
