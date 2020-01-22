@@ -133,10 +133,11 @@ __all__ = ["MDF4"]
 
 
 try:
-    from .cutils import extract, sort_data_block, lengths, get_vlsd_offsets
+    from .cutils import extract, sort_data_block, lengths, get_vlsd_offsets2
 except:
 
-    def extract(signal_data, is_byte_array):
+    def extract(signal_data, is_byte_array, offsets):
+        offsets_ = set(offsets)
         size = len(signal_data)
         positions = []
         values = []
@@ -147,6 +148,9 @@ except:
             (str_size,) = UINT32_uf(signal_data, pos)
             pos = pos + 4 + str_size
             values.append(signal_data[pos - str_size : pos])
+
+            if pos not in offsets_:
+                raise Exception("VLSD offsets do not match the signal data:\n{positions}\n{offsets[:len(positions)}")
 
         if is_byte_array:
 
@@ -7412,9 +7416,9 @@ class MDF4(object):
 
             if signal_data:
                 if data_type == v4c.DATA_TYPE_BYTEARRAY:
-                    vals = extract(signal_data, 1)
+                    vals = extract(signal_data, 1, vals)
                 else:
-                    vals = extract(signal_data, 0)
+                    vals = extract(signal_data, 0, vals)
 
                 if not with_bounds:
                     vals = vals[record_start : record_start + count_]
