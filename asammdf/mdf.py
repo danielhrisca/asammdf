@@ -3452,7 +3452,7 @@ class MDF(object):
                                 else:
                                     index = msg_map[entry]
 
-                                    sigs = [(t, None)]
+                                    sigs = []
 
                                     for name_, signal in signals.items():
 
@@ -3464,6 +3464,10 @@ class MDF(object):
                                             max_flags[max_flags_entry]
                                             and signal["is_max"]
                                         )
+
+                                        t = signal["t"]
+
+                                    sigs.insert(0, (t, None))
 
                                     out.extend(index, sigs)
                     self._set_temporary_master(None)
