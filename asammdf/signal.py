@@ -152,14 +152,14 @@ class Signal(object):
 \tattachment={self.attachment}>
 """
 
-    def plot(self):
+    def plot(self, validate=True):
         """ plot Signal samples. Pyqtgraph is used if it is available; in this
         case see the GUI plot documentation to see the available commands"""
         try:
 
             from .gui.plot import plot
 
-            plot(self)
+            plot(self, validate=True)
             return
 
         except:

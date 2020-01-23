@@ -13,7 +13,7 @@ except ImportError:
 logger = logging.getLogger("asammdf")
 
 
-def plot(signals, title=""):
+def plot(signals, title="", validate=True):
     """ create a stand-alone plot using the input signal or signals
 
     Arguments
@@ -23,6 +23,9 @@ def plot(signals, title=""):
     title (""): str
         window title
 
+    validate (True): bool
+        consider the invalidation bits
+
     """
 
     if QT:
@@ -30,6 +33,15 @@ def plot(signals, title=""):
         app.setOrganizationName("py-asammdf")
         app.setOrganizationDomain("py-asammdf")
         app.setApplicationName("py-asammdf")
+
+        if validate:
+            if isinstance(signals, (tuple, list)):
+                signals = [
+                    signal.validate()
+                    for signal in signals
+                ]
+            else:
+                signals = [signals.validate()]
         main = PlotWindow(signals)
         if title.strip():
             main.setWindowTitle(title.strip())

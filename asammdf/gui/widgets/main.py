@@ -412,7 +412,7 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         for i in range(count):
             self.files.widget(i).set_line_style(with_dots=self.with_dots)
 
-        self.comparison_plot.update_lines(with_dots=self.with_dots)
+        self.comparison_plot.plot.update_lines(with_dots=self.with_dots)
 
     def show_sub_windows(self, mode):
 

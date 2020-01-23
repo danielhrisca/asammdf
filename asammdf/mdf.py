@@ -2110,6 +2110,7 @@ class MDF(object):
         copy_master=True,
         ignore_value2text_conversions=False,
         record_count=None,
+        validate=False,
     ):
         """ retrieve the channels listed in *channels* argument as *Signal*
         objects
@@ -2140,6 +2141,11 @@ class MDF(object):
             used, and the conversion will not be applied.
 
             .. versionadded:: 5.8.0
+
+        validate (False) : bool
+            consider the invalidation bits
+
+            .. versionadded:: 5.16.0
 
         Returns
         -------
@@ -2285,6 +2291,9 @@ class MDF(object):
                     signal.conversion = None
                     if signal.samples.dtype.kind == 'S':
                         signal.encoding = 'utf-8' if self.version >= '4.00' else 'latin-1'
+
+        if validate:
+            signals = [sig.validate() for sig in signals]
 
         return signals
 
@@ -3415,7 +3424,9 @@ class MDF(object):
                                             name=signal["name"],
                                             comment=signal["comment"],
                                             unit=signal["unit"],
+                                            invalidation_bits=signal["invalidation_bits"] if ignore_invalid_signals else None,
                                         )
+
                                         sig.comment = f"""\
 <CNcomment>
 <TX>{sig.comment}</TX>
@@ -3427,18 +3438,6 @@ class MDF(object):
 </CNcomment>"""
 
                                         sigs.append(sig)
-
-                                        max_flags_entry = index, name_
-
-                                        if max_flags_entry in max_flags:
-                                            max_flags[max_flags_entry] = (
-                                                max_flags[max_flags_entry]
-                                                and signal["is_max"]
-                                            )
-                                        else:
-                                            max_flags[max_flags_entry] = signal[
-                                                "is_max"
-                                            ]
 
                                     cg_nr = out.append(
                                         sigs,
@@ -3457,14 +3456,7 @@ class MDF(object):
 
                                     for name_, signal in signals.items():
 
-                                        sigs.append((signal["samples"], None))
-
-                                        max_flags_entry = index, name_
-
-                                        max_flags[max_flags_entry] = (
-                                            max_flags[max_flags_entry]
-                                            and signal["is_max"]
-                                        )
+                                        sigs.append((signal["samples"], signal["invalidation_bits"] if ignore_invalid_signals else None))
 
                                         t = signal["t"]
 
@@ -3491,18 +3483,6 @@ class MDF(object):
             "found_ids": found_ids,
             "unknown_ids": unknown_ids,
         }
-
-        if ignore_invalid_signals:
-            to_keep = []
-
-            for i, group in enumerate(out.groups):
-                for j, channel in enumerate(group.channels[1:], 1):
-                    if not max_flags[(i, channel.name)]:
-                        to_keep.append((None, i, j))
-
-            tmp = out.filter(to_keep, version)
-            out.close()
-            out = tmp
 
         if self._callback:
             self._callback(100, 100)

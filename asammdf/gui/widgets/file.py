@@ -1476,6 +1476,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 channels=signals_,
                 ignore_value2text_conversions=self.ignore_value2text_conversions,
                 time_from_zero=False,
+                validate=True,
             )
 
             for name in signals.columns:
@@ -1487,6 +1488,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 signals_,
                 ignore_value2text_conversions=self.ignore_value2text_conversions,
                 copy_master=False,
+                validate=True,
             )
 
             for sig, sig_ in zip(signals, signals_):

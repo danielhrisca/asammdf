@@ -1490,14 +1490,16 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
                 samples = extract_can_signal(sig, payload)
                 if len(samples) == 0 and len(t):
                     continue
-                max_val = float(sig.calc_max())
+
+                max_val = np.full(len(samples), float(sig.calc_max()))
+
                 signals[sig.name] = {
                     "name": sig.name,
                     "comment": sig.comment or "",
                     "unit": sig.unit or "",
                     "samples": samples,
                     "t": t,
-                    "is_max": np.all(samples == max_val),
+                    "invalidation_bits": np.isclose(samples, max_val),
                 }
 
         else:
@@ -1512,14 +1514,15 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
 
             for sig in pair_signals:
                 samples = extract_can_signal(sig, payload_)
-                max_val = float(sig.calc_max())
+                max_val = np.full(len(samples), float(sig.calc_max()))
+
                 signals[sig.name] = {
                     "name": sig.name,
                     "comment": sig.comment or "",
                     "unit": sig.unit or "",
                     "samples": samples,
                     "t": t_,
-                    "is_max": np.all(samples == max_val),
+                    "invalidation_bits": np.isclose(samples, max_val),
                 }
 
     # then handle mutiplexers signals
@@ -1550,15 +1553,16 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
                 signals = extracted_signals[entry]
 
             for sig in pair_signals:
-                max_val = float(sig.calc_max())
+                max_val = np.full(len(samples), float(sig.calc_max()))
                 muxer_values = extract_can_signal(sig, payload)
+
                 signals[sig.name] = {
                     "name": sig.name,
                     "comment": sig.comment or "",
                     "unit": sig.unit or "",
                     "samples": muxer_values,
                     "t": t,
-                    "is_max": np.all(muxer_values == max_val),
+                    "invalidation_bits": np.isclose(muxer_values, max_val),
                 }
 
                 # feed the muxer values to the mutliplexed signals
@@ -1588,15 +1592,16 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
                 signals = extracted_signals[entry]
 
             for sig in pair_signals:
-                max_val = float(sig.calc_max())
+                max_val = np.full(len(samples), float(sig.calc_max()))
                 muxer_values_ = extract_can_signal(sig, payload_)
+
                 signals[sig.name] = {
                     "name": sig.name,
                     "comment": sig.comment or "",
                     "unit": sig.unit or "",
                     "samples": muxer_values_,
                     "t": t_,
-                    "is_max": np.all(muxer_values == max_val),
+                    "invalidation_bits": np.isclose(muxer_values, max_val),
                 }
 
                 extracted_signals.update(
