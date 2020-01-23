@@ -3554,6 +3554,7 @@ class MDF3(object):
         index=None,
         channels=None,
         skip_master=True,
+        minimal=True,
     ):
 
         if channels is None:
@@ -3609,15 +3610,17 @@ class MDF3(object):
                     for ch_nr in channels
                 ]
 
-                for dep in channel_dependencies:
-                    if dep is None:
-                        continue
-                    for gp_nr, ch_nr in dep.referenced_channels:
-                        if gp_nr == group_index:
-                            try:
-                                channels.remove(ch_nr)
-                            except KeyError:
-                                pass
+                if minimal:
+
+                    for dep in channel_dependencies:
+                        if dep is None:
+                            continue
+                        for gp_nr, ch_nr in dep.referenced_channels:
+                            if gp_nr == group_index:
+                                try:
+                                    channels.remove(ch_nr)
+                                except KeyError:
+                                    pass
 
                 result[group_index] = {group_index: sorted(channels)}
 

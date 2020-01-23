@@ -2190,7 +2190,7 @@ class MDF(object):
 
         self._link_attributes()
 
-        virtual_groups = self.included_channels(channels=channels)
+        virtual_groups = self.included_channels(channels=channels, minimal=False)
 
         output_signals = {}
 
@@ -3131,6 +3131,7 @@ class MDF(object):
                 (None, gp_index, ch_index)
                 for gp_index, channel_indexes in self.included_channels(virtual_group_index)[virtual_group_index].items()
                 for ch_index in channel_indexes
+                if ch_index != self.masters_db.get(gp_index, None)
             ]
 
             signals = [

@@ -1467,6 +1467,11 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             return
 
         if window_type == "Tabular":
+            signals_ = [
+                entry
+                for entry in signals_
+                if entry[2] != self.mdf.masters_db.get(entry[1], None)
+            ]
             signals = self.mdf.to_dataframe(
                 channels=signals_,
                 ignore_value2text_conversions=self.ignore_value2text_conversions,

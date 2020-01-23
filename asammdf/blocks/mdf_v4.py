@@ -7678,6 +7678,7 @@ class MDF4(object):
         index=None,
         channels=None,
         skip_master=True,
+        minimal=True,
     ):
 
         if channels is None:
@@ -7815,53 +7816,55 @@ class MDF4(object):
                 master = self.virtual_groups_map[gp_index]
                 group = self.groups[gp_index]
 
-                channel_dependencies = [
-                    group.channel_dependencies[ch_nr]
-                    for ch_nr in channels
-                ]
+                if minimal:
 
-                for dependencies in channel_dependencies:
-                    if dependencies is None:
-                        continue
+                    channel_dependencies = [
+                        group.channel_dependencies[ch_nr]
+                        for ch_nr in channels
+                    ]
 
-                    if all(
-                        not isinstance(dep, ChannelArrayBlock) for dep in dependencies
-                    ):
+                    for dependencies in channel_dependencies:
+                        if dependencies is None:
+                            continue
 
-                        for _, ch_nr in dependencies:
-                            try:
-                                channels.remove(ch_nr)
-                            except KeyError:
-                                pass
-                    else:
-                        for dep in dependencies:
-                            for referenced_channels in (
-                                dep.axis_channels,
-                                dep.dynamic_size_channels,
-                                dep.input_quantity_channels,
-                            ):
-                                for gp_nr, ch_nr in referenced_channels:
+                        if all(
+                            not isinstance(dep, ChannelArrayBlock) for dep in dependencies
+                        ):
+
+                            for _, ch_nr in dependencies:
+                                try:
+                                    channels.remove(ch_nr)
+                                except KeyError:
+                                    pass
+                        else:
+                            for dep in dependencies:
+                                for referenced_channels in (
+                                    dep.axis_channels,
+                                    dep.dynamic_size_channels,
+                                    dep.input_quantity_channels,
+                                ):
+                                    for gp_nr, ch_nr in referenced_channels:
+                                        if gp_nr == gp_index:
+                                            try:
+                                                channels.remove(ch_nr)
+                                            except KeyError:
+                                                pass
+
+                                if dep.output_quantity_channel:
+                                    gp_nr, ch_nr = dep.output_quantity_channel
                                     if gp_nr == gp_index:
                                         try:
                                             channels.remove(ch_nr)
                                         except KeyError:
                                             pass
 
-                            if dep.output_quantity_channel:
-                                gp_nr, ch_nr = dep.output_quantity_channel
-                                if gp_nr == gp_index:
-                                    try:
-                                        channels.remove(ch_nr)
-                                    except KeyError:
-                                        pass
-
-                            if dep.comparison_quantity_channel:
-                                gp_nr, ch_nr = dep.comparison_quantity_channel
-                                if gp_nr == gp_index:
-                                    try:
-                                        channels.remove(ch_nr)
-                                    except KeyError:
-                                        pass
+                                if dep.comparison_quantity_channel:
+                                    gp_nr, ch_nr = dep.comparison_quantity_channel
+                                    if gp_nr == gp_index:
+                                        try:
+                                            channels.remove(ch_nr)
+                                        except KeyError:
+                                            pass
 
                 if master not in result:
                     result[master] = {}
