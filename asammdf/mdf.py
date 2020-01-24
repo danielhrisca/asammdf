@@ -2862,6 +2862,7 @@ class MDF(object):
                         copy_master=False,
                         record_offset=record_offset,
                         record_count=record_count,
+                        validate=True,
                     )
                 ]
 
@@ -3146,7 +3147,10 @@ class MDF(object):
             signals = [
                 signal.validate(copy=False)
                 for signal in self.select(
-                    channels, raw=True, copy_master=False,
+                    channels,
+                    raw=True,
+                    copy_master=False,
+                    validate=True,
                 )
             ]
 
