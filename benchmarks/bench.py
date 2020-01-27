@@ -958,12 +958,12 @@ def main(text_output, fmt):
     OPEN, SAVE, GET, CONVERT, MERGE, FILTER, CUT = 1, 1, 1, 1, 1, 0, 0
 
     tests = (
-#        open_mdf3,
-#        open_reader3,
-#        open_reader3_nodata,
-#        open_reader3_compression,
+        open_mdf3,
+        open_reader3,
+        open_reader3_nodata,
+        open_reader3_compression,
         open_mdf4,
-        open_mdf4_column,
+#        open_mdf4_column,
         open_reader4,
         open_reader4_nodata,
         open_reader4_compression,
@@ -981,15 +981,15 @@ def main(text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-#        save_mdf3,
-#        save_reader3,
-#        save_reader3_nodata,
-#        save_reader3_compression,
+        save_mdf3,
+        save_reader3,
+        save_reader3_nodata,
+        save_reader3_compression,
         save_mdf4,
-        save_mdf4_column,
+#        save_mdf4_column,
         save_reader4,
-#        save_reader4_nodata,
-#        save_reader4_compression,
+        save_reader4_nodata,
+        save_reader4_compression,
     )
 
     if tests and SAVE:
@@ -1004,15 +1004,15 @@ def main(text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-#        get_all_mdf3,
-#        get_all_reader3,
-#        get_all_reader3_nodata,
-#        get_all_reader3_compression,
+        get_all_mdf3,
+        get_all_reader3,
+        get_all_reader3_nodata,
+        get_all_reader3_compression,
         get_all_mdf4,
-        get_all_mdf4_column,
-#        get_all_reader4,
+#        get_all_mdf4_column,
+        get_all_reader4,
         get_all_reader4_nodata,
-#        get_all_reader4_compression,
+        get_all_reader4_compression,
 
     )
 
@@ -1045,14 +1045,14 @@ def main(text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-#        merge_v3,
-#        merge_reader_v3,
-#        merge_reader_v3_nodata,
-#        merge_reader_v3_compress,
+        merge_v3,
+        merge_reader_v3,
+        merge_reader_v3_nodata,
+        merge_reader_v3_compress,
         merge_v4,
-#        merge_reader_v4,
-#        merge_reader_v4_nodata,
-#        merge_reader_v4_compress,
+        merge_reader_v4,
+        merge_reader_v4_nodata,
+        merge_reader_v4_compress,
     )
 
     if tests and MERGE:
