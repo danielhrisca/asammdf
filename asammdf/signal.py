@@ -97,6 +97,7 @@ class Signal(object):
                 message = message.format(name, samples.shape[0], timestamps.shape[0])
                 logger.exception(message)
                 raise MdfException(message)
+
             self.samples = samples
             self.timestamps = timestamps
             self.unit = unit
@@ -123,10 +124,16 @@ class Signal(object):
 
             self.stream_sync = stream_sync
 
-            if invalidation_bits is not None and not isinstance(
-                invalidation_bits, np.ndarray
-            ):
-                invalidation_bits = np.array(invalidation_bits)
+            if invalidation_bits is not None:
+                if not isinstance(
+                    invalidation_bits, np.ndarray
+                ):
+                    invalidation_bits = np.array(invalidation_bits)
+                if invalidation_bits.shape[0] != samples.shape[0]:
+                    message = "{} samples and invalidation bits length mismatch ({} vs {})"
+                    message = message.format(name, samples.shape[0], invalidation_bits.shape[0])
+                    logger.exception(message)
+                    raise MdfException(message)
             self.invalidation_bits = invalidation_bits
 
             if conversion:

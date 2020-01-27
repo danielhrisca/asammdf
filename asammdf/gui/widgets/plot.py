@@ -57,6 +57,9 @@ class Plot(QtWidgets.QWidget):
 
         self.info_uuid = None
 
+        self._range_start = None
+        self._range_stop = None
+
         main_layout = QtWidgets.QVBoxLayout(self)
         # self.setLayout(main_layout)
 
@@ -503,6 +506,9 @@ class Plot(QtWidgets.QWidget):
             item.set_value("")
             self.cursor_info.setText("")
 
+        self._range_start = None
+        self._range_stop = None
+
         if self.plot.cursor1:
             self.plot.cursor_moved.emit()
         if self.info.isVisible():
@@ -891,6 +897,8 @@ class _Plot(pg.PlotWidget):
 
         if self.cursor1:
             self.cursor_move_finished.emit()
+
+        self._compute_all_timebase()
 
     def update_views(self):
         geometry = self.viewbox.sceneBoundingRect()
@@ -1753,15 +1761,12 @@ class _Plot(pg.PlotWidget):
         if initial_index == 0 and self.signals:
             self.set_current_uuid(self.signals[0].uuid)
 
-        if self.signals:
-            ids = {id(s.timestamps): s.timestamps for s in self.signals}
+        self._compute_all_timebase()
 
-            #            self.all_timebase = self.timebase = np.unique(
-            #                np.concatenate([v for v in ids.values()])
-            #            )
-            self.all_timebase = self.timebase = np.unique(
-                reduce(np.union1d, [v for v in ids.values()])
-            )
+    def _compute_all_timebase(self):
+        if self.signals:
+            ids = {id(s.timestamps): s.timestamps for s in self.signals if s.enable}
+            self.all_timebase = self.timebase = reduce(np.union1d, [v for v in ids.values()])
         else:
             self.all_timebase = self.timebase = None
 
@@ -1830,3 +1835,5 @@ class _Plot(pg.PlotWidget):
                 self.set_current_uuid(uuids[0], True)
         else:
             self.current_uuid = None
+
+        self._compute_all_timebase()

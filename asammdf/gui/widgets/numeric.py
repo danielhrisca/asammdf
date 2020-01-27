@@ -287,10 +287,11 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                 try:
                     idx = np.argwhere(op(target)).flatten()
                     if len(idx):
-                        if len(idx) > 1:
-                            timestamp_ = sig.timestamps[idx[1]]
-                        else:
+                        if len(idx) == 1 or sig.timestamps[idx[0]] != start:
                             timestamp_ = sig.timestamps[idx[0]]
+                        else:
+                            timestamp_ = sig.timestamps[idx[1]]
+
                         if timestamp is None or timestamp_ < timestamp:
                             timestamp = timestamp_
                             signal_name = name
@@ -346,10 +347,12 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                 try:
                     idx = np.argwhere(op(target)).flatten()
                     if len(idx):
-                        if len(idx) > 1:
-                            timestamp_ = sig.timestamps[idx[1]]
+
+                        if len(idx) == 1 or sig.timestamps[idx[-1]] != stop:
+                            timestamp_ = sig.timestamps[idx[-1]]
                         else:
-                            timestamp_ = sig.timestamps[idx[0]]
+                            timestamp_ = sig.timestamps[idx[-2]]
+
                         if timestamp is None or timestamp_ > timestamp:
                             timestamp = timestamp_
                             signal_name = name
