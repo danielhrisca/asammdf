@@ -1594,7 +1594,7 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
 
             for sig in pair_signals:
                 muxer_values_ = extract_can_signal(sig, payload_)
-                max_val = np.full(len(muxer_values), float(sig.calc_max()))
+                max_val = np.full(len(muxer_values_), float(sig.calc_max()))
 
                 signals[sig.name] = {
                     "name": sig.name,
@@ -1602,7 +1602,7 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
                     "unit": sig.unit or "",
                     "samples": muxer_values_,
                     "t": t_,
-                    "invalidation_bits": np.isclose(muxer_values, max_val),
+                    "invalidation_bits": np.isclose(muxer_values_, max_val),
                 }
 
                 extracted_signals.update(

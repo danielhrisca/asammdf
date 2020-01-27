@@ -3592,7 +3592,6 @@ class MDF4(object):
                 inval_bits.append(zeros(cycles_nr, dtype=bool))
 
             inval_bits.reverse()
-
             invalidation_bytes_nr = len(inval_bits) // 8
 
             gp.channel_group.invalidation_bytes_nr = invalidation_bytes_nr
