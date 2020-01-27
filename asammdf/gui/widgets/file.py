@@ -23,7 +23,7 @@ from ..ui.file_widget import Ui_file_widget
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ...signal import Signal
 from ...blocks.utils import MdfException, extract_cncomment_xml, csv_bytearray2hex
-from ..utils import TERMINATED, run_thread_with_progress, setup_progress
+from ..utils import TERMINATED, run_thread_with_progress, setup_progress, load_dsp
 from .plot import Plot
 from .numeric import Numeric
 from .tabular import Tabular
@@ -893,18 +893,26 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 self,
                 "Select channel list file",
                 "",
-                "Config file (*.cfg);;TXT files (*.txt);;All file types (*.cfg *.txt)",
-                "All file types (*.cfg *.txt)",
+                "Config file (*.cfg);;TXT files (*.txt);;Display files (*.dsp);;All file types (*.cfg *.dsp *.txt)",
+                "All file types (*.cfg *.dsp *.txt)",
             )
 
         if file_name:
             if not isinstance(file_name, dict):
-                with open(file_name, "r") as infile:
-                    info = json.load(infile)
+                file_name = Path(file_name)
+                if file_name.suffix.lower() == '.dsp':
+                    info = load_dsp(file_name)
+                    channels = info.get("display", [])
+
+                else:
+                    with open(file_name, "r") as infile:
+                        info = json.load(infile)
+                    channels = info.get("selected_channels", [])
+
+
             else:
                 info = file_name
-
-            channels = info.get("selected_channels", [])
+                channels = info.get("selected_channels", [])
 
             if channels:
 

@@ -6,6 +6,9 @@ from io import StringIO
 from time import sleep
 from struct import unpack
 from threading import Thread
+from pathlib import Path
+import lxml
+import natsort
 
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
@@ -81,6 +84,80 @@ def extract_mime_names(data):
             pos += name_length
             names.append((name, group_index, channel_index))
     return names
+
+
+def load_dsp(file):
+    def parse_dsp(display, level=1):
+        channels = set()
+        groups = []
+        all_channels = set()
+
+        for item in display.findall("CHANNEL"):
+            channels.add(item.get("name"))
+            all_channels = all_channels | channels
+
+        for item in display.findall(f"GROUP{level}"):
+            group_channels, subgroups, subgroup_all_channels = parse_dsp(
+                item, level + 1
+            )
+            all_channels = all_channels | subgroup_all_channels
+            groups.append(
+                {
+                    "name": item.get("data"),
+                    "dsp_channels": natsort.natsorted(group_channels),
+                    "dsp_groups": subgroups,
+                }
+            )
+
+        return channels, groups, all_channels
+
+    dsp = Path(file).read_bytes().replace(b"\0", b"")
+    dsp = lxml.etree.fromstring(dsp)
+
+    channels, groups, all_channels = parse_dsp(dsp.find("DISPLAY_INFO"))
+
+    info = {}
+    all_channels = natsort.natsorted(all_channels)
+    info["selected_channels"] = all_channels
+
+    info["windows"] = windows = []
+
+    numeric = {
+        "type": "Numeric",
+        "title": "Numeric",
+        "configuration": {
+            "channels": all_channels,
+            "format": "phys",
+        }
+    }
+
+    windows.append(numeric)
+
+    plot = {
+        "type": "Plot",
+        "title": "Plot",
+        "configuration": {
+            "channels": [
+                {
+                    "color": COLORS[i%len(COLORS)],
+                    "common_axis": False,
+                    "computed": False,
+                    "enabled": True,
+                    "fmt": "{}",
+                    "individual_axis": False,
+                    "name": name,
+                    "precision": 3,
+                    "ranges": [],
+                    "unit": "",
+                }
+                for i, name in enumerate(all_channels)
+            ]
+        }
+    }
+
+    windows.append(plot)
+
+    return info
 
 
 def run_thread_with_progress(
