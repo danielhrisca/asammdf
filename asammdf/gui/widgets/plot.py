@@ -688,6 +688,7 @@ class _Plot(pg.PlotWidget):
         self.standalone = kwargs.get("standalone", False)
 
         self.region = None
+        self.region_lock = None
         self.cursor1 = None
         self.cursor2 = None
         self.signals = signals or []
@@ -1188,6 +1189,15 @@ class _Plot(pg.PlotWidget):
                     self.cursor1 = None
                     self.cursor_removed.emit()
 
+            elif key == QtCore.Qt.Key_Y and modifier == QtCore.Qt.NoModifier:
+                if self.region is not None:
+                    if self.region_lock is not None:
+                        self.region_lock = None
+                    else:
+                        self.region_lock = self.region.getRegion()[0]
+                else:
+                    self.region_lock = None
+
             elif key == QtCore.Qt.Key_F and modifier == QtCore.Qt.NoModifier:
                 if self.common_axis_items:
                     if any(
@@ -1286,6 +1296,7 @@ class _Plot(pg.PlotWidget):
                         self.cursor1.hide()
 
                 else:
+                    self.region_lock = None
                     self.region.setParent(None)
                     self.region.hide()
                     self.region = None
@@ -1627,24 +1638,37 @@ class _Plot(pg.PlotWidget):
         self.current_uuid = uuid
 
     def _clicked(self, event):
+        modifiers = QtGui.QApplication.keyboardModifiers()
+
         if QtCore.Qt.Key_C not in self.disabled_keys:
-            x = self.plot_item.vb.mapSceneToView(event.scenePos())
 
-            if self.cursor1 is not None:
-                self.plotItem.removeItem(self.cursor1)
-                self.cursor1.setParent(None)
-                self.cursor1 = None
+            if self.region is None:
+                pos = self.plot_item.vb.mapSceneToView(event.scenePos())
 
-            self.cursor1 = Cursor(pos=x, angle=90, movable=True)
-            self.plotItem.addItem(self.cursor1, ignoreBounds=True)
-            self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
-            self.cursor1.sigPositionChangeFinished.connect(
-                self.cursor_move_finished.emit
-            )
-            self.cursor_move_finished.emit()
+                if self.cursor1 is not None:
+                    self.plotItem.removeItem(self.cursor1)
+                    self.cursor1.setParent(None)
+                    self.cursor1 = None
 
-            if self.region is not None:
-                self.cursor1.hide()
+                self.cursor1 = Cursor(pos=pos, angle=90, movable=True)
+                self.plotItem.addItem(self.cursor1, ignoreBounds=True)
+                self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
+                self.cursor1.sigPositionChangeFinished.connect(
+                    self.cursor_move_finished.emit
+                )
+                self.cursor_move_finished.emit()
+
+            else:
+                pos = self.plot_item.vb.mapSceneToView(event.scenePos())
+                start, stop = self.region.getRegion()
+
+                if self.region_lock is not None:
+                    self.region.setRegion((self.region_lock, pos.x()))
+                else:
+                    if modifiers == QtCore.Qt.ControlModifier:
+                        self.region.setRegion((start, pos.x()))
+                    else:
+                        self.region.setRegion((pos.x(), stop))
 
     def add_new_channels(self, channels, computed=False):
         geometry = self.viewbox.sceneBoundingRect()
