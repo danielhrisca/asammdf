@@ -1129,8 +1129,8 @@ class Signal(object):
     def validate(self, copy=True):
         """ appply invalidation bits if they are available for this signal
 
-        Arguments
-        ---------
+        Parameters
+        ----------
         copy (True) : bool
             return a copy of the result
 
