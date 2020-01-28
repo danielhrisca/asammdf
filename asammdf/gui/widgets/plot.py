@@ -697,12 +697,13 @@ class _Plot(pg.PlotWidget):
 
         self.disabled_keys = set()
 
-        if self.signals:
-            self.all_timebase = self.timebase = np.unique(
-                np.concatenate([sig.timestamps for sig in self.signals])
-            )
-        else:
-            self.all_timebase = self.timebase = []
+        self._timebase_db = {}
+        for sig in self.signals:
+            if id(sig.timestamps) not in self._timebase_db:
+                self._timebase_db[id(sig.timestamps)] = set()
+            self._timebase_db[id(sig.timestamps)].add(sig.uuid)
+
+        self._compute_all_timebase()
 
         self.showGrid(x=True, y=True)
 
@@ -881,7 +882,7 @@ class _Plot(pg.PlotWidget):
 
     def set_signal_enable(self, uuid, state):
 
-        _, index = self.signal_by_uuid(uuid)
+        sig, index = self.signal_by_uuid(uuid)
 
         if state in (QtCore.Qt.Checked, True, 1):
             self.signals[index].enable = True
@@ -889,16 +890,26 @@ class _Plot(pg.PlotWidget):
             self.view_boxes[index].setXLink(self.viewbox)
             if self.signals[index].individual_axis:
                 self.axes[index].show()
+
+            if id(sig.timestamps) not in self._timebase_db:
+                self._timebase_db[id(sig.timestamps)] = {uuid}
+                self._compute_all_timebase()
+            else:
+                self._timebase_db[id(sig.timestamps)].add(uuid)
         else:
             self.signals[index].enable = False
             self.curves[index].hide()
             self.view_boxes[index].setXLink(None)
             self.axes[index].hide()
 
+            self._timebase_db[id(sig.timestamps)].remove(uuid)
+
+            if len(self._timebase_db[id(sig.timestamps)]) == 0:
+                del self._timebase_db[id(sig.timestamps)]
+                self._compute_all_timebase()
+
         if self.cursor1:
             self.cursor_move_finished.emit()
-
-        self._compute_all_timebase()
 
     def update_views(self):
         geometry = self.viewbox.sceneBoundingRect()
@@ -1307,7 +1318,7 @@ class _Plot(pg.PlotWidget):
                 )
 
                 if any(
-                    sig.min != "n.a." and curve.isVisible()
+                    sig.min != "n.a." and curve.isVisible() and sig.uuid in self.common_axis_items
                     for (sig, curve) in zip(self.signals, self.curves)
                 ):
                     count += 1
@@ -1316,6 +1327,7 @@ class _Plot(pg.PlotWidget):
                     with_common_axis = False
 
                 if count:
+
                     position = 0
                     for uuid in uuids:
                         signal, index = self.signal_by_uuid(uuid)
@@ -1372,7 +1384,9 @@ class _Plot(pg.PlotWidget):
 
                             dim = (float(max_) - min_) * 1.1
 
-                            max_ = min_ + dim * count
+                            max_ = min_ + dim * count - 0.05 * dim
+                            min_ = min_ - 0.05 * dim
+
                             min_, max_ = (
                                 min_ - dim * position,
                                 max_ - dim * position,
@@ -1764,11 +1778,11 @@ class _Plot(pg.PlotWidget):
         self._compute_all_timebase()
 
     def _compute_all_timebase(self):
-        if self.signals:
-            ids = {id(s.timestamps): s.timestamps for s in self.signals if s.enable}
-            self.all_timebase = self.timebase = reduce(np.union1d, [v for v in ids.values()])
+        if self._timebase_db:
+            timebases = [sig.timestamps for sig in self.signals if id(sig.timestamps) in self._timebase_db]
+            self.all_timebase = self.timebase = reduce(np.union1d, timebases)
         else:
-            self.all_timebase = self.timebase = None
+            self.all_timebase = self.timebase = []
 
     def signal_by_uuid(self, uuid):
         for i, sig in enumerate(self.signals):
@@ -1804,6 +1818,8 @@ class _Plot(pg.PlotWidget):
 
     def delete_channels(self, deleted):
 
+        needs_timebase_compute = False
+
         indexes = sorted(
             [(self.signal_by_uuid(uuid)[1], uuid) for uuid in deleted], reverse=True,
         )
@@ -1826,6 +1842,13 @@ class _Plot(pg.PlotWidget):
             if uuid in self.common_axis_items:
                 self.common_axis_items.remove(uuid)
 
+            if sig.enable:
+                self._timebase_db[id(sig.timestamps)].remove(sig.uuid)
+
+                if len(self._timebase_db[id(sig.timestamps)]) == 0:
+                    del self._timebase_db[id(sig.timestamps)]
+                    needs_timebase_compute = True
+
         uuids = [sig.uuid for sig in self.signals]
 
         if uuids:
@@ -1836,4 +1859,5 @@ class _Plot(pg.PlotWidget):
         else:
             self.current_uuid = None
 
-        self._compute_all_timebase()
+        if needs_timebase_compute:
+            self._compute_all_timebase()
