@@ -126,8 +126,7 @@ Shift+H      Tile horizontally      Tiles sub-plots horizontally [3]_
 .. rubric:: Footnotes
 
 .. [1] If the cursor is present then zooming will center on it.
-.. [2] Clicking the plot will move the left margin of the region. Pressing CTRL while
-       clicking the plot will move the right margin of the region. 
+.. [2] Clicking the plot will move the left margin of the region. Pressing CTRL while clicking the plot will move the right margin of the region. 
 .. [3] New in *asammdf 5.7.0*
 
 
