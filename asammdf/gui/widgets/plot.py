@@ -1179,6 +1179,9 @@ class _Plot(pg.PlotWidget):
                     self.cursor1.setPos((start + stop) / 2)
                     self.cursor_move_finished.emit()
 
+                    if self.region is not None:
+                        self.cursor1.hide()
+
                 else:
                     self.plotItem.removeItem(self.cursor1)
                     self.cursor1.setParent(None)
@@ -1279,11 +1282,17 @@ class _Plot(pg.PlotWidget):
                     )
                     self.region.setRegion((start, stop))
 
+                    if self.cursor1 is not None:
+                        self.cursor1.hide()
+
                 else:
                     self.region.setParent(None)
                     self.region.hide()
                     self.region = None
                     self.range_removed.emit()
+
+                    if self.cursor1 is not None:
+                        self.cursor1.show()
 
             elif key == QtCore.Qt.Key_S and modifier == QtCore.Qt.ControlModifier:
                 file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
@@ -1633,6 +1642,9 @@ class _Plot(pg.PlotWidget):
                 self.cursor_move_finished.emit
             )
             self.cursor_move_finished.emit()
+
+            if self.region is not None:
+                self.cursor1.hide()
 
     def add_new_channels(self, channels, computed=False):
         geometry = self.viewbox.sceneBoundingRect()
