@@ -762,6 +762,7 @@ class _Plot(pg.PlotWidget):
                 (QtCore.Qt.Key_R, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_S, QtCore.Qt.ControlModifier),
                 (QtCore.Qt.Key_S, QtCore.Qt.NoModifier),
+                (QtCore.Qt.Key_Y, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_Left, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_Right, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_H, QtCore.Qt.NoModifier),

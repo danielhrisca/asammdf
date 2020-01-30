@@ -2112,8 +2112,7 @@ class MDF4(object):
             else:
                 if source is not None:
                     for gp_nr, ch_nr in self.channels_db[name]:
-                        source_name = self._get_source_name(gp_nr, ch_nr)
-                        if source_name == source:
+                        if source in self._get_source_name(gp_nr, ch_nr):
                             break
                     else:
                         raise MdfException(f"{name} with source {source} not found")
@@ -2150,7 +2149,13 @@ class MDF4(object):
         return gp_nr, ch_nr
 
     def _get_source_name(self, group, index):
-        return self.groups[group].channels[index].source.name or ""
+        source = self.groups[group].channels[index].source
+        cn_source = source.name if source else ""
+
+        source = self.groups[group].channel_group.acq_source
+        cg_source = source.name if source else ""
+
+        return (cn_source, cg_source)
 
     def _set_temporary_master(self, master):
         self._master = master

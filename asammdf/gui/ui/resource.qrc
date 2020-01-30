@@ -35,5 +35,6 @@
     <file alias="csv.png">images/csv.png</file>
     <file alias="error.png">images/error.png</file>
     <file alias="compare.png">images/compare.png</file>
+    <file alias="lock_range.png">images/lock_range.png</file>
 </qresource>
 </RCC>

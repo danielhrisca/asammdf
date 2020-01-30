@@ -354,6 +354,15 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action.setShortcut(QtCore.Qt.Key_R)
         cursors_actions.addAction(action)
 
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/lock_range.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        action = QtWidgets.QAction(icon, "{: <20}\tY".format("Lock/unlock range"), menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_Y))
+        action.setShortcut(QtCore.Qt.Key_Y)
+        cursors_actions.addAction(action)
+
         self.plot_menu = QtWidgets.QMenu("Plot", self.menubar)
         self.plot_menu.addActions(plot_actions.actions())
         self.plot_menu.addSeparator()
