@@ -1587,6 +1587,12 @@ class MDF(object):
                 last_timestamps = [None for gp in mdf.virtual_groups]
                 groups_nr = len(last_timestamps)
 
+            else:
+                if len(mdf.virtual_groups) != groups_nr:
+                    raise MdfException(
+                        f"internal structure of file <{mdf.name}> is different; different channel groups count"
+                    )
+
             for i, group_index in enumerate(mdf.virtual_groups):
                 included_channels = mdf.included_channels(group_index)[group_index]
 
