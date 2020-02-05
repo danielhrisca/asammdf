@@ -552,6 +552,20 @@ class Plot(QtWidgets.QWidget):
         for sig in channels:
             sig.uuid = uuid4()
 
+        invalid = []
+
+        for channel in channels:
+            if np.any(np.diff(channel.timestamps) < 0):
+                invalid.append(channel.name)
+
+        if invalid:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "The following channels do not have monotonous increasing time stamps:",
+                f"The following channels do not have monotonous increasing time stamps:\n{', '.join(invalid)}",
+            )
+            self.plot._can_trim = False
+
         self.plot.add_new_channels(channels)
 
         for sig in channels:
@@ -670,6 +684,7 @@ class _Plot(pg.PlotWidget):
         super().__init__()
 
         self._last_update = perf_counter()
+        self._can_trim = True
 
         self.setAcceptDrops(True)
 
@@ -1465,18 +1480,11 @@ class _Plot(pg.PlotWidget):
                     self.cursor1.set_value(pos)
 
             elif key == QtCore.Qt.Key_H and modifier == QtCore.Qt.NoModifier:
-                start_ts = [
-                    sig.timestamps[0] for sig in self.signals if len(sig.timestamps)
-                ]
+                if len(self.all_timebase):
+                    start_ts = np.amin(self.all_timebase)
+                    stop_ts = np.amax(self.all_timebase)
 
-                stop_ts = [
-                    sig.timestamps[-1] for sig in self.signals if len(sig.timestamps)
-                ]
-
-                if start_ts:
-                    start_t, stop_t = min(start_ts), max(stop_ts)
-
-                    self.viewbox.setXRange(start_t, stop_t)
+                    self.viewbox.setXRange(start_ts, stop_ts)
                     event_ = QtGui.QKeyEvent(
                         QtCore.QEvent.KeyPress, QtCore.Qt.Key_F, QtCore.Qt.NoModifier
                     )
@@ -1500,6 +1508,8 @@ class _Plot(pg.PlotWidget):
                 self.parent().keyPressEvent(event)
 
     def trim(self):
+        if not self._can_trim:
+            return
         (start, stop), _ = self.viewbox.viewRange()
 
         width = self.width() - self.axis.width()
@@ -1676,16 +1686,6 @@ class _Plot(pg.PlotWidget):
         geometry = self.viewbox.sceneBoundingRect()
         initial_index = len(self.signals)
 
-        if initial_index == 0 and channels:
-            start_ts = [sig.timestamps[0] for sig in channels if len(sig.timestamps)]
-
-            stop_ts = [sig.timestamps[-1] for sig in channels if len(sig.timestamps)]
-
-            if start_ts:
-                start_t, stop_t = min(start_ts), max(stop_ts)
-
-                self.viewbox.setXRange(start_t, stop_t)
-
         for i, sig in enumerate(channels):
             index = len(self.signals)
 
@@ -1804,16 +1804,24 @@ class _Plot(pg.PlotWidget):
             axis.hide()
             view_box.addItem(curve)
 
+            if id(sig.timestamps) not in self._timebase_db:
+                self._timebase_db[id(sig.timestamps)] = set()
+            self._timebase_db[id(sig.timestamps)].add(sig.uuid)
+
         self.trim()
         self.update_lines(force=True)
 
         for curve in self.curves[initial_index:]:
             curve.show()
 
+        self._compute_all_timebase()
+
         if initial_index == 0 and self.signals:
             self.set_current_uuid(self.signals[0].uuid)
 
-        self._compute_all_timebase()
+            if len(self.all_timebase):
+                start_t, stop_t = np.amin(self.all_timebase), np.amax(self.all_timebase)
+                self.viewbox.setXRange(start_t, stop_t)
 
     def _compute_all_timebase(self):
         if self._timebase_db:
