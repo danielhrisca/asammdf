@@ -524,7 +524,8 @@ class Plot(QtWidgets.QWidget):
         else:
             name, unit = sig.name, sig.unit
         item = ListItem((-1, -1), name, sig.computation, self.channel_selection)
-        it = ChannelDisplay(sig.uuid, unit, sig.samples.dtype.kind, 3, self)
+        tooltip = getattr(sig, "tooltip", "")
+        it = ChannelDisplay(sig.uuid, unit, sig.samples.dtype.kind, 3, tooltip, self)
         it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
         it.set_name(name)
