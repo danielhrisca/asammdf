@@ -1332,9 +1332,31 @@ class _Plot(pg.PlotWidget):
                 )
 
                 if file_name:
-                    with MDF() as mdf:
-                        mdf.append(self.signals)
-                        mdf.save(file_name, overwrite=True)
+                    signals = [
+                        signal
+                        for signal in self.signals
+                        if signal.enable
+                    ]
+                    if signals:
+                        with MDF() as mdf:
+                            groups = {}
+                            for sig in signals:
+                                id_ = id(sig.timestamps)
+                                if id_ not in groups:
+                                    groups[id_] = []
+                                groups[id_].append(sig)
+
+                            for signals in groups.values():
+                                sigs = []
+                                for signal in signals:
+                                    if ':' in signal.name:
+                                        sig = signal.copy()
+                                        sig.name = sig.name.split(':')[-1].strip()
+                                        sigs.append(sig)
+                                    else:
+                                        sigs.append(signal)
+                                mdf.append(sigs, common_timebase=True)
+                            mdf.save(file_name, overwrite=True)
 
             elif key == QtCore.Qt.Key_S and modifier == QtCore.Qt.NoModifier:
 

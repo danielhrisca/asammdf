@@ -25,6 +25,7 @@ GUI
 With the GUI tool you can
 
 * visualize channels
+* compare channels from multiple files in the same plot
 * see channel, conversion and source metadata as stored in the MDF file
 * access library functionality for single files (convert, export, cut, filter, resample, scramble) and multiple files (concatenate, stack)
 
