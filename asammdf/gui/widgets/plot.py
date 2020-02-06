@@ -108,6 +108,7 @@ class Plot(QtWidgets.QWidget):
             self.channel_selection_row_changed
         )
         self.channel_selection.add_channels_request.connect(self.add_channels_request)
+        self.channel_selection.set_time_offset.connect(self.plot.set_time_offset)
         self.plot.add_channels_request.connect(self.add_channels_request)
         self.setAcceptDrops(True)
 
@@ -1907,3 +1908,46 @@ class _Plot(pg.PlotWidget):
 
         if needs_timebase_compute:
             self._compute_all_timebase()
+
+    def set_time_offset(self, info):
+        absolute, offset, *uuids = info
+        signals = [
+            sig
+            for sig in self.signals
+            if sig.uuid in uuids
+        ]
+
+        if absolute:
+            for sig in signals:
+                if not len(sig.timestamps):
+                    continue
+                id_ = id(sig.timestamps)
+                delta = sig.timestamps[0] - offset
+                sig.timestamps = sig.timestamps - delta
+
+                if id(sig.timestamps) not in self._timebase_db:
+                    self._timebase_db[id(sig.timestamps)] = set()
+                self._timebase_db[id(sig.timestamps)].add(sig.uuid)
+
+                self._timebase_db[id_].remove(sig.uuid)
+                if len(self._timebase_db[id_]) == 0:
+                    del self._timebase_db[id_]
+        else:
+            for sig in signals:
+                if not len(sig.timestamps):
+                    continue
+                id_ = id(sig.timestamps)
+
+                sig.timestamps = sig.timestamps + offset
+
+                if id(sig.timestamps) not in self._timebase_db:
+                    self._timebase_db[id(sig.timestamps)] = set()
+                self._timebase_db[id(sig.timestamps)].add(sig.uuid)
+
+                self._timebase_db[id_].remove(sig.uuid)
+                if len(self._timebase_db[id_]) == 0:
+                    del self._timebase_db[id_]
+
+        self._compute_all_timebase()
+
+        self.xrange_changed_handle()

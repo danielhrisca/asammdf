@@ -9,7 +9,7 @@ console = logging.StreamHandler()
 console.setFormatter(formatter)
 console.setLevel(logging.DEBUG)
 logger.addHandler(console)
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.ERROR)
 
 
 from .blocks.mdf_v2 import MDF2
