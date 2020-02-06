@@ -108,6 +108,7 @@ class Plot(QtWidgets.QWidget):
             self.channel_selection_row_changed
         )
         self.channel_selection.add_channels_request.connect(self.add_channels_request)
+        self.channel_selection.set_time_offset.connect(self.plot.set_time_offset)
         self.plot.add_channels_request.connect(self.add_channels_request)
         self.setAcceptDrops(True)
 
@@ -1907,3 +1908,29 @@ class _Plot(pg.PlotWidget):
 
         if needs_timebase_compute:
             self._compute_all_timebase()
+
+    def set_time_offset(self, info):
+        absolute, offset, *uuids = info
+        signals = [
+            sig
+            for sig in self.signals
+            if sig.uuid in uuids
+        ]
+
+        ts = {id(sig.timestamps): sig.timestamps for sig in signals}
+
+        if absolute:
+            for t in ts.values():
+                if not len(t):
+                    continue
+                delta = t[0] - offset
+                t -= delta
+        else:
+            for t in ts.values():
+                if not len(t):
+                    continue
+                t += offset
+
+        self._compute_all_timebase()
+
+        self.xrange_changed_handle()

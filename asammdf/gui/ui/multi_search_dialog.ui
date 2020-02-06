@@ -132,39 +132,19 @@
      </property>
     </widget>
    </item>
-   <item row="5" column="0" rowspan="2">
-    <widget class="QScrollArea" name="scrollArea">
-     <property name="widgetResizable">
-      <bool>true</bool>
+   <item row="0" column="2" colspan="2">
+    <widget class="QPushButton" name="show_measurement_list_btn">
+     <property name="text">
+      <string>Show measurement list</string>
      </property>
-     <widget class="QWidget" name="scrollAreaLayoutWidget">
-      <property name="geometry">
-       <rect>
-        <x>0</x>
-        <y>0</y>
-        <width>461</width>
-        <height>409</height>
-       </rect>
-      </property>
-      <layout class="QHBoxLayout" name="match_layout">
-       <property name="spacing">
-        <number>5</number>
-       </property>
-       <property name="leftMargin">
-        <number>2</number>
-       </property>
-       <property name="topMargin">
-        <number>2</number>
-       </property>
-       <property name="rightMargin">
-        <number>2</number>
-       </property>
-       <property name="bottomMargin">
-        <number>2</number>
-       </property>
-      </layout>
-     </widget>
+     <property name="icon">
+      <iconset resource="resource.qrc">
+       <normaloff>:/info.png</normaloff>:/info.png</iconset>
+     </property>
     </widget>
+   </item>
+   <item row="5" column="0" rowspan="2">
+    <widget class="QListWidget" name="matches"/>
    </item>
   </layout>
  </widget>
@@ -177,7 +157,6 @@
  </customwidgets>
  <tabstops>
   <tabstop>search_box</tabstop>
-  <tabstop>scrollArea</tabstop>
   <tabstop>match_kind</tabstop>
   <tabstop>selection</tabstop>
   <tabstop>add_btn</tabstop>

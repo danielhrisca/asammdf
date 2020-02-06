@@ -9,7 +9,7 @@ from ..ui.multi_search_dialog import Ui_MultiSearchDialog
 
 
 class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
-    def __init__(self, channels_dbs, tooltips, *args, **kwargs):
+    def __init__(self, channels_dbs, measurements, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
         self.setupUi(self)
@@ -21,39 +21,7 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
 
         self.result = set()
         self.channels_dbs = channels_dbs
-
-        description_template = '<html><head/><body><p><span style=" font-size:10pt; font-weight:400;">{}</span></p><p><span style=" font-size:8pt; font-weight:300;">{}</span></p></body></html>'
-
-        self.match_lists = []
-        for channels_db, tooltip in zip(self.channels_dbs, tooltips):
-            vbox = QtWidgets.QVBoxLayout()
-            description = QtWidgets.QTextEdit()
-            sizePolicy = QtWidgets.QSizePolicy(
-                QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed
-            )
-            sizePolicy.setHorizontalStretch(0)
-            sizePolicy.setVerticalStretch(1)
-            sizePolicy.setHeightForWidth(description.sizePolicy().hasHeightForWidth())
-            description.setSizePolicy(sizePolicy)
-            description.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-            description.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-            description.setSizeAdjustPolicy(
-                QtWidgets.QAbstractScrollArea.AdjustToContents
-            )
-            description.setText(description_template.format(*tooltip.splitlines()))
-            description.setReadOnly(True)
-
-            vbox.addWidget(description)
-            lst = QtWidgets.QListWidget()
-            self.match_lists.append(lst)
-
-            lst.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
-            lst.setToolTip(tooltip)
-            lst.setMinimumSize(QtCore.QSize(400, 0))
-            vbox.addWidget(lst)
-            vbox.setStretch(0, 0)
-            vbox.setStretch(1, 1)
-            self.match_layout.addLayout(vbox)
+        self.measurements = measurements
 
         self.apply_btn.clicked.connect(self._apply)
         self.add_btn.clicked.connect(self._add)
@@ -75,24 +43,25 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
             else:
                 pattern = text
 
+            self.matches.clear()
+            results = []
+
             try:
                 pattern = re.compile(f"(?i){pattern}")
-                for i, (channels_db, matches) in enumerate(
-                    zip(self.channels_dbs, self.match_lists)
-                ):
+                for i, channels_db in enumerate(self.channels_dbs, 1):
                     match_results = [
-                        name for name in channels_db if pattern.match(name)
+                        f'{i:> 2}: {name}' for name in channels_db if pattern.match(name)
                     ]
-                    matches.clear()
-                    matches.addItems(match_results)
-                    if match_results:
-                        self.status.setText("")
-                    else:
-                        self.status.setText("No match found")
+                    results.extend(match_results)
+
             except Exception as err:
                 self.status.setText(str(err))
-                for matches in self.match_lists:
-                    matches.clear()
+            else:
+                if match_results:
+                    self.status.setText("")
+                    self.matches.addItems(results)
+                else:
+                    self.status.setText("No match found")
 
         self.add_btn.setFocus()
 
@@ -100,11 +69,9 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
         count = self.selection.count()
         names = set(self.selection.item(i).text() for i in range(count))
 
-        for i, matches in enumerate(self.match_lists, 1):
+        to_add = set(item.text() for item in self.matches.selectedItems())
 
-            to_add = set(f"{i}: {item.text()}" for item in matches.selectedItems())
-
-            names = names | to_add
+        names = names | to_add
 
         names = natsorted(names)
 

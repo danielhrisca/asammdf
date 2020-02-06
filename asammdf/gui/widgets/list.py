@@ -12,6 +12,7 @@ from ..utils import extract_mime_names
 class ListWidget(QtWidgets.QListWidget):
 
     itemsDeleted = QtCore.pyqtSignal(list)
+    set_time_offset = QtCore.pyqtSignal(list)
     items_rearranged = QtCore.pyqtSignal()
     add_channels_request = QtCore.pyqtSignal(list)
 
@@ -165,6 +166,9 @@ class ListWidget(QtWidgets.QListWidget):
         menu.addAction(self.tr("Set unit"))
         menu.addAction(self.tr("Set precision"))
         menu.addSeparator()
+        menu.addAction(self.tr("Relative time base shift"))
+        menu.addAction(self.tr("Set time base start offset"))
+        menu.addSeparator()
         menu.addAction(self.tr("Delete (Del)"))
 
         action = menu.exec_(self.viewport().mapToGlobal(position))
@@ -262,6 +266,31 @@ class ListWidget(QtWidgets.QListWidget):
                     if item in selected_items:
                         widget.set_precision(precision)
                         widget.update()
+
+        elif action.text() in ("Relative time base shift", "Set time base start offset"):
+            selected_items = self.selectedItems()
+            if selected_items:
+
+                if action.text() == "Relative time base shift":
+                    offset, ok = QtWidgets.QInputDialog.getDouble(
+                        self, "Relative offset [s]", "Offset [s]:",
+                    )
+                    absolute = False
+                else:
+                    offset, ok = QtWidgets.QInputDialog.getDouble(
+                        self, "Absolute time start offset [s]", "Offset [s]:",
+                    )
+                    absolute = True
+                if ok:
+                    uuids = []
+
+                    for i in range(self.count()):
+                        item = self.item(i)
+                        widget = self.itemWidget(item)
+                        if item in selected_items:
+
+                            uuids.append(widget.uuid)
+                    self.set_time_offset.emit([absolute, offset, ] + uuids)
 
         elif action.text() == "Delete (Del)":
             event = QtGui.QKeyEvent(

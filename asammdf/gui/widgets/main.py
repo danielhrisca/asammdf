@@ -801,11 +801,12 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 channels_dbs = [
                     self.files.widget(i).mdf.channels_db for i in range(count)
                 ]
-                tooltips = [
-                    f'Search results for file\n "{self.files.widget(i).file_name}"'
+                measurements = [
+                    str(self.files.widget(i).mdf.name)
                     for i in range(count)
                 ]
-                dlg = MultiSearch(channels_dbs, tooltips, parent=self,)
+
+                dlg = MultiSearch(channels_dbs, measurements, parent=self,)
                 dlg.setModal(True)
                 dlg.exec_()
                 result = dlg.result

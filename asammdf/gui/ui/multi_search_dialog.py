@@ -2,10 +2,9 @@
 
 # Form implementation generated from reading ui file 'multi_search_dialog.ui'
 #
-# Created by: PyQt5 UI code generator 5.13.1
+# Created by: PyQt5 UI code generator 5.12.2
 #
 # WARNING! All changes made in this file will be lost!
-
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -59,25 +58,21 @@ class Ui_MultiSearchDialog(object):
         self.search_box.setText("")
         self.search_box.setObjectName("search_box")
         self.grid_layout.addWidget(self.search_box, 1, 0, 1, 1)
-        self.scrollArea = QtWidgets.QScrollArea(MultiSearchDialog)
-        self.scrollArea.setWidgetResizable(True)
-        self.scrollArea.setObjectName("scrollArea")
-        self.scrollAreaLayoutWidget = QtWidgets.QWidget()
-        self.scrollAreaLayoutWidget.setGeometry(QtCore.QRect(0, 0, 461, 409))
-        self.scrollAreaLayoutWidget.setObjectName("scrollAreaLayoutWidget")
-        self.match_layout = QtWidgets.QHBoxLayout(self.scrollAreaLayoutWidget)
-        self.match_layout.setContentsMargins(2, 2, 2, 2)
-        self.match_layout.setSpacing(5)
-        self.match_layout.setObjectName("match_layout")
-        self.scrollArea.setWidget(self.scrollAreaLayoutWidget)
-        self.grid_layout.addWidget(self.scrollArea, 5, 0, 2, 1)
+        self.show_measurement_list_btn = QtWidgets.QPushButton(MultiSearchDialog)
+        icon1 = QtGui.QIcon()
+        icon1.addPixmap(QtGui.QPixmap(":/info.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.show_measurement_list_btn.setIcon(icon1)
+        self.show_measurement_list_btn.setObjectName("show_measurement_list_btn")
+        self.grid_layout.addWidget(self.show_measurement_list_btn, 0, 2, 1, 2)
+        self.matches = QtWidgets.QListWidget(MultiSearchDialog)
+        self.matches.setObjectName("matches")
+        self.grid_layout.addWidget(self.matches, 5, 0, 2, 1)
         self.grid_layout.setColumnStretch(0, 1)
 
         self.retranslateUi(MultiSearchDialog)
         self.match_kind.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MultiSearchDialog)
-        MultiSearchDialog.setTabOrder(self.search_box, self.scrollArea)
-        MultiSearchDialog.setTabOrder(self.scrollArea, self.match_kind)
+        MultiSearchDialog.setTabOrder(self.search_box, self.match_kind)
         MultiSearchDialog.setTabOrder(self.match_kind, self.selection)
         MultiSearchDialog.setTabOrder(self.selection, self.add_btn)
         MultiSearchDialog.setTabOrder(self.add_btn, self.cancel_btn)
@@ -91,5 +86,8 @@ class Ui_MultiSearchDialog(object):
         self.match_kind.setItemText(0, _translate("MultiSearchDialog", "Wildcard"))
         self.match_kind.setItemText(1, _translate("MultiSearchDialog", "Regex"))
         self.label.setText(_translate("MultiSearchDialog", "Final selection"))
+        self.show_measurement_list_btn.setText(_translate("MultiSearchDialog", "Show measurement list"))
+
+
 from asammdf.gui.widgets.list import MinimalListWidget
 from . import resource_rc
