@@ -1917,19 +1917,36 @@ class _Plot(pg.PlotWidget):
             if sig.uuid in uuids
         ]
 
-        ts = {id(sig.timestamps): sig.timestamps for sig in signals}
-
         if absolute:
-            for t in ts.values():
-                if not len(t):
+            for sig in signals:
+                if not len(sig.timestamps):
                     continue
-                delta = t[0] - offset
-                t -= delta
+                id_ = id(sig.timestamps)
+                delta = sig.timestamps[0] - offset
+                sig.timestamps = sig.timestamps - delta
+
+                if id(sig.timestamps) not in self._timebase_db:
+                    self._timebase_db[id(sig.timestamps)] = set()
+                self._timebase_db[id(sig.timestamps)].add(sig.uuid)
+
+                self._timebase_db[id_].remove(sig.uuid)
+                if len(self._timebase_db[id_]) == 0:
+                    del self._timebase_db[id_]
         else:
-            for t in ts.values():
-                if not len(t):
+            for sig in signals:
+                if not len(sig.timestamps):
                     continue
-                t += offset
+                id_ = id(sig.timestamps)
+
+                sig.timestamps = sig.timestamps + offset
+
+                if id(sig.timestamps) not in self._timebase_db:
+                    self._timebase_db[id(sig.timestamps)] = set()
+                self._timebase_db[id(sig.timestamps)].add(sig.uuid)
+
+                self._timebase_db[id_].remove(sig.uuid)
+                if len(self._timebase_db[id_]) == 0:
+                    del self._timebase_db[id_]
 
         self._compute_all_timebase()
 

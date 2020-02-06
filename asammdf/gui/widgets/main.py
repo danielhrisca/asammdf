@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 import webbrowser
 import gc
+from textwrap import wrap
 
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
@@ -35,8 +36,34 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         self.batch = BatchWidget(self.ignore_value2text_conversions)
         self.stackedWidget.addWidget(self.batch)
+
+        widget = QtWidgets.QWidget()
+        layout = QtWidgets.QVBoxLayout()
+        widget.setLayout(layout)
+
+        multi_search = QtWidgets.QPushButton('Search')
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/search.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        multi_search.setIcon(icon)
+        multi_search.clicked.connect(self.comparison_search)
+
+        multi_info = QtWidgets.QPushButton('Measurements information')
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/info.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        multi_info.setIcon(icon)
+        multi_info.clicked.connect(self.comparison_info)
+
+        hbox = QtWidgets.QHBoxLayout()
+        hbox.addWidget(multi_search)
+        hbox.addWidget(multi_info)
+        hbox.addStretch()
+
         self.comparison_plot = Plot({}, parent=self)
-        self.stackedWidget.addWidget(self.comparison_plot)
+
+        layout.addLayout(hbox)
+        layout.addWidget(self.comparison_plot)
+
+        self.stackedWidget.addWidget(widget)
         self.stackedWidget.setCurrentIndex(0)
 
         self.progress = None
@@ -835,3 +862,28 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         else:
             super().keyPressEvent(event)
+
+    def comparison_search(self, event):
+        event = QtGui.QKeyEvent(
+            QtCore.QEvent.KeyPress, QtCore.Qt.Key_F, QtCore.Qt.ControlModifier
+        )
+        self.keyPressEvent(event)
+
+    def comparison_info(self, event):
+        count = self.files.count()
+        measurements = [
+            str(self.files.widget(i).mdf.name)
+            for i in range(count)
+        ]
+
+        info = []
+        for i, name in enumerate(measurements, 1):
+            info.extend(wrap(f'{i:> 2}: {name}', 120))
+
+        QtWidgets.QMessageBox.information(
+            self,
+            "Measurement files used for comparison",
+            '\n'.join(info),
+        )
+
+

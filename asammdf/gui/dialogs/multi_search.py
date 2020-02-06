@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
+from textwrap import wrap
 
 from natsort import natsorted
 from PyQt5 import QtWidgets, QtCore
@@ -23,9 +24,12 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
         self.channels_dbs = channels_dbs
         self.measurements = measurements
 
+        self.matches.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+
         self.apply_btn.clicked.connect(self._apply)
         self.add_btn.clicked.connect(self._add)
         self.cancel_btn.clicked.connect(self._cancel)
+        self.show_measurement_list_btn.clicked.connect(self.show_measurement_list)
 
         self.search_box.editingFinished.connect(self.search_text_changed)
         self.match_kind.currentTextChanged.connect(self.search_box.textChanged.emit)
@@ -95,3 +99,14 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
     def _cancel(self, event):
         self.result = set()
         self.close()
+
+    def show_measurement_list(self, event):
+        info = []
+        for i, name in enumerate(self.measurements, 1):
+            info.extend(wrap(f'{i:> 2}: {name}', 120))
+
+        QtWidgets.QMessageBox.information(
+            self,
+            "Measurement files used for comparison",
+            '\n'.join(info),
+        )
