@@ -52,6 +52,7 @@ Mode
 
 * *Single files* : files are opened idividually
 * *Batch processing* : allows processing multiple files 
+* *Comparison* : show channels from all the opened files, in a single Plot 
 
 .. image:: images/open_files.gif
 
@@ -310,6 +311,10 @@ The *Multiple files* toolbox page is used to concatenate or stack multiple files
 The files list can be rearranged in the list (1) by drag and dropping lines. Unwanted files can be deleted by
 selecting them and pressing the *DEL* key. The files order is considered from top to bottom. 
 
+Comparison
+==========
+Use *CTRL+F* to search channels from all the opened files. The channel names are prefixed
+with the measurement index.
 
 
 
