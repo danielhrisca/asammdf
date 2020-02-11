@@ -519,8 +519,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             else:
                 mdf = file
 
-            print(source_file)
-
             file_name = source_file.with_suffix(suffix)
 
             target = mdf.export

@@ -34,6 +34,7 @@ class ListWidget(QtWidgets.QListWidget):
     def keyPressEvent(self, event):
         key = event.key()
         modifiers = event.modifiers()
+
         if key == QtCore.Qt.Key_Delete and self.can_delete_items:
             selected_items = self.selectedItems()
             deleted = []
@@ -105,20 +106,19 @@ class ListWidget(QtWidgets.QListWidget):
 
         for item in selected_items:
 
-            name = item.name.encode("utf-8")
             entry = item.entry
             computation = item.computation
 
             if entry == (-1, -1):
                 info = {
-                    "name": name,
+                    "name": item.name,
                     "computation": computation,
                 }
                 info = json.dumps(info).encode("utf-8")
             else:
-                info = name
+                info = item.name.encode("utf-8")
 
-            data.append(pack(f"<3Q{len(info)}s", entry[0], entry[1], len(info), info))
+            data.append(pack(f"<3q{len(info)}s", entry[0], entry[1], len(info), info))
 
         mimeData.setData(
             "application/octet-stream-asammdf", QtCore.QByteArray(b"".join(data))

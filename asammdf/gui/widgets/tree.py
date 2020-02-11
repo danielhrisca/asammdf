@@ -59,7 +59,7 @@ class TreeWidget(QtWidgets.QTreeWidget):
                     entry = child.entry
 
                     data.append(
-                        pack(f"<3Q{len(name)}s", entry[0], entry[1], len(name), name)
+                        pack(f"<3q{len(name)}s", entry[0], entry[1], len(name), name)
                     )
             else:
 
@@ -67,7 +67,7 @@ class TreeWidget(QtWidgets.QTreeWidget):
                 entry = item.entry
                 if entry[1] != 0xFFFFFFFFFFFFFFFF:
                     data.append(
-                        pack(f"<3Q{len(name)}s", entry[0], entry[1], len(name), name)
+                        pack(f"<3q{len(name)}s", entry[0], entry[1], len(name), name)
                     )
 
         mimeData.setData(

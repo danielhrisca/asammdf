@@ -77,7 +77,7 @@ def extract_mime_names(data):
         pos = 0
         while pos < size:
             group_index, channel_index, name_length = unpack(
-                "<3Q", data[pos : pos + 24]
+                "<3q", data[pos : pos + 24]
             )
             pos += 24
             name = data[pos : pos + name_length].decode("utf-8")
