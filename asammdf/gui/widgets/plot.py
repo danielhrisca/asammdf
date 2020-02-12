@@ -496,7 +496,7 @@ class Plot(QtWidgets.QWidget):
         elif (key, modifiers) in self.plot.keyboard_events:
             self.plot.keyPressEvent(event)
         else:
-            self.parent().keyPressEvent(event)
+            event.ignore()
 
     def range_removed(self):
         for i in range(self.channel_selection.count()):
