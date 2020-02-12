@@ -109,10 +109,18 @@ class ListWidget(QtWidgets.QListWidget):
             entry = item.entry
             computation = item.computation
 
+            widget = self.itemWidget(item)
+
+            color = widget.color
+            unit = widget.unit
+
             if entry == (-1, -1):
                 info = {
                     "name": item.name,
                     "computation": computation,
+                    "computed": True,
+                    "unit": unit,
+                    "color": color,
                 }
                 info = json.dumps(info).encode("utf-8")
             else:

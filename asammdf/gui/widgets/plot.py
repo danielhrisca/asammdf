@@ -574,7 +574,7 @@ class Plot(QtWidgets.QWidget):
             item = ListItem(
                 (sig.group_index, sig.channel_index),
                 sig.name,
-                None,
+                sig.computation,
                 self.channel_selection,
             )
             item.setData(QtCore.Qt.UserRole, sig.name)
@@ -1749,7 +1749,10 @@ class _Plot(pg.PlotWidget):
                 "fmt": "",
             }
 
-            color = COLORS[index % 10]
+            if hasattr(sig, 'color'):
+                color = sig.color or COLORS[index % 10]
+            else:
+                color = COLORS[index % 10]
             sig.color = color
 
             if len(sig.samples):

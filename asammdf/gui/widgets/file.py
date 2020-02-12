@@ -23,7 +23,7 @@ from ..ui.file_widget import Ui_file_widget
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ...signal import Signal
 from ...blocks.utils import MdfException, extract_cncomment_xml, csv_bytearray2hex
-from ..utils import TERMINATED, run_thread_with_progress, setup_progress, load_dsp
+from ..utils import TERMINATED, run_thread_with_progress, setup_progress, load_dsp, get_required_signals, compute_signal
 from .plot import Plot
 from .numeric import Numeric
 from .tabular import Tabular
@@ -1468,8 +1468,19 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             signals_ = [
                 (None, *self.mdf.whereis(name)[0]) for name in names if name in self.mdf
             ]
+            computed = []
         else:
-            signals_ = names
+            signals_ = [
+                name
+                for name in names
+                if name[1:] != (-1, -1)
+            ]
+
+            computed = [
+                json.loads(name[0])
+                for name in names
+                if name[1:] == (-1, -1)
+            ]
 
         if not signals_:
             return
@@ -1501,6 +1512,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             for sig, sig_ in zip(signals, signals_):
                 sig.group_index = sig_[1]
                 sig.channel_index = sig_[2]
+                sig.computed = False
+                sig.computation = {}
 
             signals = [sig for sig in signals if not sig.samples.dtype.names]
 
@@ -1558,6 +1571,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 numeric.timestamp_changed_signal.connect(self.set_cursor)
 
         elif window_type == "Plot":
+
             plot = Plot([], False)
 
             if not self.subplots:
@@ -1578,6 +1592,61 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             plot.hide()
 
             plot.add_new_channels(signals)
+
+            if computed:
+                measured_signals = {sig.name: sig for sig in signals}
+                if measured_signals:
+                    all_timebase = np.unique(
+                        np.concatenate(
+                            [sig.timestamps for sig in measured_signals.values()]
+                        )
+                    )
+                else:
+                    all_timebase = []
+
+                required_channels = []
+                for ch in computed:
+                    required_channels.extend(get_required_signals(ch))
+
+                required_channels = set(required_channels)
+                required_channels = [
+                    (None, *self.mdf.whereis(channel)[0])
+                    for channel in required_channels
+                    if channel not in list(measured_signals) and channel in self.mdf
+                ]
+                required_channels = {
+                    sig.name: sig
+                    for sig in self.mdf.select(
+                        required_channels,
+                        ignore_value2text_conversions=self.ignore_value2text_conversions,
+                        copy_master=False,
+                    )
+                }
+
+                required_channels.update(measured_signals)
+
+                computed_signals = {}
+
+                for channel in computed:
+                    computation = channel["computation"]
+
+                    try:
+
+                        signal = compute_signal(computation, required_channels, all_timebase)
+                        signal.color = channel["color"]
+                        signal.computed = True
+                        signal.computation = channel["computation"]
+                        signal.name = channel["name"]
+                        signal.unit = channel["unit"]
+                        signal.group_index = -1
+                        signal.channel_index = -1
+
+                        computed_signals[signal.name] = signal
+                    except:
+                        pass
+                signals = list(computed_signals.values())
+                plot.add_new_channels(signals)
+
             plot.plot.update_lines(with_dots=self.with_dots)
 
             plot.show()
@@ -1730,133 +1799,6 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
         elif window_info["type"] == "Plot":
 
-            def get_required_signals(channel):
-                names = []
-                if "computed" in channel:
-                    if channel["computed"]:
-                        computation = channel["computation"]
-                        if computation["type"] == "arithmetic":
-                            for op in (
-                                computation["operand1"],
-                                computation["operand2"],
-                            ):
-                                if isinstance(op, str):
-                                    names.append(op)
-                                elif isinstance(op, (int, float)):
-                                    pass
-                                else:
-                                    names.extend(get_required_signals(op))
-                        else:
-                            op = computation["channel"]
-                            if isinstance(op, str):
-                                names.append(op)
-                            else:
-                                names.extend(get_required_signals(op))
-                    else:
-                        names.append(channel["name"])
-                else:
-                    if channel["type"] == "arithmetic":
-                        for op in (channel["operand1"], channel["operand2"]):
-                            if isinstance(op, str):
-                                names.append(op)
-                            elif isinstance(op, (int, float)):
-                                pass
-                            else:
-                                names.extend(get_required_signals(op))
-                    else:
-                        op = channel["channel"]
-                        if isinstance(op, str):
-                            names.append(op)
-                        else:
-                            names.extend(get_required_signals(op))
-
-                return names
-
-            def compute(description, measured_signals, all_timebase):
-                type_ = description["type"]
-
-                if type_ == "arithmetic":
-                    op = description["op"]
-
-                    operand1 = description["operand1"]
-                    if isinstance(operand1, dict):
-                        operand1 = compute(operand1, measured_signals, all_timebase)
-                    elif isinstance(operand1, str):
-                        operand1 = measured_signals[operand1]
-
-                    operand2 = description["operand2"]
-                    if isinstance(operand2, dict):
-                        operand2 = compute(operand2, measured_signals, all_timebase)
-                    elif isinstance(operand2, str):
-                        operand2 = measured_signals[operand2]
-
-                    result = eval(f"operand1 {op} operand2")
-                    if not hasattr(result, "name"):
-                        result = Signal(
-                            name="_",
-                            samples=np.ones(len(all_timebase)) * result,
-                            timestamps=all_timebase,
-                        )
-
-                else:
-                    function = description["name"]
-                    args = description["args"]
-
-                    channel = description["channel"]
-
-                    if isinstance(channel, dict):
-                        channel = compute(channel, measured_signals, all_timebase)
-                    else:
-                        channel = measured_signals[channel]
-
-                    func = getattr(np, function)
-
-                    if function in [
-                        "arccos",
-                        "arcsin",
-                        "arctan",
-                        "cos",
-                        "deg2rad",
-                        "degrees",
-                        "rad2deg",
-                        "radians",
-                        "sin",
-                        "tan",
-                        "floor",
-                        "rint",
-                        "fix",
-                        "trunc",
-                        "cumprod",
-                        "cumsum",
-                        "diff",
-                        "exp",
-                        "log10",
-                        "log",
-                        "log2",
-                        "absolute",
-                        "cbrt",
-                        "sqrt",
-                        "square",
-                        "gradient",
-                    ]:
-
-                        samples = func(channel.samples)
-                        if function == "diff":
-                            timestamps = channel.timestamps[1:]
-                        else:
-                            timestamps = channel.timestamps
-
-                    elif function == "around":
-                        samples = func(channel.samples, *args)
-                        timestamps = channel.timestamps
-                    elif function == "clip":
-                        samples = func(channel.samples, *args)
-                        timestamps = channel.timestamps
-
-                    result = Signal(samples=samples, timestamps=timestamps, name="_",)
-
-                return result
-
             measured_signals_ = [
                 (None, *self.mdf.whereis(channel["name"])[0])
                 for channel in window_info["configuration"]["channels"]
@@ -1921,7 +1863,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
                 try:
 
-                    signal = compute(computation, required_channels, all_timebase)
+                    signal = compute_signal(computation, required_channels, all_timebase)
                     signal.color = channel["color"]
                     signal.computed = True
                     signal.computation = channel["computation"]
@@ -2292,12 +2234,26 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
     def add_new_channels(self, names, widget):
         try:
-            sigs = self.mdf.select(names)
+            signals_ = [
+                name
+                for name in names
+                if name[1:] != (-1, -1)
+            ]
+
+            computed = [
+                json.loads(name[0])
+                for name in names
+                if name[1:] == (-1, -1)
+            ]
+
+            sigs = self.mdf.select(signals_)
 
             for sig in sigs:
                 group, index = self.mdf.whereis(sig.name)[0]
                 sig.group_index = group
                 sig.channel_index = index
+                sig.computed = False
+                sig.computation = {}
 
             sigs = [
                 sig
@@ -2305,6 +2261,61 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 if not sig.samples.dtype.names and len(sig.samples.shape) <= 1
             ]
             widget.add_new_channels(sigs)
+
+            if isinstance(widget, Plot) and computed:
+                measured_signals = {sig.name: sig for sig in sigs}
+                if measured_signals:
+                    all_timebase = np.unique(
+                        np.concatenate(
+                            [sig.timestamps for sig in measured_signals.values()]
+                        )
+                    )
+                else:
+                    all_timebase = []
+
+                required_channels = []
+                for ch in computed:
+                    required_channels.extend(get_required_signals(ch))
+
+                required_channels = set(required_channels)
+                required_channels = [
+                    (None, *self.mdf.whereis(channel)[0])
+                    for channel in required_channels
+                    if channel not in list(measured_signals) and channel in self.mdf
+                ]
+                required_channels = {
+                    sig.name: sig
+                    for sig in self.mdf.select(
+                        required_channels,
+                        ignore_value2text_conversions=self.ignore_value2text_conversions,
+                        copy_master=False,
+                    )
+                }
+
+                required_channels.update(measured_signals)
+
+                computed_signals = {}
+
+                for channel in computed:
+                    computation = channel["computation"]
+
+                    try:
+
+                        signal = compute_signal(computation, required_channels, all_timebase)
+                        signal.color = channel["color"]
+                        signal.computed = True
+                        signal.computation = channel["computation"]
+                        signal.name = channel["name"]
+                        signal.unit = channel["unit"]
+                        signal.group_index = -1
+                        signal.channel_index = -1
+
+                        computed_signals[signal.name] = signal
+                    except:
+                        pass
+                signals = list(computed_signals.values())
+                widget.add_new_channels(signals)
+
         except MdfException:
             pass
 
