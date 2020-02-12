@@ -77,6 +77,7 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         icon.addPixmap(QtGui.QPixmap(":/open.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtWidgets.QAction(icon, "Open", menu)
         action.triggered.connect(self.open)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+O"))
         open_group.addAction(action)
         menu.addActions(open_group.actions())
         action = QtWidgets.QAction(icon, "Open folder", menu)
@@ -712,12 +713,13 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
             self,
             "Select measurement file",
-            "",
+            self._settings.value("last_opened_path", "", str),
             "MDF v3 (*.dat *.mdf);;MDF v4(*.mf4);;DL3/ERG files (*.dl3 *.erg);;All files (*.dat *.mdf *.mf4 *.dl3 *.erg)",
             "All files (*.dat *.mdf *.mf4 *.dl3 *.erg)",
         )
 
         if file_names:
+            self._settings.setValue("last_opened_path", file_names[0])
             gc.collect()
 
         for file_name in natsorted(file_names):
