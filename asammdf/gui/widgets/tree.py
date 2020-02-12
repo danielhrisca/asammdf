@@ -37,7 +37,7 @@ class TreeWidget(QtWidgets.QTreeWidget):
                 for item in selected_items:
                     item.setCheckState(0, checked)
         else:
-            super().keyPressEvent(event)
+            event.ignore()
 
     def mouseMoveEvent(self, e):
 

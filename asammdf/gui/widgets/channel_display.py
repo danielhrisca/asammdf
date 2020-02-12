@@ -209,7 +209,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
                 pass
 
         else:
-            super().keyPressEvent(event)
+            event.ignore()
 
     def resizeEvent(self, event):
         width = self.name.size().width()

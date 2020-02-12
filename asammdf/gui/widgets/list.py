@@ -94,8 +94,8 @@ class ListWidget(QtWidgets.QListWidget):
             self.itemWidget(selected_items[0]).keyPressEvent(event)
 
         else:
-            super().keyPressEvent(event)
             self.parent().keyPressEvent(event)
+            event.ignore()
 
     def startDrag(self, supportedActions):
         selected_items = self.selectedItems()
