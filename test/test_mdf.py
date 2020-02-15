@@ -2,6 +2,7 @@
 import random
 import unittest
 import urllib
+import urllib.request
 import numexpr
 from zipfile import ZipFile
 import tempfile
