@@ -3301,7 +3301,7 @@ class MDF(object):
         if self._callback:
             out._callback = out._mdf._callback = self._callback
 
-        max_flags = {}
+        max_flags = []
 
         valid_dbc_files = []
         for dbc_name in dbc_files:
@@ -3441,7 +3441,6 @@ class MDF(object):
     </display>
 </names>
 </CNcomment>"""
-
                                         sigs.append(sig)
 
                                     cg_nr = out.append(
@@ -3454,7 +3453,13 @@ class MDF(object):
                                         cg_nr
                                     ].channel_group.comment = f"{message} 0x{msg_id:X}"
 
+                                    if ignore_invalid_signals:
+                                        max_flags.append([])
+                                        for ch_index, sig in enumerate(sigs, 1):
+                                            max_flags[cg_nr].append(np.all(sig.invalidation_bits))
+
                                 else:
+
                                     index = msg_map[entry]
 
                                     sigs = []
@@ -3464,6 +3469,10 @@ class MDF(object):
                                         sigs.append((signal["samples"], signal["invalidation_bits"] if ignore_invalid_signals else None))
 
                                         t = signal["t"]
+
+                                    if ignore_invalid_signals:
+                                        for ch_index, sig in enumerate(sigs, 1):
+                                            max_flags[index][ch_index] = max_flags[index][ch_index] or np.all(sig[1])
 
                                     sigs.insert(0, (t, None))
 
@@ -3488,6 +3497,18 @@ class MDF(object):
             "found_ids": found_ids,
             "unknown_ids": unknown_ids,
         }
+
+        if ignore_invalid_signals:
+            to_keep = []
+
+            for i, group in enumerate(out.groups):
+                for j, channel in enumerate(group.channels[1:], 1):
+                    if not max_flags[i][j-1]:
+                        to_keep.append((None, i, j))
+
+            tmp = out.filter(to_keep, version)
+            out.close()
+            out = tmp
 
         if self._callback:
             self._callback(100, 100)
