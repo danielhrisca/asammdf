@@ -526,6 +526,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         self.setAcceptDrops(True)
 
         self._cursor_source = None
+        self._region_source = None
 
     def set_raster_type(self, event):
         if self.raster_type_channel.isChecked():
@@ -697,6 +698,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                         widget.plot.viewbox.setXLink(viewbox)
                     widget.cursor_moved_signal.connect(self.set_cursor)
                     widget.cursor_removed_signal.connect(self.remove_cursor)
+                    widget.region_removed_signal.connect(self.remove_region)
+                    widget.region_moved_signal.connect(self.set_region)
                 elif isinstance(widget, Numeric):
                     widget.timestamp_changed_signal.connect(self.set_cursor)
         else:
@@ -710,6 +713,14 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                         pass
                     try:
                         widget.cursor_removed_signal.disconnect(self.remove_cursor)
+                    except:
+                        pass
+                    try:
+                        widget.region_removed_signal.disconnect(self.remove_region)
+                    except:
+                        pass
+                    try:
+                        widget.region_modified_signal.disconnect(self.set_region)
                     except:
                         pass
                 elif isinstance(widget, Numeric):
@@ -736,6 +747,22 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                     wid.timestamp.setValue(pos)
             self._cursor_source = None
 
+    def set_region(self, widget, region):
+        if self._region_source is None:
+            self._region_source = widget
+            for mdi in self.mdi_area.subWindowList():
+                wid = mdi.widget()
+                if isinstance(wid, Plot) and wid is not widget:
+                    if wid.plot.region is None:
+                        event = QtGui.QKeyEvent(
+                            QtCore.QEvent.KeyPress,
+                            QtCore.Qt.Key_R,
+                            QtCore.Qt.NoModifier,
+                        )
+                        wid.plot.keyPressEvent(event)
+                    wid.plot.region.setRegion(region)
+            self._region_source = None
+
     def remove_cursor(self, widget):
         if self._cursor_source is None:
             self._cursor_source = widget
@@ -744,6 +771,21 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 if isinstance(plt, Plot) and plt is not widget:
                     plt.cursor_removed()
             self._cursor_source = None
+
+    def remove_region(self, widget):
+        if self._region_source is None:
+            self._region_source = widget
+            for mdi in self.mdi_area.subWindowList():
+                plt = mdi.widget()
+                if isinstance(plt, Plot) and plt is not widget:
+                    if plt.plot.region is not None:
+                        event = QtGui.QKeyEvent(
+                            QtCore.QEvent.KeyPress,
+                            QtCore.Qt.Key_R,
+                            QtCore.Qt.NoModifier,
+                        )
+                        plt.plot.keyPressEvent(event)
+            self._region_source = None
 
     def save_all_subplots(self):
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(

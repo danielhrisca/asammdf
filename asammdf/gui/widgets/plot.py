@@ -50,6 +50,8 @@ class Plot(QtWidgets.QWidget):
     clicked = QtCore.pyqtSignal()
     cursor_moved_signal = QtCore.pyqtSignal(object, float)
     cursor_removed_signal = QtCore.pyqtSignal(object)
+    region_moved_signal = QtCore.pyqtSignal(object, list)
+    region_removed_signal = QtCore.pyqtSignal(object)
 
     def __init__(self, signals, with_dots=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -363,6 +365,8 @@ class Plot(QtWidgets.QWidget):
             stats = self.plot.get_stats(self.info_uuid, fmt)
             self.info.set_stats(stats)
 
+        self.region_moved_signal.emit(self, [start, stop])
+
     def xrange_changed(self):
         if self.info.isVisible():
             fmt = self.widget_by_uuid(self.info_uuid).fmt
@@ -516,6 +520,8 @@ class Plot(QtWidgets.QWidget):
             fmt = self.widget_by_uuid(self.info_uuid).fmt
             stats = self.plot.get_stats(self.info_uuid, fmt)
             self.info.set_stats(stats)
+
+        self.region_removed_signal.emit(self)
 
     def computation_channel_inserted(self):
         sig = self.plot.signals[-1]
