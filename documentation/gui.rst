@@ -125,12 +125,6 @@ Shift+H      Tile horizontally      Tiles sub-plots horizontally [3]_
 ============ ====================== ================================================================================================================
 
 
-.. rubric:: Footnotes
-
-.. [1] If the cursor is present then zooming will center on it.
-.. [2] Clicking the plot will move the left margin of the region. Pressing CTRL while clicking the plot will move the right margin of the region. 
-.. [3] New in *asammdf 5.7.0*
-
 
 Single files
 ============
@@ -238,14 +232,10 @@ Each item has five elements
 1. display enable checkbox
 2. color select button
 3. channel name and unit label
-4. channel value label [3]_     
+4. channel value label [4]_     
 5. common axis checkbox
-6. individual axis checkbox [4]_
-    
-.. rubric:: Footnotes
-
-.. [3] the value is only displayed if the cursor or range are active. For the cursor is will show the current value, and for the range it will show the value delta between the range start and stop timestamps
-.. [4] New in *asammdf 5.7.0*
+6. individual axis checkbox [5]_
+   
 
 .. image:: images/individual_axis.gif
         
@@ -317,6 +307,13 @@ Comparison
 Use *CTRL+F* to search channels from all the opened files. The channel names are prefixed
 with the measurement index.
 
+.. rubric:: Footnotes
+
+.. [1] If the cursor is present then zooming will center on it.
+.. [2] Clicking the plot will move the left margin of the region. Pressing CTRL while clicking the plot will move the right margin of the region. 
+.. [3] New in *asammdf 5.7.0*
+.. [4] the value is only displayed if the cursor or range are active. For the cursor is will show the current value, and for the range it will show the value delta between the range start and stop timestamps
+.. [5] New in *asammdf 5.7.0*
 
 
 
