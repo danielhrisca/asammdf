@@ -11,6 +11,8 @@ __pycache__/
 *.mdf
 *.bak
 *.zip
+*.dsp
+*.a2l
 
 test/proxy.py
 
