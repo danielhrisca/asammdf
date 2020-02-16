@@ -7421,7 +7421,7 @@ class MDF4(object):
             )
 
             if signal_data:
-                if data_type == v4c.DATA_TYPE_BYTEARRAY:
+                if data_type in (v4c.DATA_TYPE_BYTEARRAY, v4c.DATA_TYPE_UNSIGNED_INTEL, v4c.DATA_TYPE_UNSIGNED_MOTOROLA):
                     vals = extract(signal_data, 1)
                 else:
                     vals = extract(signal_data, 0)
@@ -7429,7 +7429,7 @@ class MDF4(object):
                 if not with_bounds:
                     vals = vals[record_start : record_start + count_]
 
-                if data_type != v4c.DATA_TYPE_BYTEARRAY:
+                if data_type not in (v4c.DATA_TYPE_BYTEARRAY, v4c.DATA_TYPE_UNSIGNED_INTEL, v4c.DATA_TYPE_UNSIGNED_MOTOROLA):
 
                     if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
                         encoding = "utf-16-be"
