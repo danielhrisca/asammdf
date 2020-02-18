@@ -3054,7 +3054,11 @@ class MDF3(object):
         cycles_nr = group.channel_group.cycles_nr
 
         if time_ch_nr is None:
-            t = arange(cycles_nr, dtype=float64)
+            if fragment:
+                count = len(data_bytes) // group.channel_group.samples_byte_nr
+            else:
+                count = cycles_nr
+            t = arange(count, dtype=float64)
             metadata = ("time", 1)
         else:
             time_ch = group.channels[time_ch_nr]
