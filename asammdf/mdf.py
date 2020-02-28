@@ -3454,7 +3454,7 @@ class MDF(object):
                                     ].channel_group.comment = f"{message} 0x{msg_id:X}"
 
                                     if ignore_invalid_signals:
-                                        max_flags.append([])
+                                        max_flags.append([False])
                                         for ch_index, sig in enumerate(sigs, 1):
                                             max_flags[cg_nr].append(np.all(sig.invalidation_bits))
 
