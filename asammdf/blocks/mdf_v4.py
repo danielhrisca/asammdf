@@ -598,6 +598,7 @@ class MDF4(object):
             else:
                 block_type = b"##DT"
                 total_size = 0
+                inval_total_size = 0
 
             info, uses_ld = self._get_data_blocks_info(
                 address=address,
