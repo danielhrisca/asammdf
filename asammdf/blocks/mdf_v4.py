@@ -4930,7 +4930,7 @@ class MDF4(object):
             if sig_type in (v4c.SIGNAL_TYPE_SCALAR, v4c.SIGNAL_TYPE_STRING):
 
                 s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape)
-                byte_size = s_size // 8
+                byte_size = s_size // 8 or 1
 
                 fields.append(samples)
                 types.append((field_name, samples.dtype, samples.shape[1:]))
@@ -5360,7 +5360,7 @@ class MDF4(object):
             if sig_type in (v4c.SIGNAL_TYPE_SCALAR, v4c.SIGNAL_TYPE_STRING):
 
                 s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape)
-                byte_size = s_size // 8
+                byte_size = s_size // 8 or 1
 
                 fields.append(samples)
                 types.append((field_name, samples.dtype, samples.shape[1:]))
