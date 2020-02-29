@@ -1702,3 +1702,20 @@ def load_can_database(file, contents=None):
             dbc = None
 
     return dbc
+
+
+def all_blocks_addresses(obj):
+    pattern = re.compile(
+        rb'(?P<block>##(D[GVTZIL]|AT|C[AGHNC]|EV|FH|HL|LD|MD|R[DVI]|S[IRD]|TX))',
+        re.DOTALL | re.MULTILINE,
+    )
+
+    try:
+        obj.seek(0)
+    except:
+        pass
+
+    return [
+         match.start()
+         for match in re.finditer(pattern, obj)
+    ]

@@ -94,6 +94,7 @@ from .utils import (
     extract_can_signal,
     load_can_database,
     VirtualChannelGroup,
+    all_blocks_addresses,
 )
 from .v4_blocks import (
     AttachmentBlock,
@@ -437,6 +438,9 @@ class MDF4(object):
             is_finalised = self._check_finalised()
 
             if not is_finalised:
+                addresses = all_blocks_addresses(self._file)
+
+            if not is_finalised:
                 message = f"Attempting finalization of {self.name}"
                 logger.info(message)
                 self._finalize()
@@ -580,25 +584,29 @@ class MDF4(object):
 
             address = group.data_block_addr
 
-            if new_groups:
-                channel_group = new_groups[0].channel_group
+            total_size = 0
+            inval_total_size = 0
+            block_type = b"##DT"
+
+            for new_group in new_groups:
+
+                channel_group = new_group.channel_group
                 if channel_group.flags & v4c.FLAG_CG_REMOTE_MASTER:
                     block_type = b"##DV"
-                    total_size = channel_group.samples_byte_nr * channel_group.cycles_nr
-                    inval_total_size = (
+                    total_size += channel_group.samples_byte_nr * channel_group.cycles_nr
+                    inval_total_size += (
                         channel_group.invalidation_bytes_nr * channel_group.cycles_nr
                     )
                 else:
                     block_type = b"##DT"
-                    total_size = (
+                    total_size += (
                         channel_group.samples_byte_nr
                         + channel_group.invalidation_bytes_nr
                     ) * channel_group.cycles_nr
-                    inval_total_size = 0
-            else:
-                block_type = b"##DT"
-                total_size = 0
-                inval_total_size = 0
+
+#            if not is_finalised:
+#                total_size = None
+#                inval_total_size = None
 
             info, uses_ld = self._get_data_blocks_info(
                 address=address,
@@ -617,6 +625,11 @@ class MDF4(object):
             self.groups.extend(new_groups)
 
             dg_addr = group.next_dg_addr
+
+        for gp_index, grp in enumerate(self.groups):
+            print(gp_index, grp.data_blocks)
+
+        #TODO: attempt finalisation here
 
         # all channels have been loaded so now we can link the
         # channel dependencies and load the signal data for VLSD channels
@@ -2519,6 +2532,7 @@ class MDF4(object):
                 elif id_string == b"##DL":
                     while address:
                         dl = DataList(address=address, stream=stream)
+                        print(hex(address), dl.data_block_nr, stream)
                         for i in range(dl.data_block_nr):
                             addr = dl[f"data_block_addr{i}"]
 
@@ -9536,10 +9550,12 @@ class MDF4(object):
         Attempt finalization of the file.
         :return:    None
         """
+
         flags = self.identification["unfinalized_standard_flags"]
 
         shim = FinalizationShim(self._file, flags)
         shim.load_blocks()
+
         shim.finalize()
 
         # In-memory finalization performed, inject as a shim between the original file and asammdf.
