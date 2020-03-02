@@ -2202,7 +2202,7 @@ class MDF(object):
 
         self._link_attributes()
 
-        virtual_groups = self.included_channels(channels=channels, minimal=False)
+        virtual_groups = self.included_channels(channels=channels, minimal=False, skip_master=False)
 
         output_signals = {}
 

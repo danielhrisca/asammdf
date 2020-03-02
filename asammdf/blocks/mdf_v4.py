@@ -412,7 +412,7 @@ class MDF4(object):
 
             logger.info(message)
 
-        return flags == 0
+        return flags
 
     def _read(self, mapped=False):
 
@@ -435,12 +435,14 @@ class MDF4(object):
 
         if self.version >= "4.10":
             # Check for finalization past version 4.10
-            is_finalised = self._check_finalised()
+            finalisation_flags = self._check_finalised()
 
-            if not is_finalised:
+            if finalisation_flags:
                 addresses = all_blocks_addresses(self._file)
+            else:
+                addresses = []
 
-            if not is_finalised:
+            if finalisation_flags:
                 message = f"Attempting finalization of {self.name}"
                 logger.info(message)
                 self._finalize()
@@ -2532,7 +2534,6 @@ class MDF4(object):
                 elif id_string == b"##DL":
                     while address:
                         dl = DataList(address=address, stream=stream)
-                        print(hex(address), dl.data_block_nr, stream)
                         for i in range(dl.data_block_nr):
                             addr = dl[f"data_block_addr{i}"]
 
@@ -7888,6 +7889,7 @@ class MDF4(object):
 
                 if master not in result:
                     result[master] = {}
+                    result[master][master] = [self.masters_db[master]]
 
                 result[master][gp_index] = sorted(channels)
 
