@@ -22,11 +22,11 @@ struct node {
 
 static PyObject* sort_data_block(PyObject* self, PyObject* args)
 {
-    int i=0, id_size;
+    unsigned long long id_size, position=0, size;
     unsigned long rec_size, length, rec_id;
     PyObject *signal_data, *partial_records, *record_size, *optional, *mlist;
-    PyObject *bts, *key, *value;
-    unsigned char *buf, *end;
+    PyObject *bts, *key, *value, *rem=NULL;
+    unsigned char *buf, *end, *orig, val;
     struct node * head = NULL, *last=NULL, *item;
 
     if (!PyArg_ParseTuple(args, "OOOi|O", &signal_data, &partial_records, &record_size, &id_size, &optional))
@@ -35,7 +35,6 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
     }
     else
     {
-        i = 0;
         Py_ssize_t pos = 0;
        
         while (PyDict_Next(record_size, &pos, &key, &value)) 
@@ -53,13 +52,17 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
         }
  
         buf = PyBytes_AS_STRING(signal_data);
-        end = buf + PyBytes_GET_SIZE(signal_data);
+        orig = buf;
+        size = PyBytes_GET_SIZE(signal_data);
+        end = buf + size;
         
         while (buf != end)
         {
-            for (i=0, rec_id=0; i<id_size; i++)
-                rec_id += (*buf++) << (i <<3);
-            
+            rec_id = 0;
+            for (int i=0; i<id_size; i++, buf++) {
+                rec_id += (*buf) << (i <<3);
+            }  
+           
             for (item=head; item!=NULL; item=item->next)
             {
                 if (item->info.id == rec_id)
@@ -72,6 +75,10 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
             
             if (rec_size)
             {
+                if (rec_size + position + id_size > size) {
+                    rem = PyBytes_FromStringAndSize(orig+position, size - position);
+                    break;
+                }
                 bts = PyBytes_FromStringAndSize(buf, rec_size);
                 PyList_Append(
                     mlist,
@@ -80,23 +87,41 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
                 Py_DECREF(bts);
 
                 buf += rec_size;
+
             }
             else
             {
                 rec_size = (buf[3] << 24) + (buf[2] << 16) +(buf[1] << 8) + buf[0];
                 length = rec_size + 4;
+                if (position + length + 4 > size) {
+                    rem = PyBytes_FromStringAndSize(orig+position, size - position);
+                    break;
+                }
                 bts = PyBytes_FromStringAndSize(buf, length);
                 PyList_Append(mlist, bts);
                 Py_DECREF(bts);
                 buf += length;
             }
-           
+            
+            position = (unsigned long long) buf - (unsigned long long) orig;
+        } 
+        
+        while (head != NULL) {
+            item = head;
+            item->info.mlist = NULL;
+            head = head->next;
+            free(item);
         }
+        
+        head = NULL;
+        last = NULL;
+    }
+    
+    if (!rem) {
+        rem = PyBytes_FromStringAndSize(NULL, 0);
     }
 
-    Py_INCREF(Py_None);
-
-    return Py_None;
+    return rem;
 }
 
 
@@ -389,6 +414,84 @@ static PyObject* get_text_bytes(PyObject* self, PyObject* args)
 }
 
 
+static PyObject* raw_channel_bytes(PyObject* self, PyObject* args)
+{
+    unsigned long i=0;
+    unsigned long record_size, byte_offset, byte_size, size, count;
+    PyObject *record_bytes;
+    PyObject *result;
+    unsigned char *buf, *end, *out_ptr;
+
+    if (!PyArg_ParseTuple(args, "Okkkk", &record_bytes, &record_size, &count, &byte_offset, &byte_size))
+    {
+        printf("sort_data_block was called with wring parameters\n");
+        result = Py_None;
+        Py_INCREF(Py_None);
+    }
+    else
+    {
+        
+        buf = PyBytes_AS_STRING(record_bytes);
+        buf += byte_offset;
+        
+        result = PyByteArray_FromStringAndSize(NULL, count * byte_size);
+   
+        out_ptr = PyByteArray_AS_STRING(result);
+         
+        for (i=0; i<count; i++) {
+            memcpy(out_ptr, buf, byte_size);
+            out_ptr += byte_size;
+            buf += record_size;
+        }
+    }
+
+    return result;
+}
+
+static PyObject* raw_channel(PyObject* self, PyObject* args)
+{
+    unsigned long i=0;
+    unsigned long record_size, byte_offset, byte_size, size, count;
+    PyObject *record_bytes;
+    PyObject *result, *dtype;
+    PyArrayObject * vals;
+    unsigned char *buf, *end, *out_ptr, *addr;
+
+    if (!PyArg_ParseTuple(args, "OOkkk", &record_bytes, &dtype, &record_size, &byte_offset, &byte_size))
+    {
+        printf("sort_data_block was called with wring parameters\n");
+        result = Py_None;
+        Py_INCREF(Py_None);
+    }
+    else
+    {
+        
+        
+        buf = PyBytes_AS_STRING(record_bytes);
+        buf += byte_offset;
+        size = PyBytes_GET_SIZE(record_bytes);
+        count = (unsigned long) size / record_size;
+        
+        npy_intp dims[1];
+        dims[0] = count;   
+        
+        vals = (PyArrayObject *) PyArray_Empty(1, dims, PyArray_DescrNew((PyArray_Descr*)dtype), 0);
+
+        addr = (unsigned char *) PyArray_GETPTR1(vals, 0);
+         
+        for (i=0; i<count; i++) {
+            memcpy(addr, buf, byte_size);
+            addr += byte_size;
+            buf += record_size;
+        }
+        
+        result = (PyObject *) vals;
+    }
+
+    return result;
+}
+
+
 
 // Our Module's Function Definition struct
 // We require this `NULL` to signal the end of our method
@@ -401,6 +504,9 @@ static PyMethodDef myMethods[] =
     { "get_vlsd_offsets", get_vlsd_offsets, METH_VARARGS, "get_vlsd_offsets" },
     { "sort_data_block", sort_data_block, METH_VARARGS, "sort raw data group block" },
     { "get_text_bytes", get_text_bytes, METH_VARARGS, "sort raw data group block" },
+    { "raw_channel_bytes", raw_channel_bytes, METH_VARARGS, "raw_channel_bytes" },
+    { "raw_channel", raw_channel, METH_VARARGS, "raw_channel_bytes" },
+    
     { NULL, NULL, 0, NULL }
 };
 

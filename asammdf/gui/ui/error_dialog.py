@@ -15,9 +15,7 @@ class Ui_ErrorDialog(object):
         ErrorDialog.setObjectName("ErrorDialog")
         ErrorDialog.resize(622, 114)
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/error.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/error.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         ErrorDialog.setWindowIcon(icon)
         ErrorDialog.setSizeGripEnabled(True)
         self.layout = QtWidgets.QVBoxLayout(ErrorDialog)
@@ -26,20 +24,15 @@ class Ui_ErrorDialog(object):
         self.error_message.setText("")
         self.error_message.setObjectName("error_message")
         self.layout.addWidget(self.error_message)
-        spacerItem = QtWidgets.QSpacerItem(
-            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
-        )
-        self.layout.addItem(spacerItem)
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setObjectName("horizontalLayout")
-        spacerItem1 = QtWidgets.QSpacerItem(
-            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
-        )
-        self.horizontalLayout.addItem(spacerItem1)
+        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout.addItem(spacerItem)
         self.copy_to_clipboard_btn = QtWidgets.QPushButton(ErrorDialog)
         self.copy_to_clipboard_btn.setObjectName("copy_to_clipboard_btn")
         self.horizontalLayout.addWidget(self.copy_to_clipboard_btn)
         self.layout.addLayout(self.horizontalLayout)
+        self.layout.setStretch(1, 1)
 
         self.retranslateUi(ErrorDialog)
         QtCore.QMetaObject.connectSlotsByName(ErrorDialog)
@@ -47,9 +40,5 @@ class Ui_ErrorDialog(object):
     def retranslateUi(self, ErrorDialog):
         _translate = QtCore.QCoreApplication.translate
         ErrorDialog.setWindowTitle(_translate("ErrorDialog", "Dialog"))
-        self.copy_to_clipboard_btn.setText(
-            _translate("ErrorDialog", "Copy to clipboard")
-        )
-
-
+        self.copy_to_clipboard_btn.setText(_translate("ErrorDialog", "Copy to clipboard"))
 from . import resource_rc

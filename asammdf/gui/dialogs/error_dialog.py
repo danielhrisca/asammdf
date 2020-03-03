@@ -12,15 +12,10 @@ class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
-        self.error_box = CollapsibleBox(title="Full error traceback")
-        self.layout.insertWidget(0, self.error_box)
-
-        lay = QtWidgets.QVBoxLayout()
-        self.trace = QtWidgets.QTextEdit(trace)
+        self.trace = QtWidgets.QTextEdit()
+        self.layout.insertWidget(0, self.trace)
+        self.trace.setText(trace)
         self.trace.setReadOnly(True)
-        lay.addWidget(self.trace)
-
-        self.error_box.setContentLayout(lay)
 
         icon = QtGui.QIcon()
         icon.addPixmap(
@@ -35,8 +30,13 @@ class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
 
         self.copy_to_clipboard_btn.clicked.connect(self.copy_to_clipboard)
 
+        self.layout.setStretch(0, 1)
+        self.layout.setStretch(1, 0)
+        self.layout.setStretch(2, 0)
+
     def copy_to_clipboard(self, event):
         text = (
             f"Error: {self.error_message.text()}\n\nDetails: {self.trace.toPlainText()}"
         )
         QtWidgets.QApplication.instance().clipboard().setText(text)
+

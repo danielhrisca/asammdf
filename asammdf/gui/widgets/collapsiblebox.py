@@ -69,6 +69,6 @@ class CollapsibleBox(QtWidgets.QWidget):
         content_animation = self.toggle_animation.animationAt(
             self.toggle_animation.animationCount() - 1
         )
-        content_animation.setDuration(500)
+        content_animation.setDuration(200)
         content_animation.setStartValue(0)
         content_animation.setEndValue(content_height)
