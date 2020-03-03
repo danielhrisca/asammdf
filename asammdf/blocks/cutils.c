@@ -93,7 +93,7 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
             {
                 rec_size = (buf[3] << 24) + (buf[2] << 16) +(buf[1] << 8) + buf[0];
                 length = rec_size + 4;
-                if (position + length + 4 > size) {
+                if (position + length + id_size > size) {
                     rem = PyBytes_FromStringAndSize(orig+position, size - position);
                     break;
                 }
@@ -103,18 +103,23 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
                 buf += length;
             }
             
+            mlist = NULL;
+            
             position = (unsigned long long) buf - (unsigned long long) orig;
         } 
         
         while (head != NULL) {
             item = head;
             item->info.mlist = NULL;
+     
             head = head->next;
+            item->next = NULL;
             free(item);
         }
         
         head = NULL;
         last = NULL;
+        item = NULL;
     }
     
     if (!rem) {
