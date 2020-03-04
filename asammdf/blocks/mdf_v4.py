@@ -1483,7 +1483,6 @@ class MDF4(object):
                                     end = None
 
                                 for info in address:
-
                                     current_count = info.count
 
                                     if current_offset + current_count < offset:
@@ -9720,9 +9719,6 @@ class MDF4(object):
                             block_size = 0
 
                         partial_records = {id_: [] for _, id_ in groups}
-                        print(self._file.tell())
-#                        if self._file.tell() > 1_000_000_000:
-#                            break
 
                         rem = sort_data_block(
                             new_data, partial_records, cg_size, record_id_nr, _unpack_stuct
@@ -9741,7 +9737,8 @@ class MDF4(object):
 
                                 if dg_cntr is not None:
                                     address = tell()
-                                    size = write(b"".join(new_data))
+
+                                    write(b"".join(new_data))
 
                                     offsets, size = get_vlsd_offsets(new_data)
 
@@ -9756,15 +9753,6 @@ class MDF4(object):
 
                                 else:
                                     if size:
-#                                        block_info = DataBlockInfo(
-#                                            address=address,
-#                                            block_type=v4c.DT_BLOCK,
-#                                            raw_size=size,
-#                                            size=size,
-#                                            param=0,
-#                                        )
-#                                        final_records[rec_id].append(block_info)
-#                                        size = 0
 
                                         address = tell()
 
@@ -9773,9 +9761,9 @@ class MDF4(object):
                                         raw_size = len(new_data)
                                         new_data = lz_compress(new_data)
                                         size = len(new_data)
-                                        self._tempfile.write(new_data)
+                                        write(new_data)
 
-                                        block_info = InvalidationBlockInfo(
+                                        block_info = DataBlockInfo(
                                             address=address,
                                             block_type=v4c.DZ_BLOCK_LZ,
                                             raw_size=raw_size,

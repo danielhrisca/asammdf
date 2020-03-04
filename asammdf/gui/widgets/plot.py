@@ -1574,27 +1574,34 @@ class _Plot(pg.PlotWidget):
                         stop_2 = start_ + rows * raster
 
                         samples = sig.samples[start_:stop_2].reshape(rows, raster)
-                        max_ = np.nanmax(samples, axis=1)
-                        min_ = np.nanmin(samples, axis=1)
-                        samples = np.dstack((min_, max_)).ravel()
 
-                        timestamps = sig.timestamps[start_:stop_2].reshape(rows, raster)
-                        t_max = timestamps[:, -1]
-                        t_min = timestamps[:, -0]
+                        pos_max = np.nanargmax(samples, axis=1)
+                        pos_min = np.nanargmin(samples, axis=1)
 
-                        timestamps = np.dstack((t_min, t_max)).ravel()
+                        pos = np.dstack([pos_min, pos_max])[0]
+                        pos.sort()
+
+                        offsets = np.arange(rows) * raster
+
+                        pos = (pos.T + offsets).T.ravel()
+
+                        samples = sig.samples[start_:stop_2][pos]
+
+                        timestamps = sig.timestamps[start_:stop_2][pos]
 
                         if stop_2 != stop_:
                             samples_ = sig.samples[stop_2:stop_]
-                            max_ = np.nanmax(samples_)
-                            min_ = np.nanmin(samples_)
-                            samples = np.concatenate((samples, [min_, max_]))
 
-                            timestamps_ = sig.timestamps[stop_2:stop_]
-                            t_max = timestamps_[-1]
-                            t_min = timestamps_[0]
+                            pos_max = np.nanargmax(samples_)
+                            pos_min = np.nanargmin(samples_)
 
-                            timestamps = np.concatenate((timestamps, [t_min, t_max]))
+                            pos = sorted((pos_min, pos_max))
+
+                            samples_ = sig.samples[stop_2:stop_][pos]
+                            timestamps_ = sig.timestamps[stop_2:stop_][pos]
+
+                            samples = np.concatenate((samples, samples_))
+                            timestamps = np.concatenate((timestamps, timestamps_))
 
                         sig.plot_samples = samples
                         sig.plot_timestamps = timestamps
