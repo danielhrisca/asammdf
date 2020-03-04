@@ -642,9 +642,6 @@ class MDF4(object):
 
             dg_addr = group.next_dg_addr
 
-        for gp_index, grp in enumerate(self.groups):
-            print(gp_index, grp.data_blocks)
-
         #TODO: attempt finalisation here
 
         # all channels have been loaded so now we can link the
@@ -9642,7 +9639,6 @@ class MDF4(object):
                     info.block_type,
                     info.param,
                 )
-                print(info)
 
                 if block_type != v4c.DT_BLOCK:
                     partial_records = {id_: [] for _, id_ in groups}
@@ -9720,7 +9716,6 @@ class MDF4(object):
                             block_size = 0
 
                         partial_records = {id_: [] for _, id_ in groups}
-                        print(self._file.tell())
 #                        if self._file.tell() > 1_000_000_000:
 #                            break
 
