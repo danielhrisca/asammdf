@@ -2132,7 +2132,6 @@ class MDF4(object):
                     try:
                         grp.channels[ch_nr]
                     except IndexError:
-                        print(len(self.groups), len(grp.channels))
                         raise MdfException(f"Channel index out of range: {(name, group, index)}")
         else:
             if name not in self.channels_db:
@@ -8470,7 +8469,7 @@ class MDF4(object):
                                 index = idx
                                 break
                     else:
-                        index = self.can_logging_db[can_id][message.arbitration_id.id]
+                        index = self.can_logging_db[_can_id][message.arbitration_id.id]
 
                 if index is not None:
                     break
@@ -8535,6 +8534,7 @@ class MDF4(object):
 
         vals = payload[idx]
         t = can_ids.timestamps[idx].copy()
+
         if can_ids.invalidation_bits is not None:
             invalidation_bits = can_ids.invalidation_bits[idx]
         else:
@@ -8546,7 +8546,7 @@ class MDF4(object):
 
         if ignore_invalidation_bits:
 
-            return Signal(
+            sig = Signal(
                 samples=vals,
                 timestamps=t,
                 name=name,
@@ -8554,6 +8554,7 @@ class MDF4(object):
                 comment=comment,
                 invalidation_bits=invalidation_bits,
             )
+            return sig
 
         else:
 
