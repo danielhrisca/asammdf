@@ -1669,7 +1669,7 @@ def load_can_database(file, contents=None):
 
     dbc = None
 
-    if file.suffix.lower() in (".dbc", ".arxml"):
+    if file.suffix.lower() in (".dbc", ".arxml") or contents:
         if contents is None and file.exists():
             contents = file.read_bytes()
 

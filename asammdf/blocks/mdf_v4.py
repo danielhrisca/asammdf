@@ -8313,7 +8313,8 @@ class MDF4(object):
         return timestamps
 
     def get_can_signal(
-        self, name, database=None, db=None, ignore_invalidation_bits=False
+        self, name, database=None, db=None, ignore_invalidation_bits=False,
+        data=None,
     ):
         """ get CAN message signal. You can specify an external CAN database (
         *database* argument) or canmatrix databse object that has already been
@@ -8511,6 +8512,7 @@ class MDF4(object):
             "CAN_DataFrame.ID",
             group=index,
             ignore_invalidation_bits=ignore_invalidation_bits,
+            data=data,
         )
         can_ids.samples = can_ids.samples & 0x1fffffff
         payload = self.get(
@@ -8518,6 +8520,7 @@ class MDF4(object):
             group=index,
             samples_only=True,
             ignore_invalidation_bits=ignore_invalidation_bits,
+            data=data,
         )[0]
 
         if is_j1939:
