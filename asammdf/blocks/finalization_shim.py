@@ -488,11 +488,11 @@ class FinalizationShim:
                 result = data[offset:]
                 self._location += len(result)
                 size -= len(result)
-            pass
 
         # Supply with additional data from the original file if necessary.
         self._parent.seek(self._location)
         additional_data = self._parent.read(size)
+        self._location += size
 
         result += additional_data
 
@@ -507,6 +507,9 @@ class FinalizationShim:
         elif whence == 2:
             self._location = self._file_size - offset
         return self._parent.seek(offset, whence)
+
+    def tell(self):
+        return self._parent.tell()
 
     # Python overrides.
     def __iter__(self):

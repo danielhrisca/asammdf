@@ -177,7 +177,7 @@ except:
             i += record_id_nr
             rec_size = cg_size[rec_id]
             if rec_size:
-                if rec_size + pos + record_id_nr > size:
+                if rec_size + i > size:
                     rem = signal_data[pos:]
                     break
                 endpoint = i + rec_size
@@ -9714,7 +9714,6 @@ class MDF4(object):
                         else:
                             new_data = rem + read(block_size)
                             block_size = 0
-
                         partial_records = {id_: [] for _, id_ in groups}
 #                        if self._file.tell() > 1_000_000_000:
 #                            break
