@@ -2132,7 +2132,6 @@ class MDF4(object):
                     try:
                         grp.channels[ch_nr]
                     except IndexError:
-                        print(len(self.groups), len(grp.channels))
                         raise MdfException(f"Channel index out of range: {(name, group, index)}")
         else:
             if name not in self.channels_db:
@@ -8313,7 +8312,8 @@ class MDF4(object):
         return timestamps
 
     def get_can_signal(
-        self, name, database=None, db=None, ignore_invalidation_bits=False
+        self, name, database=None, db=None, ignore_invalidation_bits=False,
+        data=None,
     ):
         """ get CAN message signal. You can specify an external CAN database (
         *database* argument) or canmatrix databse object that has already been
@@ -8469,7 +8469,7 @@ class MDF4(object):
                                 index = idx
                                 break
                     else:
-                        index = self.can_logging_db[can_id][message.arbitration_id.id]
+                        index = self.can_logging_db[_can_id][message.arbitration_id.id]
 
                 if index is not None:
                     break
@@ -8511,6 +8511,7 @@ class MDF4(object):
             "CAN_DataFrame.ID",
             group=index,
             ignore_invalidation_bits=ignore_invalidation_bits,
+            data=data,
         )
         can_ids.samples = can_ids.samples & 0x1fffffff
         payload = self.get(
@@ -8518,6 +8519,7 @@ class MDF4(object):
             group=index,
             samples_only=True,
             ignore_invalidation_bits=ignore_invalidation_bits,
+            data=data,
         )[0]
 
         if is_j1939:
@@ -8532,6 +8534,7 @@ class MDF4(object):
 
         vals = payload[idx]
         t = can_ids.timestamps[idx].copy()
+
         if can_ids.invalidation_bits is not None:
             invalidation_bits = can_ids.invalidation_bits[idx]
         else:
@@ -8543,7 +8546,7 @@ class MDF4(object):
 
         if ignore_invalidation_bits:
 
-            return Signal(
+            sig = Signal(
                 samples=vals,
                 timestamps=t,
                 name=name,
@@ -8551,6 +8554,7 @@ class MDF4(object):
                 comment=comment,
                 invalidation_bits=invalidation_bits,
             )
+            return sig
 
         else:
 
