@@ -4814,7 +4814,7 @@ class HeaderBlock:
             self.first_attachment_addr = kwargs.get("first_attachment_addr", 0)
             self.first_event_addr = kwargs.get("first_event_addr", 0)
             self.comment_addr = kwargs.get("comment_addr", 0)
-            self.abs_time = kwargs.get("abs_time", 0,)
+            self.abs_time = kwargs.get("abs_time", 0)
             self.tz_offset = kwargs.get("tz_offset", 0)
             self.daylight_save_time = kwargs.get("daylight_save_time", 0)
             self.time_flags = kwargs.get("time_flags", 0)

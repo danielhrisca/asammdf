@@ -283,42 +283,45 @@ def get_fmt_v3(data_type, size):
         size = size // 8
         if data_type == v3c.DATA_TYPE_STRING:
             fmt = f"S{size}"
-        elif data_type == v3c.DATA_TYPE_BYTEARRAY:
+        else:
             fmt = f"({size},)u1"
     else:
-        if size <= 8:
-            size = 1
-        elif size <= 16:
-            size = 2
-        elif size <= 32:
-            size = 4
-        elif size <= 64:
-            size = 8
+        if size > 64 and data_type in (v3c.DATA_TYPE_UNSIGNED_INTEL, v3c.DATA_TYPE_UNSIGNED):
+            fmt = f"({size // 8},)u1"
         else:
-            size = size // 8
+            if size <= 8:
+                size = 1
+            elif size <= 16:
+                size = 2
+            elif size <= 32:
+                size = 4
+            elif size <= 64:
+                size = 8
+            else:
+                size = size // 8
 
-        if data_type in (v3c.DATA_TYPE_UNSIGNED_INTEL, v3c.DATA_TYPE_UNSIGNED):
-            fmt = f"<u{size}".format()
+            if data_type in (v3c.DATA_TYPE_UNSIGNED_INTEL, v3c.DATA_TYPE_UNSIGNED):
+                fmt = f"<u{size}"
 
-        elif data_type == v3c.DATA_TYPE_UNSIGNED_MOTOROLA:
-            fmt = f">u{size}"
+            elif data_type == v3c.DATA_TYPE_UNSIGNED_MOTOROLA:
+                fmt = f">u{size}"
 
-        elif data_type in (v3c.DATA_TYPE_SIGNED_INTEL, v3c.DATA_TYPE_SIGNED):
-            fmt = f"<i{size}"
+            elif data_type in (v3c.DATA_TYPE_SIGNED_INTEL, v3c.DATA_TYPE_SIGNED):
+                fmt = f"<i{size}"
 
-        elif data_type == v3c.DATA_TYPE_SIGNED_MOTOROLA:
-            fmt = f">i{size}"
+            elif data_type == v3c.DATA_TYPE_SIGNED_MOTOROLA:
+                fmt = f">i{size}"
 
-        elif data_type in {
-            v3c.DATA_TYPE_FLOAT,
-            v3c.DATA_TYPE_DOUBLE,
-            v3c.DATA_TYPE_FLOAT_INTEL,
-            v3c.DATA_TYPE_DOUBLE_INTEL,
-        }:
-            fmt = f"<f{size}"
+            elif data_type in {
+                v3c.DATA_TYPE_FLOAT,
+                v3c.DATA_TYPE_DOUBLE,
+                v3c.DATA_TYPE_FLOAT_INTEL,
+                v3c.DATA_TYPE_DOUBLE_INTEL,
+            }:
+                fmt = f"<f{size}"
 
-        elif data_type in (v3c.DATA_TYPE_FLOAT_MOTOROLA, v3c.DATA_TYPE_DOUBLE_MOTOROLA):
-            fmt = f">f{size}"
+            elif data_type in (v3c.DATA_TYPE_FLOAT_MOTOROLA, v3c.DATA_TYPE_DOUBLE_MOTOROLA):
+                fmt = f">f{size}"
 
     return fmt
 
@@ -369,35 +372,41 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
             fmt = "V6"
 
     else:
-
-        if size <= 8:
-            size = 1
-        elif size <= 16:
-            size = 2
-        elif size <= 32:
-            size = 4
-        elif size <= 64:
-            size = 8
+        if size > 64 and data_type in (v4c.DATA_TYPE_UNSIGNED_INTEL, v4c.DATA_TYPE_UNSIGNED):
+            fmt = f"({size // 8},)u1"
         else:
-            size = size // 8
+            if size <= 8:
+                size = 1
+            elif size <= 16:
+                size = 2
+            elif size <= 32:
+                size = 4
+            elif size <= 64:
+                size = 8
+            else:
+                size = size // 8
 
-        if data_type == v4c.DATA_TYPE_UNSIGNED_INTEL:
-            fmt = f"<u{size}"
+            if data_type == v4c.DATA_TYPE_UNSIGNED_INTEL:
+                fmt = f"<u{size}"
 
-        elif data_type == v4c.DATA_TYPE_UNSIGNED_MOTOROLA:
-            fmt = f">u{size}"
+            elif data_type == v4c.DATA_TYPE_UNSIGNED_MOTOROLA:
+                fmt = f">u{size}"
 
-        elif data_type == v4c.DATA_TYPE_SIGNED_INTEL:
-            fmt = f"<i{size}"
+            elif data_type == v4c.DATA_TYPE_SIGNED_INTEL:
+                fmt = f"<i{size}"
 
-        elif data_type == v4c.DATA_TYPE_SIGNED_MOTOROLA:
-            fmt = f">i{size}"
+            elif data_type == v4c.DATA_TYPE_SIGNED_MOTOROLA:
+                fmt = f">i{size}"
 
-        elif data_type == v4c.DATA_TYPE_REAL_INTEL:
-            fmt = f"<f{size}"
+            elif data_type == v4c.DATA_TYPE_REAL_INTEL:
+                fmt = f"<f{size}"
 
-        elif data_type == v4c.DATA_TYPE_REAL_MOTOROLA:
-            fmt = f">f{size}"
+            elif data_type == v4c.DATA_TYPE_REAL_MOTOROLA:
+                fmt = f">f{size}"
+            elif data_type == v4c.DATA_TYPE_COMPLEX_INTEL:
+                fmt = f"<c{size}"
+            elif data_type == v4c.DATA_TYPE_COMPLEX_MOTOROLA:
+                fmt = f">c{size}"
 
     return fmt
 
@@ -542,6 +551,11 @@ def fmt_to_datatype_v4(fmt, shape, array=False):
         elif kind == "b":
             data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
             size = 1
+        elif kind == "c":
+            if byteorder in "=<":
+                data_type = v4c.DATA_TYPE_COMPLEX_INTEL
+            else:
+                data_type = v4c.DATA_TYPE_COMPLEX_MOTOROLA
         else:
             message = f"Unknown type: dtype={fmt}, shape={shape}"
             logger.exception(message)
@@ -1341,7 +1355,8 @@ def extract_can_signal(signal, payload):
     signed = signal.is_signed
 
     start_bit = signal.get_startbit()
-
+#   start_bit = signal.get_startbit(not signal.is_little_endian)
+#    print(signal.name, signal.get_startbit(), signal.start_bit, start_bit, signal.is_little_endian)
     start_byte, bit_offset = divmod(start_bit, 8)
 
     bit_count = signal.size
