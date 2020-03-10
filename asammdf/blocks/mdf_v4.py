@@ -7671,7 +7671,7 @@ class MDF4(object):
                 except:
                     vals = frombuffer(vals.tobytes(), dtype=f">u{std_size}")
 
-                vals = vals >> (std_size * 8 - bit_offset - bit_count)
+                vals = vals >> (extra_bytes * 8 + bit_offset)
                 vals &= (1 << bit_count) - 1
 
             else:
@@ -7693,7 +7693,7 @@ class MDF4(object):
                 except:
                     vals = frombuffer(vals.tobytes(), dtype=f">u{std_size}")
 
-                vals = vals >> (std_size * 8 - bit_offset - bit_count)
+                vals = vals >> bit_offset
                 vals &= (1 << bit_count) - 1
 
             else:

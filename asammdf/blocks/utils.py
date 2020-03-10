@@ -1355,6 +1355,7 @@ def extract_can_signal(signal, payload):
     signed = signal.is_signed
 
     start_bit = signal.get_startbit()
+#    print('{} start_bit={} get_start_bit={} get_startbit(True)={} get_startbit(True, True)={}'.format(signal.name, signal.start_bit, signal.get_startbit(), signal.get_startbit(True), signal.get_startbit(True, True)))
     start_byte, bit_offset = divmod(start_bit, 8)
 
     bit_count = signal.size
