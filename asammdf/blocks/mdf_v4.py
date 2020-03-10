@@ -7664,12 +7664,15 @@ class MDF4(object):
             if big_endian:
 
                 vals = column_stack(
-                    [zeros(len(vals), dtype=f"<({extra_bytes},)u1"), vals,]
+                    [vals, zeros(len(vals), dtype=f"<({extra_bytes},)u1")]
                 )
                 try:
                     vals = vals.view(f">u{std_size}").ravel()
                 except:
                     vals = frombuffer(vals.tobytes(), dtype=f">u{std_size}")
+
+                vals = vals >> (std_size * 8 - bit_offset - bit_count)
+                vals &= (1 << bit_count) - 1
 
             else:
                 vals = column_stack(
@@ -7680,20 +7683,27 @@ class MDF4(object):
                 except:
                     vals = frombuffer(vals.tobytes(), dtype=f"<u{std_size}")
 
+                vals = vals >> bit_offset
+                vals &= (1 << bit_count) - 1
+
         else:
             if big_endian:
                 try:
                     vals = vals.view(f">u{std_size}").ravel()
                 except:
                     vals = frombuffer(vals.tobytes(), dtype=f">u{std_size}")
+
+                vals = vals >> (std_size * 8 - bit_offset - bit_count)
+                vals &= (1 << bit_count) - 1
+
             else:
                 try:
                     vals = vals.view(f"<u{std_size}").ravel()
                 except:
                     vals = frombuffer(vals.tobytes(), dtype=f"<u{std_size}")
 
-        vals = vals >> bit_offset
-        vals &= (1 << bit_count) - 1
+                vals = vals >> bit_offset
+                vals &= (1 << bit_count) - 1
 
         data_type = channel.data_type
 

@@ -1355,8 +1355,6 @@ def extract_can_signal(signal, payload):
     signed = signal.is_signed
 
     start_bit = signal.get_startbit()
-#   start_bit = signal.get_startbit(not signal.is_little_endian)
-#    print(signal.name, signal.get_startbit(), signal.start_bit, start_bit, signal.is_little_endian)
     start_byte, bit_offset = divmod(start_bit, 8)
 
     bit_count = signal.size
@@ -1387,14 +1385,18 @@ def extract_can_signal(signal, payload):
 
             vals = np.column_stack(
                 [
-                    np.zeros(len(vals), dtype=f"<({extra_bytes},)u1"),
                     vals[:, start_byte : start_byte + byte_size],
+                    np.zeros(len(vals), dtype=f"<({extra_bytes},)u1"),
                 ]
             )
+
             try:
                 vals = vals.view(f">u{std_size}").ravel()
             except:
                 vals = np.frombuffer(vals.tobytes(), dtype=f">u{std_size}")
+
+            vals = vals >> (std_size * 8 - bit_offset - bit_count)
+            vals &= (2 ** bit_count) - 1
 
         else:
             vals = np.column_stack(
@@ -1407,6 +1409,9 @@ def extract_can_signal(signal, payload):
                 vals = vals.view(f"<u{std_size}").ravel()
             except:
                 vals = np.frombuffer(vals.tobytes(), dtype=f"<u{std_size}")
+
+            vals = vals >> bit_offset
+            vals &= (2 ** bit_count) - 1
 
     else:
         if big_endian:
@@ -1421,6 +1426,9 @@ def extract_can_signal(signal, payload):
                     vals[:, start_byte : start_byte + byte_size].tobytes(),
                     dtype=f">u{std_size}",
                 )
+
+            vals = vals >> (std_size * 8 - bit_offset - bit_count)
+            vals &= (2 ** bit_count) - 1
         else:
             try:
                 vals = (
@@ -1434,8 +1442,8 @@ def extract_can_signal(signal, payload):
                     dtype=f"<u{std_size}",
                 )
 
-    vals = vals >> bit_offset
-    vals &= (2 ** bit_count) - 1
+            vals = vals >> bit_offset
+            vals &= (2 ** bit_count) - 1
 
     if signed:
         vals = as_non_byte_sized_signed_int(vals, bit_count)
