@@ -573,6 +573,23 @@ class Plot(QtWidgets.QWidget):
             )
             self.plot._can_trim = False
 
+        valid = []
+        invalid = []
+        for channel in channels:
+            if np.all(np.isnan(channel.samples)):
+                invalid.append(channel.name)
+            else:
+                valid.append(channel)
+
+        if invalid:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "All NaN channels will not be plotted:",
+                f"The following channels have all NaN samples and will not be plotted:\n{', '.join(invalid)}",
+            )
+
+        channels = valid
+
         self.plot.add_new_channels(channels)
 
         for sig in channels:
@@ -1569,14 +1586,21 @@ class _Plot(pg.PlotWidget):
                         raster = abs((stop_ - start_)) // visible
                     else:
                         raster = 0
-                    if raster:
+
+                    while raster > 1:
                         rows = (stop_ - start_) // raster
                         stop_2 = start_ + rows * raster
 
                         samples = sig.samples[start_:stop_2].reshape(rows, raster)
 
-                        pos_max = np.nanargmax(samples, axis=1)
-                        pos_min = np.nanargmin(samples, axis=1)
+                        try:
+                            pos_max = np.nanargmax(samples, axis=1)
+                            pos_min = np.nanargmin(samples, axis=1)
+                            break
+                        except ValueError:
+                            raster -= 1
+
+                    if raster > 1:
 
                         pos = np.dstack([pos_min, pos_max])[0]
                         pos.sort()
@@ -1723,6 +1747,7 @@ class _Plot(pg.PlotWidget):
         initial_index = len(self.signals)
 
         for i, sig in enumerate(channels):
+
             index = len(self.signals)
 
             self.signals.append(sig)
