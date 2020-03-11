@@ -1356,9 +1356,7 @@ def extract_can_signal(signal, payload):
 
     start_bit = signal.get_startbit(bit_numbering=1)
 
-    if signal.is_little_endian:
-        start_byte, bit_offset = divmod(start_bit, 8)
-    else:
+    if big_endian:
         start_byte = start_bit // 8
         bit_count = signal.size
 
@@ -1370,15 +1368,38 @@ def extract_can_signal(signal, payload):
             bit_offset = pos - over
         else:
             bit_offset = pos + 8 - over
+    else:
+        start_byte, bit_offset = divmod(start_bit, 8)
 
     bit_count = signal.size
 
-    if start_bit + bit_count > vals.shape[1] * 8:
-        raise MdfException(
-            f'Could not extract signal "{signal.name}" with start '
-            f"bit {signal.get_startbit()} and bit count {signal.size} "
-            f"from the payload with shape {vals.shape}"
-        )
+    if big_endian:
+        byte_pos = start_byte + 1
+        start_pos = start_bit
+        bits = bit_count
+
+        while True:
+            pos = start_pos % 8 + 1
+            if pos < bits:
+                byte_pos += 1
+                bits -= pos
+                start_pos = 7
+            else:
+                break
+
+        if byte_pos > vals.shape[1] * 8:
+            raise MdfException(
+                f'Could not extract signal "{signal.name}" with start '
+                f"bit {start_bit} and bit count {signal.size} "
+                f"from the payload with shape {vals.shape}"
+            )
+    else:
+        if start_bit + bit_count > vals.shape[1] * 8:
+            raise MdfException(
+                f'Could not extract signal "{signal.name}" with start '
+                f"bit {start_bit} and bit count {signal.size} "
+                f"from the payload with shape {vals.shape}"
+            )
 
     byte_size, r = divmod(bit_offset + bit_count, 8)
     if r:
