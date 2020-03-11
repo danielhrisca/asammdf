@@ -8459,7 +8459,6 @@ class MDF4(object):
         if can_id is None:
             index = None
             for _can_id, messages in self.can_logging_db.items():
-                print([hex(e) for e in messages])
 
                 if is_j1939:
                     test_ids = [

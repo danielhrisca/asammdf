@@ -3480,6 +3480,7 @@ class MDF(object):
 
                                     out.extend(index, sigs)
                     self._set_temporary_master(None)
+                    group.record = None
                 cntr += 1
                 if self._callback:
                     self._callback(cntr, count)

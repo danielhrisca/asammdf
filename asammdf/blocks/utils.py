@@ -1415,7 +1415,7 @@ def extract_can_signal(signal, payload):
     # prepend or append extra bytes columns
     # to get a standard size number of bytes
 
-    print(signal.name, start_bit, bit_offset, start_byte, byte_size)
+    #print(signal.name, start_bit, bit_offset, start_byte, byte_size)
 
     if extra_bytes:
         if big_endian:
@@ -1432,9 +1432,7 @@ def extract_can_signal(signal, payload):
             except:
                 vals = np.frombuffer(vals.tobytes(), dtype=f">u{std_size}")
 
-            print(vals)
             vals = vals >> (extra_bytes * 8 + bit_offset)
-            print(vals)
             vals &= (2 ** bit_count) - 1
 
         else:
@@ -1454,7 +1452,6 @@ def extract_can_signal(signal, payload):
 
     else:
         if big_endian:
-            print(vals[0])
             try:
                 vals = (
                     vals[:, start_byte : start_byte + byte_size]
@@ -1467,9 +1464,7 @@ def extract_can_signal(signal, payload):
                     dtype=f">u{std_size}",
                 )
 
-            print(vals)
             vals = vals >> bit_offset
-            print(vals)
             vals &= (2 ** bit_count) - 1
         else:
             try:
