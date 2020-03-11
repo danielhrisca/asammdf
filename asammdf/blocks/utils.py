@@ -1354,9 +1354,22 @@ def extract_can_signal(signal, payload):
     big_endian = False if signal.is_little_endian else True
     signed = signal.is_signed
 
-    start_bit = signal.get_startbit()
-#    print('{} start_bit={} get_start_bit={} get_startbit(True)={} get_startbit(True, True)={}'.format(signal.name, signal.start_bit, signal.get_startbit(), signal.get_startbit(True), signal.get_startbit(True, True)))
-    start_byte, bit_offset = divmod(start_bit, 8)
+    start_bit = signal.get_startbit(bit_numbering=1)
+
+    if signal.is_little_endian:
+        start_byte, bit_offset = divmod(start_bit, 8)
+    else:
+        start_byte = start_bit // 8
+        bit_count = signal.size
+
+        pos = start_bit % 8 + 1
+
+        over = bit_count % 8
+
+        if pos >= over:
+            bit_offset = pos - over
+        else:
+            bit_offset = pos + 8 - over
 
     bit_count = signal.size
 
@@ -1396,7 +1409,7 @@ def extract_can_signal(signal, payload):
             except:
                 vals = np.frombuffer(vals.tobytes(), dtype=f">u{std_size}")
 
-            vals = vals >> (std_size * 8 - bit_offset - bit_count)
+            vals = vals >> (extra_bytes * 8 + bit_offset)
             vals &= (2 ** bit_count) - 1
 
         else:
@@ -1428,7 +1441,7 @@ def extract_can_signal(signal, payload):
                     dtype=f">u{std_size}",
                 )
 
-            vals = vals >> (std_size * 8 - bit_offset - bit_count)
+            vals = vals >> bit_offset
             vals &= (2 ** bit_count) - 1
         else:
             try:
