@@ -3416,6 +3416,8 @@ class MDF(object):
                             )
 
                             for entry, signals in extracted_signals.items():
+                                if len(next(iter(signals.values()))["samples"]) == 0:
+                                    continue
                                 if entry not in msg_map:
                                     sigs = []
 

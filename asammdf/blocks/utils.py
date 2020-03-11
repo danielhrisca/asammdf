@@ -1365,7 +1365,7 @@ def extract_can_signal(signal, payload):
         over = bit_count % 8
 
         if pos >= over:
-            bit_offset = pos - over
+            bit_offset = (pos - over) % 8
         else:
             bit_offset = pos + 8 - over
     else:
