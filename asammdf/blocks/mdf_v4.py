@@ -579,11 +579,11 @@ class MDF4(object):
                         i += record_id_nr
                         rec_size = cg_size[rec_id]
                         if rec_size:
-                            rec_data = data[i : i + rec_size]
+                            rec_data = bytes(data[i : i + rec_size])
                             cg_data[rec_id].append(rec_data)
                         else:
                             (rec_size, ) = UINT32_u(data[i : i + 4])
-                            rec_data = data[i : i + rec_size + 4]
+                            rec_data = bytes(data[i : i + rec_size + 4])
                             cg_data[rec_id].append(rec_data)
                             i += 4
                         i += rec_size
@@ -1824,7 +1824,11 @@ class MDF4(object):
                             bit_count = size * 8
                             if next_byte_aligned_position <= record_size:
                                 if not new_ch.dtype_fmt:
-                                    new_ch.dtype_fmt = get_fmt_v4(data_type, bit_count, ch_type)
+                                    try:
+                                        new_ch.dtype_fmt = get_fmt_v4(data_type, bit_count, ch_type)
+                                    except:
+                                        print(new_ch)
+                                        raise
                                 dtype_pair = (
                                     name,
                                     new_ch.dtype_fmt,
