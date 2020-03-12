@@ -576,7 +576,7 @@ class Plot(QtWidgets.QWidget):
         valid = []
         invalid = []
         for channel in channels:
-            if np.all(np.isnan(channel.samples)):
+            if len(channel.samples) and np.all(np.isnan(channel.samples)):
                 invalid.append(channel.name)
             else:
                 valid.append(channel)

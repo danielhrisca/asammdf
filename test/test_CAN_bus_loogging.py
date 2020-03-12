@@ -20,7 +20,7 @@ class TestCANBusLogging(unittest.TestCase):
         cls.tempdir_obd = tempfile.TemporaryDirectory()
         cls.tempdir_j1939 = tempfile.TemporaryDirectory()
 
-        url = "https://github.com/danielhrisca/asammdf/files/4076870/OBD2-DBC-MDF4.zip"
+        url = "https://github.com/danielhrisca/asammdf/files/4322796/OBD2-DBC-MDF4.zip"
         urllib.request.urlretrieve(url, "test.zip")
         ZipFile(r"test.zip").extractall(cls.tempdir_obd.name)
         Path("test.zip").unlink()
