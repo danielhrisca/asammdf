@@ -2010,7 +2010,7 @@ address: {hex(self.address)}
                 self.reserved0,
             )
         else:
-            return v23c.VECTOR_ECU_p(
+            return v23c.SOURCE_VECTOR_p(
                 self.id,
                 self.block_len,
                 self.type,
