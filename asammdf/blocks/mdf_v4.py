@@ -184,6 +184,9 @@ except:
                 partial_records[rec_id].append(signal_data[i:endpoint])
                 i = endpoint
             else:
+                if i + 4 > size:
+                    rem = signal_data[pos:]
+                    break
                 (rec_size,) = UINT32_uf(signal_data, i)
                 endpoint = i + rec_size + 4
                 if endpoint > size:
@@ -9729,8 +9732,6 @@ class MDF4(object):
                             new_data = rem + read(block_size)
                             block_size = 0
                         partial_records = {id_: [] for _, id_ in groups}
-#                        if self._file.tell() > 1_000_000_000:
-#                            break
 
                         rem = sort_data_block(
                             new_data, partial_records, cg_size, record_id_nr, _unpack_stuct

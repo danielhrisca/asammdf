@@ -91,6 +91,10 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
             }
             else
             {
+                if (4 + position + id_size > size) {
+                    rem = PyBytes_FromStringAndSize(orig+position, size - position);
+                    break;
+                }
                 rec_size = (buf[3] << 24) + (buf[2] << 16) +(buf[1] << 8) + buf[0];
                 length = rec_size + 4;
                 if (position + length + id_size > size) {
