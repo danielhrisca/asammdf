@@ -1292,7 +1292,7 @@ class _Plot(pg.PlotWidget):
                         if max_ != max_:
                             max_ = 1
 
-                        viewbox.setYRange(min_, max_)
+                        viewbox.setYRange(min_, max_, padding=0)
 
                 if self.cursor1:
                     self.cursor_moved.emit()

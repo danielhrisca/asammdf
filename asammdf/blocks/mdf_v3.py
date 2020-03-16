@@ -34,6 +34,7 @@ from numpy import (
     unpackbits,
     zeros,
     searchsorted,
+    frombuffer,
 )
 
 from numpy.core.records import fromarrays, fromstring
@@ -516,7 +517,6 @@ class MDF3(object):
         return parents, dtypes
 
     def _get_not_byte_aligned_data(self, data, group, ch_nr):
-
         big_endian_types = (
             v23c.DATA_TYPE_UNSIGNED_MOTOROLA,
             v23c.DATA_TYPE_FLOAT_MOTOROLA,
@@ -528,84 +528,81 @@ class MDF3(object):
 
         channel = group.channels[ch_nr]
 
-        bit_offset = channel.start_offset % 8
-        byte_offset = channel.start_offset // 8
+        byte_offset, bit_offset = divmod(channel.start_offset, 8)
         bit_count = channel.bit_count
 
-        byte_count = bit_offset + bit_count
-        if byte_count % 8:
-            byte_count = (byte_count // 8) + 1
+        byte_size = bit_offset + bit_count
+        if byte_size % 8:
+            byte_size = (byte_size // 8) + 1
         else:
-            byte_count //= 8
+            byte_size //= 8
 
         types = [
-            ("", f"V{byte_offset}"),
-            ("vals", f"({byte_count},)u1"),
-            ("", f"V{record_size - byte_count - byte_offset}"),
+            ("", f"a{byte_offset}"),
+            ("vals", f"({byte_size},)u1"),
+            ("", f"a{record_size - byte_size - byte_offset}"),
         ]
 
         vals = fromstring(data, dtype=dtype(types))
 
         vals = vals["vals"]
 
-        if channel.data_type not in big_endian_types:
-            vals = flip(vals, 1)
-
-        vals = unpackbits(vals)
-        vals = roll(vals, bit_offset)
-        vals = vals.reshape((len(vals) // 8, 8))
-        vals = packbits(vals)
-        vals = vals.reshape((len(vals) // byte_count, byte_count))
-
-        if bit_count < 64:
-            mask = 2 ** bit_count - 1
-            masks = []
-            while mask:
-                masks.append(mask & 0xFF)
-                mask >>= 8
-            for i in range(byte_count - len(masks)):
-                masks.append(0)
-
-            masks = masks[::-1]
-            for i, mask in enumerate(masks):
-                vals[:, i] &= mask
-
-        if channel.data_type not in big_endian_types:
-            vals = flip(vals, 1)
-
-        if bit_count <= 8:
-            size = 1
-        elif bit_count <= 16:
-            size = 2
-        elif bit_count <= 32:
-            size = 4
-        elif bit_count <= 64:
-            size = 8
+        if byte_size in {1, 2, 4, 8}:
+            extra_bytes = 0
         else:
-            size = bit_count // 8
+            extra_bytes = 4 - (byte_size % 4)
 
-        if size > byte_count:
-            extra_bytes = size - byte_count
-            extra = zeros((len(vals), extra_bytes), dtype=uint8)
+        std_size = byte_size + extra_bytes
 
-            types = [
-                ("vals", vals.dtype, vals.shape[1:]),
-                ("", extra.dtype, extra.shape[1:]),
-            ]
-            vals = fromarrays([vals, extra], dtype=dtype(types))
+        big_endian = channel.data_type in big_endian_types
 
-        vals = vals.tostring()
+        # prepend or append extra bytes columns
+        # to get a standard size number of bytes
 
-        fmt = get_fmt_v3(channel.data_type, bit_count)
-        if size <= byte_count:
-            if channel.data_type in big_endian_types:
-                types = [("", f"a{byte_count - size}"), ("vals", fmt)]
+        if extra_bytes:
+            if big_endian:
+
+                vals = column_stack(
+                    [vals, zeros(len(vals), dtype=f"<({extra_bytes},)u1")]
+                )
+                try:
+                    vals = vals.view(f">u{std_size}").ravel()
+                except:
+                    vals = frombuffer(vals.tobytes(), dtype=f">u{std_size}")
+
+                vals = vals >> (extra_bytes * 8 + bit_offset)
+                vals &= (1 << bit_count) - 1
+
             else:
-                types = [("vals", fmt), ("", f"a{byte_count - size}")]
-        else:
-            types = [("vals", fmt)]
+                vals = column_stack(
+                    [vals, zeros(len(vals), dtype=f"<({extra_bytes},)u1"),]
+                )
+                try:
+                    vals = vals.view(f"<u{std_size}").ravel()
+                except:
+                    vals = frombuffer(vals.tobytes(), dtype=f"<u{std_size}")
 
-        vals = fromstring(vals, dtype=dtype(types))["vals"]
+                vals = vals >> bit_offset
+                vals &= (1 << bit_count) - 1
+
+        else:
+            if big_endian:
+                try:
+                    vals = vals.view(f">u{std_size}").ravel()
+                except:
+                    vals = frombuffer(vals.tobytes(), dtype=f">u{std_size}")
+
+                vals = vals >> bit_offset
+                vals &= (1 << bit_count) - 1
+
+            else:
+                try:
+                    vals = vals.view(f"<u{std_size}").ravel()
+                except:
+                    vals = frombuffer(vals.tobytes(), dtype=f"<u{std_size}")
+
+                vals = vals >> bit_offset
+                vals &= (1 << bit_count) - 1
 
         data_type = channel.data_type
 
