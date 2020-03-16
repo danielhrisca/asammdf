@@ -1287,6 +1287,10 @@ class _Plot(pg.PlotWidget):
                                 )
                             else:
                                 min_, max_ = 0, 1
+                        if min_ != min_:
+                            min_ = 0
+                        if max_ != max_:
+                            max_ = 1
 
                         viewbox.setYRange(min_, max_)
 

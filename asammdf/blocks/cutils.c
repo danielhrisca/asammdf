@@ -56,7 +56,7 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
         size = PyBytes_GET_SIZE(signal_data);
         end = buf + size;
         
-        while (buf != end)
+        while (buf + id_size < end)
         {
             rec_id = 0;
             for (int i=0; i<id_size; i++, buf++) {
@@ -76,7 +76,6 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
             if (rec_size)
             {
                 if (rec_size + position + id_size > size) {
-                    rem = PyBytes_FromStringAndSize(orig+position, size - position);
                     break;
                 }
                 bts = PyBytes_FromStringAndSize(buf, rec_size);
@@ -92,13 +91,11 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
             else
             {
                 if (4 + position + id_size > size) {
-                    rem = PyBytes_FromStringAndSize(orig+position, size - position);
                     break;
                 }
                 rec_size = (buf[3] << 24) + (buf[2] << 16) +(buf[1] << 8) + buf[0];
                 length = rec_size + 4;
                 if (position + length + id_size > size) {
-                    rem = PyBytes_FromStringAndSize(orig+position, size - position);
                     break;
                 }
                 bts = PyBytes_FromStringAndSize(buf, length);
@@ -126,9 +123,7 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
         item = NULL;
     }
     
-    if (!rem) {
-        rem = PyBytes_FromStringAndSize(NULL, 0);
-    }
+    rem = PyBytes_FromStringAndSize(orig+position, size - position);
 
     return rem;
 }

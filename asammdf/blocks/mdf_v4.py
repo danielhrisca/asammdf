@@ -171,7 +171,7 @@ except:
         size = len(signal_data)
         pos = 0
         rem = b''
-        while i < size:
+        while i + record_id_nr < size:
             (rec_id,) = _unpack_stuct(signal_data, i)
             # skip record id
             i += record_id_nr
@@ -196,7 +196,7 @@ except:
                 i = endpoint
             pos = i
         else:
-            rem = b''
+            rem = signal_data[pos:]
 
         return rem
 
