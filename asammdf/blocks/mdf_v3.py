@@ -400,10 +400,6 @@ class MDF3(object):
 
         parents, dtypes = group.parents, group.types
         if parents is None:
-            if group.data_location == v23c.LOCATION_ORIGINAL_FILE:
-                stream = self._file
-            else:
-                stream = self._tempfile
             grp = group
             record_size = grp.channel_group.samples_byte_nr << 3
             next_byte_aligned_position = 0
@@ -478,14 +474,34 @@ class MDF3(object):
                             next_byte_aligned_position = parent_start_offset
 
                     else:
-                        if size > 32:
-                            next_byte_aligned_position = parent_start_offset + 64
-                        elif size > 16:
-                            next_byte_aligned_position = parent_start_offset + 32
-                        elif size > 8:
-                            next_byte_aligned_position = parent_start_offset + 16
+                        byte_size, rem = divmod(size, 8)
+                        if rem:
+                            byte_size += 1
+                        bit_size = byte_size * 8
+
+                        if data_type in(v23c.DATA_TYPE_SIGNED_MOTOROLA, v23c.DATA_TYPE_UNSIGNED_MOTOROLA):
+
+                            if size > 32:
+                                next_byte_aligned_position = parent_start_offset + 64
+                                bit_offset += 64 - bit_size
+                            elif size > 16:
+                                next_byte_aligned_position = parent_start_offset + 32
+                                bit_offset += 32 - bit_size
+                            elif size > 8:
+                                next_byte_aligned_position = parent_start_offset + 16
+                                bit_offset += 16 - bit_size
+                            else:
+                                next_byte_aligned_position = parent_start_offset + 8
+
                         else:
-                            next_byte_aligned_position = parent_start_offset + 8
+                            if size > 32:
+                                next_byte_aligned_position = parent_start_offset + 64
+                            elif size > 16:
+                                next_byte_aligned_position = parent_start_offset + 32
+                            elif size > 8:
+                                next_byte_aligned_position = parent_start_offset + 16
+                            else:
+                                next_byte_aligned_position = parent_start_offset + 8
 
                         if next_byte_aligned_position <= record_size:
                             dtype_pair = (name, get_fmt_v3(data_type, size))
@@ -496,12 +512,27 @@ class MDF3(object):
 
                     current_parent = name
                 else:
-                    max_overlapping = next_byte_aligned_position - start_offset
-                    if max_overlapping >= bit_count:
-                        parents[original_index] = (
-                            current_parent,
-                            start_offset - parent_start_offset,
-                        )
+                    size = bit_offset + bit_count
+                    byte_size, rem = divmod(size, 8)
+                    if rem:
+                        byte_size += 1
+                    bit_size = byte_size * 8
+
+                    byte_start_offset = (start_offset // 8) * 8
+
+                    max_overlapping = next_byte_aligned_position - byte_start_offset
+                    if max_overlapping >= bit_size:
+                        if data_type in(v23c.DATA_TYPE_SIGNED_MOTOROLA, v23c.DATA_TYPE_UNSIGNED_MOTOROLA):
+                            parents[original_index] = (
+                                current_parent,
+                                bit_offset + max_overlapping - bit_size,
+                            )
+                        else:
+                            parents[original_index] = (
+                                current_parent,
+                                bit_offset + byte_start_offset - parent_start_offset,
+                            )
+
                 if next_byte_aligned_position > record_size:
                     break
 
@@ -2838,43 +2869,27 @@ class MDF3(object):
                         kind_ = dtype_.kind
 
                         if data_type in v23c.INT_TYPES:
-                            if kind_ == "f":
-                                if bits != size * 8:
-                                    vals = self._get_not_byte_aligned_data(
-                                        data_bytes, grp, ch_nr
+
+                            dtype_fmt = get_fmt_v3(data_type, bits)
+                            channel_dtype = dtype(dtype_fmt.split(")")[-1])
+
+                            view = f'{channel_dtype.byteorder}u{vals.itemsize}'
+                            vals = vals.view(view)
+
+                            if bit_offset:
+                                vals = vals >> bit_offset
+
+                            if bits != size * 8:
+                                if data_type in v23c.SIGNED_INT:
+                                    vals = as_non_byte_sized_signed_int(
+                                        vals, bits
                                     )
                                 else:
-                                    dtype_fmt = get_fmt_v3(data_type, bits)
-                                    channel_dtype = dtype(dtype_fmt.split(")")[-1])
-                                    vals = vals.view(channel_dtype)
-                            else:
-
-                                if dtype_.byteorder == ">":
-                                    if bit_offset or bits != size << 3:
-                                        vals = self._get_not_byte_aligned_data(
-                                            data_bytes, grp, ch_nr
-                                        )
-                                else:
-                                    if bit_offset:
-                                        if dtype_.kind == "i":
-                                            vals = vals.astype(
-                                                dtype(f"{dtype_.byteorder}u{size}")
-                                            )
-                                            vals >>= bit_offset
-                                        else:
-                                            vals = vals >> bit_offset
-
-                                    if bits != size << 3:
-                                        if data_type in v23c.SIGNED_INT:
-                                            vals = as_non_byte_sized_signed_int(
-                                                vals, bits
-                                            )
-                                        else:
-                                            mask = (1 << bits) - 1
-                                            if vals.flags.writeable:
-                                                vals &= mask
-                                            else:
-                                                vals = vals & mask
+                                    mask = (1 << bits) - 1
+                                    vals = vals & mask
+                            elif data_type in v23c.SIGNED_INT:
+                                view = f'{channel_dtype.byteorder}i{vals.itemsize}'
+                                vals = vals.view(view)
                         else:
                             if bits != size * 8:
                                 vals = self._get_not_byte_aligned_data(

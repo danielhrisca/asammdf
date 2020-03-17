@@ -1975,7 +1975,25 @@ class MDF4(object):
 
                             # adjust size to 1, 2, 4 or 8 bytes
                             size = bit_offset + bit_count
-                            if data_type not in v4c.NON_SCALAR_TYPES:
+
+                            byte_size, rem = divmod(size, 8)
+                            if rem:
+                                byte_size += 1
+                            bit_size = byte_size * 8
+
+                            if data_type in(v4c.DATA_TYPE_SIGNED_MOTOROLA, v4c.DATA_TYPE_UNSIGNED_MOTOROLA):
+                                if size > 32:
+                                    size = 8
+                                    bit_offset += 64 - bit_size
+                                elif size > 16:
+                                    size = 4
+                                    bit_offset += 32 - bit_size
+                                elif size > 8:
+                                    size = 2
+                                    bit_offset += 16 - bit_size
+                                else:
+                                    size = 1
+                            elif data_type not in v4c.NON_SCALAR_TYPES:
                                 if size > 32:
                                     size = 8
                                 elif size > 16:
@@ -2050,15 +2068,26 @@ class MDF4(object):
                         parents[original_index] = no_parent
 
                 else:
+                    size = bit_offset + bit_count
+                    byte_size, rem = divmod(size, 8)
+                    if rem:
+                        byte_size += 1
+
                     max_overlapping_size = (
                         next_byte_aligned_position - start_offset
                     ) * 8
                     needed_size = bit_offset + bit_count
                     if max_overlapping_size >= needed_size:
-                        parents[original_index] = (
-                            current_parent,
-                            ((start_offset - parent_start_offset) * 8) + bit_offset,
-                        )
+                        if data_type in(v4c.DATA_TYPE_SIGNED_MOTOROLA, v4c.DATA_TYPE_UNSIGNED_MOTOROLA):
+                            parents[original_index] = (
+                                current_parent,
+                                (next_byte_aligned_position - start_offset - byte_size) * 8 + bit_offset,
+                            )
+                        else:
+                            parents[original_index] = (
+                                current_parent,
+                                ((start_offset - parent_start_offset) * 8) + bit_offset,
+                            )
                 if next_byte_aligned_position > record_size:
                     break
 
@@ -7132,84 +7161,54 @@ class MDF4(object):
 
                     kind_ = dtype_.kind
 
+                    vals_dtype = vals.dtype.kind
                     if kind_ == "b":
                         pass
                     elif len(shape_) > 1 and data_type != v4c.DATA_TYPE_BYTEARRAY:
                         vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
-                    elif kind_ not in "ui":
-                        if bit_offset:
-                            vals = self._get_not_byte_aligned_data(
-                                data_bytes, grp, ch_nr
-                            )
-                        else:
-                            if bit_count != size * 8:
-                                if (
-                                    bit_count % 8 == 0
-                                    and size in (2, 4, 8)
-                                    and data_type <= 3
-                                ):  # integer types
-                                    vals = vals.view(f"<u{size}")
-                                    if data_type in v4c.SIGNED_INT:
-                                        vals = as_non_byte_sized_signed_int(
-                                            vals, bit_count
-                                        )
-                                    else:
-                                        mask = (1 << bit_count) - 1
-                                        if vals.flags.owndata:
-                                            vals &= mask
-                                        else:
-                                            vals = vals & mask
-                                else:
-                                    vals = self._get_not_byte_aligned_data(
-                                        data_bytes, grp, ch_nr
-                                    )
-                            else:
-                                if data_type <= 3:
-                                    if channel.dtype_fmt.subdtype:
-                                        channel_dtype = channel.dtype_fmt.subdtype[0]
-                                    else:
-                                        channel_dtype = channel.dtype_fmt
-                                    vals = vals.view(channel_dtype)
-
+                    elif vals_dtype not in "ui" and (bit_offset or not bit_count == size * 8):
+                        vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
                     else:
-                        if data_type <= 3:
-                            if dtype_.byteorder == ">":
-                                if bit_offset or bit_count != size * 8:
-                                    vals = self._get_not_byte_aligned_data(
-                                        data_bytes, grp, ch_nr
-                                    )
-                            else:
-                                if bit_offset:
-                                    if kind_ == "i":
-                                        vals = vals.astype(
-                                            dtype(f"{dtype_.byteorder}u{size}")
-                                        )
-                                        vals >>= bit_offset
-                                    else:
-                                        vals = vals >> bit_offset
+                        dtype_ = vals.dtype
+                        kind_ = dtype_.kind
 
-                                if bit_count != size * 8:
-                                    if data_type in v4c.SIGNED_INT:
-                                        vals = as_non_byte_sized_signed_int(
-                                            vals, bit_count
-                                        )
-                                    else:
-                                        mask = (1 << bit_count) - 1
-                                        if vals.flags.owndata:
-                                            vals &= mask
-                                        else:
-                                            vals = vals & mask
+                        if data_type in v4c.INT_TYPES:
+
+                            if channel.dtype_fmt.subdtype:
+                                channel_dtype = channel.dtype_fmt.subdtype[0]
+                            else:
+                                channel_dtype = channel.dtype_fmt
+
+                            view = f'{channel_dtype.byteorder}u{vals.itemsize}'
+                            vals = vals.view(view)
+
+                            if bit_offset:
+                                vals = vals >> bit_offset
+
+                            if bit_count != size * 8:
+                                if data_type in v4c.SIGNED_INT:
+                                    vals = as_non_byte_sized_signed_int(
+                                        vals, bit_count
+                                    )
+                                else:
+                                    mask = (1 << bit_count) - 1
+                                    vals = vals & mask
+                            elif data_type in v4c.SIGNED_INT:
+                                view = f'{channel_dtype.byteorder}i{vals.itemsize}'
+                                vals = vals.view(view)
+
                         else:
                             if bit_count != size * 8:
                                 vals = self._get_not_byte_aligned_data(
                                     data_bytes, grp, ch_nr
                                 )
                             else:
-                                if channel.dtype_fmt.subdtype:
-                                    channel_dtype = channel.dtype_fmt.subdtype[0]
-                                else:
-                                    channel_dtype = channel.dtype_fmt
-                                vals = vals.view(channel_dtype)
+                                if kind_ in "ui":
+                                    if channel.dtype_fmt.subdtype:
+                                        channel_dtype = channel.dtype_fmt.subdtype[0]
+                                    else:
+                                        channel_dtype = channel.dtype_fmt
+                                    vals = vals.view(channel_dtype)
 
                 else:
                     vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
@@ -7277,88 +7276,56 @@ class MDF4(object):
 
                         kind_ = dtype_.kind
 
+                        vals_dtype = vals.dtype.kind
                         if kind_ == "b":
                             pass
                         elif len(shape_) > 1 and data_type != v4c.DATA_TYPE_BYTEARRAY:
                             vals = self._get_not_byte_aligned_data(
                                 data_bytes, grp, ch_nr
                             )
-                        elif kind_ not in "ui":
-                            if bit_offset:
-                                vals = self._get_not_byte_aligned_data(
-                                    data_bytes, grp, ch_nr
-                                )
-                            else:
-                                if bit_count != size * 8:
-                                    if (
-                                        bit_count % 8 == 0
-                                        and size in (2, 4, 8)
-                                        and data_type <= 3
-                                    ):  # integer types
-                                        vals = vals.view(f"<u{size}")
-                                        if data_type in v4c.SIGNED_INT:
-                                            vals = as_non_byte_sized_signed_int(
-                                                vals, bit_count
-                                            )
-                                        else:
-                                            mask = (1 << bit_count) - 1
-                                            if vals.flags.owndata:
-                                                vals &= mask
-                                            else:
-                                                vals = vals & mask
-                                    else:
-                                        vals = self._get_not_byte_aligned_data(
-                                            data_bytes, grp, ch_nr
-                                        )
-                                else:
-                                    if data_type <= 3:
-                                        if channel.dtype_fmt.subdtype:
-                                            channel_dtype = channel.dtype_fmt.subdtype[
-                                                0
-                                            ]
-                                        else:
-                                            channel_dtype = channel.dtype_fmt
-                                        vals = vals.view(channel_dtype)
-
+                        elif vals_dtype not in "ui" and (bit_offset or not bit_count == size * 8):
+                            vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
                         else:
-                            if data_type <= 3:
-                                if dtype_.byteorder == ">":
-                                    if bit_offset or bit_count != size * 8:
-                                        vals = self._get_not_byte_aligned_data(
-                                            data_bytes, grp, ch_nr
-                                        )
-                                else:
-                                    if bit_offset:
-                                        if kind_ == "i":
-                                            vals = vals.astype(
-                                                dtype(f"{dtype_.byteorder}u{size}")
-                                            )
-                                            vals >>= bit_offset
-                                        else:
-                                            vals = vals >> bit_offset
+                            dtype_ = vals.dtype
+                            kind_ = dtype_.kind
 
-                                    if bit_count != size * 8:
-                                        if data_type in v4c.SIGNED_INT:
-                                            vals = as_non_byte_sized_signed_int(
-                                                vals, bit_count
-                                            )
-                                        else:
-                                            mask = (1 << bit_count) - 1
-                                            if vals.flags.owndata:
-                                                vals &= mask
-                                            else:
-                                                vals = vals & mask
+                            if data_type in v4c.INT_TYPES:
+
+                                if channel.dtype_fmt.subdtype:
+                                    channel_dtype = channel.dtype_fmt.subdtype[0]
+                                else:
+                                    channel_dtype = channel.dtype_fmt
+
+                                view = f'{channel_dtype.byteorder}u{vals.itemsize}'
+                                vals = vals.view(view)
+
+                                if bit_offset:
+                                    vals = vals >> bit_offset
+
+                                if bit_count != size * 8:
+                                    if data_type in v4c.SIGNED_INT:
+                                        vals = as_non_byte_sized_signed_int(
+                                            vals, bit_count
+                                        )
+                                    else:
+                                        mask = (1 << bit_count) - 1
+                                        vals = vals & mask
+                                elif data_type in v4c.SIGNED_INT:
+                                    view = f'{channel_dtype.byteorder}i{vals.itemsize}'
+                                    vals = vals.view(view)
+
                             else:
                                 if bit_count != size * 8:
                                     vals = self._get_not_byte_aligned_data(
                                         data_bytes, grp, ch_nr
                                     )
                                 else:
-                                    if channel.dtype_fmt.subdtype:
-                                        channel_dtype = channel.dtype_fmt.subdtype[0]
-                                    else:
-                                        channel_dtype = channel.dtype_fmt
-                                    vals = vals.view(channel_dtype)
+                                    if kind_ in "ui":
+                                        if channel.dtype_fmt.subdtype:
+                                            channel_dtype = channel.dtype_fmt.subdtype[0]
+                                        else:
+                                            channel_dtype = channel.dtype_fmt
+                                        vals = vals.view(channel_dtype)
 
                     else:
                         vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
@@ -7372,6 +7339,7 @@ class MDF4(object):
                         else:
                             channel_dtype = channel.dtype_fmt
                         if vals.dtype != channel_dtype:
+                            print('???????????', channel_dtype, vals.dtype, vals[0])
                             vals = vals.astype(channel_dtype)
 
                     if master_is_required:
