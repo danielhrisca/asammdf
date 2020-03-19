@@ -59,7 +59,7 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
                     item.parent().removeChild(item)
             self.items_deleted.emit(names)
         else:
-            event.ignore()
+            super().keyPressEvent(event)
 
     def startDrag(self, supportedActions):
         selected_items = self.selectedItems()

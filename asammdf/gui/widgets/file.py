@@ -2620,7 +2620,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         if key == QtCore.Qt.Key_F and modifier == QtCore.Qt.ControlModifier:
             self.search()
         else:
-            event.ignore()
+            super().keyPressEvent(event)
 
     def aspect_changed(self, index):
         if (

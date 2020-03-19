@@ -224,7 +224,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         elif key == QtCore.Qt.Key_Left and modifier == QtCore.Qt.NoModifier:
             self.timestamp_slider.setValue(self.timestamp_slider.value() - 1)
         else:
-            event.ignore()
+            super().keyPressEvent(event)
 
     def to_config(self):
 
