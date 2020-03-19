@@ -290,7 +290,6 @@ class TestEndianess(unittest.TestCase):
                 Path(TestEndianess.tempdir.name) / f"out",
                 overwrite=True,
             )
-            mdf_source.save(r'E:\TMP\t.mf4', overwrite=True)
 
             with MDF(outfile) as mdf:
                 self.assertTrue(
