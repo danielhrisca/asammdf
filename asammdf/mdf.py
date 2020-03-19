@@ -613,7 +613,9 @@ class MDF(object):
                     ]
                 else:
                     for sig in signals:
-                        sig.samples = sig.samples.astype(sig.samples.dtype.newbyteorder('='))
+                        native = sig.samples.dtype.newbyteorder('=')
+                        if sig.samples.dtype != native:
+                            sig.samples = sig.samples.astype(native)
 
                 if time_from_zero:
                     master = master - delta

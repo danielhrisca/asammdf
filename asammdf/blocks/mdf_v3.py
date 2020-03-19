@@ -398,6 +398,8 @@ class MDF3(object):
 
         """
 
+        byte_order = self.identification.byte_order
+
         parents, dtypes = group.parents, group.types
         if parents is None:
             grp = group
@@ -457,7 +459,7 @@ class MDF3(object):
                     if data_type == v23c.DATA_TYPE_STRING:
                         next_byte_aligned_position = parent_start_offset + size
                         if next_byte_aligned_position <= record_size:
-                            dtype_pair = (name, get_fmt_v3(data_type, size))
+                            dtype_pair = (name, get_fmt_v3(data_type, size, byte_order))
                             types.append(dtype_pair)
                             parents[original_index] = name, bit_offset
 
@@ -467,7 +469,7 @@ class MDF3(object):
                     elif data_type == v23c.DATA_TYPE_BYTEARRAY:
                         next_byte_aligned_position = parent_start_offset + size
                         if next_byte_aligned_position <= record_size:
-                            dtype_pair = (name, get_fmt_v3(data_type, size))
+                            dtype_pair = (name, get_fmt_v3(data_type, size, byte_order))
                             types.append(dtype_pair)
                             parents[original_index] = name, bit_offset
                         else:
@@ -479,7 +481,10 @@ class MDF3(object):
                             byte_size += 1
                         bit_size = byte_size * 8
 
-                        if data_type in(v23c.DATA_TYPE_SIGNED_MOTOROLA, v23c.DATA_TYPE_UNSIGNED_MOTOROLA):
+                        if (
+                            data_type in(v23c.DATA_TYPE_SIGNED_MOTOROLA, v23c.DATA_TYPE_UNSIGNED_MOTOROLA)
+                            or data_type in (v23c.DATA_TYPE_SIGNED, v23c.DATA_TYPE_UNSIGNED) and byte_order == v23c.BYTE_ORDER_MOTOROLA
+                        ):
 
                             if size > 32:
                                 next_byte_aligned_position = parent_start_offset + 64
@@ -504,7 +509,7 @@ class MDF3(object):
                                 next_byte_aligned_position = parent_start_offset + 8
 
                         if next_byte_aligned_position <= record_size:
-                            dtype_pair = (name, get_fmt_v3(data_type, size))
+                            dtype_pair = (name, get_fmt_v3(data_type, size, byte_order))
                             types.append(dtype_pair)
                             parents[original_index] = name, bit_offset
                         else:
@@ -522,7 +527,10 @@ class MDF3(object):
 
                     max_overlapping = next_byte_aligned_position - byte_start_offset
                     if max_overlapping >= bit_size:
-                        if data_type in(v23c.DATA_TYPE_SIGNED_MOTOROLA, v23c.DATA_TYPE_UNSIGNED_MOTOROLA):
+                        if (
+                            data_type in(v23c.DATA_TYPE_SIGNED_MOTOROLA, v23c.DATA_TYPE_UNSIGNED_MOTOROLA)
+                            or data_type in (v23c.DATA_TYPE_SIGNED, v23c.DATA_TYPE_UNSIGNED) and byte_order == v23c.BYTE_ORDER_MOTOROLA
+                        ):
                             parents[original_index] = (
                                 current_parent,
                                 bit_offset + max_overlapping - bit_size,
@@ -640,7 +648,7 @@ class MDF3(object):
         if data_type in v23c.SIGNED_INT:
             return as_non_byte_sized_signed_int(vals, bit_count)
         elif data_type in v23c.FLOATS:
-            return vals.view(get_fmt_v3(data_type, bit_count))
+            return vals.view(get_fmt_v3(data_type, bit_count, self.identification.byte_order))
         else:
             return vals
 
@@ -1136,13 +1144,6 @@ class MDF3(object):
                     times = None
         else:
             timestamps = array([])
-
-        if self.version < "3.10":
-            if timestamps.dtype.byteorder == ">":
-                timestamps = timestamps.byteswap().newbyteorder()
-            for signal in signals:
-                if signal.samples.dtype.byteorder == ">":
-                    signal.samples = signal.samples.byteswap().newbyteorder()
 
         if self.version >= "3.00":
             channel_size = v23c.CN_DISPLAYNAME_BLOCK_SIZE
@@ -1984,13 +1985,6 @@ class MDF3(object):
         version = self.version
 
         timestamps = t
-
-        # if self.version < '3.10':
-        #     if timestamps.dtype.byteorder == '>':
-        #         timestamps = timestamps.byteswap().newbyteorder()
-        #     for signal in signals:
-        #         if signal.samples.dtype.byteorder == '>':
-        #             signal.samples = signal.samples.byteswap().newbyteorder()
 
         if self.version >= "3.00":
             channel_size = v23c.CN_DISPLAYNAME_BLOCK_SIZE
@@ -2870,7 +2864,7 @@ class MDF3(object):
 
                         if data_type in v23c.INT_TYPES:
 
-                            dtype_fmt = get_fmt_v3(data_type, bits)
+                            dtype_fmt = get_fmt_v3(data_type, bits, self.identification.byte_order)
                             channel_dtype = dtype(dtype_fmt.split(")")[-1])
 
                             view = f'{channel_dtype.byteorder}u{vals.itemsize}'
@@ -2897,7 +2891,7 @@ class MDF3(object):
                                 )
                             else:
                                 if kind_ in "ui":
-                                    dtype_fmt = get_fmt_v3(data_type, bits)
+                                    dtype_fmt = get_fmt_v3(data_type, bits, self.identification.byte_order)
                                     channel_dtype = dtype(dtype_fmt.split(")")[-1])
                                     vals = vals.view(channel_dtype)
 
@@ -2911,7 +2905,7 @@ class MDF3(object):
                     vals = array(vals, dtype=bool)
                 else:
                     data_type = channel.data_type
-                    channel_dtype = array([], dtype=get_fmt_v3(data_type, bits))
+                    channel_dtype = array([], dtype=get_fmt_v3(data_type, bits, self.identification.byte_order))
                     if vals.dtype != channel_dtype.dtype:
                         try:
                             vals = vals.astype(channel_dtype.dtype)

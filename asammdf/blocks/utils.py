@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ET
 import re
 import subprocess
 from io import BytesIO
+import sys
 
 from collections import namedtuple
 from random import randint
@@ -263,7 +264,7 @@ def sanitize_xml(text):
     return re.sub(_xmlns_pattern, "", text)
 
 
-def get_fmt_v3(data_type, size):
+def get_fmt_v3(data_type, size, byte_order=v3c.BYTE_ORDER_INTEL):
     """convert mdf versions 2 and 3 channel data type to numpy dtype format
     string
 
@@ -279,14 +280,14 @@ def get_fmt_v3(data_type, size):
         numpy compatible data type format string
 
     """
-    if data_type in {v3c.DATA_TYPE_STRING, v3c.DATA_TYPE_BYTEARRAY}:
+    if data_type in (v3c.DATA_TYPE_STRING, v3c.DATA_TYPE_BYTEARRAY):
         size = size // 8
         if data_type == v3c.DATA_TYPE_STRING:
             fmt = f"S{size}"
         else:
             fmt = f"({size},)u1"
     else:
-        if size > 64 and data_type in (v3c.DATA_TYPE_UNSIGNED_INTEL, v3c.DATA_TYPE_UNSIGNED):
+        if size > 64 and data_type in (v3c.DATA_TYPE_UNSIGNED_INTEL, v3c.DATA_TYPE_UNSIGNED, v3c.DATA_TYPE_UNSIGNED_MOTOROLA):
             fmt = f"({size // 8},)u1"
         else:
             if size <= 8:
@@ -300,28 +301,41 @@ def get_fmt_v3(data_type, size):
             else:
                 size = size // 8
 
-            if data_type in (v3c.DATA_TYPE_UNSIGNED_INTEL, v3c.DATA_TYPE_UNSIGNED):
+            if data_type == v3c.DATA_TYPE_UNSIGNED_INTEL:
                 fmt = f"<u{size}"
+
+            elif data_type == v3c.DATA_TYPE_UNSIGNED:
+                if byte_order == v3c.BYTE_ORDER_INTEL:
+                    fmt = f"<u{size}"
+                else:
+                    fmt = f">u{size}"
 
             elif data_type == v3c.DATA_TYPE_UNSIGNED_MOTOROLA:
                 fmt = f">u{size}"
 
-            elif data_type in (v3c.DATA_TYPE_SIGNED_INTEL, v3c.DATA_TYPE_SIGNED):
+            elif data_type == v3c.DATA_TYPE_SIGNED_INTEL:
                 fmt = f"<i{size}"
+
+            elif data_type == v3c.DATA_TYPE_SIGNED:
+                if byte_order == v3c.BYTE_ORDER_INTEL:
+                    fmt = f"<i{size}"
+                else:
+                    fmt = f">i{size}"
 
             elif data_type == v3c.DATA_TYPE_SIGNED_MOTOROLA:
                 fmt = f">i{size}"
 
-            elif data_type in {
-                v3c.DATA_TYPE_FLOAT,
-                v3c.DATA_TYPE_DOUBLE,
-                v3c.DATA_TYPE_FLOAT_INTEL,
-                v3c.DATA_TYPE_DOUBLE_INTEL,
-            }:
+            elif data_type in (v3c.DATA_TYPE_FLOAT_INTEL, v3c.DATA_TYPE_DOUBLE_INTEL):
                 fmt = f"<f{size}"
 
             elif data_type in (v3c.DATA_TYPE_FLOAT_MOTOROLA, v3c.DATA_TYPE_DOUBLE_MOTOROLA):
                 fmt = f">f{size}"
+
+            elif data_type in (v3c.DATA_TYPE_FLOAT, v3c.DATA_TYPE_DOUBLE):
+                if byte_order == v3c.BYTE_ORDER_INTEL:
+                    fmt = f"<f{size}"
+                else:
+                    fmt = f">f{size}"
 
     return fmt
 
@@ -430,25 +444,29 @@ def fmt_to_datatype_v3(fmt, shape, array=False):
         integer data type as defined by ASAM MDF and bit size
 
     """
+    byteorder = fmt.byteorder
+    if byteorder == '=':
+        byteorder = '<' if sys.byteorder == 'little' else '>'
     size = fmt.itemsize * 8
+    kind = fmt.kind
 
-    if not array and shape[1:] and fmt.itemsize == 1 and fmt.kind == "u":
+    if not array and shape[1:] and fmt.itemsize == 1 and kind == "u":
         data_type = v3c.DATA_TYPE_BYTEARRAY
         for dim in shape[1:]:
             size *= dim
     else:
-        if fmt.kind == "u":
-            if fmt.byteorder in "=<|":
-                data_type = v3c.DATA_TYPE_UNSIGNED
+        if kind == "u":
+            if byteorder in "<|":
+                data_type = v3c.DATA_TYPE_UNSIGNED_INTEL
             else:
                 data_type = v3c.DATA_TYPE_UNSIGNED_MOTOROLA
-        elif fmt.kind == "i":
-            if fmt.byteorder in "=<|":
-                data_type = v3c.DATA_TYPE_SIGNED
+        elif kind == "i":
+            if byteorder in "<|":
+                data_type = v3c.DATA_TYPE_SIGNED_INTEL
             else:
                 data_type = v3c.DATA_TYPE_SIGNED_MOTOROLA
-        elif fmt.kind == "f":
-            if fmt.byteorder in "=<":
+        elif kind == "f":
+            if byteorder in "<":
                 if size == 32:
                     data_type = v3c.DATA_TYPE_FLOAT
                 else:
@@ -458,10 +476,10 @@ def fmt_to_datatype_v3(fmt, shape, array=False):
                     data_type = v3c.DATA_TYPE_FLOAT_MOTOROLA
                 else:
                     data_type = v3c.DATA_TYPE_DOUBLE_MOTOROLA
-        elif fmt.kind in "SV":
+        elif kind in "SV":
             data_type = v3c.DATA_TYPE_STRING
-        elif fmt.kind == "b":
-            data_type = v3c.DATA_TYPE_UNSIGNED
+        elif kind == "b":
+            data_type = v3c.DATA_TYPE_UNSIGNED_INTEL
             size = 1
         else:
             message = f"Unknown type: dtype={fmt}, shape={shape}"
@@ -521,28 +539,30 @@ def fmt_to_datatype_v4(fmt, shape, array=False):
         integer data type as defined by ASAM MDF and bit size
 
     """
+    byteorder = fmt.byteorder
+    if byteorder == '=':
+        byteorder = '<' if sys.byteorder == 'little' else '>'
     size = fmt.itemsize * 8
+    kind = fmt.kind
 
-    if not array and shape[1:] and fmt.itemsize == 1 and fmt.kind == "u":
+    if not array and shape[1:] and fmt.itemsize == 1 and kind == "u":
         data_type = v4c.DATA_TYPE_BYTEARRAY
         for dim in shape[1:]:
             size *= dim
 
     else:
-        kind = fmt.kind
-        byteorder = fmt.byteorder
         if kind == "u":
-            if byteorder in "=<|":
+            if byteorder in "<|":
                 data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
             else:
                 data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
         elif kind == "i":
-            if byteorder in "=<|":
+            if byteorder in "<|":
                 data_type = v4c.DATA_TYPE_SIGNED_INTEL
             else:
                 data_type = v4c.DATA_TYPE_SIGNED_MOTOROLA
         elif kind == "f":
-            if byteorder in "=<":
+            if byteorder in "<":
                 data_type = v4c.DATA_TYPE_REAL_INTEL
             else:
                 data_type = v4c.DATA_TYPE_REAL_MOTOROLA
@@ -552,7 +572,7 @@ def fmt_to_datatype_v4(fmt, shape, array=False):
             data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
             size = 1
         elif kind == "c":
-            if byteorder in "=<":
+            if byteorder in "<":
                 data_type = v4c.DATA_TYPE_COMPLEX_INTEL
             else:
                 data_type = v4c.DATA_TYPE_COMPLEX_MOTOROLA

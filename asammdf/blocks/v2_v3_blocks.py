@@ -7,6 +7,7 @@ from datetime import datetime
 from getpass import getuser
 from struct import pack, unpack, unpack_from
 from textwrap import wrap
+import sys
 
 import numpy as np
 from numexpr import evaluate
@@ -2514,7 +2515,7 @@ class FileIdentificationBlock:
             self.program_identification = "amdf{}".format(
                 __version__.replace(".", "")
             ).encode("latin-1")
-            self.byte_order = v23c.BYTE_ORDER_INTEL
+            self.byte_order = v23c.BYTE_ORDER_INTEL if sys.byteorder == 'little' else v23c.BYTE_ORDER_MOTOROLA
             self.float_format = 0
             self.mdf_version = int(version.replace(".", ""))
             self.code_page = 0
