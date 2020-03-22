@@ -22,16 +22,6 @@ def get_export_symbols(self, ext):
 build_ext.build_ext.get_export_symbols = get_export_symbols
 
 
-def get_export_symbols(self, ext):
-    parts = ext.name.split(".")
-    print("parts", parts)
-    if parts[-1] == "__init__":
-        initfunc_name = "PyInit_" + parts[-2]
-    else:
-        initfunc_name = "PyInit_" + parts[-1]
-
-
-build_ext.build_ext.get_export_symbols = get_export_symbols
 # To use a consistent encoding
 from codecs import open
 from os import path, listdir, walk
@@ -88,6 +78,7 @@ try:
             "Programming Language :: Python :: 3.6",
             "Programming Language :: Python :: 3.7",
             "Programming Language :: Python :: 3.8",
+            "Programming Language :: Python :: 3.9",
         ],
         # What does your project relate to?
         keywords="read reader edit editor parse parser asam mdf measurement",
@@ -106,7 +97,7 @@ try:
             "pandas",
             "numexpr",
             "wheel",
-            "canmatrix~=0.8",
+            "canmatrix",
             "natsort",
             "lxml",
             "cChardet",
@@ -116,7 +107,7 @@ try:
         # dependencies). You can install these using the following syntax,
         # for example:
         # $ pip install -e .[dev,test]
-        extras_require={"gui": ["PyQt5>=5.13.1", "pyqtgraph>=0.10.0", "psutil"],},
+        extras_require={"gui": ["PyQt5>=5.13.1", "pyqtgraph==0.11.0rc0", "psutil"],},
         # If there are data files included in your packages that need to be
         # installed, specify them here.  If using Python 2.6 or less, then these
         # have to be included in MANIFEST.in as well.
@@ -176,6 +167,7 @@ except:
             "Programming Language :: Python :: 3.6",
             "Programming Language :: Python :: 3.7",
             "Programming Language :: Python :: 3.8",
+            "Programming Language :: Python :: 3.9",
         ],
         # What does your project relate to?
         keywords="read reader edit editor parse parser asam mdf measurement",
@@ -194,7 +186,7 @@ except:
             "pandas",
             "numexpr",
             "wheel",
-            "canmatrix>=0.8",
+            "canmatrix",
             "natsort",
             "lxml",
             "cChardet",
@@ -204,7 +196,7 @@ except:
         # dependencies). You can install these using the following syntax,
         # for example:
         # $ pip install -e .[dev,test]
-        extras_require={"gui": ["PyQt5>=5.13.1", "pyqtgraph>=0.10.0", "psutil"],},
+        extras_require={"gui": ["PyQt5>=5.13.1", "pyqtgraph==0.11.0rc0", "psutil"],},
         # If there are data files included in your packages that need to be
         # installed, specify them here.  If using Python 2.6 or less, then these
         # have to be included in MANIFEST.in as well.
