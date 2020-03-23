@@ -298,12 +298,16 @@ class MDF4(object):
         self.identification = None
         self.file_history = []
         self.channels_db = ChannelsDB()
-        self.can_logging_db = {}
         self.masters_db = {}
         self.attachments = []
         self._attachments_cache = {}
         self.file_comment = None
         self.events = []
+        self.bus_logging_map = {
+            'CAN': {},
+            'FLEXRAY': {},
+            'ETHERNET': {},
+        }
 
         self._attachments_map = {}
         self._ch_map = {}
@@ -5667,7 +5671,6 @@ class MDF4(object):
         self.identification = None
         self.file_history.clear()
         self.channels_db.clear()
-        self.can_logging_db.clear()
         self.masters_db.clear()
         self.attachments.clear()
         self._attachments_cache.clear()
@@ -6867,7 +6870,6 @@ class MDF4(object):
                         else:
                             channel_dtype = channel.dtype_fmt
                         if vals.dtype != channel_dtype:
-                            print('???????????', channel_dtype, vals.dtype, vals[0])
                             vals = vals.astype(channel_dtype)
 
                     if master_is_required:
@@ -7861,7 +7863,7 @@ class MDF4(object):
                     f'CAN id "{can_id_str}" of signal name "{name}" is not recognised by this library'
                 )
             else:
-                can_id = f'CAN{can_id.group("id")}'
+                can_id = int(can_id.group("id"))
 
             message_id = v4c.CAN_DATA_FRAME_PATTERN.search(message_id_str)
             if message_id is None:
@@ -7914,12 +7916,12 @@ class MDF4(object):
 
         if can_id is None:
             index = None
-            for _can_id, messages in self.can_logging_db.items():
+            for _can_id, messages in self.bus_logging_db['CAN'].items():
 
                 if is_j1939:
                     test_ids = [
                         canmatrix.ArbitrationId(id_, extended=True).pgn
-                        for id_ in self.can_logging_db[_can_id]
+                        for id_ in self.bus_logging_db['CAN'][_can_id]
                     ]
 
                     id_ = message.arbitration_id.pgn
@@ -7930,12 +7932,12 @@ class MDF4(object):
 
                 if id_ in test_ids:
                     if is_j1939:
-                        for id__, idx in self.can_logging_db[_can_id].items():
+                        for id__, idx in self.bus_logging_db['CAN'][_can_id].items():
                             if canmatrix.ArbitrationId(id__, extended=True).pgn == id_:
                                 index = idx
                                 break
                     else:
-                        index = self.can_logging_db[_can_id][message.arbitration_id.id]
+                        index = self.bus_logging_db['CAN'][_can_id][message.arbitration_id.id]
 
                 if index is not None:
                     break
@@ -7944,26 +7946,26 @@ class MDF4(object):
                     f'Message "{message.name}" (ID={hex(message.arbitration_id.id)}) not found in the measurement'
                 )
         else:
-            if can_id in self.can_logging_db:
+            if can_id in self.bus_logging_db['CAN'][_can_id]:
                 if is_j1939:
                     test_ids = [
                         canmatrix.ArbitrationId(id_, extended=True).pgn
-                        for id_ in self.can_logging_db[can_id]
+                        for id_ in self.bus_logging_db['CAN'][can_id]
                     ]
                     id_ = message.arbitration_id.pgn
 
                 else:
                     id_ = message.arbitration_id.id
-                    test_ids = self.can_logging_db[can_id]
+                    test_ids = self.bus_logging_db['CAN'][can_id]
 
                 if id_ in test_ids:
                     if is_j1939:
-                        for id__, idx in self.can_logging_db[can_id].items():
+                        for id__, idx in self.bus_logging_db['CAN'][can_id].items():
                             if canmatrix.ArbitrationId(id__, extended=True).pgn == id_:
                                 index = idx
                                 break
                     else:
-                        index = self.can_logging_db[can_id][message.arbitration_id.id]
+                        index = self.bus_logging_db['CAN'][can_id][message.arbitration_id.id]
                 else:
                     raise MdfException(
                         f'Message "{message.name}" (ID={hex(message.arbitration_id.id)}) not found in the measurement'
@@ -7979,7 +7981,7 @@ class MDF4(object):
             ignore_invalidation_bits=ignore_invalidation_bits,
             data=data,
         )
-        can_ids.samples = can_ids.samples & 0x1fffffff
+        can_ids.samples = can_ids.samples.astype('<u4') & 0x1fffffff
         payload = self.get(
             "CAN_DataFrame.DataBytes",
             group=index,
@@ -9261,11 +9263,13 @@ class MDF4(object):
             group = self.groups[index]
             if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
                 source = group.channel_group.acq_source
-                if source.bus_type == v4c.BUS_TYPE_CAN:
+                if (
+                        source.bus_type == v4c.BUS_TYPE_CAN
+                        and "CAN_DataFrame" in [ch.name for ch in group.channels]
+                ):
                     self._process_can_logging(index, group)
 
     def _process_can_logging(self, group_index, grp):
-        print(group_index)
 
         channels = grp.channels
         group = grp
@@ -9299,146 +9303,193 @@ class MDF4(object):
                 break
 
         if dbc is None:
-            return
+            parents, dtypes = self._prepare_record(group)
+            data = self._load_data(group, optimize_read=False)
 
-        is_j1939 = dbc.contains_j1939
+            for fragment_index, fragment in enumerate(data):
+                if dtypes.itemsize:
+                    group.record = fromstring(
+                        fragment[0], dtype=dtypes
+                    )
+                else:
+                    group.record = None
+                    return
 
-        if is_j1939:
-            messages = {message.arbitration_id.pgn: message for message in dbc}
-        else:
-            messages = {message.arbitration_id.id: message for message in dbc}
+                self._set_temporary_master(None)
+                self._set_temporary_master(self.get_master(group_index, data=fragment))
 
-        msg_map = {}
+                bus_ids = self.get(
+                    "CAN_DataFrame.BusChannel",
+                    group=group_index,
+                    data=fragment,
+                    samples_only=True,
+                )[0].astype("<u1")
 
-        parents, dtypes = self._prepare_record(group)
-        data = self._load_data(group, optimize_read=False)
-
-        for fragment_index, fragment in enumerate(data):
-            if dtypes.itemsize:
-                group.record = fromstring(
-                    fragment[0], dtype=dtypes
-                )
-            else:
-                group.record = None
-                return
-
-            self._set_temporary_master(None)
-            self._set_temporary_master(self.get_master(group_index, data=fragment))
-
-            bus_ids = self.get(
-                "CAN_DataFrame.BusChannel",
-                group=group_index,
-                data=fragment,
-                samples_only=True,
-            )[0].astype("<u1")
-
-            msg_ids = (
-                self.get("CAN_DataFrame.ID", group=group_index, data=fragment,)
-                .astype("<u4")
-                & 0x1FFFFFFF
-            )
-
-            if is_j1939:
-                ps = (msg_ids.samples >> 8) & 0xFF
-                pf = (msg_ids.samples >> 16) & 0xFF
-                _pgn = pf << 8
-                msg_ids.samples = where(pf >= 240, _pgn + ps, _pgn,)
-
-            data_bytes = self.get(
-                "CAN_DataFrame.DataBytes",
-                group=group_index,
-                data=fragment,
-                samples_only=True,
-            )[0]
-
-            buses = unique(bus_ids)
-
-            assert len(buses) == 1
-
-            bus = buses[0]
-
-            bus_t = msg_ids.timestamps
-            bus_msg_ids = msg_ids.samples
-            bus_data_bytes = data_bytes
-
-            unique_ids = sorted(unique(bus_msg_ids).astype("<u8"))
-
-            for msg_id in unique_ids:
-                message = messages.get(msg_id, None)
-                if message is None:
-                    continue
-
-                idx = argwhere(bus_msg_ids == msg_id).ravel()
-                payload = bus_data_bytes[idx]
-                t = bus_t[idx]
-
-                extracted_signals = extract_mux(
-                    payload, message, msg_id, bus, t
+                msg_ids = (
+                    self.get("CAN_DataFrame.ID", group=group_index, data=fragment,)
+                    .astype("<u4")
+                    & 0x1FFFFFFF
                 )
 
-                for entry, signals in extracted_signals.items():
-                    if len(next(iter(signals.values()))["samples"]) == 0:
-                        continue
-                    if entry not in msg_map:
-                        sigs = []
+                buses = unique(bus_ids)
+                assert len(buses) == 1
+                bus = buses[0]
 
-                        for name_, signal in signals.items():
-                            sig = Signal(
-                                samples=signal["samples"],
-                                timestamps=signal["t"],
-                                name=signal["name"],
-                                comment=signal["comment"],
-                                unit=signal["unit"],
-                                invalidation_bits=signal["invalidation_bits"],
-                                display_name=f"CAN{bus}.{message.name}.{signal['name']}",
-                            )
+                unique_ids = sorted(unique(msg_ids).astype("<u8"))
 
-                            sigs.append(sig)
+                if bus not in self.bus_logging_db['CAN']:
+                    self.bus_logging_db['CAN'][bus] = {}
 
-                        cg_nr = self.append(
-                            sigs,
-                            f"from CAN{bus} message ID=0x{msg_id:X}",
-                            common_timebase=True,
-                        )
+                for msg_id in unique_ids:
+                    self.bus_logging_db['CAN'][bus][msg_id] = group_index
 
-                        msg_map[entry] = cg_nr
-
-                        self.groups[
-                            cg_nr
-                        ].channel_group.comment = f"{message} 0x{msg_id:X}"
-
-                        for ch_index, ch in enumerate(self.groups[cg_nr].channels):
-                            if ch_index == 0:
-                                continue
-
-                            entry = cg_nr, ch_index
-
-                            name_ = f"{message}.{ch.name}"
-                            self.channels_db.add(name_, entry)
-
-                            name_ = f"CAN{bus}.{message}.{ch.name}"
-                            self.channels_db.add(name_, entry)
-
-                            name_ = f"CAN_DataFrame_{msg_id}.{ch.name}"
-                            self.channels_db.add(name_, entry)
-
-                            name_ = f"CAN{bus}.CAN_DataFrame_{msg_id}.{ch.name}"
-                            self.channels_db.add(name_, entry)
-
-                    else:
-
-                        index = msg_map[entry]
-
-                        sigs = []
-
-                        for name_, signal in signals.items():
-
-                            sigs.append((signal["samples"], signal["invalidation_bits"]))
-
-                            t = signal["t"]
-
-                        sigs.insert(0, (t, None))
-
-                        self.extend(index, sigs)
             self._set_temporary_master(None)
             group.record = None
+
+        else:
+
+            is_j1939 = dbc.contains_j1939
+
+            if is_j1939:
+                messages = {message.arbitration_id.pgn: message for message in dbc}
+            else:
+                messages = {message.arbitration_id.id: message for message in dbc}
+
+            msg_map = {}
+
+            parents, dtypes = self._prepare_record(group)
+            data = self._load_data(group, optimize_read=False)
+
+            for fragment_index, fragment in enumerate(data):
+                if dtypes.itemsize:
+                    group.record = fromstring(
+                        fragment[0], dtype=dtypes
+                    )
+                else:
+                    group.record = None
+                    return
+
+                self._set_temporary_master(None)
+                self._set_temporary_master(self.get_master(group_index, data=fragment))
+
+                bus_ids = self.get(
+                    "CAN_DataFrame.BusChannel",
+                    group=group_index,
+                    data=fragment,
+                    samples_only=True,
+                )[0].astype("<u1")
+
+                msg_ids = (
+                    self.get("CAN_DataFrame.ID", group=group_index, data=fragment,)
+                    .astype("<u4")
+                    & 0x1FFFFFFF
+                )
+
+                if is_j1939:
+                    ps = (msg_ids.samples >> 8) & 0xFF
+                    pf = (msg_ids.samples >> 16) & 0xFF
+                    _pgn = pf << 8
+                    msg_ids.samples = where(pf >= 240, _pgn + ps, _pgn,)
+
+                data_bytes = self.get(
+                    "CAN_DataFrame.DataBytes",
+                    group=group_index,
+                    data=fragment,
+                    samples_only=True,
+                )[0]
+
+                buses = unique(bus_ids)
+                assert len(buses) == 1
+                bus = buses[0]
+
+                bus_t = msg_ids.timestamps
+                bus_msg_ids = msg_ids.samples
+                bus_data_bytes = data_bytes
+
+                unique_ids = sorted(unique(bus_msg_ids).astype("<u8"))
+
+                if bus not in self.bus_logging_db['CAN']:
+                    self.bus_logging_db['CAN'][bus] = {}
+
+                for msg_id in unique_ids:
+                    self.bus_logging_db['CAN'][bus][msg_id] = group_index
+
+                for msg_id in unique_ids:
+                    message = messages.get(msg_id, None)
+                    if message is None:
+                        continue
+
+                    idx = argwhere(bus_msg_ids == msg_id).ravel()
+                    payload = bus_data_bytes[idx]
+                    t = bus_t[idx]
+
+                    extracted_signals = extract_mux(
+                        payload, message, msg_id, bus, t
+                    )
+
+                    for entry, signals in extracted_signals.items():
+                        if len(next(iter(signals.values()))["samples"]) == 0:
+                            continue
+                        if entry not in msg_map:
+                            sigs = []
+
+                            for name_, signal in signals.items():
+                                sig = Signal(
+                                    samples=signal["samples"],
+                                    timestamps=signal["t"],
+                                    name=signal["name"],
+                                    comment=signal["comment"],
+                                    unit=signal["unit"],
+                                    invalidation_bits=signal["invalidation_bits"],
+                                    display_name=f"CAN{bus}.{message.name}.{signal['name']}",
+                                )
+
+                                sigs.append(sig)
+
+                            cg_nr = self.append(
+                                sigs,
+                                f"from CAN{bus} message ID=0x{msg_id:X}",
+                                common_timebase=True,
+                            )
+
+                            msg_map[entry] = cg_nr
+
+                            self.groups[
+                                cg_nr
+                            ].channel_group.comment = f"{message} 0x{msg_id:X}"
+
+                            for ch_index, ch in enumerate(self.groups[cg_nr].channels):
+                                if ch_index == 0:
+                                    continue
+
+                                entry = cg_nr, ch_index
+
+                                name_ = f"{message}.{ch.name}"
+                                self.channels_db.add(name_, entry)
+
+                                name_ = f"CAN{bus}.{message}.{ch.name}"
+                                self.channels_db.add(name_, entry)
+
+                                name_ = f"CAN_DataFrame_{msg_id}.{ch.name}"
+                                self.channels_db.add(name_, entry)
+
+                                name_ = f"CAN{bus}.CAN_DataFrame_{msg_id}.{ch.name}"
+                                self.channels_db.add(name_, entry)
+
+                        else:
+
+                            index = msg_map[entry]
+
+                            sigs = []
+
+                            for name_, signal in signals.items():
+
+                                sigs.append((signal["samples"], signal["invalidation_bits"]))
+
+                                t = signal["t"]
+
+                            sigs.insert(0, (t, None))
+
+                            self.extend(index, sigs)
+                self._set_temporary_master(None)
+                group.record = None
