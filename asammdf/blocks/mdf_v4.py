@@ -4416,7 +4416,7 @@ class MDF4(object):
 
         # first we add the structure channel
 
-        if signal.attachment:
+        if signal.attachment and signal.attachment[0]:
             at_data, at_name = signal.attachment
             if at_name is not None:
                 suffix = Path(at_name).suffix.strip('.')
@@ -4446,7 +4446,7 @@ class MDF4(object):
         if source_bus:
             kwargs["flags"] = v4c.FLAG_CN_BUS_EVENT
             flags_ = v4c.FLAG_CN_BUS_EVENT
-            grp.channel_group.flags |= v4c.FLAG_CG_BUS_EVENT
+            grp.channel_group.flags |= v4c.FLAG_CG_BUS_EVENT | v4c.FLAG_CG_PLAIN_BUS_EVENT
         else:
             kwargs["flags"] = 0
             flags_ = 0
@@ -4477,6 +4477,15 @@ class MDF4(object):
             elif signal.source.bus_type == v4c.BUS_TYPE_ETHERNET:
                 grp.channel_group.path_separator = 46
                 grp.channel_group.acq_name = "ETHERNET"
+            elif signal.source.bus_type == v4c.BUS_TYPE_K_LINE:
+                grp.channel_group.path_separator = 46
+                grp.channel_group.acq_name = "K_LINE"
+            elif signal.source.bus_type == v4c.BUS_TYPE_MOST:
+                grp.channel_group.path_separator = 46
+                grp.channel_group.acq_name = "MOST"
+            elif signal.source.bus_type == v4c.BUS_TYPE_LIN:
+                grp.channel_group.path_separator = 46
+                grp.channel_group.acq_name = "LIN"
 
         # source for channel
         source = signal.source
@@ -4831,7 +4840,7 @@ class MDF4(object):
 
         # first we add the structure channel
 
-        if signal.attachment:
+        if signal.attachment and signal.attachment[0]:
             at_data, at_name = signal.attachment
             if at_name is not None:
                 suffix = Path(at_name).suffix.strip('.')
