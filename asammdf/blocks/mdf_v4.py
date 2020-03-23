@@ -7916,12 +7916,12 @@ class MDF4(object):
 
         if can_id is None:
             index = None
-            for _can_id, messages in self.bus_logging_db['CAN'].items():
+            for _can_id, messages in self.bus_logging_map['CAN'].items():
 
                 if is_j1939:
                     test_ids = [
                         canmatrix.ArbitrationId(id_, extended=True).pgn
-                        for id_ in self.bus_logging_db['CAN'][_can_id]
+                        for id_ in self.bus_logging_map['CAN'][_can_id]
                     ]
 
                     id_ = message.arbitration_id.pgn
@@ -7932,12 +7932,12 @@ class MDF4(object):
 
                 if id_ in test_ids:
                     if is_j1939:
-                        for id__, idx in self.bus_logging_db['CAN'][_can_id].items():
+                        for id__, idx in self.bus_logging_map['CAN'][_can_id].items():
                             if canmatrix.ArbitrationId(id__, extended=True).pgn == id_:
                                 index = idx
                                 break
                     else:
-                        index = self.bus_logging_db['CAN'][_can_id][message.arbitration_id.id]
+                        index = self.bus_logging_map['CAN'][_can_id][message.arbitration_id.id]
 
                 if index is not None:
                     break
@@ -7946,26 +7946,26 @@ class MDF4(object):
                     f'Message "{message.name}" (ID={hex(message.arbitration_id.id)}) not found in the measurement'
                 )
         else:
-            if can_id in self.bus_logging_db['CAN'][_can_id]:
+            if can_id in self.bus_logging_map['CAN'][_can_id]:
                 if is_j1939:
                     test_ids = [
                         canmatrix.ArbitrationId(id_, extended=True).pgn
-                        for id_ in self.bus_logging_db['CAN'][can_id]
+                        for id_ in self.bus_logging_map['CAN'][can_id]
                     ]
                     id_ = message.arbitration_id.pgn
 
                 else:
                     id_ = message.arbitration_id.id
-                    test_ids = self.bus_logging_db['CAN'][can_id]
+                    test_ids = self.bus_logging_map['CAN'][can_id]
 
                 if id_ in test_ids:
                     if is_j1939:
-                        for id__, idx in self.bus_logging_db['CAN'][can_id].items():
+                        for id__, idx in self.bus_logging_map['CAN'][can_id].items():
                             if canmatrix.ArbitrationId(id__, extended=True).pgn == id_:
                                 index = idx
                                 break
                     else:
-                        index = self.bus_logging_db['CAN'][can_id][message.arbitration_id.id]
+                        index = self.bus_logging_map['CAN'][can_id][message.arbitration_id.id]
                 else:
                     raise MdfException(
                         f'Message "{message.name}" (ID={hex(message.arbitration_id.id)}) not found in the measurement'
@@ -9325,23 +9325,27 @@ class MDF4(object):
                     samples_only=True,
                 )[0].astype("<u1")
 
-                msg_ids = (
-                    self.get("CAN_DataFrame.ID", group=group_index, data=fragment,)
-                    .astype("<u4")
-                    & 0x1FFFFFFF
-                )
+                msg_ids = self.get(
+                    "CAN_DataFrame.ID",
+                    group=group_index,
+                    data=fragment,
+                    samples_only=True,
+                )[0].astype("<u4") & 0x1FFFFFFF
+
+                if len(bus_ids) == 0:
+                    continue
 
                 buses = unique(bus_ids)
-                assert len(buses) == 1
+                assert len(buses) == 1, str(buses)
                 bus = buses[0]
 
                 unique_ids = sorted(unique(msg_ids).astype("<u8"))
 
-                if bus not in self.bus_logging_db['CAN']:
-                    self.bus_logging_db['CAN'][bus] = {}
+                if bus not in self.bus_logging_map['CAN']:
+                    self.bus_logging_map['CAN'][bus] = {}
 
                 for msg_id in unique_ids:
-                    self.bus_logging_db['CAN'][bus][msg_id] = group_index
+                    self.bus_logging_map['CAN'][bus][int(msg_id)] = group_index
 
             self._set_temporary_master(None)
             group.record = None
@@ -9399,7 +9403,8 @@ class MDF4(object):
                 )[0]
 
                 buses = unique(bus_ids)
-                assert len(buses) == 1
+                if len(bus_ids) > 0:
+                    assert len(buses) == 1
                 bus = buses[0]
 
                 bus_t = msg_ids.timestamps
@@ -9408,11 +9413,11 @@ class MDF4(object):
 
                 unique_ids = sorted(unique(bus_msg_ids).astype("<u8"))
 
-                if bus not in self.bus_logging_db['CAN']:
-                    self.bus_logging_db['CAN'][bus] = {}
+                if bus not in self.bus_logging_map['CAN']:
+                    self.bus_logging_map['CAN'][bus] = {}
 
                 for msg_id in unique_ids:
-                    self.bus_logging_db['CAN'][bus][msg_id] = group_index
+                    self.bus_logging_map['CAN'][bus][int(msg_id)] = group_index
 
                 for msg_id in unique_ids:
                     message = messages.get(msg_id, None)
