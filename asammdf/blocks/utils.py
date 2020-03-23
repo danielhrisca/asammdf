@@ -985,14 +985,6 @@ class Group:
         "data_location",
         "data_blocks",
         "record_size",
-        "CAN_logging",
-        "CAN_id",
-        "CAN_database",
-        "dbc_addr",
-        "raw_can",
-        "extended_id",
-        "message_name",
-        "message_id",
         "record",
         "parents",
         "types",
@@ -1001,7 +993,6 @@ class Group:
         "string_dtypes",
         "single_channel_dtype",
         "uses_ld",
-        "ignore_during_save",
         "read_split_count",
     )
 
@@ -1011,15 +1002,6 @@ class Group:
         self.logging_channels = []
         self.channel_dependencies = []
         self.signal_data = []
-        self.CAN_logging = False
-        self.CAN_id = None
-        self.CAN_database = False
-        self.raw_can = False
-        self.extended_id = False
-        self.message_name = ""
-        self.message_id = None
-        self.CAN_database = False
-        self.dbc_addr = None
         self.parents = None
         self.types = None
         self.record = None
@@ -1028,7 +1010,6 @@ class Group:
         self.data_blocks = []
         self.single_channel_dtype = None
         self.uses_ld = False
-        self.ignore_during_save = False
         self.read_split_count = 0
 
     def __getitem__(self, item):

@@ -3316,7 +3316,12 @@ class MDF(object):
             else:
                 valid_dbc_files.append((dbc, dbc_name))
 
-        count = sum(1 for group in self.groups if group.CAN_logging)
+        count = sum(
+            1
+            for group in self.groups
+            if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT
+            and group.channel_group.acq_source.bus_type == v4c.BUS_TYPE_CAN
+        )
         count *= len(valid_dbc_files)
 
         cntr = 0
@@ -3340,10 +3345,11 @@ class MDF(object):
             msg_map = {}
 
             for i, group in enumerate(self.groups):
-                if not group.CAN_logging:
-                    continue
-
-                if not "CAN_DataFrame" in [ch.name for ch in group.channels]:
+                if (
+                        not group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT
+                        or not group.channel_group.acq_source.bus_type == v4c.BUS_TYPE_CAN
+                        or not "CAN_DataFrame" in [ch.name for ch in group.channels]
+                ):
                     continue
 
                 parents, dtypes = self._prepare_record(group)

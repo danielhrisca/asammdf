@@ -23,6 +23,7 @@ from ..ui.file_widget import Ui_file_widget
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ...signal import Signal
 from ...blocks.utils import MdfException, extract_cncomment_xml, csv_bytearray2hex
+from ...blocks.v4_constants import FLAG_CG_BUS_EVENT
 from ..utils import TERMINATED, run_thread_with_progress, setup_progress, load_dsp, get_required_signals, compute_signal
 from .plot import Plot
 from .numeric import Numeric
@@ -351,7 +352,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         self.load_can_database_btn.clicked.connect(self.load_can_database)
 
         if self.mdf.version >= "4.00":
-            if any(group.CAN_logging for group in self.mdf.groups):
+            if any(group.channel_group.flags & FLAG_CG_BUS_EVENT for group in self.mdf.groups):
                 self.aspects.setTabEnabled(7, True)
             else:
                 self.aspects.setTabEnabled(7, False)
