@@ -171,7 +171,7 @@ def run_thread_with_progress(
 
     thr.start()
 
-    while widget.progress is None:
+    while widget.progress is None and thr.is_alive():
         sleep(0.1)
 
     while thr.is_alive():

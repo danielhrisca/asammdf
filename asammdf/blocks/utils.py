@@ -1724,7 +1724,7 @@ def pandas_query_compatible(name):
     return name
 
 
-def load_can_database(file, contents=None):
+def load_can_database(file, contents=None, **kwargs):
 
     file = Path(file)
 
@@ -1741,7 +1741,7 @@ def load_can_database(file, contents=None):
             contents = BytesIO(contents)
             try:
                 try:
-                    dbc = loads(contents, import_type=import_type, key="db",)
+                    dbc = loads(contents, import_type=import_type, key="db", **kwargs)
                 except UnicodeDecodeError:
                     encoding = detect(contents)["encoding"]
                     contents = contents.decode(encoding)
@@ -1753,6 +1753,7 @@ def load_can_database(file, contents=None):
                         encoding=encoding,
                     )
             except:
+                raise
                 dbc = None
 
     if isinstance(dbc, dict):
@@ -1780,3 +1781,5 @@ def all_blocks_addresses(obj):
          match.start()
          for match in re.finditer(pattern, obj)
     ]
+
+
