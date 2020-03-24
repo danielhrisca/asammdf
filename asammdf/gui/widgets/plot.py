@@ -270,30 +270,25 @@ class Plot(QtWidgets.QWidget):
             for i, uuid in enumerate(uuids):
                 signal, idx = self.plot.signal_by_uuid(uuid)
                 cut_sig = signal.cut(position, position)
-                if signal.plot_texts is None or len(cut_sig) == 0:
-                    samples = cut_sig.samples
-                    if signal.conversion and hasattr(signal.conversion, "text_0"):
-                        samples = signal.conversion.convert(samples)
-                        if samples.dtype.kind == "S":
-                            try:
-                                samples = [s.decode("utf-8") for s in samples]
-                            except:
-                                samples = [s.decode("latin-1") for s in samples]
-                        else:
-                            samples = samples.tolist()
+                if signal.format != "raw" and signal.conversion:
+                    samples = signal.conversion.convert(cut_sig.samples)
                 else:
-                    t = np.argwhere(
-                        signal.plot_timestamps == cut_sig.timestamps
-                    ).flatten()
+                    samples = cut_sig.samples
+
+                kind = samples.dtype.kind
+                if kind == "S":
                     try:
-                        samples = [e.decode("utf-8") for e in signal.plot_texts[t]]
+                        samples = [s.decode("utf-8") for s in samples]
                     except:
-                        samples = [e.decode("latin-1") for e in signal.plot_texts[t]]
+                        samples = [s.decode("latin-1") for s in samples]
+                else:
+                    samples = samples.tolist()
 
                 item = self.channel_selection.item(i)
                 item = self.channel_selection.itemWidget(item)
 
                 item.set_prefix("= ")
+                item.kind = kind
                 item.set_fmt(signal.format)
 
                 if len(samples):
@@ -344,17 +339,25 @@ class Plot(QtWidgets.QWidget):
             item = self.channel_selection.itemWidget(item)
 
             signal, i = self.plot.signal_by_uuid(item.uuid)
-            samples = signal.cut(start, stop).samples
+            cut_sig = signal.cut(start, stop)
+
+            if signal.format != "raw" and signal.conversion:
+                samples = signal.conversion.convert(cut_sig.samples)
+            else:
+                samples = cut_sig.samples
+
+            kind = samples.dtype.kind
 
             item.set_prefix("Δ = ")
             item.set_fmt(signal.format)
 
             if len(samples):
-                if samples.dtype.kind in "ui":
+                if kind in "ui":
                     delta = np.int64(np.float64(samples[-1]) - np.float64(samples[0]))
                 else:
                     delta = samples[-1] - samples[0]
 
+                item.kind = kind
                 item.set_value(delta)
 
             else:
@@ -431,7 +434,7 @@ class Plot(QtWidgets.QWidget):
         elif key == QtCore.Qt.Key_B and modifiers == QtCore.Qt.ControlModifier:
             selected_items = self.channel_selection.selectedItems()
             if not selected_items:
-                signals = self.plot.signals
+                signals = [(sig, i) for i, sig in enumerate(self.plot.signals)]
 
             else:
                 uuids = [
@@ -439,10 +442,14 @@ class Plot(QtWidgets.QWidget):
                     for item in selected_items
                 ]
 
-                signals = [self.plot.signal_by_uuid(uuid)[0] for uuid in uuids]
+                signals = [self.plot.signal_by_uuid(uuid) for uuid in uuids]
 
-            for signal in signals:
-                if signal.samples.dtype.kind in "ui":
+            for signal, i in signals:
+                if signal.format == "raw" and signal.conversion:
+                    _, (bottom, top) = self.plot.axes[i].viewRange()
+                    signal.plot_samples = signal.conversion.convert(signal.plot_samples)
+
+                if signal.plot_samples.dtype.kind in "ui":
                     signal.format = "bin"
                     if self.plot.current_uuid == signal.uuid:
                         self.plot.axis.format = "bin"
@@ -576,8 +583,18 @@ class Plot(QtWidgets.QWidget):
         valid = []
         invalid = []
         for channel in channels:
-            if len(channel.samples) and np.all(np.isnan(channel.samples)):
-                invalid.append(channel.name)
+            if len(channel):
+                samples = channel.samples
+                if samples.dtype.kind not in 'SUV' and np.all(np.isnan(samples)):
+                    invalid.append(channel.name)
+                elif channel.conversion:
+                    samples = channel.physical().samples
+                    if samples.dtype.kind not in 'SUV' and np.all(np.isnan(samples)):
+                        invalid.append(channel.name)
+                    else:
+                        valid.append(channel)
+                else:
+                    valid.append(channel)
             else:
                 valid.append(channel)
 
@@ -602,8 +619,12 @@ class Plot(QtWidgets.QWidget):
             )
             item.setData(QtCore.Qt.UserRole, sig.name)
             tooltip = getattr(sig, "tooltip", "")
+            if len(sig.samples) and sig.conversion:
+                kind = sig.conversion.convert(sig.samples[:1]).dtype.kind
+            else:
+                kind = sig.samples.dtype.kind
             it = ChannelDisplay(
-                sig.uuid, sig.unit, sig.samples.dtype.kind, 3, tooltip, self
+                sig.uuid, sig.unit, kind, 3, tooltip, self
             )
             it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
@@ -1777,14 +1798,23 @@ class _Plot(pg.PlotWidget):
                 if not computed:
                     sig.computation = {}
 
+            # take out NaN values
+            samples = sig.samples
+            if samples.dtype.kind != "SUV":
+                nans = np.isnan(samples)
+                if np.any(nans):
+                    sig.samples = sig.samples[~nans]
+                    sig.timestamps = sig.timestamps[~nans]
+
             if sig.conversion:
                 vals = sig.conversion.convert(sig.samples)
-                if vals.dtype.kind != "S":
+                if vals.dtype.kind != "SUV":
                     nans = np.isnan(vals)
-                    samples = np.where(nans, sig.samples, vals,)
-                    sig.samples = samples
+                    if np.any(nans):
+                        sig.samples = sig.samples[~nans]
+                        sig.timestamps = sig.timestamps[~nans]
 
-            sig.plot_samples = sig.samples
+            sig.plot_samples = sig.physical().samples
             sig.plot_timestamps = sig.timestamps
 
             sig._stats = {
@@ -1802,7 +1832,25 @@ class _Plot(pg.PlotWidget):
             sig.color = color
 
             if len(sig.samples):
-                samples = sig.samples[np.isfinite(sig.samples)]
+                if sig.conversion:
+                    samples = sig.samples[np.isfinite(sig.samples)]
+                    if len(samples):
+                        sig.min_raw = np.nanmin(samples)
+                        sig.max_raw = np.nanmax(samples)
+                        sig.avg_raw = np.mean(samples)
+                        sig.rms_raw = np.sqrt(np.mean(np.square(samples)))
+                    else:
+                        sig.min_raw = "n.a."
+                        sig.max_raw = "n.a."
+                        sig.avg_raw = "n.a."
+                        sig.rms_raw = "n.a."
+                else:
+                    sig.min_raw = "n.a."
+                    sig.max_raw = "n.a."
+                    sig.avg_raw = "n.a."
+                    sig.rms_raw = "n.a."
+
+                samples = sig.plot_samples[np.isfinite(sig.plot_samples)]
                 if len(samples):
                     sig.min = np.nanmin(samples)
                     sig.max = np.nanmax(samples)
@@ -1822,6 +1870,10 @@ class _Plot(pg.PlotWidget):
                 sig.max = "n.a."
                 sig.rms = "n.a."
                 sig.avg = "n.a."
+                sig.min_raw = "n.a."
+                sig.max_raw = "n.a."
+                sig.avg_raw = "n.a."
+                sig.rms_raw = "n.a."
 
             axis = FormatedAxis("right", pen=color, textPen=color)
             if sig.conversion and hasattr(sig.conversion, "text_0"):

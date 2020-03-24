@@ -59,7 +59,14 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             self.signals = signals
 
         self.as_hex = [
-            name.endswith("CAN_DataFrame.ID") for name in self.signals.columns
+            name.endswith(
+                "CAN_DataFrame.ID",
+                "FlexRay_DataFrame.ID",
+                "LIN_DataFrame.ID",
+                "MOST_DataFrame.ID",
+                "ETH_DataFrame.ID",
+            )
+            for name in self.signals.columns
         ]
 
         self._original_index = self.signals.index.values

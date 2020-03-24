@@ -1550,6 +1550,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 ignore_value2text_conversions=self.ignore_value2text_conversions,
                 copy_master=False,
                 validate=True,
+                raw=True,
             )
 
             for sig, sig_ in zip(signals, signals_):
@@ -2289,7 +2290,12 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 if name[1:] == (-1, -1)
             ]
 
-            sigs = self.mdf.select(signals_)
+            sigs = self.mdf.select(
+                signals_,
+                copy_master=False,
+                validate=True,
+                raw=True,
+            )
 
             for sig in sigs:
                 group, index = self.mdf.whereis(sig.name)[0]
