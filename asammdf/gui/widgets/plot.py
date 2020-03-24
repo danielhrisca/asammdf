@@ -892,6 +892,7 @@ class _Plot(pg.PlotWidget):
 
         if uuid == self.current_uuid:
             self.axis.setPen(color)
+            self.axis.setTextPen(color)
 
     def set_common_axis(self, uuid, state):
         _, index = self.signal_by_uuid(uuid)
@@ -1685,8 +1686,10 @@ class _Plot(pg.PlotWidget):
 
                 if self._settings.value("plot_background") == "Black":
                     axis.setPen("#FFFFFF")
+                    axis.setTextPen("#FFFFFF")
                 else:
                     axis.setPen("#000000")
+                    axis.setTextPen("#000000")
                 axis.setLabel(self.common_axis_label)
 
         else:
@@ -1709,6 +1712,7 @@ class _Plot(pg.PlotWidget):
                     axis.setLabel(f"{sig.name[:29]}...")
 
             axis.setPen(sig.color)
+            axis.setTextPen(sig.color)
             axis.update()
 
         self.current_uuid = uuid
@@ -1819,7 +1823,7 @@ class _Plot(pg.PlotWidget):
                 sig.rms = "n.a."
                 sig.avg = "n.a."
 
-            axis = FormatedAxis("right", pen=color)
+            axis = FormatedAxis("right", pen=color, textPen=color)
             if sig.conversion and hasattr(sig.conversion, "text_0"):
                 axis.text_conversion = sig.conversion
 
