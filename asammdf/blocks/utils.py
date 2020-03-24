@@ -1777,9 +1777,19 @@ def all_blocks_addresses(obj):
     except:
         pass
 
-    return [
-         match.start()
-         for match in re.finditer(pattern, obj)
-    ]
+    try:
+        match_starts = [
+            match.start()
+            for match in re.finditer(pattern, obj)
+        ]
+    except TypeError:
+        """ TypeError: expected string or bytes-like object when reading
+        PyFilesystem concrete class from S3.
+        """
+        match_starts = [
+            match.start()
+            for match in re.finditer(pattern, obj.read())
+        ]
+    return match_starts
 
 
