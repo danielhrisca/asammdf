@@ -9414,6 +9414,8 @@ class MDF4(object):
                 buses = unique(bus_ids)
                 if len(bus_ids) > 0:
                     assert len(buses) == 1
+                else:
+                    continue
                 bus = buses[0]
 
                 bus_t = msg_ids.timestamps
