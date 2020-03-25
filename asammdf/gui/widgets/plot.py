@@ -573,6 +573,9 @@ class PlotSignal(Signal):
                 start_ = max(start, start_t)
                 stop_ = min(stop, stop_t)
 
+                start_ = np.searchsorted(sig.timestamps, start_, side="right")
+                stop_ = np.searchsorted(sig.timestamps, stop_, side="right")
+
                 try:
                     visible = abs(int((stop_ - start_) / (stop - start) * width))
 
@@ -582,9 +585,6 @@ class PlotSignal(Signal):
                         raster = 0
                 except:
                     raster = 0
-
-                start_ = np.searchsorted(sig.timestamps, start_, side="right")
-                stop_ = np.searchsorted(sig.timestamps, stop_, side="right")
 
                 while raster > 1:
                     rows = (stop_ - start_) // raster
@@ -1367,9 +1367,8 @@ class _Plot(pg.PlotWidget):
 
         self._timebase_db = {}
         for sig in self.signals:
-            if id(sig.timestamps) not in self._timebase_db:
-                self._timebase_db[id(sig.timestamps)] = set()
-            self._timebase_db[id(sig.timestamps)].add(sig.uuid)
+            uuids = self._timebase_db.setdefault(id(sig.timestamps), set())
+            uuids.add(sig.uuid)
 
         self._compute_all_timebase()
 
@@ -1570,11 +1569,9 @@ class _Plot(pg.PlotWidget):
             if self.signals[index].individual_axis:
                 self.axes[index].show()
 
-            if id(sig.timestamps) not in self._timebase_db:
-                self._timebase_db[id(sig.timestamps)] = {uuid}
-                self._compute_all_timebase()
-            else:
-                self._timebase_db[id(sig.timestamps)].add(uuid)
+            uuids = self._timebase_db.setdefault(id(sig.timestamps), set())
+            uuids.add(sig.uuid)
+
         else:
             self.signals[index].enable = False
             self.curves[index].hide()
@@ -1774,9 +1771,8 @@ class _Plot(pg.PlotWidget):
                             groups = {}
                             for sig in signals:
                                 id_ = id(sig.timestamps)
-                                if id_ not in groups:
-                                    groups[id_] = []
-                                groups[id_].append(sig)
+                                group_ = groups.setdefault(id_, [])
+                                group_.append(sig)
 
                             for signals in groups.values():
                                 sigs = []
@@ -2150,9 +2146,8 @@ class _Plot(pg.PlotWidget):
             axis.hide()
             view_box.addItem(curve)
 
-            if id(sig.timestamps) not in self._timebase_db:
-                self._timebase_db[id(sig.timestamps)] = set()
-            self._timebase_db[id(sig.timestamps)].add(sig.uuid)
+            uuids = self._timebase_db.setdefault(id(sig.timestamps), set())
+            uuids.add(sig.uuid)
 
         self.trim()
         self.update_lines(force=True)
@@ -2272,9 +2267,8 @@ class _Plot(pg.PlotWidget):
                 delta = sig.timestamps[0] - offset
                 sig.timestamps = sig.timestamps - delta
 
-                if id(sig.timestamps) not in self._timebase_db:
-                    self._timebase_db[id(sig.timestamps)] = set()
-                self._timebase_db[id(sig.timestamps)].add(sig.uuid)
+                uuids = self._timebase_db.setdefault(id(sig.timestamps), set())
+                uuids.add(sig.uuid)
 
                 self._timebase_db[id_].remove(sig.uuid)
                 if len(self._timebase_db[id_]) == 0:
@@ -2287,9 +2281,8 @@ class _Plot(pg.PlotWidget):
 
                 sig.timestamps = sig.timestamps + offset
 
-                if id(sig.timestamps) not in self._timebase_db:
-                    self._timebase_db[id(sig.timestamps)] = set()
-                self._timebase_db[id(sig.timestamps)].add(sig.uuid)
+                uuids = self._timebase_db.setdefault(id(sig.timestamps), set())
+                uuids.add(sig.uuid)
 
                 self._timebase_db[id_].remove(sig.uuid)
                 if len(self._timebase_db[id_]) == 0:

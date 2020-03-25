@@ -1541,7 +1541,14 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             )
 
             for name in signals.columns:
-                if name.endswith("CAN_DataFrame.ID"):
+                if name.endswith((
+                    "CAN_DataFrame.ID",
+                    "FLX_Frame.ID",
+                    "FlexRay_DataFrame.ID",
+                    "LIN_DataFrame.ID",
+                    "MOST_DataFrame.ID",
+                    "ETH_DataFrame.ID",
+                )):
                     signals[name] = signals[name].astype("<u4") & 0x1FFFFFFF
         else:
 

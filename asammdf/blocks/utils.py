@@ -1536,9 +1536,8 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
             entry = signal.mux_val_min, signal.mux_val_max
         except:
             entry = tuple(signal.mux_val_grp[0]) if signal.mux_val_grp else (0, 0)
-        if entry not in pairs:
-            pairs[entry] = []
-        pairs[entry].append(signal)
+        pair_signals = pairs.setdefault(entry, [])
+        pair_signals.append(signal)
 
     for pair, pair_signals in pairs.items():
         entry = bus, message_id, muxer, *pair
@@ -1599,19 +1598,15 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
             entry = signal.mux_val_min, signal.mux_val_max
         except:
             entry = tuple(signal.mux_val_grp[0]) if signal.mux_val_grp else (0, 0)
-        if entry not in pairs:
-            pairs[entry] = []
-        pairs[entry].append(signal)
+        pair_signals = pairs.setdefault(entry, [])
+        pair_signals.append(signal)
 
     for pair, pair_signals in pairs.items():
         entry = bus, message_id, muxer, *pair
 
         if muxer is None:
             # simple multiplexing
-            if entry not in extracted_signals:
-                extracted_signals[entry] = signals = {}
-            else:
-                signals = extracted_signals[entry]
+            signals = extracted_signals.setdefault(entry, {})
 
             for sig in pair_signals:
 
@@ -1648,10 +1643,7 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
             payload_ = payload[idx]
             t_ = t[idx]
 
-            if entry not in extracted_signals:
-                extracted_signals[entry] = signals = {}
-            else:
-                signals = extracted_signals[entry]
+            signals = extracted_signals.setdefault(entry, {})
 
             for sig in pair_signals:
                 muxer_values_ = extract_can_signal(sig, payload_)

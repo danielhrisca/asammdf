@@ -7307,17 +7307,13 @@ class MDF4(object):
                         )
                     else:
                         group, idx = self._validate_channel_selection(*item)
-                        if group not in gps:
-                            gps[group] = {idx}
-                        else:
-                            gps[group].add(idx)
+                        gps_idx = gps.setdefault(group, set())
+                        gps_idx.add(idx)
                 else:
                     name = item
                     group, idx = self._validate_channel_selection(name)
-                    if group not in gps:
-                        gps[group] = {idx}
-                    else:
-                        gps[group].add(idx)
+                    gps_idx = gps.setdefault(group, set())
+                    gps_idx.add(idx)
 
             result = {}
             for gp_index, channels in gps.items():
@@ -9350,11 +9346,10 @@ class MDF4(object):
 
                 unique_ids = sorted(unique(msg_ids).astype("<u8"))
 
-                if bus not in self.bus_logging_map['CAN']:
-                    self.bus_logging_map['CAN'][bus] = {}
+                bus_map = self.bus_logging_map['CAN'].setdefault(bus, {})
 
                 for msg_id in unique_ids:
-                    self.bus_logging_map['CAN'][bus][int(msg_id)] = group_index
+                    bus_map[int(msg_id)] = group_index
 
             self._set_temporary_master(None)
             group.record = None
@@ -9424,11 +9419,10 @@ class MDF4(object):
 
                 unique_ids = sorted(unique(bus_msg_ids).astype("<u8"))
 
-                if bus not in self.bus_logging_map['CAN']:
-                    self.bus_logging_map['CAN'][bus] = {}
+                bus_map = self.bus_logging_map['CAN'].setdefault(bus, {})
 
                 for msg_id in unique_ids:
-                    self.bus_logging_map['CAN'][bus][int(msg_id)] = group_index
+                    bus_map[int(msg_id)] = group_index
 
                 for msg_id in unique_ids:
                     message = messages.get(msg_id, None)
