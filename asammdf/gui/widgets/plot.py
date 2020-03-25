@@ -1447,12 +1447,17 @@ class _Plot(pg.PlotWidget):
                 color = sig.color
                 t = sig.plot_timestamps
 
+                if sig.mode == "raw":
+                    style=QtCore.Qt.DashLine
+                else:
+                    style=QtCore.Qt.SolidLine
+
                 if not force:
                     try:
                         curve = self.curvetype(
                             t,
                             sig.plot_samples,
-                            pen=color,
+                            pen={'color': color, 'style': style},
                             symbolBrush=color,
                             symbolPen=color,
                             symbol="o",
@@ -1482,7 +1487,9 @@ class _Plot(pg.PlotWidget):
                     if len(t):
 
                         if self.with_dots:
+                            curve.setPen({'color': color, 'style': style})
                             curve.setData(x=t, y=sig.plot_samples)
+                            curve.update()
                         else:
                             curve.invalidateBounds()
                             curve._boundsCache = [
@@ -1497,6 +1504,8 @@ class _Plot(pg.PlotWidget):
                             curve._mouseShape = None
                             curve.prepareGeometryChange()
                             curve.informViewBoundsChanged()
+                            if curve.opts['pen'].style() != style:
+                                curve.opts['pen'].setStyle(style)
                             curve.update()
                             curve.sigPlotChanged.emit(curve)
 
