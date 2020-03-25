@@ -637,10 +637,14 @@ class PlotSignal(Signal):
                     sig.plot_timestamps = sig.timestamps[start_:stop_]
 
     def value_at_timestamp(self, stamp):
+        cut = self.cut(stamp, stamp)
         if self.mode == "raw":
-            values = self.cut(stamp, stamp).raw_samples
+            values = cut.raw_samples
         else:
-            values = self.cut(stamp, stamp).phys_samples
+            if self.conversion and hasattr(self.conversion, 'text_0'):
+                values = self.conversion.convert(cut.samples)
+            else:
+                values = cut.phys_samples
 
         if len(values) == 0:
             value = "n.a."
