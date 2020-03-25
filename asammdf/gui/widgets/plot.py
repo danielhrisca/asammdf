@@ -26,6 +26,7 @@ from .cursor import Cursor
 from .formated_axis import FormatedAxis
 from ..dialogs.define_channel import DefineChannel
 from ...mdf import MDF
+from ...signal import Signal
 from ..utils import extract_mime_names
 from .list import ListWidget
 from .list_item import ListItem
@@ -41,6 +42,623 @@ if not hasattr(pg.InfiniteLine, "addMarker"):
         "https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip"
     )
     logger.warning(message)
+
+
+class PlotSignal(Signal):
+
+    def __init__(self, signal, index=0):
+        super().__init__(
+            signal.samples,
+            signal.timestamps,
+            signal.unit,
+            signal.name,
+            signal.conversion,
+            signal.comment,
+            signal.raw,
+            signal.master_metadata,
+            signal.display_name,
+            signal.attachment,
+            signal.source,
+            signal.bit_count,
+            signal.stream_sync,
+            invalidation_bits=signal.invalidation_bits,
+            encoding=signal.encoding,
+        )
+
+        self.uuid = getattr(signal, "uuid", uuid4())
+
+        self.group_index = getattr(signal, "group_index", -1)
+        self.channel_index = getattr(signal, "channel_index", -1)
+        self.precision = getattr(signal, "precision", 6)
+
+        self._mode = "raw"
+
+        self.enable = True
+        self.format = "phys"
+
+        self.individual_axis = False
+        self.computed = signal.computed
+        self.computation = signal.computation
+
+        # take out NaN values
+        samples = self.samples
+        if samples.dtype.kind not in "SUV":
+            nans = np.isnan(samples)
+            if np.any(nans):
+                self.samples = self.samples[~nans]
+                self.timestamps = self.timestamps[~nans]
+
+        if self.conversion:
+            samples = self.conversion.convert(self.samples)
+            if samples.dtype.kind not in "SUV":
+                nans = np.isnan(samples)
+                if np.any(nans):
+                    self.raw_samples = self.samples[~nans]
+                    self.phys_samples = samples[~nans]
+                    self.timestamps = self.timestamps[~nans]
+                    self.samples = self.samples[~nans]
+                else:
+                    self.raw_samples = self.samples
+                    self.phys_samples = samples
+            else:
+                self.phys_samples = self.raw_samples = self.samples
+        else:
+            self.phys_samples = self.raw_samples = self.samples
+
+        self.plot_samples = self.phys_samples
+        self.plot_timestamps = self.timestamps
+
+        self._stats = {
+            "range": (0, -1),
+            "range_stats": {},
+            "visible": (0, -1),
+            "visible_stats": {},
+            "fmt": "",
+        }
+
+        if hasattr(signal, 'color'):
+            color = signal.color or COLORS[index % 10]
+        else:
+            color = COLORS[index % 10]
+        self.color = color
+
+        if len(self.phys_samples):
+
+            if self.phys_samples.dtype.kind in 'SUV':
+                self.is_string = True
+                self._min = ""
+                self._max = ""
+                self._avg = ""
+                self._rms = ""
+            else:
+                self.is_string = False
+                samples = self.phys_samples[np.isfinite(self.phys_samples)]
+                if len(samples):
+                    self._min = np.nanmin(samples)
+                    self._max = np.nanmax(samples)
+                    self._avg = np.mean(samples)
+                    self._rms = np.sqrt(np.mean(np.square(samples)))
+                else:
+                    self._min = "n.a."
+                    self._max = "n.a."
+                    self._avg = "n.a."
+                    self._rms = "n.a."
+
+            if self.raw_samples.dtype.kind in 'SUV':
+                self._min_raw = ""
+                self._max_raw = ""
+                self._avg_raw = ""
+                self._rms_raw = ""
+            else:
+
+                samples = self.raw_samples[np.isfinite(self.raw_samples)]
+                if len(samples):
+                    self._min_raw = np.nanmin(samples)
+                    self._max_raw = np.nanmax(samples)
+                    self._avg_raw = np.mean(samples)
+                    self._rms_raw = np.sqrt(np.mean(np.square(samples)))
+                else:
+                    self._min_raw = "n.a."
+                    self._max_raw = "n.a."
+                    self._avg_raw = "n.a."
+                    self._rms_raw = "n.a."
+
+            self.empty = False
+
+        else:
+            self.empty = True
+            if self.phys_samples.dtype.kind in 'SUV':
+                self.is_string = True
+                self._min = ""
+                self._max = ""
+                self._rms = ""
+                self._avg = ""
+                self._min_raw = ""
+                self._max_raw = ""
+                self._avg_raw = ""
+                self._rms_raw = ""
+            else:
+                self.is_string = False
+                self._min = "n.a."
+                self._max = "n.a."
+                self._rms = "n.a."
+                self._avg = "n.a."
+                self._min_raw = "n.a."
+                self._max_raw = "n.a."
+                self._avg_raw = "n.a."
+                self._rms_raw = "n.a."
+
+        self.mode = "phys"
+        self.trim()
+
+    @property
+    def min(self):
+        return self._min if self.mode == "phys" else self._min_raw
+
+    @property
+    def max(self):
+        return self._max if self.mode == "phys" else self._max_raw
+
+    @property
+    def avg(self):
+        return self._avg if self.mode == "phys" else self._avg_raw
+
+    @property
+    def rms(self):
+        return self._rms if self.mode == "phys" else self._rms_raw
+
+    def cut(self, start=None, stop=None, include_ends=True, interpolation_mode=0):
+        cut_sig = super().cut(start, stop, include_ends, interpolation_mode)
+
+        cut_sig.group_index = self.group_index
+        cut_sig.channel_index = self.channel_index
+        cut_sig.computed = self.computed
+        cut_sig.color = self.color
+        cut_sig.computation = self.computation
+        cut_sig.precision = self.precision
+
+        return PlotSignal(cut_sig)
+
+    @property
+    def mode(self):
+        return self._mode
+
+    @mode.setter
+    def mode(self, mode):
+        if mode != self.mode:
+            self._mode = mode
+            if mode == "raw":
+                self.plot_samples = self.raw_samples
+                self.plot_timestamps = self.timestamps
+            else:
+                self.plot_samples = self.phys_samples
+                self.plot_timestamps = self.timestamps
+
+            if self.plot_samples.dtype.kind in 'SUV':
+                self.is_string = True
+            else:
+                self.is_string = False
+
+    def get_stats(self, cursor=None, region=None, view_region=None):
+        stats = {}
+        sig = self
+        x = sig.timestamps
+        size = len(x)
+
+        if size:
+
+            if sig.is_string:
+                stats["overall_min"] = ""
+                stats["overall_max"] = ""
+                stats["overall_average"] = ""
+                stats["overall_rms"] = ""
+                stats["overall_start"] = x[0]
+                stats["overall_stop"] = x[-1]
+                stats["unit"] = ""
+                stats["color"] = sig.color
+                stats["name"] = sig.name
+
+                if cursor is not None:
+                    position = cursor
+                    stats["cursor_t"] = position
+
+                    value, kind, format = self.value_at_timestamp(position)
+
+                    if kind in "SUV":
+                        fmt = "{}"
+                    elif kind == 'f':
+                        fmt = f"{{:.{self.precision}f}}"
+                    else:
+                        if format == "hex":
+                           fmt = "0x{:X}"
+                        elif format == "bin":
+                            fmt = "0b{:b}"
+                        elif format == "phys":
+                            fmt = "{}"
+
+                    value = fmt.format(value)
+
+                    stats["cursor_value"] = value
+
+                else:
+                    stats["cursor_t"] = ""
+                    stats["cursor_value"] = ""
+
+                stats["selected_start"] = ""
+                stats["selected_stop"] = ""
+                stats["selected_delta_t"] = ""
+                stats["selected_min"] = ""
+                stats["selected_max"] = ""
+                stats["selected_average"] = ""
+                stats["selected_rms"] = ""
+                stats["selected_delta"] = ""
+                stats["visible_min"] = ""
+                stats["visible_max"] = ""
+                stats["visible_average"] = ""
+                stats["visible_rms"] = ""
+                stats["visible_delta"] = ""
+            else:
+                if isinstance(sig.min, str):
+                    kind = 'S'
+                    fmt = "{}"
+                else:
+                    kind = sig.min.dtype.kind
+                    format = sig.format
+                    if kind in "SUV":
+                        fmt = "{}"
+                    elif kind == 'f':
+                        fmt = f"{{:.{self.precision}f}}"
+                    else:
+                        if format == "hex":
+                           fmt = "0x{:X}"
+                        elif format == "bin":
+                            fmt = "0b{:b}"
+                        elif format == "phys":
+                            fmt = "{}"
+
+                stats["overall_min"] = fmt.format(sig.min)
+                stats["overall_max"] = fmt.format(sig.max)
+                stats["overall_average"] = sig.avg
+                stats["overall_rms"] = sig.rms
+                stats["overall_start"] = sig.timestamps[0]
+                stats["overall_stop"] = sig.timestamps[-1]
+                stats["unit"] = sig.unit
+                stats["color"] = sig.color
+                stats["name"] = sig.name
+
+                if cursor is not None:
+                    position = cursor
+                    stats["cursor_t"] = position
+
+                    value, kind, format = self.value_at_timestamp(position)
+
+                    if kind in "SUV":
+                        fmt = "{}"
+                    elif kind == 'f':
+                        fmt = f"{{:.{self.precision}f}}"
+                    else:
+                        if format == "hex":
+                           fmt = "0x{:X}"
+                        elif format == "bin":
+                            fmt = "0b{:b}"
+                        elif format == "phys":
+                            fmt = "{}"
+
+                    value = fmt.format(value)
+
+                    stats["cursor_value"] = value
+
+                else:
+                    stats["cursor_t"] = ""
+                    stats["cursor_value"] = ""
+
+                if region:
+                    start, stop = region
+
+#                     if sig._stats["range"] != (start, stop) or sig._stats["fmt"] != fmt:
+                    new_stats = {}
+                    new_stats["selected_start"] = start
+                    new_stats["selected_stop"] = stop
+                    new_stats["selected_delta_t"] = stop - start
+
+                    cut = sig.cut(start, stop)
+
+                    if self.mode == "raw":
+                        samples = cut.raw_samples
+                    else:
+                        samples = cut.phys_samples
+
+                    samples = samples[np.isfinite(samples)]
+
+                    if len(samples):
+                        kind = samples.dtype.kind
+                        format = self.format
+
+                        if kind in "SUV":
+                            fmt = "{}"
+                        elif kind == 'f':
+                            fmt = f"{{:.{self.precision}f}}"
+                        else:
+                            if format == "hex":
+                               fmt = "0x{:X}"
+                            elif format == "bin":
+                                fmt = "0b{:b}"
+                            elif format == "phys":
+                                fmt = "{}"
+
+                        new_stats["selected_min"] = fmt.format(
+                            np.nanmin(samples)
+                        )
+                        new_stats["selected_max"] = fmt.format(
+                            np.nanmax(samples)
+                        )
+                        new_stats["selected_average"] = np.mean(samples)
+                        new_stats["selected_rms"] = np.sqrt(
+                            np.mean(np.square(samples))
+                        )
+                        if kind in "ui":
+                            new_stats["selected_delta"] = fmt.format(
+                                int(samples[-1]) - int(samples[0])
+                            )
+                        else:
+                            new_stats["selected_delta"] = fmt.format(
+                                (samples[-1] - samples[0])
+                            )
+
+                    else:
+                        new_stats["selected_min"] = "n.a."
+                        new_stats["selected_max"] = "n.a."
+                        new_stats["selected_average"] = "n.a."
+                        new_stats["selected_rms"] = "n.a."
+                        new_stats["selected_delta"] = "n.a."
+
+                    sig._stats["range"] = (start, stop)
+                    sig._stats["range_stats"] = new_stats
+
+                    stats.update(sig._stats["range_stats"])
+
+                else:
+                    stats["selected_start"] = ""
+                    stats["selected_stop"] = ""
+                    stats["selected_delta_t"] = ""
+                    stats["selected_min"] = ""
+                    stats["selected_max"] = ""
+                    stats["selected_average"] = ""
+                    stats["selected_rms"] = ""
+                    stats["selected_delta"] = ""
+
+                start, stop = view_region
+
+#                if sig._stats["visible"] != (start, stop) or sig._stats["fmt"] != fmt:
+                new_stats = {}
+                new_stats["visible_start"] = start
+                new_stats["visible_stop"] = stop
+                new_stats["visible_delta_t"] = stop - start
+
+                cut = sig.cut(start, stop)
+
+                if self.mode == "raw":
+                    samples = cut.raw_samples
+                else:
+                    samples = cut.phys_samples
+
+                samples = samples[np.isfinite(samples)]
+
+                if len(samples):
+                    kind = samples.dtype.kind
+                    format = self.format
+
+                    if kind in "SUV":
+                        fmt = "{}"
+                    elif kind == 'f':
+                        fmt = f"{{:.{self.precision}f}}"
+                    else:
+                        if format == "hex":
+                           fmt = "0x{:X}"
+                        elif format == "bin":
+                            fmt = "0b{:b}"
+                        elif format == "phys":
+                            fmt = "{}"
+
+                    new_stats["visible_min"] = fmt.format(np.nanmin(samples))
+                    new_stats["visible_max"] = fmt.format(np.nanmax(samples))
+                    new_stats["visible_average"] = np.mean(samples)
+                    new_stats["visible_rms"] = np.sqrt(
+                        np.mean(np.square(samples))
+                    )
+                    if kind in "ui":
+                        new_stats["visible_delta"] = int(cut.samples[-1]) - int(
+                            cut.samples[0]
+                        )
+                    else:
+                        new_stats["visible_delta"] = fmt.format(
+                            cut.samples[-1] - cut.samples[0]
+                        )
+
+                else:
+                    new_stats["visible_min"] = "n.a."
+                    new_stats["visible_max"] = "n.a."
+                    new_stats["visible_average"] = "n.a."
+                    new_stats["visible_rms"] = "n.a."
+                    new_stats["visible_delta"] = "n.a."
+
+                sig._stats["visible"] = (start, stop)
+                sig._stats["visible_stats"] = new_stats
+
+                stats.update(sig._stats["visible_stats"])
+
+        else:
+            stats["overall_min"] = "n.a."
+            stats["overall_max"] = "n.a."
+            stats["overall_average"] = "n.a."
+            stats["overall_rms"] = "n.a."
+            stats["overall_start"] = "n.a."
+            stats["overall_stop"] = "n.a."
+            stats["unit"] = sig.unit
+            stats["color"] = sig.color
+            stats["name"] = sig.name
+
+            if cursor is not None:
+                position = cursor
+                stats["cursor_t"] = position
+
+                stats["cursor_value"] = "n.a."
+
+            else:
+                stats["cursor_t"] = ""
+                stats["cursor_value"] = ""
+
+            if region is not None:
+                start, stop = region
+
+                stats["selected_start"] = start
+                stats["selected_stop"] = stop
+                stats["selected_delta_t"] = stop - start
+
+                stats["selected_min"] = "n.a."
+                stats["selected_max"] = "n.a."
+                stats["selected_average"] = "n.a."
+                stats["selected_rms"] = "n.a."
+                stats["selected_delta"] = "n.a."
+
+            else:
+                stats["selected_start"] = ""
+                stats["selected_stop"] = ""
+                stats["selected_delta_t"] = ""
+                stats["selected_min"] = ""
+                stats["selected_max"] = ""
+                stats["selected_average"] = "n.a."
+                stats["selected_rms"] = "n.a."
+                stats["selected_delta"] = ""
+
+            start, stop = view_region
+
+            stats["visible_start"] = start
+            stats["visible_stop"] = stop
+            stats["visible_delta_t"] = stop - start
+
+            stats["visible_min"] = "n.a."
+            stats["visible_max"] = "n.a."
+            stats["visible_average"] = "n.a."
+            stats["visible_rms"] = "n.a."
+            stats["visible_delta"] = "n.a."
+
+#        sig._stats["fmt"] = fmt
+        return stats
+
+    def trim(self, start=None, stop=None, width=1900):
+        sig = self
+        dim = len(sig.timestamps)
+
+        if dim:
+
+            if start is None:
+                start = sig.timestamps[0]
+            if stop is None:
+                stop = sig.timestamps[-1]
+
+            if self.mode == "raw":
+                signal_samples = self.raw_samples
+            else:
+                signal_samples = self.phys_samples
+
+            start_t, stop_t = (
+                sig.timestamps[0],
+                sig.timestamps[-1],
+            )
+            if start > stop_t or stop < start_t:
+                sig.plot_samples = signal_samples[:0]
+                sig.plot_timestamps = sig.timestamps[:0]
+            else:
+                start_ = max(start, start_t)
+                stop_ = min(stop, stop_t)
+
+                try:
+                    visible = abs(int((stop_ - start_) / (stop - start) * width))
+
+                    if visible:
+                        raster = abs((stop_ - start_)) // visible
+                    else:
+                        raster = 0
+                except:
+                    raster = 0
+
+                start_ = np.searchsorted(sig.timestamps, start_, side="right")
+                stop_ = np.searchsorted(sig.timestamps, stop_, side="right")
+
+                while raster > 1:
+                    rows = (stop_ - start_) // raster
+                    stop_2 = start_ + rows * raster
+
+                    samples = signal_samples[start_:stop_2].reshape(rows, raster)
+
+                    try:
+                        pos_max = np.nanargmax(samples, axis=1)
+                        pos_min = np.nanargmin(samples, axis=1)
+                        break
+                    except ValueError:
+                        raster -= 1
+
+                if raster > 1:
+
+                    pos = np.dstack([pos_min, pos_max])[0]
+                    pos.sort()
+
+                    offsets = np.arange(rows) * raster
+
+                    pos = (pos.T + offsets).T.ravel()
+
+                    samples = signal_samples[start_:stop_2][pos]
+
+                    timestamps = sig.timestamps[start_:stop_2][pos]
+
+                    if stop_2 != stop_:
+                        samples_ = signal_samples[stop_2:stop_]
+
+                        pos_max = np.nanargmax(samples_)
+                        pos_min = np.nanargmin(samples_)
+
+                        pos = sorted((pos_min, pos_max))
+
+                        samples_ = signal_samples[stop_2:stop_][pos]
+                        timestamps_ = sig.timestamps[stop_2:stop_][pos]
+
+                        samples = np.concatenate((samples, samples_))
+                        timestamps = np.concatenate((timestamps, timestamps_))
+
+                    sig.plot_samples = samples
+                    sig.plot_timestamps = timestamps
+
+                else:
+                    start_ = max(0, start_ - 2)
+                    stop_ += 2
+
+                    sig.plot_samples = signal_samples[start_:stop_]
+                    sig.plot_timestamps = sig.timestamps[start_:stop_]
+
+    def value_at_timestamp(self, stamp):
+        if self.mode == "raw":
+            values = self.cut(stamp, stamp).raw_samples
+        else:
+            values = self.cut(stamp, stamp).phys_samples
+
+        if len(values) == 0:
+            value = "n.a."
+            kind = values.dtype.kind
+        else:
+
+            kind = values.dtype.kind
+            if kind == "S":
+                try:
+                    value = values[0].decode("utf-8").strip(' \r\n\t\v\0')
+                except:
+                    value = values[0].decode("latin-1").strip(' \r\n\t\v\0')
+
+                value = value or "<empty string>"
+            else:
+                value = values.tolist()[0]
+
+        return value, kind, self.format
 
 
 class Plot(QtWidgets.QWidget):
@@ -150,10 +768,9 @@ class Plot(QtWidgets.QWidget):
             if sig.enable:
 
                 self.plot.set_current_uuid(self.info_uuid)
-                stats = self.plot.get_stats(
-                    self.info_uuid, self.channel_selection.itemWidget(item).fmt
-                )
-                self.info.set_stats(stats)
+                if self.info.isVisible():
+                    stats = self.plot.get_stats(self.info_uuid)
+                    self.info.set_stats(stats)
 
     def channel_selection_row_changed(self, row):
         if row >= 0:
@@ -165,10 +782,9 @@ class Plot(QtWidgets.QWidget):
             if sig.enable:
 
                 self.plot.set_current_uuid(self.info_uuid)
-                stats = self.plot.get_stats(
-                    self.info_uuid, self.channel_selection.itemWidget(item).fmt
-                )
-                self.info.set_stats(stats)
+                if self.info.isVisible():
+                    stats = self.plot.get_stats(self.info_uuid)
+                    self.info.set_stats(stats)
 
     def channel_selection_reduced(self, deleted):
 
@@ -269,36 +885,18 @@ class Plot(QtWidgets.QWidget):
 
             for i, uuid in enumerate(uuids):
                 signal, idx = self.plot.signal_by_uuid(uuid)
-                cut_sig = signal.cut(position, position)
-                if signal.format != "raw" and signal.conversion:
-                    samples = signal.conversion.convert(cut_sig.samples)
-                else:
-                    samples = cut_sig.samples
-
-                kind = samples.dtype.kind
-                if kind == "S":
-                    try:
-                        samples = [s.decode("utf-8") for s in samples]
-                    except:
-                        samples = [s.decode("latin-1") for s in samples]
-                else:
-                    samples = samples.tolist()
+                value, kind, fmt = signal.value_at_timestamp(position)
 
                 item = self.channel_selection.item(i)
                 item = self.channel_selection.itemWidget(item)
 
                 item.set_prefix("= ")
                 item.kind = kind
-                item.set_fmt(signal.format)
-
-                if len(samples):
-                    item.set_value(samples[0])
-                else:
-                    item.set_value("n.a.")
+                item.set_fmt(fmt)
+                item.set_value(value, update=True)
 
         if self.info.isVisible():
-            fmt = self.widget_by_uuid(self.info_uuid).fmt
-            stats = self.plot.get_stats(self.info_uuid, fmt)
+            stats = self.plot.get_stats(self.info_uuid)
             self.info.set_stats(stats)
 
         self.cursor_moved_signal.emit(self, position)
@@ -314,8 +912,7 @@ class Plot(QtWidgets.QWidget):
                 item.set_prefix("")
                 item.set_value("")
         if self.info.isVisible():
-            fmt = self.widget_by_uuid(self.info_uuid).fmt
-            stats = self.plot.get_stats(self.info_uuid, fmt)
+            stats = self.plot.get_stats(self.info_uuid)
             self.info.set_stats(stats)
 
         self.cursor_removed_signal.emit(self)
@@ -339,41 +936,38 @@ class Plot(QtWidgets.QWidget):
             item = self.channel_selection.itemWidget(item)
 
             signal, i = self.plot.signal_by_uuid(item.uuid)
-            cut_sig = signal.cut(start, stop)
 
-            if signal.format != "raw" and signal.conversion:
-                samples = signal.conversion.convert(cut_sig.samples)
-            else:
-                samples = cut_sig.samples
-
-            kind = samples.dtype.kind
+            start_v, kind, fmt = signal.value_at_timestamp(start)
+            stop_v, kind, fmt = signal.value_at_timestamp(stop)
 
             item.set_prefix("Δ = ")
             item.set_fmt(signal.format)
 
-            if len(samples):
+            if start_v != 'n.a.':
                 if kind in "ui":
-                    delta = np.int64(np.float64(samples[-1]) - np.float64(samples[0]))
+                    delta = np.int64(stop_v) - np.int64(start_v)
+                    item.kind = kind
+                    item.set_value(delta)
+                    item.set_fmt(fmt)
+                elif kind == 'f':
+                    delta = stop_v - start_v
+                    item.kind = kind
+                    item.set_value(delta)
+                    item.set_fmt(fmt)
                 else:
-                    delta = samples[-1] - samples[0]
-
-                item.kind = kind
-                item.set_value(delta)
-
+                    item.set_value("n.a.")
             else:
                 item.set_value("n.a.")
 
         if self.info.isVisible():
-            fmt = self.widget_by_uuid(self.info_uuid).fmt
-            stats = self.plot.get_stats(self.info_uuid, fmt)
+            stats = self.plot.get_stats(self.info_uuid)
             self.info.set_stats(stats)
 
         self.region_moved_signal.emit(self, [start, stop])
 
     def xrange_changed(self):
         if self.info.isVisible():
-            fmt = self.widget_by_uuid(self.info_uuid).fmt
-            stats = self.plot.get_stats(self.info_uuid, fmt)
+            stats = self.plot.get_stats(self.info_uuid)
             self.info.set_stats(stats)
 
     def range_modified_finished(self):
@@ -431,7 +1025,7 @@ class Plot(QtWidgets.QWidget):
                     )
                 )
 
-        elif key == QtCore.Qt.Key_B and modifiers == QtCore.Qt.ControlModifier:
+        elif key in (QtCore.Qt.Key_B, QtCore.Qt.Key_H, QtCore.Qt.Key_P) and modifiers == QtCore.Qt.ControlModifier:
             selected_items = self.channel_selection.selectedItems()
             if not selected_items:
                 signals = [(sig, i) for i, sig in enumerate(self.plot.signals)]
@@ -444,24 +1038,27 @@ class Plot(QtWidgets.QWidget):
 
                 signals = [self.plot.signal_by_uuid(uuid) for uuid in uuids]
 
-            for signal, i in signals:
-                if signal.format == "raw" and signal.conversion:
-                    _, (bottom, top) = self.plot.axes[i].viewRange()
-                    signal.plot_samples = signal.conversion.convert(signal.plot_samples)
+            if key == QtCore.Qt.Key_B:
+                fmt = "bin"
+            elif key == QtCore.Qt.Key_H:
+                fmt = "hex"
+            else:
+                fmt = "phys"
 
+            for signal, idx in signals:
                 if signal.plot_samples.dtype.kind in "ui":
-                    signal.format = "bin"
+                    signal.format = fmt
                     if self.plot.current_uuid == signal.uuid:
-                        self.plot.axis.format = "bin"
+                        self.plot.axis.format = fmt
                         self.plot.axis.hide()
                         self.plot.axis.show()
             if self.plot.cursor1:
                 self.plot.cursor_moved.emit()
 
-        elif key == QtCore.Qt.Key_H and modifiers == QtCore.Qt.ControlModifier:
+        elif key in (QtCore.Qt.Key_R, QtCore.Qt.Key_S) and modifiers == QtCore.Qt.AltModifier:
             selected_items = self.channel_selection.selectedItems()
             if not selected_items:
-                signals = self.plot.signals
+                signals = [(sig, i) for i, sig in enumerate(self.plot.signals)]
 
             else:
                 uuids = [
@@ -469,38 +1066,47 @@ class Plot(QtWidgets.QWidget):
                     for item in selected_items
                 ]
 
-                signals = [self.plot.signal_by_uuid(uuid)[0] for uuid in uuids]
+                signals = [self.plot.signal_by_uuid(uuid) for uuid in uuids]
 
-            for signal in signals:
-                if signal.samples.dtype.kind in "ui":
-                    signal.format = "hex"
+            if key == QtCore.Qt.Key_R:
+                mode = "raw"
+            else:
+                mode = "phys"
+
+            for signal, idx in signals:
+                if signal.mode != mode:
+
+                    view = self.plot.view_boxes[idx]
+                    _, (buttom, top) = view.viewRange()
+
+                    try:
+                        min_, max_ = float(signal.min), float(signal.max)
+                    except:
+                        min_, max_ = 0, 1
+
+                    factor = (top - buttom) / (max_ - min_)
+                    offset = (buttom - min_) / (top - buttom)
+
+                    signal.mode = mode
+
+                    try:
+                        min_, max_ = float(signal.min), float(signal.max)
+                    except:
+                        min_, max_ = 0, 1
+
+                    delta = (max_ - min_) * factor
+                    buttom = min_ + offset * delta
+                    top = buttom + delta
+
+                    view.setYRange(buttom, top, padding=0, update=True)
+
                     if self.plot.current_uuid == signal.uuid:
-                        self.plot.axis.format = "hex"
+                        self.plot.axis.mode = mode
                         self.plot.axis.hide()
                         self.plot.axis.show()
-            if self.plot.cursor1:
-                self.plot.cursor_moved.emit()
 
-        elif key == QtCore.Qt.Key_P and modifiers == QtCore.Qt.ControlModifier:
-            selected_items = self.channel_selection.selectedItems()
-            if not selected_items:
-                signals = self.plot.signals
+            self.plot.update_lines(force=True)
 
-            else:
-                uuids = [
-                    self.channel_selection.itemWidget(item).uuid
-                    for item in selected_items
-                ]
-
-                signals = [self.plot.signal_by_uuid(uuid)[0] for uuid in uuids]
-
-            for signal in signals:
-                if signal.samples.dtype.kind in "ui":
-                    signal.format = "phys"
-                if self.plot.current_uuid == signal.uuid:
-                    self.plot.axis.format = "phys"
-                    self.plot.axis.hide()
-                    self.plot.axis.show()
             if self.plot.cursor1:
                 self.plot.cursor_moved.emit()
 
@@ -524,8 +1130,7 @@ class Plot(QtWidgets.QWidget):
         if self.plot.cursor1:
             self.plot.cursor_moved.emit()
         if self.info.isVisible():
-            fmt = self.widget_by_uuid(self.info_uuid).fmt
-            stats = self.plot.get_stats(self.info_uuid, fmt)
+            stats = self.plot.get_stats(self.info_uuid)
             self.info.set_stats(stats)
 
         self.region_removed_signal.emit(self)
@@ -533,10 +1138,7 @@ class Plot(QtWidgets.QWidget):
     def computation_channel_inserted(self):
         sig = self.plot.signals[-1]
 
-        if sig.empty:
-            name, unit = sig.name, sig.unit
-        else:
-            name, unit = sig.name, sig.unit
+        name, unit = sig.name, sig.unit
         item = ListItem((-1, -1), name, sig.computation, self.channel_selection)
         tooltip = getattr(sig, "tooltip", "")
         it = ChannelDisplay(sig.uuid, unit, sig.samples.dtype.kind, 3, tooltip, self)
@@ -607,7 +1209,7 @@ class Plot(QtWidgets.QWidget):
 
         channels = valid
 
-        self.plot.add_new_channels(channels)
+        channels = self.plot.add_new_channels(channels)
 
         for sig in channels:
 
@@ -982,246 +1584,14 @@ class _Plot(pg.PlotWidget):
                 view_box.setGeometry(geometry)
             self._prev_geometry = geometry
 
-    def get_stats(self, uuid, fmt):
-        stats = {}
+    def get_stats(self, uuid):
         sig, index = self.signal_by_uuid(uuid)
-        x = sig.timestamps
-        size = len(x)
 
-        if size:
-
-            if sig.plot_texts is not None:
-                stats["overall_min"] = ""
-                stats["overall_max"] = ""
-                stats["overall_average"] = ""
-                stats["overall_rms"] = ""
-                stats["overall_start"] = fmt.format(sig.timestamps[0])
-                stats["overall_stop"] = fmt.format(sig.timestamps[-1])
-                stats["unit"] = ""
-                stats["color"] = sig.color
-                stats["name"] = sig.name
-
-                if self.cursor1:
-                    position = self.cursor1.value()
-                    stats["cursor_t"] = position
-
-                    if x[0] <= position <= x[-1]:
-                        idx = np.searchsorted(x, position)
-                        text = sig.texts[idx]
-                        try:
-                            text = text.decode("utf-8")
-                        except:
-                            text = text.decode("latin-1")
-                        stats["cursor_value"] = text
-
-                    else:
-                        stats["cursor_value"] = "n.a."
-
-                else:
-                    stats["cursor_t"] = ""
-                    stats["cursor_value"] = ""
-
-                stats["selected_start"] = ""
-                stats["selected_stop"] = ""
-                stats["selected_delta_t"] = ""
-                stats["selected_min"] = ""
-                stats["selected_max"] = ""
-                stats["selected_average"] = ""
-                stats["selected_rms"] = ""
-                stats["selected_delta"] = ""
-                stats["visible_min"] = ""
-                stats["visible_max"] = ""
-                stats["visible_average"] = ""
-                stats["visible_rms"] = ""
-                stats["visible_delta"] = ""
-            else:
-                stats["overall_min"] = fmt.format(sig.min)
-                stats["overall_max"] = fmt.format(sig.max)
-                stats["overall_average"] = sig.avg
-                stats["overall_rms"] = sig.rms
-                stats["overall_start"] = sig.timestamps[0]
-                stats["overall_stop"] = sig.timestamps[-1]
-                stats["unit"] = sig.unit
-                stats["color"] = sig.color
-                stats["name"] = sig.name
-
-                if self.cursor1:
-                    position = self.cursor1.value()
-                    stats["cursor_t"] = position
-
-                    if x[0] <= position <= x[-1]:
-                        idx = np.searchsorted(x, position)
-                        val = sig.samples[idx]
-                        if sig.conversion and hasattr(sig.conversion, "text_0"):
-                            vals = np.array([val])
-                            vals = sig.conversion.convert(vals)
-                            if vals.dtype.kind == "S":
-                                try:
-                                    vals = [s.decode("utf-8") for s in vals]
-                                except UnicodeDecodeError:
-                                    vals = [s.decode("latin-1") for s in vals]
-                                val = f"{val:.6f}= {vals[0]}"
-                            else:
-                                val = f"{val:.6f}= {vals[0]:.6f}"
-
-                        stats["cursor_value"] = fmt.format(val)
-
-                    else:
-                        stats["cursor_value"] = "n.a."
-
-                else:
-                    stats["cursor_t"] = ""
-                    stats["cursor_value"] = ""
-
-                if self.region:
-                    start, stop = self.region.getRegion()
-
-                    if sig._stats["range"] != (start, stop) or sig._stats["fmt"] != fmt:
-                        new_stats = {}
-                        new_stats["selected_start"] = start
-                        new_stats["selected_stop"] = stop
-                        new_stats["selected_delta_t"] = stop - start
-
-                        cut = sig.cut(start, stop)
-
-                        if len(cut):
-                            new_stats["selected_min"] = fmt.format(
-                                np.nanmin(cut.samples)
-                            )
-                            new_stats["selected_max"] = fmt.format(
-                                np.nanmax(cut.samples)
-                            )
-                            new_stats["selected_average"] = np.mean(cut.samples)
-                            new_stats["selected_rms"] = np.sqrt(
-                                np.mean(np.square(cut.samples))
-                            )
-                            if cut.samples.dtype.kind in "ui":
-                                new_stats["selected_delta"] = fmt.format(
-                                    int(float(cut.samples[-1]) - (cut.samples[0]))
-                                )
-                            else:
-                                new_stats["selected_delta"] = fmt.format(
-                                    (cut.samples[-1] - cut.samples[0])
-                                )
-
-                        else:
-                            new_stats["selected_min"] = "n.a."
-                            new_stats["selected_max"] = "n.a."
-                            new_stats["selected_average"] = "n.a."
-                            new_stats["selected_rms"] = "n.a."
-                            new_stats["selected_delta"] = "n.a."
-
-                        sig._stats["range"] = (start, stop)
-                        sig._stats["range_stats"] = new_stats
-
-                    stats.update(sig._stats["range_stats"])
-
-                else:
-                    stats["selected_start"] = ""
-                    stats["selected_stop"] = ""
-                    stats["selected_delta_t"] = ""
-                    stats["selected_min"] = ""
-                    stats["selected_max"] = ""
-                    stats["selected_average"] = ""
-                    stats["selected_rms"] = ""
-                    stats["selected_delta"] = ""
-
-                (start, stop), _ = self.viewbox.viewRange()
-
-                if sig._stats["visible"] != (start, stop) or sig._stats["fmt"] != fmt:
-                    new_stats = {}
-                    new_stats["visible_start"] = start
-                    new_stats["visible_stop"] = stop
-                    new_stats["visible_delta_t"] = stop - start
-
-                    cut = sig.cut(start, stop)
-
-                    if len(cut):
-                        new_stats["visible_min"] = fmt.format(np.nanmin(cut.samples))
-                        new_stats["visible_max"] = fmt.format(np.nanmax(cut.samples))
-                        new_stats["visible_average"] = np.mean(cut.samples)
-                        new_stats["visible_rms"] = np.sqrt(
-                            np.mean(np.square(cut.samples))
-                        )
-                        if cut.samples.dtype.kind in "ui":
-                            new_stats["visible_delta"] = int(cut.samples[-1]) - int(
-                                cut.samples[0]
-                            )
-                        else:
-                            new_stats["visible_delta"] = fmt.format(
-                                cut.samples[-1] - cut.samples[0]
-                            )
-
-                    else:
-                        new_stats["visible_min"] = "n.a."
-                        new_stats["visible_max"] = "n.a."
-                        new_stats["visible_average"] = "n.a."
-                        new_stats["visible_rms"] = "n.a."
-                        new_stats["visible_delta"] = "n.a."
-
-                    sig._stats["visible"] = (start, stop)
-                    sig._stats["visible_stats"] = new_stats
-
-                stats.update(sig._stats["visible_stats"])
-
-        else:
-            stats["overall_min"] = "n.a."
-            stats["overall_max"] = "n.a."
-            stats["overall_average"] = "n.a."
-            stats["overall_rms"] = "n.a."
-            stats["overall_start"] = "n.a."
-            stats["overall_stop"] = "n.a."
-            stats["unit"] = sig.unit
-            stats["color"] = sig.color
-            stats["name"] = sig.name
-
-            if self.cursor1:
-                position = self.cursor1.value()
-                stats["cursor_t"] = position
-
-                stats["cursor_value"] = "n.a."
-
-            else:
-                stats["cursor_t"] = ""
-                stats["cursor_value"] = ""
-
-            if self.region:
-                start, stop = self.region.getRegion()
-
-                stats["selected_start"] = start
-                stats["selected_stop"] = stop
-                stats["selected_delta_t"] = stop - start
-
-                stats["selected_min"] = "n.a."
-                stats["selected_max"] = "n.a."
-                stats["selected_average"] = "n.a."
-                stats["selected_rms"] = "n.a."
-                stats["selected_delta"] = "n.a."
-
-            else:
-                stats["selected_start"] = ""
-                stats["selected_stop"] = ""
-                stats["selected_delta_t"] = ""
-                stats["selected_min"] = ""
-                stats["selected_max"] = ""
-                stats["selected_average"] = "n.a."
-                stats["selected_rms"] = "n.a."
-                stats["selected_delta"] = ""
-
-            (start, stop), _ = self.viewbox.viewRange()
-
-            stats["visible_start"] = start
-            stats["visible_stop"] = stop
-            stats["visible_delta_t"] = stop - start
-
-            stats["visible_min"] = "n.a."
-            stats["visible_max"] = "n.a."
-            stats["visible_average"] = "n.a."
-            stats["visible_rms"] = "n.a."
-            stats["visible_delta"] = "n.a."
-
-        sig._stats["fmt"] = fmt
-        return stats
+        return sig.get_stats(
+            cursor=self.cursor1.value() if self.cursor1 else None,
+            region=self.region.getRegion() if self.region else None,
+            view_region=self.viewbox.viewRange()[0],
+        )
 
     def keyPressEvent(self, event):
         key = event.key()
@@ -1587,87 +1957,7 @@ class _Plot(pg.PlotWidget):
         width = self.width() - self.axis.width()
 
         for sig in self.signals:
-            dim = len(sig.samples)
-            if dim:
-
-                start_t, stop_t = (
-                    sig.timestamps[0],
-                    sig.timestamps[-1],
-                )
-                if start > stop_t or stop < start_t:
-                    sig.plot_samples = sig.samples[:0]
-                    sig.plot_timestamps = sig.timestamps[:0]
-                    if sig.plot_texts is not None:
-                        sig.plot_texts = sig.texts[:0]
-                else:
-                    start_ = max(start, start_t)
-                    stop_ = min(stop, stop_t)
-
-                    visible = abs(int((stop_ - start_) / (stop - start) * width))
-
-                    start_ = np.searchsorted(sig.timestamps, start_, side="right")
-                    stop_ = np.searchsorted(sig.timestamps, stop_, side="right")
-
-                    if visible:
-                        raster = abs((stop_ - start_)) // visible
-                    else:
-                        raster = 0
-
-                    while raster > 1:
-                        rows = (stop_ - start_) // raster
-                        stop_2 = start_ + rows * raster
-
-                        samples = sig.samples[start_:stop_2].reshape(rows, raster)
-
-                        try:
-                            pos_max = np.nanargmax(samples, axis=1)
-                            pos_min = np.nanargmin(samples, axis=1)
-                            break
-                        except ValueError:
-                            raster -= 1
-
-                    if raster > 1:
-
-                        pos = np.dstack([pos_min, pos_max])[0]
-                        pos.sort()
-
-                        offsets = np.arange(rows) * raster
-
-                        pos = (pos.T + offsets).T.ravel()
-
-                        samples = sig.samples[start_:stop_2][pos]
-
-                        timestamps = sig.timestamps[start_:stop_2][pos]
-
-                        if stop_2 != stop_:
-                            samples_ = sig.samples[stop_2:stop_]
-
-                            pos_max = np.nanargmax(samples_)
-                            pos_min = np.nanargmin(samples_)
-
-                            pos = sorted((pos_min, pos_max))
-
-                            samples_ = sig.samples[stop_2:stop_][pos]
-                            timestamps_ = sig.timestamps[stop_2:stop_][pos]
-
-                            samples = np.concatenate((samples, samples_))
-                            timestamps = np.concatenate((timestamps, timestamps_))
-
-                        sig.plot_samples = samples
-                        sig.plot_timestamps = timestamps
-                        if sig.plot_texts is not None:
-
-                            idx = np.searchsorted(sig.timestamps, timestamps)
-                            sig.plot_texts = sig.texts[idx]
-
-                    else:
-                        start_ = max(0, start_ - 2)
-                        stop_ += 2
-
-                        sig.plot_samples = sig.samples[start_:stop_]
-                        sig.plot_timestamps = sig.timestamps[start_:stop_]
-                        if sig.plot_texts is not None:
-                            sig.plot_texts = sig.texts[start_:stop_]
+            sig.trim(start, stop, width)
 
     def xrange_changed_handle(self):
         self.trim()
@@ -1775,105 +2065,24 @@ class _Plot(pg.PlotWidget):
         geometry = self.viewbox.sceneBoundingRect()
         initial_index = len(self.signals)
 
+        for sig in channels:
+            if not hasattr(sig, "computed"):
+                sig.computed = computed
+                if not computed:
+                    sig.computation = {}
+
+        channels = [
+            PlotSignal(sig, i)
+            for i, sig in enumerate(channels, len(self.signals))
+        ]
+
         for i, sig in enumerate(channels):
 
             index = len(self.signals)
 
             self.signals.append(sig)
 
-            if sig.samples.dtype.kind == "f":
-                sig.format = "phys"
-                sig.plot_texts = None
-            else:
-                sig.format = "phys"
-                if sig.samples.dtype.kind in "USV":
-                    sig.plot_texts = sig.texts = sig.samples
-                    sig.samples = np.zeros(len(sig.samples))
-                else:
-                    sig.plot_texts = None
-            sig.enable = True
-            sig.individual_axis = False
-            if not hasattr(sig, "computed"):
-                sig.computed = computed
-                if not computed:
-                    sig.computation = {}
-
-            # take out NaN values
-            samples = sig.samples
-            if samples.dtype.kind != "SUV":
-                nans = np.isnan(samples)
-                if np.any(nans):
-                    sig.samples = sig.samples[~nans]
-                    sig.timestamps = sig.timestamps[~nans]
-
-            if sig.conversion:
-                vals = sig.conversion.convert(sig.samples)
-                if vals.dtype.kind != "SUV":
-                    nans = np.isnan(vals)
-                    if np.any(nans):
-                        sig.samples = sig.samples[~nans]
-                        sig.timestamps = sig.timestamps[~nans]
-
-            sig.plot_samples = sig.physical().samples
-            sig.plot_timestamps = sig.timestamps
-
-            sig._stats = {
-                "range": (0, -1),
-                "range_stats": {},
-                "visible": (0, -1),
-                "visible_stats": {},
-                "fmt": "",
-            }
-
-            if hasattr(sig, 'color'):
-                color = sig.color or COLORS[index % 10]
-            else:
-                color = COLORS[index % 10]
-            sig.color = color
-
-            if len(sig.samples):
-                if sig.conversion:
-                    samples = sig.samples[np.isfinite(sig.samples)]
-                    if len(samples):
-                        sig.min_raw = np.nanmin(samples)
-                        sig.max_raw = np.nanmax(samples)
-                        sig.avg_raw = np.mean(samples)
-                        sig.rms_raw = np.sqrt(np.mean(np.square(samples)))
-                    else:
-                        sig.min_raw = "n.a."
-                        sig.max_raw = "n.a."
-                        sig.avg_raw = "n.a."
-                        sig.rms_raw = "n.a."
-                else:
-                    sig.min_raw = "n.a."
-                    sig.max_raw = "n.a."
-                    sig.avg_raw = "n.a."
-                    sig.rms_raw = "n.a."
-
-                samples = sig.plot_samples[np.isfinite(sig.plot_samples)]
-                if len(samples):
-                    sig.min = np.nanmin(samples)
-                    sig.max = np.nanmax(samples)
-                    sig.avg = np.mean(samples)
-                    sig.rms = np.sqrt(np.mean(np.square(samples)))
-                else:
-                    sig.min = "n.a."
-                    sig.max = "n.a."
-                    sig.avg = "n.a."
-                    sig.rms = "n.a."
-
-                sig.empty = False
-
-            else:
-                sig.empty = True
-                sig.min = "n.a."
-                sig.max = "n.a."
-                sig.rms = "n.a."
-                sig.avg = "n.a."
-                sig.min_raw = "n.a."
-                sig.max_raw = "n.a."
-                sig.avg_raw = "n.a."
-                sig.rms_raw = "n.a."
+            color = sig.color
 
             axis = FormatedAxis("right", pen=color, textPen=color)
             if sig.conversion and hasattr(sig.conversion, "text_0"):
@@ -1946,6 +2155,8 @@ class _Plot(pg.PlotWidget):
             if len(self.all_timebase):
                 start_t, stop_t = np.amin(self.all_timebase), np.amax(self.all_timebase)
                 self.viewbox.setXRange(start_t, stop_t)
+
+        return channels
 
     def _compute_all_timebase(self):
         if self._timebase_db:

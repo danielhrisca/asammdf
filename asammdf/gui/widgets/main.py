@@ -302,6 +302,32 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action.setShortcut(QtGui.QKeySequence("Ctrl+P"))
         display_format_actions.addAction(action)
 
+        # scaled display
+
+        samples_format_actions = QtWidgets.QActionGroup(self)
+
+        action = QtWidgets.QAction("{: <20}\tAlt+R".format("Raw samples"), menu)
+        action.triggered.connect(
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key_R,
+                modifier=QtCore.Qt.AltModifier,
+            )
+        )
+        action.setShortcut(QtGui.QKeySequence("Alt+R"))
+        samples_format_actions.addAction(action)
+
+        action = QtWidgets.QAction("{: <20}\tAlt+S".format("Scaled samples"), menu)
+        action.triggered.connect(
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key_S,
+                modifier=QtCore.Qt.AltModifier,
+            )
+        )
+        action.setShortcut(QtGui.QKeySequence("Alt+S"))
+        samples_format_actions.addAction(action)
+
         # info
 
         info = QtWidgets.QActionGroup(self)
@@ -397,6 +423,8 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.plot_menu.addActions(cursors_actions.actions())
         self.plot_menu.addSeparator()
         self.plot_menu.addActions(display_format_actions.actions())
+        self.plot_menu.addSeparator()
+        self.plot_menu.addActions(samples_format_actions.actions())
         self.plot_menu.addSeparator()
         self.plot_menu.addActions(subs.actions())
         self.plot_menu.addSeparator()

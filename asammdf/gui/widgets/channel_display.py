@@ -121,8 +121,8 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             )
         self.set_value(self._value)
 
-    def set_value(self, value):
-        if self._value == value:
+    def set_value(self, value, update=False):
+        if self._value == value and update is False:
             return
 
         self._value = value
