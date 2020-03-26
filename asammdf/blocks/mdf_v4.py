@@ -459,10 +459,11 @@ class MDF4(object):
             # Check for finalization past version 4.10
             finalisation_flags = self._check_finalised()
 
-            if finalisation_flags:
-                addresses = all_blocks_addresses(self._file)
-            else:
-                addresses = []
+            # TODO: the shim does not support this function
+#            if finalisation_flags:
+#                addresses = all_blocks_addresses(self._file)
+#            else:
+#                addresses = []
 
             if finalisation_flags:
                 message = f"Attempting finalization of {self.name}"
