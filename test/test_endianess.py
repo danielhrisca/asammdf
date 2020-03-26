@@ -546,6 +546,35 @@ class TestEndianess(unittest.TestCase):
                         )
                     )
 
+                ch3 = mdf_source.groups[0].channels[2]
+                ch3.byte_offset = 3 + t.itemsize
+                ch3.data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
+                ch3.bit_count = 2
+                ch3.bit_offset = 1
+
+                ch4 = mdf_source.groups[0].channels[3]
+                ch4.byte_offset = 3 + t.itemsize
+                ch4.data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
+                ch4.bit_count = 2
+                ch4.bit_offset = 1
+
+                outfile = mdf_source.save(
+                    Path(TestEndianess.tempdir.name) / f"out",
+                    overwrite=True,
+                )
+
+                with MDF(outfile) as mdf:
+                    self.assertTrue(
+                        np.array_equal(
+                            mdf.get('OverlappingMotorola').samples, [0x1] * 15
+                        )
+                    )
+                    self.assertTrue(
+                        np.array_equal(
+                            mdf.get('OverlappingIntel').samples, [0x1] * 15
+                        )
+                    )
+
 
 if __name__ == "__main__":
     unittest.main()
