@@ -1520,144 +1520,64 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
         multiplexors
 
     """
+    if muxer is None:
+        if message.is_multiplexed:
+            for sig in message:
+                if sig.multiplex == 'Multiplexor' and sig.muxer_for_signal is None:
+                    multiplexor_name = sig.name
+                    break
+            for sig in message:
+                if sig.multiplex not in (None, 'Multiplexor') and sig.muxer_for_signal is None:
+                    sig.muxer_for_signal = multiplexor_name
+                    sig.mux_val_min = sig.mux_val_max = int(sig.multiplex)
+                    sig.mux_val_grp.insert(0, (int(sig.multiplex), int(sig.multiplex)))
+
     extracted_signals = {}
 
     if message.size > payload.shape[1]:
         return extracted_signals
 
-    # first go through the non-mutiplexers signals
-    # create lists of signals that are not mutiplexed or they ahve the same
-    # mutiplexor and the same lower and upper mutiplexing values
     pairs = {}
     for signal in message:
-        if signal.multiplex == "Multiplexor" or signal.muxer_for_signal != muxer:
-            continue
-        try:
-            entry = signal.mux_val_min, signal.mux_val_max
-        except:
-            entry = tuple(signal.mux_val_grp[0]) if signal.mux_val_grp else (0, 0)
-        pair_signals = pairs.setdefault(entry, [])
-        pair_signals.append(signal)
+        if signal.muxer_for_signal == muxer:
+            try:
+                entry = signal.mux_val_min, signal.mux_val_max
+            except:
+                entry = tuple(signal.mux_val_grp[0]) if signal.mux_val_grp else (0, 0)
+            pair_signals = pairs.setdefault(entry, [])
+            pair_signals.append(signal)
 
     for pair, pair_signals in pairs.items():
         entry = bus, message_id, muxer, *pair
 
-        if muxer is None:
-            # here are the signals that are not multiplexed
-            extracted_signals[entry] = signals = {}
+        extracted_signals[entry] = signals = {}
 
-            for sig in pair_signals:
-                samples = extract_can_signal(sig, payload)
-                if len(samples) == 0 and len(t):
-                    continue
-
-                max_val = np.full(len(samples), float(sig.calc_max()))
-
-                signals[sig.name] = {
-                    "name": sig.name,
-                    "comment": sig.comment or "",
-                    "unit": sig.unit or "",
-                    "samples": samples,
-                    "t": t,
-                    "invalidation_bits": np.isclose(samples, max_val),
-                }
-
-        else:
-            # select only the CAN messages where the multiplexor value is
-            # within the range
+        if muxer_values is not None:
             min_, max_ = pair
             idx = np.argwhere((min_ <= muxer_values) & (muxer_values <= max_)).ravel()
             payload_ = payload[idx]
             t_ = t[idx]
-
-            extracted_signals[entry] = signals = {}
-
-            for sig in pair_signals:
-                samples = extract_can_signal(sig, payload_)
-                max_val = np.full(len(samples), float(sig.calc_max()))
-
-                signals[sig.name] = {
-                    "name": sig.name,
-                    "comment": sig.comment or "",
-                    "unit": sig.unit or "",
-                    "samples": samples,
-                    "t": t_,
-                    "invalidation_bits": np.isclose(samples, max_val),
-                }
-
-    # then handle mutiplexers signals
-    # again create lists of signals that are not mutiplexed or they ahve the
-    # same mutiplexor (complex multiplexing in thsi case)
-    # and the same lower and upper mutiplexing values
-    pairs = {}
-    for signal in message:
-        if signal.multiplex != "Multiplexor" or signal.muxer_for_signal != muxer:
-            continue
-
-        try:
-            entry = signal.mux_val_min, signal.mux_val_max
-        except:
-            entry = tuple(signal.mux_val_grp[0]) if signal.mux_val_grp else (0, 0)
-        pair_signals = pairs.setdefault(entry, [])
-        pair_signals.append(signal)
-
-    for pair, pair_signals in pairs.items():
-        entry = bus, message_id, muxer, *pair
-
-        if muxer is None:
-            # simple multiplexing
-            signals = extracted_signals.setdefault(entry, {})
-
-            for sig in pair_signals:
-
-                muxer_values = extract_can_signal(sig, payload)
-                max_val = np.full(len(muxer_values), float(sig.calc_max()))
-
-                signals[sig.name] = {
-                    "name": sig.name,
-                    "comment": sig.comment or "",
-                    "unit": sig.unit or "",
-                    "samples": muxer_values,
-                    "t": t,
-                    "invalidation_bits": np.isclose(muxer_values, max_val),
-                }
-
-                # feed the muxer values to the mutliplexed signals
-                extracted_signals.update(
-                    extract_mux(
-                        payload,
-                        message,
-                        message_id,
-                        bus,
-                        t,
-                        muxer=sig.name,
-                        muxer_values=muxer_values,
-                    )
-                )
         else:
-            # complex multiplexing
-            # computed the payload subset that contains this multiplexor
-            # and feed it to extract the multiplex signals
-            min_, max_ = pair
-            idx = np.argwhere((min_ <= muxer_values) & (muxer_values <= max_)).ravel()
-            payload_ = payload[idx]
-            t_ = t[idx]
+            t_ = t
+            payload_ = payload
 
-            signals = extracted_signals.setdefault(entry, {})
+        for sig in pair_signals:
+            samples = extract_can_signal(sig, payload_)
+            if len(samples) == 0 and len(t_):
+                continue
 
-            for sig in pair_signals:
-                muxer_values_ = extract_can_signal(sig, payload_)
-                max_val = np.full(len(muxer_values_), float(sig.calc_max()))
+            max_val = np.full(len(samples), float(sig.calc_max()))
 
-                signals[sig.name] = {
-                    "name": sig.name,
-                    "comment": sig.comment or "",
-                    "unit": sig.unit or "",
-                    "samples": muxer_values_,
-                    "t": t_,
-                    "invalidation_bits": np.isclose(muxer_values_, max_val),
-                }
+            signals[sig.name] = {
+                "name": sig.name,
+                "comment": sig.comment or "",
+                "unit": sig.unit or "",
+                "samples": samples,
+                "t": t_,
+                "invalidation_bits": np.isclose(samples, max_val),
+            }
 
+            if sig.multiplex == 'Multiplexor':
                 extracted_signals.update(
                     extract_mux(
                         payload_,
@@ -1666,7 +1586,7 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
                         bus,
                         t_,
                         muxer=sig.name,
-                        muxer_values=muxer_values_,
+                        muxer_values=samples,
                     )
                 )
 
