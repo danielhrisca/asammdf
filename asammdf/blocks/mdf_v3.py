@@ -2867,7 +2867,11 @@ class MDF3(object):
                             dtype_fmt = get_fmt_v3(data_type, bits, self.identification.byte_order)
                             channel_dtype = dtype(dtype_fmt.split(")")[-1])
 
-                            view = f'{channel_dtype.byteorder}u{vals.itemsize}'
+                            if channel_dtype.byteorder == '|' and data_type in (v23c.DATA_TYPE_SIGNED_MOTOROLA, v23c.DATA_TYPE_UNSIGNED_MOTOROLA):
+                                view = f'>u{vals.itemsize}'
+                            else:
+                                view = f'{channel_dtype.byteorder}u{vals.itemsize}'
+
                             vals = vals.view(view)
 
                             if bit_offset:

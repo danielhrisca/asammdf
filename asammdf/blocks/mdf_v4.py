@@ -7179,7 +7179,11 @@ class MDF4(object):
                             else:
                                 channel_dtype = channel.dtype_fmt
 
-                            view = f'{channel_dtype.byteorder}u{vals.itemsize}'
+                            if channel_dtype.byteorder == '|' and data_type in (v4c.DATA_TYPE_SIGNED_MOTOROLA, v4c.DATA_TYPE_UNSIGNED_MOTOROLA):
+                                view = f'>u{vals.itemsize}'
+                            else:
+                                view = f'{channel_dtype.byteorder}u{vals.itemsize}'
+
                             vals = vals.view(view)
 
                             if bit_offset:
@@ -7296,7 +7300,10 @@ class MDF4(object):
                                 else:
                                     channel_dtype = channel.dtype_fmt
 
-                                view = f'{channel_dtype.byteorder}u{vals.itemsize}'
+                                if channel_dtype.byteorder == '|' and data_type in (v4c.DATA_TYPE_SIGNED_MOTOROLA, v4c.DATA_TYPE_UNSIGNED_MOTOROLA):
+                                    view = f'>u{vals.itemsize}'
+                                else:
+                                    view = f'{channel_dtype.byteorder}u{vals.itemsize}'
                                 vals = vals.view(view)
 
                                 if bit_offset:
@@ -7338,8 +7345,7 @@ class MDF4(object):
                             channel_dtype = channel.dtype_fmt.subdtype[0]
                         else:
                             channel_dtype = channel.dtype_fmt
-                        if vals.dtype != channel_dtype:
-                            print('???????????', channel_dtype, vals.dtype, vals[0])
+                        if vals.dtype != channel_dtype:p
                             vals = vals.astype(channel_dtype)
 
                     if master_is_required:
