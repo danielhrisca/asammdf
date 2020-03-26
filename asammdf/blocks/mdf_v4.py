@@ -1641,8 +1641,9 @@ class MDF4(object):
                         next_byte_aligned_position - start_offset
                     ) * 8
                     needed_size = bit_offset + bit_count
+
                     if max_overlapping_size >= needed_size:
-                        if data_type in(v4c.DATA_TYPE_SIGNED_MOTOROLA, v4c.DATA_TYPE_UNSIGNED_MOTOROLA):
+                        if data_type in (v4c.DATA_TYPE_SIGNED_MOTOROLA, v4c.DATA_TYPE_UNSIGNED_MOTOROLA):
                             parents[original_index] = (
                                 current_parent,
                                 (next_byte_aligned_position - start_offset - byte_size) * 8 + bit_offset,

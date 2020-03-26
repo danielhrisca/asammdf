@@ -1545,9 +1545,9 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                     "CAN_DataFrame.ID",
                     "FLX_Frame.ID",
                     "FlexRay_DataFrame.ID",
-                    "LIN_DataFrame.ID",
+                    "LIN_Frame.ID",
                     "MOST_DataFrame.ID",
-                    "ETH_DataFrame.ID",
+                    "ETH_Frame.ID",
                 )):
                     signals[name] = signals[name].astype("<u4") & 0x1FFFFFFF
         else:
