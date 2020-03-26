@@ -7345,7 +7345,7 @@ class MDF4(object):
                             channel_dtype = channel.dtype_fmt.subdtype[0]
                         else:
                             channel_dtype = channel.dtype_fmt
-                        if vals.dtype != channel_dtype:p
+                        if vals.dtype != channel_dtype:
                             vals = vals.astype(channel_dtype)
 
                     if master_is_required:
