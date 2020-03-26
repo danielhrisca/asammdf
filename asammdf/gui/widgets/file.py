@@ -356,6 +356,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 self.aspects.setTabEnabled(7, True)
             else:
                 self.aspects.setTabEnabled(7, False)
+        else:
+            self.aspects.setTabEnabled(7, False)
 
         progress.setValue(99)
 

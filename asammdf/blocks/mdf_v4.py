@@ -9349,15 +9349,17 @@ class MDF4(object):
                     continue
 
                 buses = unique(bus_ids)
-                assert len(buses) == 1, str(buses)
-                bus = buses[0]
 
-                unique_ids = sorted(unique(msg_ids).astype("<u8"))
+                for bus in buses:
+                    idx_ = argwhere(bus_ids == bus).ravel()
+                    bus_msg_ids = msg_ids[idx_]
 
-                bus_map = self.bus_logging_map['CAN'].setdefault(bus, {})
+                    unique_ids = sorted(unique(bus_msg_ids).astype("<u8"))
 
-                for msg_id in unique_ids:
-                    bus_map[int(msg_id)] = group_index
+                    bus_map = self.bus_logging_map['CAN'].setdefault(bus, {})
+
+                    for msg_id in unique_ids:
+                        bus_map[int(msg_id)] = group_index
 
             self._set_temporary_master(None)
             group.record = None
@@ -9415,99 +9417,99 @@ class MDF4(object):
                 )[0]
 
                 buses = unique(bus_ids)
-                if len(bus_ids) > 0:
-                    assert len(buses) == 1
-                else:
+                if len(bus_ids) == 0:
                     continue
-                bus = buses[0]
 
-                bus_t = msg_ids.timestamps
-                bus_msg_ids = msg_ids.samples
-                bus_data_bytes = data_bytes
+                for bus in buses:
+                    idx_ = argwhere(bus_ids == bus).ravel()
+                    bus_msg_ids = msg_ids.samples[idx_]
 
-                unique_ids = sorted(unique(bus_msg_ids).astype("<u8"))
+                    bus_t = msg_ids.timestamps[idx_]
+                    bus_data_bytes = data_bytes[idx_]
 
-                bus_map = self.bus_logging_map['CAN'].setdefault(bus, {})
+                    unique_ids = sorted(unique(bus_msg_ids).astype("<u8"))
 
-                for msg_id in unique_ids:
-                    bus_map[int(msg_id)] = group_index
+                    bus_map = self.bus_logging_map['CAN'].setdefault(bus, {})
 
-                for msg_id in unique_ids:
-                    message = messages.get(msg_id, None)
-                    if message is None:
-                        continue
+                    for msg_id in unique_ids:
+                        bus_map[int(msg_id)] = group_index
 
-                    idx = argwhere(bus_msg_ids == msg_id).ravel()
-                    payload = bus_data_bytes[idx]
-                    t = bus_t[idx]
-
-                    extracted_signals = extract_mux(
-                        payload, message, msg_id, bus, t
-                    )
-
-                    for entry, signals in extracted_signals.items():
-                        if len(next(iter(signals.values()))["samples"]) == 0:
+                    for msg_id in unique_ids:
+                        message = messages.get(msg_id, None)
+                        if message is None:
                             continue
-                        if entry not in msg_map:
-                            sigs = []
 
-                            for name_, signal in signals.items():
-                                sig = Signal(
-                                    samples=signal["samples"],
-                                    timestamps=signal["t"],
-                                    name=signal["name"],
-                                    comment=signal["comment"],
-                                    unit=signal["unit"],
-                                    invalidation_bits=signal["invalidation_bits"],
-                                    display_name=f"CAN{bus}.{message.name}.{signal['name']}",
+                        idx = argwhere(bus_msg_ids == msg_id).ravel()
+                        payload = bus_data_bytes[idx]
+                        t = bus_t[idx]
+
+                        extracted_signals = extract_mux(
+                            payload, message, msg_id, bus, t
+                        )
+
+                        for entry, signals in extracted_signals.items():
+                            if len(next(iter(signals.values()))["samples"]) == 0:
+                                continue
+                            if entry not in msg_map:
+                                sigs = []
+
+                                for name_, signal in signals.items():
+                                    sig = Signal(
+                                        samples=signal["samples"],
+                                        timestamps=signal["t"],
+                                        name=signal["name"],
+                                        comment=signal["comment"],
+                                        unit=signal["unit"],
+                                        invalidation_bits=signal["invalidation_bits"],
+                                        display_name=f"CAN{bus}.{message.name}.{signal['name']}",
+                                    )
+
+                                    sigs.append(sig)
+
+                                cg_nr = self.append(
+                                    sigs,
+                                    f"from CAN{bus} message ID=0x{msg_id:X}",
+                                    common_timebase=True,
                                 )
 
-                                sigs.append(sig)
+                                msg_map[entry] = cg_nr
 
-                            cg_nr = self.append(
-                                sigs,
-                                f"from CAN{bus} message ID=0x{msg_id:X}",
-                                common_timebase=True,
-                            )
+                                self.groups[
+                                    cg_nr
+                                ].channel_group.comment = f"{message} 0x{msg_id:X}"
 
-                            msg_map[entry] = cg_nr
+                                for ch_index, ch in enumerate(self.groups[cg_nr].channels):
+                                    if ch_index == 0:
+                                        continue
 
-                            self.groups[
-                                cg_nr
-                            ].channel_group.comment = f"{message} 0x{msg_id:X}"
+                                    entry = cg_nr, ch_index
 
-                            for ch_index, ch in enumerate(self.groups[cg_nr].channels):
-                                if ch_index == 0:
-                                    continue
+                                    name_ = f"{message}.{ch.name}"
+                                    self.channels_db.add(name_, entry)
 
-                                entry = cg_nr, ch_index
+                                    name_ = f"CAN{bus}.{message}.{ch.name}"
+                                    self.channels_db.add(name_, entry)
 
-                                name_ = f"{message}.{ch.name}"
-                                self.channels_db.add(name_, entry)
+                                    name_ = f"CAN_DataFrame_{msg_id}.{ch.name}"
+                                    self.channels_db.add(name_, entry)
 
-                                name_ = f"CAN{bus}.{message}.{ch.name}"
-                                self.channels_db.add(name_, entry)
+                                    name_ = f"CAN{bus}.CAN_DataFrame_{msg_id}.{ch.name}"
+                                    self.channels_db.add(name_, entry)
 
-                                name_ = f"CAN_DataFrame_{msg_id}.{ch.name}"
-                                self.channels_db.add(name_, entry)
+                            else:
 
-                                name_ = f"CAN{bus}.CAN_DataFrame_{msg_id}.{ch.name}"
-                                self.channels_db.add(name_, entry)
+                                index = msg_map[entry]
 
-                        else:
+                                sigs = []
 
-                            index = msg_map[entry]
+                                for name_, signal in signals.items():
 
-                            sigs = []
+                                    sigs.append((signal["samples"], signal["invalidation_bits"]))
 
-                            for name_, signal in signals.items():
+                                    t = signal["t"]
 
-                                sigs.append((signal["samples"], signal["invalidation_bits"]))
+                                sigs.insert(0, (t, None))
 
-                                t = signal["t"]
-
-                            sigs.insert(0, (t, None))
-
-                            self.extend(index, sigs)
+                                self.extend(index, sigs)
                 self._set_temporary_master(None)
                 group.record = None
