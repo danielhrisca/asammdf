@@ -570,14 +570,14 @@ class PlotSignal(Signal):
                 sig.plot_samples = signal_samples[:0]
                 sig.plot_timestamps = sig.timestamps[:0]
             else:
-                start_ = max(start, start_t)
-                stop_ = min(stop, stop_t)
+                start_t = max(start, start_t)
+                stop_t = min(stop, stop_t)
 
-                start_ = np.searchsorted(sig.timestamps, start_, side="right")
-                stop_ = np.searchsorted(sig.timestamps, stop_, side="right")
+                start_ = np.searchsorted(sig.timestamps, start_t, side="right")
+                stop_ = np.searchsorted(sig.timestamps, stop_t, side="right")
 
                 try:
-                    visible = abs(int((stop_ - start_) / (stop - start) * width))
+                    visible = abs(int((stop_t - start_t) / (stop - start) * width))
 
                     if visible:
                         raster = abs((stop_ - start_)) // visible
@@ -1088,8 +1088,13 @@ class Plot(QtWidgets.QWidget):
                     except:
                         min_, max_ = 0, 1
 
-                    factor = (top - buttom) / (max_ - min_)
-                    offset = (buttom - min_) / (top - buttom)
+                    if max_ != min_ and top != buttom:
+
+                        factor = (top - buttom) / (max_ - min_)
+                        offset = (buttom - min_) / (top - buttom)
+                    else:
+                        factor = 1
+                        offset = 0
 
                     signal.mode = mode
 
@@ -1098,9 +1103,14 @@ class Plot(QtWidgets.QWidget):
                     except:
                         min_, max_ = 0, 1
 
-                    delta = (max_ - min_) * factor
-                    buttom = min_ + offset * delta
-                    top = buttom + delta
+                    if max_ != min_:
+
+                        delta = (max_ - min_) * factor
+                        buttom = min_ + offset * delta
+                        top = buttom + delta
+                    else:
+                        buttom, top = max_ - 1, max_ + 1
+
 
                     view.setYRange(buttom, top, padding=0, update=True)
 
