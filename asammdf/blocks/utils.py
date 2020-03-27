@@ -445,7 +445,7 @@ def fmt_to_datatype_v3(fmt, shape, array=False):
 
     """
     byteorder = fmt.byteorder
-    if byteorder == '=':
+    if byteorder == '=|':
         byteorder = '<' if sys.byteorder == 'little' else '>'
     size = fmt.itemsize * 8
     kind = fmt.kind
@@ -456,12 +456,12 @@ def fmt_to_datatype_v3(fmt, shape, array=False):
             size *= dim
     else:
         if kind == "u":
-            if byteorder in "<|":
+            if byteorder in "<":
                 data_type = v3c.DATA_TYPE_UNSIGNED_INTEL
             else:
                 data_type = v3c.DATA_TYPE_UNSIGNED_MOTOROLA
         elif kind == "i":
-            if byteorder in "<|":
+            if byteorder in "<":
                 data_type = v3c.DATA_TYPE_SIGNED_INTEL
             else:
                 data_type = v3c.DATA_TYPE_SIGNED_MOTOROLA
@@ -540,7 +540,7 @@ def fmt_to_datatype_v4(fmt, shape, array=False):
 
     """
     byteorder = fmt.byteorder
-    if byteorder == '=':
+    if byteorder == '=|':
         byteorder = '<' if sys.byteorder == 'little' else '>'
     size = fmt.itemsize * 8
     kind = fmt.kind
@@ -552,12 +552,12 @@ def fmt_to_datatype_v4(fmt, shape, array=False):
 
     else:
         if kind == "u":
-            if byteorder in "<|":
+            if byteorder in "<":
                 data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
             else:
                 data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
         elif kind == "i":
-            if byteorder in "<|":
+            if byteorder in "<":
                 data_type = v4c.DATA_TYPE_SIGNED_INTEL
             else:
                 data_type = v4c.DATA_TYPE_SIGNED_MOTOROLA
