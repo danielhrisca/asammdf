@@ -9278,7 +9278,8 @@ class MDF4(object):
             if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
                 source = group.channel_group.acq_source
                 if (
-                        source.bus_type == v4c.BUS_TYPE_CAN
+                        source
+                        and source.bus_type == v4c.BUS_TYPE_CAN
                         and "CAN_DataFrame" in [ch.name for ch in group.channels]
                 ):
                     self._process_can_logging(index, group)
