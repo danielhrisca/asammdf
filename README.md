@@ -117,8 +117,13 @@ for signal in efficient.select(['Sensor1', 'Voltage3']):
 Check the *examples* folder for extended usage demo, or the documentation
 http://asammdf.readthedocs.io/en/master/examples.html
 
+https://canlogger.csselectronics.com/canedge-getting-started/log-file-tools/asammdf-api/
+
+
 # Documentation
 http://asammdf.readthedocs.io/en/master
+
+And a nicely written tutorial on the [CSS Electronics site](https://canlogger.csselectronics.com/canedge-getting-started/log-file-tools/asammdf-gui/)
 
 # Contributing & Support
 Please have a look over the [contributing guidelines](CONTRIBUTING.md)
@@ -139,6 +144,9 @@ Thanks to all who contributed with commits to *asammdf*:
 * venden [venden](https://github.com/venden)
 * Marat K. [kopytjuk](https://github.com/kopytjuk>)
 * freakatzz [freakatzz](https://github.com/freakatzz)
+* Martin Falch [MartinF](https://github.com/MatinF)
+* dxpke [dxpke](https://github.com/dxpke)
+* Nick James [driftregion](https://github.com/driftregion)
 
 # Installation
 *asammdf* is available on

@@ -130,7 +130,10 @@ Thanks to all who contributed with commits to *asammdf*
 * Stanislav Frolov `stanifrolov <https://github.com/stanifrolov>`_.
 * Thomas Kastl `kasuteru <https://github.com/kasuteru>`_.
 * venden `venden <https://github.com/venden>`_.
-* Marat K. `kopytjuk` <https://github.com/kopytjuk>`_.
-* freakatzz `freakatzz` <https://github.com/freakatzz>`_.
+* Marat K. `kopytjuk <https://github.com/kopytjuk>`_.
+* freakatzz `freakatzz <https://github.com/freakatzz>`_.
+* Martin Falch `MartinF <https://github.com/MatinF>`_.
+* dxpke `dxpke <https://github.com/dxpke>`_.
+* Nick James `driftregion <https://github.com/driftregion>`_.
 
 
