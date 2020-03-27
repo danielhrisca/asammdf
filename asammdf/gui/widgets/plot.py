@@ -16,6 +16,7 @@ HERE = Path(__file__).resolve().parent
 from ..ui import resource_rc as resource_rc
 
 import pyqtgraph as pg
+#pg.setConfigOption("useOpenGL", True)
 
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
@@ -46,7 +47,7 @@ if not hasattr(pg.InfiniteLine, "addMarker"):
 
 class PlotSignal(Signal):
 
-    def __init__(self, signal, index=0):
+    def __init__(self, signal, index=0, fast=False):
         super().__init__(
             signal.samples,
             signal.timestamps,
@@ -122,7 +123,7 @@ class PlotSignal(Signal):
             color = COLORS[index % 10]
         self.color = color
 
-        if len(self.phys_samples):
+        if len(self.phys_samples) and not fast:
 
             if self.phys_samples.dtype.kind in 'SUV':
                 self.is_string = True
@@ -189,7 +190,8 @@ class PlotSignal(Signal):
                 self._rms_raw = "n.a."
 
         self.mode = "phys"
-        self.trim()
+        if not fast:
+            self.trim()
 
     @property
     def min(self):
@@ -1256,9 +1258,9 @@ class Plot(QtWidgets.QWidget):
             it.ylink_changed.connect(self.plot.set_common_axis)
             it.individual_axis_changed.connect(self.plot.set_individual_axis)
 
-            it.enable_changed.emit(sig.uuid, 1)
-            it.enable_changed.emit(sig.uuid, 0)
-            it.enable_changed.emit(sig.uuid, 1)
+#            it.enable_changed.emit(sig.uuid, 1)
+#            it.enable_changed.emit(sig.uuid, 0)
+#            it.enable_changed.emit(sig.uuid, 1)
 
             self.info_uuid = sig.uuid
 
@@ -1380,7 +1382,7 @@ class _Plot(pg.PlotWidget):
             uuids = self._timebase_db.setdefault(id(sig.timestamps), set())
             uuids.add(sig.uuid)
 
-        self._compute_all_timebase()
+#        self._compute_all_timebase()
 
         self.showGrid(x=True, y=True)
 
@@ -1500,7 +1502,9 @@ class _Plot(pg.PlotWidget):
                     if len(t):
 
                         if self.with_dots:
-                            curve.setPen({'color': color, 'style': style})
+#                            curve.setPen({'color': color, 'style': style})
+                            pen = pg.fn.mkPen(color=color, style=style)
+                            curve.opts['pen'] = pen
                             curve.setData(x=t, y=sig.plot_samples)
                             curve.update()
                         else:
@@ -2179,7 +2183,11 @@ class _Plot(pg.PlotWidget):
     def _compute_all_timebase(self):
         if self._timebase_db:
             timebases = [sig.timestamps for sig in self.signals if id(sig.timestamps) in self._timebase_db]
-            self.all_timebase = self.timebase = reduce(np.union1d, timebases)
+            try:
+                new_timebase = np.unique(np.concatenate(timebases))
+            except MemoryError:
+                new_timebase = reduce(np.union1d, timebases)
+            self.all_timebase = self.timebase = new_timebase
         else:
             self.all_timebase = self.timebase = []
 
