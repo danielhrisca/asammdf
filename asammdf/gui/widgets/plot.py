@@ -197,17 +197,33 @@ class PlotSignal(Signal):
     def min(self):
         return self._min if self.mode == "phys" else self._min_raw
 
+    @min.setter
+    def min(self, min):
+        self._min = min
+
     @property
     def max(self):
         return self._max if self.mode == "phys" else self._max_raw
+
+    @max.setter
+    def max(self, max):
+        self._max = max
 
     @property
     def avg(self):
         return self._avg if self.mode == "phys" else self._avg_raw
 
+    @avg.setter
+    def avg(self, avg):
+        self._avg = avg
+
     @property
     def rms(self):
         return self._rms if self.mode == "phys" else self._rms_raw
+
+    @rms.setter
+    def rms(self, rms):
+        self._rms = rms
 
     def cut(self, start=None, stop=None, include_ends=True, interpolation_mode=0):
         cut_sig = super().cut(start, stop, include_ends, interpolation_mode)
@@ -686,6 +702,8 @@ class Plot(QtWidgets.QWidget):
         self._range_start = None
         self._range_stop = None
 
+        self._can_switch_mode = True
+
         main_layout = QtWidgets.QVBoxLayout(self)
         # self.setLayout(main_layout)
 
@@ -1061,7 +1079,7 @@ class Plot(QtWidgets.QWidget):
             if self.plot.cursor1:
                 self.plot.cursor_moved.emit()
 
-        elif key in (QtCore.Qt.Key_R, QtCore.Qt.Key_S) and modifiers == QtCore.Qt.AltModifier:
+        elif key in (QtCore.Qt.Key_R, QtCore.Qt.Key_S) and modifiers == QtCore.Qt.AltModifier and self._can_switch_mode:
             selected_items = self.channel_selection.selectedItems()
             if not selected_items:
                 signals = [(sig, i) for i, sig in enumerate(self.plot.signals)]
@@ -1984,7 +2002,6 @@ class _Plot(pg.PlotWidget):
 
     def xrange_changed_handle(self):
         self.trim()
-
         self.update_lines(force=True)
 
     def _resizeEvent(self, ev):
