@@ -23,14 +23,15 @@ class FormatedAxis(pg.AxisItem):
 
                 val = float(val)
 
-                if self.format != "phys":
-                    if val.is_integer():
-                        if self.format == "hex":
-                            val = hex(int(val))
-                        elif self.format == "bin":
-                            val = bin(int(val))
+                if val.is_integer():
+                    val = int(val)
+
+                    if self.format == "hex":
+                        val = hex(int(val))
+                    elif self.format == "bin":
+                        val = bin(int(val))
                     else:
-                        val = ""
+                        val = str(val)
                 else:
                     val = f"{val:.6f}"
 
