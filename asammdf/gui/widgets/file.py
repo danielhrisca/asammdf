@@ -6,6 +6,7 @@ from pathlib import Path
 import os
 from traceback import format_exc
 from time import perf_counter
+from tempfile import NamedTemporaryFile
 
 import psutil
 from natsort import natsorted
@@ -96,8 +97,18 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                     cls = ERG
                 else:
                     cls = BSIG
+
+                try:
+                    file_name.with_suffix('.__test').write_bytes(b'test')
+                    file_name.with_suffix('.__test').unlink()
+                    out_file = Path(file_name)
+                except:
+                    tmp = NamedTemporaryFile()
+                    out_file = Path(tmp.name).parent / file_name.name
+                    tmp.close()
+
                 mdf_path = (
-                    cls(file_name).export_mdf().save(file_name.with_suffix(".tmp.mf4"))
+                    cls(file_name).export_mdf().save(out_file.with_suffix(".tmp.mf4"))
                 )
                 self.mdf = MDF(mdf_path)
             except:
@@ -122,11 +133,20 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                     proc.name() == "Datalyser3.exe" for proc in psutil.process_iter()
                 )
                 try:
+                    file_name.with_suffix('.__test').write_bytes(b'test')
+                    file_name.with_suffix('.__test').unlink()
+                    out_file = Path(file_name)
+                except:
+                    tmp = NamedTemporaryFile()
+                    out_file = Path(tmp.name).parent / file_name.name
+                    tmp.close()
+
+                try:
                     import win32com.client
 
                     index = 0
                     while True:
-                        mdf_name = file_name.with_suffix(f".{index}.mdf")
+                        mdf_name = out_file.with_suffix(f".{index}.mdf")
                         if mdf_name.exists():
                             index += 1
                         else:
@@ -142,8 +162,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                     if not datalyser_active:
                         datalyser.DCOM_TerminateDAS()
                     file_name = mdf_name
-                except Exception as err:
-                    print(err)
+                except:
+                    print(format_exc())
                     return
 
             target = MDF
