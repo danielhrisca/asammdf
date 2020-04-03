@@ -6,7 +6,7 @@ from pathlib import Path
 import os
 from traceback import format_exc
 from time import perf_counter
-from tempfile import NamedTemporaryFile
+from tempfile import gettempdir
 
 import psutil
 from natsort import natsorted
@@ -98,14 +98,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             else:
                 cls = BSIG
 
-            try:
-                file_name.with_suffix('.__test').write_bytes(b'test')
-                file_name.with_suffix('.__test').unlink()
-                out_file = Path(file_name)
-            except:
-                tmp = NamedTemporaryFile()
-                out_file = Path(tmp.name).parent / file_name.name
-                tmp.close()
+            out_file = Path(gettempdir()) / file_name.name
 
             mdf_path = (
                 cls(file_name).export_mdf().save(out_file.with_suffix(".tmp.mf4"))
@@ -125,15 +118,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 datalyser_active = any(
                     proc.name() == "Datalyser3.exe" for proc in psutil.process_iter()
                 )
-                try:
-                    file_name.with_suffix('.__test').write_bytes(b'test')
-                    file_name.with_suffix('.__test').unlink()
-                    out_file = Path(file_name)
-                except:
-                    tmp = NamedTemporaryFile()
-                    out_file = Path(tmp.name).parent / file_name.name
-                    tmp.close()
-                out_file = file_name
+
+                out_file = Path(gettempdir()) / file_name.name
 
                 import win32com.client
 
