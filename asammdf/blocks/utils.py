@@ -365,19 +365,13 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
             if channel_type == v4c.CHANNEL_TYPE_VALUE:
                 fmt = f"({size},)u1"
             else:
-                if size == 4:
-                    fmt = "<u4"
-                elif size == 8:
-                    fmt = "<u8"
+                fmt = f"<u{size}"
 
         elif data_type in v4c.STRING_TYPES:
             if channel_type == v4c.CHANNEL_TYPE_VALUE:
                 fmt = f"S{size}"
             else:
-                if size == 4:
-                    fmt = "<u4"
-                elif size == 8:
-                    fmt = "<u8"
+                fmt = f"<u{size}"
 
         elif data_type == v4c.DATA_TYPE_CANOPEN_DATE:
             fmt = "V7"
