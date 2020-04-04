@@ -6,6 +6,7 @@ from pathlib import Path
 import os
 from traceback import format_exc
 from time import perf_counter
+from tempfile import gettempdir
 
 import psutil
 from natsort import natsorted
@@ -90,30 +91,26 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
             extension = file_name.suffix.lower().strip(".")
             progress.setLabelText(f"Converting from {extension} to mdf")
-            try:
-                from mfile import ERG, BSIG
 
-                if file_name.suffix.lower() == ".erg":
-                    cls = ERG
-                else:
-                    cls = BSIG
-                mdf_path = (
-                    cls(file_name).export_mdf().save(file_name.with_suffix(".tmp.mf4"))
-                )
-                self.mdf = MDF(mdf_path)
-            except:
-                print(format_exc())
-                return
+            from mfile import ERG, BSIG
+
+            if file_name.suffix.lower() == ".erg":
+                cls = ERG
+            else:
+                cls = BSIG
+
+            out_file = Path(gettempdir()) / file_name.name
+
+            mdf_path = (
+                cls(file_name).export_mdf().save(out_file.with_suffix(".tmp.mf4"))
+            )
+            self.mdf = MDF(mdf_path)
 
         elif file_name.suffix.lower() == ".zip":
             progress.setLabelText("Opening zipped MF4 file")
-            try:
-                from mfile import ZIP
+            from mfile import ZIP
 
-                self.mdf = ZIP(file_name)
-            except:
-                print(format_exc())
-                return
+            self.mdf = ZIP(file_name)
 
         else:
 
@@ -122,30 +119,29 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 datalyser_active = any(
                     proc.name() == "Datalyser3.exe" for proc in psutil.process_iter()
                 )
-                try:
-                    import win32com.client
 
-                    index = 0
-                    while True:
-                        mdf_name = file_name.with_suffix(f".{index}.mdf")
-                        if mdf_name.exists():
-                            index += 1
-                        else:
-                            break
+                out_file = Path(gettempdir()) / file_name.name
 
-                    datalyser = win32com.client.Dispatch("Datalyser3.Datalyser3_COM")
-                    if not datalyser_active:
-                        try:
-                            datalyser.DCOM_set_datalyser_visibility(False)
-                        except:
-                            pass
-                    datalyser.DCOM_convert_file_mdf_dl3(file_name, str(mdf_name), 0)
-                    if not datalyser_active:
-                        datalyser.DCOM_TerminateDAS()
-                    file_name = mdf_name
-                except Exception as err:
-                    print(err)
-                    return
+                import win32com.client
+
+                index = 0
+                while True:
+                    mdf_name = out_file.with_suffix(f".{index}.mdf")
+                    if mdf_name.exists():
+                        index += 1
+                    else:
+                        break
+
+                datalyser = win32com.client.Dispatch("Datalyser3.Datalyser3_COM")
+                if not datalyser_active:
+                    try:
+                        datalyser.DCOM_set_datalyser_visibility(False)
+                    except:
+                        pass
+                datalyser.DCOM_convert_file_mdf_dl3(file_name, str(mdf_name), 0)
+                if not datalyser_active:
+                    datalyser.DCOM_TerminateDAS()
+                file_name = mdf_name
 
             target = MDF
             kwargs = {"name": file_name, "callback": self.update_progress}
