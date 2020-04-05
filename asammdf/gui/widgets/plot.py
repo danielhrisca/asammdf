@@ -692,6 +692,7 @@ class Plot(QtWidgets.QWidget):
     cursor_removed_signal = QtCore.pyqtSignal(object)
     region_moved_signal = QtCore.pyqtSignal(object, list)
     region_removed_signal = QtCore.pyqtSignal(object)
+    show_properties = QtCore.pyqtSignal(list)
 
     def __init__(self, signals, with_dots=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -753,6 +754,7 @@ class Plot(QtWidgets.QWidget):
         )
         self.channel_selection.add_channels_request.connect(self.add_channels_request)
         self.channel_selection.set_time_offset.connect(self.plot.set_time_offset)
+        self.channel_selection.show_properties.connect(self._show_properties)
         self.plot.add_channels_request.connect(self.add_channels_request)
         self.setAcceptDrops(True)
 
@@ -1346,6 +1348,11 @@ class Plot(QtWidgets.QWidget):
         else:
             widget = None
         return widget
+
+    def _show_properties(self, uuid):
+        for sig in self.plot.signals:
+            if sig.uuid == uuid and not sig.computed:
+                self.show_properties.emit([sig.group_index, sig.channel_index])
 
 
 class _Plot(pg.PlotWidget):

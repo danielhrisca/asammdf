@@ -609,6 +609,12 @@ comment: {self.comment}
                     lines.append(template.format(key, val.strip(b"\0")))
                 else:
                     lines.append(template.format(key, val))
+
+            if key == "data_type":
+                lines[-1] += f" [{v23c.DATA_TYPE_TO_STRING[self.data_type]}]"
+            elif key == "channel_type":
+                lines[-1] += f" [{v23c.CHANNEL_TYPE_TO_STRING[self.channel_type]}]"
+
         for line in lines:
             if not line:
                 metadata.append(line)
@@ -1298,6 +1304,10 @@ address: {hex(self.address)}
                     lines.append(template.format(key, val.strip(b"\0")))
                 else:
                     lines.append(template.format(key, val))
+
+            if key == "conversion_type":
+                lines[-1] += f" [{v23c.CONVERSION_TYPE_TO_STRING[self.conversion_type]}]"
+
         if self.referenced_blocks:
             max_len = max(len(key) for key in self.referenced_blocks)
             template = f"{{: <{max_len}}}: {{}}"
@@ -1988,6 +1998,12 @@ address: {hex(self.address)}
                     lines.append(template.format(key, val.strip(b"\0")))
                 else:
                     lines.append(template.format(key, val))
+
+            if key == "type":
+                lines[-1] += f" [{v23c.SOURCE_TYPE_TO_STRING[self.type]}]"
+            elif key == "bus_type":
+                lines[-1] += f" [{v23c.BUS_TYPE_TO_STRING[self.bus_type]}]"
+
         for line in lines:
             if not line:
                 metadata.append(line)

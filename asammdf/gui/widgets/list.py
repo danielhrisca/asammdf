@@ -15,6 +15,7 @@ class ListWidget(QtWidgets.QListWidget):
     set_time_offset = QtCore.pyqtSignal(list)
     items_rearranged = QtCore.pyqtSignal()
     add_channels_request = QtCore.pyqtSignal(list)
+    show_properties = QtCore.pyqtSignal(object)
 
     def __init__(self, *args, **kwargs):
 
@@ -178,6 +179,8 @@ class ListWidget(QtWidgets.QListWidget):
         menu.addAction(self.tr("Set time base start offset"))
         menu.addSeparator()
         menu.addAction(self.tr("Delete (Del)"))
+        menu.addSeparator()
+        menu.addAction(self.tr("File properties"))
 
         action = menu.exec_(self.viewport().mapToGlobal(position))
 
@@ -305,6 +308,12 @@ class ListWidget(QtWidgets.QListWidget):
                 QtCore.QEvent.KeyPress, QtCore.Qt.Key_Delete, QtCore.Qt.NoModifier,
             )
             self.keyPressEvent(event)
+
+        elif action.text() == "File properties":
+            selected_items = self.selectedItems()
+            if len(selected_items) == 1:
+                item = selected_items[0]
+                self.show_properties.emit(self.itemWidget(item).uuid)
 
 
 class MinimalListWidget(QtWidgets.QListWidget):

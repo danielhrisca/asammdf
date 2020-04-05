@@ -1098,6 +1098,13 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
     def update_progress(self, current_index, max_index):
         self.progress = current_index, max_index
 
+    def _show_info(self, lst):
+        group_index, index = lst
+        channel = self.mdf.get_channel_metadata(group=group_index, index=index)
+
+        msg = ChannelInfoDialog(channel, self)
+        msg.show()
+
     def show_info(self, item, column):
         group, index = item.entry
         if index == 0xFFFFFFFFFFFFFFFF:
@@ -1731,6 +1738,8 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             plot.add_channels_request.connect(
                 partial(self.add_new_channels, widget=plot)
             )
+
+            plot.show_properties.connect(self._show_info)
 
             self.set_subplots_link(self.subplots_link)
 

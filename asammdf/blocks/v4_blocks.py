@@ -5516,6 +5516,7 @@ comment: {self.comment}
                 lines[-1] += f" [{v4c.SOURCE_TYPE_TO_STRING[self.source_type]}]"
             elif key == "bus_type":
                 lines[-1] += f" [{v4c.BUS_TYPE_TO_STRING[self.bus_type]}]"
+
         for line in lines:
             if not line:
                 metadata.append(line)
