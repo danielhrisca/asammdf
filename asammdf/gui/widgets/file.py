@@ -1535,13 +1535,20 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 sig.computed = False
                 sig.computation = {}
 
-            signals = [sig for sig in signals if not sig.samples.dtype.names]
+            if window_type == "Plot":
+                signals = [
+                    sig
+                    for sig in signals
+                    if not sig.samples.dtype.names
+                    and not len(sig.samples.shape) > 1
+                ]
 
             for signal in signals:
                 if len(signal.samples.shape) > 1:
+
                     signal.samples = csv_bytearray2hex(
                         pd.Series(list(signal.samples))
-                    ).astype(bytes)
+                    )
 
                 if signal.name.endswith("CAN_DataFrame.ID"):
                     signal.samples = signal.samples.astype("<u4") & 0x1FFFFFFF
@@ -2282,11 +2289,13 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                 sig.computed = False
                 sig.computation = {}
 
-            sigs = [
-                sig
-                for sig in sigs
-                if not sig.samples.dtype.names and len(sig.samples.shape) <= 1
-            ]
+            if isinstance(widget, Plot):
+
+                sigs = [
+                    sig
+                    for sig in sigs
+                    if not sig.samples.dtype.names and len(sig.samples.shape) <= 1
+                ]
             widget.add_new_channels(sigs)
 
             if isinstance(widget, Plot) and computed:
@@ -2663,4 +2672,4 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                         for j, ch in enumerate(group.channels)
                     ]
 
-                    add_children(channel_group, channels, group.channel_dependencies, signals, entries=None)
+                    add_children(channel_group, channels, group.channel_dependencies, set(), entries=None)
