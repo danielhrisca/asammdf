@@ -1137,6 +1137,20 @@ comment: {self.comment}
                     lines.append(template.format(key, val.strip(b"\0")))
                 else:
                     lines.append(template.format(key, val))
+            if key == "data_type":
+                lines[-1] += f" [{v4c.DATA_TYPE_TO_STRING[self.data_type]}]"
+            elif key == "channel_type":
+                lines[-1] += f" [{v4c.CHANNEL_TYPE_TO_STRING[self.channel_type]}]"
+            elif key == "sync_type":
+                lines[-1] += f" [{v4c.SYNC_TYPE_TO_STRING[self.sync_type]}]"
+            elif key == "flags":
+                flags = []
+                for fl, string in v4c.FLAG_CN_TO_STRING.items():
+                    if self.flags & fl:
+                        flags.append(string)
+                if flags:
+                    lines[-1] += f" 0x{self.flags:X}=[{', '.join(flags)}]"
+
         for line in lines:
             if not line:
                 metadata.append(line)
@@ -1968,6 +1982,15 @@ comment: {self.comment}
                     lines.append(template.format(key, val.strip(b"\0")))
                 else:
                     lines.append(template.format(key, val))
+
+            if key == "flags":
+                flags = []
+                for fl, string in v4c.FLAG_CG_TO_STRING.items():
+                    if self.flags & fl:
+                        flags.append(string)
+                if flags:
+                    lines[-1] += f" 0x{self.flags:X}=[{', '.join(flags)}]"
+
         for line in lines:
             if not line:
                 metadata.append(line)
@@ -3349,6 +3372,9 @@ formula: {self.formula}
                     lines.append(template.format(key, val.strip(b"\0")))
                 else:
                     lines.append(template.format(key, val))
+
+            if key == "conversion_type":
+                lines[-1] += f" [{v4c.CONVERSION_TYPE_TO_STRING[self.conversion_type]}]"
 
         if self.referenced_blocks:
             max_len = max(len(key) for key in self.referenced_blocks)
@@ -5485,6 +5511,11 @@ comment: {self.comment}
                     lines.append(template.format(key, val.strip(b"\0")))
                 else:
                     lines.append(template.format(key, val))
+
+            if key == "source_type":
+                lines[-1] += f" [{v4c.SOURCE_TYPE_TO_STRING[self.source_type]}]"
+            elif key == "bus_type":
+                lines[-1] += f" [{v4c.BUS_TYPE_TO_STRING[self.bus_type]}]"
         for line in lines:
             if not line:
                 metadata.append(line)
