@@ -1990,6 +1990,13 @@ comment: {self.comment}
                         flags.append(string)
                 if flags:
                     lines[-1] += f" [0x{self.flags:X}= {', '.join(flags)}]"
+            elif key == "path_separator":
+                if self.path_separator:
+                    sep = pack('<H', self.path_separator).decode('utf-16')
+
+                    lines[-1] += f" (= '{sep}')"
+                else:
+                    lines[-1] += f" (= <undefined>)"
 
         for line in lines:
             if not line:
