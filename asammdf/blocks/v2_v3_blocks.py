@@ -611,9 +611,9 @@ comment: {self.comment}
                     lines.append(template.format(key, val))
 
             if key == "data_type":
-                lines[-1] += f" [{v23c.DATA_TYPE_TO_STRING[self.data_type]}]"
+                lines[-1] += f" = {v23c.DATA_TYPE_TO_STRING[self.data_type]}"
             elif key == "channel_type":
-                lines[-1] += f" [{v23c.CHANNEL_TYPE_TO_STRING[self.channel_type]}]"
+                lines[-1] += f" = {v23c.CHANNEL_TYPE_TO_STRING[self.channel_type]}"
 
         for line in lines:
             if not line:
@@ -1307,6 +1307,12 @@ address: {hex(self.address)}
 
             if key == "conversion_type":
                 lines[-1] += f" [{v23c.CONVERSION_TYPE_TO_STRING[self.conversion_type]}]"
+            elif self.referenced_blocks and key in self.referenced_blocks:
+                val = self.referenced_blocks[key]
+                if isinstance(val, bytes):
+                    lines[-1] += f" (= {str(val)[1:]})"
+                else:
+                    lines[-1] += f" (= CCBLOCK @ {hex(val.address)})"
 
         if self.referenced_blocks:
             max_len = max(len(key) for key in self.referenced_blocks)
@@ -1319,7 +1325,7 @@ address: {hex(self.address)}
                     lines.append(template.format(key, ""))
                     lines.extend(block.metadata(indent + "    ").split("\n"))
                 else:
-                    lines.append(template.format(key, block))
+                    lines.append(template.format(key, str(block)[1:]))
 
         for line in lines:
             if not line:
@@ -2000,9 +2006,9 @@ address: {hex(self.address)}
                     lines.append(template.format(key, val))
 
             if key == "type":
-                lines[-1] += f" [{v23c.SOURCE_TYPE_TO_STRING[self.type]}]"
+                lines[-1] += f" = {v23c.SOURCE_TYPE_TO_STRING[self.type]}"
             elif key == "bus_type":
-                lines[-1] += f" [{v23c.BUS_TYPE_TO_STRING[self.bus_type]}]"
+                lines[-1] += f" = {v23c.BUS_TYPE_TO_STRING[self.bus_type]}"
 
         for line in lines:
             if not line:
