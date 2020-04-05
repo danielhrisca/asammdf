@@ -1502,8 +1502,6 @@ class MDF4(object):
             channel_group = group.channel_group
             channels = group.channels
 
-            bus_event = channel_group.flags & v4c.FLAG_CG_BUS_EVENT
-
             record_size = channel_group.samples_byte_nr
             invalidation_bytes_nr = channel_group.invalidation_bytes_nr
             next_byte_aligned_position = 0
@@ -1512,8 +1510,6 @@ class MDF4(object):
             parent_start_offset = 0
             parents = {}
             group_channels = UniqueDB()
-
-            neg_index = -1
 
             sortedchannels = sorted(enumerate(channels), key=lambda i: i[1])
             for original_index, new_ch in sortedchannels:
@@ -1620,13 +1616,6 @@ class MDF4(object):
 
                             else:
                                 parents[original_index] = no_parent
-                                if bus_event:
-                                    for logging_channel in group.logging_channels:
-                                        parents[neg_index] = (
-                                            "CAN_DataFrame.DataBytes",
-                                            logging_channel.bit_offset,
-                                        )
-                                        neg_index -= 1
 
                     # virtual channels do not have bytes in the record
                     else:
@@ -2576,7 +2565,6 @@ class MDF4(object):
         gp.channels = gp_channels = []
         gp.channel_dependencies = gp_dep = []
         gp.signal_types = gp_sig_types = []
-        gp.logging_channels = []
 
         cycles_nr = len(t)
 
@@ -3358,7 +3346,6 @@ class MDF4(object):
         gp.channels = gp_channels = []
         gp.channel_dependencies = gp_dep = []
         gp.signal_types = gp_sig_types = []
-        gp.logging_channels = []
         gp.uses_ld = True
         gp.data_group = DataGroup()
         gp.sorted = True
@@ -3503,7 +3490,6 @@ class MDF4(object):
             gp.channels = gp_channels = []
             gp.channel_dependencies = gp_dep = []
             gp.signal_types = gp_sig_types = []
-            gp.logging_channels = []
             gp.data_group = DataGroup()
             gp.sorted = True
             gp.uses_ld = True
@@ -4139,7 +4125,6 @@ class MDF4(object):
         gp.channels = gp_channels = []
         gp.channel_dependencies = gp_dep = []
         gp.signal_types = gp_sig_types = []
-        gp.logging_channels = []
 
         cycles_nr = len(t)
 
@@ -5938,14 +5923,9 @@ class MDF4(object):
 
         grp = self.groups[gp_nr]
 
-        if ch_nr >= 0:
-            # get the channel object
-            channel = grp.channels[ch_nr]
-            dependency_list = grp.channel_dependencies[ch_nr]
-
-        else:
-            channel = grp.logging_channels[-ch_nr - 1]
-            dependency_list = None
+        # get the channel object
+        channel = grp.channels[ch_nr]
+        dependency_list = grp.channel_dependencies[ch_nr]
 
         master_is_required = not samples_only or raster
 
@@ -7126,10 +7106,7 @@ class MDF4(object):
                 + group.channel_group.invalidation_bytes_nr
             )
 
-        if ch_nr >= 0:
-            channel = group.channels[ch_nr]
-        else:
-            channel = group.logging_channels[-ch_nr - 1]
+        channel = group.channels[ch_nr]
 
         bit_offset = channel.bit_offset
         byte_offset = channel.byte_offset
@@ -8642,12 +8619,7 @@ class MDF4(object):
                             index = dep_list[0][1]
                             addr_ = gp.channels[index].address
 
-                for channel in gp.logging_channels:
-                    address = channel.to_blocks(
-                        address, blocks, defined_texts, cc_map, si_map
-                    )
-
-                group_channels = list(chain(gp.channels, gp.logging_channels))
+                group_channels = gp.channels
                 if group_channels:
                     for j, channel in enumerate(group_channels[:-1]):
                         channel.next_ch_addr = group_channels[j + 1].address
@@ -8945,10 +8917,7 @@ class MDF4(object):
 
         grp = self.groups[gp_nr]
 
-        if ch_nr >= 0:
-            channel = grp.channels[ch_nr]
-        else:
-            channel = grp.logging_channels[-ch_nr - 1]
+        channel = grp.channels[ch_nr]
 
         return channel
 

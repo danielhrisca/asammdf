@@ -25,7 +25,7 @@ from ...mdf import MDF, SUPPORTED_VERSIONS
 from ...signal import Signal
 from ...blocks.utils import MdfException, extract_cncomment_xml, csv_bytearray2hex
 from ...blocks.v4_constants import FLAG_CG_BUS_EVENT
-from ..utils import TERMINATED, run_thread_with_progress, setup_progress, load_dsp, get_required_signals, compute_signal
+from ..utils import TERMINATED, run_thread_with_progress, setup_progress, load_dsp, get_required_signals, compute_signal, add_children, HelperChannel
 from .plot import Plot
 from .numeric import Numeric
 from .tabular import Tabular
@@ -552,12 +552,10 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
             if self.channel_view.currentIndex() == 0:
                 while iterator.value():
                     item = iterator.value()
-                    if item.parent() is None:
-                        iterator += 1
-                        continue
 
-                    if item.checkState(0) == QtCore.Qt.Checked:
-                        signals.add(item.entry)
+                    if item.entry[1] != 0xFFFFFFFFFFFFFFFF:
+                        if item.checkState(0) == QtCore.Qt.Checked:
+                            signals.add(item.entry)
 
                     iterator += 1
             else:
@@ -585,17 +583,6 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                             channel.setCheckState(0, QtCore.Qt.Unchecked)
                         items.append(channel)
 
-                    if self.mdf.version >= "4.00":
-                        for j, ch in enumerate(group.logging_channels, 1):
-                            entry = i, -j
-
-                            channel = TreeItem(entry, ch.name)
-                            channel.setText(0, ch.name)
-                            if entry in signals:
-                                channel.setCheckState(0, QtCore.Qt.Checked)
-                            else:
-                                channel.setCheckState(0, QtCore.Qt.Unchecked)
-                            items.append(channel)
                 if len(items) < 30000:
                     items = natsorted(items, key=lambda x: x.name)
                 else:
@@ -620,35 +607,12 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
                     widget.addTopLevelItem(channel_group)
 
-                    group_children = []
+                    channels = [
+                        HelperChannel(name=ch.name, entry=(i, j))
+                        for j, ch in enumerate(group.channels)
+                    ]
 
-                    for j, ch in enumerate(group.channels):
-                        entry = i, j
-
-                        channel = TreeItem(entry, ch.name)
-                        channel.setText(0, ch.name)
-                        if entry in signals:
-                            channel.setCheckState(0, QtCore.Qt.Checked)
-                        else:
-                            channel.setCheckState(0, QtCore.Qt.Unchecked)
-                        group_children.append(channel)
-
-                    if self.mdf.version >= "4.00":
-                        for j, ch in enumerate(group.logging_channels, 1):
-                            name = ch.name
-                            entry = i, -j
-
-                            channel = TreeItem(entry, name)
-                            channel.setText(0, name)
-                            if entry in signals:
-                                channel.setCheckState(0, QtCore.Qt.Checked)
-                            else:
-                                channel.setCheckState(0, QtCore.Qt.Unchecked)
-                            group_children.append(channel)
-
-                    channel_group.addChildren(group_children)
-
-                    del group_children
+                    add_children(channel_group, channels, group.channel_dependencies, signals, entries=None)
 
         self._settings.setValue("channels_view", self.channel_view.currentText())
 
@@ -2670,14 +2634,6 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
                         channel.setCheckState(0, QtCore.Qt.Unchecked)
                         items.append(channel)
 
-                    if self.mdf.version >= "4.00":
-                        for j, ch in enumerate(group.logging_channels, 1):
-                            entry = i, -j
-
-                            channel = TreeItem(entry, ch.name)
-                            channel.setText(0, ch.name)
-                            channel.setCheckState(0, QtCore.Qt.Unchecked)
-                            items.append(channel)
                 if len(items) < 30000:
                     items = natsorted(items, key=lambda x: x.name)
                 else:
@@ -2702,26 +2658,9 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
                     widget.addTopLevelItem(channel_group)
 
-                    group_children = []
+                    channels = [
+                        HelperChannel(name=ch.name, entry=(i, j))
+                        for j, ch in enumerate(group.channels)
+                    ]
 
-                    for j, ch in enumerate(group.channels):
-                        entry = i, j
-
-                        channel = TreeItem(entry, ch.name)
-                        channel.setText(0, ch.name)
-                        channel.setCheckState(0, QtCore.Qt.Unchecked)
-                        group_children.append(channel)
-
-                    if self.mdf.version >= "4.00":
-                        for j, ch in enumerate(group.logging_channels, 1):
-                            name = ch.name
-                            entry = i, -j
-
-                            channel = TreeItem(entry, name)
-                            channel.setText(0, name)
-                            channel.setCheckState(0, QtCore.Qt.Unchecked)
-                            group_children.append(channel)
-
-                    channel_group.addChildren(group_children)
-
-                    del group_children
+                    add_children(channel_group, channels, group.channel_dependencies, signals, entries=None)

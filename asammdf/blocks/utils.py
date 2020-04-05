@@ -968,7 +968,6 @@ class Group:
 
     __slots__ = (
         "channels",
-        "logging_channels",
         "channel_dependencies",
         "signal_data_size",
         "signal_data",
@@ -993,7 +992,6 @@ class Group:
     def __init__(self, data_group):
         self.data_group = data_group
         self.channels = []
-        self.logging_channels = []
         self.channel_dependencies = []
         self.signal_data = []
         self.parents = None
