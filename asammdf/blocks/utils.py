@@ -439,7 +439,7 @@ def fmt_to_datatype_v3(fmt, shape, array=False):
 
     """
     byteorder = fmt.byteorder
-    if byteorder == '=|':
+    if byteorder in '=|':
         byteorder = '<' if sys.byteorder == 'little' else '>'
     size = fmt.itemsize * 8
     kind = fmt.kind
