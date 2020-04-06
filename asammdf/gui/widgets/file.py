@@ -1070,11 +1070,11 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         msg.show()
 
     def show_info(self, item, column):
-        group, index = item.entry
+        group_index, index = item.entry
         if index == 0xFFFFFFFFFFFFFFFF:
-            channel_group = self.mdf.groups[group].channel_group
+            group = self.mdf.groups[group_index]
 
-            msg = ChannelGroupInfoDialog(channel_group, group, self)
+            msg = ChannelGroupInfoDialog(self.mdf, group, group_index, self)
             msg.show()
         else:
             channel = self.mdf.get_channel_metadata(group=group, index=index)
