@@ -1103,6 +1103,7 @@ class Signal(object):
 
         if not self.raw or self.conversion is None:
             samples = self.samples.copy()
+            encoding = None
         else:
             samples = self.conversion.convert(self.samples)
             if samples.dtype.kind == 'S':
