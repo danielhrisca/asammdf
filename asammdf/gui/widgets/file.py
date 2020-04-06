@@ -2137,14 +2137,11 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
         if self.channel_view.currentIndex() == 1:
             while iterator.value():
                 item = iterator.value()
-                if item.parent() is None:
-                    iterator += 1
-                    continue
 
                 if item.checkState(0) == QtCore.Qt.Checked:
                     group, index = item.entry
-                    ch = self.mdf.groups[group].channels[index]
-                    if not ch.component_addr:
+
+                    if index != 0xFFFFFFFFFFFFFFFF:
                         channels.append((None, group, index))
 
                 iterator += 1
@@ -2154,9 +2151,7 @@ class FileWidget(Ui_file_widget, QtWidgets.QWidget):
 
                 if item.checkState(0) == QtCore.Qt.Checked:
                     group, index = item.entry
-                    ch = self.mdf.groups[group].channels[index]
-                    if not ch.component_addr:
-                        channels.append((None, group, index))
+                    channels.append((None, group, index))
 
                 iterator += 1
 
