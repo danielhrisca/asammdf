@@ -44,12 +44,12 @@ from pandas import DataFrame
 from ..signal import Signal
 from . import v2_v3_constants as v23c
 from .conversion_utils import conversion_transfer
+from .source_utils import Source
 from .utils import (
     CHANNEL_COUNT,
     CONVERT,
     ChannelsDB,
     MdfException,
-    SignalSource,
     as_non_byte_sized_signed_int,
     fmt_to_datatype_v3,
     get_fmt_v3,
@@ -2974,22 +2974,7 @@ class MDF3(object):
             source = channel.source
 
             if source:
-                if source["type"] == v23c.SOURCE_ECU:
-                    source = SignalSource(
-                        source.name,
-                        source.path,
-                        source.comment,
-                        0,  # source type other
-                        0,  # bus type none
-                    )
-                else:
-                    source = SignalSource(
-                        source.name,
-                        source.path,
-                        source.comment,
-                        2,  # source type bus
-                        2,  # bus type CAN
-                    )
+                source = Source.from_source(source)
 
             master_metadata = self._master_channel_metadata.get(gp_nr, None)
 

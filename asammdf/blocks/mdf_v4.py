@@ -62,6 +62,7 @@ from pandas import DataFrame
 from . import v4_constants as v4c
 from ..signal import Signal
 from .conversion_utils import conversion_transfer
+from .source_utils import Source
 from .finalization_shim import FinalizationShim
 from .utils import (
     UINT8_u,
@@ -76,7 +77,6 @@ from .utils import (
     CONVERT,
     ChannelsDB,
     MdfException,
-    SignalSource,
     as_non_byte_sized_signed_int,
     fmt_to_datatype_v4,
     get_fmt_v4,
@@ -2474,7 +2474,7 @@ class MDF4(object):
             list of *Signal* objects, or a single *Signal* object, or a pandas
             *DataFrame* object. All bytes columns in the pandas *DataFrame*
             must be *utf-8* encoded
-        source_info : str
+        source_info : str | asammdf.source_utils.Source
             source information; default 'Python'
         common_timebase : bool
             flag to hint that the signals have the same timebase. Only set this
@@ -2521,8 +2521,11 @@ class MDF4(object):
         if not signals:
             return
 
-        source_block = SourceInformation()
-        source_block.name = source_block.path = source_info
+        if isinstance(source_info, Source):
+            source_block = source_info
+        else:
+            source_block = SourceInformation()
+            source_block.name = source_block.path = source_info
 
         interp_mode = self._integer_interpolation
 
@@ -6003,23 +6006,11 @@ class MDF4(object):
             source = channel.source
 
             if source:
-                source = SignalSource(
-                    source.name,
-                    source.path,
-                    source.comment,
-                    source.source_type,
-                    source.bus_type,
-                )
+                source = Source.from_source(source)
             else:
                 cg_source = grp.channel_group.acq_source
                 if cg_source:
-                    source = SignalSource(
-                        cg_source.name,
-                        cg_source.path,
-                        cg_source.comment,
-                        cg_source.source_type,
-                        cg_source.bus_type,
-                    )
+                    source = Source.from_source(cg_source)
                 else:
                     source = None
 
