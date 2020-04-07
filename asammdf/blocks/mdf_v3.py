@@ -1113,6 +1113,11 @@ class MDF3(object):
         >>> mdf2.append(df, units=units)
 
         """
+        if not isinstance(acquisition_info, str):
+            if not isinstance(acquisition_info, Source):
+                acquisition_info = Source.from_source(acquisition_info)
+            acquisition_info = acquisition_info.name
+
         if isinstance(signals, Signal):
             signals = [signals]
         elif isinstance(signals, DataFrame):
@@ -1971,10 +1976,15 @@ class MDF3(object):
 
         return dg_cntr
 
-    def _append_dataframe(self, df, source_info="", units=None):
+    def _append_dataframe(self, df, acquisition_info="", units=None):
         """
         Appends a new data group from a Pandas data frame.
         """
+
+        if not isinstance(acquisition_info, str):
+            if not isinstance(acquisition_info, Source):
+                acquisition_info = Source.from_source(acquisition_info)
+            acquisition_info = acquisition_info.name
 
         units = units or {}
 

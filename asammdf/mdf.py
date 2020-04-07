@@ -400,8 +400,12 @@ class MDF(object):
 
             for idx, sigs in enumerate(self._yield_selected_signals(virtual_group, version=version)):
                 if idx == 0:
-                    source_info = f"Converted from {self.version} to {version}"
+                    source_info = (
+                        getattr(self.groups[virtual_group].channel_group, "acq_source", None)
+                        or f"Converted from {self.version} to {version}"
+                    )
                     if sigs:
+
                         cg_nr = out.append(sigs, source_info, common_timebase=True)
                         out.groups[cg_nr].channel_group.comment = self.groups[virtual_group].channel_group.comment
                     else:
@@ -632,9 +636,13 @@ class MDF(object):
                         stop_ = f"{stop}s"
                     else:
                         stop_ = "end of measurement"
+                    source_info = (
+                        getattr(self.groups[group_index].channel_group, "acq_source", None)
+                        or f"Cut from {start_} to {stop_}"
+                    )
                     cg_nr = out.append(
                         signals,
-                        f"Cut from {start_} to {stop_}",
+                        source_info,
                         common_timebase=True,
                     )
                     out.groups[cg_nr].channel_group.comment = self.groups[group_index].channel_group.comment
@@ -666,9 +674,13 @@ class MDF(object):
                     stop_ = f"{stop}s"
                 else:
                     stop_ = "end of measurement"
+                source_info = (
+                    getattr(self.groups[group_index].channel_group, "acq_source", None)
+                    or f"Cut from {start_} to {stop_}"
+                )
                 out.append(
                     signals,
-                    f"Cut from {start_} to {stop_}",
+                    source_info,
                     common_timebase=True,
                 )
 
@@ -1379,7 +1391,10 @@ class MDF(object):
 
                 if idx == 0:
 
-                    source_info = f"Signals filtered from <{origin}>"
+                    source_info = (
+                        getattr(self.groups[group_index].channel_group, "acq_source", None)
+                        or f"Signals filtered from <{origin}>"
+                    )
                     if sigs:
                         cg_nr = mdf.append(sigs, source_info, common_timebase=True)
                         mdf.groups[cg_nr].channel_group.comment = self.groups[group_index].channel_group.comment
@@ -1647,6 +1662,11 @@ class MDF(object):
                             first_timestamp = first_signal.timestamps[0]
                             original_first_timestamp = first_timestamp
 
+                        source_info = (
+                            getattr(mdf.groups[group_index].channel_group, "acq_source", None)
+                            or f"concatenated"
+                        )
+
                         if add_samples_origin:
                             signals.append(
                                 Signal(
@@ -1657,7 +1677,7 @@ class MDF(object):
                                 )
                             )
 
-                        cg_nr = merged.append(signals, common_timebase=True)
+                        cg_nr = merged.append(signals, source_info, common_timebase=True)
                         merged.groups[cg_nr].channel_group.comment = mdf.groups[group_index].channel_group.comment
                         cg_map[group_index] = cg_nr
 
@@ -1821,7 +1841,11 @@ class MDF(object):
                             timestamps = signals[0].timestamps + offset
                             for sig in signals:
                                 sig.timestamps = timestamps
-                        dg_cntr = stacked.append(signals, common_timebase=True)
+                        source_info = (
+                            getattr(mdf.groups[group].channel_group, "acq_source", None)
+                            or f"stacked"
+                        )
+                        dg_cntr = stacked.append(signals, source_info, common_timebase=True)
                         stacked.groups[dg_cntr].channel_group.comment = mdf.groups[group].channel_group.comment
                     else:
                         master = signals[0][0]
@@ -2096,7 +2120,11 @@ class MDF(object):
                     if len(sig):
                         sig.timestamps = new_raster
 
-            dg_cntr = mdf.append(sigs, common_timebase=True)
+            source_info = (
+                getattr(self.groups[group_index].channel_group, "acq_source", None)
+                or f"resampled to {raster}"
+            )
+            dg_cntr = mdf.append(sigs, source_info, common_timebase=True)
             mdf.groups[dg_cntr].channel_group.comment = self.groups[group_index].channel_group.comment
 
             if self._callback:

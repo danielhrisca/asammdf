@@ -30,7 +30,6 @@ from .utils import (
     sanitize_xml,
     block_fields,
 )
-from .source_utils import Source
 from ..version import __version__
 
 
@@ -5593,9 +5592,6 @@ comment: {self.comment}
             address += self.block_len
 
         return address
-
-    def to_common_source(self):
-        return Source.from_source(self)
 
     @classmethod
     def from_common_source(cls, source):

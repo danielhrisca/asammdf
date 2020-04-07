@@ -8,10 +8,10 @@ from . import v2_v3_blocks as v3b
 from . import v4_constants as v4c
 from . import v4_blocks as v4b
 
-__all__ = ["SignalSource"]
+__all__ = ["Source", ]
 
 
-class SignalSource:
+class Source:
 
     __slots__ = "name", "path", "comment", "source_type", "bus_type"
 
@@ -36,7 +36,7 @@ class SignalSource:
 
     @classmethod
     def from_source(cls, source):
-        if isinstance(source, v3b.ChnannelExtension):
+        if isinstance(source, v3b.ChannelExtension):
             if source.type == v3c.SOURCE_ECU:
                 source = cls(
                     source.name,
@@ -62,7 +62,7 @@ class SignalSource:
                 source.source_type,
                 source.bus_type,
             )
-        elif isinstance(source, SignalSource):
+        elif isinstance(source, Source):
             return cls(
                 source.name,
                 source.path,

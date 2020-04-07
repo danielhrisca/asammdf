@@ -2475,7 +2475,7 @@ class MDF4(object):
             *DataFrame* object. All bytes columns in the pandas *DataFrame*
             must be *utf-8* encoded
         source_info : str | asammdf.source_utils.Source
-            source information; default 'Python'
+            channel group source information; default 'Python'
         common_timebase : bool
             flag to hint that the signals have the same timebase. Only set this
             if you know for sure that all appended channels share the same
@@ -2521,11 +2521,15 @@ class MDF4(object):
         if not signals:
             return
 
-        if isinstance(source_info, Source):
-            source_block = source_info
-        else:
+        if isinstance(source_info, str):
             source_block = SourceInformation()
             source_block.name = source_block.path = source_info
+        else:
+            if not isinstance(source_info, Source):
+                source_info = Source.from_source(source_info)
+            source_block = SourceInformation.from_common_source(source_info)
+
+        source_info = source_block.name
 
         interp_mode = self._integer_interpolation
 
@@ -2574,7 +2578,9 @@ class MDF4(object):
         # channel group
         kwargs = {"cycles_nr": cycles_nr, "samples_byte_nr": 0}
         gp.channel_group = ChannelGroup(**kwargs)
-        gp.channel_group.acq_name = source_info
+        gp.channel_group.acq_source = source_block
+        gp.channel_group.acq_name = source_block.name
+
 
         if any(sig.invalidation_bits is not None for sig in signals):
             invalidation_bytes_nr = 1
@@ -3361,6 +3367,7 @@ class MDF4(object):
         kwargs = {"cycles_nr": cycles_nr, "samples_byte_nr": 0}
         gp.channel_group = ChannelGroup(**kwargs)
         gp.channel_group.acq_name = source_block.name
+        gp.channel_group.acq_source = source_block
 
         self.groups.append(gp)
 
@@ -4112,6 +4119,14 @@ class MDF4(object):
 
         """
 
+        if isinstance(source_info, str):
+            source_block = SourceInformation()
+            source_block.name = source_block.path = source_info
+        else:
+            if not isinstance(source_info, Source):
+                source_info = Source.from_source(source_info)
+            source_block = SourceInformation.from_common_source(source_info)
+
         units = units or {}
 
         t = df.index
@@ -4134,7 +4149,8 @@ class MDF4(object):
         # channel group
         kwargs = {"cycles_nr": cycles_nr, "samples_byte_nr": 0}
         gp.channel_group = ChannelGroup(**kwargs)
-        gp.channel_group.acq_name = source_info
+        gp.channel_group.acq_name = source_block.name
+        gp.channel_group.acq_source = source_block
 
         self.groups.append(gp)
 
@@ -4152,9 +4168,6 @@ class MDF4(object):
         seek = file.seek
 
         seek(0, 2)
-
-        source_block = SourceInformation()
-        source_block.name = source_block.path = source_info
 
         if df.shape[0]:
             virtual_group = VirtualChannelGroup()
@@ -4455,7 +4468,7 @@ class MDF4(object):
         ch.attachment = attachment
         ch.dtype_fmt = signal.samples.dtype
 
-        if source_bus:
+        if source_bus and grp.channel_group.acq_source is None:
             grp.channel_group.acq_source = SourceInformation.from_common_source(signal.source)
 
             if signal.source.bus_type == v4c.BUS_TYPE_CAN:

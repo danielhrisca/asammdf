@@ -20,7 +20,6 @@ from .utils import (
     UINT16_uf,
     get_fields,
 )
-from .source_utils import Source
 from ..version import __version__
 
 
@@ -1943,9 +1942,6 @@ class ChannelExtension:
 
     def __setitem__(self, item, value):
         self.__setattr__(item, value)
-
-    def to_common_source(self):
-        return Source.from_source(self)
 
     def metadata(self):
         if self.type == v23c.SOURCE_ECU:
