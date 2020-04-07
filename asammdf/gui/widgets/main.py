@@ -70,7 +70,6 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.mdi_area.add_window_request.connect(self.add_window)
         self.mdi_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
         self.mdi_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-       # self.comparison_plot = Plot({}, parent=self)
 
         layout.addLayout(hbox)
         layout.addWidget(self.mdi_area)
@@ -491,7 +490,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         for i in range(count):
             self.files.widget(i).set_line_style(with_dots=self.with_dots)
 
-        self.comparison_plot.plot.update_lines(with_dots=self.with_dots)
+        self.set_line_style(with_dots=self.with_dots)
 
     def show_sub_windows(self, mode):
 
