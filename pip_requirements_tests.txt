@@ -11,3 +11,4 @@ wheel
 lxml
 cChardet
 lz4
+pre-commit
