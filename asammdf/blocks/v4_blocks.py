@@ -21,7 +21,6 @@ from .utils import (
     MdfException,
     get_text_v4,
     is_file_like,
-    SignalSource,
     UINT8_uf,
     UINT32_uf,
     UINT32_u,
@@ -31,6 +30,7 @@ from .utils import (
     sanitize_xml,
     block_fields,
 )
+from .source_utils import Source
 from ..version import __version__
 
 
@@ -5595,9 +5595,7 @@ comment: {self.comment}
         return address
 
     def to_common_source(self):
-        return SignalSource(
-            self.name, self.path, self.comment, self.source_type, self.bus_type
-        )
+        return Source.from_source(self)
 
     @classmethod
     def from_common_source(cls, source):

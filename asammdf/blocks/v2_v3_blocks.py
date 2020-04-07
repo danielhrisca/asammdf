@@ -16,11 +16,11 @@ from . import v2_v3_constants as v23c
 from .utils import (
     MdfException,
     get_text_v3,
-    SignalSource,
     UINT16_u,
     UINT16_uf,
     get_fields,
 )
+from .source_utils import Source
 from ..version import __version__
 
 
@@ -1945,19 +1945,7 @@ class ChannelExtension:
         self.__setattr__(item, value)
 
     def to_common_source(self):
-        if self.type == v23c.SOURCE_ECU:
-            source = SignalSource(
-                self.name,
-                self.path,
-                self.comment,
-                0,  # source type other
-                0,  # bus type none
-            )
-        else:
-            source = SignalSource(
-                self.name, self.path, self.comment, 2, 2  # source type bus  # bus type
-            )
-        return source
+        return Source.from_source(self)
 
     def metadata(self):
         if self.type == v23c.SOURCE_ECU:
