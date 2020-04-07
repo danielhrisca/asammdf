@@ -67,6 +67,7 @@ class PlotSignal(Signal):
         )
 
         self.uuid = getattr(signal, "uuid", uuid4())
+        self.mdf_uuid = getattr(signal, "mdf_uuid", uuid4())
 
         self.group_index = getattr(signal, "group_index", -1)
         self.channel_index = getattr(signal, "channel_index", -1)
@@ -234,6 +235,7 @@ class PlotSignal(Signal):
         cut_sig.color = self.color
         cut_sig.computation = self.computation
         cut_sig.precision = self.precision
+        cut_sig.mdf_uuif = self.mdf_uuid
 
         return PlotSignal(cut_sig)
 
@@ -969,7 +971,7 @@ class Plot(QtWidgets.QWidget):
             item.set_prefix("Δ = ")
             item.set_fmt(signal.format)
 
-            if start_v != 'n.a.':
+            if 'n.a.' not in (start_v, stop_v):
                 if kind in "ui":
                     delta = np.int64(stop_v) - np.int64(start_v)
                     item.kind = kind
@@ -1254,6 +1256,7 @@ class Plot(QtWidgets.QWidget):
                 sig.name,
                 sig.computation,
                 self.channel_selection,
+                sig.mdf_uuid,
             )
             item.setData(QtCore.Qt.UserRole, sig.name)
             tooltip = getattr(sig, "tooltip", "")
@@ -1352,7 +1355,7 @@ class Plot(QtWidgets.QWidget):
     def _show_properties(self, uuid):
         for sig in self.plot.signals:
             if sig.uuid == uuid and not sig.computed:
-                self.show_properties.emit([sig.group_index, sig.channel_index])
+                self.show_properties.emit([sig.group_index, sig.channel_index, sig.mdf_uuid])
 
 
 class _Plot(pg.PlotWidget):
@@ -1991,6 +1994,7 @@ class _Plot(pg.PlotWidget):
 
                 if sig is not None:
                     sig.uuid = uuid4()
+                    sig.mdf_uuid = uuid4()
                     self.add_new_channels([sig], computed=True)
                     self.computation_channel_inserted.emit()
 

@@ -5,7 +5,10 @@ from pathlib import Path
 import webbrowser
 import gc
 from textwrap import wrap
+import json
 
+import pandas as pd
+import numpy as np
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
 from PyQt5 import QtCore
@@ -16,16 +19,21 @@ from ...mdf import MDF, SUPPORTED_VERSIONS
 from ..dialogs.multi_search import MultiSearch
 from ..ui.main_window import Ui_PyMDFMainWindow
 from ...version import __version__ as libversion
-from ..utils import TERMINATED, run_thread_with_progress, setup_progress
+from ...blocks.utils import MdfException, extract_cncomment_xml, csv_bytearray2hex
+from ..utils import TERMINATED, run_thread_with_progress, setup_progress, load_dsp, get_required_signals, compute_signal, add_children, HelperChannel
+from .plot import Plot
+from .numeric import Numeric
+from .tabular import Tabular
 from .list import ListWidget
 from .file import FileWidget
 from .batch import BatchWidget
-from .plot import Plot
+from .mdi_area import MdiAreaWidget, WithMDIArea
 
 
-class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
+class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
     def __init__(self, files=None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super(Ui_PyMDFMainWindow, self).__init__(*args, **kwargs)
+        WithMDIArea.__init__(self)
         self.setupUi(self)
         self._settings = QtCore.QSettings()
         self._light_palette = self.palette()
@@ -58,10 +66,14 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         hbox.addWidget(multi_info)
         hbox.addStretch()
 
-        self.comparison_plot = Plot({}, parent=self)
+        self.mdi_area = MdiAreaWidget(self)
+        self.mdi_area.add_window_request.connect(self.add_window)
+        self.mdi_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        self.mdi_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+       # self.comparison_plot = Plot({}, parent=self)
 
         layout.addLayout(hbox)
-        layout.addWidget(self.comparison_plot)
+        layout.addWidget(self.mdi_area)
 
         self.stackedWidget.addWidget(widget)
         self.stackedWidget.setCurrentIndex(0)
@@ -466,7 +478,9 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             if widget and widget.get_current_plot():
                 widget.get_current_plot().keyPressEvent(event)
         elif self.stackedWidget.currentIndex() == 2:
-            self.comparison_plot.keyPressEvent(event)
+            widget = self
+            if widget and widget.get_current_plot():
+                widget.get_current_plot().keyPressEvent(event)
 
     def toggle_dots(self, key):
         self.with_dots = not self.with_dots
@@ -495,7 +509,7 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
     def set_subplot_option(self, state):
         if isinstance(state, str):
             state = True if state == "true" else False
-        self.subplots = state
+        self.set_subplots(state)
         self._settings.setValue("subplots", state)
 
         count = self.files.count()
@@ -667,7 +681,7 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
     def set_subplot_link_option(self, state):
         if isinstance(state, str):
             state = True if state == "true" else False
-        self.subplots_link = state
+        self.set_subplots_link(state)
         self._settings.setValue("subplots_link", state)
         count = self.files.count()
 
@@ -868,29 +882,21 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 dlg.exec_()
                 result = dlg.result
                 if result:
-                    selections = {}
-                    for file_index, (group_index, channel_index) in result:
-                        if file_index not in selections:
-                            selections[file_index] = []
-                        selections[file_index].append(
-                            (None, group_index, channel_index)
-                        )
-                    new_signals = []
-                    for file_index in sorted(selections):
-                        channels = selections[file_index]
-                        signals = self.files.widget(file_index).mdf.select(
-                            channels,
-                            copy_master=False,
-                            ignore_value2text_conversions=self.ignore_value2text_conversions,
-                        )
-                        for sig, entry in zip(signals, channels):
-                            sig.tooltip = f"{sig.name}\n@ {self.files.widget(file_index).file_name}"
-                            sig.name = f"{file_index+1}: {sig.name}"
-                            sig.group_index = entry[1]
-                            sig.channel_index = entry[2]
-                        new_signals.extend(signals)
 
-                    self.comparison_plot.add_new_channels(new_signals)
+                    ret, ok = QtWidgets.QInputDialog.getItem(
+                        None,
+                        "Select window type",
+                        "Type:",
+                        ["Plot", "Numeric", "Tabular"],
+                        0,
+                        False,
+                    )
+                    if ok:
+                        names = [
+                            (None, *entry, self.files.widget(file_index).uuid)
+                            for file_index, entry in result
+                        ]
+                        self.add_window((ret, names))
 
         else:
             super().keyPressEvent(event)
@@ -917,5 +923,3 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             "Measurement files used for comparison",
             '\n'.join(info),
         )
-
-

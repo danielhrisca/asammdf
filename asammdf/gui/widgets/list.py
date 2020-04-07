@@ -127,7 +127,7 @@ class ListWidget(QtWidgets.QListWidget):
             else:
                 info = item.name.encode("utf-8")
 
-            data.append(pack(f"<3q{len(info)}s", entry[0], entry[1], len(info), info))
+            data.append(pack(f"<36s3q{len(info)}s", str(item.mdf_uuid).encode('ascii'), entry[0], entry[1], len(info), info))
 
         mimeData.setData(
             "application/octet-stream-asammdf", QtCore.QByteArray(b"".join(data))

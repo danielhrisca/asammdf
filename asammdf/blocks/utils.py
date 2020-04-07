@@ -1596,8 +1596,11 @@ csv_bytearray2hex = np.vectorize(csv_bytearray2hex, otypes=[str])
 def pandas_query_compatible(name):
     """ adjust column name for usage in dataframe query string """
 
-    for c in ".$[] ":
+    for c in ".$[]: ":
         name = name.replace(c, "_")
+
+    if name.startswith(tuple(string.digits)):
+        name = 'file_' + name
     try:
         exec(f"from pandas import {name}")
     except ImportError:
