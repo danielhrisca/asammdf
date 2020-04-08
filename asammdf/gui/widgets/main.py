@@ -428,6 +428,15 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action.setShortcut(QtCore.Qt.Key_Y)
         cursors_actions.addAction(action)
 
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/comments.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        action = QtWidgets.QAction(icon, "{: <20}\tCtrl+I".format("Insert cursor comment"), menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_I, modifier=QtCore.Qt.ControlModifier))
+        action.setShortcut(QtGui.QKeySequence("Ctrl+I"))
+        cursors_actions.addAction(action)
+
         self.plot_menu = QtWidgets.QMenu("Plot", self.menubar)
         self.plot_menu.addActions(plot_actions.actions())
         self.plot_menu.addSeparator()

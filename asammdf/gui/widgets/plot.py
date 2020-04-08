@@ -1148,6 +1148,28 @@ class Plot(QtWidgets.QWidget):
             if self.plot.cursor1:
                 self.plot.cursor_moved.emit()
 
+        elif key == QtCore.Qt.Key_I and modifiers == QtCore.Qt.ControlModifier:
+            if self.plot.cursor1:
+                position = self.plot.cursor1.value()
+                comment, _ = QtWidgets.QInputDialog.getMultiLineText(
+                    self,
+                    "Insert comments",
+                    f"Enter the comments for cursor position {position:.6f}s:",
+                    "",
+                )
+                line = pg.InfiniteLine(
+                    pos=position,
+                    label=f't = {position}s\n\n{comment}',
+                    pen={"color": "#FF0000", "width": 4},
+                    labelOpts={
+                        "border": {"color": "#FF0000", "width": 4},
+                        "fill": 'ff9b37',
+                        "color": "#000000",
+                        "movable": True,
+                    }
+                )
+                self.plot.plotItem.addItem(line, ignoreBounds=True)
+
         elif (key, modifiers) in self.plot.keyboard_events:
             self.plot.keyPressEvent(event)
         else:
