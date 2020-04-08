@@ -2,7 +2,6 @@
 """ MDF v2 and v3 constants """
 import struct
 
-
 # byte order
 BYTE_ORDER_INTEL = 0
 BYTE_ORDER_MOTOROLA = 1
@@ -77,7 +76,7 @@ CHANNEL_TYPE_MASTER = 1
 
 CHANNEL_TYPE_TO_STRING = {
     CHANNEL_TYPE_VALUE: "VALUE",
-    CHANNEL_TYPE_MASTER : "MASTER",
+    CHANNEL_TYPE_MASTER: "MASTER",
 }
 
 # channel conversion types

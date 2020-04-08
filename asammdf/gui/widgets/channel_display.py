@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 import json
 
-from PyQt5 import QtGui
-from PyQt5 import QtWidgets
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtGui, QtWidgets
 
+from ..dialogs.range_editor import RangeEditor
 from ..ui import resource_rc as resource_rc
 from ..ui.channel_display_widget import Ui_ChannelDiplay
-from ..dialogs.range_editor import RangeEditor
 
 
 class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
@@ -84,7 +82,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
     def set_fmt(self, fmt):
         if self.kind in "SUV":
             self.fmt = "{}"
-        elif self.kind == 'f':
+        elif self.kind == "f":
             self.fmt = f"{{:.{self.precision}f}}"
         else:
             if fmt == "hex":

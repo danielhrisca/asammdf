@@ -7,24 +7,23 @@ from traceback import format_exc
 from natsort import natsorted
 import numpy as np
 import pandas as pd
+from PyQt5 import QtCore, QtGui, QtWidgets
 
-from PyQt5 import QtGui
-from PyQt5 import QtWidgets
-from PyQt5 import QtCore
-
-from ..utils import extract_mime_names
+from ...blocks.utils import (csv_bytearray2hex, extract_cncomment_xml,
+                             MdfException)
+from ...blocks.v4_constants import FLAG_CG_BUS_EVENT
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ...signal import Signal
-from ...blocks.utils import MdfException, extract_cncomment_xml, csv_bytearray2hex
-from ...blocks.v4_constants import FLAG_CG_BUS_EVENT
-from ..utils import TERMINATED, run_thread_with_progress, setup_progress, load_dsp, get_required_signals, compute_signal, add_children, HelperChannel
-from .plot import Plot
-from .numeric import Numeric
-from .tabular import Tabular
-from .search import SearchWidget
-from .tree import TreeWidget
-from ..dialogs.channel_info import ChannelInfoDialog
 from ..dialogs.channel_group_info import ChannelGroupInfoDialog
+from ..dialogs.channel_info import ChannelInfoDialog
+from ..utils import (add_children, compute_signal, extract_mime_names,
+                     get_required_signals, HelperChannel, load_dsp,
+                     run_thread_with_progress, setup_progress, TERMINATED)
+from .numeric import Numeric
+from .plot import Plot
+from .search import SearchWidget
+from .tabular import Tabular
+from .tree import TreeWidget
 
 
 class MdiAreaWidget(QtWidgets.QMdiArea):
@@ -94,7 +93,6 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
 
 
 class WithMDIArea:
-
     def __init__(self, *args, **kwargs):
         self._cursor_source = None
         self._region_source = None
@@ -103,23 +101,12 @@ class WithMDIArea:
     def add_new_channels(self, names, widget):
         try:
             # name is tuple (channel_name, group_index, channel_index, mdf_uuid)
-            signals_ = [
-                name[:3]
-                for name in names
-                if name[1:3] != (-1, -1)
-            ]
+            signals_ = [name[:3] for name in names if name[1:3] != (-1, -1)]
 
-            computed = [
-                json.loads(name[0])
-                for name in names
-                if name[1:3] == (-1, -1)
-            ]
+            computed = [json.loads(name[0]) for name in names if name[1:3] == (-1, -1)]
 
             sigs = self.mdf.select(
-                signals_,
-                copy_master=False,
-                validate=True,
-                raw=True,
+                signals_, copy_master=False, validate=True, raw=True,
             )
 
             for sig in sigs:
@@ -178,7 +165,9 @@ class WithMDIArea:
 
                     try:
 
-                        signal = compute_signal(computation, required_channels, all_timebase)
+                        signal = compute_signal(
+                            computation, required_channels, all_timebase
+                        )
                         signal.color = channel["color"]
                         signal.computed = True
                         signal.computation = channel["computation"]
@@ -205,36 +194,21 @@ class WithMDIArea:
             ]
             computed = []
         else:
-            signals_ = [
-                name
-                for name in names
-                if name[1:] != (-1, -1)
-            ]
+            signals_ = [name for name in names if name[1:] != (-1, -1)]
 
-            computed = [
-                json.loads(name[0])
-                for name in names
-                if name[1:] == (-1, -1)
-            ]
+            computed = [json.loads(name[0]) for name in names if name[1:] == (-1, -1)]
 
         if not signals_:
             return
 
         if window_type == "Tabular":
-            uuids = set(
-                entry[3]
-                for entry in signals_
-            )
+            uuids = set(entry[3] for entry in signals_)
 
             dfs = []
             start = []
 
             for uuid in uuids:
-                uuids_signals = [
-                    entry[:3]
-                    for entry in signals_
-                    if entry[3] == uuid
-                ]
+                uuids_signals = [entry[:3] for entry in signals_ if entry[3] == uuid]
 
                 file_info = self.file_by_uuid(uuid)
                 if not file_info:
@@ -256,10 +230,7 @@ class WithMDIArea:
                 )
                 if hasattr(self, "batch"):
                     # MainWindow => comparison plots
-                    columns = {
-                        name: f"{file_index+1}: {name}"
-                        for name in df.columns
-                    }
+                    columns = {name: f"{file_index+1}: {name}" for name in df.columns}
                     df.rename(columns=columns, inplace=True)
 
                 dfs.append(df)
@@ -268,31 +239,26 @@ class WithMDIArea:
             start = min(start)
 
             for name in signals.columns:
-                if name.endswith((
-                    "CAN_DataFrame.ID",
-                    "FLX_Frame.ID",
-                    "FlexRay_DataFrame.ID",
-                    "LIN_Frame.ID",
-                    "MOST_DataFrame.ID",
-                    "ETH_Frame.ID",
-                )):
+                if name.endswith(
+                    (
+                        "CAN_DataFrame.ID",
+                        "FLX_Frame.ID",
+                        "FlexRay_DataFrame.ID",
+                        "LIN_Frame.ID",
+                        "MOST_DataFrame.ID",
+                        "ETH_Frame.ID",
+                    )
+                ):
                     signals[name] = signals[name].astype("<u4") & 0x1FFFFFFF
 
         else:
 
-            uuids = set(
-                entry[3]
-                for entry in signals_
-            )
+            uuids = set(entry[3] for entry in signals_)
 
             signals = []
 
             for uuid in uuids:
-                uuids_signals = [
-                    entry[:3]
-                    for entry in signals_
-                    if entry[3] == uuid
-                ]
+                uuids_signals = [entry[:3] for entry in signals_ if entry[3] == uuid]
 
                 file_info = self.file_by_uuid(uuid)
                 if not file_info:
@@ -327,16 +293,13 @@ class WithMDIArea:
                 signals = [
                     sig
                     for sig in signals
-                    if not sig.samples.dtype.names
-                    and not len(sig.samples.shape) > 1
+                    if not sig.samples.dtype.names and not len(sig.samples.shape) > 1
                 ]
 
             for signal in signals:
                 if len(signal.samples.shape) > 1:
 
-                    signal.samples = csv_bytearray2hex(
-                        pd.Series(list(signal.samples))
-                    )
+                    signal.samples = csv_bytearray2hex(pd.Series(list(signal.samples)))
 
                 if signal.name.endswith("CAN_DataFrame.ID"):
                     signal.samples = signal.samples.astype("<u4") & 0x1FFFFFFF
@@ -447,7 +410,9 @@ class WithMDIArea:
 
                     try:
 
-                        signal = compute_signal(computation, required_channels, all_timebase)
+                        signal = compute_signal(
+                            computation, required_channels, all_timebase
+                        )
                         signal.color = channel["color"]
                         signal.computed = True
                         signal.computation = channel["computation"]
@@ -691,7 +656,9 @@ class WithMDIArea:
 
                 try:
 
-                    signal = compute_signal(computation, required_channels, all_timebase)
+                    signal = compute_signal(
+                        computation, required_channels, all_timebase
+                    )
                     signal.color = channel["color"]
                     signal.computed = True
                     signal.computation = channel["computation"]

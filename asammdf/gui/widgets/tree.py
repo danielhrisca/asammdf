@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from PyQt5 import QtWidgets
-from PyQt5 import QtCore
-from PyQt5 import QtGui
 from struct import pack
+
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 class TreeWidget(QtWidgets.QTreeWidget):
@@ -59,7 +58,14 @@ class TreeWidget(QtWidgets.QTreeWidget):
                     entry = child.entry
 
                     data.append(
-                        pack(f"<36s3q{len(name)}s", str(child.mdf_uuid).encode('ascii'), entry[0], entry[1], len(name), name)
+                        pack(
+                            f"<36s3q{len(name)}s",
+                            str(child.mdf_uuid).encode("ascii"),
+                            entry[0],
+                            entry[1],
+                            len(name),
+                            name,
+                        )
                     )
             else:
 
@@ -67,7 +73,14 @@ class TreeWidget(QtWidgets.QTreeWidget):
                 entry = item.entry
                 if entry[1] != 0xFFFFFFFFFFFFFFFF:
                     data.append(
-                        pack(f"<36s3q{len(name)}s", str(item.mdf_uuid).encode('ascii'), entry[0], entry[1], len(name), name)
+                        pack(
+                            f"<36s3q{len(name)}s",
+                            str(item.mdf_uuid).encode("ascii"),
+                            entry[0],
+                            entry[1],
+                            len(name),
+                            name,
+                        )
                     )
 
         mimeData.setData(

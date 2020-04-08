@@ -1,8 +1,7 @@
+from enum import IntFlag
 import os
 import struct
-
-from enum import IntFlag
-from typing import Optional, Tuple, BinaryIO, Union, Dict
+from typing import BinaryIO, Dict, Optional, Tuple, Union
 
 from asammdf.blocks.utils import MdfException
 

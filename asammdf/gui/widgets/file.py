@@ -2,42 +2,40 @@
 from datetime import datetime
 from functools import partial
 import json
-from pathlib import Path
 import os
-from traceback import format_exc
-from time import perf_counter
+from pathlib import Path
 from tempfile import gettempdir
+from time import perf_counter
+from traceback import format_exc
 from uuid import uuid4
 
-import psutil
 from natsort import natsorted
 import numpy as np
 import pandas as pd
+import psutil
+from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
 
-from PyQt5 import QtGui
-from PyQt5 import QtWidgets
-from PyQt5 import QtCore
-
-from ..ui import resource_rc as resource_rc
-from ..ui.file_widget import Ui_file_widget
-
+from ...blocks.utils import (csv_bytearray2hex, extract_cncomment_xml,
+                             MdfException)
+from ...blocks.v4_constants import FLAG_CG_BUS_EVENT
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ...signal import Signal
-from ...blocks.utils import MdfException, extract_cncomment_xml, csv_bytearray2hex
-from ...blocks.v4_constants import FLAG_CG_BUS_EVENT
-from ..utils import TERMINATED, run_thread_with_progress, setup_progress, load_dsp, get_required_signals, compute_signal, add_children, HelperChannel
-from .plot import Plot
+from ..dialogs.advanced_search import AdvancedSearch
+from ..dialogs.channel_group_info import ChannelGroupInfoDialog
+from ..dialogs.channel_info import ChannelInfoDialog
+from ..ui import resource_rc as resource_rc
+from ..ui.file_widget import Ui_file_widget
+from ..utils import (add_children, compute_signal, get_required_signals,
+                     HelperChannel, load_dsp, run_thread_with_progress,
+                     setup_progress, TERMINATED)
+from .mdi_area import MdiAreaWidget, WithMDIArea
 from .numeric import Numeric
-from .tabular import Tabular
+from .plot import Plot
 from .search import SearchWidget
+from .tabular import Tabular
 from .tree import TreeWidget
 from .tree_item import TreeItem
-from .mdi_area import MdiAreaWidget, WithMDIArea
-
-from ..dialogs.advanced_search import AdvancedSearch
-from ..dialogs.channel_info import ChannelInfoDialog
-from ..dialogs.channel_group_info import ChannelGroupInfoDialog
 
 
 class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
@@ -350,7 +348,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.load_can_database_btn.clicked.connect(self.load_can_database)
 
         if self.mdf.version >= "4.00":
-            if any(group.channel_group.flags & FLAG_CG_BUS_EVENT for group in self.mdf.groups):
+            if any(
+                group.channel_group.flags & FLAG_CG_BUS_EVENT
+                for group in self.mdf.groups
+            ):
                 self.aspects.setTabEnabled(7, True)
             else:
                 self.aspects.setTabEnabled(7, False)
@@ -611,7 +612,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         for j, ch in enumerate(group.channels)
                     ]
 
-                    add_children(channel_group, channels, group.channel_dependencies, signals, entries=None, mdf_uuid=self.uuid)
+                    add_children(
+                        channel_group,
+                        channels,
+                        group.channel_dependencies,
+                        signals,
+                        entries=None,
+                        mdf_uuid=self.uuid,
+                    )
 
         self._settings.setValue("channels_view", self.channel_view.currentText())
 
@@ -693,8 +701,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 if ok:
                     index = options.index(ret)
                     signals = [
-                        (None, *self.mdf.whereis(name)[0], self.uuid)
-                        for name in names
+                        (None, *self.mdf.whereis(name)[0], self.uuid) for name in names
                     ]
 
                     if index == 0:
@@ -783,7 +790,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         if file_name:
             if not isinstance(file_name, dict):
                 file_name = Path(file_name)
-                if file_name.suffix.lower() == '.dsp':
+                if file_name.suffix.lower() == ".dsp":
                     info = load_dsp(file_name)
                     channels = info.get("display", [])
 
@@ -791,7 +798,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     with open(file_name, "r") as infile:
                         info = json.load(infile)
                     channels = info.get("selected_channels", [])
-
 
             else:
                 info = file_name
@@ -1775,7 +1781,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.aspects.tabText(self.aspects.currentIndex()) == "Resample"
             and not self.raster_channel.count()
         ):
-            self.raster_channel.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon)
+            self.raster_channel.setSizeAdjustPolicy(
+                QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon
+            )
             self.raster_channel.addItems(self.channels_db_items)
             self.raster_channel.setMinimumWidth(100)
         elif (
@@ -1826,4 +1834,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         for j, ch in enumerate(group.channels)
                     ]
 
-                    add_children(channel_group, channels, group.channel_dependencies, set(), entries=None)
+                    add_children(
+                        channel_group,
+                        channels,
+                        group.channel_dependencies,
+                        set(),
+                        entries=None,
+                    )

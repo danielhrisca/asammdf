@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-from time import sleep
 from threading import Thread
+from time import sleep
 
-from PyQt5 import QtWidgets, QtGui, QtCore
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ..ui import resource_rc as resource_rc
 from ..ui.error_dialog import Ui_ErrorDialog
@@ -11,10 +11,10 @@ from ..widgets.collapsiblebox import CollapsibleBox
 
 class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
     def __init__(self, title, message, trace, *args, **kwargs):
-        if 'remote' in kwargs:
-            remote = kwargs.pop('remote')
-            if 'timeout' in kwargs:
-                timeout = kwargs.pop('timeout')
+        if "remote" in kwargs:
+            remote = kwargs.pop("remote")
+            if "timeout" in kwargs:
+                timeout = kwargs.pop("timeout")
             else:
                 timeout = 60
         else:
@@ -59,10 +59,8 @@ class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
         )
         QtWidgets.QApplication.instance().clipboard().setText(text)
 
-
     def count_down(self):
         while self._timeout > 0:
             sleep(1)
             self._timeout -= 1
             self.status.setText(f"This window will close in {self._timeout:02}s")
-

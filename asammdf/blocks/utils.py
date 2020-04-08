@@ -3,19 +3,27 @@
 asammdf utility functions and classes
 """
 
-import logging
-import string
-import xml.etree.ElementTree as ET
-import re
-import subprocess
-from io import BytesIO
-import sys
-
 from collections import namedtuple
-from random import randint
-from struct import Struct
-from tempfile import TemporaryDirectory
+from io import BytesIO
+import logging
 from pathlib import Path
+from random import randint
+import re
+import string
+from struct import Struct
+import subprocess
+import sys
+from tempfile import TemporaryDirectory
+import xml.etree.ElementTree as ET
+
+from cchardet import detect
+import numpy as np
+from numpy import arange, interp, where
+from numpy.core.records import fromarrays
+from pandas import Series
+
+from . import v2_v3_constants as v3c
+from . import v4_constants as v4c
 
 try:
     from canmatrix.dbc import load as dbc_load
@@ -24,14 +32,7 @@ except ModuleNotFoundError:
     from canmatrix.formats.dbc import load as dbc_load
     from canmatrix.formats.arxml import load as arxml_load
 
-from cchardet import detect
-from numpy import where, arange, interp
-import numpy as np
-from numpy.core.records import fromarrays
-from pandas import Series
 
-from . import v2_v3_constants as v3c
-from . import v4_constants as v4c
 
 UINT8_u = Struct("<B").unpack
 UINT16_u = Struct("<H").unpack
@@ -266,7 +267,11 @@ def get_fmt_v3(data_type, size, byte_order=v3c.BYTE_ORDER_INTEL):
         else:
             fmt = f"({size},)u1"
     else:
-        if size > 64 and data_type in (v3c.DATA_TYPE_UNSIGNED_INTEL, v3c.DATA_TYPE_UNSIGNED, v3c.DATA_TYPE_UNSIGNED_MOTOROLA):
+        if size > 64 and data_type in (
+            v3c.DATA_TYPE_UNSIGNED_INTEL,
+            v3c.DATA_TYPE_UNSIGNED,
+            v3c.DATA_TYPE_UNSIGNED_MOTOROLA,
+        ):
             fmt = f"({size // 8},)u1"
         else:
             if size <= 8:
@@ -307,7 +312,10 @@ def get_fmt_v3(data_type, size, byte_order=v3c.BYTE_ORDER_INTEL):
             elif data_type in (v3c.DATA_TYPE_FLOAT_INTEL, v3c.DATA_TYPE_DOUBLE_INTEL):
                 fmt = f"<f{size}"
 
-            elif data_type in (v3c.DATA_TYPE_FLOAT_MOTOROLA, v3c.DATA_TYPE_DOUBLE_MOTOROLA):
+            elif data_type in (
+                v3c.DATA_TYPE_FLOAT_MOTOROLA,
+                v3c.DATA_TYPE_DOUBLE_MOTOROLA,
+            ):
                 fmt = f">f{size}"
 
             elif data_type in (v3c.DATA_TYPE_FLOAT, v3c.DATA_TYPE_DOUBLE):
@@ -359,7 +367,10 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
             fmt = "V6"
 
     else:
-        if size > 64 and data_type in (v4c.DATA_TYPE_UNSIGNED_INTEL, v4c.DATA_TYPE_UNSIGNED):
+        if size > 64 and data_type in (
+            v4c.DATA_TYPE_UNSIGNED_INTEL,
+            v4c.DATA_TYPE_UNSIGNED,
+        ):
             fmt = f"({size // 8},)u1"
         else:
             if size <= 8:
@@ -418,8 +429,8 @@ def fmt_to_datatype_v3(fmt, shape, array=False):
 
     """
     byteorder = fmt.byteorder
-    if byteorder in '=|':
-        byteorder = '<' if sys.byteorder == 'little' else '>'
+    if byteorder in "=|":
+        byteorder = "<" if sys.byteorder == "little" else ">"
     size = fmt.itemsize * 8
     kind = fmt.kind
 
@@ -513,8 +524,8 @@ def fmt_to_datatype_v4(fmt, shape, array=False):
 
     """
     byteorder = fmt.byteorder
-    if byteorder in '=|':
-        byteorder = '<' if sys.byteorder == 'little' else '>'
+    if byteorder in "=|":
+        byteorder = "<" if sys.byteorder == "little" else ">"
     size = fmt.itemsize * 8
     kind = fmt.kind
 
@@ -1014,7 +1025,7 @@ class VirtualChannelGroup:
         self.cycles_nr = 0
 
     def __repr__(self):
-        return f'VirtualChannelGroup(groups={self.groups}, records_size={self.record_size}, cycles_nr={self.cycles_nr})'
+        return f"VirtualChannelGroup(groups={self.groups}, records_size={self.record_size}, cycles_nr={self.cycles_nr})"
 
 
 def block_fields(obj):
@@ -1387,7 +1398,7 @@ def extract_can_signal(signal, payload):
     # prepend or append extra bytes columns
     # to get a standard size number of bytes
 
-    #print(signal.name, start_bit, bit_offset, start_byte, byte_size)
+    # print(signal.name, start_bit, bit_offset, start_byte, byte_size)
 
     if extra_bytes:
         if big_endian:
@@ -1494,11 +1505,14 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
     if muxer is None:
         if message.is_multiplexed:
             for sig in message:
-                if sig.multiplex == 'Multiplexor' and sig.muxer_for_signal is None:
+                if sig.multiplex == "Multiplexor" and sig.muxer_for_signal is None:
                     multiplexor_name = sig.name
                     break
             for sig in message:
-                if sig.multiplex not in (None, 'Multiplexor') and sig.muxer_for_signal is None:
+                if (
+                    sig.multiplex not in (None, "Multiplexor")
+                    and sig.muxer_for_signal is None
+                ):
                     sig.muxer_for_signal = multiplexor_name
                     sig.mux_val_min = sig.mux_val_max = int(sig.multiplex)
                     sig.mux_val_grp.insert(0, (int(sig.multiplex), int(sig.multiplex)))
@@ -1548,7 +1562,7 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
                 "invalidation_bits": np.isclose(samples, max_val),
             }
 
-            if sig.multiplex == 'Multiplexor':
+            if sig.multiplex == "Multiplexor":
                 extracted_signals.update(
                     extract_mux(
                         payload_,
@@ -1600,7 +1614,7 @@ def pandas_query_compatible(name):
         name = name.replace(c, "_")
 
     if name.startswith(tuple(string.digits)):
-        name = 'file_' + name
+        name = "file_" + name
     try:
         exec(f"from pandas import {name}")
     except ImportError:
@@ -1654,7 +1668,7 @@ def load_can_database(file, contents=None, **kwargs):
 
 def all_blocks_addresses(obj):
     pattern = re.compile(
-        rb'(?P<block>##(D[GVTZIL]|AT|C[AGHNC]|EV|FH|HL|LD|MD|R[DVI]|S[IRD]|TX))',
+        rb"(?P<block>##(D[GVTZIL]|AT|C[AGHNC]|EV|FH|HL|LD|MD|R[DVI]|S[IRD]|TX))",
         re.DOTALL | re.MULTILINE,
     )
 
@@ -1664,18 +1678,10 @@ def all_blocks_addresses(obj):
         pass
 
     try:
-        match_starts = [
-            match.start()
-            for match in re.finditer(pattern, obj)
-        ]
+        match_starts = [match.start() for match in re.finditer(pattern, obj)]
     except TypeError:
         """ TypeError: expected string or bytes-like object when reading
         PyFilesystem concrete class from S3.
         """
-        match_starts = [
-            match.start()
-            for match in re.finditer(pattern, obj.read())
-        ]
+        match_starts = [match.start() for match in re.finditer(pattern, obj.read())]
     return match_starts
-
-

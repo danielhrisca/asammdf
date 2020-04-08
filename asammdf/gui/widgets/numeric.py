@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
 import re
 
-from PyQt5 import QtWidgets
-from PyQt5 import QtCore
 from natsort import natsorted
 import numpy as np
 from numpy import searchsorted
+from PyQt5 import QtCore, QtWidgets
 
 from ..ui import resource_rc as resource_rc
 from ..ui.numeric import Ui_NumericDisplay
 from .tree_item import TreeItem
-
 
 OPS = {
     "!=": "__ne__",

@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from PyQt5 import QtGui
-from PyQt5 import QtWidgets
-from PyQt5 import QtCore
-from struct import pack
 import json
+from struct import pack
+
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ..utils import extract_mime_names
 
@@ -127,7 +126,16 @@ class ListWidget(QtWidgets.QListWidget):
             else:
                 info = item.name.encode("utf-8")
 
-            data.append(pack(f"<36s3q{len(info)}s", str(item.mdf_uuid).encode('ascii'), entry[0], entry[1], len(info), info))
+            data.append(
+                pack(
+                    f"<36s3q{len(info)}s",
+                    str(item.mdf_uuid).encode("ascii"),
+                    entry[0],
+                    entry[1],
+                    len(info),
+                    info,
+                )
+            )
 
         mimeData.setData(
             "application/octet-stream-asammdf", QtCore.QByteArray(b"".join(data))
@@ -278,7 +286,10 @@ class ListWidget(QtWidgets.QListWidget):
                         widget.set_precision(precision)
                         widget.update()
 
-        elif action.text() in ("Relative time base shift", "Set time base start offset"):
+        elif action.text() in (
+            "Relative time base shift",
+            "Set time base start offset",
+        ):
             selected_items = self.selectedItems()
             if selected_items:
 
@@ -301,7 +312,7 @@ class ListWidget(QtWidgets.QListWidget):
                         if item in selected_items:
 
                             uuids.append(widget.uuid)
-                    self.set_time_offset.emit([absolute, offset, ] + uuids)
+                    self.set_time_offset.emit([absolute, offset,] + uuids)
 
         elif action.text() == "Delete (Del)":
             event = QtGui.QKeyEvent(

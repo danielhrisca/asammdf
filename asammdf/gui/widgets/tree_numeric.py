@@ -2,9 +2,7 @@
 import json
 from struct import pack
 
-from PyQt5 import QtGui
-from PyQt5 import QtWidgets
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ..utils import extract_mime_names
 
@@ -81,7 +79,16 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
             else:
                 info = item.name.encode("utf-8")
 
-            data.append(pack(f"<36s3q{len(info)}s", str(item.mdf_uuid).encode('ascii'), entry[0], entry[1], len(info), info))
+            data.append(
+                pack(
+                    f"<36s3q{len(info)}s",
+                    str(item.mdf_uuid).encode("ascii"),
+                    entry[0],
+                    entry[1],
+                    len(info),
+                    info,
+                )
+            )
 
         mimeData.setData(
             "application/octet-stream-asammdf", QtCore.QByteArray(b"".join(data))

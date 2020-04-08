@@ -3,10 +3,10 @@
 asammdf utility functions for channel conversions
 """
 
-from . import v2_v3_constants as v3c
 from . import v2_v3_blocks as v3b
-from . import v4_constants as v4c
+from . import v2_v3_constants as v3c
 from . import v4_blocks as v4b
+from . import v4_constants as v4c
 
 __all__ = ["conversion_transfer", "from_dict"]
 

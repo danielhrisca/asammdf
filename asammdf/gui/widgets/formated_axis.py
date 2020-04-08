@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import pyqtgraph as pg
 import numpy as np
+import pyqtgraph as pg
 
 
 class FormatedAxis(pg.AxisItem):

@@ -3,35 +3,24 @@
 classes that implement the blocks for MDF version 4
 """
 
-import logging
-import xml.etree.ElementTree as ET
-import time
 from datetime import datetime, timedelta, timezone
 from hashlib import md5
+import logging
+from pathlib import Path
 from struct import pack, unpack, unpack_from
 from textwrap import wrap
+import time
+import xml.etree.ElementTree as ET
 from zlib import compress, decompress
-from pathlib import Path
 
-import numpy as np
 from numexpr import evaluate
+import numpy as np
 
 from . import v4_constants as v4c
-from .utils import (
-    MdfException,
-    get_text_v4,
-    is_file_like,
-    UINT8_uf,
-    UINT32_uf,
-    UINT32_u,
-    UINT64_u,
-    UINT64_uf,
-    FLOAT64_u,
-    sanitize_xml,
-    block_fields,
-)
 from ..version import __version__
-
+from .utils import (block_fields, FLOAT64_u, get_text_v4, is_file_like,
+                    MdfException, sanitize_xml, UINT8_uf, UINT32_u, UINT32_uf,
+                    UINT64_u, UINT64_uf)
 
 SEEK_START = v4c.SEEK_START
 SEEK_END = v4c.SEEK_END
@@ -1991,7 +1980,7 @@ comment: {self.comment}
                     lines[-1] += f" [0x{self.flags:X}= {', '.join(flags)}]"
             elif key == "path_separator":
                 if self.path_separator:
-                    sep = pack('<H', self.path_separator).decode('utf-16')
+                    sep = pack("<H", self.path_separator).decode("utf-16")
 
                     lines[-1] += f" (= '{sep}')"
                 else:

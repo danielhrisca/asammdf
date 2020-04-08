@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
-from PyQt5 import QtWidgets, QtCore, QtGui
+from time import perf_counter
+
 import numpy as np
 import pandas as pd
-from time import perf_counter
+from PyQt5 import QtCore, QtGui, QtWidgets
+
+from ...blocks.utils import csv_bytearray2hex
 from ..ui import resource_rc as resource_rc
 from ..ui.channel_group_info_widget import Ui_ChannelGroupInfo
-from ...blocks.utils import csv_bytearray2hex
 from ..widgets.list_item import ListItem
 
 
@@ -44,8 +46,10 @@ class ChannelGroupInfoWidget(Ui_ChannelGroupInfo, QtWidgets.QWidget):
 
         self.index_size = len(str(channel_group.cycles_nr))
         self.cycles = channel_group.cycles_nr
-        if self.mdf.version >= '4.00':
-            self.record_size = channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
+        if self.mdf.version >= "4.00":
+            self.record_size = (
+                channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
+            )
         else:
             self.record_size = channel_group.samples_byte_nr
 
@@ -80,24 +84,22 @@ class ChannelGroupInfoWidget(Ui_ChannelGroupInfo, QtWidgets.QWidget):
         record_end = max(0, position * self.cycles // self.scroll.maximum() + 100)
         record_count = record_end - record_offset
 
-        data = b''.join(
+        data = b"".join(
             e[0]
             for e in self.mdf._load_data(
-                self.group,
-                record_offset=record_offset,
-                record_count=record_count,
+                self.group, record_offset=record_offset, record_count=record_count,
             )
         )
 
-        data = pd.Series(
-            list(np.frombuffer(data, dtype=f'({self.record_size},)u1'))
-        )
+        data = pd.Series(list(np.frombuffer(data, dtype=f"({self.record_size},)u1")))
         data = list(csv_bytearray2hex(data))
 
-        lines = ["""<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
+        lines = [
+            """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN" "http://www.w3.org/TR/REC-html40/strict.dtd">
 <html><head><meta name="qrichtext" content="1" /><style type="text/css">
 p, li { white-space: pre-wrap; }
-</style></head><body style=" font-size:8pt; font-style:normal;">"""]
+</style></head><body style=" font-size:8pt; font-style:normal;">"""
+        ]
 
         if self.byte_count == 0:
             template = f'<p style=" margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;"><span style=" font-weight:600; color:#61b2e2;">{{index: >{self.index_size}}}: </span>{{line}}</p>'
@@ -109,13 +111,16 @@ p, li { white-space: pre-wrap; }
                 lines.append(
                     template.format(
                         index=i,
-                        start=l[:self.byte_offset*3],
-                        middle=l[self.byte_offset*3:self.byte_offset*3  + self.byte_count * 3],
-                        end=l[self.byte_offset*3 + self.byte_count * 3:],
+                        start=l[: self.byte_offset * 3],
+                        middle=l[
+                            self.byte_offset * 3 : self.byte_offset * 3
+                            + self.byte_count * 3
+                        ],
+                        end=l[self.byte_offset * 3 + self.byte_count * 3 :],
                     )
                 )
 
-        self.display.appendHtml('\n'.join(lines))
+        self.display.appendHtml("\n".join(lines))
 
         if position == 0:
             self.display.verticalScrollBar().setSliderPosition(0)

@@ -1,27 +1,20 @@
 # -*- coding: utf-8 -*-
 """ classes that implement the blocks for MDF versions 2 and 3 """
 
-import logging
-import time
 from datetime import datetime
 from getpass import getuser
+import logging
 from struct import pack, unpack, unpack_from
-from textwrap import wrap
 import sys
+from textwrap import wrap
+import time
 
-import numpy as np
 from numexpr import evaluate
+import numpy as np
 
 from . import v2_v3_constants as v23c
-from .utils import (
-    MdfException,
-    get_text_v3,
-    UINT16_u,
-    UINT16_uf,
-    get_fields,
-)
 from ..version import __version__
-
+from .utils import get_fields, get_text_v3, MdfException, UINT16_u, UINT16_uf
 
 SEEK_START = v23c.SEEK_START
 SEEK_END = v23c.SEEK_END
@@ -1305,7 +1298,9 @@ address: {hex(self.address)}
                     lines.append(template.format(key, val))
 
             if key == "conversion_type":
-                lines[-1] += f" [{v23c.CONVERSION_TYPE_TO_STRING[self.conversion_type]}]"
+                lines[
+                    -1
+                ] += f" [{v23c.CONVERSION_TYPE_TO_STRING[self.conversion_type]}]"
             elif self.referenced_blocks and key in self.referenced_blocks:
                 val = self.referenced_blocks[key]
                 if isinstance(val, bytes):
@@ -2521,7 +2516,11 @@ class FileIdentificationBlock:
             self.program_identification = "amdf{}".format(
                 __version__.replace(".", "")
             ).encode("latin-1")
-            self.byte_order = v23c.BYTE_ORDER_INTEL if sys.byteorder == 'little' else v23c.BYTE_ORDER_MOTOROLA
+            self.byte_order = (
+                v23c.BYTE_ORDER_INTEL
+                if sys.byteorder == "little"
+                else v23c.BYTE_ORDER_MOTOROLA
+            )
             self.float_format = 0
             self.mdf_version = int(version.replace(".", ""))
             self.code_page = 0

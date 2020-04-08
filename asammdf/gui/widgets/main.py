@@ -1,33 +1,34 @@
 # -*- coding: utf-8 -*-
 from functools import partial
+import gc
+import json
 import os
 from pathlib import Path
-import webbrowser
-import gc
 from textwrap import wrap
-import json
+import webbrowser
 
-import pandas as pd
-import numpy as np
-from PyQt5 import QtGui
-from PyQt5 import QtWidgets
-from PyQt5 import QtCore
-import pyqtgraph as pg
 from natsort import natsorted
+import numpy as np
+import pandas as pd
+from PyQt5 import QtCore, QtGui, QtWidgets
+import pyqtgraph as pg
 
+from ...blocks.utils import (csv_bytearray2hex, extract_cncomment_xml,
+                             MdfException)
 from ...mdf import MDF, SUPPORTED_VERSIONS
+from ...version import __version__ as libversion
 from ..dialogs.multi_search import MultiSearch
 from ..ui.main_window import Ui_PyMDFMainWindow
-from ...version import __version__ as libversion
-from ...blocks.utils import MdfException, extract_cncomment_xml, csv_bytearray2hex
-from ..utils import TERMINATED, run_thread_with_progress, setup_progress, load_dsp, get_required_signals, compute_signal, add_children, HelperChannel
-from .plot import Plot
-from .numeric import Numeric
-from .tabular import Tabular
-from .list import ListWidget
-from .file import FileWidget
+from ..utils import (add_children, compute_signal, get_required_signals,
+                     HelperChannel, load_dsp, run_thread_with_progress,
+                     setup_progress, TERMINATED)
 from .batch import BatchWidget
+from .file import FileWidget
+from .list import ListWidget
 from .mdi_area import MdiAreaWidget, WithMDIArea
+from .numeric import Numeric
+from .plot import Plot
+from .tabular import Tabular
 
 
 class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
@@ -49,13 +50,15 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         layout = QtWidgets.QVBoxLayout()
         widget.setLayout(layout)
 
-        multi_search = QtWidgets.QPushButton('Search')
+        multi_search = QtWidgets.QPushButton("Search")
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/search.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(":/search.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         multi_search.setIcon(icon)
         multi_search.clicked.connect(self.comparison_search)
 
-        multi_info = QtWidgets.QPushButton('Measurements information')
+        multi_info = QtWidgets.QPushButton("Measurements information")
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/info.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         multi_info.setIcon(icon)
@@ -320,9 +323,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action = QtWidgets.QAction("{: <20}\tAlt+R".format("Raw samples"), menu)
         action.triggered.connect(
             partial(
-                self.plot_action,
-                key=QtCore.Qt.Key_R,
-                modifier=QtCore.Qt.AltModifier,
+                self.plot_action, key=QtCore.Qt.Key_R, modifier=QtCore.Qt.AltModifier,
             )
         )
         action.setShortcut(QtGui.QKeySequence("Alt+R"))
@@ -331,9 +332,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action = QtWidgets.QAction("{: <20}\tAlt+S".format("Scaled samples"), menu)
         action.triggered.connect(
             partial(
-                self.plot_action,
-                key=QtCore.Qt.Key_S,
-                modifier=QtCore.Qt.AltModifier,
+                self.plot_action, key=QtCore.Qt.Key_S, modifier=QtCore.Qt.AltModifier,
             )
         )
         action.setShortcut(QtGui.QKeySequence("Alt+S"))
@@ -432,8 +431,16 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         icon.addPixmap(
             QtGui.QPixmap(":/comments.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
         )
-        action = QtWidgets.QAction(icon, "{: <20}\tCtrl+I".format("Insert cursor comment"), menu)
-        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_I, modifier=QtCore.Qt.ControlModifier))
+        action = QtWidgets.QAction(
+            icon, "{: <20}\tCtrl+I".format("Insert cursor comment"), menu
+        )
+        action.triggered.connect(
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key_I,
+                modifier=QtCore.Qt.ControlModifier,
+            )
+        )
         action.setShortcut(QtGui.QKeySequence("Ctrl+I"))
         cursors_actions.addAction(action)
 
@@ -881,8 +888,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                     self.files.widget(i).mdf.channels_db for i in range(count)
                 ]
                 measurements = [
-                    str(self.files.widget(i).mdf.name)
-                    for i in range(count)
+                    str(self.files.widget(i).mdf.name) for i in range(count)
                 ]
 
                 dlg = MultiSearch(channels_dbs, measurements, parent=self,)
@@ -917,17 +923,12 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
     def comparison_info(self, event):
         count = self.files.count()
-        measurements = [
-            str(self.files.widget(i).mdf.name)
-            for i in range(count)
-        ]
+        measurements = [str(self.files.widget(i).mdf.name) for i in range(count)]
 
         info = []
         for i, name in enumerate(measurements, 1):
-            info.extend(wrap(f'{i:> 2}: {name}', 120))
+            info.extend(wrap(f"{i:> 2}: {name}", 120))
 
         QtWidgets.QMessageBox.information(
-            self,
-            "Measurement files used for comparison",
-            '\n'.join(info),
+            self, "Measurement files used for comparison", "\n".join(info),
         )
