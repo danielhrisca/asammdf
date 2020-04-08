@@ -29,9 +29,7 @@ bin_ = bin
 HERE = Path(__file__).resolve().parent
 
 
-
 # pg.setConfigOption("useOpenGL", True)
-
 
 
 if not hasattr(pg.InfiniteLine, "addMarker"):
@@ -688,6 +686,7 @@ class Plot(QtWidgets.QWidget):
     show_properties = QtCore.pyqtSignal(list)
 
     def __init__(self, signals, with_dots=False, *args, **kwargs):
+        events = kwargs.pop("events", None)
         super().__init__(*args, **kwargs)
         self.setContentsMargins(0, 0, 0, 0)
 
@@ -722,7 +721,7 @@ class Plot(QtWidgets.QWidget):
         self.splitter.addWidget(widget)
         self.splitter.setOpaqueResize(False)
 
-        self.plot = _Plot(with_dots=with_dots, parent=self)
+        self.plot = _Plot(with_dots=with_dots, parent=self, events=events)
         self.plot.range_modified.connect(self.range_modified)
         self.plot.range_removed.connect(self.range_removed)
         self.plot.range_modified_finished.connect(self.range_modified_finished)
@@ -1391,6 +1390,7 @@ class _Plot(pg.PlotWidget):
     add_channels_request = QtCore.pyqtSignal(list)
 
     def __init__(self, signals=None, with_dots=False, *args, **kwargs):
+        events = kwargs.pop("events", [])
         super().__init__()
 
         self._last_update = perf_counter()
@@ -1494,6 +1494,26 @@ class _Plot(pg.PlotWidget):
                 (QtCore.Qt.Key_Insert, QtCore.Qt.NoModifier),
             ]
         )
+
+        for i, event_info in enumerate(events):
+            color = COLORS[len(COLORS) - (i % len(COLORS)) - 1]
+            if isinstance(event_info, (list, tuple)):
+                to_display = event_info
+            else:
+                to_display = [event_info]
+            for event in to_display:
+                line = pg.InfiniteLine(
+                    pos=event["value"],
+                    label=f'{event["type"]}\nt = {event["value"]}s\n\n{event["description"]}',
+                    pen={"color": color, "width": 4},
+                    labelOpts={
+                        "border": {"color": color, "width": 4},
+                        "fill": "#000000",
+                        "color": "#FFFFFF",
+                        "movable": True,
+                    },
+                )
+                self.plotItem.addItem(line, ignoreBounds=True)
 
     def update_lines(self, with_dots=None, force=False):
         with_dots_changed = False

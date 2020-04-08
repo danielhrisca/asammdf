@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+from ...blocks import v4_constants as v4c
 from ...blocks.utils import (csv_bytearray2hex, extract_cncomment_xml,
                              MdfException)
 from ...blocks.v4_constants import FLAG_CG_BUS_EVENT
@@ -349,8 +350,33 @@ class WithMDIArea:
                 numeric.timestamp_changed_signal.connect(self.set_cursor)
 
         elif window_type == "Plot":
+            if not hasattr(self, "batch"):
+                events = []
+                mdf_events = list(self.mdf.events)
 
-            plot = Plot([], False)
+                for pos, event in enumerate(mdf_events):
+                    event_info = {}
+                    event_info["value"] = event.value
+                    event_info["type"] = v4c.EVENT_TYPE_TO_STRING[event.event_type]
+                    description = event.name
+                    if event.comment:
+                        description += f" ({event.comment})"
+                    event_info["description"] = description
+                    event_info["index"] = pos
+
+                    if event.range_type == v4c.EVENT_RANGE_TYPE_POINT:
+                        events.append(event_info)
+                    elif event.range_type == v4c.EVENT_RANGE_TYPE_BEGINNING:
+                        events.append([event_info])
+                    else:
+                        parent = events[event.parent]
+                        parent.append(event_info)
+                        events.append(None)
+                events = [ev for ev in events if ev is not None]
+            else:
+                events = []
+
+            plot = Plot([], False, events=events)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
@@ -676,7 +702,29 @@ class WithMDIArea:
             if not signals:
                 return
 
-            plot = Plot([], self.with_dots)
+            if not hasattr(self, "batch"):
+                events = []
+                mdf_events = list(self.mdf.events)
+
+                for pos, event in enumerate(mdf_events):
+                    event_info = {}
+                    event_info["value"] = event.value
+                    event_info["type"] = v4c.EVENT_TYPE_TO_STRING[event.event_type]
+                    description = event.name
+                    if event.comment:
+                        description += f" ({event.comment})"
+                    event_info["description"] = description
+                if event.range_type == v4c.EVENT_RANGE_TYPE_POINT:
+                    events.append(event_info)
+                elif event.raneg_type == v4c.EVENT_RANGE_TYPE_BEGINNING:
+                    events.append([event_info])
+                else:
+                    parent = events[event.parent]
+                    parent.append(event_info)
+            else:
+                events = []
+
+            plot = Plot([], self.with_dots, events=events)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():

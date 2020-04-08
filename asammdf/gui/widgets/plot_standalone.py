@@ -15,9 +15,6 @@ from .plot import Plot
 bin_ = bin
 
 
-
-
-
 if not hasattr(pg.InfiniteLine, "addMarker"):
     logger = logging.getLogger("asammdf")
     message = (

@@ -33,7 +33,6 @@ except ModuleNotFoundError:
     from canmatrix.formats.arxml import load as arxml_load
 
 
-
 UINT8_u = Struct("<B").unpack
 UINT16_u = Struct("<H").unpack
 UINT32_u = Struct("<I").unpack

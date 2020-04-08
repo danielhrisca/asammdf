@@ -4508,6 +4508,14 @@ class EventBlock(_EventBlockBase):
             self.name, self.comment, hex(self.address), self.scopes, super().__str__()
         )
 
+    @property
+    def value(self):
+        return self.sync_base * self.sync_factor
+
+    @value.setter
+    def value(self, val):
+        self.sync_factor = val / self.sync_base
+
 
 class FileIdentificationBlock:
     """
