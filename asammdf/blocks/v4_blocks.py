@@ -2547,7 +2547,10 @@ class ChannelConversion(_ChannelConversionBase):
 
         else:
 
-            self.name = self.unit = self.comment = self.formula = ""
+            self.name = kwargs.get("name", "")
+            self.unit = kwargs.get("unit", "")
+            self.comment = kwargs.get("comment", "")
+            self.formula = kwargs.get("formula", "")
             self.referenced_blocks = None
 
             self.address = 0
@@ -2601,7 +2604,6 @@ class ChannelConversion(_ChannelConversionBase):
                 self.val_param_nr = 0
                 self.min_phy_value = kwargs.get("min_phy_value", 0)
                 self.max_phy_value = kwargs.get("max_phy_value", 0)
-                self.formula = kwargs["formula"]
 
             elif kwargs["conversion_type"] in (
                 v4c.CONVERSION_TYPE_TAB,
