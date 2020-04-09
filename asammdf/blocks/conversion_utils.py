@@ -256,7 +256,7 @@ def from_dict(conversion):
         conversion = v4b.ChannelConversion(**conversion)
 
     elif "formula" in conversion:
-        conversion['formula'] = conversion['formula'].replace('X1', 'X')
+        conversion["formula"] = conversion["formula"].replace("X1", "X")
         conversion["conversion_type"] = v4c.CONVERSION_TYPE_ALG
         conversion = v4b.ChannelConversion(**conversion)
 
@@ -270,10 +270,10 @@ def from_dict(conversion):
         while f"phys_{nr}" in conversion:
             nr += 1
         conversion["val_param_nr"] = nr * 2
-        if conversion['interpolation']:
-            conversion['conversion_type'] = v4c.CONVERSION_TYPE_TABI
+        if conversion["interpolation"]:
+            conversion["conversion_type"] = v4c.CONVERSION_TYPE_TABI
         else:
-            conversion['conversion_type'] = v4c.CONVERSION_TYPE_TAB
+            conversion["conversion_type"] = v4c.CONVERSION_TYPE_TAB
         conversion = v4b.ChannelConversion(**conversion)
 
     elif "upper_0" in conversion and "phys_0" in conversion:
