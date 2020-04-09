@@ -9,5 +9,5 @@ pandas
 numexpr
 wheel
 lxml
-cChardet
+cChardet==2.1.5
 lz4
