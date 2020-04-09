@@ -4712,9 +4712,9 @@ class MDF4(object):
                 gp_dep.append(None)
 
             elif sig_type == v4c.SIGNAL_TYPE_STRING:
-                offsets = arange(len(sig), dtype=uint64) * (sig.itemsize + 4)
+                offsets = arange(len(sig), dtype=uint64) * (sig.dtype.itemsize + 4)
 
-                values = [full(len(signal), sig.itemsize, dtype=uint32), sig]
+                values = [full(len(sig), sig.dtype.itemsize, dtype=uint32), sig.values]
 
                 types_ = [("", uint32), ("", sig.dtype)]
 
@@ -4763,7 +4763,7 @@ class MDF4(object):
                 self.channels_db.add(name, (dg_cntr, ch_cntr))
 
                 # update the parents as well
-                field_name = field_names.field_names.get_unique_name(name)
+                field_name = field_names.get_unique_name(name)
                 parents[ch_cntr] = field_name, 0
 
                 fields.append(offsets)
