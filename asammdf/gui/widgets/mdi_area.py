@@ -229,7 +229,7 @@ class WithMDIArea:
                     ignore_value2text_conversions=self.ignore_value2text_conversions,
                     time_from_zero=False,
                 )
-                if hasattr(self, "batch"):
+                if hasattr(self, "mdf"):
                     # MainWindow => comparison plots
                     columns = {name: f"{file_index+1}: {name}" for name in df.columns}
                     df.rename(columns=columns, inplace=True)
@@ -282,7 +282,7 @@ class WithMDIArea:
                     sig.computation = {}
                     sig.mdf_uuid = uuid
 
-                    if hasattr(self, "batch"):
+                    if hasattr(self, "mdf"):
                         # MainWindow => comparison plots
 
                         sig.tooltip = f"{sig.name}\n@ {file.file_name}"
@@ -350,29 +350,44 @@ class WithMDIArea:
                 numeric.timestamp_changed_signal.connect(self.set_cursor)
 
         elif window_type == "Plot":
-            if not hasattr(self, "batch"):
+            if hasattr(self, "mdf"):
                 events = []
-                mdf_events = list(self.mdf.events)
 
-                for pos, event in enumerate(mdf_events):
-                    event_info = {}
-                    event_info["value"] = event.value
-                    event_info["type"] = v4c.EVENT_TYPE_TO_STRING[event.event_type]
-                    description = event.name
-                    if event.comment:
-                        description += f" ({event.comment})"
-                    event_info["description"] = description
-                    event_info["index"] = pos
+                if self.mdf.version >= '4.00':
+                    mdf_events = list(self.mdf.events)
 
-                    if event.range_type == v4c.EVENT_RANGE_TYPE_POINT:
-                        events.append(event_info)
-                    elif event.range_type == v4c.EVENT_RANGE_TYPE_BEGINNING:
-                        events.append([event_info])
-                    else:
-                        parent = events[event.parent]
-                        parent.append(event_info)
-                        events.append(None)
-                events = [ev for ev in events if ev is not None]
+                    for pos, event in enumerate(mdf_events):
+                        event_info = {}
+                        event_info["value"] = event.value
+                        event_info["type"] = v4c.EVENT_TYPE_TO_STRING[event.event_type]
+                        description = event.name
+                        if event.comment:
+                            description += f" ({event.comment})"
+                        event_info["description"] = description
+                        event_info["index"] = pos
+
+                        if event.range_type == v4c.EVENT_RANGE_TYPE_POINT:
+                            events.append(event_info)
+                        elif event.range_type == v4c.EVENT_RANGE_TYPE_BEGINNING:
+                            events.append([event_info])
+                        else:
+                            parent = events[event.parent]
+                            parent.append(event_info)
+                            events.append(None)
+                    events = [ev for ev in events if ev is not None]
+                else:
+                    for gp in self.mdf.groups:
+                        if not gp.trigger:
+                            continue
+
+                        for i in range(gp.trigger.trigger_events_nr):
+                            event_info = {
+                                "value": gp.trigger[f"trigger_{i}_time"],
+                                "index": i,
+                                "description": gp.trigger.comment,
+                                "type": v4c.EVENT_TYPE_TO_STRING[v4c.EVENT_TYPE_TRIGGER],
+                            }
+                            events.append(event)
             else:
                 events = []
 
@@ -702,7 +717,7 @@ class WithMDIArea:
             if not signals:
                 return
 
-            if not hasattr(self, "batch"):
+            if hasattr(self, "mdf"):
                 events = []
                 mdf_events = list(self.mdf.events)
 

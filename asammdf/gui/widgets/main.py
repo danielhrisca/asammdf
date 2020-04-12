@@ -444,6 +444,20 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action.setShortcut(QtGui.QKeySequence("Ctrl+I"))
         cursors_actions.addAction(action)
 
+        icon = QtGui.QIcon()
+        action = QtWidgets.QAction(
+            "{: <20}\tAlt+I".format("Toggle trigger texts"), menu
+        )
+        action.triggered.connect(
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key_I,
+                modifier=QtCore.Qt.AltModifier,
+            )
+        )
+        action.setShortcut(QtGui.QKeySequence("Ctrl+I"))
+        cursors_actions.addAction(action)
+
         self.plot_menu = QtWidgets.QMenu("Plot", self.menubar)
         self.plot_menu.addActions(plot_actions.actions())
         self.plot_menu.addSeparator()

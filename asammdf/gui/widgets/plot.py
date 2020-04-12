@@ -1156,15 +1156,28 @@ class Plot(QtWidgets.QWidget):
                 line = pg.InfiniteLine(
                     pos=position,
                     label=f"t = {position}s\n\n{comment}",
-                    pen={"color": "#FF0000", "width": 4},
+                    pen={"color": "#FF0000", "width": 2, "style": QtCore.Qt.DashLine},
                     labelOpts={
-                        "border": {"color": "#FF0000", "width": 4},
+                        "border": {"color": "#FF0000", "width": 2, "style": QtCore.Qt.DashLine},
                         "fill": "ff9b37",
                         "color": "#000000",
                         "movable": True,
                     },
                 )
                 self.plot.plotItem.addItem(line, ignoreBounds=True)
+
+        elif key == QtCore.Qt.Key_I and modifiers == QtCore.Qt.AltModifier:
+            for item in self.plot.plotItem.items:
+                if not isinstance(item, pg.InfiniteLine):
+                    continue
+
+                try:
+                    if item.label.isVisible():
+                        item.label.setVisible(False)
+                    else:
+                        item.label.setVisible(True)
+                except:
+                    pass
 
         elif (key, modifiers) in self.plot.keyboard_events:
             self.plot.keyPressEvent(event)
@@ -1499,17 +1512,22 @@ class _Plot(pg.PlotWidget):
             color = COLORS[len(COLORS) - (i % len(COLORS)) - 1]
             if isinstance(event_info, (list, tuple)):
                 to_display = event_info
+                labels = [" - Start", " - End"]
             else:
                 to_display = [event_info]
-            for event in to_display:
+                labels = [""]
+            for event, label in zip(to_display, labels):
+                description = f't = {event["value"]}s'
+                if event["description"]:
+                    description += f'\n\n{event["description"]}'
                 line = pg.InfiniteLine(
                     pos=event["value"],
-                    label=f'{event["type"]}\nt = {event["value"]}s\n\n{event["description"]}',
-                    pen={"color": color, "width": 4},
+                    label=f'{event["type"]}{label}\n{description}',
+                    pen={"color": color, "width": 2, "style": QtCore.Qt.DashLine},
                     labelOpts={
-                        "border": {"color": color, "width": 4},
+                        "border": {"color": color, "width": 2, "style": QtCore.Qt.DashLine},
                         "fill": "#000000",
-                        "color": "#FFFFFF",
+                        "color": color,
                         "movable": True,
                     },
                 )
