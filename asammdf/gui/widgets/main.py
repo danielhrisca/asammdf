@@ -524,16 +524,30 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
     def show_sub_windows(self, mode):
 
-        widget = self.files.currentWidget()
-        if widget:
-            if mode == "tile":
-                widget.mdi_area.tileSubWindows()
-            elif mode == "cascade":
-                widget.mdi_area.cascadeSubWindows()
-            elif mode == "tile vertically":
-                widget.mdi_area.tile_vertically()
-            elif mode == "tile horizontally":
-                widget.mdi_area.tile_horizontally()
+        if self.stackedWidget.currentIndex() == 0:
+
+            widget = self.files.currentWidget()
+            if widget:
+                if mode == "tile":
+                    widget.mdi_area.tileSubWindows()
+                elif mode == "cascade":
+                    widget.mdi_area.cascadeSubWindows()
+                elif mode == "tile vertically":
+                    widget.mdi_area.tile_vertically()
+                elif mode == "tile horizontally":
+                    widget.mdi_area.tile_horizontally()
+
+        else:
+            widget = self
+            if widget:
+                if mode == "tile":
+                    widget.mdi_area.tileSubWindows()
+                elif mode == "cascade":
+                    widget.mdi_area.cascadeSubWindows()
+                elif mode == "tile vertically":
+                    widget.mdi_area.tile_vertically()
+                elif mode == "tile horizontally":
+                    widget.mdi_area.tile_horizontally()
 
     def set_subplot_option(self, state):
         if isinstance(state, str):

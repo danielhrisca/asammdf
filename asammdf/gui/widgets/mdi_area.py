@@ -229,7 +229,7 @@ class WithMDIArea:
                     ignore_value2text_conversions=self.ignore_value2text_conversions,
                     time_from_zero=False,
                 )
-                if hasattr(self, "mdf"):
+                if not hasattr(self, "mdf"):
                     # MainWindow => comparison plots
                     columns = {name: f"{file_index+1}: {name}" for name in df.columns}
                     df.rename(columns=columns, inplace=True)
@@ -282,7 +282,7 @@ class WithMDIArea:
                     sig.computation = {}
                     sig.mdf_uuid = uuid
 
-                    if hasattr(self, "mdf"):
+                    if not hasattr(self, "mdf"):
                         # MainWindow => comparison plots
 
                         sig.tooltip = f"{sig.name}\n@ {file.file_name}"
