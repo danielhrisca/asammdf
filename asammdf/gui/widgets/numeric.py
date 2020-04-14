@@ -131,11 +131,11 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     break
                 sig = self.signals[item.text(0)]
                 if sig.size:
-                    if sig.group_index in idx_cache:
-                        idx = idx_cache[sig.group_index]
+                    if (sig.group_index, sig.mdf_uuid) in idx_cache:
+                        idx = idx_cache[(sig.group_index, sig.mdf_uuid)]
                     else:
                         idx = min(sig.size - 1, searchsorted(sig.timestamps, stamp))
-                        idx_cache[sig.group_index] = idx
+                        idx_cache[(sig.group_index, sig.mdf_uuid)] = idx
                     value = sig.samples[idx]
 
                     if sig.kind == "f":
@@ -154,11 +154,11 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     break
                 sig = self.signals[item.text(0)]
                 if sig.size:
-                    if sig.group_index in idx_cache:
-                        idx = idx_cache[sig.group_index]
+                    if (sig.group_index, sig.mdf_uuid) in idx_cache:
+                        idx = idx_cache[(sig.group_index, sig.mdf_uuid)]
                     else:
                         idx = min(sig.size - 1, searchsorted(sig.timestamps, stamp))
-                        idx_cache[sig.group_index] = idx
+                        idx_cache[(sig.group_index, sig.mdf_uuid)] = idx
                     value = sig.samples[idx]
 
                     if sig.kind == "f":
@@ -176,11 +176,11 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     break
                 sig = self.signals[item.text(0)]
                 if sig.size:
-                    if sig.group_index in idx_cache:
-                        idx = idx_cache[sig.group_index]
+                    if (sig.group_index, sig.mdf_uuid) in idx_cache:
+                        idx = idx_cache[(sig.group_index, sig.mdf_uuid)]
                     else:
                         idx = min(sig.size - 1, searchsorted(sig.timestamps, stamp))
-                        idx_cache[sig.group_index] = idx
+                        idx_cache[(sig.group_index, sig.mdf_uuid)] = idx
                     value = sig.samples[idx]
                     if sig.kind == "f":
                         item.setText(1, f"{value:.3f}")

@@ -381,7 +381,7 @@ class WithMDIArea:
                             continue
 
                         for i in range(gp.trigger.trigger_events_nr):
-                            event_info = {
+                            event = {
                                 "value": gp.trigger[f"trigger_{i}_time"],
                                 "index": i,
                                 "description": gp.trigger.comment,
