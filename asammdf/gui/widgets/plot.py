@@ -1167,12 +1167,16 @@ class Plot(QtWidgets.QWidget):
                 self.plot.plotItem.addItem(line, ignoreBounds=True)
 
         elif key == QtCore.Qt.Key_I and modifiers == QtCore.Qt.AltModifier:
+            visible = None
             for item in self.plot.plotItem.items:
-                if not isinstance(item, pg.InfiniteLine):
+                if not isinstance(item, pg.InfiniteLine) or item is self.plot.cursor1:
                     continue
 
+                if visible is None:
+                    visible = item.label.isVisible()
+
                 try:
-                    if item.label.isVisible():
+                    if visible:
                         item.label.setVisible(False)
                     else:
                         item.label.setVisible(True)
@@ -1507,6 +1511,8 @@ class _Plot(pg.PlotWidget):
                 (QtCore.Qt.Key_Insert, QtCore.Qt.NoModifier),
             ]
         )
+
+        events = events or []
 
         for i, event_info in enumerate(events):
             color = COLORS[len(COLORS) - (i % len(COLORS)) - 1]

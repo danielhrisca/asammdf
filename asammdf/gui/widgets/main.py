@@ -455,7 +455,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 modifier=QtCore.Qt.AltModifier,
             )
         )
-        action.setShortcut(QtGui.QKeySequence("Ctrl+I"))
+        action.setShortcut(QtGui.QKeySequence("Alt+I"))
         cursors_actions.addAction(action)
 
         self.plot_menu = QtWidgets.QMenu("Plot", self.menubar)
@@ -497,6 +497,10 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         webbrowser.open_new(r"http://asammdf.readthedocs.io/en/master/gui.html")
 
     def save_all_subplots(self, key):
+        if self.stackedWidget.currentIndex() == 0:
+            widget = self.files.currentWidget()
+        elif self.stackedWidget.currentIndex() == 2:
+            widget = self
         widget = self.files.currentWidget()
         widget.save_all_subplots()
 

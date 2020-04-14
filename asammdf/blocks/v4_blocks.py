@@ -4267,6 +4267,7 @@ class _EventBlockBase:
         "comment",
         "name",
         "parent",
+        "group_name",
         "range_start",
         "scopes",
         "id",
@@ -4343,7 +4344,7 @@ class EventBlock(_EventBlockBase):
 
     def __init__(self, **kwargs):
 
-        self.name = self.comment = ""
+        self.name = self.comment = self.group_name = ""
         self.scopes = []
         self.parent = None
         self.range_start = None
@@ -4436,7 +4437,7 @@ class EventBlock(_EventBlockBase):
             self.scope_nr = scopes
             self.attachment_nr = 0
             self.creator_index = 0
-            self.sync_base = kwargs.get("sync_base", 0)
+            self.sync_base = kwargs.get("sync_base", 1)
             self.sync_factor = kwargs.get("sync_factor", 1.0)
 
             if self.flags & v4c.FLAG_EV_GROUP_NAME:
@@ -4517,6 +4518,44 @@ class EventBlock(_EventBlockBase):
     @value.setter
     def value(self, val):
         self.sync_factor = val / self.sync_base
+
+    def to_blocks(self, address, blocks):
+        text = self.name
+        if text:
+            tx_block = TextBlock(text=text)
+            self.name_addr = address
+            tx_block.address = address
+            address += tx_block.block_len
+            blocks.append(tx_block)
+        else:
+            self.name_addr = 0
+
+        text = self.comment
+        if text:
+            tx_block = TextBlock(text=text)
+            self.comment_addr = address
+            tx_block.address = address
+            address += tx_block.block_len
+            blocks.append(tx_block)
+        else:
+            self.comment_addr = 0
+
+        if self.flags & v4c.FLAG_EV_GROUP_NAME:
+            text = self.group_name
+            if text:
+                tx_block = TextBlock(text=text)
+                self.group_name_addr = address
+                tx_block.address = address
+                address += tx_block.block_len
+                blocks.append(tx_block)
+            else:
+                self.group_name_addr = 0
+
+        blocks.append(self)
+        self.address = address
+        address += self.block_len
+
+        return address
 
 
 class FileIdentificationBlock:
