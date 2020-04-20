@@ -78,6 +78,8 @@ class Signal(object):
         stream_sync=False,
         invalidation_bits=None,
         encoding=None,
+        group_index=-1,
+        channel_index=-1,
     ):
 
         if samples is None or timestamps is None or not name:
@@ -411,6 +413,8 @@ class Signal(object):
                 self.bit_count,
                 self.stream_sync,
                 encoding=self.encoding,
+                group_index=self.group_index,
+                channel_index=self.channel_index,
             )
 
         elif start is None and stop is None:
@@ -433,6 +437,8 @@ class Signal(object):
                 if self.invalidation_bits is not None
                 else None,
                 encoding=self.encoding,
+                group_index=self.group_index,
+                channel_index=self.channel_index,
             )
 
         else:
@@ -454,6 +460,8 @@ class Signal(object):
                         self.bit_count,
                         self.stream_sync,
                         encoding=self.encoding,
+                        group_index=self.group_index,
+                        channel_index=self.channel_index,
                     )
 
                 else:
@@ -500,6 +508,8 @@ class Signal(object):
                         self.stream_sync,
                         invalidation_bits=invalidation_bits,
                         encoding=self.encoding,
+                        group_index=self.group_index,
+                        channel_index=self.channel_index,
                     )
 
             elif stop is None:
@@ -520,6 +530,8 @@ class Signal(object):
                         self.bit_count,
                         self.stream_sync,
                         encoding=self.encoding,
+                        group_index=self.group_index,
+                        channel_index=self.channel_index,
                     )
 
                 else:
@@ -566,6 +578,8 @@ class Signal(object):
                         self.stream_sync,
                         invalidation_bits=invalidation_bits,
                         encoding=self.encoding,
+                        group_index=self.group_index,
+                        channel_index=self.channel_index,
                     )
 
             else:
@@ -586,6 +600,8 @@ class Signal(object):
                         self.bit_count,
                         self.stream_sync,
                         encoding=self.encoding,
+                        group_index=self.group_index,
+                        channel_index=self.channel_index,
                     )
                 else:
                     start = np.searchsorted(self.timestamps, start, side="left")
@@ -665,6 +681,8 @@ class Signal(object):
                         self.stream_sync,
                         invalidation_bits=invalidation_bits,
                         encoding=self.encoding,
+                        group_index=self.group_index,
+                        channel_index=self.channel_index,
                     )
 
         return result
@@ -724,6 +742,8 @@ class Signal(object):
                 self.stream_sync,
                 invalidation_bits=invalidation_bits,
                 encoding=self.encoding,
+                group_index=self.group_index,
+                channel_index=self.channel_index,
             )
         else:
             result = self
@@ -764,6 +784,8 @@ class Signal(object):
                 stream_sync=self.stream_sync,
                 invalidation_bits=None,
                 encoding=self.encoding,
+                group_index=self.group_index,
+                channel_index=self.channel_index,
             )
         else:
 
@@ -844,6 +866,8 @@ class Signal(object):
                 stream_sync=self.stream_sync,
                 invalidation_bits=invalidation_bits,
                 encoding=self.encoding,
+                group_index=self.group_index,
+                channel_index=self.channel_index,
             )
 
     def __apply_func(self, other, func_name):
@@ -887,6 +911,8 @@ class Signal(object):
             invalidation_bits=self.invalidation_bits,
             source=self.source,
             encoding=self.encoding,
+            group_index=self.group_index,
+            channel_index=self.channel_index,
         )
 
     def __pos__(self):
@@ -1126,6 +1152,8 @@ class Signal(object):
             invalidation_bits=self.invalidation_bits,
             source=self.source,
             encoding=encoding,
+            group_index=self.group_index,
+            channel_index=self.channel_index,
         )
 
     def validate(self, copy=True):
@@ -1160,6 +1188,8 @@ class Signal(object):
                 self.stream_sync,
                 invalidation_bits=None,
                 encoding=self.encoding,
+                group_index=self.group_index,
+                channel_index=self.channel_index,
             )
 
         if copy:
@@ -1187,6 +1217,8 @@ class Signal(object):
             if self.invalidation_bits is not None
             else None,
             encoding=self.encoding,
+            group_index=self.group_index,
+            channel_index=self.channel_index,
         )
 
 

@@ -2986,6 +2986,8 @@ class MDF3(object):
                 source=source,
                 bit_count=bit_count,
                 encoding=encoding,
+                group_index=gp_nr,
+                channel_index=ch_nr,
             )
 
         return res

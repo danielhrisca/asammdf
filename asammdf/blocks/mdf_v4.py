@@ -6014,6 +6014,8 @@ class MDF4(object):
                     stream_sync=stream_sync,
                     invalidation_bits=invalidation_bits,
                     encoding=encoding,
+                    group_index=gp_nr,
+                    channel_index=ch_nr,
                 )
             except:
                 debug_channel(self, grp, channel, dependency_list)
