@@ -294,7 +294,9 @@ class WithMDIArea:
                 signals = [
                     sig
                     for sig in signals
-                    if not sig.samples.dtype.names and not len(sig.samples.shape) > 1
+                    if sig.sampls.dtype.king not in 'SU'
+                    and not sig.samples.dtype.names
+                    and not len(sig.samples.shape) > 1
                 ]
 
             for signal in signals:
@@ -713,6 +715,14 @@ class WithMDIArea:
                     pass
 
             signals = list(measured_signals.values()) + list(computed_signals.values())
+
+            signals = [
+                sig
+                for sig in signals
+                if sig.sampls.dtype.king not in 'SU'
+                and not sig.samples.dtype.names
+                and not len(sig.samples.shape) > 1
+            ]
 
             if not signals:
                 return
