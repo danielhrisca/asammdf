@@ -294,7 +294,7 @@ class WithMDIArea:
                 signals = [
                     sig
                     for sig in signals
-                    if sig.sampls.dtype.king not in 'SU'
+                    if sig.samples.dtype.kind not in 'SU'
                     and not sig.samples.dtype.names
                     and not len(sig.samples.shape) > 1
                 ]
@@ -719,7 +719,7 @@ class WithMDIArea:
             signals = [
                 sig
                 for sig in signals
-                if sig.sampls.dtype.king not in 'SU'
+                if sig.samples.dtype.kind not in 'SU'
                 and not sig.samples.dtype.names
                 and not len(sig.samples.shape) > 1
             ]
