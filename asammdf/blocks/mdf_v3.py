@@ -819,7 +819,8 @@ class MDF3(object):
                     )
 
                     if self._remove_source_from_channel_names:
-                        new_ch.name = new_ch.name.split("\\")[0]
+                        new_ch.name = new_ch.name.split("\\", 1)[0]
+                        new_ch.display_name = new_ch.display_name.split("\\", 1)[0]
 
                     # check if it has channel dependencies
                     if new_ch.component_addr:

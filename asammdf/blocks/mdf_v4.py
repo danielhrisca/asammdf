@@ -768,6 +768,7 @@ class MDF4(object):
 
             if self._remove_source_from_channel_names:
                 channel.name = channel.name.split(path_separator, 1)[0]
+                channel.display_name = channel.display_name.split(path_separator, 1)[0]
 
             entry = (dg_cntr, ch_cntr)
             self._ch_map[ch_addr] = entry
