@@ -3614,6 +3614,10 @@ class MDF3(object):
                                 except KeyError:
                                     pass
 
+                gp_master = self.masters_db[group_index]
+                if gp_master is not None and gp_master in channels:
+                    channels.remove(gp_master)
+
                 result[group_index] = {group_index: sorted(channels)}
 
         return result
