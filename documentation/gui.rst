@@ -29,7 +29,7 @@ With the GUI tool you can
 * see channel, conversion and source metadata as stored in the MDF file
 * access library functionality for single files (convert, export, cut, filter, resample, scramble) and multiple files (concatenate, stack)
 
-After you pip install asammdf there will be a new script called *asammdf.exe* in the `python_installation_folder\\Scripts` folder.
+After you pip install asammdf using ``pip install asammdf[gui]`` there will be a new script called *asammdf.exe* in the `python_installation_folder\\Scripts` folder.
 
 The following dependencies are required by the GUI
 
@@ -53,7 +53,7 @@ Mode
 
 * *Single files* : files are opened idividually
 * *Batch processing* : allows processing multiple files 
-* *Comparison* : show channels from all the opened files, in a single Plot 
+* *Comparison* : show channels from all the opened files
 
 .. image:: images/open_files.gif
 
@@ -113,8 +113,12 @@ Y            Lock/unlock region     Lock or unlock the left margin of the region
 ←            Move cursor left       Moves the cursor to the next sample on the left
 →            Move cursor right      Moves the cursor to the next sample on the right
 Ins          Insert computation     Insert new channel in the plot using functions and operations
+Alt+I        Toggle trigger texts   Toggle the text boxes for the triggers [6]_
+Alt+R        Raw samples            Toggle raw samples mode for the selected channels [6]_
+Alt+S        Scaled samples         Toggle scaled (physical) samples mode for the selected channels
 Ctrl+B       Bin                    Toggle binary representation of integer channels
 Ctrl+H       Hex                    Toggle hex representation of integer channels
+Ctrl+I       Insert cursor comment  Insert a visual vertical line and comment at the current cursor position [6]_
 Ctrl+P       Physical               Toggle physical representation of integer channels
 Ctrl+S       Save plot channels     Save channels from current active subplot in a new MF4 file
 Ctrl+Shift+S Save all channels      Save all channels from all sub-plots in a new MF4 file
@@ -314,6 +318,7 @@ with the measurement index.
 .. [3] New in *asammdf 5.7.0*
 .. [4] the value is only displayed if the cursor or range are active. For the cursor is will show the current value, and for the range it will show the value delta between the range start and stop timestamps
 .. [5] New in *asammdf 5.7.0*
+.. [6] New in *asammdf 5.20.0*
 
 
 

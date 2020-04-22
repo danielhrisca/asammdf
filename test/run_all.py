@@ -3,11 +3,11 @@
 """
 Main test function to execute all tests found in the current directory
 """
-import sys
-import xmlrunner
 from pathlib import Path
-
+import sys
 import unittest
+
+import xmlrunner
 
 
 def main():

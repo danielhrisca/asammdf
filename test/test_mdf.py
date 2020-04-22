@@ -1,26 +1,25 @@
 #!/usr/bin/env python
+from io import BytesIO
+from pathlib import Path
 import random
+import tempfile
 import unittest
 import urllib
 import urllib.request
-import numexpr
 from zipfile import ZipFile
-import tempfile
-from pathlib import Path
-from io import BytesIO
 
+import numexpr
 import numpy as np
-
-from .utils import (
-    cycles,
-    generate_test_file,
-    generate_arrays_test_file,
-)
-from asammdf import MDF, Signal, SUPPORTED_VERSIONS
-from asammdf.blocks.utils import MdfException
 from pandas import DataFrame
 
-SUPPORTED_VERSIONS = [version for version in SUPPORTED_VERSIONS if "4.20" > version >= "3.20" ]
+from asammdf import MDF, Signal, SUPPORTED_VERSIONS
+from asammdf.blocks.utils import MdfException
+
+from .utils import cycles, generate_arrays_test_file, generate_test_file
+
+SUPPORTED_VERSIONS = [
+    version for version in SUPPORTED_VERSIONS if "4.20" > version >= "3.20"
+]
 
 CHANNEL_LEN = 100000
 
@@ -257,13 +256,13 @@ class TestMDF(unittest.TestCase):
         mdf_files = [
             file
             for file in Path(TestMDF.tempdir_demo.name).iterdir()
-            if file.suffix in ('.mdf', '.mf4')
+            if file.suffix in (".mdf", ".mf4")
         ]
 
         signals = [
             file
             for file in Path(TestMDF.tempdir_demo.name).iterdir()
-            if file.suffix == '.npy'
+            if file.suffix == ".npy"
         ]
 
         for file in mdf_files:
@@ -411,13 +410,13 @@ class TestMDF(unittest.TestCase):
         mdf_files = [
             file
             for file in Path(TestMDF.tempdir_demo.name).iterdir()
-            if file.suffix in ('.mdf', '.mf4')
+            if file.suffix in (".mdf", ".mf4")
         ]
 
         signals = [
             file
             for file in Path(TestMDF.tempdir_demo.name).iterdir()
-            if file.suffix == '.npy'
+            if file.suffix == ".npy"
         ]
 
         for file in mdf_files:
@@ -746,13 +745,13 @@ class TestMDF(unittest.TestCase):
         mdf_files = [
             file
             for file in Path(TestMDF.tempdir_demo.name).iterdir()
-            if file.suffix in ('.mdf', '.mf4')
+            if file.suffix in (".mdf", ".mf4")
         ]
 
         signals = [
             file
             for file in Path(TestMDF.tempdir_demo.name).iterdir()
-            if file.suffix == '.npy'
+            if file.suffix == ".npy"
         ]
 
         for file in mdf_files:
@@ -765,24 +764,19 @@ class TestMDF(unittest.TestCase):
                     for whence in (0, 1):
                         print(file, whence)
 
-                        outfile1 = (
-                            input_file
-                            .cut(stop=2, whence=whence, include_ends=False)
-                            .save(Path(TestMDF.tempdir.name) / "tmp1", overwrite=True)
-                        )
-                        outfile2 = (
-                            input_file
-                            .cut(start=2, stop=6, whence=whence, include_ends=False)
-                            .save(Path(TestMDF.tempdir.name) / "tmp2", overwrite=True)
-                        )
-                        outfile3 = (
-                            input_file
-                            .cut(start=6, whence=whence, include_ends=False)
-                            .save(Path(TestMDF.tempdir.name) / "tmp3", overwrite=True)
-                        )
+                        outfile1 = input_file.cut(
+                            stop=2, whence=whence, include_ends=False
+                        ).save(Path(TestMDF.tempdir.name) / "tmp1", overwrite=True)
+                        outfile2 = input_file.cut(
+                            start=2, stop=6, whence=whence, include_ends=False
+                        ).save(Path(TestMDF.tempdir.name) / "tmp2", overwrite=True)
+                        outfile3 = input_file.cut(
+                            start=6, whence=whence, include_ends=False
+                        ).save(Path(TestMDF.tempdir.name) / "tmp3", overwrite=True)
 
                         outfile = MDF.concatenate(
-                            [outfile1, outfile2, outfile3], version=input_file.version,
+                            [outfile1, outfile2, outfile3],
+                            version=input_file.version,
                             use_display_names=True,
                         ).save(Path(TestMDF.tempdir.name) / "tmp", overwrite=True)
 
@@ -796,7 +790,9 @@ class TestMDF(unittest.TestCase):
                                 timestamps = input_file.get(signal.stem).timestamps
 
                                 self.assertTrue(np.array_equal(sig.samples, target))
-                                self.assertTrue(np.array_equal(timestamps, sig.timestamps))
+                                self.assertTrue(
+                                    np.array_equal(timestamps, sig.timestamps)
+                                )
 
     def test_filter(self):
 
@@ -805,13 +801,13 @@ class TestMDF(unittest.TestCase):
         mdf_files = [
             file
             for file in Path(TestMDF.tempdir_demo.name).iterdir()
-            if file.suffix in ('.mdf', '.mf4')
+            if file.suffix in (".mdf", ".mf4")
         ]
 
         signals = {
             file.stem: file
             for file in Path(TestMDF.tempdir_demo.name).iterdir()
-            if file.suffix == '.npy'
+            if file.suffix == ".npy"
         }
 
         for file in mdf_files:
@@ -822,9 +818,7 @@ class TestMDF(unittest.TestCase):
                 with MDF(inp, use_display_names=True) as input_file:
 
                     names = [
-                        ch.name
-                        for gp in input_file.groups
-                        for ch in gp.channels[1:]
+                        ch.name for gp in input_file.groups for ch in gp.channels[1:]
                     ]
 
                     channels_nr = np.random.randint(1, len(names) + 1)
@@ -835,8 +829,7 @@ class TestMDF(unittest.TestCase):
 
                     target_names = set(filtered_mdf.channels_db)
 
-
-                    self.assertFalse(set(channel_list) - (target_names - {'time'}))
+                    self.assertFalse(set(channel_list) - (target_names - {"time"}))
 
                     for name in channel_list:
                         target = np.load(signals[name])
@@ -849,13 +842,13 @@ class TestMDF(unittest.TestCase):
         mdf_files = [
             file
             for file in Path(TestMDF.tempdir_demo.name).iterdir()
-            if file.suffix in ('.mdf', '.mf4')
+            if file.suffix in (".mdf", ".mf4")
         ]
 
         signals = {
             file.stem: file
             for file in Path(TestMDF.tempdir_demo.name).iterdir()
-            if file.suffix == '.npy'
+            if file.suffix == ".npy"
         }
 
         for file in mdf_files:
@@ -866,9 +859,7 @@ class TestMDF(unittest.TestCase):
                 with MDF(inp, use_display_names=True) as input_file:
 
                     names = [
-                        ch.name
-                        for gp in input_file.groups
-                        for ch in gp.channels[1:]
+                        ch.name for gp in input_file.groups for ch in gp.channels[1:]
                     ]
 
                     input_file.configure(read_fragment_size=200)
@@ -890,7 +881,7 @@ class TestMDF(unittest.TestCase):
         print("MDF scramble tests")
 
         for input_file in Path(TestMDF.tempdir_demo.name).iterdir():
-            if input_file.suffix.lower() in ('.mdf', '.mf4'):
+            if input_file.suffix.lower() in (".mdf", ".mf4"):
                 scrambled = MDF.scramble(input_file)
                 self.assertTrue(scrambled)
                 Path(scrambled).unlink()

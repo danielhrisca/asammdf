@@ -3,19 +3,27 @@
 asammdf utility functions and classes
 """
 
-import logging
-import string
-import xml.etree.ElementTree as ET
-import re
-import subprocess
-from io import BytesIO
-import sys
-
 from collections import namedtuple
-from random import randint
-from struct import Struct
-from tempfile import TemporaryDirectory
+from io import BytesIO
+import logging
 from pathlib import Path
+from random import randint
+import re
+import string
+from struct import Struct
+import subprocess
+import sys
+from tempfile import TemporaryDirectory
+import xml.etree.ElementTree as ET
+
+from cchardet import detect
+import numpy as np
+from numpy import arange, interp, where
+from numpy.core.records import fromarrays
+from pandas import Series
+
+from . import v2_v3_constants as v3c
+from . import v4_constants as v4c
 
 try:
     from canmatrix.dbc import load as dbc_load
@@ -24,14 +32,6 @@ except ModuleNotFoundError:
     from canmatrix.formats.dbc import load as dbc_load
     from canmatrix.formats.arxml import load as arxml_load
 
-from cchardet import detect
-from numpy import where, arange, interp
-import numpy as np
-from numpy.core.records import fromarrays
-from pandas import Series
-
-from . import v2_v3_constants as v3c
-from . import v4_constants as v4c
 
 UINT8_u = Struct("<B").unpack
 UINT16_u = Struct("<H").unpack
@@ -90,27 +90,6 @@ SUPPORTED_VERSIONS = MDF2_VERSIONS + MDF3_VERSIONS + MDF4_VERSIONS
 
 
 ALLOWED_MATLAB_CHARS = set(string.ascii_letters + string.digits + "_")
-
-
-SignalSource = namedtuple(
-    "SignalSource", ["name", "path", "comment", "source_type", "bus_type"]
-)
-""" Commons reprezentation for source information
-
-Attributes
-----------
-name : str
-    source name
-path : str
-    source path
-comment : str
-    source comment
-source_type : int
-    source type code
-bus_type : int
-    source bus code
-
-"""
 
 
 class MdfException(Exception):
@@ -287,7 +266,11 @@ def get_fmt_v3(data_type, size, byte_order=v3c.BYTE_ORDER_INTEL):
         else:
             fmt = f"({size},)u1"
     else:
-        if size > 64 and data_type in (v3c.DATA_TYPE_UNSIGNED_INTEL, v3c.DATA_TYPE_UNSIGNED, v3c.DATA_TYPE_UNSIGNED_MOTOROLA):
+        if size > 64 and data_type in (
+            v3c.DATA_TYPE_UNSIGNED_INTEL,
+            v3c.DATA_TYPE_UNSIGNED,
+            v3c.DATA_TYPE_UNSIGNED_MOTOROLA,
+        ):
             fmt = f"({size // 8},)u1"
         else:
             if size <= 8:
@@ -328,7 +311,10 @@ def get_fmt_v3(data_type, size, byte_order=v3c.BYTE_ORDER_INTEL):
             elif data_type in (v3c.DATA_TYPE_FLOAT_INTEL, v3c.DATA_TYPE_DOUBLE_INTEL):
                 fmt = f"<f{size}"
 
-            elif data_type in (v3c.DATA_TYPE_FLOAT_MOTOROLA, v3c.DATA_TYPE_DOUBLE_MOTOROLA):
+            elif data_type in (
+                v3c.DATA_TYPE_FLOAT_MOTOROLA,
+                v3c.DATA_TYPE_DOUBLE_MOTOROLA,
+            ):
                 fmt = f">f{size}"
 
             elif data_type in (v3c.DATA_TYPE_FLOAT, v3c.DATA_TYPE_DOUBLE):
@@ -380,7 +366,10 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
             fmt = "V6"
 
     else:
-        if size > 64 and data_type in (v4c.DATA_TYPE_UNSIGNED_INTEL, v4c.DATA_TYPE_UNSIGNED):
+        if size > 64 and data_type in (
+            v4c.DATA_TYPE_UNSIGNED_INTEL,
+            v4c.DATA_TYPE_UNSIGNED,
+        ):
             fmt = f"({size // 8},)u1"
         else:
             if size <= 8:
@@ -439,8 +428,8 @@ def fmt_to_datatype_v3(fmt, shape, array=False):
 
     """
     byteorder = fmt.byteorder
-    if byteorder in '=|':
-        byteorder = '<' if sys.byteorder == 'little' else '>'
+    if byteorder in "=|":
+        byteorder = "<" if sys.byteorder == "little" else ">"
     size = fmt.itemsize * 8
     kind = fmt.kind
 
@@ -534,8 +523,8 @@ def fmt_to_datatype_v4(fmt, shape, array=False):
 
     """
     byteorder = fmt.byteorder
-    if byteorder in '=|':
-        byteorder = '<' if sys.byteorder == 'little' else '>'
+    if byteorder in "=|":
+        byteorder = "<" if sys.byteorder == "little" else ">"
     size = fmt.itemsize * 8
     kind = fmt.kind
 
@@ -968,7 +957,6 @@ class Group:
 
     __slots__ = (
         "channels",
-        "logging_channels",
         "channel_dependencies",
         "signal_data_size",
         "signal_data",
@@ -979,14 +967,6 @@ class Group:
         "data_location",
         "data_blocks",
         "record_size",
-        "CAN_logging",
-        "CAN_id",
-        "CAN_database",
-        "dbc_addr",
-        "raw_can",
-        "extended_id",
-        "message_name",
-        "message_id",
         "record",
         "parents",
         "types",
@@ -995,25 +975,14 @@ class Group:
         "string_dtypes",
         "single_channel_dtype",
         "uses_ld",
-        "ignore_during_save",
         "read_split_count",
     )
 
     def __init__(self, data_group):
         self.data_group = data_group
         self.channels = []
-        self.logging_channels = []
         self.channel_dependencies = []
         self.signal_data = []
-        self.CAN_logging = False
-        self.CAN_id = None
-        self.CAN_database = False
-        self.raw_can = False
-        self.extended_id = False
-        self.message_name = ""
-        self.message_id = None
-        self.CAN_database = False
-        self.dbc_addr = None
         self.parents = None
         self.types = None
         self.record = None
@@ -1022,7 +991,6 @@ class Group:
         self.data_blocks = []
         self.single_channel_dtype = None
         self.uses_ld = False
-        self.ignore_during_save = False
         self.read_split_count = 0
 
     def __getitem__(self, item):
@@ -1056,7 +1024,7 @@ class VirtualChannelGroup:
         self.cycles_nr = 0
 
     def __repr__(self):
-        return f'VirtualChannelGroup(groups={self.groups}, records_size={self.record_size}, cycles_nr={self.cycles_nr})'
+        return f"VirtualChannelGroup(groups={self.groups}, records_size={self.record_size}, cycles_nr={self.cycles_nr})"
 
 
 def block_fields(obj):
@@ -1429,7 +1397,7 @@ def extract_can_signal(signal, payload):
     # prepend or append extra bytes columns
     # to get a standard size number of bytes
 
-    #print(signal.name, start_bit, bit_offset, start_byte, byte_size)
+    # print(signal.name, start_bit, bit_offset, start_byte, byte_size)
 
     if extra_bytes:
         if big_endian:
@@ -1533,152 +1501,67 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
         multiplexors
 
     """
+    if muxer is None:
+        if message.is_multiplexed:
+            for sig in message:
+                if sig.multiplex == "Multiplexor" and sig.muxer_for_signal is None:
+                    multiplexor_name = sig.name
+                    break
+            for sig in message:
+                if (
+                    sig.multiplex not in (None, "Multiplexor")
+                    and sig.muxer_for_signal is None
+                ):
+                    sig.muxer_for_signal = multiplexor_name
+                    sig.mux_val_min = sig.mux_val_max = int(sig.multiplex)
+                    sig.mux_val_grp.insert(0, (int(sig.multiplex), int(sig.multiplex)))
+
     extracted_signals = {}
 
     if message.size > payload.shape[1]:
         return extracted_signals
 
-    # first go through the non-mutiplexers signals
-    # create lists of signals that are not mutiplexed or they ahve the same
-    # mutiplexor and the same lower and upper mutiplexing values
     pairs = {}
     for signal in message:
-        if signal.multiplex == "Multiplexor" or signal.muxer_for_signal != muxer:
-            continue
-        try:
-            entry = signal.mux_val_min, signal.mux_val_max
-        except:
-            entry = tuple(signal.mux_val_grp[0]) if signal.mux_val_grp else (0, 0)
-        if entry not in pairs:
-            pairs[entry] = []
-        pairs[entry].append(signal)
+        if signal.muxer_for_signal == muxer:
+            try:
+                entry = signal.mux_val_min, signal.mux_val_max
+            except:
+                entry = tuple(signal.mux_val_grp[0]) if signal.mux_val_grp else (0, 0)
+            pair_signals = pairs.setdefault(entry, [])
+            pair_signals.append(signal)
 
     for pair, pair_signals in pairs.items():
         entry = bus, message_id, muxer, *pair
 
-        if muxer is None:
-            # here are the signals that are not multiplexed
-            extracted_signals[entry] = signals = {}
+        extracted_signals[entry] = signals = {}
 
-            for sig in pair_signals:
-                samples = extract_can_signal(sig, payload)
-                if len(samples) == 0 and len(t):
-                    continue
-
-                max_val = np.full(len(samples), float(sig.calc_max()))
-
-                signals[sig.name] = {
-                    "name": sig.name,
-                    "comment": sig.comment or "",
-                    "unit": sig.unit or "",
-                    "samples": samples,
-                    "t": t,
-                    "invalidation_bits": np.isclose(samples, max_val),
-                }
-
-        else:
-            # select only the CAN messages where the multiplexor value is
-            # within the range
+        if muxer_values is not None:
             min_, max_ = pair
             idx = np.argwhere((min_ <= muxer_values) & (muxer_values <= max_)).ravel()
             payload_ = payload[idx]
             t_ = t[idx]
-
-            extracted_signals[entry] = signals = {}
-
-            for sig in pair_signals:
-                samples = extract_can_signal(sig, payload_)
-                max_val = np.full(len(samples), float(sig.calc_max()))
-
-                signals[sig.name] = {
-                    "name": sig.name,
-                    "comment": sig.comment or "",
-                    "unit": sig.unit or "",
-                    "samples": samples,
-                    "t": t_,
-                    "invalidation_bits": np.isclose(samples, max_val),
-                }
-
-    # then handle mutiplexers signals
-    # again create lists of signals that are not mutiplexed or they ahve the
-    # same mutiplexor (complex multiplexing in thsi case)
-    # and the same lower and upper mutiplexing values
-    pairs = {}
-    for signal in message:
-        if signal.multiplex != "Multiplexor" or signal.muxer_for_signal != muxer:
-            continue
-
-        try:
-            entry = signal.mux_val_min, signal.mux_val_max
-        except:
-            entry = tuple(signal.mux_val_grp[0]) if signal.mux_val_grp else (0, 0)
-        if entry not in pairs:
-            pairs[entry] = []
-        pairs[entry].append(signal)
-
-    for pair, pair_signals in pairs.items():
-        entry = bus, message_id, muxer, *pair
-
-        if muxer is None:
-            # simple multiplexing
-            if entry not in extracted_signals:
-                extracted_signals[entry] = signals = {}
-            else:
-                signals = extracted_signals[entry]
-
-            for sig in pair_signals:
-
-                muxer_values = extract_can_signal(sig, payload)
-                max_val = np.full(len(muxer_values), float(sig.calc_max()))
-
-                signals[sig.name] = {
-                    "name": sig.name,
-                    "comment": sig.comment or "",
-                    "unit": sig.unit or "",
-                    "samples": muxer_values,
-                    "t": t,
-                    "invalidation_bits": np.isclose(muxer_values, max_val),
-                }
-
-                # feed the muxer values to the mutliplexed signals
-                extracted_signals.update(
-                    extract_mux(
-                        payload,
-                        message,
-                        message_id,
-                        bus,
-                        t,
-                        muxer=sig.name,
-                        muxer_values=muxer_values,
-                    )
-                )
         else:
-            # complex multiplexing
-            # computed the payload subset that contains this multiplexor
-            # and feed it to extract the multiplex signals
-            min_, max_ = pair
-            idx = np.argwhere((min_ <= muxer_values) & (muxer_values <= max_)).ravel()
-            payload_ = payload[idx]
-            t_ = t[idx]
+            t_ = t
+            payload_ = payload
 
-            if entry not in extracted_signals:
-                extracted_signals[entry] = signals = {}
-            else:
-                signals = extracted_signals[entry]
+        for sig in pair_signals:
+            samples = extract_can_signal(sig, payload_)
+            if len(samples) == 0 and len(t_):
+                continue
 
-            for sig in pair_signals:
-                muxer_values_ = extract_can_signal(sig, payload_)
-                max_val = np.full(len(muxer_values_), float(sig.calc_max()))
+            max_val = np.full(len(samples), float(sig.calc_max()))
 
-                signals[sig.name] = {
-                    "name": sig.name,
-                    "comment": sig.comment or "",
-                    "unit": sig.unit or "",
-                    "samples": muxer_values_,
-                    "t": t_,
-                    "invalidation_bits": np.isclose(muxer_values_, max_val),
-                }
+            signals[sig.name] = {
+                "name": sig.name,
+                "comment": sig.comment or "",
+                "unit": sig.unit or "",
+                "samples": samples,
+                "t": t_,
+                "invalidation_bits": np.isclose(samples, max_val),
+            }
 
+            if sig.multiplex == "Multiplexor":
                 extracted_signals.update(
                     extract_mux(
                         payload_,
@@ -1687,7 +1570,7 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
                         bus,
                         t_,
                         muxer=sig.name,
-                        muxer_values=muxer_values_,
+                        muxer_values=samples,
                     )
                 )
 
@@ -1726,8 +1609,11 @@ csv_bytearray2hex = np.vectorize(csv_bytearray2hex, otypes=[str])
 def pandas_query_compatible(name):
     """ adjust column name for usage in dataframe query string """
 
-    for c in ".$[] ":
+    for c in ".$[]: ":
         name = name.replace(c, "_")
+
+    if name.startswith(tuple(string.digits)):
+        name = "file_" + name
     try:
         exec(f"from pandas import {name}")
     except ImportError:
@@ -1737,7 +1623,7 @@ def pandas_query_compatible(name):
     return name
 
 
-def load_can_database(file, contents=None):
+def load_can_database(file, contents=None, **kwargs):
 
     file = Path(file)
 
@@ -1754,7 +1640,7 @@ def load_can_database(file, contents=None):
             contents = BytesIO(contents)
             try:
                 try:
-                    dbc = loads(contents, import_type=import_type, key="db",)
+                    dbc = loads(contents, import_type=import_type, key="db", **kwargs)
                 except UnicodeDecodeError:
                     encoding = detect(contents)["encoding"]
                     contents = contents.decode(encoding)
@@ -1766,6 +1652,7 @@ def load_can_database(file, contents=None):
                         encoding=encoding,
                     )
             except:
+                raise
                 dbc = None
 
     if isinstance(dbc, dict):
@@ -1780,7 +1667,7 @@ def load_can_database(file, contents=None):
 
 def all_blocks_addresses(obj):
     pattern = re.compile(
-        rb'(?P<block>##(D[GVTZIL]|AT|C[AGHNC]|EV|FH|HL|LD|MD|R[DVI]|S[IRD]|TX))',
+        rb"(?P<block>##(D[GVTZIL]|AT|C[AGHNC]|EV|FH|HL|LD|MD|R[DVI]|S[IRD]|TX))",
         re.DOTALL | re.MULTILINE,
     )
 
@@ -1789,7 +1676,11 @@ def all_blocks_addresses(obj):
     except:
         pass
 
-    return [
-         match.start()
-         for match in re.finditer(pattern, obj)
-    ]
+    try:
+        match_starts = [match.start() for match in re.finditer(pattern, obj)]
+    except TypeError:
+        """ TypeError: expected string or bytes-like object when reading
+        PyFilesystem concrete class from S3.
+        """
+        match_starts = [match.start() for match in re.finditer(pattern, obj.read())]
+    return match_starts

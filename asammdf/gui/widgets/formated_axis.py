@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-import pyqtgraph as pg
 import numpy as np
+import pyqtgraph as pg
 
 
 class FormatedAxis(pg.AxisItem):
@@ -10,42 +10,60 @@ class FormatedAxis(pg.AxisItem):
         super().__init__(*args, **kwargs)
 
         self.format = "phys"
+        self.mode = "phys"
         self.text_conversion = None
 
     def tickStrings(self, values, scale, spacing):
         strns = []
 
-        if self.format == "phys":
-            strns = super(FormatedAxis, self).tickStrings(values, scale, spacing)
-            if self.text_conversion:
-                strns = []
-                for val in values:
-                    nv = self.text_conversion.convert(np.array([val]))[0]
-                    if isinstance(nv, bytes):
-                        try:
-                            strns.append(f'{val}={nv.decode("utf-8")}')
-                        except:
-                            strns.append(f'{val}={nv.decode("latin-1")}')
+        if self.text_conversion and self.mode == "phys":
+            strns = []
+            for val in values:
+                nv = self.text_conversion.convert(np.array([val]))[0]
+
+                val = float(val)
+
+                if val.is_integer():
+                    val = int(val)
+
+                    if self.format == "hex":
+                        val = hex(int(val))
+                    elif self.format == "bin":
+                        val = bin(int(val))
                     else:
-                        strns.append(f"{val:.6f}")
-
-        elif self.format == "hex":
-            for val in values:
-                val = float(val)
-                if val.is_integer():
-                    val = hex(int(val))
+                        val = str(val)
                 else:
-                    val = ""
-                strns.append(val)
+                    val = f"{val:.6f}"
 
-        elif self.format == "bin":
-            for val in values:
-                val = float(val)
-                if val.is_integer():
-                    val = bin(int(val))
+                if isinstance(nv, bytes):
+                    try:
+                        strns.append(f'{val}={nv.decode("utf-8")}')
+                    except:
+                        strns.append(f'{val}={nv.decode("latin-1")}')
                 else:
-                    val = ""
-                strns.append(val)
+
+                    strns.append(val)
+        else:
+            if self.format == "phys":
+                strns = super(FormatedAxis, self).tickStrings(values, scale, spacing)
+
+            elif self.format == "hex":
+                for val in values:
+                    val = float(val)
+                    if val.is_integer():
+                        val = hex(int(val))
+                    else:
+                        val = ""
+                    strns.append(val)
+
+            elif self.format == "bin":
+                for val in values:
+                    val = float(val)
+                    if val.is_integer():
+                        val = bin(int(val))
+                    else:
+                        val = ""
+                    strns.append(val)
 
         return strns
 

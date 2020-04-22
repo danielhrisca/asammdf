@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 
 from functools import partial
+
+from PyQt5 import QtWidgets
+
 from ..ui import resource_rc as resource_rc
 from ..ui.range_editor_dialog import Ui_RangeDialog
-from PyQt5 import QtWidgets
 
 
 class RangeEditor(Ui_RangeDialog, QtWidgets.QDialog):

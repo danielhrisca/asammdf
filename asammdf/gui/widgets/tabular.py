@@ -3,17 +3,15 @@ import datetime
 import logging
 from traceback import format_exc
 
-from PyQt5 import QtWidgets
-from PyQt5 import QtCore
-import pandas as pd
 import numpy as np
 import numpy.core.defchararray as npchar
+import pandas as pd
+from PyQt5 import QtCore, QtWidgets
 
+from ...blocks.utils import csv_bytearray2hex, csv_int2hex, pandas_query_compatible
 from ..ui import resource_rc as resource_rc
 from ..ui.tabular import Ui_TabularDisplay
 from .tabular_filter import TabularFilter
-from ...blocks.utils import csv_bytearray2hex, csv_int2hex, pandas_query_compatible
-
 
 logger = logging.getLogger("asammdf.gui")
 LOCAL_TIMEZONE = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
@@ -59,7 +57,17 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             self.signals = signals
 
         self.as_hex = [
-            name.endswith("CAN_DataFrame.ID") for name in self.signals.columns
+            name.endswith(
+                (
+                    "CAN_DataFrame.ID",
+                    "FLX_Frame.ID",
+                    "FlexRay_DataFrame.ID",
+                    "LIN_Frame.ID",
+                    "MOST_DataFrame.ID",
+                    "ETH_Frame.ID",
+                )
+            )
+            for name in self.signals.columns
         ]
 
         self._original_index = self.signals.index.values
@@ -130,7 +138,12 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         filter_widget = TabularFilter(
             [(self.signals.index.name, self.signals.index.values.dtype.kind, 0, False)]
             + [
-                (name, self.signals[name].values.dtype.kind, self.signals_descr[name], as_hex)
+                (
+                    name,
+                    self.signals[name].values.dtype.kind,
+                    self.signals_descr[name],
+                    as_hex,
+                )
                 for name, as_hex in zip(self.signals.columns, self.as_hex)
             ]
         )

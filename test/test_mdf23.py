@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-import unittest
-import tempfile
 from pathlib import Path
+import tempfile
+import unittest
 
 import numpy as np
 

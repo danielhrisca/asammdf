@@ -10,6 +10,8 @@ from pathlib import Path
 import lxml
 import natsort
 import numpy as np
+from uuid import UUID
+import re
 
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
@@ -18,6 +20,7 @@ from PyQt5 import QtCore
 from ..mdf import MDF, MDF2, MDF3, MDF4
 from ..signal import Signal
 from .dialogs.error_dialog import ErrorDialog
+from .widgets.tree_item import TreeItem
 
 
 COLORS = [
@@ -32,6 +35,8 @@ COLORS = [
     "#bcbd22",
     "#17becf",
 ]
+
+COMPARISON_NAME = re.compile(r'(\s*\d+:)?(?P<name>.+)')
 
 TERMINATED = object()
 
@@ -78,13 +83,14 @@ def extract_mime_names(data):
         size = len(data)
         pos = 0
         while pos < size:
-            group_index, channel_index, name_length = unpack(
-                "<3q", data[pos : pos + 24]
+            mdf_uuid, group_index, channel_index, name_length = unpack(
+                "<36s3q", data[pos : pos + 60]
             )
-            pos += 24
+            pos += 60
             name = data[pos : pos + name_length].decode("utf-8")
             pos += name_length
-            names.append((name, group_index, channel_index))
+            name = COMPARISON_NAME.match(name).group('name').strip()
+            names.append((name, group_index, channel_index, UUID(mdf_uuid.decode('ascii'))))
     return names
 
 
@@ -366,3 +372,54 @@ def compute_signal(description, measured_signals, all_timebase):
         result = Signal(samples=samples, timestamps=timestamps, name="_",)
 
     return result
+
+
+def add_children(widget, channels, channel_dependencies, signals, entries=None, mdf_uuid=None):
+    children = []
+    if entries is not None:
+        channels_ = [
+            channels[i]
+            for _, i in entries
+        ]
+    else:
+        channels_ = channels
+
+    for ch in channels_:
+        if ch.added == True:
+            continue
+
+        entry = ch.entry
+
+        child = TreeItem(entry, ch.name, mdf_uuid=mdf_uuid)
+        child.setText(0, ch.name)
+
+        dep = channel_dependencies[entry[1]]
+        if dep and isinstance(dep[0], tuple):
+            child.setFlags(
+                child.flags()
+                | QtCore.Qt.ItemIsTristate
+                | QtCore.Qt.ItemIsUserCheckable
+            )
+
+            add_children(child, channels, channel_dependencies, signals, dep, mdf_uuid=mdf_uuid)
+
+        if entry in signals:
+            child.setCheckState(0, QtCore.Qt.Checked)
+        else:
+            child.setCheckState(0, QtCore.Qt.Unchecked)
+
+        ch.added = True
+        children.append(child)
+
+    widget.addChildren(children)
+
+
+class HelperChannel:
+
+    __slots__ = "entry", "name", "added"
+
+    def __init__(self, entry, name):
+        self.name = name
+        self.entry = entry
+        self.added = False
+

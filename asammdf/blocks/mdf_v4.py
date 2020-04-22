@@ -2,68 +2,90 @@
 ASAM MDF version 4 file format module
 """
 
-import logging
-import xml.etree.ElementTree as ET
-import os
-import sys
-from copy import deepcopy
 from collections import defaultdict
+from copy import deepcopy
+from functools import lru_cache
 from hashlib import md5
 from itertools import chain
+import logging
 from math import ceil
-from tempfile import TemporaryFile
-from zlib import decompress, compress
-from pathlib import Path
 import mmap
-from functools import lru_cache
+import os
+from pathlib import Path
+import sys
+from tempfile import TemporaryFile
 from time import perf_counter
+from traceback import format_exc
+import xml.etree.ElementTree as ET
+from zlib import compress, decompress
+
+import canmatrix
 from lz4.frame import compress as lz_compress
 from lz4.frame import decompress as lz_decompress
-from traceback import format_exc
-
 from numpy import (
     arange,
+    argwhere,
     array,
     array_equal,
+    column_stack,
     concatenate,
     cumsum,
     dtype,
     empty,
     flip,
+    fliplr,
     float32,
     float64,
     frombuffer,
+    full,
     linspace,
     nonzero,
     packbits,
     roll,
+    searchsorted,
     transpose,
     uint8,
     uint16,
+    uint32,
     uint64,
     union1d,
-    unpackbits,
-    zeros,
-    uint32,
-    fliplr,
-    searchsorted,
-    full,
     unique,
-    column_stack,
+    unpackbits,
     where,
-    argwhere,
+    zeros,
 )
-
+from numpy.core.defchararray import decode, encode
 from numpy.core.records import fromarrays, fromstring
-from numpy.core.defchararray import encode, decode
-import canmatrix
 from pandas import DataFrame
 
 from . import v4_constants as v4c
 from ..signal import Signal
+from ..version import __version__
 from .conversion_utils import conversion_transfer
 from .finalization_shim import FinalizationShim
+from .source_utils import Source
 from .utils import (
+    all_blocks_addresses,
+    as_non_byte_sized_signed_int,
+    CHANNEL_COUNT,
+    ChannelsDB,
+    CONVERT,
+    count_channel_groups,
+    DataBlockInfo,
+    debug_channel,
+    extract_can_signal,
+    extract_cncomment_xml,
+    extract_mux,
+    fmt_to_datatype_v4,
+    get_fmt_v4,
+    Group,
+    info_to_datatype_v4,
+    InvalidationBlockInfo,
+    is_file_like,
+    load_can_database,
+    MdfException,
+    sanitize_xml,
+    SignalDataBlockInfo,
     UINT8_u,
     UINT8_uf,
     UINT16_u,
@@ -72,30 +94,9 @@ from .utils import (
     UINT32_uf,
     UINT64_u,
     UINT64_uf,
-    CHANNEL_COUNT,
-    CONVERT,
-    ChannelsDB,
-    MdfException,
-    SignalSource,
-    as_non_byte_sized_signed_int,
-    fmt_to_datatype_v4,
-    get_fmt_v4,
     UniqueDB,
-    debug_channel,
-    extract_cncomment_xml,
     validate_version_argument,
-    count_channel_groups,
-    info_to_datatype_v4,
-    is_file_like,
-    sanitize_xml,
-    Group,
-    DataBlockInfo,
-    SignalDataBlockInfo,
-    InvalidationBlockInfo,
-    extract_can_signal,
-    load_can_database,
     VirtualChannelGroup,
-    all_blocks_addresses,
 )
 from .v4_blocks import (
     AttachmentBlock,
@@ -116,8 +117,6 @@ from .v4_blocks import (
     SourceInformation,
     TextBlock,
 )
-from ..version import __version__
-
 
 MASTER_CHANNELS = (v4c.CHANNEL_TYPE_MASTER, v4c.CHANNEL_TYPE_VIRTUAL_MASTER)
 COMMON_SIZE = v4c.COMMON_SIZE
@@ -139,7 +138,7 @@ try:
 except:
 
     def extract(signal_data, is_byte_array, offsets=()):
-#        offsets_ = set(offsets)
+        #        offsets_ = set(offsets)
         size = len(signal_data)
         positions = []
         values = []
@@ -148,8 +147,8 @@ except:
         while pos < size:
 
             positions.append(pos)
-#            if offsets_ and pos not in offsets_:
-#                raise Exception(f"VLSD offsets do not match the signal data:\n{positions}\n{offsets[:len(positions)]}")
+            #            if offsets_ and pos not in offsets_:
+            #                raise Exception(f"VLSD offsets do not match the signal data:\n{positions}\n{offsets[:len(positions)]}")
             (str_size,) = UINT32_uf(signal_data, pos)
             pos = pos + 4 + str_size
             values.append(signal_data[pos - str_size : pos])
@@ -170,7 +169,7 @@ except:
         i = 0
         size = len(signal_data)
         pos = 0
-        rem = b''
+        rem = b""
         while i + record_id_nr < size:
             (rec_id,) = _unpack_stuct(signal_data, i)
             # skip record id
@@ -297,12 +296,16 @@ class MDF4(object):
         self.identification = None
         self.file_history = []
         self.channels_db = ChannelsDB()
-        self.can_logging_db = {}
         self.masters_db = {}
         self.attachments = []
         self._attachments_cache = {}
         self.file_comment = None
         self.events = []
+        self.bus_logging_map = {
+            "CAN": {},
+            "FLEXRAY": {},
+            "ETHERNET": {},
+        }
 
         self._attachments_map = {}
         self._ch_map = {}
@@ -330,8 +333,8 @@ class MDF4(object):
         self.copy_on_get = kwargs.get("copy_on_get", True)
         self._single_bit_uint_as_bool = False
         self._integer_interpolation = 0
-        self.virtual_groups = {} # master group 2 referencing groups
-        self.virtual_groups_map = {} # group index 2 master group
+        self.virtual_groups = {}  # master group 2 referencing groups
+        self.virtual_groups_map = {}  # group index 2 master group
 
         self._master = None
 
@@ -454,10 +457,11 @@ class MDF4(object):
             # Check for finalization past version 4.10
             finalisation_flags = self._check_finalised()
 
-            if finalisation_flags:
-                addresses = all_blocks_addresses(self._file)
-            else:
-                addresses = []
+            # TODO: the shim does not support this function
+            #            if finalisation_flags:
+            #                addresses = all_blocks_addresses(self._file)
+            #            else:
+            #                addresses = []
 
             if finalisation_flags:
                 message = f"Attempting finalization of {self.name}"
@@ -547,22 +551,6 @@ class MDF4(object):
                     record_id = channel_group.record_id
                     cg_size[record_id] = 0
                 elif channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
-                    if channel_group.acq_source is None:
-                        grp.CAN_logging = False
-                    else:
-                        bus_type = channel_group.acq_source.bus_type
-                        if bus_type == v4c.BUS_TYPE_CAN:
-                            grp.CAN_logging = True
-
-                        else:
-                            # only CAN bus logging is supported
-                            grp.CAN_logging = False
-                    samples_size = channel_group.samples_byte_nr
-                    inval_size = channel_group.invalidation_bytes_nr
-                    record_id = channel_group.record_id
-                    cg_size[record_id] = samples_size + inval_size
-                else:
-
                     samples_size = channel_group.samples_byte_nr
                     inval_size = channel_group.invalidation_bytes_nr
                     record_id = channel_group.record_id
@@ -612,7 +600,9 @@ class MDF4(object):
                 channel_group = new_group.channel_group
                 if channel_group.flags & v4c.FLAG_CG_REMOTE_MASTER:
                     block_type = b"##DV"
-                    total_size += channel_group.samples_byte_nr * channel_group.cycles_nr
+                    total_size += (
+                        channel_group.samples_byte_nr * channel_group.cycles_nr
+                    )
                     inval_total_size += (
                         channel_group.invalidation_bytes_nr * channel_group.cycles_nr
                     )
@@ -623,9 +613,9 @@ class MDF4(object):
                         + channel_group.invalidation_bytes_nr
                     ) * channel_group.cycles_nr
 
-#            if not is_finalised:
-#                total_size = None
-#                inval_total_size = None
+            #            if not is_finalised:
+            #                total_size = None
+            #                inval_total_size = None
 
             info, uses_ld = self._get_data_blocks_info(
                 address=address,
@@ -645,13 +635,16 @@ class MDF4(object):
 
             dg_addr = group.next_dg_addr
 
-        #TODO: attempt finalisation here
+        # TODO: attempt finalisation here
 
         # all channels have been loaded so now we can link the
         # channel dependencies and load the signal data for VLSD channels
         for gp_index, grp in enumerate(self.groups):
 
-            if self.version >= "4.20" and grp.channel_group.flags & v4c.FLAG_CG_REMOTE_MASTER:
+            if (
+                self.version >= "4.20"
+                and grp.channel_group.flags & v4c.FLAG_CG_REMOTE_MASTER
+            ):
                 grp.channel_group.cg_master_index = self._cg_map[
                     grp.channel_group.cg_master_addr
                 ]
@@ -747,177 +740,7 @@ class MDF4(object):
             ):
                 grp.single_channel_dtype = channels[0].dtype_fmt
 
-        self._process_can_logging()
-
-        # append indexes of groups that contain raw CAN bus logging and
-        # store signals and metadata that will be used to create the new
-        # groups.
-        raw_can = []
-        processed_can = []
-        for i, group in enumerate(self.groups):
-            if group.CAN_logging:
-                if group.CAN_id not in self.can_logging_db:
-                    self.can_logging_db[group.CAN_id] = {}
-                message_id = group.message_id
-                if message_id is not None:
-                    for id_ in message_id:
-                        self.can_logging_db[group.CAN_id][id_] = i
-            else:
-                continue
-
-            if group.raw_can:
-                try:
-                    _sig = self.get(
-                        "CAN_DataFrame", group=i, ignore_invalidation_bits=True
-                    )
-                except MdfException:
-                    continue
-
-                can_ids = Signal(
-                    _sig.samples["CAN_DataFrame.ID"] & 0x1fffffff,
-                    _sig.timestamps,
-                    name="can_ids",
-                )
-
-                all_can_ids = unique(can_ids.samples).tolist()
-
-                if all_can_ids:
-                    group.message_id = set()
-                    for message_id in all_can_ids:
-                        if message_id > 0x80000000:
-                            message_id -= 0x80000000
-
-                        self.can_logging_db[group.CAN_id][message_id] = i
-                        group.message_id.add(message_id)
-
-                payload = _sig.samples["CAN_DataFrame.DataBytes"]
-
-                attachment = _sig.attachment
-                if (
-                    attachment
-                    and attachment[0]
-                    and attachment[1].name.lower().endswith(("dbc", "arxml"))
-                ):
-                    attachment, at_name = attachment
-
-                    db = load_can_database(at_name, attachment)
-
-                    if db:
-                        try:
-                            board_units = set(bu.name for bu in db.boardUnits)
-                        except AttributeError:
-                            board_units = set(bu.name for bu in db.ecus)
-
-                        cg_source = group.channel_group.acq_source
-
-                        all_message_info_extracted = True
-                        for message_id in all_can_ids:
-                            self.can_logging_db[group.CAN_id][message_id] = i
-                            sigs = []
-                            try:
-                                can_msg = db.frameById(message_id)
-                            except AttributeError:
-                                can_msg = db.frame_by_id(
-                                    canmatrix.ArbitrationId(message_id)
-                                )
-
-                            if can_msg:
-                                for transmitter in can_msg.transmitters:
-                                    if transmitter in board_units:
-                                        break
-                                else:
-                                    transmitter = ""
-                                message_name = can_msg.name
-
-                                source = SignalSource(
-                                    transmitter,
-                                    can_msg.name,
-                                    "",
-                                    v4c.SOURCE_BUS,
-                                    v4c.BUS_TYPE_CAN,
-                                )
-
-                                idx = nonzero(can_ids.samples == message_id)[0]
-                                data = payload[idx]
-                                t = can_ids.timestamps[idx].copy()
-                                if can_ids.invalidation_bits is not None:
-                                    invalidation_bits = can_ids.invalidation_bits[idx]
-                                else:
-                                    invalidation_bits = None
-
-                                for signal in sorted(
-                                    can_msg.signals, key=lambda x: x.name
-                                ):
-
-                                    sig_vals = extract_can_signal(signal, data)
-
-                                    # conversion = ChannelConversion(
-                                    #     a=float(signal.factor),
-                                    #     b=float(signal.offset),
-                                    #     conversion_type=v4c.CONVERSION_TYPE_LIN,
-                                    # )
-                                    # conversion.unit = signal.unit or ""
-                                    sigs.append(
-                                        Signal(
-                                            sig_vals,
-                                            t,
-                                            name=signal.name,
-                                            conversion=None,
-                                            source=source,
-                                            unit=signal.unit,
-                                            raw=False,
-                                            invalidation_bits=invalidation_bits,
-                                        )
-                                    )
-
-                                processed_can.append(
-                                    [
-                                        sigs,
-                                        message_id,
-                                        message_name,
-                                        cg_source,
-                                        group.CAN_id,
-                                    ]
-                                )
-                            else:
-                                all_message_info_extracted = False
-
-                        if all_message_info_extracted:
-                            raw_can.append(i)
-
-        if processed_can:
-
-            for sigs, message_id, message_name, cg_source, can_id in processed_can:
-                self.append(
-                    sigs, "Extracted from raw CAN bus logging", common_timebase=True
-                )
-                group = self.groups[-1]
-                group.CAN_database = message_name != ""
-                group.CAN_logging = False
-                group.CAN_id = can_id
-                if message_id > 0:
-                    if message_id > 0x80000000:
-                        message_id -= 0x80000000
-                        group.extended_id = True
-                    else:
-                        group.extended_id = False
-                    group.message_name = message_name
-                    group.message_id = {message_id}
-                group.channel_group.acq_source = cg_source
-                group.data_group.comment = (
-                    f'From message {hex(message_id)}="{message_name}"'
-                )
-
-        self.can_logging_db = {}
-
-        for i, group in enumerate(self.groups):
-            if not group.CAN_logging:
-                continue
-            if not group.CAN_id in self.can_logging_db:
-                self.can_logging_db[group.CAN_id] = {}
-            if group.message_id is not None:
-                for id_ in group.message_id:
-                    self.can_logging_db[group.CAN_id][id_] = i
+        self._process_bus_logging()
 
         # read events
         addr = self.header.first_event_addr
@@ -1010,6 +833,7 @@ class MDF4(object):
 
             if self._remove_source_from_channel_names:
                 channel.name = channel.name.split(path_separator, 1)[0]
+                channel.display_name = channel.display_name.split(path_separator, 1)[0]
 
             entry = (dg_cntr, ch_cntr)
             self._ch_map[ch_addr] = entry
@@ -1120,261 +944,6 @@ class MDF4(object):
             composition_dtype = None
 
         return ch_cntr, composition, composition_dtype
-
-    def _process_can_logging(self):
-        for i, grp in enumerate(self.groups):
-            if not grp.CAN_logging:
-                continue
-
-            channel_group = grp.channel_group
-            message_name = channel_group.acq_name
-            dg_cntr = i
-            channels = grp.channels
-            neg_ch_cntr = -1
-
-            comment = channel_group.acq_source.comment
-            if comment:
-                try:
-                    comment_xml = ET.fromstring(comment)
-                except ET.ParseError as e:
-                    logger.error(f"could not parse acq_source comment; {e}")
-                else:
-                    common_properties = comment_xml.find(".//common_properties")
-                    grp.CAN_id = next(
-                        (
-                            f"CAN{e.text}"
-                            for e in common_properties
-                            if e.get("name") == "ChannelNo"
-                        ),
-                        None,
-                    )
-
-            if grp.CAN_id:
-                if message_name == "CAN_DataFrame":
-                    # this is a raw CAN bus logging channel group
-                    # it will be later processed to extract all
-                    # signals to new groups (one group per CAN message)
-                    grp.raw_can = True
-
-                elif message_name in ("CAN_ErrorFrame", "CAN_RemoteFrame"):
-                    # for now ignore bus logging flag
-                    pass
-                else:
-                    comment = channel_group.comment
-                    if comment:
-
-                        comment_xml = ET.fromstring(sanitize_xml(comment))
-                        can_msg_type = comment_xml.find(".//TX").text
-                        if can_msg_type is not None:
-                            can_msg_type = can_msg_type.strip(" \t\r\n")
-                        else:
-                            can_msg_type = "CAN_DataFrame"
-                        if can_msg_type == "CAN_DataFrame":
-                            common_properties = comment_xml.find(".//common_properties")
-                            message_id = -1
-                            for e in common_properties:
-                                name = e.get("name")
-                                if name == "MessageID":
-                                    message_id = int(e.text)
-                                    break
-
-                            if message_id > 0:
-                                if message_id > 0x80000000:
-                                    message_id -= 0x80000000
-                                    grp.extended_id = True
-                                grp.message_name = message_name
-                                grp.message_id = {message_id}
-
-                        else:
-                            grp.raw_can = True
-                            grp.CAN_logging = False
-                            message = (
-                                f"Invalid bus logging channel group metadata: {comment}"
-                            )
-                            logger.warning(message)
-                    else:
-                        grp.raw_can = True
-
-            else:
-                try:
-                    data = self._load_data(self.groups[i])
-                    for fragment in data:
-                        bus_ids = self.get(
-                            "CAN_DataFrame.BusChannel",
-                            group=i,
-                            data=fragment,
-                            samples_only=True,
-                        )[0]
-
-                        can_ids = self.get(
-                            "CAN_DataFrame.ID",
-                            group=i,
-                            data=fragment,
-                            samples_only=True,
-                        )[0] & 0x1fffffff
-
-                        if len(bus_ids):
-
-                            for can_id, message_id in unique(
-                                column_stack((bus_ids.astype(int), can_ids)), axis=0
-                            ):
-                                can_id = f"CAN{can_id}"
-                                if can_id not in self.can_logging_db:
-                                    self.can_logging_db[can_id] = {}
-                                grp.CAN_id = can_id
-                                self.can_logging_db[can_id][message_id] = i
-
-                        if grp.message_id is None:
-                            grp.message_id = set(unique(can_ids))
-                        else:
-                            grp.message_id = grp.message_id | set(unique(can_ids))
-
-                except MdfException:
-                    grp.CAN_logging = False
-                    pass
-
-            if (
-                grp.CAN_id is not None
-                and grp.message_id is not None
-                and len(grp.message_id) == 1
-            ):
-                for j, dep in enumerate(grp.channel_dependencies):
-                    if dep:
-                        channel = grp.channels[j]
-                        break
-                try:
-                    addr = channel.attachment_addr
-                except AttributeError:
-                    addr = 0
-                if addr:
-                    attachment_addr = self._attachments_map[addr]
-                    if attachment_addr not in self._dbc_cache:
-                        attachment, at_name = self.extract_attachment(
-                            index=attachment_addr
-                        )
-                        if not at_name.name.lower().endswith(("dbc", "arxml")):
-                            message = f'Expected .dbc or .arxml file as CAN channel attachment but got "{at_name}"'
-                            logger.warning(message)
-                            grp.CAN_database = False
-                        elif not attachment:
-                            message = f'Attachment "{at_name}" not found'
-                            logger.warning(message)
-                            grp.CAN_database = False
-                        else:
-
-                            dbc = load_can_database(at_name, attachment)
-                            if dbc is None:
-                                grp.CAN_database = False
-                            else:
-                                self._dbc_cache[attachment_addr] = dbc
-                                grp.CAN_database = True
-
-                    else:
-                        grp.CAN_database = True
-                else:
-                    grp.CAN_database = False
-
-                if grp.CAN_database:
-
-                    # here we make available multiple ways to refer to
-                    # CAN signals by using fake negative indexes for
-                    # the channel entries in the channels_db
-
-                    grp.dbc_addr = attachment_addr
-
-                    message_id = next(iter(grp.message_id))
-                    message_name = grp.message_name
-                    can_id = grp.CAN_id
-
-                    try:
-                        can_msg = self._dbc_cache[attachment_addr].frameById(message_id)
-                    except AttributeError:
-                        can_msg = self._dbc_cache[attachment_addr].frame_by_id(
-                            canmatrix.ArbitrationId(message_id)
-                        )
-
-                    if can_msg:
-                        can_msg_name = can_msg.name
-
-                        for entry in self.channels_db["CAN_DataFrame.DataBytes"]:
-                            if entry[0] == dg_cntr:
-                                index = entry[1]
-                                break
-
-                        payload = channels[index]
-
-                        logging_channels = grp.logging_channels
-
-                        for signal in can_msg.signals:
-                            signal_name = signal.name
-
-                            # 0 - name
-                            # 1 - message_name.name
-                            # 2 - can_id.message_name.name
-                            # 3 - can_msg_name.name
-                            # 4 - can_id.can_msg_name.name
-
-                            name_ = signal_name
-                            little_endian = True if signal.is_little_endian else False
-                            signed = signal.is_signed
-                            s_type = info_to_datatype_v4(signed, little_endian)
-                            bit_offset = signal.start_bit % 8
-                            byte_offset = signal.start_bit // 8
-                            bit_count = signal.size
-                            comment = signal.comment or ""
-
-                            if (signal.factor, signal.offset) != (1, 0):
-                                conversion = ChannelConversion(
-                                    a=float(signal.factor),
-                                    b=float(signal.offset),
-                                    conversion_type=v4c.CONVERSION_TYPE_LIN,
-                                )
-                                conversion.unit = signal.unit or ""
-                            else:
-                                conversion = None
-
-                            kwargs = {
-                                "channel_type": v4c.CHANNEL_TYPE_VALUE,
-                                "data_type": s_type,
-                                "sync_type": payload.sync_type,
-                                "byte_offset": byte_offset + payload.byte_offset,
-                                "bit_offset": bit_offset,
-                                "bit_count": bit_count,
-                                "min_raw_value": 0,
-                                "max_raw_value": 0,
-                                "lower_limit": 0,
-                                "upper_limit": 0,
-                                "flags": 0,
-                                "pos_invalidation_bit": payload.pos_invalidation_bit,
-                            }
-
-                            log_channel = Channel(**kwargs)
-                            log_channel.name = name_
-                            log_channel.comment = comment
-                            log_channel.source = deepcopy(channel.source)
-                            log_channel.conversion = conversion
-                            log_channel.unit = signal.unit or ""
-
-                            logging_channels.append(log_channel)
-
-                            entry = dg_cntr, neg_ch_cntr
-                            self.channels_db.add(name_, entry)
-
-                            name_ = f"{message_name}.{signal_name}"
-                            self.channels_db.add(name_, entry)
-
-                            name_ = f"CAN{can_id}.{message_name}.{signal_name}"
-                            self.channels_db.add(name_, entry)
-
-                            name_ = f"{can_msg_name}.{signal_name}"
-                            self.channels_db.add(name_, entry)
-
-                            name_ = f"CAN{can_id}.{can_msg_name}.{signal_name}"
-                            self.channels_db.add(name_, entry)
-
-                            neg_ch_cntr -= 1
-
-                        grp.channel_group["flags"] &= ~v4c.FLAG_CG_PLAIN_BUS_EVENT
 
     def _load_signal_data(
         self, address=None, stream=None, group=None, index=None, offset=0, count=None
@@ -1937,8 +1506,6 @@ class MDF4(object):
             channel_group = group.channel_group
             channels = group.channels
 
-            bus_event = channel_group.flags & v4c.FLAG_CG_BUS_EVENT
-
             record_size = channel_group.samples_byte_nr
             invalidation_bytes_nr = channel_group.invalidation_bytes_nr
             next_byte_aligned_position = 0
@@ -1947,8 +1514,6 @@ class MDF4(object):
             parent_start_offset = 0
             parents = {}
             group_channels = UniqueDB()
-
-            neg_index = -1
 
             sortedchannels = sorted(enumerate(channels), key=lambda i: i[1])
             for original_index, new_ch in sortedchannels:
@@ -1981,7 +1546,10 @@ class MDF4(object):
                                 byte_size += 1
                             bit_size = byte_size * 8
 
-                            if data_type in(v4c.DATA_TYPE_SIGNED_MOTOROLA, v4c.DATA_TYPE_UNSIGNED_MOTOROLA):
+                            if data_type in (
+                                v4c.DATA_TYPE_SIGNED_MOTOROLA,
+                                v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                            ):
                                 if size > 32:
                                     size = 8
                                     bit_offset += 64 - bit_size
@@ -2055,13 +1623,6 @@ class MDF4(object):
 
                             else:
                                 parents[original_index] = no_parent
-                                if bus_event:
-                                    for logging_channel in group.logging_channels:
-                                        parents[neg_index] = (
-                                            "CAN_DataFrame.DataBytes",
-                                            logging_channel.bit_offset,
-                                        )
-                                        neg_index -= 1
 
                     # virtual channels do not have bytes in the record
                     else:
@@ -2077,11 +1638,17 @@ class MDF4(object):
                         next_byte_aligned_position - start_offset
                     ) * 8
                     needed_size = bit_offset + bit_count
+
                     if max_overlapping_size >= needed_size:
-                        if data_type in(v4c.DATA_TYPE_SIGNED_MOTOROLA, v4c.DATA_TYPE_UNSIGNED_MOTOROLA):
+                        if data_type in (
+                            v4c.DATA_TYPE_SIGNED_MOTOROLA,
+                            v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                        ):
                             parents[original_index] = (
                                 current_parent,
-                                (next_byte_aligned_position - start_offset - byte_size) * 8 + bit_offset,
+                                (next_byte_aligned_position - start_offset - byte_size)
+                                * 8
+                                + bit_offset,
                             )
                         else:
                             parents[original_index] = (
@@ -2164,7 +1731,9 @@ class MDF4(object):
                     try:
                         grp.channels[ch_nr]
                     except IndexError:
-                        raise MdfException(f"Channel index out of range: {(name, group, index)}")
+                        raise MdfException(
+                            f"Channel index out of range: {(name, group, index)}"
+                        )
         else:
             if name not in self.channels_db:
                 raise MdfException(f'Channel "{name}" not found')
@@ -2919,8 +2488,8 @@ class MDF4(object):
             list of *Signal* objects, or a single *Signal* object, or a pandas
             *DataFrame* object. All bytes columns in the pandas *DataFrame*
             must be *utf-8* encoded
-        source_info : str
-            source information; default 'Python'
+        source_info : str | asammdf.source_utils.Source
+            channel group source information; default 'Python'
         common_timebase : bool
             flag to hint that the signals have the same timebase. Only set this
             if you know for sure that all appended channels share the same
@@ -2966,8 +2535,15 @@ class MDF4(object):
         if not signals:
             return
 
-        source_block = SourceInformation()
-        source_block.name = source_block.path = source_info
+        if isinstance(source_info, str):
+            source_block = SourceInformation()
+            source_block.name = source_block.path = source_info
+        else:
+            if not isinstance(source_info, Source):
+                source_info = Source.from_source(source_info)
+            source_block = SourceInformation.from_common_source(source_info)
+
+        source_info = source_block.name
 
         interp_mode = self._integer_interpolation
 
@@ -3010,14 +2586,14 @@ class MDF4(object):
         gp.channels = gp_channels = []
         gp.channel_dependencies = gp_dep = []
         gp.signal_types = gp_sig_types = []
-        gp.logging_channels = []
 
         cycles_nr = len(t)
 
         # channel group
         kwargs = {"cycles_nr": cycles_nr, "samples_byte_nr": 0}
         gp.channel_group = ChannelGroup(**kwargs)
-        gp.channel_group.acq_name = source_info
+        gp.channel_group.acq_source = source_block
+        gp.channel_group.acq_name = source_block.name
 
         if any(sig.invalidation_bits is not None for sig in signals):
             invalidation_bytes_nr = 1
@@ -3792,7 +3368,6 @@ class MDF4(object):
         gp.channels = gp_channels = []
         gp.channel_dependencies = gp_dep = []
         gp.signal_types = gp_sig_types = []
-        gp.logging_channels = []
         gp.uses_ld = True
         gp.data_group = DataGroup()
         gp.sorted = True
@@ -3805,6 +3380,7 @@ class MDF4(object):
         kwargs = {"cycles_nr": cycles_nr, "samples_byte_nr": 0}
         gp.channel_group = ChannelGroup(**kwargs)
         gp.channel_group.acq_name = source_block.name
+        gp.channel_group.acq_source = source_block
 
         self.groups.append(gp)
 
@@ -3937,7 +3513,6 @@ class MDF4(object):
             gp.channels = gp_channels = []
             gp.channel_dependencies = gp_dep = []
             gp.signal_types = gp_sig_types = []
-            gp.logging_channels = []
             gp.data_group = DataGroup()
             gp.sorted = True
             gp.uses_ld = True
@@ -4192,7 +3767,7 @@ class MDF4(object):
                     invalidation_bits = None
 
                 gp["types"] = dtype(new_types)
-                offset = gp['types'].itemsize
+                offset = gp["types"].itemsize
 
                 samples = signal.samples
 
@@ -4557,6 +4132,14 @@ class MDF4(object):
 
         """
 
+        if isinstance(source_info, str):
+            source_block = SourceInformation()
+            source_block.name = source_block.path = source_info
+        else:
+            if not isinstance(source_info, Source):
+                source_info = Source.from_source(source_info)
+            source_block = SourceInformation.from_common_source(source_info)
+
         units = units or {}
 
         t = df.index
@@ -4573,14 +4156,14 @@ class MDF4(object):
         gp.channels = gp_channels = []
         gp.channel_dependencies = gp_dep = []
         gp.signal_types = gp_sig_types = []
-        gp.logging_channels = []
 
         cycles_nr = len(t)
 
         # channel group
         kwargs = {"cycles_nr": cycles_nr, "samples_byte_nr": 0}
         gp.channel_group = ChannelGroup(**kwargs)
-        gp.channel_group.acq_name = source_info
+        gp.channel_group.acq_name = source_block.name
+        gp.channel_group.acq_source = source_block
 
         self.groups.append(gp)
 
@@ -4598,9 +4181,6 @@ class MDF4(object):
         seek = file.seek
 
         seek(0, 2)
-
-        source_block = SourceInformation()
-        source_block.name = source_block.path = source_info
 
         if df.shape[0]:
             virtual_group = VirtualChannelGroup()
@@ -4852,9 +4432,15 @@ class MDF4(object):
 
         # first we add the structure channel
 
-        if signal.attachment:
+        if signal.attachment and signal.attachment[0]:
             at_data, at_name = signal.attachment
-            attachment_addr = self.attach(at_data, at_name, mime="application/x-dbc")
+            if at_name is not None:
+                suffix = Path(at_name).suffix.strip(".")
+            else:
+                suffix = "dbc"
+            attachment_addr = self.attach(
+                at_data, at_name, mime=f"application/x-{suffix}"
+            )
             attachment = self._attachments_map[attachment_addr]
         else:
             attachment_addr = 0
@@ -4878,7 +4464,9 @@ class MDF4(object):
         if source_bus:
             kwargs["flags"] = v4c.FLAG_CN_BUS_EVENT
             flags_ = v4c.FLAG_CN_BUS_EVENT
-            grp.channel_group.flags |= v4c.FLAG_CG_BUS_EVENT
+            grp.channel_group.flags |= (
+                v4c.FLAG_CG_BUS_EVENT | v4c.FLAG_CG_PLAIN_BUS_EVENT
+            )
         else:
             kwargs["flags"] = 0
             flags_ = 0
@@ -4897,38 +4485,29 @@ class MDF4(object):
         ch.attachment = attachment
         ch.dtype_fmt = signal.samples.dtype
 
-        if source_bus:
-            grp.channel_group.acq_source = SourceInformation.from_common_source(signal.source)
+        if source_bus and grp.channel_group.acq_source is None:
+            grp.channel_group.acq_source = SourceInformation.from_common_source(
+                signal.source
+            )
 
-        if source_bus and signal.source.bus_type == v4c.BUS_TYPE_CAN:
-            grp.channel_group.path_separator = 46
-            grp.CAN_logging = True
-            grp.channel_group.acq_name = "CAN"
-
-            can_ids = unique(signal.samples[f"{name}.BusChannel"])
-
-            if name in ('CAN_DataFrame', 'CAN_RemoteFrame'):
-
-                if len(can_ids) == 1:
-                    can_id = f"CAN{int(can_ids[0])}"
-
-                    message_ids = set(unique(signal.samples[f"{name}.ID"]))
-
-                    if can_id not in self.can_logging_db:
-                        self.can_logging_db[can_id] = {}
-                    for message_id in message_ids:
-                        self.can_logging_db[can_id][message_id] = dg_cntr
-                else:
-                    for can_id in can_ids:
-                        idx = argwhere(
-                            signal.samples[f"{name}.BusChannel"] == can_id
-                        ).ravel()
-                        message_ids = set(unique(signal.samples[f"{name}.ID"][idx]))
-                        can_id = f"CAN{can_id}"
-                        if can_id not in self.can_logging_db:
-                            self.can_logging_db[can_id] = {}
-                        for message_id in message_ids:
-                            self.can_logging_db[can_id][message_id] = dg_cntr
+            if signal.source.bus_type == v4c.BUS_TYPE_CAN:
+                grp.channel_group.path_separator = 46
+                grp.channel_group.acq_name = "CAN"
+            elif signal.source.bus_type == v4c.BUS_TYPE_FLEXRAY:
+                grp.channel_group.path_separator = 46
+                grp.channel_group.acq_name = "FLEXRAY"
+            elif signal.source.bus_type == v4c.BUS_TYPE_ETHERNET:
+                grp.channel_group.path_separator = 46
+                grp.channel_group.acq_name = "ETHERNET"
+            elif signal.source.bus_type == v4c.BUS_TYPE_K_LINE:
+                grp.channel_group.path_separator = 46
+                grp.channel_group.acq_name = "K_LINE"
+            elif signal.source.bus_type == v4c.BUS_TYPE_MOST:
+                grp.channel_group.path_separator = 46
+                grp.channel_group.acq_name = "MOST"
+            elif signal.source.bus_type == v4c.BUS_TYPE_LIN:
+                grp.channel_group.path_separator = 46
+                grp.channel_group.acq_name = "LIN"
 
         # source for channel
         source = signal.source
@@ -5283,9 +4862,15 @@ class MDF4(object):
 
         # first we add the structure channel
 
-        if signal.attachment:
+        if signal.attachment and signal.attachment[0]:
             at_data, at_name = signal.attachment
-            attachment_addr = self.attach(at_data, at_name, mime="application/x-dbc")
+            if at_name is not None:
+                suffix = Path(at_name).suffix.strip(".")
+            else:
+                suffix = "dbc"
+            attachment_addr = self.attach(
+                at_data, at_name, mime=f"application/x-{suffix}"
+            )
             attachment = self._attachments_map[attachment_addr]
         else:
             attachment_addr = 0
@@ -5327,37 +4912,19 @@ class MDF4(object):
         ch.dtype_fmt = signal.samples.dtype
 
         if source_bus:
-            grp.channel_group.acq_source = SourceInformation.from_common_source(signal.source)
+            grp.channel_group.acq_source = SourceInformation.from_common_source(
+                signal.source
+            )
 
-        if source_bus and signal.source.bus_type == v4c.BUS_TYPE_CAN:
-            grp.channel_group.path_separator = 46
-            grp.CAN_logging = True
-            grp.channel_group.acq_name = "CAN"
-
-            can_ids = unique(signal.samples[f"{name}.BusChannel"])
-
-            if name in ('CAN_DataFrame', 'CAN_RemoteFrame'):
-
-                if len(can_ids) == 1:
-                    can_id = f"CAN{int(can_ids[0])}"
-
-                    message_ids = set(unique(signal.samples[f"{name}.ID"]))
-
-                    if can_id not in self.can_logging_db:
-                        self.can_logging_db[can_id] = {}
-                    for message_id in message_ids:
-                        self.can_logging_db[can_id][message_id] = dg_cntr
-                else:
-                    for can_id in can_ids:
-                        idx = argwhere(
-                            signal.samples[f"{name}.BusChannel"] == can_id
-                        ).ravel()
-                        message_ids = set(unique(signal.samples[f"{name}.ID"][idx]))
-                        can_id = f"CAN{can_id}"
-                        if can_id not in self.can_logging_db:
-                            self.can_logging_db[can_id] = {}
-                        for message_id in message_ids:
-                            self.can_logging_db[can_id][message_id] = dg_cntr
+            if signal.source.bus_type == v4c.BUS_TYPE_CAN:
+                grp.channel_group.path_separator = 46
+                grp.channel_group.acq_name = "CAN"
+            elif signal.source.bus_type == v4c.BUS_TYPE_FLEXRAY:
+                grp.channel_group.path_separator = 46
+                grp.channel_group.acq_name = "FLEXRAY"
+            elif signal.source.bus_type == v4c.BUS_TYPE_ETHERNET:
+                grp.channel_group.path_separator = 46
+                grp.channel_group.acq_name = "ETHERNET"
 
         # source for channel
         source = signal.source
@@ -6139,7 +5706,6 @@ class MDF4(object):
         self.identification = None
         self.file_history.clear()
         self.channels_db.clear()
-        self.can_logging_db.clear()
         self.masters_db.clear()
         self.attachments.clear()
         self._attachments_cache.clear()
@@ -6396,14 +5962,9 @@ class MDF4(object):
 
         grp = self.groups[gp_nr]
 
-        if ch_nr >= 0:
-            # get the channel object
-            channel = grp.channels[ch_nr]
-            dependency_list = grp.channel_dependencies[ch_nr]
-
-        else:
-            channel = grp.logging_channels[-ch_nr - 1]
-            dependency_list = None
+        # get the channel object
+        channel = grp.channels[ch_nr]
+        dependency_list = grp.channel_dependencies[ch_nr]
 
         master_is_required = not samples_only or raster
 
@@ -6458,8 +6019,8 @@ class MDF4(object):
             vals = conversion.convert(vals)
             conversion = None
 
-            if vals.dtype.kind == 'S':
-                encoding = 'utf-8'
+            if vals.dtype.kind == "S":
+                encoding = "utf-8"
 
         if not vals.flags.owndata and self.copy_on_get:
             vals = vals.copy()
@@ -6481,23 +6042,11 @@ class MDF4(object):
             source = channel.source
 
             if source:
-                source = SignalSource(
-                    source.name,
-                    source.path,
-                    source.comment,
-                    source.source_type,
-                    source.bus_type,
-                )
+                source = Source.from_source(source)
             else:
                 cg_source = grp.channel_group.acq_source
                 if cg_source:
-                    source = SignalSource(
-                        cg_source.name,
-                        cg_source.path,
-                        cg_source.comment,
-                        cg_source.source_type,
-                        cg_source.bus_type,
-                    )
+                    source = Source.from_source(cg_source)
                 else:
                     source = None
 
@@ -6531,6 +6080,8 @@ class MDF4(object):
                     stream_sync=stream_sync,
                     invalidation_bits=invalidation_bits,
                     encoding=encoding,
+                    group_index=gp_nr,
+                    channel_index=ch_nr,
                 )
             except:
                 debug_channel(self, grp, channel, dependency_list)
@@ -7166,7 +6717,9 @@ class MDF4(object):
                         pass
                     elif len(shape_) > 1 and data_type != v4c.DATA_TYPE_BYTEARRAY:
                         vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
-                    elif vals_dtype not in "ui" and (bit_offset or not bit_count == size * 8):
+                    elif vals_dtype not in "ui" and (
+                        bit_offset or not bit_count == size * 8
+                    ):
                         vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
                     else:
                         dtype_ = vals.dtype
@@ -7179,10 +6732,13 @@ class MDF4(object):
                             else:
                                 channel_dtype = channel.dtype_fmt
 
-                            if channel_dtype.byteorder == '|' and data_type in (v4c.DATA_TYPE_SIGNED_MOTOROLA, v4c.DATA_TYPE_UNSIGNED_MOTOROLA):
-                                view = f'>u{vals.itemsize}'
+                            if channel_dtype.byteorder == "|" and data_type in (
+                                v4c.DATA_TYPE_SIGNED_MOTOROLA,
+                                v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                            ):
+                                view = f">u{vals.itemsize}"
                             else:
-                                view = f'{channel_dtype.byteorder}u{vals.itemsize}'
+                                view = f"{channel_dtype.byteorder}u{vals.itemsize}"
 
                             vals = vals.view(view)
 
@@ -7191,14 +6747,12 @@ class MDF4(object):
 
                             if bit_count != size * 8:
                                 if data_type in v4c.SIGNED_INT:
-                                    vals = as_non_byte_sized_signed_int(
-                                        vals, bit_count
-                                    )
+                                    vals = as_non_byte_sized_signed_int(vals, bit_count)
                                 else:
                                     mask = (1 << bit_count) - 1
                                     vals = vals & mask
                             elif data_type in v4c.SIGNED_INT:
-                                view = f'{channel_dtype.byteorder}i{vals.itemsize}'
+                                view = f"{channel_dtype.byteorder}i{vals.itemsize}"
                                 vals = vals.view(view)
 
                         else:
@@ -7287,8 +6841,12 @@ class MDF4(object):
                             vals = self._get_not_byte_aligned_data(
                                 data_bytes, grp, ch_nr
                             )
-                        elif vals_dtype not in "ui" and (bit_offset or not bit_count == size * 8):
-                            vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
+                        elif vals_dtype not in "ui" and (
+                            bit_offset or not bit_count == size * 8
+                        ):
+                            vals = self._get_not_byte_aligned_data(
+                                data_bytes, grp, ch_nr
+                            )
                         else:
                             dtype_ = vals.dtype
                             kind_ = dtype_.kind
@@ -7300,10 +6858,13 @@ class MDF4(object):
                                 else:
                                     channel_dtype = channel.dtype_fmt
 
-                                if channel_dtype.byteorder == '|' and data_type in (v4c.DATA_TYPE_SIGNED_MOTOROLA, v4c.DATA_TYPE_UNSIGNED_MOTOROLA):
-                                    view = f'>u{vals.itemsize}'
+                                if channel_dtype.byteorder == "|" and data_type in (
+                                    v4c.DATA_TYPE_SIGNED_MOTOROLA,
+                                    v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                                ):
+                                    view = f">u{vals.itemsize}"
                                 else:
-                                    view = f'{channel_dtype.byteorder}u{vals.itemsize}'
+                                    view = f"{channel_dtype.byteorder}u{vals.itemsize}"
                                 vals = vals.view(view)
 
                                 if bit_offset:
@@ -7318,7 +6879,7 @@ class MDF4(object):
                                         mask = (1 << bit_count) - 1
                                         vals = vals & mask
                                 elif data_type in v4c.SIGNED_INT:
-                                    view = f'{channel_dtype.byteorder}i{vals.itemsize}'
+                                    view = f"{channel_dtype.byteorder}i{vals.itemsize}"
                                     vals = vals.view(view)
 
                             else:
@@ -7329,7 +6890,9 @@ class MDF4(object):
                                 else:
                                     if kind_ in "ui":
                                         if channel.dtype_fmt.subdtype:
-                                            channel_dtype = channel.dtype_fmt.subdtype[0]
+                                            channel_dtype = channel.dtype_fmt.subdtype[
+                                                0
+                                            ]
                                         else:
                                             channel_dtype = channel.dtype_fmt
                                         vals = vals.view(channel_dtype)
@@ -7424,7 +6987,11 @@ class MDF4(object):
             )
 
             if signal_data:
-                if data_type in (v4c.DATA_TYPE_BYTEARRAY, v4c.DATA_TYPE_UNSIGNED_INTEL, v4c.DATA_TYPE_UNSIGNED_MOTOROLA):
+                if data_type in (
+                    v4c.DATA_TYPE_BYTEARRAY,
+                    v4c.DATA_TYPE_UNSIGNED_INTEL,
+                    v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                ):
                     vals = extract(signal_data, 1)
                 else:
                     vals = extract(signal_data, 0)
@@ -7432,7 +6999,11 @@ class MDF4(object):
                 if not with_bounds:
                     vals = vals[record_start : record_start + count_]
 
-                if data_type not in (v4c.DATA_TYPE_BYTEARRAY, v4c.DATA_TYPE_UNSIGNED_INTEL, v4c.DATA_TYPE_UNSIGNED_MOTOROLA):
+                if data_type not in (
+                    v4c.DATA_TYPE_BYTEARRAY,
+                    v4c.DATA_TYPE_UNSIGNED_INTEL,
+                    v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                ):
 
                     if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
                         encoding = "utf-16-be"
@@ -7584,10 +7155,7 @@ class MDF4(object):
                 + group.channel_group.invalidation_bytes_nr
             )
 
-        if ch_nr >= 0:
-            channel = group.channels[ch_nr]
-        else:
-            channel = group.logging_channels[-ch_nr - 1]
+        channel = group.channels[ch_nr]
 
         bit_offset = channel.bit_offset
         byte_offset = channel.byte_offset
@@ -7692,11 +7260,7 @@ class MDF4(object):
             return vals
 
     def included_channels(
-        self,
-        index=None,
-        channels=None,
-        skip_master=True,
-        minimal=True,
+        self, index=None, channels=None, skip_master=True, minimal=True,
     ):
 
         if channels is None:
@@ -7715,49 +7279,6 @@ class MDF4(object):
                     included_channels.remove(master_index)
 
                 channels = group.channels
-
-                if group.CAN_logging:
-                    found = True
-                    where = (
-                        self.whereis("CAN_DataFrame")
-                        + self.whereis("CAN_ErrorFrame")
-                        + self.whereis("CAN_RemoteFrame")
-                    )
-
-                    for dg_cntr, ch_cntr in where:
-                        if dg_cntr == gp_index:
-                            break
-                    else:
-                        found = False
-                        group.CAN_logging = False
-
-                    if found:
-                        channel = channels[ch_cntr]
-
-                        frame_bytes = range(
-                            channel.byte_offset,
-                            channel.byte_offset + channel.bit_count // 8,
-                        )
-
-                        for i, channel in enumerate(channels):
-                            if channel.byte_offset in frame_bytes:
-                                included_channels.remove(i)
-
-                        included_channels.add(ch_cntr)
-
-                        if group.CAN_database:
-                            dbc_addr = group.dbc_addr
-                            message_id = group.message_id
-                            for m_ in message_id:
-                                try:
-                                    can_msg = self._dbc_cache[dbc_addr].frameById(m_)
-                                except AttributeError:
-                                    can_msg = self._dbc_cache[dbc_addr].frame_by_id(
-                                        canmatrix.ArbitrationId(m_)
-                                    )
-
-                                for i, _ in enumerate(can_msg.signals, 1):
-                                    included_channels.add(-i)
 
                 for dependencies in group.channel_dependencies:
                     if dependencies is None:
@@ -7817,17 +7338,13 @@ class MDF4(object):
                         )
                     else:
                         group, idx = self._validate_channel_selection(*item)
-                        if group not in gps:
-                            gps[group] = {idx}
-                        else:
-                            gps[group].add(idx)
+                        gps_idx = gps.setdefault(group, set())
+                        gps_idx.add(idx)
                 else:
                     name = item
                     group, idx = self._validate_channel_selection(name)
-                    if group not in gps:
-                        gps[group] = {idx}
-                    else:
-                        gps[group].add(idx)
+                    gps_idx = gps.setdefault(group, set())
+                    gps_idx.add(idx)
 
             result = {}
             for gp_index, channels in gps.items():
@@ -7837,8 +7354,7 @@ class MDF4(object):
                 if minimal:
 
                     channel_dependencies = [
-                        group.channel_dependencies[ch_nr]
-                        for ch_nr in channels
+                        group.channel_dependencies[ch_nr] for ch_nr in channels
                     ]
 
                     for dependencies in channel_dependencies:
@@ -7846,7 +7362,8 @@ class MDF4(object):
                             continue
 
                         if all(
-                            not isinstance(dep, ChannelArrayBlock) for dep in dependencies
+                            not isinstance(dep, ChannelArrayBlock)
+                            for dep in dependencies
                         ):
 
                             for _, ch_nr in dependencies:
@@ -7883,6 +7400,10 @@ class MDF4(object):
                                             channels.remove(ch_nr)
                                         except KeyError:
                                             pass
+
+                    gp_master = self.masters_db[gp_index]
+                    if gp_master is not None and gp_master in channels:
+                        channels.remove(gp_master)
 
                 if master not in result:
                     result[master] = {}
@@ -7978,7 +7499,7 @@ class MDF4(object):
                                 ignore_invalidation_bits=True,
                                 samples_only=False,
                             )
-                         )
+                        )
 
                 else:
                     for channel_index in channels:
@@ -8299,8 +7820,7 @@ class MDF4(object):
         return timestamps
 
     def get_can_signal(
-        self, name, database=None, db=None, ignore_invalidation_bits=False,
-        data=None,
+        self, name, database=None, db=None, ignore_invalidation_bits=False, data=None,
     ):
         """ get CAN message signal. You can specify an external CAN database (
         *database* argument) or canmatrix databse object that has already been
@@ -8382,7 +7902,7 @@ class MDF4(object):
                     f'CAN id "{can_id_str}" of signal name "{name}" is not recognised by this library'
                 )
             else:
-                can_id = f'CAN{can_id.group("id")}'
+                can_id = int(can_id.group("id"))
 
             message_id = v4c.CAN_DATA_FRAME_PATTERN.search(message_id_str)
             if message_id is None:
@@ -8435,12 +7955,12 @@ class MDF4(object):
 
         if can_id is None:
             index = None
-            for _can_id, messages in self.can_logging_db.items():
+            for _can_id, messages in self.bus_logging_map["CAN"].items():
 
                 if is_j1939:
                     test_ids = [
                         canmatrix.ArbitrationId(id_, extended=True).pgn
-                        for id_ in self.can_logging_db[_can_id]
+                        for id_ in self.bus_logging_map["CAN"][_can_id]
                     ]
 
                     id_ = message.arbitration_id.pgn
@@ -8451,12 +7971,14 @@ class MDF4(object):
 
                 if id_ in test_ids:
                     if is_j1939:
-                        for id__, idx in self.can_logging_db[_can_id].items():
+                        for id__, idx in self.bus_logging_map["CAN"][_can_id].items():
                             if canmatrix.ArbitrationId(id__, extended=True).pgn == id_:
                                 index = idx
                                 break
                     else:
-                        index = self.can_logging_db[_can_id][message.arbitration_id.id]
+                        index = self.bus_logging_map["CAN"][_can_id][
+                            message.arbitration_id.id
+                        ]
 
                 if index is not None:
                     break
@@ -8465,26 +7987,28 @@ class MDF4(object):
                     f'Message "{message.name}" (ID={hex(message.arbitration_id.id)}) not found in the measurement'
                 )
         else:
-            if can_id in self.can_logging_db:
+            if can_id in self.bus_logging_map["CAN"][_can_id]:
                 if is_j1939:
                     test_ids = [
                         canmatrix.ArbitrationId(id_, extended=True).pgn
-                        for id_ in self.can_logging_db[can_id]
+                        for id_ in self.bus_logging_map["CAN"][can_id]
                     ]
                     id_ = message.arbitration_id.pgn
 
                 else:
                     id_ = message.arbitration_id.id
-                    test_ids = self.can_logging_db[can_id]
+                    test_ids = self.bus_logging_map["CAN"][can_id]
 
                 if id_ in test_ids:
                     if is_j1939:
-                        for id__, idx in self.can_logging_db[can_id].items():
+                        for id__, idx in self.bus_logging_map["CAN"][can_id].items():
                             if canmatrix.ArbitrationId(id__, extended=True).pgn == id_:
                                 index = idx
                                 break
                     else:
-                        index = self.can_logging_db[can_id][message.arbitration_id.id]
+                        index = self.bus_logging_map["CAN"][can_id][
+                            message.arbitration_id.id
+                        ]
                 else:
                     raise MdfException(
                         f'Message "{message.name}" (ID={hex(message.arbitration_id.id)}) not found in the measurement'
@@ -8500,7 +8024,7 @@ class MDF4(object):
             ignore_invalidation_bits=ignore_invalidation_bits,
             data=data,
         )
-        can_ids.samples = can_ids.samples & 0x1fffffff
+        can_ids.samples = can_ids.samples.astype("<u4") & 0x1FFFFFFF
         payload = self.get(
             "CAN_DataFrame.DataBytes",
             group=index,
@@ -9147,12 +8671,7 @@ class MDF4(object):
                             index = dep_list[0][1]
                             addr_ = gp.channels[index].address
 
-                for channel in gp.logging_channels:
-                    address = channel.to_blocks(
-                        address, blocks, defined_texts, cc_map, si_map
-                    )
-
-                group_channels = list(chain(gp.channels, gp.logging_channels))
+                group_channels = gp.channels
                 if group_channels:
                     for j, channel in enumerate(group_channels[:-1]):
                         channel.next_ch_addr = group_channels[j + 1].address
@@ -9450,10 +8969,7 @@ class MDF4(object):
 
         grp = self.groups[gp_nr]
 
-        if ch_nr >= 0:
-            channel = grp.channels[ch_nr]
-        else:
-            channel = grp.logging_channels[-ch_nr - 1]
+        channel = grp.channels[ch_nr]
 
         return channel
 
@@ -9621,7 +9137,7 @@ class MDF4(object):
                 message = f"invalid record id size {record_id_nr}"
                 raise MdfException(message)
 
-            rem = b''
+            rem = b""
             for info in group.data_blocks:
                 address, size, block_size, block_type, param = (
                     info.address,
@@ -9650,7 +9166,11 @@ class MDF4(object):
 
                     try:
                         rem = sort_data_block(
-                            new_data, partial_records, cg_size, record_id_nr, _unpack_stuct
+                            new_data,
+                            partial_records,
+                            cg_size,
+                            record_id_nr,
+                            _unpack_stuct,
                         )
                     except:
                         print(format_exc())
@@ -9681,7 +9201,9 @@ class MDF4(object):
                                         count=len(offsets),
                                         offsets=offsets,
                                     )
-                                    self.groups[dg_cntr].signal_data[ch_cntr].append(info)
+                                    self.groups[dg_cntr].signal_data[ch_cntr].append(
+                                        info
+                                    )
 
                             else:
                                 if size:
@@ -9708,7 +9230,11 @@ class MDF4(object):
                         partial_records = {id_: [] for _, id_ in groups}
 
                         rem = sort_data_block(
-                            new_data, partial_records, cg_size, record_id_nr, _unpack_stuct
+                            new_data,
+                            partial_records,
+                            cg_size,
+                            record_id_nr,
+                            _unpack_stuct,
                         )
 
                         for rec_id, new_data in partial_records.items():
@@ -9716,7 +9242,9 @@ class MDF4(object):
                             channel_group = cg_map[rec_id]
 
                             if channel_group.address in self._cn_data_map:
-                                dg_cntr, ch_cntr = self._cn_data_map[channel_group.address]
+                                dg_cntr, ch_cntr = self._cn_data_map[
+                                    channel_group.address
+                                ]
                             else:
                                 dg_cntr, ch_cntr = None, None
 
@@ -9735,19 +9263,21 @@ class MDF4(object):
                                             count=len(offsets),
                                             offsets=offsets,
                                         )
-                                        self.groups[dg_cntr].signal_data[ch_cntr].append(info)
+                                        self.groups[dg_cntr].signal_data[
+                                            ch_cntr
+                                        ].append(info)
 
                                 else:
                                     if size:
-#                                        block_info = DataBlockInfo(
-#                                            address=address,
-#                                            block_type=v4c.DT_BLOCK,
-#                                            raw_size=size,
-#                                            size=size,
-#                                            param=0,
-#                                        )
-#                                        final_records[rec_id].append(block_info)
-#                                        size = 0
+                                        #                                        block_info = DataBlockInfo(
+                                        #                                            address=address,
+                                        #                                            block_type=v4c.DT_BLOCK,
+                                        #                                            raw_size=size,
+                                        #                                            size=size,
+                                        #                                            param=0,
+                                        #                                        )
+                                        #                                        final_records[rec_id].append(block_info)
+                                        #                                        size = 0
 
                                         address = tell()
 
@@ -9775,3 +9305,252 @@ class MDF4(object):
                 group.data_location = v4c.LOCATION_TEMPORARY_FILE
                 group.set_blocks_info(final_records[rec_id])
                 group.sorted = True
+
+    def _process_bus_logging(self):
+        groups_count = len(self.groups)
+        for index in range(groups_count):
+            group = self.groups[index]
+            if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
+                source = group.channel_group.acq_source
+                if (
+                    source
+                    and source.bus_type == v4c.BUS_TYPE_CAN
+                    and "CAN_DataFrame" in [ch.name for ch in group.channels]
+                ):
+                    self._process_can_logging(index, group)
+
+    def _process_can_logging(self, group_index, grp):
+
+        channels = grp.channels
+        group = grp
+
+        dbc = None
+
+        for i, channel in enumerate(channels):
+            if channel.name == "CAN_DataFrame":
+                try:
+                    addr = channel.attachment_addr
+                except AttributeError:
+                    addr = 0
+                if addr:
+                    attachment_addr = self._attachments_map[addr]
+                    if attachment_addr not in self._dbc_cache:
+                        attachment, at_name = self.extract_attachment(
+                            index=attachment_addr
+                        )
+                        if not at_name.name.lower().endswith(("dbc", "arxml")):
+                            message = f'Expected .dbc or .arxml file as CAN channel attachment but got "{at_name}"'
+                            logger.warning(message)
+                        elif not attachment:
+                            message = f'Attachment "{at_name}" not found'
+                            logger.warning(message)
+                        else:
+                            dbc = load_can_database(at_name, attachment)
+                            if dbc:
+                                self._dbc_cache[attachment_addr] = dbc
+                    else:
+                        dbc = self._dbc_cache[attachment_addr]
+                break
+
+        if dbc is None:
+            parents, dtypes = self._prepare_record(group)
+            data = self._load_data(group, optimize_read=False)
+
+            for fragment_index, fragment in enumerate(data):
+                if dtypes.itemsize:
+                    group.record = fromstring(fragment[0], dtype=dtypes)
+                else:
+                    group.record = None
+                    return
+
+                self._set_temporary_master(None)
+                self._set_temporary_master(self.get_master(group_index, data=fragment))
+
+                bus_ids = self.get(
+                    "CAN_DataFrame.BusChannel",
+                    group=group_index,
+                    data=fragment,
+                    samples_only=True,
+                )[0].astype("<u1")
+
+                msg_ids = (
+                    self.get(
+                        "CAN_DataFrame.ID",
+                        group=group_index,
+                        data=fragment,
+                        samples_only=True,
+                    )[0].astype("<u4")
+                    & 0x1FFFFFFF
+                )
+
+                if len(bus_ids) == 0:
+                    continue
+
+                buses = unique(bus_ids)
+
+                for bus in buses:
+                    idx_ = argwhere(bus_ids == bus).ravel()
+                    bus_msg_ids = msg_ids[idx_]
+
+                    unique_ids = sorted(unique(bus_msg_ids).astype("<u8"))
+
+                    bus_map = self.bus_logging_map["CAN"].setdefault(bus, {})
+
+                    for msg_id in unique_ids:
+                        bus_map[int(msg_id)] = group_index
+
+            self._set_temporary_master(None)
+            group.record = None
+
+        else:
+
+            is_j1939 = dbc.contains_j1939
+
+            if is_j1939:
+                messages = {message.arbitration_id.pgn: message for message in dbc}
+            else:
+                messages = {message.arbitration_id.id: message for message in dbc}
+
+            msg_map = {}
+
+            parents, dtypes = self._prepare_record(group)
+            data = self._load_data(group, optimize_read=False)
+
+            for fragment_index, fragment in enumerate(data):
+                if dtypes.itemsize:
+                    group.record = fromstring(fragment[0], dtype=dtypes)
+                else:
+                    group.record = None
+                    return
+
+                self._set_temporary_master(None)
+                self._set_temporary_master(self.get_master(group_index, data=fragment))
+
+                bus_ids = self.get(
+                    "CAN_DataFrame.BusChannel",
+                    group=group_index,
+                    data=fragment,
+                    samples_only=True,
+                )[0].astype("<u1")
+
+                msg_ids = (
+                    self.get(
+                        "CAN_DataFrame.ID", group=group_index, data=fragment,
+                    ).astype("<u4")
+                    & 0x1FFFFFFF
+                )
+
+                if is_j1939:
+                    ps = (msg_ids.samples >> 8) & 0xFF
+                    pf = (msg_ids.samples >> 16) & 0xFF
+                    _pgn = pf << 8
+                    msg_ids.samples = where(pf >= 240, _pgn + ps, _pgn,)
+
+                data_bytes = self.get(
+                    "CAN_DataFrame.DataBytes",
+                    group=group_index,
+                    data=fragment,
+                    samples_only=True,
+                )[0]
+
+                buses = unique(bus_ids)
+                if len(bus_ids) == 0:
+                    continue
+
+                for bus in buses:
+                    idx_ = argwhere(bus_ids == bus).ravel()
+                    bus_msg_ids = msg_ids.samples[idx_]
+
+                    bus_t = msg_ids.timestamps[idx_]
+                    bus_data_bytes = data_bytes[idx_]
+
+                    unique_ids = sorted(unique(bus_msg_ids).astype("<u8"))
+
+                    bus_map = self.bus_logging_map["CAN"].setdefault(bus, {})
+
+                    for msg_id in unique_ids:
+                        bus_map[int(msg_id)] = group_index
+
+                    for msg_id in unique_ids:
+                        message = messages.get(msg_id, None)
+                        if message is None:
+                            continue
+
+                        idx = argwhere(bus_msg_ids == msg_id).ravel()
+                        payload = bus_data_bytes[idx]
+                        t = bus_t[idx]
+
+                        extracted_signals = extract_mux(
+                            payload, message, msg_id, bus, t
+                        )
+
+                        for entry, signals in extracted_signals.items():
+                            if len(next(iter(signals.values()))["samples"]) == 0:
+                                continue
+                            if entry not in msg_map:
+                                sigs = []
+
+                                for name_, signal in signals.items():
+                                    sig = Signal(
+                                        samples=signal["samples"],
+                                        timestamps=signal["t"],
+                                        name=signal["name"],
+                                        comment=signal["comment"],
+                                        unit=signal["unit"],
+                                        invalidation_bits=signal["invalidation_bits"],
+                                        display_name=f"CAN{bus}.{message.name}.{signal['name']}",
+                                    )
+
+                                    sigs.append(sig)
+
+                                cg_nr = self.append(
+                                    sigs,
+                                    f"from CAN{bus} message ID=0x{msg_id:X}",
+                                    common_timebase=True,
+                                )
+
+                                msg_map[entry] = cg_nr
+
+                                self.groups[
+                                    cg_nr
+                                ].channel_group.comment = f"{message} 0x{msg_id:X}"
+
+                                for ch_index, ch in enumerate(
+                                    self.groups[cg_nr].channels
+                                ):
+                                    if ch_index == 0:
+                                        continue
+
+                                    entry = cg_nr, ch_index
+
+                                    name_ = f"{message}.{ch.name}"
+                                    self.channels_db.add(name_, entry)
+
+                                    name_ = f"CAN{bus}.{message}.{ch.name}"
+                                    self.channels_db.add(name_, entry)
+
+                                    name_ = f"CAN_DataFrame_{msg_id}.{ch.name}"
+                                    self.channels_db.add(name_, entry)
+
+                                    name_ = f"CAN{bus}.CAN_DataFrame_{msg_id}.{ch.name}"
+                                    self.channels_db.add(name_, entry)
+
+                            else:
+
+                                index = msg_map[entry]
+
+                                sigs = []
+
+                                for name_, signal in signals.items():
+
+                                    sigs.append(
+                                        (signal["samples"], signal["invalidation_bits"])
+                                    )
+
+                                    t = signal["t"]
+
+                                sigs.insert(0, (t, None))
+
+                                self.extend(index, sigs)
+                self._set_temporary_master(None)
+                group.record = None

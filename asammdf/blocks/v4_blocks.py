@@ -3,36 +3,34 @@
 classes that implement the blocks for MDF version 4
 """
 
-import logging
-import xml.etree.ElementTree as ET
-import time
 from datetime import datetime, timedelta, timezone
 from hashlib import md5
+import logging
+from pathlib import Path
 from struct import pack, unpack, unpack_from
 from textwrap import wrap
+import time
+import xml.etree.ElementTree as ET
 from zlib import compress, decompress
-from pathlib import Path
 
-import numpy as np
 from numexpr import evaluate
+import numpy as np
 
 from . import v4_constants as v4c
+from ..version import __version__
 from .utils import (
-    MdfException,
+    block_fields,
+    FLOAT64_u,
     get_text_v4,
     is_file_like,
-    SignalSource,
+    MdfException,
+    sanitize_xml,
     UINT8_uf,
-    UINT32_uf,
     UINT32_u,
+    UINT32_uf,
     UINT64_u,
     UINT64_uf,
-    FLOAT64_u,
-    sanitize_xml,
-    block_fields,
 )
-from ..version import __version__
-
 
 SEEK_START = v4c.SEEK_START
 SEEK_END = v4c.SEEK_END
@@ -1137,6 +1135,20 @@ comment: {self.comment}
                     lines.append(template.format(key, val.strip(b"\0")))
                 else:
                     lines.append(template.format(key, val))
+            if key == "data_type":
+                lines[-1] += f" = {v4c.DATA_TYPE_TO_STRING[self.data_type]}"
+            elif key == "channel_type":
+                lines[-1] += f" = {v4c.CHANNEL_TYPE_TO_STRING[self.channel_type]}"
+            elif key == "sync_type":
+                lines[-1] += f" = {v4c.SYNC_TYPE_TO_STRING[self.sync_type]}"
+            elif key == "flags":
+                flags = []
+                for fl, string in v4c.FLAG_CN_TO_STRING.items():
+                    if self.flags & fl:
+                        flags.append(string)
+                if flags:
+                    lines[-1] += f" [0x{self.flags:X}= {', '.join(flags)}]"
+
         for line in lines:
             if not line:
                 metadata.append(line)
@@ -1968,6 +1980,22 @@ comment: {self.comment}
                     lines.append(template.format(key, val.strip(b"\0")))
                 else:
                     lines.append(template.format(key, val))
+
+            if key == "flags":
+                flags = []
+                for fl, string in v4c.FLAG_CG_TO_STRING.items():
+                    if self.flags & fl:
+                        flags.append(string)
+                if flags:
+                    lines[-1] += f" [0x{self.flags:X}= {', '.join(flags)}]"
+            elif key == "path_separator":
+                if self.path_separator:
+                    sep = pack("<H", self.path_separator).decode("utf-16")
+
+                    lines[-1] += f" (= '{sep}')"
+                else:
+                    lines[-1] += f" (= <undefined>)"
+
         for line in lines:
             if not line:
                 metadata.append(line)
@@ -3352,6 +3380,15 @@ formula: {self.formula}
                 else:
                     lines.append(template.format(key, val))
 
+            if key == "conversion_type":
+                lines[-1] += f" = {v4c.CONVERSION_TYPE_TO_STRING[self.conversion_type]}"
+            elif self.referenced_blocks and key in self.referenced_blocks:
+                val = self.referenced_blocks[key]
+                if isinstance(val, bytes):
+                    lines[-1] += f" (= {str(val)[1:]})"
+                else:
+                    lines[-1] += f" (= CCBLOCK @ {hex(val.address)})"
+
         if self.referenced_blocks:
             max_len = max(len(key) for key in self.referenced_blocks)
             template = f"{{: <{max_len}}}: {{}}"
@@ -3363,7 +3400,7 @@ formula: {self.formula}
                     lines.append(template.format(key, ""))
                     lines.extend(block.metadata(indent + "    ").split("\n"))
                 else:
-                    lines.append(template.format(key, block))
+                    lines.append(template.format(key, str(block)[1:]))
 
         for line in lines:
             if not line:
@@ -4240,6 +4277,7 @@ class _EventBlockBase:
         "comment",
         "name",
         "parent",
+        "group_name",
         "range_start",
         "scopes",
         "id",
@@ -4316,7 +4354,7 @@ class EventBlock(_EventBlockBase):
 
     def __init__(self, **kwargs):
 
-        self.name = self.comment = ""
+        self.name = self.comment = self.group_name = ""
         self.scopes = []
         self.parent = None
         self.range_start = None
@@ -4409,7 +4447,7 @@ class EventBlock(_EventBlockBase):
             self.scope_nr = scopes
             self.attachment_nr = 0
             self.creator_index = 0
-            self.sync_base = kwargs.get("sync_base", 0)
+            self.sync_base = kwargs.get("sync_base", 1)
             self.sync_factor = kwargs.get("sync_factor", 1.0)
 
             if self.flags & v4c.FLAG_EV_GROUP_NAME:
@@ -4482,6 +4520,52 @@ class EventBlock(_EventBlockBase):
         return "EventBlock (name: {}, comment: {}, address: {}, scopes: {}, fields: {})".format(
             self.name, self.comment, hex(self.address), self.scopes, super().__str__()
         )
+
+    @property
+    def value(self):
+        return self.sync_base * self.sync_factor
+
+    @value.setter
+    def value(self, val):
+        self.sync_factor = val / self.sync_base
+
+    def to_blocks(self, address, blocks):
+        text = self.name
+        if text:
+            tx_block = TextBlock(text=text)
+            self.name_addr = address
+            tx_block.address = address
+            address += tx_block.block_len
+            blocks.append(tx_block)
+        else:
+            self.name_addr = 0
+
+        text = self.comment
+        if text:
+            tx_block = TextBlock(text=text)
+            self.comment_addr = address
+            tx_block.address = address
+            address += tx_block.block_len
+            blocks.append(tx_block)
+        else:
+            self.comment_addr = 0
+
+        if self.flags & v4c.FLAG_EV_GROUP_NAME:
+            text = self.group_name
+            if text:
+                tx_block = TextBlock(text=text)
+                self.group_name_addr = address
+                tx_block.address = address
+                address += tx_block.block_len
+                blocks.append(tx_block)
+            else:
+                self.group_name_addr = 0
+
+        blocks.append(self)
+        self.address = address
+        address += self.block_len
+
+        return address
 
 
 class FileIdentificationBlock:
@@ -5487,6 +5571,12 @@ comment: {self.comment}
                     lines.append(template.format(key, val.strip(b"\0")))
                 else:
                     lines.append(template.format(key, val))
+
+            if key == "source_type":
+                lines[-1] += f" = {v4c.SOURCE_TYPE_TO_STRING[self.source_type]}"
+            elif key == "bus_type":
+                lines[-1] += f" = {v4c.BUS_TYPE_TO_STRING[self.bus_type]}"
+
         for line in lines:
             if not line:
                 metadata.append(line)
@@ -5550,11 +5640,6 @@ comment: {self.comment}
             address += self.block_len
 
         return address
-
-    def to_common_source(self):
-        return SignalSource(
-            self.name, self.path, self.comment, self.source_type, self.bus_type
-        )
 
     @classmethod
     def from_common_source(cls, source):

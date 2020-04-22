@@ -36,10 +36,7 @@ def plot(signals, title="", validate=True):
 
         if validate:
             if isinstance(signals, (tuple, list)):
-                signals = [
-                    signal.validate()
-                    for signal in signals
-                ]
+                signals = [signal.validate() for signal in signals]
             else:
                 signals = [signals.validate()]
         main = PlotWindow(signals)

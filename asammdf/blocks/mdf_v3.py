@@ -1,18 +1,18 @@
 # -*- coding: utf-8 -*-
 """ ASAM MDF version 3 file format module """
 
-import logging
-import time
-import xml.etree.ElementTree as ET
-import mmap
-import sys
-from copy import deepcopy
 from collections import defaultdict
+from copy import deepcopy
 from functools import reduce
 from itertools import product
+import logging
 from math import ceil
-from tempfile import TemporaryFile
+import mmap
 from pathlib import Path
+import sys
+from tempfile import TemporaryFile
+import time
+import xml.etree.ElementTree as ET
 
 from numpy import (
     arange,
@@ -24,41 +24,41 @@ from numpy import (
     flip,
     float32,
     float64,
+    frombuffer,
     linspace,
     packbits,
     roll,
+    searchsorted,
     uint8,
     uint16,
     union1d,
     unique,
     unpackbits,
     zeros,
-    searchsorted,
-    frombuffer,
 )
-
+from numpy.core.defchararray import decode, encode
 from numpy.core.records import fromarrays, fromstring
-from numpy.core.defchararray import encode, decode
 from pandas import DataFrame
 
-from ..signal import Signal
 from . import v2_v3_constants as v23c
+from ..signal import Signal
+from ..version import __version__
 from .conversion_utils import conversion_transfer
+from .source_utils import Source
 from .utils import (
-    CHANNEL_COUNT,
-    CONVERT,
-    ChannelsDB,
-    MdfException,
-    SignalSource,
     as_non_byte_sized_signed_int,
+    CHANNEL_COUNT,
+    ChannelsDB,
+    CONVERT,
+    count_channel_groups,
+    DataBlockInfo,
     fmt_to_datatype_v3,
     get_fmt_v3,
+    Group,
+    is_file_like,
+    MdfException,
     UniqueDB,
     validate_version_argument,
-    count_channel_groups,
-    is_file_like,
-    Group,
-    DataBlockInfo,
     VirtualChannelGroup,
 )
 from .v2_v3_blocks import (
@@ -73,8 +73,6 @@ from .v2_v3_blocks import (
     TextBlock,
     TriggerBlock,
 )
-from ..version import __version__
-
 
 logger = logging.getLogger("asammdf")
 
@@ -227,7 +225,7 @@ class MDF3(object):
 
             virtual_channel_group = self.virtual_groups[index]
             virtual_channel_group.groups.append(index)
-            virtual_channel_group.record_size =  grp.channel_group.samples_byte_nr
+            virtual_channel_group.record_size = grp.channel_group.samples_byte_nr
             virtual_channel_group.cycles_nr = grp.channel_group.cycles_nr
 
     def __del__(self):
@@ -482,8 +480,14 @@ class MDF3(object):
                         bit_size = byte_size * 8
 
                         if (
-                            data_type in(v23c.DATA_TYPE_SIGNED_MOTOROLA, v23c.DATA_TYPE_UNSIGNED_MOTOROLA)
-                            or data_type in (v23c.DATA_TYPE_SIGNED, v23c.DATA_TYPE_UNSIGNED) and byte_order == v23c.BYTE_ORDER_MOTOROLA
+                            data_type
+                            in (
+                                v23c.DATA_TYPE_SIGNED_MOTOROLA,
+                                v23c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                            )
+                            or data_type
+                            in (v23c.DATA_TYPE_SIGNED, v23c.DATA_TYPE_UNSIGNED)
+                            and byte_order == v23c.BYTE_ORDER_MOTOROLA
                         ):
 
                             if size > 32:
@@ -528,8 +532,14 @@ class MDF3(object):
                     max_overlapping = next_byte_aligned_position - byte_start_offset
                     if max_overlapping >= bit_size:
                         if (
-                            data_type in(v23c.DATA_TYPE_SIGNED_MOTOROLA, v23c.DATA_TYPE_UNSIGNED_MOTOROLA)
-                            or data_type in (v23c.DATA_TYPE_SIGNED, v23c.DATA_TYPE_UNSIGNED) and byte_order == v23c.BYTE_ORDER_MOTOROLA
+                            data_type
+                            in (
+                                v23c.DATA_TYPE_SIGNED_MOTOROLA,
+                                v23c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                            )
+                            or data_type
+                            in (v23c.DATA_TYPE_SIGNED, v23c.DATA_TYPE_UNSIGNED)
+                            and byte_order == v23c.BYTE_ORDER_MOTOROLA
                         ):
                             parents[original_index] = (
                                 current_parent,
@@ -648,7 +658,9 @@ class MDF3(object):
         if data_type in v23c.SIGNED_INT:
             return as_non_byte_sized_signed_int(vals, bit_count)
         elif data_type in v23c.FLOATS:
-            return vals.view(get_fmt_v3(data_type, bit_count, self.identification.byte_order))
+            return vals.view(
+                get_fmt_v3(data_type, bit_count, self.identification.byte_order)
+            )
         else:
             return vals
 
@@ -844,7 +856,8 @@ class MDF3(object):
                     )
 
                     if self._remove_source_from_channel_names:
-                        new_ch.name = new_ch.name.split("\\")[0]
+                        new_ch.name = new_ch.name.split("\\", 1)[0]
+                        new_ch.display_name = new_ch.display_name.split("\\", 1)[0]
 
                     # check if it has channel dependencies
                     if new_ch.component_addr:
@@ -1113,6 +1126,11 @@ class MDF3(object):
         >>> mdf2.append(df, units=units)
 
         """
+        if not isinstance(acquisition_info, str):
+            if not isinstance(acquisition_info, Source):
+                acquisition_info = Source.from_source(acquisition_info)
+            acquisition_info = acquisition_info.name
+
         if isinstance(signals, Signal):
             signals = [signals]
         elif isinstance(signals, DataFrame):
@@ -1963,7 +1981,7 @@ class MDF3(object):
 
         virtual_channel_group = self.virtual_groups[dg_cntr]
         virtual_channel_group.groups.append(dg_cntr)
-        virtual_channel_group.record_size =  gp.channel_group.samples_byte_nr
+        virtual_channel_group.record_size = gp.channel_group.samples_byte_nr
         virtual_channel_group.cycles_nr = gp.channel_group.cycles_nr
 
         # data group trigger
@@ -1971,10 +1989,15 @@ class MDF3(object):
 
         return dg_cntr
 
-    def _append_dataframe(self, df, source_info="", units=None):
+    def _append_dataframe(self, df, acquisition_info="", units=None):
         """
         Appends a new data group from a Pandas data frame.
         """
+
+        if not isinstance(acquisition_info, str):
+            if not isinstance(acquisition_info, Source):
+                acquisition_info = Source.from_source(acquisition_info)
+            acquisition_info = acquisition_info.name
 
         units = units or {}
 
@@ -2205,7 +2228,7 @@ class MDF3(object):
 
         virtual_channel_group = self.virtual_groups[dg_cntr]
         virtual_channel_group.groups.append(dg_cntr)
-        virtual_channel_group.record_size =  gp.channel_group.samples_byte_nr
+        virtual_channel_group.record_size = gp.channel_group.samples_byte_nr
         virtual_channel_group.cycles_nr = gp.channel_group.cycles_nr
 
         # data group trigger
@@ -2295,7 +2318,7 @@ class MDF3(object):
         cycles_nr = len(signals[0][0])
         string_counter = 0
 
-        for k_i,( signal, _ )in enumerate(signals):
+        for k_i, (signal, _) in enumerate(signals):
             sig = signal
             names = sig.dtype.names
 
@@ -2864,13 +2887,18 @@ class MDF3(object):
 
                         if data_type in v23c.INT_TYPES:
 
-                            dtype_fmt = get_fmt_v3(data_type, bits, self.identification.byte_order)
+                            dtype_fmt = get_fmt_v3(
+                                data_type, bits, self.identification.byte_order
+                            )
                             channel_dtype = dtype(dtype_fmt.split(")")[-1])
 
-                            if channel_dtype.byteorder == '|' and data_type in (v23c.DATA_TYPE_SIGNED_MOTOROLA, v23c.DATA_TYPE_UNSIGNED_MOTOROLA):
-                                view = f'>u{vals.itemsize}'
+                            if channel_dtype.byteorder == "|" and data_type in (
+                                v23c.DATA_TYPE_SIGNED_MOTOROLA,
+                                v23c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                            ):
+                                view = f">u{vals.itemsize}"
                             else:
-                                view = f'{channel_dtype.byteorder}u{vals.itemsize}'
+                                view = f"{channel_dtype.byteorder}u{vals.itemsize}"
 
                             vals = vals.view(view)
 
@@ -2879,14 +2907,12 @@ class MDF3(object):
 
                             if bits != size * 8:
                                 if data_type in v23c.SIGNED_INT:
-                                    vals = as_non_byte_sized_signed_int(
-                                        vals, bits
-                                    )
+                                    vals = as_non_byte_sized_signed_int(vals, bits)
                                 else:
                                     mask = (1 << bits) - 1
                                     vals = vals & mask
                             elif data_type in v23c.SIGNED_INT:
-                                view = f'{channel_dtype.byteorder}i{vals.itemsize}'
+                                view = f"{channel_dtype.byteorder}i{vals.itemsize}"
                                 vals = vals.view(view)
                         else:
                             if bits != size * 8:
@@ -2895,7 +2921,9 @@ class MDF3(object):
                                 )
                             else:
                                 if kind_ in "ui":
-                                    dtype_fmt = get_fmt_v3(data_type, bits, self.identification.byte_order)
+                                    dtype_fmt = get_fmt_v3(
+                                        data_type, bits, self.identification.byte_order
+                                    )
                                     channel_dtype = dtype(dtype_fmt.split(")")[-1])
                                     vals = vals.view(channel_dtype)
 
@@ -2909,7 +2937,12 @@ class MDF3(object):
                     vals = array(vals, dtype=bool)
                 else:
                     data_type = channel.data_type
-                    channel_dtype = array([], dtype=get_fmt_v3(data_type, bits, self.identification.byte_order))
+                    channel_dtype = array(
+                        [],
+                        dtype=get_fmt_v3(
+                            data_type, bits, self.identification.byte_order
+                        ),
+                    )
                     if vals.dtype != channel_dtype.dtype:
                         try:
                             vals = vals.astype(channel_dtype.dtype)
@@ -2974,22 +3007,7 @@ class MDF3(object):
             source = channel.source
 
             if source:
-                if source["type"] == v23c.SOURCE_ECU:
-                    source = SignalSource(
-                        source.name,
-                        source.path,
-                        source.comment,
-                        0,  # source type other
-                        0,  # bus type none
-                    )
-                else:
-                    source = SignalSource(
-                        source.name,
-                        source.path,
-                        source.comment,
-                        2,  # source type bus
-                        2,  # bus type CAN
-                    )
+                source = Source.from_source(source)
 
             master_metadata = self._master_channel_metadata.get(gp_nr, None)
 
@@ -3006,6 +3024,8 @@ class MDF3(object):
                 source=source,
                 bit_count=bit_count,
                 encoding=encoding,
+                group_index=gp_nr,
+                channel_index=ch_nr,
             )
 
         return res
@@ -3564,11 +3584,7 @@ class MDF3(object):
                 group.sorted = True
 
     def included_channels(
-        self,
-        index=None,
-        channels=None,
-        skip_master=True,
-        minimal=True,
+        self, index=None, channels=None, skip_master=True, minimal=True,
     ):
 
         if channels is None:
@@ -3620,8 +3636,7 @@ class MDF3(object):
                 group = self.groups[group_index]
 
                 channel_dependencies = [
-                    group.channel_dependencies[ch_nr]
-                    for ch_nr in channels
+                    group.channel_dependencies[ch_nr] for ch_nr in channels
                 ]
 
                 if minimal:
@@ -3635,6 +3650,10 @@ class MDF3(object):
                                     channels.remove(ch_nr)
                                 except KeyError:
                                     pass
+
+                gp_master = self.masters_db[group_index]
+                if gp_master is not None and gp_master in channels:
+                    channels.remove(gp_master)
 
                 result[group_index] = {group_index: sorted(channels)}
 

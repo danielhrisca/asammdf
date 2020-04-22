@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 import json
 
-from PyQt5 import QtGui
-from PyQt5 import QtWidgets
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtGui, QtWidgets
 
+from ..dialogs.range_editor import RangeEditor
 from ..ui import resource_rc as resource_rc
 from ..ui.channel_display_widget import Ui_ChannelDiplay
-from ..dialogs.range_editor import RangeEditor
 
 
 class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
@@ -16,18 +14,6 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
     enable_changed = QtCore.pyqtSignal(object, int)
     ylink_changed = QtCore.pyqtSignal(object, int)
     individual_axis_changed = QtCore.pyqtSignal(object, int)
-
-    __slots__ = (
-        "color",
-        "_value_prefix",
-        "_value",
-        "_name",
-        "fmt",
-        "uuid",
-        "ranges",
-        "unit",
-        "_transparent",
-    )
 
     def __init__(
         self, uuid, unit="", kind="f", precision=3, tooltip="", *args, **kwargs
@@ -94,8 +80,10 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             self.color_changed.emit(self.uuid, color.name())
 
     def set_fmt(self, fmt):
-        if self.kind in "fSUV":
-            pass
+        if self.kind in "SUV":
+            self.fmt = "{}"
+        elif self.kind == "f":
+            self.fmt = f"{{:.{self.precision}f}}"
         else:
             if fmt == "hex":
                 self.fmt = "0x{:X}"
@@ -131,8 +119,8 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             )
         self.set_value(self._value)
 
-    def set_value(self, value):
-        if self._value == value:
+    def set_value(self, value, update=False):
+        if self._value == value and update is False:
             return
 
         self._value = value

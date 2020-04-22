@@ -6,11 +6,11 @@ from textwrap import fill
 
 import numpy as np
 
-from .blocks.utils import MdfException, extract_cncomment_xml, SignalSource
-from .blocks.conversion_utils import from_dict
 from .blocks import v2_v3_blocks as v3b
 from .blocks import v4_blocks as v4b
-
+from .blocks.conversion_utils import from_dict
+from .blocks.source_utils import Source
+from .blocks.utils import extract_cncomment_xml, MdfException
 from .version import __version__
 
 logger = logging.getLogger("asammdf")
@@ -48,7 +48,7 @@ class Signal(object):
         display name used by mdf version 3
     attachment : bytes, name
         channel attachment and name from MDF version 4
-    source : SignalSource
+    source : Source
         source information named tuple
     bit_count : int
         bit count; useful for integer channels
@@ -78,6 +78,8 @@ class Signal(object):
         stream_sync=False,
         invalidation_bits=None,
         encoding=None,
+        group_index=-1,
+        channel_index=-1,
     ):
 
         if samples is None or timestamps is None or not name:
@@ -113,8 +115,8 @@ class Signal(object):
             self.channel_index = -1
 
             if source:
-                if not isinstance(source, SignalSource):
-                    source = source.to_common_source()
+                if not isinstance(source, Source):
+                    source = Source.from_source(source)
             self.source = source
 
             if bit_count is None:
@@ -125,13 +127,15 @@ class Signal(object):
             self.stream_sync = stream_sync
 
             if invalidation_bits is not None:
-                if not isinstance(
-                    invalidation_bits, np.ndarray
-                ):
+                if not isinstance(invalidation_bits, np.ndarray):
                     invalidation_bits = np.array(invalidation_bits)
                 if invalidation_bits.shape[0] != samples.shape[0]:
-                    message = "{} samples and invalidation bits length mismatch ({} vs {})"
-                    message = message.format(name, samples.shape[0], invalidation_bits.shape[0])
+                    message = (
+                        "{} samples and invalidation bits length mismatch ({} vs {})"
+                    )
+                    message = message.format(
+                        name, samples.shape[0], invalidation_bits.shape[0]
+                    )
                     logger.exception(message)
                     raise MdfException(message)
             self.invalidation_bits = invalidation_bits
@@ -170,7 +174,6 @@ class Signal(object):
             return
 
         except:
-            raise
             try:
                 import matplotlib.pyplot as plt
                 from mpl_toolkits.mplot3d import axes3d
@@ -410,6 +413,8 @@ class Signal(object):
                 self.bit_count,
                 self.stream_sync,
                 encoding=self.encoding,
+                group_index=self.group_index,
+                channel_index=self.channel_index,
             )
 
         elif start is None and stop is None:
@@ -432,6 +437,8 @@ class Signal(object):
                 if self.invalidation_bits is not None
                 else None,
                 encoding=self.encoding,
+                group_index=self.group_index,
+                channel_index=self.channel_index,
             )
 
         else:
@@ -453,6 +460,8 @@ class Signal(object):
                         self.bit_count,
                         self.stream_sync,
                         encoding=self.encoding,
+                        group_index=self.group_index,
+                        channel_index=self.channel_index,
                     )
 
                 else:
@@ -499,6 +508,8 @@ class Signal(object):
                         self.stream_sync,
                         invalidation_bits=invalidation_bits,
                         encoding=self.encoding,
+                        group_index=self.group_index,
+                        channel_index=self.channel_index,
                     )
 
             elif stop is None:
@@ -519,6 +530,8 @@ class Signal(object):
                         self.bit_count,
                         self.stream_sync,
                         encoding=self.encoding,
+                        group_index=self.group_index,
+                        channel_index=self.channel_index,
                     )
 
                 else:
@@ -565,6 +578,8 @@ class Signal(object):
                         self.stream_sync,
                         invalidation_bits=invalidation_bits,
                         encoding=self.encoding,
+                        group_index=self.group_index,
+                        channel_index=self.channel_index,
                     )
 
             else:
@@ -585,6 +600,8 @@ class Signal(object):
                         self.bit_count,
                         self.stream_sync,
                         encoding=self.encoding,
+                        group_index=self.group_index,
+                        channel_index=self.channel_index,
                     )
                 else:
                     start = np.searchsorted(self.timestamps, start, side="left")
@@ -664,6 +681,8 @@ class Signal(object):
                         self.stream_sync,
                         invalidation_bits=invalidation_bits,
                         encoding=self.encoding,
+                        group_index=self.group_index,
+                        channel_index=self.channel_index,
                     )
 
         return result
@@ -723,6 +742,8 @@ class Signal(object):
                 self.stream_sync,
                 invalidation_bits=invalidation_bits,
                 encoding=self.encoding,
+                group_index=self.group_index,
+                channel_index=self.channel_index,
             )
         else:
             result = self
@@ -763,6 +784,8 @@ class Signal(object):
                 stream_sync=self.stream_sync,
                 invalidation_bits=None,
                 encoding=self.encoding,
+                group_index=self.group_index,
+                channel_index=self.channel_index,
             )
         else:
 
@@ -843,6 +866,8 @@ class Signal(object):
                 stream_sync=self.stream_sync,
                 invalidation_bits=invalidation_bits,
                 encoding=self.encoding,
+                group_index=self.group_index,
+                channel_index=self.channel_index,
             )
 
     def __apply_func(self, other, func_name):
@@ -886,6 +911,8 @@ class Signal(object):
             invalidation_bits=self.invalidation_bits,
             source=self.source,
             encoding=self.encoding,
+            group_index=self.group_index,
+            channel_index=self.channel_index,
         )
 
     def __pos__(self):
@@ -1106,8 +1133,8 @@ class Signal(object):
             encoding = None
         else:
             samples = self.conversion.convert(self.samples)
-            if samples.dtype.kind == 'S':
-                encoding = 'utf-8' if self.conversion.id == b'##CC' else 'latin-1'
+            if samples.dtype.kind == "S":
+                encoding = "utf-8" if self.conversion.id == b"##CC" else "latin-1"
             else:
                 encoding = None
 
@@ -1125,6 +1152,8 @@ class Signal(object):
             invalidation_bits=self.invalidation_bits,
             source=self.source,
             encoding=encoding,
+            group_index=self.group_index,
+            channel_index=self.channel_index,
         )
 
     def validate(self, copy=True):
@@ -1159,6 +1188,8 @@ class Signal(object):
                 self.stream_sync,
                 invalidation_bits=None,
                 encoding=self.encoding,
+                group_index=self.group_index,
+                channel_index=self.channel_index,
             )
 
         if copy:
@@ -1186,6 +1217,8 @@ class Signal(object):
             if self.invalidation_bits is not None
             else None,
             encoding=self.encoding,
+            group_index=self.group_index,
+            channel_index=self.channel_index,
         )
 
 

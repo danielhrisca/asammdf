@@ -1,31 +1,46 @@
 # -*- coding: utf-8 -*-
 from functools import partial
+import gc
+import json
 import os
 from pathlib import Path
-import webbrowser
-import gc
 from textwrap import wrap
+import webbrowser
 
-from PyQt5 import QtGui
-from PyQt5 import QtWidgets
-from PyQt5 import QtCore
-import pyqtgraph as pg
 from natsort import natsorted
+import numpy as np
+import pandas as pd
+from PyQt5 import QtCore, QtGui, QtWidgets
+import pyqtgraph as pg
 
+from ...blocks.utils import csv_bytearray2hex, extract_cncomment_xml, MdfException
 from ...mdf import MDF, SUPPORTED_VERSIONS
+from ...version import __version__ as libversion
 from ..dialogs.multi_search import MultiSearch
 from ..ui.main_window import Ui_PyMDFMainWindow
-from ...version import __version__ as libversion
-from ..utils import TERMINATED, run_thread_with_progress, setup_progress
-from .list import ListWidget
-from .file import FileWidget
+from ..utils import (
+    add_children,
+    compute_signal,
+    get_required_signals,
+    HelperChannel,
+    load_dsp,
+    run_thread_with_progress,
+    setup_progress,
+    TERMINATED,
+)
 from .batch import BatchWidget
+from .file import FileWidget
+from .list import ListWidget
+from .mdi_area import MdiAreaWidget, WithMDIArea
+from .numeric import Numeric
 from .plot import Plot
+from .tabular import Tabular
 
 
-class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
+class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
     def __init__(self, files=None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super(Ui_PyMDFMainWindow, self).__init__(*args, **kwargs)
+        WithMDIArea.__init__(self)
         self.setupUi(self)
         self._settings = QtCore.QSettings()
         self._light_palette = self.palette()
@@ -41,13 +56,15 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         layout = QtWidgets.QVBoxLayout()
         widget.setLayout(layout)
 
-        multi_search = QtWidgets.QPushButton('Search')
+        multi_search = QtWidgets.QPushButton("Search")
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/search.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(":/search.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         multi_search.setIcon(icon)
         multi_search.clicked.connect(self.comparison_search)
 
-        multi_info = QtWidgets.QPushButton('Measurements information')
+        multi_info = QtWidgets.QPushButton("Measurements information")
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/info.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         multi_info.setIcon(icon)
@@ -58,10 +75,13 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         hbox.addWidget(multi_info)
         hbox.addStretch()
 
-        self.comparison_plot = Plot({}, parent=self)
+        self.mdi_area = MdiAreaWidget(self)
+        self.mdi_area.add_window_request.connect(self.add_window)
+        self.mdi_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+        self.mdi_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
 
         layout.addLayout(hbox)
-        layout.addWidget(self.comparison_plot)
+        layout.addWidget(self.mdi_area)
 
         self.stackedWidget.addWidget(widget)
         self.stackedWidget.setCurrentIndex(0)
@@ -302,6 +322,28 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action.setShortcut(QtGui.QKeySequence("Ctrl+P"))
         display_format_actions.addAction(action)
 
+        # scaled display
+
+        samples_format_actions = QtWidgets.QActionGroup(self)
+
+        action = QtWidgets.QAction("{: <20}\tAlt+R".format("Raw samples"), menu)
+        action.triggered.connect(
+            partial(
+                self.plot_action, key=QtCore.Qt.Key_R, modifier=QtCore.Qt.AltModifier,
+            )
+        )
+        action.setShortcut(QtGui.QKeySequence("Alt+R"))
+        samples_format_actions.addAction(action)
+
+        action = QtWidgets.QAction("{: <20}\tAlt+S".format("Scaled samples"), menu)
+        action.triggered.connect(
+            partial(
+                self.plot_action, key=QtCore.Qt.Key_S, modifier=QtCore.Qt.AltModifier,
+            )
+        )
+        action.setShortcut(QtGui.QKeySequence("Alt+S"))
+        samples_format_actions.addAction(action)
+
         # info
 
         info = QtWidgets.QActionGroup(self)
@@ -391,12 +433,43 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action.setShortcut(QtCore.Qt.Key_Y)
         cursors_actions.addAction(action)
 
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/comments.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        action = QtWidgets.QAction(
+            icon, "{: <20}\tCtrl+I".format("Insert cursor comment"), menu
+        )
+        action.triggered.connect(
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key_I,
+                modifier=QtCore.Qt.ControlModifier,
+            )
+        )
+        action.setShortcut(QtGui.QKeySequence("Ctrl+I"))
+        cursors_actions.addAction(action)
+
+        icon = QtGui.QIcon()
+        action = QtWidgets.QAction(
+            "{: <20}\tAlt+I".format("Toggle trigger texts"), menu
+        )
+        action.triggered.connect(
+            partial(
+                self.plot_action, key=QtCore.Qt.Key_I, modifier=QtCore.Qt.AltModifier,
+            )
+        )
+        action.setShortcut(QtGui.QKeySequence("Alt+I"))
+        cursors_actions.addAction(action)
+
         self.plot_menu = QtWidgets.QMenu("Plot", self.menubar)
         self.plot_menu.addActions(plot_actions.actions())
         self.plot_menu.addSeparator()
         self.plot_menu.addActions(cursors_actions.actions())
         self.plot_menu.addSeparator()
         self.plot_menu.addActions(display_format_actions.actions())
+        self.plot_menu.addSeparator()
+        self.plot_menu.addActions(samples_format_actions.actions())
         self.plot_menu.addSeparator()
         self.plot_menu.addActions(subs.actions())
         self.plot_menu.addSeparator()
@@ -428,6 +501,10 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         webbrowser.open_new(r"http://asammdf.readthedocs.io/en/master/gui.html")
 
     def save_all_subplots(self, key):
+        if self.stackedWidget.currentIndex() == 0:
+            widget = self.files.currentWidget()
+        elif self.stackedWidget.currentIndex() == 2:
+            widget = self
         widget = self.files.currentWidget()
         widget.save_all_subplots()
 
@@ -438,7 +515,9 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             if widget and widget.get_current_plot():
                 widget.get_current_plot().keyPressEvent(event)
         elif self.stackedWidget.currentIndex() == 2:
-            self.comparison_plot.keyPressEvent(event)
+            widget = self
+            if widget and widget.get_current_plot():
+                widget.get_current_plot().keyPressEvent(event)
 
     def toggle_dots(self, key):
         self.with_dots = not self.with_dots
@@ -449,25 +528,39 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         for i in range(count):
             self.files.widget(i).set_line_style(with_dots=self.with_dots)
 
-        self.comparison_plot.plot.update_lines(with_dots=self.with_dots)
+        self.set_line_style(with_dots=self.with_dots)
 
     def show_sub_windows(self, mode):
 
-        widget = self.files.currentWidget()
-        if widget:
-            if mode == "tile":
-                widget.mdi_area.tileSubWindows()
-            elif mode == "cascade":
-                widget.mdi_area.cascadeSubWindows()
-            elif mode == "tile vertically":
-                widget.mdi_area.tile_vertically()
-            elif mode == "tile horizontally":
-                widget.mdi_area.tile_horizontally()
+        if self.stackedWidget.currentIndex() == 0:
+
+            widget = self.files.currentWidget()
+            if widget:
+                if mode == "tile":
+                    widget.mdi_area.tileSubWindows()
+                elif mode == "cascade":
+                    widget.mdi_area.cascadeSubWindows()
+                elif mode == "tile vertically":
+                    widget.mdi_area.tile_vertically()
+                elif mode == "tile horizontally":
+                    widget.mdi_area.tile_horizontally()
+
+        else:
+            widget = self
+            if widget:
+                if mode == "tile":
+                    widget.mdi_area.tileSubWindows()
+                elif mode == "cascade":
+                    widget.mdi_area.cascadeSubWindows()
+                elif mode == "tile vertically":
+                    widget.mdi_area.tile_vertically()
+                elif mode == "tile horizontally":
+                    widget.mdi_area.tile_horizontally()
 
     def set_subplot_option(self, state):
         if isinstance(state, str):
             state = True if state == "true" else False
-        self.subplots = state
+        self.set_subplots(state)
         self._settings.setValue("subplots", state)
 
         count = self.files.count()
@@ -639,7 +732,7 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
     def set_subplot_link_option(self, state):
         if isinstance(state, str):
             state = True if state == "true" else False
-        self.subplots_link = state
+        self.set_subplots_link(state)
         self._settings.setValue("subplots_link", state)
         count = self.files.count()
 
@@ -831,8 +924,7 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                     self.files.widget(i).mdf.channels_db for i in range(count)
                 ]
                 measurements = [
-                    str(self.files.widget(i).mdf.name)
-                    for i in range(count)
+                    str(self.files.widget(i).mdf.name) for i in range(count)
                 ]
 
                 dlg = MultiSearch(channels_dbs, measurements, parent=self,)
@@ -840,29 +932,21 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 dlg.exec_()
                 result = dlg.result
                 if result:
-                    selections = {}
-                    for file_index, (group_index, channel_index) in result:
-                        if file_index not in selections:
-                            selections[file_index] = []
-                        selections[file_index].append(
-                            (None, group_index, channel_index)
-                        )
-                    new_signals = []
-                    for file_index in sorted(selections):
-                        channels = selections[file_index]
-                        signals = self.files.widget(file_index).mdf.select(
-                            channels,
-                            copy_master=False,
-                            ignore_value2text_conversions=self.ignore_value2text_conversions,
-                        )
-                        for sig, entry in zip(signals, channels):
-                            sig.tooltip = f"{sig.name}\n@ {self.files.widget(file_index).file_name}"
-                            sig.name = f"{file_index+1}: {sig.name}"
-                            sig.group_index = entry[1]
-                            sig.channel_index = entry[2]
-                        new_signals.extend(signals)
 
-                    self.comparison_plot.add_new_channels(new_signals)
+                    ret, ok = QtWidgets.QInputDialog.getItem(
+                        None,
+                        "Select window type",
+                        "Type:",
+                        ["Plot", "Numeric", "Tabular"],
+                        0,
+                        False,
+                    )
+                    if ok:
+                        names = [
+                            (None, *entry, self.files.widget(file_index).uuid)
+                            for file_index, entry in result
+                        ]
+                        self.add_window((ret, names))
 
         else:
             super().keyPressEvent(event)
@@ -875,19 +959,12 @@ class MainWindow(Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
     def comparison_info(self, event):
         count = self.files.count()
-        measurements = [
-            str(self.files.widget(i).mdf.name)
-            for i in range(count)
-        ]
+        measurements = [str(self.files.widget(i).mdf.name) for i in range(count)]
 
         info = []
         for i, name in enumerate(measurements, 1):
-            info.extend(wrap(f'{i:> 2}: {name}', 120))
+            info.extend(wrap(f"{i:> 2}: {name}", 120))
 
         QtWidgets.QMessageBox.information(
-            self,
-            "Measurement files used for comparison",
-            '\n'.join(info),
+            self, "Measurement files used for comparison", "\n".join(info),
         )
-
-

@@ -1,25 +1,19 @@
 # -*- coding: utf-8 -*-
-import logging
 from functools import partial
-import webbrowser
+import logging
 import sys
+import webbrowser
 
 import numpy as np
+from PyQt5 import QtCore, QtGui, QtWidgets
+import pyqtgraph as pg
 
 from ..ui import resource_rc as resource_rc
-
+from .channel_stats import ChannelStats
+from .plot import Plot
 
 bin_ = bin
 
-
-import pyqtgraph as pg
-
-from PyQt5 import QtGui
-from PyQt5 import QtWidgets
-from PyQt5 import QtCore
-
-from .channel_stats import ChannelStats
-from .plot import Plot
 
 if not hasattr(pg.InfiniteLine, "addMarker"):
     logger = logging.getLogger("asammdf")

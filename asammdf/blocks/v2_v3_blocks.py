@@ -1,28 +1,20 @@
 # -*- coding: utf-8 -*-
 """ classes that implement the blocks for MDF versions 2 and 3 """
 
-import logging
-import time
 from datetime import datetime
 from getpass import getuser
+import logging
 from struct import pack, unpack, unpack_from
-from textwrap import wrap
 import sys
+from textwrap import wrap
+import time
 
-import numpy as np
 from numexpr import evaluate
+import numpy as np
 
 from . import v2_v3_constants as v23c
-from .utils import (
-    MdfException,
-    get_text_v3,
-    SignalSource,
-    UINT16_u,
-    UINT16_uf,
-    get_fields,
-)
 from ..version import __version__
-
+from .utils import get_fields, get_text_v3, MdfException, UINT16_u, UINT16_uf
 
 SEEK_START = v23c.SEEK_START
 SEEK_END = v23c.SEEK_END
@@ -609,6 +601,12 @@ comment: {self.comment}
                     lines.append(template.format(key, val.strip(b"\0")))
                 else:
                     lines.append(template.format(key, val))
+
+            if key == "data_type":
+                lines[-1] += f" = {v23c.DATA_TYPE_TO_STRING[self.data_type]}"
+            elif key == "channel_type":
+                lines[-1] += f" = {v23c.CHANNEL_TYPE_TO_STRING[self.channel_type]}"
+
         for line in lines:
             if not line:
                 metadata.append(line)
@@ -1298,6 +1296,18 @@ address: {hex(self.address)}
                     lines.append(template.format(key, val.strip(b"\0")))
                 else:
                     lines.append(template.format(key, val))
+
+            if key == "conversion_type":
+                lines[
+                    -1
+                ] += f" [{v23c.CONVERSION_TYPE_TO_STRING[self.conversion_type]}]"
+            elif self.referenced_blocks and key in self.referenced_blocks:
+                val = self.referenced_blocks[key]
+                if isinstance(val, bytes):
+                    lines[-1] += f" (= {str(val)[1:]})"
+                else:
+                    lines[-1] += f" (= CCBLOCK @ {hex(val.address)})"
+
         if self.referenced_blocks:
             max_len = max(len(key) for key in self.referenced_blocks)
             template = f"{{: <{max_len}}}: {{}}"
@@ -1309,7 +1319,7 @@ address: {hex(self.address)}
                     lines.append(template.format(key, ""))
                     lines.extend(block.metadata(indent + "    ").split("\n"))
                 else:
-                    lines.append(template.format(key, block))
+                    lines.append(template.format(key, str(block)[1:]))
 
         for line in lines:
             if not line:
@@ -1928,21 +1938,6 @@ class ChannelExtension:
     def __setitem__(self, item, value):
         self.__setattr__(item, value)
 
-    def to_common_source(self):
-        if self.type == v23c.SOURCE_ECU:
-            source = SignalSource(
-                self.name,
-                self.path,
-                self.comment,
-                0,  # source type other
-                0,  # bus type none
-            )
-        else:
-            source = SignalSource(
-                self.name, self.path, self.comment, 2, 2  # source type bus  # bus type
-            )
-        return source
-
     def metadata(self):
         if self.type == v23c.SOURCE_ECU:
             keys = (
@@ -1988,6 +1983,12 @@ address: {hex(self.address)}
                     lines.append(template.format(key, val.strip(b"\0")))
                 else:
                     lines.append(template.format(key, val))
+
+            if key == "type":
+                lines[-1] += f" = {v23c.SOURCE_TYPE_TO_STRING[self.type]}"
+            elif key == "bus_type":
+                lines[-1] += f" = {v23c.BUS_TYPE_TO_STRING[self.bus_type]}"
+
         for line in lines:
             if not line:
                 metadata.append(line)
@@ -2515,7 +2516,11 @@ class FileIdentificationBlock:
             self.program_identification = "amdf{}".format(
                 __version__.replace(".", "")
             ).encode("latin-1")
-            self.byte_order = v23c.BYTE_ORDER_INTEL if sys.byteorder == 'little' else v23c.BYTE_ORDER_MOTOROLA
+            self.byte_order = (
+                v23c.BYTE_ORDER_INTEL
+                if sys.byteorder == "little"
+                else v23c.BYTE_ORDER_MOTOROLA
+            )
             self.float_format = 0
             self.mdf_version = int(version.replace(".", ""))
             self.code_page = 0

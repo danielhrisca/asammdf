@@ -4,7 +4,6 @@
 from .mdf_v3 import MDF3
 from .utils import validate_version_argument
 
-
 __all__ = ["MDF2"]
 
 

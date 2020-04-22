@@ -4,9 +4,8 @@ import sys
 
 from PyQt5 import QtWidgets
 
-from asammdf.gui.widgets.main import MainWindow
 from asammdf.gui.utils import excepthook
-
+from asammdf.gui.widgets.main import MainWindow
 
 sys.excepthook = excepthook
 

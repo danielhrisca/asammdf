@@ -1,16 +1,14 @@
 # -*- coding: utf-8 -*-
 import re
 
-from PyQt5 import QtWidgets
-from PyQt5 import QtCore
 from natsort import natsorted
 import numpy as np
 from numpy import searchsorted
+from PyQt5 import QtCore, QtWidgets
 
 from ..ui import resource_rc as resource_rc
 from ..ui.numeric import Ui_NumericDisplay
 from .tree_item import TreeItem
-
 
 OPS = {
     "!=": "__ne__",
@@ -81,6 +79,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                 sig.name,
                 self.channels,
                 [sig.name, value, sig.unit],
+                mdf_uuid=sig.mdf_uuid,
             )
             item.setFlags(item.flags() & ~QtCore.Qt.ItemIsDropEnabled)
             items.append(item)
@@ -132,11 +131,11 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     break
                 sig = self.signals[item.text(0)]
                 if sig.size:
-                    if sig.group_index in idx_cache:
-                        idx = idx_cache[sig.group_index]
+                    if (sig.group_index, sig.mdf_uuid) in idx_cache:
+                        idx = idx_cache[(sig.group_index, sig.mdf_uuid)]
                     else:
                         idx = min(sig.size - 1, searchsorted(sig.timestamps, stamp))
-                        idx_cache[sig.group_index] = idx
+                        idx_cache[(sig.group_index, sig.mdf_uuid)] = idx
                     value = sig.samples[idx]
 
                     if sig.kind == "f":
@@ -155,11 +154,11 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     break
                 sig = self.signals[item.text(0)]
                 if sig.size:
-                    if sig.group_index in idx_cache:
-                        idx = idx_cache[sig.group_index]
+                    if (sig.group_index, sig.mdf_uuid) in idx_cache:
+                        idx = idx_cache[(sig.group_index, sig.mdf_uuid)]
                     else:
                         idx = min(sig.size - 1, searchsorted(sig.timestamps, stamp))
-                        idx_cache[sig.group_index] = idx
+                        idx_cache[(sig.group_index, sig.mdf_uuid)] = idx
                     value = sig.samples[idx]
 
                     if sig.kind == "f":
@@ -177,11 +176,11 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     break
                 sig = self.signals[item.text(0)]
                 if sig.size:
-                    if sig.group_index in idx_cache:
-                        idx = idx_cache[sig.group_index]
+                    if (sig.group_index, sig.mdf_uuid) in idx_cache:
+                        idx = idx_cache[(sig.group_index, sig.mdf_uuid)]
                     else:
                         idx = min(sig.size - 1, searchsorted(sig.timestamps, stamp))
-                        idx_cache[sig.group_index] = idx
+                        idx_cache[(sig.group_index, sig.mdf_uuid)] = idx
                     value = sig.samples[idx]
                     if sig.kind == "f":
                         item.setText(1, f"{value:.3f}")

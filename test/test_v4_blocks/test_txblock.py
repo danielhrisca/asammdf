@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-import unittest
 from io import BytesIO
+import unittest
 
 from asammdf.blocks.utils import MdfException
 from asammdf.blocks.v4_blocks import TextBlock
