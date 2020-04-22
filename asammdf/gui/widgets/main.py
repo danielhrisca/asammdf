@@ -13,15 +13,21 @@ import pandas as pd
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
 
-from ...blocks.utils import (csv_bytearray2hex, extract_cncomment_xml,
-                             MdfException)
+from ...blocks.utils import csv_bytearray2hex, extract_cncomment_xml, MdfException
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ...version import __version__ as libversion
 from ..dialogs.multi_search import MultiSearch
 from ..ui.main_window import Ui_PyMDFMainWindow
-from ..utils import (add_children, compute_signal, get_required_signals,
-                     HelperChannel, load_dsp, run_thread_with_progress,
-                     setup_progress, TERMINATED)
+from ..utils import (
+    add_children,
+    compute_signal,
+    get_required_signals,
+    HelperChannel,
+    load_dsp,
+    run_thread_with_progress,
+    setup_progress,
+    TERMINATED,
+)
 from .batch import BatchWidget
 from .file import FileWidget
 from .list import ListWidget
@@ -450,9 +456,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         )
         action.triggered.connect(
             partial(
-                self.plot_action,
-                key=QtCore.Qt.Key_I,
-                modifier=QtCore.Qt.AltModifier,
+                self.plot_action, key=QtCore.Qt.Key_I, modifier=QtCore.Qt.AltModifier,
             )
         )
         action.setShortcut(QtGui.QKeySequence("Alt+I"))

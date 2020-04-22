@@ -16,8 +16,7 @@ import psutil
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
 
-from ...blocks.utils import (csv_bytearray2hex, extract_cncomment_xml,
-                             MdfException)
+from ...blocks.utils import csv_bytearray2hex, extract_cncomment_xml, MdfException
 from ...blocks.v4_constants import FLAG_CG_BUS_EVENT
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ...signal import Signal
@@ -26,9 +25,16 @@ from ..dialogs.channel_group_info import ChannelGroupInfoDialog
 from ..dialogs.channel_info import ChannelInfoDialog
 from ..ui import resource_rc as resource_rc
 from ..ui.file_widget import Ui_file_widget
-from ..utils import (add_children, compute_signal, get_required_signals,
-                     HelperChannel, load_dsp, run_thread_with_progress,
-                     setup_progress, TERMINATED)
+from ..utils import (
+    add_children,
+    compute_signal,
+    get_required_signals,
+    HelperChannel,
+    load_dsp,
+    run_thread_with_progress,
+    setup_progress,
+    TERMINATED,
+)
 from .mdi_area import MdiAreaWidget, WithMDIArea
 from .numeric import Numeric
 from .plot import Plot

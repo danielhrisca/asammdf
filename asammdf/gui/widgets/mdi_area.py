@@ -10,16 +10,23 @@ import pandas as pd
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ...blocks import v4_constants as v4c
-from ...blocks.utils import (csv_bytearray2hex, extract_cncomment_xml,
-                             MdfException)
+from ...blocks.utils import csv_bytearray2hex, extract_cncomment_xml, MdfException
 from ...blocks.v4_constants import FLAG_CG_BUS_EVENT
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ...signal import Signal
 from ..dialogs.channel_group_info import ChannelGroupInfoDialog
 from ..dialogs.channel_info import ChannelInfoDialog
-from ..utils import (add_children, compute_signal, extract_mime_names,
-                     get_required_signals, HelperChannel, load_dsp,
-                     run_thread_with_progress, setup_progress, TERMINATED)
+from ..utils import (
+    add_children,
+    compute_signal,
+    extract_mime_names,
+    get_required_signals,
+    HelperChannel,
+    load_dsp,
+    run_thread_with_progress,
+    setup_progress,
+    TERMINATED,
+)
 from .numeric import Numeric
 from .plot import Plot
 from .search import SearchWidget
@@ -294,7 +301,7 @@ class WithMDIArea:
                 signals = [
                     sig
                     for sig in signals
-                    if sig.samples.dtype.kind not in 'SU'
+                    if sig.samples.dtype.kind not in "SU"
                     and not sig.samples.dtype.names
                     and not len(sig.samples.shape) > 1
                 ]
@@ -355,7 +362,7 @@ class WithMDIArea:
             if hasattr(self, "mdf"):
                 events = []
 
-                if self.mdf.version >= '4.00':
+                if self.mdf.version >= "4.00":
                     mdf_events = list(self.mdf.events)
 
                     for pos, event in enumerate(mdf_events):
@@ -387,7 +394,9 @@ class WithMDIArea:
                                 "value": gp.trigger[f"trigger_{i}_time"],
                                 "index": i,
                                 "description": gp.trigger.comment,
-                                "type": v4c.EVENT_TYPE_TO_STRING[v4c.EVENT_TYPE_TRIGGER],
+                                "type": v4c.EVENT_TYPE_TO_STRING[
+                                    v4c.EVENT_TYPE_TRIGGER
+                                ],
                             }
                             events.append(event)
             else:
@@ -719,7 +728,7 @@ class WithMDIArea:
             signals = [
                 sig
                 for sig in signals
-                if sig.samples.dtype.kind not in 'SU'
+                if sig.samples.dtype.kind not in "SU"
                 and not sig.samples.dtype.names
                 and not len(sig.samples.shape) > 1
             ]

@@ -14,10 +14,28 @@ from tempfile import TemporaryFile
 import time
 import xml.etree.ElementTree as ET
 
-from numpy import (arange, array, array_equal, column_stack, concatenate,
-                   dtype, flip, float32, float64, frombuffer, linspace,
-                   packbits, roll, searchsorted, uint8, uint16, union1d,
-                   unique, unpackbits, zeros)
+from numpy import (
+    arange,
+    array,
+    array_equal,
+    column_stack,
+    concatenate,
+    dtype,
+    flip,
+    float32,
+    float64,
+    frombuffer,
+    linspace,
+    packbits,
+    roll,
+    searchsorted,
+    uint8,
+    uint16,
+    union1d,
+    unique,
+    unpackbits,
+    zeros,
+)
 from numpy.core.defchararray import decode, encode
 from numpy.core.records import fromarrays, fromstring
 from pandas import DataFrame
@@ -27,15 +45,34 @@ from ..signal import Signal
 from ..version import __version__
 from .conversion_utils import conversion_transfer
 from .source_utils import Source
-from .utils import (as_non_byte_sized_signed_int, CHANNEL_COUNT, ChannelsDB,
-                    CONVERT, count_channel_groups, DataBlockInfo,
-                    fmt_to_datatype_v3, get_fmt_v3, Group, is_file_like,
-                    MdfException, UniqueDB, validate_version_argument,
-                    VirtualChannelGroup)
-from .v2_v3_blocks import (Channel, ChannelConversion, ChannelDependency,
-                           ChannelExtension, ChannelGroup, DataGroup,
-                           FileIdentificationBlock, HeaderBlock, TextBlock,
-                           TriggerBlock)
+from .utils import (
+    as_non_byte_sized_signed_int,
+    CHANNEL_COUNT,
+    ChannelsDB,
+    CONVERT,
+    count_channel_groups,
+    DataBlockInfo,
+    fmt_to_datatype_v3,
+    get_fmt_v3,
+    Group,
+    is_file_like,
+    MdfException,
+    UniqueDB,
+    validate_version_argument,
+    VirtualChannelGroup,
+)
+from .v2_v3_blocks import (
+    Channel,
+    ChannelConversion,
+    ChannelDependency,
+    ChannelExtension,
+    ChannelGroup,
+    DataGroup,
+    FileIdentificationBlock,
+    HeaderBlock,
+    TextBlock,
+    TriggerBlock,
+)
 
 logger = logging.getLogger("asammdf")
 

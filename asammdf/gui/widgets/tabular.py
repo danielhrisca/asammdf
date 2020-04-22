@@ -8,8 +8,7 @@ import numpy.core.defchararray as npchar
 import pandas as pd
 from PyQt5 import QtCore, QtWidgets
 
-from ...blocks.utils import (csv_bytearray2hex, csv_int2hex,
-                             pandas_query_compatible)
+from ...blocks.utils import csv_bytearray2hex, csv_int2hex, pandas_query_compatible
 from ..ui import resource_rc as resource_rc
 from ..ui.tabular import Ui_TabularDisplay
 from .tabular_filter import TabularFilter

@@ -1158,7 +1158,11 @@ class Plot(QtWidgets.QWidget):
                     label=f"t = {position}s\n\n{comment}",
                     pen={"color": "#FF0000", "width": 2, "style": QtCore.Qt.DashLine},
                     labelOpts={
-                        "border": {"color": "#FF0000", "width": 2, "style": QtCore.Qt.DashLine},
+                        "border": {
+                            "color": "#FF0000",
+                            "width": 2,
+                            "style": QtCore.Qt.DashLine,
+                        },
                         "fill": "ff9b37",
                         "color": "#000000",
                         "movable": True,
@@ -1531,7 +1535,11 @@ class _Plot(pg.PlotWidget):
                     label=f'{event["type"]}{label}\n{description}',
                     pen={"color": color, "width": 2, "style": QtCore.Qt.DashLine},
                     labelOpts={
-                        "border": {"color": color, "width": 2, "style": QtCore.Qt.DashLine},
+                        "border": {
+                            "color": color,
+                            "width": 2,
+                            "style": QtCore.Qt.DashLine,
+                        },
                         "fill": "#000000",
                         "color": color,
                         "movable": True,

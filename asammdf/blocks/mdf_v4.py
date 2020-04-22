@@ -22,11 +22,38 @@ from zlib import compress, decompress
 import canmatrix
 from lz4.frame import compress as lz_compress
 from lz4.frame import decompress as lz_decompress
-from numpy import (arange, argwhere, array, array_equal, column_stack,
-                   concatenate, cumsum, dtype, empty, flip, fliplr, float32,
-                   float64, frombuffer, full, linspace, nonzero, packbits,
-                   roll, searchsorted, transpose, uint8, uint16, uint32,
-                   uint64, union1d, unique, unpackbits, where, zeros)
+from numpy import (
+    arange,
+    argwhere,
+    array,
+    array_equal,
+    column_stack,
+    concatenate,
+    cumsum,
+    dtype,
+    empty,
+    flip,
+    fliplr,
+    float32,
+    float64,
+    frombuffer,
+    full,
+    linspace,
+    nonzero,
+    packbits,
+    roll,
+    searchsorted,
+    transpose,
+    uint8,
+    uint16,
+    uint32,
+    uint64,
+    union1d,
+    unique,
+    unpackbits,
+    where,
+    zeros,
+)
 from numpy.core.defchararray import decode, encode
 from numpy.core.records import fromarrays, fromstring
 from pandas import DataFrame
@@ -37,21 +64,59 @@ from ..version import __version__
 from .conversion_utils import conversion_transfer
 from .finalization_shim import FinalizationShim
 from .source_utils import Source
-from .utils import (all_blocks_addresses, as_non_byte_sized_signed_int,
-                    CHANNEL_COUNT, ChannelsDB, CONVERT, count_channel_groups,
-                    DataBlockInfo, debug_channel, extract_can_signal,
-                    extract_cncomment_xml, extract_mux, fmt_to_datatype_v4,
-                    get_fmt_v4, Group, info_to_datatype_v4,
-                    InvalidationBlockInfo, is_file_like, load_can_database,
-                    MdfException, sanitize_xml, SignalDataBlockInfo, UINT8_u,
-                    UINT8_uf, UINT16_u, UINT16_uf, UINT32_u, UINT32_uf,
-                    UINT64_u, UINT64_uf, UniqueDB, validate_version_argument,
-                    VirtualChannelGroup)
-from .v4_blocks import (AttachmentBlock, Channel, ChannelArrayBlock,
-                        ChannelConversion, ChannelGroup, DataBlock, DataGroup,
-                        DataList, DataZippedBlock, EventBlock, FileHistory,
-                        FileIdentificationBlock, HeaderBlock, HeaderList,
-                        ListData, SourceInformation, TextBlock)
+from .utils import (
+    all_blocks_addresses,
+    as_non_byte_sized_signed_int,
+    CHANNEL_COUNT,
+    ChannelsDB,
+    CONVERT,
+    count_channel_groups,
+    DataBlockInfo,
+    debug_channel,
+    extract_can_signal,
+    extract_cncomment_xml,
+    extract_mux,
+    fmt_to_datatype_v4,
+    get_fmt_v4,
+    Group,
+    info_to_datatype_v4,
+    InvalidationBlockInfo,
+    is_file_like,
+    load_can_database,
+    MdfException,
+    sanitize_xml,
+    SignalDataBlockInfo,
+    UINT8_u,
+    UINT8_uf,
+    UINT16_u,
+    UINT16_uf,
+    UINT32_u,
+    UINT32_uf,
+    UINT64_u,
+    UINT64_uf,
+    UniqueDB,
+    validate_version_argument,
+    VirtualChannelGroup,
+)
+from .v4_blocks import (
+    AttachmentBlock,
+    Channel,
+    ChannelArrayBlock,
+    ChannelConversion,
+    ChannelGroup,
+    DataBlock,
+    DataGroup,
+    DataList,
+    DataZippedBlock,
+    EventBlock,
+    FileHistory,
+    FileIdentificationBlock,
+    HeaderBlock,
+    HeaderList,
+    ListData,
+    SourceInformation,
+    TextBlock,
+)
 
 MASTER_CHANNELS = (v4c.CHANNEL_TYPE_MASTER, v4c.CHANNEL_TYPE_VIRTUAL_MASTER)
 COMMON_SIZE = v4c.COMMON_SIZE

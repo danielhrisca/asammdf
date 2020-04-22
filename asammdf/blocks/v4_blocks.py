@@ -18,9 +18,19 @@ import numpy as np
 
 from . import v4_constants as v4c
 from ..version import __version__
-from .utils import (block_fields, FLOAT64_u, get_text_v4, is_file_like,
-                    MdfException, sanitize_xml, UINT8_uf, UINT32_u, UINT32_uf,
-                    UINT64_u, UINT64_uf)
+from .utils import (
+    block_fields,
+    FLOAT64_u,
+    get_text_v4,
+    is_file_like,
+    MdfException,
+    sanitize_xml,
+    UINT8_uf,
+    UINT32_u,
+    UINT32_uf,
+    UINT64_u,
+    UINT64_uf,
+)
 
 SEEK_START = v4c.SEEK_START
 SEEK_END = v4c.SEEK_END

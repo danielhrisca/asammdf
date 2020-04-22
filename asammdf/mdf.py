@@ -21,14 +21,29 @@ from .blocks.conversion_utils import from_dict
 from .blocks.mdf_v2 import MDF2
 from .blocks.mdf_v3 import MDF3
 from .blocks.mdf_v4 import MDF4
-from .blocks.utils import (components, count_channel_groups, csv_bytearray2hex,
-                           csv_int2hex, downcast, extract_can_signal,
-                           extract_mux, is_file_like, load_can_database,
-                           master_using_raster, matlab_compatible,
-                           MDF2_VERSIONS, MDF3_VERSIONS, MDF4_VERSIONS,
-                           MdfException, randomized_string, SUPPORTED_VERSIONS,
-                           UINT16_u, UINT64_u, UniqueDB,
-                           validate_version_argument)
+from .blocks.utils import (
+    components,
+    count_channel_groups,
+    csv_bytearray2hex,
+    csv_int2hex,
+    downcast,
+    extract_can_signal,
+    extract_mux,
+    is_file_like,
+    load_can_database,
+    master_using_raster,
+    matlab_compatible,
+    MDF2_VERSIONS,
+    MDF3_VERSIONS,
+    MDF4_VERSIONS,
+    MdfException,
+    randomized_string,
+    SUPPORTED_VERSIONS,
+    UINT16_u,
+    UINT64_u,
+    UniqueDB,
+    validate_version_argument,
+)
 from .blocks.v2_v3_blocks import ChannelConversion as ChannelConversionV3
 from .blocks.v2_v3_blocks import ChannelExtension
 from .blocks.v2_v3_blocks import HeaderBlock as HeaderV3
