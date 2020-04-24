@@ -159,7 +159,10 @@ class MDF(object):
         self.close()
 
     def __del__(self):
-        self.close()
+        try:
+            self.close()
+        except:
+            pass
 
     def __lt__(self, other):
         if self.header.start_time < other.header.start_time:

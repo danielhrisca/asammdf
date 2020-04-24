@@ -592,7 +592,7 @@ class Channel:
                             ".//names/display"
                         )
                         if display_name is not None:
-                            self.display_name = display_name.text
+                            self.display_name = display_name.text or ""
                         else:
                             self.display_name = ""
                     except:
@@ -782,7 +782,7 @@ class Channel:
                             ".//names/display"
                         )
                         if display_name is not None:
-                            self.display_name = display_name.text
+                            self.display_name = display_name.text or ""
                         else:
                             self.display_name = ""
                     except ET.ParseError:
@@ -932,7 +932,7 @@ class Channel:
                         CNcomment = ET.fromstring(comment)
                         display_name_element = CNcomment.find(".//names/display")
                         if display_name is not None:
-                            display_name_element.text = display_name
+                            display_name_element.text = display_name or ""
                         else:
 
                             display = ET.Element("display")
