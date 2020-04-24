@@ -111,8 +111,8 @@ class Signal(object):
             self.display_name = display_name
             self.attachment = attachment
             self.encoding = encoding
-            self.group_index = -1
-            self.channel_index = -1
+            self.group_index = group_index
+            self.channel_index = channel_index
 
             if source:
                 if not isinstance(source, Source):
