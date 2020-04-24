@@ -2279,9 +2279,13 @@ class MDF(object):
 
         self._link_attributes()
 
+        print(channels)
+
         virtual_groups = self.included_channels(
             channels=channels, minimal=False, skip_master=False
         )
+
+        print(virtual_groups)
 
         output_signals = {}
 
