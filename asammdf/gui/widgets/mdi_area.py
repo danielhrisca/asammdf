@@ -582,6 +582,8 @@ class WithMDIArea:
                 signals_,
                 ignore_value2text_conversions=self.ignore_value2text_conversions,
                 copy_master=False,
+                validate=True,
+                raw=True,
             )
 
             for sig, sig_ in zip(signals, signals_):
@@ -642,10 +644,15 @@ class WithMDIArea:
 
         elif window_info["type"] == "Plot":
 
-            measured_signals_ = [
-                (None, *self.mdf.whereis(channel["name"])[0])
+            found_signals = [
+                channel
                 for channel in window_info["configuration"]["channels"]
                 if not channel["computed"] and channel["name"] in self.mdf
+            ]
+
+            measured_signals_ = [
+                (None, *self.mdf.whereis(channel["name"])[0])
+                for channel in found_signals
             ]
 
             measured_signals = {
@@ -654,6 +661,8 @@ class WithMDIArea:
                     measured_signals_,
                     ignore_value2text_conversions=self.ignore_value2text_conversions,
                     copy_master=False,
+                    validate=True,
+                    raw=True,
                 )
             }
 
@@ -736,23 +745,44 @@ class WithMDIArea:
 
             if hasattr(self, "mdf"):
                 events = []
-                mdf_events = list(self.mdf.events)
 
-                for pos, event in enumerate(mdf_events):
-                    event_info = {}
-                    event_info["value"] = event.value
-                    event_info["type"] = v4c.EVENT_TYPE_TO_STRING[event.event_type]
-                    description = event.name
-                    if event.comment:
-                        description += f" ({event.comment})"
-                    event_info["description"] = description
-                if event.range_type == v4c.EVENT_RANGE_TYPE_POINT:
-                    events.append(event_info)
-                elif event.raneg_type == v4c.EVENT_RANGE_TYPE_BEGINNING:
-                    events.append([event_info])
+                if self.mdf.version >= "4.00":
+                    mdf_events = list(self.mdf.events)
+
+                    for pos, event in enumerate(mdf_events):
+                        event_info = {}
+                        event_info["value"] = event.value
+                        event_info["type"] = v4c.EVENT_TYPE_TO_STRING[event.event_type]
+                        description = event.name
+                        if event.comment:
+                            description += f" ({event.comment})"
+                        event_info["description"] = description
+                        event_info["index"] = pos
+
+                        if event.range_type == v4c.EVENT_RANGE_TYPE_POINT:
+                            events.append(event_info)
+                        elif event.range_type == v4c.EVENT_RANGE_TYPE_BEGINNING:
+                            events.append([event_info])
+                        else:
+                            parent = events[event.parent]
+                            parent.append(event_info)
+                            events.append(None)
+                    events = [ev for ev in events if ev is not None]
                 else:
-                    parent = events[event.parent]
-                    parent.append(event_info)
+                    for gp in self.mdf.groups:
+                        if not gp.trigger:
+                            continue
+
+                        for i in range(gp.trigger.trigger_events_nr):
+                            event = {
+                                "value": gp.trigger[f"trigger_{i}_time"],
+                                "index": i,
+                                "description": gp.trigger.comment,
+                                "type": v4c.EVENT_TYPE_TO_STRING[
+                                    v4c.EVENT_TYPE_TRIGGER
+                                ],
+                            }
+                            events.append(event)
             else:
                 events = []
 
@@ -776,6 +806,13 @@ class WithMDIArea:
             plot.hide()
 
             plot.add_new_channels(signals)
+            needs_update = False
+            for channel, sig in zip(found_signals, plot.plot.signals):
+                if "mode" in channel:
+                    sig.mode = channel["mode"]
+                    needs_update = True
+            if needs_update:
+                plot.plot.update_lines(force=True)
 
             plot.show()
 

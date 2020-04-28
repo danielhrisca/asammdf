@@ -1337,11 +1337,10 @@ class Plot(QtWidgets.QWidget):
         for i in range(count):
             channel = {}
             item = self.channel_selection.itemWidget(self.channel_selection.item(i))
-            name = item._name
 
-            sig = [s for s in self.plot.signals if s.name == name][0]
+            sig, _ = self.plot.signal_by_uuid(item.uuid)
 
-            channel["name"] = name
+            channel["name"] = sig.name
             channel["unit"] = sig.unit
             channel["enabled"] = item.display.checkState() == QtCore.Qt.Checked
             channel["individual_axis"] = (
@@ -1358,6 +1357,7 @@ class Plot(QtWidgets.QWidget):
 
             channel["precision"] = item.precision
             channel["fmt"] = item.fmt
+            channel["mode"] = sig.mode
             if sig.computed:
                 channel["computation"] = sig.computation
 
@@ -2309,13 +2309,6 @@ class _Plot(pg.PlotWidget):
 
     def signal_by_uuid(self, uuid):
         return self._uuid_map[uuid]
-
-        raise Exception("Signal not found")
-
-    def signal_by_uuid2(self, uuid):
-        for i, sig in enumerate(self.signals):
-            if sig.uuid == uuid:
-                return sig, i
 
         raise Exception("Signal not found")
 
