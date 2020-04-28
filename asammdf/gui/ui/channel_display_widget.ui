@@ -74,9 +74,6 @@
      <property name="autoFillBackground">
       <bool>false</bool>
      </property>
-     <property name="styleSheet">
-      <string notr="true">background-color: rgb(255, 0, 0);</string>
-     </property>
      <property name="text">
       <string/>
      </property>
@@ -98,6 +95,11 @@
        <width>0</width>
        <height>26</height>
       </size>
+     </property>
+     <property name="font">
+      <font>
+       <pointsize>7</pointsize>
+      </font>
      </property>
      <property name="mouseTracking">
       <bool>false</bool>

@@ -44,7 +44,7 @@ if not hasattr(pg.InfiniteLine, "addMarker"):
 
 
 class PlotSignal(Signal):
-    def __init__(self, signal, index=0, fast=False):
+    def __init__(self, signal, index=0, fast=False, trim_info=None):
         super().__init__(
             signal.samples,
             signal.timestamps,
@@ -78,6 +78,8 @@ class PlotSignal(Signal):
         self.individual_axis = False
         self.computed = signal.computed
         self.computation = signal.computation
+
+        self.trim_info = None
 
         # take out NaN values
         samples = self.samples
@@ -189,7 +191,7 @@ class PlotSignal(Signal):
 
         self.mode = "phys"
         if not fast:
-            self.trim()
+            self.trim(*(trim_info or (None, None, 1900)))
 
     @property
     def min(self):
@@ -556,6 +558,12 @@ class PlotSignal(Signal):
         return stats
 
     def trim(self, start=None, stop=None, width=1900):
+        trim_info = (start, stop, width)
+        if self.trim_info == trim_info:
+            return
+
+
+        self.trim_info = trim_info
         sig = self
         dim = len(sig.timestamps)
 
@@ -611,7 +619,8 @@ class PlotSignal(Signal):
                 if raster > 1:
 
                     pos = np.dstack([pos_min, pos_max])[0]
-                    pos.sort()
+                    # pos.sort()
+                    pos = np.sort(pos)
 
                     offsets = np.arange(rows) * raster
 
@@ -772,6 +781,7 @@ class Plot(QtWidgets.QWidget):
             )
             | self.plot.keyboard_events
         )
+
 
     def mousePressEvent(self, event):
         self.clicked.emit()
@@ -1318,10 +1328,6 @@ class Plot(QtWidgets.QWidget):
             it.ylink_changed.connect(self.plot.set_common_axis)
             it.individual_axis_changed.connect(self.plot.set_individual_axis)
 
-            #            it.enable_changed.emit(sig.uuid, 1)
-            #            it.enable_changed.emit(sig.uuid, 0)
-            #            it.enable_changed.emit(sig.uuid, 1)
-
             self.info_uuid = sig.uuid
 
     def to_config(self):
@@ -1495,6 +1501,8 @@ class _Plot(pg.PlotWidget):
 
         self.resizeEvent = self._resizeEvent
 
+        self._uuid_map = {}
+
         if signals:
             self.add_new_channels(signals)
 
@@ -1555,7 +1563,7 @@ class _Plot(pg.PlotWidget):
             self.curvetype = pg.PlotDataItem if with_dots else pg.PlotCurveItem
             with_dots_changed = True
 
-        if with_dots_changed or force:
+        if self.curves and (with_dots_changed or force):
             for sig in self.signals:
                 _, i = self.signal_by_uuid(sig.uuid)
                 color = sig.color
@@ -2070,14 +2078,15 @@ class _Plot(pg.PlotWidget):
             else:
                 self.parent().keyPressEvent(event)
 
-    def trim(self):
+    def trim(self, signals=None):
+        signals = signals or self.signals
         if not self._can_trim:
             return
         (start, stop), _ = self.viewbox.viewRange()
 
         width = self.width() - self.axis.width()
 
-        for sig in self.signals:
+        for sig in signals:
             sig.trim(start, stop, width)
 
     def xrange_changed_handle(self):
@@ -2191,16 +2200,32 @@ class _Plot(pg.PlotWidget):
                 if not computed:
                     sig.computation = {}
 
+        (start, stop), _ = self.viewbox.viewRange()
+
+        width = self.width() - self.axis.width()
+        trim_info = start, stop, width
+
         channels = [
-            PlotSignal(sig, i) for i, sig in enumerate(channels, len(self.signals))
+            PlotSignal(sig, i, trim_info=trim_info) for i, sig in enumerate(channels, len(self.signals))
         ]
 
-        for i, sig in enumerate(channels):
+        for sig in channels:
+            uuids = self._timebase_db.setdefault(id(sig.timestamps), set())
+            uuids.add(sig.uuid)
+        self.signals.extend(channels)
 
-            index = len(self.signals)
+        self._uuid_map = {
+            sig.uuid: (sig, i)
+            for i, sig in enumerate(self.signals)
+        }
 
-            self.signals.append(sig)
+        self._compute_all_timebase()
 
+        if initial_index == 0 and len(self.all_timebase):
+            start_t, stop_t = np.amin(self.all_timebase), np.amax(self.all_timebase)
+            self.viewbox.setXRange(start_t, stop_t)
+
+        for index, sig in enumerate(channels, initial_index):
             color = sig.color
 
             axis = FormatedAxis("right", pen=color, textPen=color)
@@ -2243,36 +2268,27 @@ class _Plot(pg.PlotWidget):
 
             curve.sigClicked.connect(partial(self.curve_clicked.emit, index))
 
-            view_box.setXLink(self.viewbox)
             self.view_boxes.append(view_box)
             self.curves.append(curve)
             if not sig.empty:
                 view_box.setYRange(sig.min, sig.max, padding=0, update=True)
+
+            view_box.setGeometry(geometry)
             (start, stop), _ = self.viewbox.viewRange()
             view_box.setXRange(start, stop, padding=0, update=True)
-            view_box.setGeometry(geometry)
 
             self.axes.append(axis)
             axis.hide()
             view_box.addItem(curve)
 
-            uuids = self._timebase_db.setdefault(id(sig.timestamps), set())
-            uuids.add(sig.uuid)
-
-        self.trim()
-        self.update_lines(force=True)
-
-        for curve in self.curves[initial_index:]:
-            curve.show()
-
-        self._compute_all_timebase()
+        for index, sig in enumerate(channels, initial_index):
+            self.view_boxes[index].setXLink(self.viewbox)
 
         if initial_index == 0 and self.signals:
             self.set_current_uuid(self.signals[0].uuid)
 
-            if len(self.all_timebase):
-                start_t, stop_t = np.amin(self.all_timebase), np.amax(self.all_timebase)
-                self.viewbox.setXRange(start_t, stop_t)
+        for curve in self.curves[initial_index:]:
+            curve.show()
 
         return channels
 
@@ -2292,6 +2308,11 @@ class _Plot(pg.PlotWidget):
             self.all_timebase = self.timebase = []
 
     def signal_by_uuid(self, uuid):
+        return self._uuid_map[uuid]
+
+        raise Exception("Signal not found")
+
+    def signal_by_uuid2(self, uuid):
         for i, sig in enumerate(self.signals):
             if sig.uuid == uuid:
                 return sig, i
@@ -2357,6 +2378,11 @@ class _Plot(pg.PlotWidget):
                     needs_timebase_compute = True
 
         uuids = [sig.uuid for sig in self.signals]
+
+        self._uuid_map = {
+            sig.uuid: (sig, i)
+            for i, sig in enumerate(self.signals)
+        }
 
         if uuids:
             if self.current_uuid in uuids:

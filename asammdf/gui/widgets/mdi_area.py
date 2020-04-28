@@ -402,7 +402,7 @@ class WithMDIArea:
             else:
                 events = []
 
-            plot = Plot([], False, events=events)
+            plot = Plot([], events=events, with_dots=self.with_dots)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
@@ -478,8 +478,6 @@ class WithMDIArea:
                         pass
                 signals = list(computed_signals.values())
                 plot.add_new_channels(signals)
-
-            plot.plot.update_lines(with_dots=self.with_dots)
 
             plot.show()
 
