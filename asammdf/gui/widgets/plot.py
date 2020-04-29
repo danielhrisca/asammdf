@@ -2228,7 +2228,13 @@ class _Plot(pg.PlotWidget):
         for index, sig in enumerate(channels, initial_index):
             color = sig.color
 
-            axis = FormatedAxis("right", pen=color, textPen=color)
+            axis = FormatedAxis(
+                "right",
+                pen=color,
+                textPen=color,
+                text=sig.name if len(sig.name) <= 32 else "{sig.name[:29]}...",
+                units=sig.unit,
+            )
             if sig.conversion and hasattr(sig.conversion, "text_0"):
                 axis.text_conversion = sig.conversion
 
@@ -2236,14 +2242,14 @@ class _Plot(pg.PlotWidget):
             view_box.disableAutoRange()
 
             axis.linkToView(view_box)
-            if len(sig.name) <= 32:
-                axis.labelText = sig.name
-            else:
-                axis.labelText = f"{sig.name[:29]}..."
-            axis.labelUnits = sig.unit
-            axis.labelStyle = {"color": color}
-
-            axis.setLabel(axis.labelText, sig.unit, color=color)
+#            if len(sig.name) <= 32:
+#                axis.labelText = sig.name
+#            else:
+#                axis.labelText = f"{sig.name[:29]}..."
+#            axis.labelUnits = sig.unit
+#            axis.labelStyle = {"color": color}
+#
+#            axis.setLabel(axis.labelText, sig.unit, color=color)
 
             self.layout.addItem(axis, 2, self._axes_layout_pos)
             self._axes_layout_pos += 1
@@ -2274,8 +2280,8 @@ class _Plot(pg.PlotWidget):
                 view_box.setYRange(sig.min, sig.max, padding=0, update=True)
 
             view_box.setGeometry(geometry)
-            (start, stop), _ = self.viewbox.viewRange()
-            view_box.setXRange(start, stop, padding=0, update=True)
+#            (start, stop), _ = self.viewbox.viewRange()
+#            view_box.setXRange(start, stop, padding=0, update=True)
 
             self.axes.append(axis)
             axis.hide()

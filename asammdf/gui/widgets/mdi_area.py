@@ -504,7 +504,8 @@ class WithMDIArea:
                 for i, mdi in enumerate(self.mdi_area.subWindowList()):
                     try:
                         viewbox = mdi.widget().plot.viewbox
-                        plot.plot.viewbox.setXLink(viewbox)
+                        if plot.plot.viewbox is not viewbox:
+                            plot.plot.viewbox.setXLink(viewbox)
                         break
                     except:
                         continue
@@ -666,9 +667,10 @@ class WithMDIArea:
                 )
             }
 
-            for signal, entry_info in zip(measured_signals.values(), measured_signals_):
+            for signal, entry_info, channel in zip(measured_signals.values(), measured_signals_, found_signals):
                 signal.computed = False
                 signal.computation = {}
+                signal.color = channel["color"]
                 signal.group_index = entry_info[1]
                 signal.channel_index = entry_info[2]
 
@@ -856,8 +858,6 @@ class WithMDIArea:
 
                 wid.set_fmt(description["fmt"])
                 wid.set_precision(description["precision"])
-                wid.set_color(description["color"])
-                wid.color_changed.emit(wid.uuid, description["color"])
                 wid.ranges = {
                     (range["start"], range["stop"]): range["color"]
                     for range in description["ranges"]
