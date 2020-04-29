@@ -19,6 +19,7 @@ from ..dialogs.channel_info import ChannelInfoDialog
 from ..utils import (
     add_children,
     compute_signal,
+    COLORS,
     extract_mime_names,
     get_required_signals,
     HelperChannel,
@@ -132,6 +133,11 @@ class WithMDIArea:
                     for sig in sigs
                     if not sig.samples.dtype.names and len(sig.samples.shape) <= 1
                 ]
+
+                count = len(widget.plot.signals)
+                for i, sig in enumerate(sigs, count):
+                    sig.color = COLORS[len(COLORS) % i]
+
             widget.add_new_channels(sigs)
 
             if isinstance(widget, Plot) and computed:
