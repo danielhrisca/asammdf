@@ -7987,7 +7987,7 @@ class MDF4(object):
                     f'Message "{message.name}" (ID={hex(message.arbitration_id.id)}) not found in the measurement'
                 )
         else:
-            if can_id in self.bus_logging_map["CAN"][_can_id]:
+            if can_id in self.bus_logging_map["CAN"]:
                 if is_j1939:
                     test_ids = [
                         canmatrix.ArbitrationId(id_, extended=True).pgn
