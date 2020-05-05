@@ -694,7 +694,7 @@ class Plot(QtWidgets.QWidget):
     region_removed_signal = QtCore.pyqtSignal(object)
     show_properties = QtCore.pyqtSignal(list)
 
-    def __init__(self, signals, with_dots=False, *args, **kwargs):
+    def __init__(self, signals, with_dots=False, origin=None, *args, **kwargs):
         events = kwargs.pop("events", None)
         super().__init__(*args, **kwargs)
         self.setContentsMargins(0, 0, 0, 0)
@@ -730,7 +730,7 @@ class Plot(QtWidgets.QWidget):
         self.splitter.addWidget(widget)
         self.splitter.setOpaqueResize(False)
 
-        self.plot = _Plot(with_dots=with_dots, parent=self, events=events)
+        self.plot = _Plot(with_dots=with_dots, parent=self, events=events, origin=origin)
         self.plot.range_modified.connect(self.range_modified)
         self.plot.range_removed.connect(self.range_removed)
         self.plot.range_modified_finished.connect(self.range_modified_finished)
@@ -1416,7 +1416,7 @@ class _Plot(pg.PlotWidget):
 
     add_channels_request = QtCore.pyqtSignal(list)
 
-    def __init__(self, signals=None, with_dots=False, *args, **kwargs):
+    def __init__(self, signals=None, with_dots=False, origin=None, *args, **kwargs):
         events = kwargs.pop("events", [])
         super().__init__()
 
@@ -1462,6 +1462,7 @@ class _Plot(pg.PlotWidget):
 
         self.plot_item = self.plotItem
         self.plot_item.hideAxis("left")
+        self.plot_item.hideAxis("bottom")
         self.layout = self.plot_item.layout
         self.scene_ = self.plot_item.scene()
         self.scene_.sigMouseClicked.connect(self._clicked)
@@ -1474,13 +1475,23 @@ class _Plot(pg.PlotWidget):
         self.scene_.addItem(self.common_viewbox)
         self.common_viewbox.setXLink(self.viewbox)
 
+        axis = self.layout.itemAt(3, 1)
+        axis.setParent(None)
+        self.x_axis = FormatedAxis("bottom")
+        self.layout.removeItem(self.x_axis)
+        self.layout.addItem(self.x_axis, 3, 1)
+        self.x_axis.linkToView(axis.linkedView())
+        self.plot_item.axes["bottom"]["item"] = self.x_axis
+        self.x_axis.format = self._settings.value("plot_xaxis")
+        self.x_axis.origin = origin
+
         axis = self.layout.itemAt(2, 0)
         axis.setParent(None)
-        self.axis = FormatedAxis("left")
+        self.y_axis = FormatedAxis("left")
         self.layout.removeItem(axis)
-        self.layout.addItem(self.axis, 2, 0)
-        self.axis.linkToView(axis.linkedView())
-        self.plot_item.axes["left"]["item"] = self.axis
+        self.layout.addItem(self.y_axis, 2, 0)
+        self.y_axis.linkToView(axis.linkedView())
+        self.plot_item.axes["left"]["item"] = self.y_axis
 
         self.cursor_hint = pg.PlotDataItem(
             [],
@@ -1647,8 +1658,8 @@ class _Plot(pg.PlotWidget):
             self.curves[index].setSymbolBrush(color)
 
         if uuid == self.current_uuid:
-            self.axis.setPen(color)
-            self.axis.setTextPen(color)
+            self.y_axis.setPen(color)
+            self.y_axis.setTextPen(color)
 
     def set_common_axis(self, uuid, state):
         _, index = self.signal_by_uuid(uuid)
@@ -2084,7 +2095,7 @@ class _Plot(pg.PlotWidget):
             return
         (start, stop), _ = self.viewbox.viewRange()
 
-        width = self.width() - self.axis.width()
+        width = self.width() - self.y_axis.width()
 
         for sig in signals:
             sig.trim(start, stop, width)
@@ -2102,7 +2113,7 @@ class _Plot(pg.PlotWidget):
             super().resizeEvent(ev)
 
     def set_current_uuid(self, uuid, force=False):
-        axis = self.axis
+        axis = self.y_axis
         viewbox = self.viewbox
 
         sig, index = self.signal_by_uuid(uuid)
@@ -2202,7 +2213,7 @@ class _Plot(pg.PlotWidget):
 
         (start, stop), _ = self.viewbox.viewRange()
 
-        width = self.width() - self.axis.width()
+        width = self.width() - self.y_axis.width()
         trim_info = start, stop, width
 
         channels = [
