@@ -1330,7 +1330,7 @@ def master_using_raster(mdf, raster, endpoint=False):
     return master
 
 
-def extract_can_signal(signal, payload):
+def extract_signal(signal, payload):
     vals = payload
 
     big_endian = False if signal.is_little_endian else True
@@ -1474,6 +1474,10 @@ def extract_can_signal(signal, payload):
     return vals
 
 
+def extract_can_signal(signal, payload):
+    return extract_signal(signal, payload)
+
+
 def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=None):
     """ extract multiplexed CAN signals from the raw payload
 
@@ -1486,7 +1490,7 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
     message_id : int
         message id
     bus : int
-        CAN bus channel number
+        bus channel number
     t : np.ndarray
         timestamps for the raw payload
     muxer (None): str
@@ -1546,7 +1550,7 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
             payload_ = payload
 
         for sig in pair_signals:
-            samples = extract_can_signal(sig, payload_)
+            samples = extract_signal(sig, payload_)
             if len(samples) == 0 and len(t_):
                 continue
 
