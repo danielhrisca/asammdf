@@ -606,14 +606,19 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         if self.stackedWidget.currentIndex() == 0:
             widget = self.files.currentWidget()
-            if widget and widget.get_current_plot():
-                widget.get_current_plot().plot.x_axis.format = fmt
-                widget.get_current_plot().plot.x_axis.updateAutoSIPrefix()
         elif self.stackedWidget.currentIndex() == 2:
             widget = self
-            if widget and widget.get_current_plot():
+        else:
+            widget = None
+        if widget:
+            plot = widget.get_current_plot()
+            if plot:
                 widget.get_current_plot().plot.x_axis.format = fmt
                 widget.get_current_plot().plot.x_axis.updateAutoSIPrefix()
+                if plot.plot.cursor1 is not None:
+                    plot.cursor_moved()
+                if plot.plot.region is not None:
+                    plot.range_modified()
 
     def set_theme(self, option):
         self._settings.setValue("theme", option)

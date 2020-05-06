@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from datetime import timedelta
 from functools import partial, reduce
 import logging
 import os
@@ -903,7 +904,16 @@ class Plot(QtWidgets.QWidget):
             #     self.plot.cursor_hint.show()
 
         if not self.plot.region:
-            self.cursor_info.setText(f"t = {position:.6f}s")
+            fmt = self.plot.x_axis.format
+            if fmt == "phys":
+                cursor_info_text = f"t = {position:.6f}s"
+            elif fmt == "time":
+                cursor_info_text = f"t = {timedelta(seconds=position)}"
+            elif fmt == "date":
+                position_date = self.plot.x_axis.origin + timedelta(seconds=position)
+                cursor_info_text = f"t = {position_date}"
+            self.cursor_info.setText(cursor_info_text)
+
             items = [
                 self.channel_selection.item(i)
                 for i in range(self.channel_selection.count())
@@ -948,12 +958,27 @@ class Plot(QtWidgets.QWidget):
     def range_modified(self):
         start, stop = self.plot.region.getRegion()
 
+        fmt = self.plot.x_axis.format
+        if fmt == "phys":
+            start_info = f"{start:.6f}s"
+            stop_info = f"{stop:.6f}s"
+            delta_info = f"{stop - start:.6f}s"
+        elif fmt == "time":
+            start_info = f"{timedelta(seconds=start)}"
+            stop_info = f"{timedelta(seconds=stop)}"
+            delta_info = f"{timedelta(seconds=(stop - start))}"
+        elif fmt == "date":
+            start_info = self.plot.x_axis.origin + timedelta(seconds=start)
+            stop_info = self.plot.x_axis.origin + timedelta(seconds=stop)
+
+            delta_info = f"{timedelta(seconds=(stop - start))}"
+
         self.cursor_info.setText(
             (
                 "< html > < head / > < body >"
-                f"< p >t1 = {start:.6f}s< / p > "
-                f"< p >t2 = {stop:.6f}s< / p > "
-                f"< p >Δt = {stop - start:.6f}s< / p > "
+                f"< p >t1 = {start_info}< / p > "
+                f"< p >t2 = {stop_info}< / p > "
+                f"< p >Δt = {delta_info}< / p > "
                 "< / body > < / html >"
             )
         )
@@ -1482,7 +1507,10 @@ class _Plot(pg.PlotWidget):
         self.layout.addItem(self.x_axis, 3, 1)
         self.x_axis.linkToView(axis.linkedView())
         self.plot_item.axes["bottom"]["item"] = self.x_axis
-        self.x_axis.format = self._settings.value("plot_xaxis")
+        fmt = self._settings.value("plot_xaxis")
+        if fmt == "seconds":
+            fmt = "phys"
+        self.x_axis.format = fmt
         self.x_axis.origin = origin
 
         axis = self.layout.itemAt(2, 0)
