@@ -58,6 +58,24 @@ class PlotWindow(QtWidgets.QMainWindow):
         submenu.addActions(plot_background_option.actions())
         menu.addMenu(submenu)
 
+        # plot X axis display mode
+        plot_xaxis_option = QtWidgets.QActionGroup(self)
+
+        for option in ("seconds", "time", "date"):
+
+            action = QtWidgets.QAction(option, menu)
+            action.setCheckable(True)
+            plot_xaxis_option.addAction(action)
+            action.triggered.connect(partial(self.set_plot_xaxis, option))
+
+            if option == self._settings.value("plot_xaxis", "seconds"):
+                action.setChecked(True)
+                action.triggered.emit()
+
+        submenu = QtWidgets.QMenu("Plot X axis", self.menubar)
+        submenu.addActions(plot_xaxis_option.actions())
+        menu.addMenu(submenu)
+
         # search mode menu
         theme_option = QtWidgets.QActionGroup(self)
 
@@ -193,6 +211,29 @@ class PlotWindow(QtWidgets.QMainWindow):
         action.setShortcut(QtGui.QKeySequence("Ctrl+P"))
         display_format_actions.addAction(action)
 
+        # scaled display
+
+        samples_format_actions = QtWidgets.QActionGroup(self)
+
+        action = QtWidgets.QAction("{: <20}\tAlt+R".format("Raw samples"), menu)
+        action.triggered.connect(
+            partial(
+                self.plot_action, key=QtCore.Qt.Key_R, modifier=QtCore.Qt.AltModifier,
+            )
+        )
+        action.setShortcut(QtGui.QKeySequence("Alt+R"))
+        samples_format_actions.addAction(action)
+
+        action = QtWidgets.QAction("{: <20}\tAlt+S".format("Scaled samples"), menu)
+        action.triggered.connect(
+            partial(
+                self.plot_action, key=QtCore.Qt.Key_S, modifier=QtCore.Qt.AltModifier,
+            )
+        )
+        action.setShortcut(QtGui.QKeySequence("Alt+S"))
+        samples_format_actions.addAction(action)
+
+
         # info
 
         info = QtWidgets.QActionGroup(self)
@@ -241,12 +282,52 @@ class PlotWindow(QtWidgets.QMainWindow):
         action.setShortcut(QtCore.Qt.Key_R)
         cursors_actions.addAction(action)
 
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/lock_range.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        action = QtWidgets.QAction(icon, "{: <20}\tY".format("Lock/unlock range"), menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_Y))
+        action.setShortcut(QtCore.Qt.Key_Y)
+        cursors_actions.addAction(action)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/comments.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        action = QtWidgets.QAction(
+            icon, "{: <20}\tCtrl+I".format("Insert cursor comment"), menu
+        )
+        action.triggered.connect(
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key_I,
+                modifier=QtCore.Qt.ControlModifier,
+            )
+        )
+        action.setShortcut(QtGui.QKeySequence("Ctrl+I"))
+        cursors_actions.addAction(action)
+
+        icon = QtGui.QIcon()
+        action = QtWidgets.QAction(
+            "{: <20}\tAlt+I".format("Toggle trigger texts"), menu
+        )
+        action.triggered.connect(
+            partial(
+                self.plot_action, key=QtCore.Qt.Key_I, modifier=QtCore.Qt.AltModifier,
+            )
+        )
+        action.setShortcut(QtGui.QKeySequence("Alt+I"))
+        cursors_actions.addAction(action)
+
         self.plot_menu = QtWidgets.QMenu("Plot", self.menubar)
         self.plot_menu.addActions(plot_actions.actions())
         self.plot_menu.addSeparator()
         self.plot_menu.addActions(cursors_actions.actions())
         self.plot_menu.addSeparator()
         self.plot_menu.addActions(display_format_actions.actions())
+        self.plot_menu.addSeparator()
+        self.plot_menu.addActions(samples_format_actions.actions())
         self.plot_menu.addSeparator()
         self.plot_menu.addActions(info.actions())
         self.menubar.addMenu(self.plot_menu)
@@ -293,6 +374,23 @@ class PlotWindow(QtWidgets.QMainWindow):
         else:
             pg.setConfigOption("background", "w")
             pg.setConfigOption("foreground", "k")
+
+    def set_plot_xaxis(self, option):
+        self._settings.setValue("plot_xaxis", option)
+        if option == "seconds":
+            fmt = "phys"
+        elif option == "time":
+            fmt = "time"
+        elif option == "date":
+            fmt = "time"
+
+        plot = self.plot
+        plot.plot.x_axis.format = fmt
+        plot.plot.x_axis.updateAutoSIPrefix()
+        if plot.plot.cursor1 is not None:
+            plot.cursor_moved()
+        if plot.plot.region is not None:
+            plot.range_modified()
 
     def set_theme(self, option):
         self._settings.setValue("theme", option)

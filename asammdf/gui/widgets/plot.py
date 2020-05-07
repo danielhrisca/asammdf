@@ -1105,9 +1105,9 @@ class Plot(QtWidgets.QWidget):
                 if signal.plot_samples.dtype.kind in "ui":
                     signal.format = fmt
                     if self.plot.current_uuid == signal.uuid:
-                        self.plot.axis.format = fmt
-                        self.plot.axis.hide()
-                        self.plot.axis.show()
+                        self.plot.y_axis.format = fmt
+                        self.plot.y_axis.hide()
+                        self.plot.y_axis.show()
             if self.plot.cursor1:
                 self.plot.cursor_moved.emit()
 
@@ -1170,9 +1170,9 @@ class Plot(QtWidgets.QWidget):
                     view.setYRange(buttom, top, padding=0, update=True)
 
                     if self.plot.current_uuid == signal.uuid:
-                        self.plot.axis.mode = mode
-                        self.plot.axis.hide()
-                        self.plot.axis.show()
+                        self.plot.y_axis.mode = mode
+                        self.plot.y_axis.hide()
+                        self.plot.y_axis.show()
 
             self.plot.update_lines(force=True)
 
