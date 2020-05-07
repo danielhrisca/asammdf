@@ -136,7 +136,7 @@ class WithMDIArea:
 
                 count = len(widget.plot.signals)
                 for i, sig in enumerate(sigs, count):
-                    sig.color = COLORS[len(COLORS) % i]
+                    sig.color = COLORS[i % len(COLORS)]
 
             widget.add_new_channels(sigs)
 
@@ -367,6 +367,7 @@ class WithMDIArea:
         elif window_type == "Plot":
             if hasattr(self, "mdf"):
                 events = []
+                origin = self.mdf.start_time
 
                 if self.mdf.version >= "4.00":
                     mdf_events = list(self.mdf.events)
@@ -407,8 +408,9 @@ class WithMDIArea:
                             events.append(event)
             else:
                 events = []
+                origin = self.files.widget(0).mdf.start_time
 
-            plot = Plot([], events=events, with_dots=self.with_dots)
+            plot = Plot([], events=events, with_dots=self.with_dots, origin=origin)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
@@ -753,6 +755,7 @@ class WithMDIArea:
 
             if hasattr(self, "mdf"):
                 events = []
+                origin = self.mdf.start_time
 
                 if self.mdf.version >= "4.00":
                     mdf_events = list(self.mdf.events)
@@ -793,8 +796,9 @@ class WithMDIArea:
                             events.append(event)
             else:
                 events = []
+                origin = self.files.widget(0).mdf.start_time
 
-            plot = Plot([], self.with_dots, events=events)
+            plot = Plot([], self.with_dots, events=events, origin=origin)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():

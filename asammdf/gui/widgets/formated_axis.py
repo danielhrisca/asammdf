@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from datetime import timedelta
 import numpy as np
 import pyqtgraph as pg
 
@@ -12,6 +13,7 @@ class FormatedAxis(pg.AxisItem):
         self.format = "phys"
         self.mode = "phys"
         self.text_conversion = None
+        self.origin = None
 
     def tickStrings(self, values, scale, spacing):
         strns = []
@@ -64,6 +66,16 @@ class FormatedAxis(pg.AxisItem):
                     else:
                         val = ""
                     strns.append(val)
+            elif self.format == 'time':
+                strns = [
+                    str(timedelta(seconds=val))
+                    for val in values
+                ]
+            elif self.format == 'date':
+                strns = [
+                    str(self.origin + timedelta(seconds=val))
+                    for val in values
+                ]
 
         return strns
 

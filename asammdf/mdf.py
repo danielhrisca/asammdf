@@ -3686,6 +3686,23 @@ class MDF(object):
         )
         self._link_attributes()
 
+    @property
+    def start_time(self):
+        """ getter and setter the measurement start timestamp
+
+        Returns
+        -------
+        timestamp : datetime.datetime
+            start timestamp
+
+        """
+
+        return self.header.start_time
+
+    @start_time.setter
+    def start_time(self, timestamp):
+        self.header.start_time = timestamp
+
 
 if __name__ == "__main__":
     pass

@@ -160,7 +160,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         subplot_action.setChecked(self.ignore_value2text_conversions)
         menu.addAction(subplot_action)
 
-        # search mode menu
+        # plot background
         plot_background_option = QtWidgets.QActionGroup(self)
 
         for option in ("Black", "White"):
@@ -176,6 +176,24 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         submenu = QtWidgets.QMenu("Plot background", self.menubar)
         submenu.addActions(plot_background_option.actions())
+        menu.addMenu(submenu)
+
+        # plot X axis display mode
+        plot_xaxis_option = QtWidgets.QActionGroup(self)
+
+        for option in ("seconds", "time", "date"):
+
+            action = QtWidgets.QAction(option, menu)
+            action.setCheckable(True)
+            plot_xaxis_option.addAction(action)
+            action.triggered.connect(partial(self.set_plot_xaxis, option))
+
+            if option == self._settings.value("plot_xaxis", "seconds"):
+                action.setChecked(True)
+                action.triggered.emit()
+
+        submenu = QtWidgets.QMenu("Plot X axis", self.menubar)
+        submenu.addActions(plot_xaxis_option.actions())
         menu.addMenu(submenu)
 
         # search mode menu
@@ -576,6 +594,31 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         else:
             pg.setConfigOption("background", "w")
             pg.setConfigOption("foreground", "k")
+
+    def set_plot_xaxis(self, option):
+        self._settings.setValue("plot_xaxis", option)
+        if option == "seconds":
+            fmt = "phys"
+        elif option == "time":
+            fmt = "time"
+        elif option == "date":
+            fmt = "date"
+
+        if self.stackedWidget.currentIndex() == 0:
+            widget = self.files.currentWidget()
+        elif self.stackedWidget.currentIndex() == 2:
+            widget = self
+        else:
+            widget = None
+        if widget:
+            plot = widget.get_current_plot()
+            if plot:
+                widget.get_current_plot().plot.x_axis.format = fmt
+                widget.get_current_plot().plot.x_axis.updateAutoSIPrefix()
+                if plot.plot.cursor1 is not None:
+                    plot.cursor_moved()
+                if plot.plot.region is not None:
+                    plot.range_modified()
 
     def set_theme(self, option):
         self._settings.setValue("theme", option)
