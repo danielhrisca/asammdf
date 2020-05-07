@@ -136,7 +136,7 @@ class WithMDIArea:
 
                 count = len(widget.plot.signals)
                 for i, sig in enumerate(sigs, count):
-                    sig.color = COLORS[len(COLORS) % i]
+                    sig.color = COLORS[i % len(COLORS)]
 
             widget.add_new_channels(sigs)
 
