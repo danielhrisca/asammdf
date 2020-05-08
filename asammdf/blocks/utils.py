@@ -182,10 +182,16 @@ def get_text_v3(address, stream, mapped=False, decode=True):
         return "" if decode else b""
 
     if mapped:
+        block_id = stream[address: address+2]
+        if block_id != b'TX':
+            return "" if decode else b""
         (size,) = UINT16_uf(stream, address + 2)
         text_bytes = stream[address + 4 : address + size].strip(b" \r\t\n\0")
     else:
-        stream.seek(address + 2)
+        stream.seek(address)
+        block_id = stream.read(2)
+        if block_id != b'TX':
+            return "" if decode else b""
         size = UINT16_u(stream.read(2))[0] - 4
         text_bytes = stream.read(size).strip(b" \r\t\n\0")
     if decode:
@@ -221,10 +227,16 @@ def get_text_v4(address, stream, mapped=False, decode=True):
         return "" if decode else b""
 
     if mapped:
+        block_id = stream[address: address+4]
+        if block_id not in (b'##TX', b'##MD'):
+            return "" if decode else b""
         (size,) = UINT64_uf(stream, address + 8)
         text_bytes = stream[address + 24 : address + size].strip(b" \r\t\n\0")
     else:
-        stream.seek(address + 8)
+        stream.seek(address)
+        block_id = stream.read(8)[:4]
+        if block_id not in (b'##TX', b'##MD'):
+            return "" if decode else b""
         size, _ = TWO_UINT64_u(stream.read(16))
         text_bytes = stream.read(size - 24).strip(b" \r\t\n\0")
     if decode:

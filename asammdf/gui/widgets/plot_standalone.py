@@ -35,6 +35,15 @@ class PlotWindow(QtWidgets.QMainWindow):
         self.setMenuBar(self.menubar)
 
         self._settings = QtCore.QSettings()
+        self.with_dots = self._settings.value("dots", False, type=bool)
+
+        if not isinstance(signals, (list, tuple)):
+            signals = [
+                signals,
+            ]
+
+        self.plot = Plot(signals, self.with_dots)
+
         self._light_palette = self.palette()
 
         menu = QtWidgets.QMenu("Settings", self.menubar)
@@ -339,15 +348,6 @@ class PlotWindow(QtWidgets.QMainWindow):
         open_group.addAction(action)
         menu.addActions(open_group.actions())
 
-        self.with_dots = self._settings.value("dots", False, type=bool)
-
-        if not isinstance(signals, (list, tuple)):
-            signals = [
-                signals,
-            ]
-
-        self.plot = Plot(signals, self.with_dots)
-
         self.setCentralWidget(self.plot)
 
         icon = QtGui.QIcon()
@@ -385,6 +385,7 @@ class PlotWindow(QtWidgets.QMainWindow):
             fmt = "time"
 
         plot = self.plot
+
         plot.plot.x_axis.format = fmt
         plot.plot.x_axis.updateAutoSIPrefix()
         if plot.plot.cursor1 is not None:

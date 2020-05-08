@@ -174,6 +174,7 @@ class Signal(object):
             return
 
         except:
+            print(format_exc())
             try:
                 import matplotlib.pyplot as plt
                 from mpl_toolkits.mplot3d import axes3d

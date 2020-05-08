@@ -6179,7 +6179,7 @@ class MDF4(object):
                     )[0]
                     channel_values[i].append(vals)
                 if master_is_required:
-                    timestamps.append(self.get_master(gp_nr, fragment,))
+                    timestamps.append(self.get_master(gp_nr, fragment, one_piece=True))
                 if channel_invalidation_present:
                     invalidation_bits.append(
                         self.get_invalidation_bits(gp_nr, channel, fragment)
@@ -6494,7 +6494,7 @@ class MDF4(object):
             vals = fromarrays(arrays, dtype(types))
 
             if master_is_required:
-                timestamps.append(self.get_master(gp_nr, fragment))
+                timestamps.append(self.get_master(gp_nr, fragment, one_piece=True))
             if channel_invalidation_present:
                 invalidation_bits.append(
                     self.get_invalidation_bits(gp_nr, channel, fragment)
@@ -6619,7 +6619,7 @@ class MDF4(object):
                 vals += offset
 
                 if master_is_required:
-                    timestamps.append(self.get_master(gp_nr, fragment))
+                    timestamps.append(self.get_master(gp_nr, fragment, record_offset=offset, record_count=_count, one_piece=True))
                 if channel_invalidation_present:
                     invalidation_bits.append(
                         self.get_invalidation_bits(gp_nr, channel, fragment)
@@ -6782,7 +6782,11 @@ class MDF4(object):
                         vals = vals.astype(channel_dtype)
 
                 if master_is_required:
-                    timestamps = self.get_master(gp_nr, fragment, one_piece=True)
+                    timestamps = self.get_master(
+                        gp_nr,
+                        fragment,
+                        one_piece=True
+                    )
                 else:
                     timestamps = None
 
@@ -7655,7 +7659,6 @@ class MDF4(object):
 
         if time_ch_nr is None:
             if record_size:
-                offset = offset // record_size
                 t = arange(cycles_nr, dtype=float64)
                 t += offset
             else:
@@ -7670,7 +7673,6 @@ class MDF4(object):
             metadata = (time_name, time_ch.sync_type)
 
             if time_ch.channel_type == v4c.CHANNEL_TYPE_VIRTUAL_MASTER:
-                offset = offset // record_size
                 time_a = time_conv["a"]
                 time_b = time_conv["b"]
                 t = arange(cycles_nr, dtype=float64)
