@@ -109,34 +109,65 @@ class WithMDIArea:
 
     def add_new_channels(self, names, widget):
         try:
-            # name is tuple (channel_name, group_index, channel_index, mdf_uuid)
-            signals_ = [name[:3] for name in names if name[1:3] != (-1, -1)]
 
-            computed = [json.loads(name[0]) for name in names if name[1:3] == (-1, -1)]
+            signals_ = [name for name in names if name[1:] != (-1, -1)]
 
-            sigs = self.mdf.select(
-                signals_, copy_master=False, validate=True, raw=True,
-            )
+            computed = [json.loads(name[0]) for name in names if name[1:] == (-1, -1)]
 
-            for sig in sigs:
-                group, index = self.mdf.whereis(sig.name)[0]
-                sig.group_index = group
-                sig.channel_index = index
-                sig.computed = False
-                sig.computation = {}
-                sig.mdf_uuid = self.uuid
+            uuids = set(entry[3] for entry in signals_)
+
+            signals = []
+
+            for uuid in uuids:
+                uuids_signals = [entry[:3] for entry in signals_ if entry[3] == uuid]
+
+                file_info = self.file_by_uuid(uuid)
+                if not file_info:
+                    continue
+
+                file_index, file = file_info
+
+                selected_signals = file.mdf.select(
+                    uuids_signals,
+                    ignore_value2text_conversions=self.ignore_value2text_conversions,
+                    copy_master=False,
+                    validate=True,
+                    raw=True,
+                )
+
+                for sig, sig_ in zip(selected_signals, uuids_signals):
+                    sig.group_index = sig_[1]
+                    sig.channel_index = sig_[2]
+                    sig.computed = False
+                    sig.computation = {}
+                    sig.mdf_uuid = uuid
+
+                    if not hasattr(self, "mdf"):
+                        # MainWindow => comparison plots
+
+                        sig.tooltip = f"{sig.name}\n@ {file.file_name}"
+                        sig.name = f"{file_index+1}: {sig.name}"
+
+                signals.extend(selected_signals)
 
             if isinstance(widget, Plot):
-
-                sigs = [
+                signals = [
                     sig
-                    for sig in sigs
-                    if not sig.samples.dtype.names and len(sig.samples.shape) <= 1
+                    for sig in signals
+                    if sig.samples.dtype.kind not in "SU"
+                    and not sig.samples.dtype.names
+                    and not len(sig.samples.shape) > 1
                 ]
 
-                count = len(widget.plot.signals)
-                for i, sig in enumerate(sigs, count):
-                    sig.color = COLORS[i % len(COLORS)]
+            for signal in signals:
+                if len(signal.samples.shape) > 1:
+
+                    signal.samples = csv_bytearray2hex(pd.Series(list(signal.samples)))
+
+                if signal.name.endswith("CAN_DataFrame.ID"):
+                    signal.samples = signal.samples.astype("<u4") & 0x1FFFFFFF
+
+            signals = sigs = natsorted(signals, key=lambda x: x.name)
 
             widget.add_new_channels(sigs)
 
