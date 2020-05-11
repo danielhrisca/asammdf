@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
-from threading import Thread
-from time import sleep
 
-from natsort import natsorted
 import psutil
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -14,7 +11,6 @@ from ..ui import resource_rc as resource_rc
 from ..ui.batch_widget import Ui_batch_widget
 from ..utils import run_thread_with_progress, setup_progress, TERMINATED
 from .list import MinimalListWidget
-from .search import SearchWidget
 from .tree import TreeWidget
 from .tree_item import TreeItem
 

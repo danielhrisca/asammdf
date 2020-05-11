@@ -11,10 +11,6 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ...blocks import v4_constants as v4c
 from ...blocks.utils import csv_bytearray2hex, extract_cncomment_xml, MdfException
-from ...blocks.v4_constants import FLAG_CG_BUS_EVENT
-from ...mdf import MDF, SUPPORTED_VERSIONS
-from ...signal import Signal
-from ..dialogs.channel_group_info import ChannelGroupInfoDialog
 from ..dialogs.channel_info import ChannelInfoDialog
 from ..utils import (
     add_children,
@@ -30,7 +26,6 @@ from ..utils import (
 )
 from .numeric import Numeric
 from .plot import Plot
-from .search import SearchWidget
 from .tabular import Tabular
 from .tree import TreeWidget
 

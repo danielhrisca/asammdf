@@ -19,7 +19,6 @@ import pyqtgraph as pg
 from ...blocks.utils import csv_bytearray2hex, extract_cncomment_xml, MdfException
 from ...blocks.v4_constants import FLAG_CG_BUS_EVENT
 from ...mdf import MDF, SUPPORTED_VERSIONS
-from ...signal import Signal
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_group_info import ChannelGroupInfoDialog
 from ..dialogs.channel_info import ChannelInfoDialog
@@ -38,8 +37,6 @@ from ..utils import (
 from .mdi_area import MdiAreaWidget, WithMDIArea
 from .numeric import Numeric
 from .plot import Plot
-from .search import SearchWidget
-from .tabular import Tabular
 from .tree import TreeWidget
 from .tree_item import TreeItem
 
