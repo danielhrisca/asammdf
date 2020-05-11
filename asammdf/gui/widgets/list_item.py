@@ -9,7 +9,7 @@ class ListItem(QtWidgets.QListWidgetItem):
 
     def __init__(self, entry, name="", computation=None, parent=None, mdf_uuid=None):
 
-        super().__init__(parent)
+        super().__init__()
 
         self.entry = entry
         self.name = name

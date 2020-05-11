@@ -157,11 +157,13 @@
  </customwidgets>
  <tabstops>
   <tabstop>search_box</tabstop>
-  <tabstop>match_kind</tabstop>
-  <tabstop>selection</tabstop>
+  <tabstop>matches</tabstop>
   <tabstop>add_btn</tabstop>
-  <tabstop>cancel_btn</tabstop>
+  <tabstop>selection</tabstop>
   <tabstop>apply_btn</tabstop>
+  <tabstop>cancel_btn</tabstop>
+  <tabstop>match_kind</tabstop>
+  <tabstop>show_measurement_list_btn</tabstop>
  </tabstops>
  <resources>
   <include location="resource.qrc"/>

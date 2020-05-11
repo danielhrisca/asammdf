@@ -2,13 +2,11 @@
 
 # Form implementation generated from reading ui file 'numeric.ui'
 #
-# Created by: PyQt5 UI code generator 5.13.1
+# Created by: PyQt5 UI code generator 5.9.2
 #
 # WARNING! All changes made in this file will be lost!
 
-
 from PyQt5 import QtCore, QtGui, QtWidgets
-
 
 class Ui_NumericDisplay(object):
     def setupUi(self, NumericDisplay):
@@ -42,9 +40,7 @@ class Ui_NumericDisplay(object):
         self.min_t.setText("")
         self.min_t.setObjectName("min_t")
         self.horizontalLayout_2.addWidget(self.min_t)
-        spacerItem = QtWidgets.QSpacerItem(
-            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
-        )
+        spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout_2.addItem(spacerItem)
         self.max_t = QtWidgets.QLabel(NumericDisplay)
         self.max_t.setText("")
@@ -84,22 +80,16 @@ class Ui_NumericDisplay(object):
         self.backward = QtWidgets.QPushButton(self.groupBox)
         self.backward.setText("")
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/right.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/right.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.backward.setIcon(icon)
         self.backward.setObjectName("backward")
         self.horizontalLayout_3.addWidget(self.backward)
-        spacerItem1 = QtWidgets.QSpacerItem(
-            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
-        )
+        spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout_3.addItem(spacerItem1)
         self.forward = QtWidgets.QPushButton(self.groupBox)
         self.forward.setText("")
         icon1 = QtGui.QIcon()
-        icon1.addPixmap(
-            QtGui.QPixmap(":/left.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon1.addPixmap(QtGui.QPixmap(":/left.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.forward.setIcon(icon1)
         self.forward.setObjectName("forward")
         self.horizontalLayout_3.addWidget(self.forward)
@@ -114,6 +104,13 @@ class Ui_NumericDisplay(object):
 
         self.retranslateUi(NumericDisplay)
         QtCore.QMetaObject.connectSlotsByName(NumericDisplay)
+        NumericDisplay.setTabOrder(self.timestamp, self.timestamp_slider)
+        NumericDisplay.setTabOrder(self.timestamp_slider, self.pattern)
+        NumericDisplay.setTabOrder(self.pattern, self.op)
+        NumericDisplay.setTabOrder(self.op, self.target)
+        NumericDisplay.setTabOrder(self.target, self.backward)
+        NumericDisplay.setTabOrder(self.backward, self.forward)
+        NumericDisplay.setTabOrder(self.forward, self.channels)
 
     def retranslateUi(self, NumericDisplay):
         _translate = QtCore.QCoreApplication.translate
@@ -126,7 +123,6 @@ class Ui_NumericDisplay(object):
         self.groupBox.setTitle(_translate("NumericDisplay", "Search for values"))
         self.label_2.setText(_translate("NumericDisplay", "Pattern"))
         self.label_3.setText(_translate("NumericDisplay", "target value"))
-
 
 from asammdf.gui.widgets.tree_numeric import NumericTreeWidget
 from . import resource_rc

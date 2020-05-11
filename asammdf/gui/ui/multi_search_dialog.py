@@ -2,12 +2,11 @@
 
 # Form implementation generated from reading ui file 'multi_search_dialog.ui'
 #
-# Created by: PyQt5 UI code generator 5.12.2
+# Created by: PyQt5 UI code generator 5.9.2
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-
 
 class Ui_MultiSearchDialog(object):
     def setupUi(self, MultiSearchDialog):
@@ -72,11 +71,13 @@ class Ui_MultiSearchDialog(object):
         self.retranslateUi(MultiSearchDialog)
         self.match_kind.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MultiSearchDialog)
-        MultiSearchDialog.setTabOrder(self.search_box, self.match_kind)
-        MultiSearchDialog.setTabOrder(self.match_kind, self.selection)
-        MultiSearchDialog.setTabOrder(self.selection, self.add_btn)
-        MultiSearchDialog.setTabOrder(self.add_btn, self.cancel_btn)
-        MultiSearchDialog.setTabOrder(self.cancel_btn, self.apply_btn)
+        MultiSearchDialog.setTabOrder(self.search_box, self.matches)
+        MultiSearchDialog.setTabOrder(self.matches, self.add_btn)
+        MultiSearchDialog.setTabOrder(self.add_btn, self.selection)
+        MultiSearchDialog.setTabOrder(self.selection, self.apply_btn)
+        MultiSearchDialog.setTabOrder(self.apply_btn, self.cancel_btn)
+        MultiSearchDialog.setTabOrder(self.cancel_btn, self.match_kind)
+        MultiSearchDialog.setTabOrder(self.match_kind, self.show_measurement_list_btn)
 
     def retranslateUi(self, MultiSearchDialog):
         _translate = QtCore.QCoreApplication.translate
@@ -87,7 +88,6 @@ class Ui_MultiSearchDialog(object):
         self.match_kind.setItemText(1, _translate("MultiSearchDialog", "Regex"))
         self.label.setText(_translate("MultiSearchDialog", "Final selection"))
         self.show_measurement_list_btn.setText(_translate("MultiSearchDialog", "Show measurement list"))
-
 
 from asammdf.gui.widgets.list import MinimalListWidget
 from . import resource_rc

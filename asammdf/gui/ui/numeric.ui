@@ -211,6 +211,16 @@
    <header>asammdf/gui/widgets/tree_numeric.h</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>timestamp</tabstop>
+  <tabstop>timestamp_slider</tabstop>
+  <tabstop>pattern</tabstop>
+  <tabstop>op</tabstop>
+  <tabstop>target</tabstop>
+  <tabstop>backward</tabstop>
+  <tabstop>forward</tabstop>
+  <tabstop>channels</tabstop>
+ </tabstops>
  <resources>
   <include location="resource.qrc"/>
  </resources>

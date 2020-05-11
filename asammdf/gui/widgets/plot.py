@@ -732,6 +732,7 @@ class Plot(QtWidgets.QWidget):
         self.splitter.setOpaqueResize(False)
 
         self.plot = _Plot(with_dots=with_dots, parent=self, events=events, origin=origin)
+
         self.plot.range_modified.connect(self.range_modified)
         self.plot.range_removed.connect(self.range_removed)
         self.plot.range_modified_finished.connect(self.range_modified_finished)
@@ -747,7 +748,20 @@ class Plot(QtWidgets.QWidget):
         self.splitter.addWidget(self.plot)
 
         self.info = ChannelStats()
+        self.info.hide()
         self.splitter.addWidget(self.info)
+
+        self.splitter.setStretchFactor(0, 1)
+        self.splitter.setStretchFactor(1, 2)
+        self.splitter.setStretchFactor(2, 0)
+
+        self.plot.add_channels_request.connect(self.add_channels_request)
+        self.setAcceptDrops(True)
+
+        main_layout.addWidget(self.splitter)
+
+        if signals:
+            self.add_new_channels(signals)
 
         self.channel_selection.itemsDeleted.connect(self.channel_selection_reduced)
         self.channel_selection.itemPressed.connect(self.channel_selection_modified)
@@ -757,19 +771,6 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.add_channels_request.connect(self.add_channels_request)
         self.channel_selection.set_time_offset.connect(self.plot.set_time_offset)
         self.channel_selection.show_properties.connect(self._show_properties)
-        self.plot.add_channels_request.connect(self.add_channels_request)
-        self.setAcceptDrops(True)
-
-        main_layout.addWidget(self.splitter)
-
-        if signals:
-            self.add_new_channels(signals)
-
-        self.info.hide()
-
-        self.splitter.setStretchFactor(0, 1)
-        self.splitter.setStretchFactor(1, 2)
-        self.splitter.setStretchFactor(2, 0)
 
         self.keyboard_events = (
             set(
@@ -782,7 +783,6 @@ class Plot(QtWidgets.QWidget):
             )
             | self.plot.keyboard_events
         )
-
 
     def mousePressEvent(self, event):
         self.clicked.emit()
@@ -1492,7 +1492,7 @@ class _Plot(pg.PlotWidget):
         self.scene_ = self.plot_item.scene()
         self.scene_.sigMouseClicked.connect(self._clicked)
         self.viewbox = self.plot_item.vb
-        self.viewbox.sigXRangeChanged.connect(self.xrange_changed.emit)
+
 
         self.common_axis_items = set()
         self.common_axis_label = ""
@@ -1544,6 +1544,8 @@ class _Plot(pg.PlotWidget):
 
         if signals:
             self.add_new_channels(signals)
+
+        self.viewbox.sigXRangeChanged.connect(self.xrange_changed.emit)
 
         self.keyboard_events = set(
             [
@@ -2326,11 +2328,11 @@ class _Plot(pg.PlotWidget):
             axis.hide()
             view_box.addItem(curve)
 
+            if initial_index == 0 and index == 0:
+                self.set_current_uuid(sig.uuid)
+
         for index, sig in enumerate(channels, initial_index):
             self.view_boxes[index].setXLink(self.viewbox)
-
-        if initial_index == 0 and self.signals:
-            self.set_current_uuid(self.signals[0].uuid)
 
         for curve in self.curves[initial_index:]:
             curve.show()

@@ -167,6 +167,11 @@
  <tabstops>
   <tabstop>search_box</tabstop>
   <tabstop>matches</tabstop>
+  <tabstop>add_btn</tabstop>
+  <tabstop>selection</tabstop>
+  <tabstop>add_window_btn</tabstop>
+  <tabstop>apply_btn</tabstop>
+  <tabstop>cancel_btn</tabstop>
   <tabstop>match_kind</tabstop>
  </tabstops>
  <resources>

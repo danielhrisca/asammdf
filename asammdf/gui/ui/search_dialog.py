@@ -2,13 +2,11 @@
 
 # Form implementation generated from reading ui file 'search_dialog.ui'
 #
-# Created by: PyQt5 UI code generator 5.13.1
+# Created by: PyQt5 UI code generator 5.9.2
 #
 # WARNING! All changes made in this file will be lost!
 
-
 from PyQt5 import QtCore, QtGui, QtWidgets
-
 
 class Ui_SearchDialog(object):
     def setupUi(self, SearchDialog):
@@ -38,9 +36,7 @@ class Ui_SearchDialog(object):
         self.status.setText("")
         self.status.setObjectName("status")
         self.grid_layout.addWidget(self.status, 10, 0, 1, 1)
-        spacerItem = QtWidgets.QSpacerItem(
-            20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
-        )
+        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         self.grid_layout.addItem(spacerItem, 6, 1, 1, 1)
         self.label = QtWidgets.QLabel(SearchDialog)
         self.label.setObjectName("label")
@@ -57,16 +53,12 @@ class Ui_SearchDialog(object):
         self.cancel_btn = QtWidgets.QPushButton(SearchDialog)
         self.cancel_btn.setObjectName("cancel_btn")
         self.horizontalLayout.addWidget(self.cancel_btn)
-        spacerItem1 = QtWidgets.QSpacerItem(
-            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
-        )
+        spacerItem1 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem1)
         self.add_window_btn = QtWidgets.QPushButton(SearchDialog)
         self.add_window_btn.setObjectName("add_window_btn")
         self.horizontalLayout.addWidget(self.add_window_btn)
-        spacerItem2 = QtWidgets.QSpacerItem(
-            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
-        )
+        spacerItem2 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.horizontalLayout.addItem(spacerItem2)
         self.apply_btn = QtWidgets.QPushButton(SearchDialog)
         self.apply_btn.setObjectName("apply_btn")
@@ -80,7 +72,12 @@ class Ui_SearchDialog(object):
         self.match_kind.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(SearchDialog)
         SearchDialog.setTabOrder(self.search_box, self.matches)
-        SearchDialog.setTabOrder(self.matches, self.match_kind)
+        SearchDialog.setTabOrder(self.matches, self.add_btn)
+        SearchDialog.setTabOrder(self.add_btn, self.selection)
+        SearchDialog.setTabOrder(self.selection, self.add_window_btn)
+        SearchDialog.setTabOrder(self.add_window_btn, self.apply_btn)
+        SearchDialog.setTabOrder(self.apply_btn, self.cancel_btn)
+        SearchDialog.setTabOrder(self.cancel_btn, self.match_kind)
 
     def retranslateUi(self, SearchDialog):
         _translate = QtCore.QCoreApplication.translate
@@ -92,7 +89,6 @@ class Ui_SearchDialog(object):
         self.cancel_btn.setText(_translate("SearchDialog", "Cancel"))
         self.add_window_btn.setText(_translate("SearchDialog", "Add window"))
         self.apply_btn.setText(_translate("SearchDialog", "Apply"))
-
 
 from asammdf.gui.widgets.list import MinimalListWidget
 from . import resource_rc
