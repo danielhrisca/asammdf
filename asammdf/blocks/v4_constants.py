@@ -536,7 +536,7 @@ COMMON_SHORT_u = struct.Struct(FMT_COMMON_SHORT).unpack
 COMMON_SHORT_uf = struct.Struct(FMT_COMMON_SHORT).unpack_from
 COMMON_SHORT_p = struct.Struct(FMT_COMMON_SHORT).pack
 
-FMT_FILE_HISTORY = "<4sI5Q2HB3s"
+FMT_FILE_HISTORY = "<4sI5Q2hB3s"
 KEYS_FILE_HISTORY = (
     "id",
     "reserved0",
