@@ -601,6 +601,8 @@ class WithMDIArea:
 
     def load_window(self, window_info):
 
+        uuid = self.uuid
+
         if window_info["type"] == "Numeric":
             fmt = window_info["configuration"]["format"]
 
@@ -623,6 +625,7 @@ class WithMDIArea:
 
             for sig, sig_ in zip(signals, signals_):
                 sig.group_index = sig_[1]
+                sig.mdf_uuid = uuid
 
             signals = [
                 sig
@@ -707,6 +710,7 @@ class WithMDIArea:
                 signal.color = channel["color"]
                 signal.group_index = entry_info[1]
                 signal.channel_index = entry_info[2]
+                signal.mdf_uuid = uuid
 
             if measured_signals:
                 all_timebase = np.unique(
@@ -761,6 +765,7 @@ class WithMDIArea:
                     signal.unit = channel["unit"]
                     signal.group_index = -1
                     signal.channel_index = -1
+                    signal.mdf_uuid = uuid
 
                     computed_signals[signal.name] = signal
                 except:
