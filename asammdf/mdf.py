@@ -3334,15 +3334,18 @@ class MDF(object):
                     channel_name = used_names.get_unique_name(channel_name)
 
                     if reduce_memory_usage and sig.samples.dtype.kind in "SU":
-                        unique = np.unique(sig.samples)
-                        if len(sig.samples) / len(unique) >= 2:
-                            df[channel_name] = pd.Series(
-                                sig.samples, index=sig.timestamps, dtype="category"
-                            )
-                        else:
-                            df[channel_name] = pd.Series(
-                                sig.samples, index=sig.timestamps
-                            )
+                        df[channel_name] = pd.Series(
+                            sig.samples, index=sig.timestamps, dtype="category"
+                        )
+#                        unique = np.unique(sig.samples)
+#                        if len(sig.samples) / len(unique) >= 2:
+#                            df[channel_name] = pd.Series(
+#                                sig.samples, index=sig.timestamps, dtype="category"
+#                            )
+#                        else:
+#                            df[channel_name] = pd.Series(
+#                                sig.samples, index=sig.timestamps
+#                            )
                     else:
                         if reduce_memory_usage:
                             sig.samples = downcast(sig.samples)
