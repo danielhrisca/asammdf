@@ -40,48 +40,65 @@ class TreeWidget(QtWidgets.QTreeWidget):
 
     def mouseMoveEvent(self, e):
 
-        selected_items = self.selectedItems()
-
-        mimeData = QtCore.QMimeData()
-
-        data = []
-
-        for item in selected_items:
-
+        def get_data(item):
+            data = set()
             count = item.childCount()
 
             if count:
                 for i in range(count):
                     child = item.child(i)
 
-                    name = child.name.encode("utf-8")
-                    entry = child.entry
+                    if child.childCount():
+                        data = data | get_data(child)
+                    else:
 
-                    data.append(
-                        pack(
-                            f"<36s3q{len(name)}s",
-                            str(child.mdf_uuid).encode("ascii"),
-                            entry[0],
-                            entry[1],
-                            len(name),
-                            name,
-                        )
-                    )
+                        name = child.name.encode("utf-8")
+                        entry = child.entry
+                        if entry[1] != 0xFFFFFFFFFFFFFFFF:
+                            data.add(
+                                (
+                                    str(child.mdf_uuid).encode("ascii"),
+                                    name,
+                                    entry[0],
+                                    entry[1],
+                                    len(name),
+                                )
+                            )
             else:
-
                 name = item.name.encode("utf-8")
                 entry = item.entry
                 if entry[1] != 0xFFFFFFFFFFFFFFFF:
-                    data.append(
-                        pack(
-                            f"<36s3q{len(name)}s",
+                    data.add(
+                        (
                             str(item.mdf_uuid).encode("ascii"),
+                            name,
                             entry[0],
                             entry[1],
                             len(name),
-                            name,
                         )
                     )
+
+            return data
+
+        selected_items = self.selectedItems()
+
+        mimeData = QtCore.QMimeData()
+
+        data = set()
+        for item in selected_items:
+            data = data | get_data(item)
+
+        data = [
+            pack(
+                f"<36s3q{name_length}s",
+                uuid,
+                group_index,
+                channel_index,
+                name_length,
+                name,
+            )
+            for uuid, name, group_index, channel_index, name_length in sorted(data)
+        ]
 
         mimeData.setData(
             "application/octet-stream-asammdf", QtCore.QByteArray(b"".join(data))
