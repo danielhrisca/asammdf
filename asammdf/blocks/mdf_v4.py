@@ -555,6 +555,11 @@ class MDF4(object):
                     inval_size = channel_group.invalidation_bytes_nr
                     record_id = channel_group.record_id
                     cg_size[record_id] = samples_size + inval_size
+                else:
+                    samples_size = channel_group.samples_byte_nr
+                    inval_size = channel_group.invalidation_bytes_nr
+                    record_id = channel_group.record_id
+                    cg_size[record_id] = samples_size + inval_size
 
                 if record_id_nr:
                     grp.sorted = False
