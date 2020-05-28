@@ -9147,7 +9147,7 @@ class MDF4(object):
 
             rem = b""
             for info in group.data_blocks:
-                address, dtblock_size, block_size, block_type, param = (
+                address, dtblock_raw_size, dtblock_size, block_type, param = (
                     info.address,
                     info.raw_size,
                     info.size,
@@ -9157,14 +9157,14 @@ class MDF4(object):
 
                 if block_type != v4c.DT_BLOCK:
                     partial_records = {id_: [] for _, id_ in groups}
-                    new_data = read(block_size)
+                    new_data = read(dtblock_size)
 
                     if block_type == v4c.DZ_BLOCK_DEFLATE:
-                        new_data = decompress(new_data, 0, dtblock_size)
+                        new_data = decompress(new_data, 0, dtblock_raw_size)
                     elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
-                        new_data = decompress(new_data, 0, dtblock_size)
+                        new_data = decompress(new_data, 0, dtblock_raw_size)
                         cols = param
-                        lines = dtblock_size // cols
+                        lines = dtblock_raw_size // cols
 
                         nd = fromstring(new_data[: lines * cols], dtype=uint8)
                         nd = nd.reshape((cols, lines))
@@ -9228,14 +9228,14 @@ class MDF4(object):
 
                     seek(address)
                     limit = 32 * 1024 * 1024
-                    while block_size:
+                    while dtblock_size:
                         # while-loop runs only once, because limit is large (?) 
-                        if block_size > limit:
-                            block_size -= limit
+                        if dtblock_size > limit:
+                            dtblock_size -= limit
                             new_data = rem + read(limit)
                         else:
-                            new_data = rem + read(block_size)
-                            block_size = 0
+                            new_data = rem + read(dtblock_size)
+                            dtblock_size = 0
                         partial_records = {id_: [] for _, id_ in groups}
 
                         rem = sort_data_block(
@@ -9277,27 +9277,22 @@ class MDF4(object):
                                         ].append(info)
 
                                 else:
-                                    if dtblock_size:
-                                        #                                        block_info = DataBlockInfo(
-                                        #                                            address=address,
-                                        #                                            block_type=v4c.DT_BLOCK,
-                                        #                                            raw_size=size,
-                                        #                                            size=size,
-                                        #                                            param=0,
-                                        #                                        )
-                                        #                                        final_records[rec_id].append(block_info)
-                                        #                                        size = 0
+                                    if dtblock_raw_size:
 
                                         address = tell()
-                                        new_data = b"".join(new_data)
-                                        raw_size = write(new_data)
 
-                                        block_info = DataBlockInfo(
+                                        new_data = b"".join(new_data)
+
+                                        raw_size = len(new_data)
+                                        new_data = lz_compress(new_data)
+                                        compressed_size = write(new_data)
+
+                                        block_info = InvalidationBlockInfo(
                                             address=address,
-                                            block_type=v4c.DT_BLOCK,
+                                            block_type=v4c.DZ_BLOCK_LZ,
                                             raw_size=raw_size,
-                                            size=raw_size,
-                                            param=0,
+                                            size=compressed_size,
+                                            param=None,
                                         )
 
                                         final_records[rec_id].append(block_info)
