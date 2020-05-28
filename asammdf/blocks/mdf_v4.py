@@ -166,6 +166,22 @@ except:
     def sort_data_block(
         signal_data, partial_records, cg_size, record_id_nr, _unpack_stuct
     ):
+        """Reads an unsorted DTBLOCK and writes the results to `partial_records`.
+
+        Args:
+            signal_data (bytes): DTBLOCK contents
+            partial_records (dict): dictionary with `cg_record_id` as key and list of bytes
+                as value.
+            cg_size (dict): Dictionary with `cg_record_id` as key and 
+                number of record databytes (i.e. `cg_data_bytes`)
+            record_id_nr (int): Number of Bytes used for record IDs 
+                in the data block (`dg_rec_id_size`).
+            _unpack_stuct (callable): Struct("...").unpack_from callable
+
+        Returns:
+            bytes: rest of data which couldn't be parsed, can be used in consecutive
+                reading attempt
+        """
         i = 0
         size = len(signal_data)
         pos = 0
@@ -551,6 +567,12 @@ class MDF4(object):
                     record_id = channel_group.record_id
                     cg_size[record_id] = 0
                 elif channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
+                    samples_size = channel_group.samples_byte_nr
+                    inval_size = channel_group.invalidation_bytes_nr
+                    record_id = channel_group.record_id
+                    cg_size[record_id] = samples_size + inval_size
+                else:
+                    # in case no `cg_flags` are set
                     samples_size = channel_group.samples_byte_nr
                     inval_size = channel_group.invalidation_bytes_nr
                     record_id = channel_group.record_id
@@ -9141,7 +9163,7 @@ class MDF4(object):
 
             rem = b""
             for info in group.data_blocks:
-                address, size, block_size, block_type, param = (
+                dtblock_address, dtblock_raw_size, dtblock_size, block_type, param = (
                     info.address,
                     info.raw_size,
                     info.size,
@@ -9151,14 +9173,14 @@ class MDF4(object):
 
                 if block_type != v4c.DT_BLOCK:
                     partial_records = {id_: [] for _, id_ in groups}
-                    new_data = read(block_size)
+                    new_data = read(dtblock_size)
 
                     if block_type == v4c.DZ_BLOCK_DEFLATE:
-                        new_data = decompress(new_data, 0, size)
+                        new_data = decompress(new_data, 0, dtblock_raw_size)
                     elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
-                        new_data = decompress(new_data, 0, size)
+                        new_data = decompress(new_data, 0, dtblock_raw_size)
                         cols = param
-                        lines = size // cols
+                        lines = dtblock_raw_size // cols
 
                         nd = fromstring(new_data[: lines * cols], dtype=uint8)
                         nd = nd.reshape((cols, lines))
@@ -9189,17 +9211,17 @@ class MDF4(object):
 
                         if new_data:
 
-                            address = tell()
+                            tempfile_address = tell()
 
-                            size = write(b"".join(new_data))
+                            dtblock_temp_size = write(b"".join(new_data))
 
                             if dg_cntr is not None:
                                 offsets, size = get_vlsd_offsets(new_data)
 
-                                if size:
+                                if dtblock_temp_size:
                                     info = SignalDataBlockInfo(
-                                        address=address,
-                                        size=size,
+                                        address=tempfile_address,
+                                        size=dtblock_temp_size,
                                         count=len(offsets),
                                         offsets=offsets,
                                     )
@@ -9208,27 +9230,28 @@ class MDF4(object):
                                     )
 
                             else:
-                                if size:
+                                if dtblock_temp_size:
                                     block_info = DataBlockInfo(
-                                        address=address,
+                                        address=tempfile_address,
                                         block_type=v4c.DT_BLOCK,
-                                        raw_size=size,
-                                        size=size,
+                                        raw_size=dtblock_temp_size,
+                                        size=dtblock_temp_size,
                                         param=0,
                                     )
                                     final_records[rec_id].append(block_info)
-                                    size = 0
-                else:
+                                    dtblock_temp_size = 0
+                else: # DTBLOCK
 
-                    seek(address)
-                    limit = 32 * 1024 * 1024
-                    while block_size:
-                        if block_size > limit:
-                            block_size -= limit
+                    seek(dtblock_address)
+                    limit = 32 * 1024 * 1024  # 32MB
+                    while dtblock_size:
+                        
+                        if dtblock_size > limit:
+                            dtblock_size -= limit
                             new_data = rem + read(limit)
                         else:
-                            new_data = rem + read(block_size)
-                            block_size = 0
+                            new_data = rem + read(dtblock_size)
+                            dtblock_size = 0
                         partial_records = {id_: [] for _, id_ in groups}
 
                         rem = sort_data_block(
@@ -9253,14 +9276,14 @@ class MDF4(object):
                             if new_data:
 
                                 if dg_cntr is not None:
-                                    address = tell()
+                                    tempfile_address = tell()
                                     size = write(b"".join(new_data))
 
                                     offsets, size = get_vlsd_offsets(new_data)
 
                                     if size:
                                         info = SignalDataBlockInfo(
-                                            address=address,
+                                            address=tempfile_address,
                                             size=size,
                                             count=len(offsets),
                                             offsets=offsets,
@@ -9270,40 +9293,32 @@ class MDF4(object):
                                         ].append(info)
 
                                 else:
-                                    if size:
-                                        #                                        block_info = DataBlockInfo(
-                                        #                                            address=address,
-                                        #                                            block_type=v4c.DT_BLOCK,
-                                        #                                            raw_size=size,
-                                        #                                            size=size,
-                                        #                                            param=0,
-                                        #                                        )
-                                        #                                        final_records[rec_id].append(block_info)
-                                        #                                        size = 0
+                                    if dtblock_raw_size:
 
-                                        address = tell()
+                                        tempfile_address = tell()
 
                                         new_data = b"".join(new_data)
 
                                         raw_size = len(new_data)
                                         new_data = lz_compress(new_data)
-                                        size = len(new_data)
-                                        self._tempfile.write(new_data)
+                                        compressed_size = write(new_data)
 
                                         block_info = InvalidationBlockInfo(
-                                            address=address,
+                                            address=tempfile_address,
                                             block_type=v4c.DZ_BLOCK_LZ,
                                             raw_size=raw_size,
-                                            size=size,
+                                            size=compressed_size,
                                             param=None,
                                         )
 
                                         final_records[rec_id].append(block_info)
-                                        size = 0
+                                        raw_size = 0
 
+            # after we read all DTBLOCKs in the original file,
+            # we assign freshly created blocks from temporary file to
+            # corresponding groups.
             for idx, rec_id in groups:
                 group = self.groups[idx]
-
                 group.data_location = v4c.LOCATION_TEMPORARY_FILE
                 group.set_blocks_info(final_records[rec_id])
                 group.sorted = True
