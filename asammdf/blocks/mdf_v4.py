@@ -9243,9 +9243,9 @@ class MDF4(object):
                 else: # DTBLOCK
 
                     seek(dtblock_address)
-                    limit = 32 * 1024 * 1024
+                    limit = 32 * 1024 * 1024  # 32MB
                     while dtblock_size:
-                        # while-loop runs only once, because limit is large (?) 
+                        
                         if dtblock_size > limit:
                             dtblock_size -= limit
                             new_data = rem + read(limit)
