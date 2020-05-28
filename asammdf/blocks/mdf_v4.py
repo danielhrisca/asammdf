@@ -177,6 +177,10 @@ except:
             record_id_nr (int): Number of Bytes used for record IDs 
                 in the data block (`dg_rec_id_size`).
             _unpack_stuct (callable): Struct("...").unpack_from callable
+
+        Returns:
+            bytes: rest of data which couldn't be parsed, can be used in consecutive
+                reading attempt
         """
         i = 0
         size = len(signal_data)
