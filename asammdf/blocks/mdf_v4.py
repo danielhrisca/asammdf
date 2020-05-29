@@ -137,6 +137,8 @@ __all__ = ["MDF4"]
 
 try:
     from .cutils import extract, sort_data_block, lengths, get_vlsd_offsets
+    # for now avoid usign the cextension code
+    2/0
 except:
 
     def extract(signal_data, is_byte_array, offsets=()):
