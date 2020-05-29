@@ -648,7 +648,7 @@ class MDF4(object):
                         + channel_group.invalidation_bytes_nr
                     ) * channel_group.cycles_nr
 
-            if finalisation_flags & v4c.FLAG_UNFIN_UPDATE_CG_COUNTER:
+            if self.identification["unfinalized_standard_flags"] & v4c.FLAG_UNFIN_UPDATE_CG_COUNTER:
                 total_size = int(10**12)
                 inval_total_size = int(10**12)
 
