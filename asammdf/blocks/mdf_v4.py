@@ -648,9 +648,9 @@ class MDF4(object):
                         + channel_group.invalidation_bytes_nr
                     ) * channel_group.cycles_nr
 
-            #            if not is_finalised:
-            #                total_size = None
-            #                inval_total_size = None
+            if finalisation_flags & v4c.FLAG_UNFIN_UPDATE_CG_COUNTER:
+                total_size = int(10**12)
+                inval_total_size = int(10**12)
 
             info, uses_ld = self._get_data_blocks_info(
                 address=address,
@@ -2181,12 +2181,14 @@ class MDF4(object):
                     while address:
                         dl = DataList(address=address, stream=stream)
                         for i in range(dl.data_block_nr):
+
                             addr = dl[f"data_block_addr{i}"]
 
                             stream.seek(addr)
                             id_string, _, block_len = COMMON_SHORT_u(
                                 stream.read(COMMON_SHORT_SIZE)
                             )
+
                             # can be a DataBlock
                             if id_string == block_type:
                                 size = block_len - 24
@@ -9207,15 +9209,14 @@ class MDF4(object):
                     blk_id = stream.read(4)
                     if blk_id == b'##DT':
                         blk = DataBlock(address=data_addr, stream=stream, mapped=mapped)
-
                     elif blk_id == b'##DL':
                         while True:
                             dl = DataList(address=data_addr, stream=stream, mapped=mapped)
                             if not dl.next_dl_addr:
                                 break
 
-                        dt_addr = dl[f"data_block_addr{dl.links_nr - 2}"]
-                        blk = DataBlock(address=dt_addr, stream=stream, mapped=mapped)
+                        data_addr = dl[f"data_block_addr{dl.links_nr - 2}"]
+                        blk = DataBlock(address=data_addr, stream=stream, mapped=mapped)
 
                     elif blk_id == b'##HL':
 
@@ -9227,8 +9228,8 @@ class MDF4(object):
                             if not dl.next_dl_addr:
                                 break
 
-                        dt_addr = dl[f"data_block_addr{dl.links_nr - 2}"]
-                        blk = DataBlock(address=dt_addr, stream=stream, mapped=mapped)
+                        data_addr = dl[f"data_block_addr{dl.links_nr - 2}"]
+                        blk = DataBlock(address=data_addr, stream=stream, mapped=mapped)
 
                     next_block = bisect.bisect_right(addresses, data_addr)
                     if next_block == len(addresses):
@@ -9463,6 +9464,7 @@ class MDF4(object):
 
         for i, group in enumerate(self.groups):
             if flags & v4c.FLAG_UNFIN_UPDATE_CG_COUNTER:
+
                 channel_group = group.channel_group
 
                 if channel_group.flags & v4c.FLAG_CG_VLSD:
