@@ -2,6 +2,7 @@
 ASAM MDF version 4 file format module
 """
 
+import bisect
 from collections import defaultdict
 from copy import deepcopy
 from functools import lru_cache
@@ -13,11 +14,12 @@ import mmap
 import os
 from pathlib import Path
 import sys
-from tempfile import TemporaryFile
+from tempfile import TemporaryFile, gettempdir
 from time import perf_counter
 from traceback import format_exc
 import xml.etree.ElementTree as ET
 from zlib import compress, decompress
+import shutil
 
 import canmatrix
 from lz4.frame import compress as lz_compress
@@ -172,9 +174,9 @@ except:
             signal_data (bytes): DTBLOCK contents
             partial_records (dict): dictionary with `cg_record_id` as key and list of bytes
                 as value.
-            cg_size (dict): Dictionary with `cg_record_id` as key and 
+            cg_size (dict): Dictionary with `cg_record_id` as key and
                 number of record databytes (i.e. `cg_data_bytes`)
-            record_id_nr (int): Number of Bytes used for record IDs 
+            record_id_nr (int): Number of Bytes used for record IDs
                 in the data block (`dg_rec_id_size`).
             _unpack_stuct (callable): Struct("...").unpack_from callable
 
@@ -368,22 +370,38 @@ class MDF4(object):
                 self._from_filelike = True
                 self._read(mapped=False)
             else:
-                if sys.maxsize < 2 ** 32:
-                    self.name = Path(name)
-                    self._file = open(self.name, "rb")
+
+                with open(name, "rb") as stream:
+                    identification = FileIdentificationBlock(stream=stream)
+                    version = identification["version_str"]
+                    version = version.decode("utf-8").strip(" \n\t\0")
+                    flags = identification["unfinalized_standard_flags"]
+
+                if version >= "4.10" and flags:
+                    tmpdir = Path(gettempdir())
+                    self.name = tmpdir / Path(name).name
+                    shutil.copy(name, self.name)
+                    self._file = open(self.name, "rb+")
                     self._from_filelike = False
                     self._read(mapped=False)
                 else:
-                    self.name = Path(name)
-                    x = open(self.name, "rb")
-                    self._file = mmap.mmap(x.fileno(), 0, access=mmap.ACCESS_READ)
-                    self._from_filelike = False
-                    self._read(mapped=True)
 
-                    self._file.close()
-                    x.close()
+                    if sys.maxsize < 2 ** 32:
+                        self.name = Path(name)
+                        self._file = open(self.name, "rb")
+                        self._from_filelike = False
+                        self._read(mapped=False)
+                    else:
+                        self.name = Path(name)
+                        x = open(self.name, "rb")
+                        self._file = mmap.mmap(x.fileno(), 0, access=mmap.ACCESS_READ)
+                        self._from_filelike = False
+                        self._read(mapped=True)
 
-                    self._file = open(self.name, "rb")
+                        self._file.close()
+                        x.close()
+
+                        self._file = open(self.name, "rb")
 
         else:
             self._from_filelike = False
@@ -473,16 +491,10 @@ class MDF4(object):
             # Check for finalization past version 4.10
             finalisation_flags = self._check_finalised()
 
-            # TODO: the shim does not support this function
-            #            if finalisation_flags:
-            #                addresses = all_blocks_addresses(self._file)
-            #            else:
-            #                addresses = []
-
             if finalisation_flags:
                 message = f"Attempting finalization of {self.name}"
                 logger.info(message)
-                self._finalize()
+                self._finalize2()
                 self._mapped = mapped = False
 
         stream = self._file
@@ -5723,6 +5735,9 @@ class MDF4(object):
         if self._file is not None:
             self._file.close()
 
+#        if self.name.parent.samefile(Path(gettempdir())):
+#            self.name.unlink()
+
         self.groups.clear()
         self.header = None
         self.identification = None
@@ -9097,7 +9112,165 @@ class MDF4(object):
 
         flags = self.identification["unfinalized_standard_flags"]
 
-        shim = FinalizationShim(self._file, flags)
+        print('FILE', self._file)
+        print('flags', bin(self.identification["unfinalized_standard_flags"]))
+
+        stream = self._file
+        blocks, addresses = all_blocks_addresses(stream)
+
+        stream.seek(0, 2)
+        limit = stream.tell()
+        mapped = self._mapped
+
+        if flags & v4c.FLAG_UNFIN_UPDATE_LAST_DL:
+            for dg_addr in blocks[b'##DG']:
+                group = DataGroup(address=dg_addr, stream=stream, mapped=mapped)
+                data_addr = group.data_block_addr
+                if not data_addr:
+                    continue
+
+                stream.seek(data_addr)
+                blk_id = stream.read(4)
+                if blk_id == b'##DT':
+                    continue
+                elif blk_id == b'##DL':
+                    while True:
+                        dl = DataList(address=data_addr, stream=stream, mapped=mapped)
+                        if not dl.next_dl_addr:
+                            break
+
+                    count = dl.links_nr - 1
+                    valid_count = 0
+                    for i in range(count):
+                        dt_addr = dl[f"data_block_addr{i}"]
+                        if dt_addr:
+                            valid_count += 1
+                        else:
+                            break
+
+                    kwargs = {
+                        f"data_block_addr{i}": dl[f"data_block_addr{i}"]
+                        for i in range(valid_count)
+                    }
+                    kwargs['links_nr'] = valid_count + 1
+                    kwargs['flags'] = dl.flags
+                    if self.flags & v4c.FLAG_DL_EQUAL_LENGHT:
+                        kwargs['data_block_len'] = dl.data_block_len
+                    else:
+                        for i in enumerate(valid_count):
+                            kwargs[f"offset_{i}"] = dl[f"offset_{i}"]
+
+                    stream.seek(data_addr)
+                    stream.write(bytes(DataList(**kwargs)))
+                elif blk_id == b'##HL':
+
+                    hl = HeaderList(address=data_addr, stream=stream, mapped=mapped)
+
+                    data_addr = hl.first_dl_addr
+                    while True:
+                        dl = DataList(address=data_addr, stream=stream, mapped=mapped)
+                        if not dl.next_dl_addr:
+                            break
+
+                    count = dl.links_nr - 1
+                    valid_count = 0
+                    for i in range(count):
+                        dt_addr = dl[f"data_block_addr{i}"]
+                        if dt_addr:
+                            valid_count += 1
+                        else:
+                            break
+
+                    kwargs = {
+                        f"data_block_addr{i}": dl[f"data_block_addr{i}"]
+                        for i in range(valid_count)
+                    }
+                    kwargs['links_nr'] = valid_count + 1
+                    kwargs['flags'] = dl.flags
+                    if self.flags & v4c.FLAG_DL_EQUAL_LENGHT:
+                        kwargs['data_block_len'] = dl.data_block_len
+                    else:
+                        for i in enumerate(valid_count):
+                            kwargs[f"offset_{i}"] = dl[f"offset_{i}"]
+
+                    stream.seek(data_addr)
+                    stream.write(bytes(DataList(**kwargs)))
+            self.identification["unfinalized_standard_flags"] -= v4c.FLAG_UNFIN_UPDATE_LAST_DL
+
+        if flags & v4c.FLAG_UNFIN_UPDATE_LAST_DT_LENGTH:
+            try:
+                for dg_addr in blocks[b'##DG']:
+                    group = DataGroup(address=dg_addr, stream=stream, mapped=mapped)
+                    data_addr = group.data_block_addr
+                    if not data_addr:
+                        continue
+
+                    stream.seek(data_addr)
+                    blk_id = stream.read(4)
+                    if blk_id == b'##DT':
+                        blk = DataBlock(address=data_addr, stream=stream, mapped=mapped)
+
+                    elif blk_id == b'##DL':
+                        while True:
+                            dl = DataList(address=data_addr, stream=stream, mapped=mapped)
+                            if not dl.next_dl_addr:
+                                break
+
+                        dt_addr = dl[f"data_block_addr{dl.links_nr - 2}"]
+                        blk = DataBlock(address=dt_addr, stream=stream, mapped=mapped)
+
+                    elif blk_id == b'##HL':
+
+                        hl = HeaderList(address=data_addr, stream=stream, mapped=mapped)
+
+                        data_addr = hl.first_dl_addr
+                        while True:
+                            dl = DataList(address=data_addr, stream=stream, mapped=mapped)
+                            if not dl.next_dl_addr:
+                                break
+
+                        dt_addr = dl[f"data_block_addr{dl.links_nr - 2}"]
+                        blk = DataBlock(address=dt_addr, stream=stream, mapped=mapped)
+
+                    next_block = bisect.bisect_right(addresses, data_addr)
+                    if next_block == len(addresses):
+                        block_len = limit - data_addr
+                    else:
+                        block_len = addresses[next_block] - data_addr
+
+                    blk.block_len = block_len
+                    stream.seek(data_addr)
+                    stream.write(bytes(blk))
+            except:
+                print(format_exc())
+                raise
+
+            self.identification["unfinalized_standard_flags"] -= v4c.FLAG_UNFIN_UPDATE_LAST_DT_LENGTH
+
+        print('flags', bin(self.identification["unfinalized_standard_flags"]))
+        shim = FinalizationShim(self._file, self.identification["unfinalized_standard_flags"])
+        shim.load_blocks()
+
+        shim.finalize()
+
+        # In-memory finalization performed, inject as a shim between the original file and asammdf.
+        self._file_orig = self._file
+        self._file = shim
+
+        self.identification.file_identification = b"MDF     "
+        self.identification.unfinalized_standard_flags = 0
+        self.identification.unfinalized_custom_flags = 0
+
+    def _finalize2(self):
+        """
+        Attempt finalization of the file.
+        :return:    None
+        """
+
+        flags = self.identification["unfinalized_standard_flags"]
+
+
+        shim = FinalizationShim(self._file, self.identification["unfinalized_standard_flags"])
         shim.load_blocks()
 
         shim.finalize()
@@ -9245,7 +9418,7 @@ class MDF4(object):
                     seek(dtblock_address)
                     limit = 32 * 1024 * 1024  # 32MB
                     while dtblock_size:
-                        
+
                         if dtblock_size > limit:
                             dtblock_size -= limit
                             new_data = rem + read(limit)

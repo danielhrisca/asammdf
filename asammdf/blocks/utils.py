@@ -1693,10 +1693,20 @@ def all_blocks_addresses(obj):
         pass
 
     try:
-        match_starts = [match.start() for match in re.finditer(pattern, obj)]
+        re.search(pattern, obj)
+        source = obj
     except TypeError:
-        """ TypeError: expected string or bytes-like object when reading
-        PyFilesystem concrete class from S3.
-        """
-        match_starts = [match.start() for match in re.finditer(pattern, obj.read())]
-    return match_starts
+        source = obj.read()
+
+    addresses = []
+    blocks = {}
+
+    for match in re.finditer(pattern, source):
+        btype = match.group('block')
+        start = match.start()
+
+        btype_addresses = blocks.setdefault(btype, [])
+        btype_addresses.append(start)
+        addresses.append(start)
+
+    return blocks, addresses
