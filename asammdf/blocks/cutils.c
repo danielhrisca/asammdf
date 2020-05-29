@@ -34,7 +34,7 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
 
     if (!PyArg_ParseTuple(args, "OOOk|O", &signal_data, &partial_records, &record_size, &id_size, &optional))
     {
-        snprintf(err_string, 1024, "sort_data_block was called with wring parameters");
+        snprintf(err_string, 1024, "sort_data_block was called with wrong parameters");
         PyErr_SetString(PyExc_ValueError, err_string);
         return 0;
     }
@@ -153,7 +153,9 @@ static PyObject* extract(PyObject* self, PyObject* args)
 
     if(!PyArg_ParseTuple(args, "Oi", &signal_data, &is_byte_array))
     {
-        printf("ext len 0\n");
+        snprintf(err_string, 1024, "extract was called with wrong parameters");
+        PyErr_SetString(PyExc_ValueError, err_string);
+        return 0;
     }
     else
     {
@@ -278,8 +280,9 @@ static PyObject* lengths(PyObject* self, PyObject* args)
 
     if(!PyArg_ParseTuple(args, "O", &lst))
     {
-        values = Py_None;
-        Py_INCREF(Py_None);
+        snprintf(err_string, 1024, "lengths was called with wrong parameters");
+        PyErr_SetString(PyExc_ValueError, err_string);
+        return 0;
     }
     else
     {
@@ -315,9 +318,9 @@ static PyObject* get_vlsd_offsets(PyObject* self, PyObject* args)
 
     if(!PyArg_ParseTuple(args, "O", &lst))
     {
-        printf("get_vlsd_offsets called with wrong parameters\n");
-        result = Py_None;
-        Py_INCREF(Py_None);
+        snprintf(err_string, 1024, "get_vlsd_offsets was called with wrong parameters");
+        PyErr_SetString(PyExc_ValueError, err_string);
+        return 0;
     }
     else
     {
@@ -355,9 +358,9 @@ static PyObject* get_text_bytes(PyObject* self, PyObject* args)
 
     if(!PyArg_ParseTuple(args, "KOB", &address, &stream, &lst))
     {
-        printf("get_vlsd_offsets called with wrong parameters\n");
-        result = Py_None;
-        Py_INCREF(Py_None);
+        snprintf(err_string, 1024, "get_text_bytes was called with wrong parameters");
+        PyErr_SetString(PyExc_ValueError, err_string);
+        return 0;
     }
     else
     {
@@ -438,9 +441,9 @@ static PyObject* raw_channel_bytes(PyObject* self, PyObject* args)
 
     if (!PyArg_ParseTuple(args, "Okkkk", &record_bytes, &record_size, &count, &byte_offset, &byte_size))
     {
-        printf("sort_data_block was called with wring parameters\n");
-        result = Py_None;
-        Py_INCREF(Py_None);
+        snprintf(err_string, 1024, "raw_channel_bytes was called with wrong parameters");
+        PyErr_SetString(PyExc_ValueError, err_string);
+        return 0;
     }
     else
     {
@@ -473,9 +476,9 @@ static PyObject* raw_channel(PyObject* self, PyObject* args)
 
     if (!PyArg_ParseTuple(args, "OOkkk", &record_bytes, &dtype, &record_size, &byte_offset, &byte_size))
     {
-        printf("sort_data_block was called with wring parameters\n");
-        result = Py_None;
-        Py_INCREF(Py_None);
+        snprintf(err_string, 1024, "raw_channel was called with wrong parameters");
+        PyErr_SetString(PyExc_ValueError, err_string);
+        return 0;
     }
     else
     {
