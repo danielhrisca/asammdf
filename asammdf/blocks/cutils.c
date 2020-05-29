@@ -5,6 +5,7 @@
 #define PY_PRINTF(o) \
     PyObject_Print(o, stdout, 0); printf("\n");
 
+char err_string[1024];
 
 struct rec_info {
     unsigned long id;
@@ -22,16 +23,20 @@ struct node {
 
 static PyObject* sort_data_block(PyObject* self, PyObject* args)
 {
-    unsigned long long id_size, position=0, size;
+    unsigned long long id_size, position=0, size, tgt=10000;
     unsigned long rec_size, length, rec_id;
     PyObject *signal_data, *partial_records, *record_size, *optional, *mlist;
     PyObject *bts, *key, *value, *rem=NULL;
     unsigned char *buf, *end, *orig, val;
     struct node * head = NULL, *last=NULL, *item;
+    
+    
 
-    if (!PyArg_ParseTuple(args, "OOOi|O", &signal_data, &partial_records, &record_size, &id_size, &optional))
+    if (!PyArg_ParseTuple(args, "OOOk|O", &signal_data, &partial_records, &record_size, &id_size, &optional))
     {
-        printf("sort_data_block was called with wring parameters\n");
+        snprintf(err_string, 1024, "sort_data_block was called with wring parameters");
+        PyErr_SetString(PyExc_ValueError, err_string);
+        return 0;
     }
     else
     {
@@ -51,18 +56,20 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
             last = item; 
         }
  
-        buf = PyBytes_AS_STRING(signal_data);
+        buf = (unsigned char *) PyBytes_AS_STRING(signal_data);
         orig = buf;
         size = PyBytes_GET_SIZE(signal_data);
         end = buf + size;
         
         while (buf + id_size < end)
         {
-            rec_id = 0;
-            for (int i=0; i<id_size; i++, buf++) {
+            if (buf == orig) printf(" \b");
+            rec_id = 0; 
+            for (unsigned char i=0; i<id_size; i++, buf++) {
                 rec_id += (*buf) << (i <<3);
             }  
-           
+            
+            mlist = NULL;
             for (item=head; item!=NULL; item=item->next)
             {
                 if (item->info.id == rec_id)
@@ -71,6 +78,12 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
                     mlist = item->info.mlist;
                     break;
                 }
+            }
+            
+            if (!mlist) {
+                snprintf(err_string, 1024, "Unknown record id %d ", rec_id);
+                PyErr_SetString(PyExc_ValueError, err_string);
+                return 0;
             }
             
             if (rec_size)
@@ -103,9 +116,7 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
                 Py_DECREF(bts);
                 buf += length;
             }
-            
-            mlist = NULL;
-            
+
             position = (unsigned long long) buf - (unsigned long long) orig;
         } 
         
@@ -121,11 +132,10 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
         head = NULL;
         last = NULL;
         item = NULL;
-    }
-    
-    rem = PyBytes_FromStringAndSize(orig+position, size - position);
 
-    return rem;
+        rem = PyBytes_FromStringAndSize(orig+position, size - position);
+        return rem;
+    }
 }
 
 

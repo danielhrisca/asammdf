@@ -137,9 +137,7 @@ __all__ = ["MDF4"]
 try:
     from .cutils import extract, sort_data_block, lengths, get_vlsd_offsets
     # for now avoid usign the cextension code
-    2/0
 except:
-
     def extract(signal_data, is_byte_array, offsets=()):
         #        offsets_ = set(offsets)
         size = len(signal_data)
@@ -669,8 +667,6 @@ class MDF4(object):
             self.groups.extend(new_groups)
 
             dg_addr = group.next_dg_addr
-
-        # TODO: attempt finalisation here
 
         # all channels have been loaded so now we can link the
         # channel dependencies and load the signal data for VLSD channels
@@ -9410,7 +9406,7 @@ class MDF4(object):
                                     channel_group.address
                                 ]
                             else:
-                                dg_cntr, ch_cntr = None, None
+                                dg_cntr, ch_cntr = None, None)
 
                             if new_data:
 
