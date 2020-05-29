@@ -64,7 +64,6 @@ from . import v4_constants as v4c
 from ..signal import Signal
 from ..version import __version__
 from .conversion_utils import conversion_transfer
-from .finalization_shim import FinalizationShim
 from .source_utils import Source
 from .utils import (
     all_blocks_addresses,
