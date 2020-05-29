@@ -494,7 +494,7 @@ class MDF4(object):
             if finalisation_flags:
                 message = f"Attempting finalization of {self.name}"
                 logger.info(message)
-                self._finalize2()
+                self._finalize()
                 self._mapped = mapped = False
 
         stream = self._file
@@ -9112,9 +9112,6 @@ class MDF4(object):
 
         flags = self.identification["unfinalized_standard_flags"]
 
-        print('FILE', self._file)
-        print('flags', bin(self.identification["unfinalized_standard_flags"]))
-
         stream = self._file
         blocks, addresses = all_blocks_addresses(stream)
 
@@ -9247,45 +9244,12 @@ class MDF4(object):
 
             self.identification["unfinalized_standard_flags"] -= v4c.FLAG_UNFIN_UPDATE_LAST_DT_LENGTH
 
-        print('flags', bin(self.identification["unfinalized_standard_flags"]))
-        shim = FinalizationShim(self._file, self.identification["unfinalized_standard_flags"])
-        shim.load_blocks()
-
-        shim.finalize()
-
-        # In-memory finalization performed, inject as a shim between the original file and asammdf.
-        self._file_orig = self._file
-        self._file = shim
-
-        self.identification.file_identification = b"MDF     "
-        self.identification.unfinalized_standard_flags = 0
-        self.identification.unfinalized_custom_flags = 0
-
-    def _finalize2(self):
-        """
-        Attempt finalization of the file.
-        :return:    None
-        """
-
-        flags = self.identification["unfinalized_standard_flags"]
-
-
-        shim = FinalizationShim(self._file, self.identification["unfinalized_standard_flags"])
-        shim.load_blocks()
-
-        shim.finalize()
-
-        # In-memory finalization performed, inject as a shim between the original file and asammdf.
-        self._file_orig = self._file
-        self._file = shim
-
-        self.identification.file_identification = b"MDF     "
-        self.identification.unfinalized_standard_flags = 0
-        self.identification.unfinalized_custom_flags = 0
-
     def _sort(self):
         if self._file is None:
             return
+
+        flags = self.identification["unfinalized_standard_flags"]
+
         common = defaultdict(list)
         for i, group in enumerate(self.groups):
             if group.sorted:
@@ -9476,7 +9440,7 @@ class MDF4(object):
                                         new_data = lz_compress(new_data)
                                         compressed_size = write(new_data)
 
-                                        block_info = InvalidationBlockInfo(
+                                        block_info = DataBlockInfo(
                                             address=tempfile_address,
                                             block_type=v4c.DZ_BLOCK_LZ,
                                             raw_size=raw_size,
@@ -9495,6 +9459,41 @@ class MDF4(object):
                 group.data_location = v4c.LOCATION_TEMPORARY_FILE
                 group.set_blocks_info(final_records[rec_id])
                 group.sorted = True
+
+        for i, group in enumerate(self.groups):
+            if flags & v4c.FLAG_UNFIN_UPDATE_CG_COUNTER:
+                channel_group = group.channel_group
+
+                if channel_group.flags & v4c.FLAG_CG_VLSD:
+                    continue
+
+                if (
+                    self.version >= "4.20"
+                    and channel_group.flags & v4c.FLAG_CG_REMOTE_MASTER
+                ):
+                    index = channel_group.cg_master_index
+                else:
+                    index = i
+
+                if group.uses_ld:
+                    samples_size = channel_group.samples_byte_nr
+                else:
+                    samples_size = (
+                        channel_group.samples_byte_nr + channel_group.invalidation_bytes_nr
+                    )
+
+                total_size = sum(
+                    blk.raw_size
+                    for blk in group.data_blocks
+                )
+
+                cycles_nr = total_size // samples_size
+                virtual_channel_group = self.virtual_groups[index]
+                virtual_channel_group.cycles_nr = cycles_nr
+                channel_group.cycles_nr = cycles_nr
+
+        self.identification["unfinalized_standard_flags"] -= v4c.FLAG_UNFIN_UPDATE_CG_COUNTER
+        self.identification["unfinalized_standard_flags"] -= v4c.FLAG_UNFIN_UPDATE_VLSD_BYTES
 
     def _process_bus_logging(self):
         groups_count = len(self.groups)
