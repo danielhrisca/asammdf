@@ -1002,6 +1002,9 @@ class MDF(object):
                             for ch_index in channel_indexes
                         ]
 
+                        if not channels:
+                            continue
+
                         channels = self.select(channels)
 
                         for j, sig in enumerate(channels):
@@ -1208,6 +1211,10 @@ class MDF(object):
                         for gp_index, channel_indexes in channels.items()
                         for ch_index in channel_indexes
                     ]
+
+                    if not channels:
+                        continue
+
 
                     channels = self.select(
                         channels,
