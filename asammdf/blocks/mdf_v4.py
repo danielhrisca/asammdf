@@ -9406,7 +9406,7 @@ class MDF4(object):
                                     channel_group.address
                                 ]
                             else:
-                                dg_cntr, ch_cntr = None, None)
+                                dg_cntr, ch_cntr = None, None
 
                             if new_data:
 
