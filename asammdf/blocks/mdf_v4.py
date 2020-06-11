@@ -6877,7 +6877,7 @@ class MDF4(object):
                         vals_dtype = vals.dtype.kind
                         if kind_ == "b":
                             pass
-                        elif len(shape_) > 1 and not in (v4c.DATA_TYPE_BYTEARRAY, v4c.DATA_TYPE_MIME_SAMPLE, v4c.DATA_TYPE_MIME_STREAM):
+                        elif len(shape_) > 1 and data_type not in (v4c.DATA_TYPE_BYTEARRAY, v4c.DATA_TYPE_MIME_SAMPLE, v4c.DATA_TYPE_MIME_STREAM):
                             vals = self._get_not_byte_aligned_data(
                                 data_bytes, grp, ch_nr
                             )
