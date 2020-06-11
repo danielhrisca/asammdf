@@ -359,7 +359,7 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
     if data_type in v4c.NON_SCALAR_TYPES:
         size = size // 8
 
-        if data_type == v4c.DATA_TYPE_BYTEARRAY:
+        if data_type in (v4c.DATA_TYPE_BYTEARRAY, v4c.DATA_TYPE_MIME_STREAM, v4c.DATA_TYPE_MIME_SAMPLE):
             if channel_type == v4c.CHANNEL_TYPE_VALUE:
                 fmt = f"({size},)u1"
             else:
