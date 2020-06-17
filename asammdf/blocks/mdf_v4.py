@@ -252,11 +252,6 @@ class MDF4(object):
         mdf file name (if provided it must be a real file name) or
         file-like object
 
-        * if *full* the data group binary data block will be memorised in RAM
-        * if *low* the channel data is read from disk on request, and the
-          metadata is memorized into RAM
-        * if *minimum* only minimal data is memorized into RAM
-
     version : string
         mdf file version ('4.00', '4.10', '4.11', '4.20'); default '4.10'
     callback : function
