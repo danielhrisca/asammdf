@@ -1657,15 +1657,20 @@ class MDF(object):
                         for gp_index, channels in included_channels.items()
                         for ch_index in channels
                     ]
+                    different_channel_order = False
                     if names != included_channel_names[i]:
                         if sorted(names) != sorted(included_channel_names[i]):
                             raise MdfException(
-                                f"internal structure of file {mdf_index} is different; different channels order"
-                            )
-                        else:
-                            raise MdfException(
                                 f"internal structure of file {mdf_index} is different; different channels"
                             )
+                        else:
+                            original_names = included_channel_names[i]
+                            different_channel_order = True
+                            remap = [
+                                original_names.index(name)
+                                for name in names
+                            ]
+
                 if not included_channels:
                     continue
 
@@ -1720,6 +1725,18 @@ class MDF(object):
                         cg_map[group_index] = cg_nr
 
                     else:
+                        if different_channel_order:
+                            new_signals = [None for _ in signals]
+                            if idx == 0:
+                                for new_index, sig in zip(remap, signals):
+                                    new_signals[new_index] = sig
+                            else:
+                                for new_index, sig in zip(remap, signals[1:]):
+                                    new_signals[new_index+1] = sig
+                                new_signals[0] = signals[0]
+
+                            signals = new_signals
+
                         if idx == 0:
                             signals = [(signals[0].timestamps, None)] + [
                                 (sig.samples, sig.invalidation_bits) for sig in signals
