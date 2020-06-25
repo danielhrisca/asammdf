@@ -30,6 +30,7 @@ from ..utils import (
     get_required_signals,
     HelperChannel,
     load_dsp,
+    load_lab,
     run_thread_with_progress,
     setup_progress,
     TERMINATED,
@@ -786,21 +787,43 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 self,
                 "Select channel list file",
                 "",
-                "Config file (*.cfg);;TXT files (*.txt);;Display files (*.dsp);;All file types (*.cfg *.dsp *.txt)",
-                "All file types (*.cfg *.dsp *.txt)",
+                "Config file (*.cfg);;TXT files (*.txt);;Display files (*.dsp);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.lab *.txt)",
+                "All file types (*.cfg *.dsp *.lab *.txt)",
             )
 
         if file_name:
             if not isinstance(file_name, dict):
                 file_name = Path(file_name)
-                if file_name.suffix.lower() == ".dsp":
+
+                extension =  file_name.suffix.lower()
+                if extension == ".dsp":
                     info = load_dsp(file_name)
                     channels = info.get("display", [])
 
-                else:
+                elif extension == ".lab":
+                    info = load_lab(file_name)
+                    if info:
+                        section, ok = QtWidgets.QInputDialog.getItem(
+                            None,
+                            "Select section",
+                            "Available sections:",
+                            list(info),
+                            0,
+                            False,
+                        )
+                        if ok:
+                            channels = info[section]
+                        else:
+                            return
+
+                elif extension == '.cfg':
                     with open(file_name, "r") as infile:
                         info = json.load(infile)
                     channels = info.get("selected_channels", [])
+                elif extension == '.txt':
+                    with open(file_name, "r") as infile:
+                        channels = [line.strip() for line in infile.readlines()]
+                        channels = [name for name in channels if name]
 
             else:
                 info = file_name
@@ -873,46 +896,85 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 output.write("\n".join(signals))
 
-    def load_filter_list(self):
-        file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Select filter list file", "", "TXT files (*.txt)"
-        )
+    def load_filter_list(self, event=None, file_name=None):
+        if file_name is None:
+            file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
+                self,
+                "Select channel list file",
+                "",
+                "Config file (*.cfg);;TXT files (*.txt);;Display files (*.dsp);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.lab *.txt)",
+                "All file types (*.cfg *.dsp *.lab *.txt)",
+            )
 
         if file_name:
-            self.aspects.setCurrentIndex(4)
-            with open(file_name, "r") as infile:
-                channels = [line.strip() for line in infile.readlines()]
-                channels = [name for name in channels if name]
+            if not isinstance(file_name, dict):
+                file_name = Path(file_name)
 
-            iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
+                extension =  file_name.suffix.lower()
+                if extension == ".dsp":
+                    info = load_dsp(file_name)
+                    channels = info.get("display", [])
 
-            if self.channel_view.currentIndex() == 1:
-                while iterator.value():
-                    item = iterator.value()
-                    if item.parent() is None:
-                        iterator += 1
-                        continue
+                elif extension == ".lab":
+                    info = load_lab(file_name)
+                    if info:
+                        section, ok = QtWidgets.QInputDialog.getItem(
+                            None,
+                            "Select section",
+                            "Available sections:",
+                            list(info),
+                            0,
+                            False,
+                        )
+                        if ok:
+                            channels = info[section]
+                        else:
+                            return
 
-                    channel_name = item.text(0)
-                    if channel_name in channels:
-                        item.setCheckState(0, QtCore.Qt.Checked)
-                        channels.pop(channels.index(channel_name))
-                    else:
-                        item.setCheckState(0, QtCore.Qt.Unchecked)
+                elif extension == '.cfg':
+                    with open(file_name, "r") as infile:
+                        info = json.load(infile)
+                    channels = info.get("selected_channels", [])
+                elif extension == '.txt':
+                    with open(file_name, "r") as infile:
+                        channels = [line.strip() for line in infile.readlines()]
+                        channels = [name for name in channels if name]
 
-                    iterator += 1
             else:
-                while iterator.value():
-                    item = iterator.value()
+                info = file_name
+                channels = info.get("selected_channels", [])
 
-                    channel_name = item.text(0)
-                    if channel_name in channels:
-                        item.setCheckState(0, QtCore.Qt.Checked)
-                        channels.pop(channels.index(channel_name))
-                    else:
-                        item.setCheckState(0, QtCore.Qt.Unchecked)
+            if channels:
 
-                    iterator += 1
+                iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
+
+                if self.channel_view.currentIndex() == 1:
+                    while iterator.value():
+                        item = iterator.value()
+                        if item.parent() is None:
+                            iterator += 1
+                            continue
+
+                        channel_name = item.text(0)
+                        if channel_name in channels:
+                            item.setCheckState(0, QtCore.Qt.Checked)
+                            channels.pop(channels.index(channel_name))
+                        else:
+                            item.setCheckState(0, QtCore.Qt.Unchecked)
+
+                        iterator += 1
+                else:
+                    while iterator.value():
+                        item = iterator.value()
+
+                        channel_name = item.text(0)
+                        if channel_name in channels:
+                            item.setCheckState(0, QtCore.Qt.Checked)
+                            channels.pop(channels.index(channel_name))
+                        else:
+                            item.setCheckState(0, QtCore.Qt.Unchecked)
+
+                        iterator += 1
 
     def compute_cut_hints(self):
         t_min = []

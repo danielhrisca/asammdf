@@ -5732,6 +5732,8 @@ class MDF4(object):
 #        if self.name.parent.samefile(Path(gettempdir())):
 #            self.name.unlink()
 
+        for gp in self.groups:
+            gp.clear()
         self.groups.clear()
         self.header = None
         self.identification = None

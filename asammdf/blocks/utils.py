@@ -1017,6 +1017,12 @@ class Group:
     def __contains__(self, item):
         return hasattr(self, item)
 
+    def clear(self):
+        self.data_blocks.clear()
+        self.channels.clear()
+        self.channel_dependencies.clear()
+        self.signal_data.clear()
+
 
 class VirtualChannelGroup:
     """ starting with MDF v4.20 it is possible to use remote masters and column

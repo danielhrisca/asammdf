@@ -168,6 +168,29 @@ def load_dsp(file):
     return info
 
 
+def load_lab(file):
+    sections = {}
+    with open(file, 'r') as lab:
+        for line in lab:
+            line = line.strip()
+            if not line:
+                continue
+
+            if line.startswith('[') and line.endswith(']'):
+                section_name = line.strip('[]')
+                s = []
+                sections[section_name] = s
+
+            else:
+                s.append(line)
+
+    return {
+        name: channels
+        for name, channels in sections.items()
+        if channels
+    }
+
+
 def run_thread_with_progress(
     widget, target, kwargs, factor=100, offset=0, progress=None
 ):
