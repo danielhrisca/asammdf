@@ -3118,7 +3118,7 @@ class MDF3(object):
                 count = 0
                 for fragment in data:
                     data_bytes, offset, _count = fragment
-                    parent, _ = parents.get(time_ch_nr, (None, None))
+                    parent, bit_offset = parents.get(time_ch_nr, (None, None))
                     if parent is not None:
                         if group.record is None:
                             if dtypes.itemsize:
@@ -3129,6 +3129,7 @@ class MDF3(object):
                             record = group.record
                         record.setflags(write=False)
                         t = record[parent]
+
                     else:
                         t = self._get_not_byte_aligned_data(
                             data_bytes, group, time_ch_nr
@@ -3142,6 +3143,34 @@ class MDF3(object):
                     t = time_values[0]
                 else:
                     t = array([], dtype=float64)
+
+                if time_ch.data_type in v23c.INT_TYPES:
+
+                    dtype_fmt = get_fmt_v3(
+                        time_ch.data_type, time_ch.bit_count, self.identification.byte_order
+                    )
+                    channel_dtype = dtype(dtype_fmt.split(")")[-1])
+
+                    if channel_dtype.byteorder == "|" and time_ch.data_type in (
+                        v23c.DATA_TYPE_SIGNED_MOTOROLA,
+                        v23c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                    ):
+                        view = f">u{t.itemsize}"
+                    else:
+                        view = f"{channel_dtype.byteorder}u{t.itemsize}"
+
+                    if bit_offset:
+                        t = t >> bit_offset
+
+                    if time_ch.bit_count != t.itemsize * 8:
+                        if time_ch.data_type in v23c.SIGNED_INT:
+                            t = as_non_byte_sized_signed_int(t, time_ch.bit_count)
+                        else:
+                            mask = (1 << time_ch.bit_count) - 1
+                            t = t & mask
+                    elif time_ch.data_type in v23c.SIGNED_INT:
+                        view = f"{channel_dtype.byteorder}i{t.itemsize}"
+                        t = t.view(view)
 
                 # get timestamps
                 conversion = time_ch.conversion
