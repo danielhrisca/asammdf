@@ -53,5 +53,4 @@ def plot(signals, title="", validate=True):
         app.exec_()
 
     else:
-        logging.warning("Signal plotting requires pyqtgraph or matplotlib")
         raise Exception("Signal plotting requires pyqtgraph or matplotlib")
