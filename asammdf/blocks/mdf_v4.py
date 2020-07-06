@@ -8004,7 +8004,7 @@ class MDF4(object):
 
                 else:
                     id_ = message.arbitration_id.id
-                    test_ids = self.can_logging_db[_can_id]
+                    test_ids = self.bus_logging_map["CAN"][_can_id]
 
                 if id_ in test_ids:
                     if is_j1939:
@@ -9503,7 +9503,7 @@ class MDF4(object):
                 source = group.channel_group.acq_source
                 if (
                     source
-                    and source.bus_type == v4c.BUS_TYPE_CAN
+                    and source.bus_type in (v4c.BUS_TYPE_CAN, v4c.BUS_TYPE_OTHER)
                     and "CAN_DataFrame" in [ch.name for ch in group.channels]
                 ):
                     self._process_can_logging(index, group)

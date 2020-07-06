@@ -1651,6 +1651,7 @@ class MDF(object):
                             for ch_index in channels
                         ]
                     )
+                    different_channel_order = False
                 else:
                     names = [
                         mdf.groups[gp_index].channels[ch_index].name
@@ -1797,6 +1798,11 @@ class MDF(object):
 
             merged._transfer_events(mdf)
 
+        try:
+            merged._process_bus_logging()
+        except:
+            pass
+
         return merged
 
     @staticmethod
@@ -1936,6 +1942,11 @@ class MDF(object):
 
             if MDF._terminate:
                 return
+
+        try:
+            stacked._process_bus_logging()
+        except:
+            pass
 
         return stacked
 
