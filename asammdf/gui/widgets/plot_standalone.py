@@ -42,7 +42,7 @@ class PlotWindow(QtWidgets.QMainWindow):
                 signals,
             ]
 
-        self.plot = Plot(signals, self.with_dots)
+        self.plot = Plot([], self.with_dots)
 
         self._light_palette = self.palette()
 
@@ -355,6 +355,7 @@ class PlotWindow(QtWidgets.QMainWindow):
         self.setWindowIcon(icon)
 
         self.show()
+        self.plot.add_new_channels(signals)
 
     def plot_action(self, key, modifier=QtCore.Qt.NoModifier):
         event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, key, modifier)

@@ -6661,6 +6661,8 @@ class MDF4(object):
                 channel_values.append(vals)
                 count += 1
 
+
+
             if count > 1:
                 total_size = sum(len(_) for _ in channel_values)
                 shape = (total_size,) + channel_values[0].shape[1:]
@@ -9488,8 +9490,10 @@ class MDF4(object):
                 virtual_channel_group.cycles_nr = cycles_nr
                 channel_group.cycles_nr = cycles_nr
 
-        self.identification["unfinalized_standard_flags"] -= v4c.FLAG_UNFIN_UPDATE_CG_COUNTER
-        self.identification["unfinalized_standard_flags"] -= v4c.FLAG_UNFIN_UPDATE_VLSD_BYTES
+        if self.identification["unfinalized_standard_flags"] & v4c.FLAG_UNFIN_UPDATE_CG_COUNTER:
+            self.identification["unfinalized_standard_flags"] -= v4c.FLAG_UNFIN_UPDATE_CG_COUNTER
+        if self.identification["unfinalized_standard_flags"] & v4c.FLAG_UNFIN_UPDATE_VLSD_BYTES:
+            self.identification["unfinalized_standard_flags"] -= v4c.FLAG_UNFIN_UPDATE_VLSD_BYTES
 
     def _process_bus_logging(self):
         groups_count = len(self.groups)
