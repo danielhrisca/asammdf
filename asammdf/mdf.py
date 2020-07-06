@@ -1978,18 +1978,100 @@ class MDF(object):
 
             yield from channels
 
-    def iter_groups(self):
+    def iter_groups(
+        self,
+        raster=None,
+        time_from_zero=True,
+        empty_channels="skip",
+        keep_arrays=False,
+        use_display_names=False,
+        time_as_date=False,
+        reduce_memory_usage=False,
+        raw=False,
+        ignore_value2text_conversions=False,
+        only_basenames=False,
+    ):
         """ generator that yields channel groups as pandas DataFrames. If there
         are multiple occurences for the same channel name inside a channel
         group, then a counter will be used to make the names unique
         (<original_name>_<counter>)
+
+
+        Parameters
+        ----------
+        use_display_names : bool
+            use display name instead of standard channel name, if available.
+
+            .. versionadded:: 5.21.0
+
+        reduce_memory_usage : bool
+            reduce memory usage by converting all float columns to float32 and
+            searching for minimum dtype that can reprezent the values found
+            in integer columns; default *False*
+
+            .. versionadded:: 5.21.0
+
+        raw (False) : bool
+            the dataframe will contain the raw channel values
+
+            .. versionadded:: 5.21.0
+
+        ignore_value2text_conversions (False) : bool
+            valid only for the channels that have value to text conversions and
+            if *raw=False*. If this is True then the raw numeric values will be
+            used, and the conversion will not be applied.
+
+            .. versionadded:: 5.21.0
+
+        keep_arrays (False) : bool
+            keep arrays and structure channels as well as the
+            component channels. If *True* this can be very slow. If *False*
+            only the component channels are saved, and their names will be
+            prefixed with the parent channel.
+
+            .. versionadded:: 5.21.0
+
+        empty_channels ("skip") : str
+            behaviour for channels without samples; the options are *skip* or
+            *zeros*; default is *skip*
+
+            .. versionadded:: 5.21.0
+
+        only_basenames (False) : bool
+            use just the field names, without prefix, for structures and channel
+            arrays
+
+            .. versionadded:: 5.21.0
+
+        raster : float | np.array | str
+            new raster that can be
+
+            * a float step value
+            * a channel name who's timestamps will be used as raster (starting with asammdf 5.5.0)
+            * an array (starting with asammdf 5.5.0)
+
+            see `resample` for examples of urisng this argument
+
+            .. versionadded:: 5.21.0
 
         """
 
         self._link_attributes()
 
         for i in self.virtual_groups:
-            yield self.get_group(i)
+            yield self.get_group(
+                i,
+                raster=None,
+                time_from_zero=time_from_zero,
+                empty_channels=empty_channels,
+                keep_arrays=keep_arrays,
+                use_display_names=use_display_names,
+                time_as_date=time_as_date,
+                reduce_memory_usage=reduce_memory_usage,
+                raw=raw,
+                ignore_value2text_conversions=ignore_value2text_conversions,
+                only_basenames=only_basenames
+            )
 
     def resample(self, raster, version=None, time_from_zero=False):
         """ resample all channels using the given raster. See *configure* to select
@@ -2777,6 +2859,15 @@ class MDF(object):
             arrays
 
             .. versionadded:: 5.13.0
+
+        raster : float | np.array | str
+            new raster that can be
+
+            * a float step value
+            * a channel name who's timestamps will be used as raster (starting with asammdf 5.5.0)
+            * an array (starting with asammdf 5.5.0)
+
+            see `resample` for examples of urisng this argument
 
         Returns
         -------
