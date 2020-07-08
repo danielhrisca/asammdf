@@ -32,6 +32,8 @@ install:
   - cmd: "if \"%PY%\" == \"37-x64\" ( if \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\python.exe -m pip install .))"
   - cmd: "if \"%PY%\" == \"37-x64\" ( if \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\Scripts\\pyinstaller asammdf_noconsole.spec))"
   - cmd: "if \"%PY%\" == \"37-x64\" ( if \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%_noconsole.exe))"
+  - cmd: "if \"%PY%\" == \"37-x64\" ( if \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\Scripts\\pyinstaller asammdf.spec))"
+  - cmd: "if \"%PY%\" == \"37-x64\" ( if \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe))"
   - sh: "sudo apt-get --yes --force-yes update"
   - sh: "sudo DEBIAN_FRONTEND=noninteractive apt-get --yes install python3-dev python3-pip python3-setuptools"
   - sh: "python3 -m pip install --upgrade pip --user"
