@@ -270,7 +270,7 @@ def from_dict(conversion):
         while f"phys_{nr}" in conversion:
             nr += 1
         conversion["val_param_nr"] = nr * 2
-        if conversion["interpolation"]:
+        if "interpolation" in conversion:
             conversion["conversion_type"] = v4c.CONVERSION_TYPE_TABI
         else:
             conversion["conversion_type"] = v4c.CONVERSION_TYPE_TAB
