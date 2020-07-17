@@ -1363,7 +1363,7 @@ class Plot(QtWidgets.QWidget):
             channel = {}
             item = self.channel_selection.itemWidget(self.channel_selection.item(i))
 
-            sig, _ = self.plot.signal_by_uuid(item.uuid)
+            sig, idx = self.plot.signal_by_uuid(item.uuid)
 
             channel["name"] = sig.name
             channel["unit"] = sig.unit
@@ -1385,6 +1385,10 @@ class Plot(QtWidgets.QWidget):
             channel["mode"] = sig.mode
             if sig.computed:
                 channel["computation"] = sig.computation
+
+            view = self.plot.view_boxes[idx]
+            channel["view_box"] = view.viewRange()
+            channel["mdf_uuid"] = str(sig.mdf_uuid)
 
             channels.append(channel)
 

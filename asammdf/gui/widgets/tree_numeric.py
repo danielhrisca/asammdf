@@ -48,7 +48,7 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
             and event.modifiers() == QtCore.Qt.NoModifier
         ):
             selected = reversed(self.selectedItems())
-            names = [item.text(0) for item in selected]
+            names = [(item.mdf_uuid, item.text(0)) for item in selected]
             for item in selected:
                 if item.parent() is None:
                     index = self.indexFromItem(item).row()
