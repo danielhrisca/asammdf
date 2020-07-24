@@ -2554,6 +2554,7 @@ class MDF4(object):
         >>> mdf2.append(df, units=units)
 
         """
+
         if isinstance(signals, Signal):
             signals = [signals]
         elif isinstance(signals, DataFrame):

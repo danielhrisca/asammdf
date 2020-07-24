@@ -11,6 +11,7 @@ from pathlib import Path
 from shutil import copy
 from struct import unpack
 import xml.etree.ElementTree as ET
+from pprint import pprint
 
 import numpy as np
 import pandas as pd
@@ -3751,7 +3752,7 @@ class MDF(object):
 
             for i, group in enumerate(out.groups):
                 for j, channel in enumerate(group.channels[1:], 1):
-                    if not max_flags[i][j - 1]:
+                    if not max_flags[i][j]:
                         to_keep.append((None, i, j))
 
             tmp = out.filter(to_keep, version)
