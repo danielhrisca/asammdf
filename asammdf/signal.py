@@ -163,14 +163,26 @@ class Signal(object):
 \tattachment={self.attachment}>
 """
 
-    def plot(self, validate=True):
+    def plot(self, validate=True, index_only=False):
         """ plot Signal samples. Pyqtgraph is used if it is available; in this
-        case see the GUI plot documentation to see the available commands"""
+        case see the GUI plot documentation to see the available commands
+
+        Parameters
+        ----------
+        validate (True): bool
+            apply the invalidation bits
+
+        index_only (False) : bool
+            use index based X axis. This can be useful if the master (usually
+            time based) is corrupted with NaN, inf or if it is not strictly
+            increasing
+
+        """
         try:
 
             from .gui.plot import plot
 
-            plot(self, validate=True)
+            plot(self, validate=True, index_only=False)
             return
 
         except:

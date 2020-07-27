@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
+import numpy as np
+from ..blocks.utils import plausible_timestamps
 
 try:
     from PyQt5 import QtWidgets
@@ -13,7 +15,7 @@ except ImportError:
 logger = logging.getLogger("asammdf")
 
 
-def plot(signals, title="", validate=True):
+def plot(signals, title="", validate=True, index_only=False):
     """ create a stand-alone plot using the input signal or signals
 
     Arguments
@@ -39,6 +41,13 @@ def plot(signals, title="", validate=True):
                 signals = [signal.validate() for signal in signals]
             else:
                 signals = [signals.validate()]
+
+        for signal in signals:
+            all_ok, idx = plausible_timestamps(signal.timestamps, -1e6, 1e9)
+            if not all_ok:
+                signal.samples = signal.samples[idx]
+                signal.timestamps = signal.timestamps[idx]
+
         main = PlotWindow(signals)
         if title.strip():
             main.setWindowTitle(title.strip())

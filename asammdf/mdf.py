@@ -38,6 +38,7 @@ from .blocks.utils import (
     MDF3_VERSIONS,
     MDF4_VERSIONS,
     MdfException,
+    plausible_timestamps,
     randomized_string,
     SUPPORTED_VERSIONS,
     UINT16_u,
@@ -3832,6 +3833,111 @@ class MDF(object):
     @start_time.setter
     def start_time(self, timestamp):
         self.header.start_time = timestamp
+
+    def cleanup_timestamps(self, minimum, maximum, exp_min=-15, exp_max=15, version=None):
+        """convert *MDF* to other version
+
+        .. versionadded:: 5.22.0
+
+        Parameters
+        ----------
+        minimum : float
+            minimum plausible time stamp
+        maximum : float
+            maximum plausible time stamp
+        exp_min (-15) : int
+            minimum plausible exponent used for the time stamps float values
+        exp_max (15) : int
+            maximum plausible exponent used for the time stamps float values
+        version : str
+            new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
+            '3.20', '3.30', '4.00', '4.10', '4.11', '4.20'); default the same as
+            the input file
+
+        Returns
+        -------
+        out : MDF
+            new *MDF* object
+
+        """
+        self._link_attributes()
+        if version is None:
+            version = self.version
+        else:
+            version = validate_version_argument(version)
+
+        out = MDF(version=version)
+
+        out.header.start_time = self.header.start_time
+
+        groups_nr = len(self.virtual_groups)
+
+        if self._callback:
+            self._callback(0, groups_nr)
+
+        cg_nr = None
+
+        self.configure(copy_on_get=False)
+
+        # walk through all groups and get all channels
+        for i, virtual_group in enumerate(self.virtual_groups):
+
+            for idx, sigs in enumerate(
+                self._yield_selected_signals(virtual_group, version=version)
+            ):
+                if idx == 0:
+                    source_info = (
+                        getattr(
+                            self.groups[virtual_group].channel_group, "acq_source", None
+                        )
+                        or f"Time stamps cleaned up and converted from {self.version} to {version}"
+                    )
+                    if sigs:
+
+                        t = sigs[0].timestamps
+                        if len(t):
+                            all_ok, idx = plausible_timestamps(t, minimum, maximum, exp_min, exp_max)
+                            if not all_ok:
+                                t = t[idx]
+                                if len(t):
+                                    for sig in sigs:
+                                        sig.samples = sig.samples[idx]
+                                        sig.timestamps = t
+                                        if sig.invalidation_bits is not None:
+                                            sig.invalidation_bits = sig.invalidation_bits[idx]
+                        cg_nr = out.append(sigs, source_info, common_timebase=True)
+                        out.groups[cg_nr].channel_group.comment = self.groups[
+                            virtual_group
+                        ].channel_group.comment
+                    else:
+                        break
+                else:
+                    t, _ = sigs[0]
+                    if len(t):
+                        all_ok, idx = plausible_timestamps(t, minimum, maximum, exp_min, exp_max)
+                        if not all_ok:
+                            t = t[idx]
+                            if len(t):
+                                for i, (samples, invalidation_bits) in enumerate(sigs):
+                                    if invalidation_bits is not None:
+                                        invalidation_bits = invalidation_bits[idx]
+                                    samples = samples[idx]
+
+                                    sigs[i] = (samples, invalidation_bits)
+
+                    out.extend(cg_nr, sigs)
+
+            if self._callback:
+                self._callback(i + 1, groups_nr)
+
+            if self._terminate:
+                return
+
+        out._transfer_events(self)
+        self.configure(copy_on_get=True)
+        if self._callback:
+            out._callback = out._mdf._callback = self._callback
+        return out
 
 
 if __name__ == "__main__":

@@ -1716,3 +1716,43 @@ def all_blocks_addresses(obj):
         addresses.append(start)
 
     return blocks, addresses
+
+
+def plausible_timestamps(t, minimum, maximum, exp_min=-15, exp_max=15):
+    """ check if the time stamps are plausible
+
+    Parameters
+    ----------
+    t : np.array
+        time stamps array
+    minimum : float
+        minimum plausible time stamp
+    maximum : float
+        maximum plausible time stamp
+    exp_min (-15) : int
+        minimum plausible exponent used for the time stamps float values
+    exp_max (15) : int
+        maximum plausible exponent used for the time stamps float values
+
+    Returns
+    -------
+    all_ok, idx : (bool, np.array)
+        the *all_ok* flag to indicate if all the time stamps are ok; this can be checked
+        before aopplying the indexing array.
+    """
+
+    exps = np.log10(t)
+    idx = (
+        (~np.isnan(t))
+        & (~np.isinf(t))
+        & (t >= minimum)
+        & (t <= maximum)
+        & (exps >= exp_min)
+        & (exps <= exp_max)
+    )
+    if not np.all(idx):
+        all_ok = False
+        return all_ok, idx
+    else:
+        all_ok = True
+        return all_ok, idx
