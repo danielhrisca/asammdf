@@ -1496,7 +1496,7 @@ def extract_can_signal(signal, payload):
     return extract_signal(signal, payload)
 
 
-def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=None):
+def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=None, original_message_id=None):
     """ extract multiplexed CAN signals from the raw payload
 
     Parameters
@@ -1507,6 +1507,8 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
         CAN message description parsed by canmatrix
     message_id : int
         message id
+    original_message_id : int
+        original message id
     bus : int
         bus channel number
     t : np.ndarray
@@ -1554,7 +1556,7 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
             pair_signals.append(signal)
 
     for pair, pair_signals in pairs.items():
-        entry = bus, message_id, muxer, *pair
+        entry = bus, message_id, original_message_id, muxer, *pair
 
         extracted_signals[entry] = signals = {}
 
@@ -1593,6 +1595,7 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
                         t_,
                         muxer=sig.name,
                         muxer_values=samples,
+                        original_message_id=original_message_id,
                     )
                 )
 

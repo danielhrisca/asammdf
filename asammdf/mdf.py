@@ -3493,7 +3493,8 @@ class MDF(object):
         return df
 
     def extract_can_logging(
-        self, dbc_files, version=None, ignore_invalid_signals=False
+        self, dbc_files, version=None, ignore_invalid_signals=False,
+        consolidated_j1939=True,
     ):
         """ extract all possible CAN signal using the provided databases.
 
@@ -3507,6 +3508,12 @@ class MDF(object):
             ignore signals that have all samples equal to their maximum value
 
             .. versionadded:: 5.7.0
+
+        consolidated_j1939 (True) : bool
+            handle PGNs from all the messages as a single instance
+
+            .. versionadded:: 5.7.0
+
 
         Returns
         -------
@@ -3600,6 +3607,8 @@ class MDF(object):
                         & 0x1FFFFFFF
                     )
 
+                    original_ids = msg_ids.samples.copy()
+
                     if is_j1939:
                         ps = (msg_ids.samples >> 8) & 0xFF
                         pf = (msg_ids.samples >> 16) & 0xFF
@@ -3620,12 +3629,26 @@ class MDF(object):
                         bus_t = msg_ids.timestamps[idx]
                         bus_msg_ids = msg_ids.samples[idx]
                         bus_data_bytes = data_bytes[idx]
+                        original_msg_ids = original_ids[idx]
 
-                        unique_ids = np.unique(bus_msg_ids).astype("<u8")
+                        if is_j1939 and not consolidated_j1939:
+                            unique_ids = np.unique(
+                                np.core.records.fromarrays(
+                                    [bus_msg_ids, original_ids]
+                                )
+                            )
+                        else:
+                            unique_ids = np.unique(
+                                np.core.records.fromarrays(
+                                    [bus_msg_ids, bus_msg_ids]
+                                )
+                            )
 
-                        total_unique_ids = total_unique_ids | set(unique_ids)
+                        total_unique_ids = total_unique_ids | set(tuple(int(e) for e in f) for f in unique_ids)
 
-                        for msg_id in unique_ids:
+                        for msg_id_record in unique_ids:
+                            msg_id = int(msg_id_record[0])
+                            original_msg_id = int(msg_id_record[1])
                             message = messages.get(msg_id, None)
                             if message is None:
                                 unknown_ids[msg_id].append(True)
@@ -3639,12 +3662,19 @@ class MDF(object):
 
                             unknown_ids[msg_id].append(False)
 
-                            idx = np.argwhere(bus_msg_ids == msg_id).ravel()
+                            if is_j1939 and not consolidated_j1939:
+                                idx = np.argwhere(
+                                    (bus_msg_ids == msg_id)
+                                    & (original_msg_ids == original_msg_id)
+                                ).ravel()
+                            else:
+                                idx = np.argwhere(bus_msg_ids == msg_id).ravel()
                             payload = bus_data_bytes[idx]
                             t = bus_t[idx]
 
                             extracted_signals = extract_mux(
-                                payload, message, msg_id, bus, t
+                                payload, message, msg_id, bus, t,
+                                original_msg_id=original_msg_id if is_j1939 and not consolidated_j1939 else None,
                             )
 
                             for entry, signals in extracted_signals.items():
