@@ -1282,6 +1282,8 @@ class MDF4(object):
                     if block_limit is not None:
                         new_data = new_data[:block_limit]
 
+                    new_data = memoryview(new_data)
+
                     if not group.sorted:
                         rec_data = []
 
