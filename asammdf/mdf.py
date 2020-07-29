@@ -3674,7 +3674,7 @@ class MDF(object):
 
                             extracted_signals = extract_mux(
                                 payload, message, msg_id, bus, t,
-                                original_msg_id=original_msg_id if is_j1939 and not consolidated_j1939 else None,
+                                original_message_id = original_msg_id if is_j1939 and not consolidated_j1939 else None,
                             )
 
                             for entry, signals in extracted_signals.items():
