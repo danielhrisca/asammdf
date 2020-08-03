@@ -65,6 +65,10 @@ from ..signal import Signal
 from ..version import __version__
 from .conversion_utils import conversion_transfer
 from .source_utils import Source
+from .bus_logging_utils import (
+    extract_can_signal,
+    extract_mux,
+)
 from .utils import (
     all_blocks_addresses,
     as_non_byte_sized_signed_int,
@@ -74,9 +78,7 @@ from .utils import (
     count_channel_groups,
     DataBlockInfo,
     debug_channel,
-    extract_can_signal,
     extract_cncomment_xml,
-    extract_mux,
     fmt_to_datatype_v4,
     get_fmt_v4,
     Group,

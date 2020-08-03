@@ -19,6 +19,10 @@ import pandas as pd
 from .blocks import v2_v3_constants as v23c
 from .blocks import v4_constants as v4c
 from .blocks.conversion_utils import from_dict
+from .blocks.bus_logging_utils import (
+    extract_can_signal,
+    extract_mux,
+)
 from .blocks.mdf_v2 import MDF2
 from .blocks.mdf_v3 import MDF3
 from .blocks.mdf_v4 import MDF4
@@ -28,8 +32,6 @@ from .blocks.utils import (
     csv_bytearray2hex,
     csv_int2hex,
     downcast,
-    extract_can_signal,
-    extract_mux,
     is_file_like,
     load_can_database,
     master_using_raster,

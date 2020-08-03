@@ -2672,14 +2672,14 @@ class HeaderBlock:
             self.comment_addr = 0
             self.program_addr = 0
             self.dg_nr = 0
-            self.author_field = "{:0<32}".format(getuser()).encode("latin-1")
-            self.department_field = "{:0<32}".format("").encode("latin-1")
-            self.project_field = "{:0<32}".format("").encode("latin-1")
-            self.subject_field = "{:0<32}".format("").encode("latin-1")
+            self.author_field = "{:\0<32}".format(getuser()).encode("latin-1")
+            self.department_field = "{:\0<32}".format("").encode("latin-1")
+            self.project_field = "{:\0<32}".format("").encode("latin-1")
+            self.subject_field = "{:\0<32}".format("").encode("latin-1")
 
             if self.block_len > v23c.HEADER_COMMON_SIZE:
                 self.time_quality = 0
-                self.timer_identification = "{:0<32}".format(
+                self.timer_identification = "{:\0<32}".format(
                     "Local PC Reference Time"
                 ).encode("latin-1")
 
