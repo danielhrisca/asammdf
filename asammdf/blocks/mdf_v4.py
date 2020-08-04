@@ -3075,6 +3075,7 @@ class MDF4(object):
                 offset += size
 
                 gp_sdata.append(None)
+                gp_sdata_size.append(0)
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
                 if ch.display_name:
@@ -3184,10 +3185,12 @@ class MDF4(object):
                         offsets=offsets,
                     )
                     gp_sdata.append([info])
+                    gp_sdata_size.append(data_size)
                     data.tofile(file)
                 else:
                     data_addr = 0
                     gp_sdata.append([])
+                    gp_sdata_size.append(0)
 
                 # compute additional byte offset for large records size
                 byte_size = 8

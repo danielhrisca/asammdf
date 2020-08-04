@@ -1,6 +1,6 @@
 import numpy as np
 from .conversion_utils import from_dict
-
+from .utils import as_non_byte_sized_signed_int, MdfException
 
 def extract_signal(signal, payload, raw=False):
     vals = payload
@@ -139,11 +139,10 @@ def extract_signal(signal, payload, raw=False):
 
     if not raw:
         if signal.values:
-            count = len(signal.values)
 
             conv = {}
 
-            for i (val, text) in enumerate(signal.values.items()):
+            for i, (val, text) in enumerate(signal.values.items()):
                 conv[f'upper_{i}'] = val
                 conv[f'lower_{i}'] = val
                 conv[f'text_{i}'] = text
@@ -162,7 +161,7 @@ def extract_can_signal(signal, payload, raw=False):
     return extract_signal(signal, payload, raw)
 
 
-def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=None, original_message_id=None, raw=False):
+def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=None, original_message_id=None, raw=False, include_message_name=False):
     """ extract multiplexed CAN signals from the raw payload
 
     Parameters
@@ -242,8 +241,12 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
 
             max_val = np.full(len(samples), float(sig.calc_max()))
 
-            signals[sig.name] = {
-                "name": sig.name,
+            if include_message_name:
+                sig_name = f"{message.name}.{sig.name}"
+            else:
+                sig_name = sig.name
+            signals[sig_name] = {
+                "name": sig_name,
                 "comment": sig.comment or "",
                 "unit": sig.unit or "",
                 "samples": samples,

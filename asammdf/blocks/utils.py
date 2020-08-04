@@ -995,6 +995,7 @@ class Group:
         self.channels = []
         self.channel_dependencies = []
         self.signal_data = []
+        self.signal_data_size = []
         self.parents = None
         self.types = None
         self.record = None
@@ -1022,6 +1023,7 @@ class Group:
         self.channels.clear()
         self.channel_dependencies.clear()
         self.signal_data.clear()
+        self.signal_data_size.clear()
 
 
 class VirtualChannelGroup:
