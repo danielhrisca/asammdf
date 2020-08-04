@@ -31,8 +31,6 @@ for:
       - sh: brew install llvm@10 ninja
       # - sh: "~/$PYTHON/bin/python -m pip install --upgrade setuptools wheel -r requirements.txt"
       - sh: "python3 -m pip install --upgrade pip --user"
-      - sh: "python3 -m pip install --upgrade setuptools --user"
-      - sh: "python3 -m pip install wheel --user"
       - sh: "python3 -m pip install -r pip_requirements_tests.txt --user"
       - sh: "python3 -m pip install PyQt5>=5.13.1 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph --user"
       - sh: "python3 -m pip install . --user"
