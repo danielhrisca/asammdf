@@ -8,47 +8,86 @@ environment:
     # The list here is complete (excluding Python 2.6, which
     # isn't covered by this document) at the time of writing.
 
-    - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu1804
+    - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
+    - APPVEYOR_BUILD_WORKER_IMAGE: macos
     #- PYTHON: "C:\\Python36"
     #  PY: "36"
     #- PYTHON: "C:\\Python37"
     #  PY: "37"
-    - PYTHON: "C:\\Python36-x64"
-      PY: "36-x64"
+    #- PYTHON: "C:\\Python36-x64"
+    #  PY: "36-x64"
     - PYTHON: "C:\\Python37-x64"
       PY: "37-x64"
+      
+for:
+    
+   -
+   
+    matrix:
+      only:
+        - APPVEYOR_BUILD_WORKER_IMAGE: macos
+          BUILD: true
+    install:
+      - sh: brew install llvm@10 ninja
+      # - sh: "~/$PYTHON/bin/python -m pip install --upgrade setuptools wheel -r requirements.txt"
+      - sh: "python3 -m pip install --upgrade pip --user"
+      - sh: "python3 -m pip install --upgrade setuptools --user"
+      - sh: "python3 -m pip install wheel --user"
+      - sh: "python3 -m pip install -r pip_requirements_tests.txt --user"
+      - sh: "python3 -m pip install PyQt5>=5.13.1 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph --user"
+      - sh: "python3 -m pip install . --user"
+      - sh: >-
+          if [ $APPVEYOR_REPO_BRANCH == "master" ] ; then
+             /home/appveyor/.local/bin/pyinstaller asammdf_noconsole.spec
+          fi
+      - sh: >-
+          if [ $APPVEYOR_REPO_BRANCH == "master" ] ; then
+             mv dist/asammdfgui dist/asammdfgui_noconsole
+          fi
 
-
-install:
-  # We need wheel installed to build wheels
-  - cmd: set PATH=%PATH%;%PYTHON%\Scripts
-  - cmd: "%PYTHON%\\python.exe -m pip install --upgrade pip"
-  - cmd: "%PYTHON%\\python.exe -m pip install --upgrade setuptools"
-  - cmd: "%PYTHON%\\python.exe -m pip install wheel"
-  - cmd: "%PYTHON%\\python.exe -m pip install -r pip_requirements_tests.txt"
-  - cmd: "if \"%PY%\" == \"37-x64\" ( if \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\python.exe -m pip install PyQt5==5.13.1 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil lxml))"
-  - cmd: "if \"%PY%\" == \"37-x64\" ( if \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\python.exe -m pip install pyinstaller pyqtgraph))"
-  - cmd: "if \"%PY%\" == \"37-x64\" ( if \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\python.exe -m pip install .))"
-  - cmd: "if \"%PY%\" == \"37-x64\" ( if \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\Scripts\\pyinstaller asammdf_noconsole.spec))"
-  - cmd: "if \"%PY%\" == \"37-x64\" ( if \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%_noconsole.exe))"
-  - cmd: "if \"%PY%\" == \"37-x64\" ( if \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\Scripts\\pyinstaller asammdf.spec))"
-  - cmd: "if \"%PY%\" == \"37-x64\" ( if \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe))"
-  - sh: "sudo apt-get --yes --force-yes update"
-  - sh: "sudo DEBIAN_FRONTEND=noninteractive apt-get --yes install python3-dev python3-pip python3-setuptools"
-  - sh: "python3 -m pip install --upgrade pip --user"
-  - sh: "python3 -m pip install --upgrade setuptools --user"
-  - sh: "python3 -m pip install wheel --user"
-  - sh: "python3 -m pip install -r pip_requirements_tests.txt --user"
-  - sh: "python3 -m pip install PyQt5>=5.13.1 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph --user"
-  - sh: "python3 -m pip install . --user"
-  - sh: >-
-      if [ $APPVEYOR_REPO_BRANCH == "master" ] ; then
-         /home/appveyor/.local/bin/pyinstaller asammdf_noconsole.spec
-      fi
-  - sh: >-
-      if [ $APPVEYOR_REPO_BRANCH == "master" ] ; then
-         mv dist/asammdfgui dist/asammdfgui_noconsole
-      fi
+   -
+   
+    matrix:
+      only:
+        - PYTHON: "C:\\Python37-x64"
+    install:
+      # We need wheel installed to build wheels
+      - cmd: set PATH=%PATH%;%PYTHON%\Scripts
+      - cmd: "%PYTHON%\\python.exe -m pip install --upgrade pip"
+      - cmd: "%PYTHON%\\python.exe -m pip install --upgrade setuptools"
+      - cmd: "%PYTHON%\\python.exe -m pip install wheel"
+      - cmd: "%PYTHON%\\python.exe -m pip install -r pip_requirements_tests.txt"
+      - cmd: "if \"%PY%\" == \"37-x64\" ( if \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\python.exe -m pip install PyQt5==5.13.1 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil lxml))"
+      - cmd: "if \"%PY%\" == \"37-x64\" ( if \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\python.exe -m pip install pyinstaller pyqtgraph))"
+      - cmd: "if \"%PY%\" == \"37-x64\" ( if \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\python.exe -m pip install .))"
+      - cmd: "if \"%PY%\" == \"37-x64\" ( if \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\Scripts\\pyinstaller asammdf_noconsole.spec))"
+      - cmd: "if \"%PY%\" == \"37-x64\" ( if \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%_noconsole.exe))"
+      - cmd: "if \"%PY%\" == \"37-x64\" ( if \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\Scripts\\pyinstaller asammdf.spec))"
+      - cmd: "if \"%PY%\" == \"37-x64\" ( if \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe))"
+      
+   -
+   
+    matrix:
+      only:
+        - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
+        
+    install:
+          - sh: "sudo apt-get --yes --force-yes update"
+          - sh: "sudo DEBIAN_FRONTEND=noninteractive apt-get --yes install python3-dev python3-pip python3-setuptools"
+          - sh: "python3 -m pip install --upgrade pip --user"
+          - sh: "python3 -m pip install --upgrade setuptools --user"
+          - sh: "python3 -m pip install wheel --user"
+          - sh: "python3 -m pip install -r pip_requirements_tests.txt --user"
+          - sh: "python3 -m pip install PyQt5>=5.13.1 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph --user"
+          - sh: "python3 -m pip install . --user"
+          - sh: >-
+              if [ $APPVEYOR_REPO_BRANCH == "master" ] ; then
+                 /home/appveyor/.local/bin/pyinstaller asammdf_noconsole.spec
+              fi
+          - sh: >-
+              if [ $APPVEYOR_REPO_BRANCH == "master" ] ; then
+                 mv dist/asammdfgui dist/asammdfgui_noconsole
+              fi
 
 build: off
 

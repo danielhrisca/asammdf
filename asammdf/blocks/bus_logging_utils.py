@@ -147,6 +147,8 @@ def extract_signal(signal, payload, raw=False):
                 conv[f'lower_{i}'] = val
                 conv[f'text_{i}'] = text
 
+            conv = {'a': 1.0, 'b': 0.0}
+
         else:
             conv = {'a': signal.factor, 'b': signal.offset}
 
