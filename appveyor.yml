@@ -8,7 +8,7 @@ environment:
     # The list here is complete (excluding Python 2.6, which
     # isn't covered by this document) at the time of writing.
 
-    - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
+    # - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
     - APPVEYOR_BUILD_WORKER_IMAGE: macos
     #- PYTHON: "C:\\Python36"
     #  PY: "36"
@@ -26,7 +26,7 @@ for:
     matrix:
       only:
         - APPVEYOR_BUILD_WORKER_IMAGE: macos
-          BUILD: true
+
     install:
       - sh: brew install llvm@10 ninja
       # - sh: "~/$PYTHON/bin/python -m pip install --upgrade setuptools wheel -r requirements.txt"
