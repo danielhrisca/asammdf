@@ -288,7 +288,11 @@ def from_dict(conversion):
         conversion["conversion_type"] = v4c.CONVERSION_TYPE_TABX
         nr = 0
         while f"text_{nr}" in conversion:
+            val = conversion[f"text_{nr}"]
+            if isinstance(val, str):
+                conversion[f"text_{nr}"] = val.encode('utf-8')
             nr += 1
+
         conversion["ref_param_nr"] = nr + 1
         conversion = v4b.ChannelConversion(**conversion)
 
@@ -296,6 +300,9 @@ def from_dict(conversion):
         conversion["conversion_type"] = v4c.CONVERSION_TYPE_RTABX
         nr = 0
         while f"text_{nr}" in conversion:
+            val = conversion[f"text_{nr}"]
+            if isinstance(val, str):
+                conversion[f"text_{nr}"] = val.encode('utf-8')
             nr += 1
         conversion["ref_param_nr"] = nr + 1
         conversion = v4b.ChannelConversion(**conversion)
