@@ -530,10 +530,10 @@ class MDF(object):
                 continue
 
             idx = 0
+            signals = []
             for j, sigs in enumerate(
                 self._yield_selected_signals(group_index, groups=included_channels)
             ):
-
                 if not sigs:
                     break
                 if j == 0:
@@ -669,7 +669,7 @@ class MDF(object):
 
             # if the cut interval is not found in the measurement
             # then append a data group with 0 cycles
-            if idx == 0:
+            if idx == 0 and signals:
                 for sig in signals:
                     sig.samples = sig.samples[:0]
                     sig.timestamps = sig.timestamps[:0]

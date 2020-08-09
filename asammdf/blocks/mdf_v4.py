@@ -9116,7 +9116,7 @@ class MDF4(object):
         :return:    None
         """
 
-        flags = self.identification["unfinalized_standard_flags"]
+        flags = self.identification.unfinalized_standard_flags
 
         stream = self._file
         blocks, addresses = all_blocks_addresses(stream)
@@ -9247,7 +9247,8 @@ class MDF4(object):
                 print(format_exc())
                 raise
 
-            self.identification["unfinalized_standard_flags"] -= v4c.FLAG_UNFIN_UPDATE_LAST_DT_LENGTH
+            self.identification.unfinalized_standard_flags -= v4c.FLAG_UNFIN_UPDATE_LAST_DT_LENGTH
+        self.identification.file_identification = b'MDF     '
 
     def _sort(self):
         if self._file is None:
