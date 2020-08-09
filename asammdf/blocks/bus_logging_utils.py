@@ -209,7 +209,7 @@ def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=N
 
     extracted_signals = {}
 
-    if message.size > payload.shape[1]:
+    if message.size > payload.shape[1] or message.size == 0:
         return extracted_signals
 
     pairs = {}

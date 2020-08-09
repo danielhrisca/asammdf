@@ -3331,7 +3331,7 @@ class MDF(object):
         df = pd.DataFrame()
         self._set_temporary_master(None)
 
-        if raster:
+        if raster is not None:
             try:
                 raster = float(raster)
                 assert raster > 0
