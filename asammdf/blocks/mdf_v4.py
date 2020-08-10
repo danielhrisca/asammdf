@@ -8136,10 +8136,11 @@ class MDF4(object):
 
 
         """
-        info = {}
-        info["version"] = (
-            self.identification["version_str"].decode("utf-8").strip(" \n\t\0")
-        )
+        info = {
+            "version": self.version,
+            "program": self.identification.program_identification.decode('utf-8').strip(" \0\n\r\t"),
+            "comment": self.header.comment,
+        }
         info["groups"] = len(self.groups)
         for i, gp in enumerate(self.groups):
             inf = {}
