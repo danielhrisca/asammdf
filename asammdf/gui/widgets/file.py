@@ -865,14 +865,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         else:
                             return
 
-                elif extension == '.cfg':
+                elif extension in ('.cfg', '.txt'):
                     with open(file_name, "r") as infile:
                         info = json.load(infile)
                     channels = info.get("selected_channels", [])
-                elif extension == '.txt':
-                    with open(file_name, "r") as infile:
-                        channels = [line.strip() for line in infile.readlines()]
-                        channels = [name for name in channels if name]
 
             else:
                 info = file_name
