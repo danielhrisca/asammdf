@@ -17,7 +17,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
 
 from ...blocks.utils import csv_bytearray2hex, extract_cncomment_xml, MdfException
-from ...blocks.v4_constants import FLAG_CG_BUS_EVENT
+from ...blocks.v4_constants import FLAG_CG_BUS_EVENT, FLAG_AT_TO_STRING
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_group_info import ChannelGroupInfoDialog
@@ -35,6 +35,8 @@ from ..utils import (
     setup_progress,
     TERMINATED,
 )
+
+from .attachment import Attachment
 from .mdi_area import MdiAreaWidget, WithMDIArea
 from .numeric import Numeric
 from .plot import Plot
@@ -530,6 +532,53 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         self.scramble_btn.clicked.connect(self.scramble)
         self.setAcceptDrops(True)
+
+        if self.mdf.version >= "4.00":
+            for i, attachment in enumerate(self.mdf.attachments, 1):
+                att = Attachment(attachment)
+                att.number.setText(f'{i}.')
+
+                fields = []
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "File name")
+                field.setText(1, str(attachment.file_name))
+                fields.append(field)
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "MIME type")
+                field.setText(1, attachment.mime)
+                fields.append(field)
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "Comment")
+                field.setText(1, attachment.comment)
+                fields.append(field)
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "Flags")
+                if attachment.flags:
+                    flags = []
+                    for flag, string in FLAG_AT_TO_STRING.items():
+                        if attachment.flags & flag:
+                            flags.append(string)
+                    text = f'{attachment.flags} [0x{attachment.flags:X}= {", ".join(flags)}]'
+                else:
+                    text = '0'
+                field.setText(1, text)
+                fields.append(field)
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "MD5 sum")
+                field.setText(1, attachment.md5_sum.hex().upper())
+                fields.append(field)
+
+                att.fields.addTopLevelItems(fields)
+
+                item = QtWidgets.QListWidgetItem()
+                item.setSizeHint(att.sizeHint())
+                self.attachments.addItem(item)
+                self.attachments.setItemWidget(item, att)
 
     def set_raster_type(self, event):
         if self.raster_type_channel.isChecked():

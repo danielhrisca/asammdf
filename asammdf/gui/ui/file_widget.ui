@@ -35,7 +35,7 @@
       <enum>QTabWidget::West</enum>
      </property>
      <property name="currentIndex">
-      <number>7</number>
+      <number>9</number>
      </property>
      <property name="documentMode">
       <bool>false</bool>
@@ -1285,6 +1285,20 @@
           </property>
          </column>
         </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="attachments_tab">
+      <attribute name="icon">
+       <iconset resource="resource.qrc">
+        <normaloff>:/attach.png</normaloff>:/attach.png</iconset>
+      </attribute>
+      <attribute name="title">
+       <string>Attachments</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_10">
+       <item>
+        <widget class="QListWidget" name="attachments"/>
        </item>
       </layout>
      </widget>
