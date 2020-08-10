@@ -3606,6 +3606,7 @@ class MDF(object):
 
                     msg_ids = (
                         self.get("CAN_DataFrame.ID", group=i, data=fragment,)
+                        .astype('<u4')
                         & 0x1FFFFFFF
                     )
 

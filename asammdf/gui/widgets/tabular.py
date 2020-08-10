@@ -61,7 +61,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                 (
                     "CAN_DataFrame.ID",
                     "FLX_Frame.ID",
-                    "FlexRay_DataFrame.ID",
+                    "FLX_DataFrame.ID",
                     "LIN_Frame.ID",
                     "MOST_DataFrame.ID",
                     "ETH_Frame.ID",
