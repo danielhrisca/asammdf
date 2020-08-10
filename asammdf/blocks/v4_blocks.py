@@ -195,7 +195,7 @@ class AttachmentBlock:
 
         except KeyError:
 
-            self.file_name = Path(kwargs.get("file_name", None) or "bin.bin")
+            file_name = Path(kwargs.get("file_name", None) or "bin.bin")
 
             data = kwargs["data"]
             original_size = embedded_size = len(data)
@@ -211,9 +211,10 @@ class AttachmentBlock:
                     flags |= v4c.FLAG_AT_COMPRESSED_EMBEDDED
                     data = compress(data)
                     embedded_size = len(data)
+                self.file_name = file_name.name
 
             else:
-                self.file_name = Path(self.file_name.name)
+                self.file_name = str(file_name)
                 self.file_name.write_bytes(data)
                 embedded_size = 0
                 data = b""

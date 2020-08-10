@@ -2757,9 +2757,9 @@ class MDF4(object):
                 if signal.stream_sync:
                     channel_type = v4c.CHANNEL_TYPE_SYNC
                     if signal.attachment:
-                        at_data, at_name = signal.attachment
+                        at_data, at_name, hash_sum = signal.attachment
                         attachment_addr = self.attach(
-                            at_data, at_name, mime="video/avi", embedded=False
+                            at_data, at_name, hash_sum, mime="video/avi", embedded=False
                         )
                         data_block_addr = attachment_addr
                         attachment = self._attachments_map[attachment_addr]
@@ -2774,16 +2774,10 @@ class MDF4(object):
                     sync_type = v4c.SYNC_TYPE_NONE
 
                     if signal.attachment:
-                        at_data, at_name = signal.attachment
-
-                        suffix = Path(at_name).suffix.lower().strip(".")
-                        if suffix == 'a2l':
-                            mime = 'applciation/A2L'
-                        else:
-                            mime = f"application/x-{suffix}"
+                        at_data, at_name, hash_sum = signal.attachment
 
                         attachment_addr = self.attach(
-                            at_data, at_name, mime=mime
+                            at_data, at_name, hash_sum
                         )
                         kwargs['attachment_addr'] = attachment_addr
                         attachment = self._attachments_map[attachment_addr]
@@ -2801,7 +2795,7 @@ class MDF4(object):
                     "flags": 0,
                 }
 
-                if attachment:
+                if attachment is not None:
                     kwargs["attachment_addr"] = attachment_addr
 
                 if invalidation_bytes_nr and signal.invalidation_bits is not None:
@@ -3630,9 +3624,9 @@ class MDF4(object):
                 if signal.stream_sync:
                     channel_type = v4c.CHANNEL_TYPE_SYNC
                     if signal.attachment:
-                        at_data, at_name = signal.attachment
+                        at_data, at_name, hash_sum = signal.attachment
                         attachment_addr = self.attach(
-                            at_data, at_name, mime="video/avi", embedded=False
+                            at_data, at_name, hash_sum, mime="video/avi", embedded=False
                         )
                         data_block_addr = attachment_addr
                     else:
@@ -4492,7 +4486,7 @@ class MDF4(object):
         # first we add the structure channel
 
         if signal.attachment and signal.attachment[0]:
-            at_data, at_name = signal.attachment
+            at_data, at_name, hash_sum = signal.attachment
             if at_name is not None:
                 suffix = Path(at_name).suffix.lower().strip(".")
             else:
@@ -4502,7 +4496,7 @@ class MDF4(object):
             else:
                 mime = f"application/x-{suffix}"
             attachment_addr = self.attach(
-                at_data, at_name, mime=mime
+                at_data, at_name, hash_sum=hash_sum, mime=mime
             )
             attachment = self._attachments_map[attachment_addr]
         else:
@@ -4926,13 +4920,13 @@ class MDF4(object):
         # first we add the structure channel
 
         if signal.attachment and signal.attachment[0]:
-            at_data, at_name = signal.attachment
+            at_data, at_name, hash_sum = signal.attachment
             if at_name is not None:
                 suffix = Path(at_name).suffix.strip(".")
             else:
                 suffix = "dbc"
             attachment_addr = self.attach(
-                at_data, at_name, mime=f"application/x-{suffix}"
+                at_data, at_name, hash_sum=hash_sum, mime=f"application/x-{suffix}"
             )
             attachment = self._attachments_map[attachment_addr]
         else:
@@ -5688,6 +5682,7 @@ class MDF4(object):
         self,
         data,
         file_name=None,
+        hash_sum=None,
         comment=None,
         compression=True,
         mime=r"application/octet-stream",
@@ -5701,6 +5696,8 @@ class MDF4(object):
             data to be attached
         file_name : str
             string file name
+        hash_sum : bytes
+            md5 of the data
         comment : str
             attachment comment
         compression : bool
@@ -5716,8 +5713,14 @@ class MDF4(object):
             new attachment index
 
         """
-        if data in self._attachments_cache:
-            return self._attachments_cache[data]
+
+        if hash_sum is None:
+            worker = md5()
+            worker.update(data)
+            hash_sum = worker.hexdigest()
+
+        if hash_sum in self._attachments_cache:
+            return self._attachments_cache[hash_sum]
         else:
             creator_index = len(self.file_history)
             fh = FileHistory()
@@ -5746,10 +5749,16 @@ class MDF4(object):
                 index -= 1
             self.attachments.append(at_block)
 
+            suffix = Path(file_name).suffix.lower().strip(".")
+            if suffix == 'a2l':
+                mime = 'application/A2L'
+            else:
+                mime = f"application/x-{suffix}"
+
             at_block.mime = mime
             at_block.comment = comment
 
-            self._attachments_cache[data] = index
+            self._attachments_cache[hash_sum] = index
             self._attachments_map[index] = len(self.attachments) - 1
 
             return index
@@ -5813,7 +5822,7 @@ class MDF4(object):
 
         """
         if address is None and index is None:
-            return b"", Path("")
+            return b"", Path(""), md5().digest()
 
         if address is not None:
             index = self._attachments_map[address]
@@ -5856,15 +5865,20 @@ class MDF4(object):
                     with open(file_path, mode) as f:
                         file_path = Path(f"FROM_{file_path}")
                         data = f.read()
+                        md5_worker = md5()
+                        md5_worker.update(data)
+                        md5_sum = md5_worker.digest()
+
         except Exception as err:
             os.chdir(current_path)
             message = f'Exception during attachment "{attachment.file_name}" extraction: {err!r}'
             logger.warning(message)
             data = b""
+            md5_sum = md5().digest()
         finally:
             os.chdir(current_path)
 
-        return data, file_path
+        return data, file_path, md5_sum
 
     def get(
         self,
@@ -6125,7 +6139,7 @@ class MDF4(object):
                 index = self._attachments_map[channel.data_block_addr]
                 attachment = self.extract_attachment(index=index)
             else:
-                attachment = ()
+                attachment = None
 
             master_metadata = self._master_channel_metadata.get(gp_nr, None)
 

@@ -800,7 +800,7 @@ class MDF(object):
             return
 
         single_time_base = kwargs.get("single_time_base", False)
-        raster = kwargs.get("raster", 0)
+        raster = kwargs.get("raster", None)
         time_from_zero = kwargs.get("time_from_zero", True)
         use_display_names = kwargs.get("use_display_names", True)
         empty_channels = kwargs.get("empty_channels", "skip")
