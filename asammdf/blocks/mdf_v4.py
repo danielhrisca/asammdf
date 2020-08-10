@@ -2762,14 +2762,33 @@ class MDF4(object):
                             at_data, at_name, mime="video/avi", embedded=False
                         )
                         data_block_addr = attachment_addr
+                        attachment = self._attachments_map[attachment_addr]
                     else:
                         data_block_addr = 0
+                        attachment = None
 
                     sync_type = v4c.SYNC_TYPE_TIME
                 else:
                     channel_type = v4c.CHANNEL_TYPE_VALUE
                     data_block_addr = 0
                     sync_type = v4c.SYNC_TYPE_NONE
+
+                    if signal.attachment:
+                        at_data, at_name = signal.attachment
+
+                        suffix = Path(at_name).suffix.lower().strip(".")
+                        if suffix == 'a2l':
+                            mime = 'applciation/A2L'
+                        else:
+                            mime = f"application/x-{suffix}"
+
+                        attachment_addr = self.attach(
+                            at_data, at_name, mime=mime
+                        )
+                        kwargs['attachment_addr'] = attachment_addr
+                        attachment = self._attachments_map[attachment_addr]
+                    else:
+                        attachment = None
 
                 kwargs = {
                     "channel_type": channel_type,
@@ -2781,6 +2800,9 @@ class MDF4(object):
                     "data_block_addr": data_block_addr,
                     "flags": 0,
                 }
+
+                if attachment:
+                    kwargs["attachment_addr"] = attachment_addr
 
                 if invalidation_bytes_nr and signal.invalidation_bits is not None:
                     inval_bits.append(signal.invalidation_bits)
@@ -2794,6 +2816,7 @@ class MDF4(object):
                 ch.comment = signal.comment
                 ch.display_name = signal.display_name
                 ch.dtype_fmt = dtype(f"{sig_shape[1:]}{sig_dtype}")
+                ch.attachment = attachment
 
                 # conversions for channel
                 if signal.raw:
@@ -4471,11 +4494,15 @@ class MDF4(object):
         if signal.attachment and signal.attachment[0]:
             at_data, at_name = signal.attachment
             if at_name is not None:
-                suffix = Path(at_name).suffix.strip(".")
+                suffix = Path(at_name).suffix.lower().strip(".")
             else:
                 suffix = "dbc"
+            if suffix == 'a2l':
+                mime = 'applciation/A2L'
+            else:
+                mime = f"application/x-{suffix}"
             attachment_addr = self.attach(
-                at_data, at_name, mime=f"application/x-{suffix}"
+                at_data, at_name, mime=mime
             )
             attachment = self._attachments_map[attachment_addr]
         else:
