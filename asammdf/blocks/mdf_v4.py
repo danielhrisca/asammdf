@@ -2809,7 +2809,10 @@ class MDF4(object):
                 ch.unit = signal.unit
                 ch.comment = signal.comment
                 ch.display_name = signal.display_name
-                ch.dtype_fmt = dtype(f"{sig_shape[1:]}{sig_dtype}")
+                if len(sig_shape) > 1:
+                    ch.dtype_fmt = dtype((sig_dtype, sig_shape[1:]))
+                else:
+                    ch.dtype_fmt = sig_dtype
                 ch.attachment = attachment
 
                 # conversions for channel
@@ -2817,6 +2820,7 @@ class MDF4(object):
                     ch.conversion = conversion_transfer(signal.conversion, version=4)
 
                 # source for channel
+
                 source = signal.source
                 if source:
                     if source in si_map:
@@ -2922,6 +2926,7 @@ class MDF4(object):
 
                 # source for channel
                 source = signal.source
+#                print(source)
                 if source:
                     if source in si_map:
                         ch.source = si_map[source]
@@ -3699,7 +3704,7 @@ class MDF4(object):
 
                 _shape = sig_shape[1:]
                 types.append((name, sig_dtype, _shape))
-                gp.single_channel_dtype = ch.dtype_fmt = dtype(f"{_shape}{sig_dtype}")
+                gp.single_channel_dtype = ch.dtype_fmt = dtype((sig_dtype, _shape))
 
                 # simple channels don't have channel dependencies
                 gp_dep.append(None)
@@ -4324,7 +4329,7 @@ class MDF4(object):
                 ch = Channel(**kwargs)
                 ch.name = name
                 ch.unit = units.get(name, "")
-                ch.dtype_fmt = dtype(f"{sig.shape[1:]}{sig.dtype}")
+                ch.dtype_fmt = dtype((sig.dtype, sig.shape[1:]))
 
                 gp_channels.append(ch)
 
@@ -4649,7 +4654,7 @@ class MDF4(object):
 
                 ch = Channel(**kwargs)
                 ch.name = name
-                ch.dtype_fmt = dtype(f"{samples.shape[1:]}{samples.dtype}")
+                ch.dtype_fmt = dtype((samples.dtype, samples.shape[1:]))
 
                 entry = (dg_cntr, ch_cntr)
                 gp_channels.append(ch)
@@ -5064,7 +5069,7 @@ class MDF4(object):
 
                 ch = Channel(**kwargs)
                 ch.name = name
-                ch.dtype_fmt = dtype(f"{samples.shape[1:]}{samples.dtype}")
+                ch.dtype_fmt = dtype((samples.dtype, samples.shape[1:]))
 
                 entry = (dg_cntr, ch_cntr)
                 gp_channels.append(ch)

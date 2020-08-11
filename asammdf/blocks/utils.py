@@ -540,7 +540,7 @@ def fmt_to_datatype_v4(fmt, shape, array=False):
     size = fmt.itemsize * 8
     kind = fmt.kind
 
-    if not array and shape[1:] and fmt.itemsize == 1 and kind == "u":
+    if not array and len(shape) > 1 and size == 8 and kind == "u":
         data_type = v4c.DATA_TYPE_BYTEARRAY
         for dim in shape[1:]:
             size *= dim

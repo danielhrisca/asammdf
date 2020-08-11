@@ -33,7 +33,7 @@ def conversion_transfer(conversion, version=3):
             conversion = v3b.ChannelConversion(conversion_type=v3c.CONVERSION_TYPE_NONE)
         else:
             conversion_type = conversion["conversion_type"]
-            if conversion["id"] == b"CC":
+            if conversion.id == b"CC":
                 pass
             else:
                 unit = conversion.unit.strip(" \r\n\t\0").encode("latin-1")
@@ -155,11 +155,11 @@ def conversion_transfer(conversion, version=3):
                     conversion = new_conversion
 
     else:
-        if conversion is None or conversion["id"] == b"##CC":
+        if conversion is None or conversion.id == b"##CC":
             pass
         else:
-            conversion_type = conversion["conversion_type"]
-            unit = conversion["unit_field"].decode("latin-1").strip(" \r\n\t\0")
+            conversion_type = conversion.conversion_type
+            unit = conversion.unit_field.decode("latin-1").strip(" \r\n\t\0")
 
             if conversion_type == v3c.CONVERSION_TYPE_NONE:
                 conversion = v4b.ChannelConversion(

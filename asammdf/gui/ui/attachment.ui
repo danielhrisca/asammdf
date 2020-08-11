@@ -30,11 +30,14 @@
       </size>
      </property>
      <attribute name="headerVisible">
-      <bool>false</bool>
+      <bool>true</bool>
+     </attribute>
+     <attribute name="headerMinimumSectionSize">
+      <number>100</number>
      </attribute>
      <column>
       <property name="text">
-       <string>Field</string>
+       <string>Item</string>
       </property>
      </column>
      <column>

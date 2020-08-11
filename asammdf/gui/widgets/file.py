@@ -541,6 +541,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 fields = []
 
                 field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "ATBLOCK address")
+                field.setText(1, f'0x{attachment.address:X}')
+                fields.append(field)
+
+                field = QtWidgets.QTreeWidgetItem()
                 field.setText(0, "File name")
                 field.setText(1, str(attachment.file_name))
                 fields.append(field)
@@ -571,6 +576,21 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 field = QtWidgets.QTreeWidgetItem()
                 field.setText(0, "MD5 sum")
                 field.setText(1, attachment.md5_sum.hex().upper())
+                fields.append(field)
+
+                size = attachment.original_size
+                if size <= 1<<10:
+                    text = f'{size} B'
+                elif size <= 1<<20:
+                    text = f'{size/1024:.1f} KB'
+                elif size <= 1<<30:
+                    text = f'{size/1024/1024:.1f} MB'
+                else:
+                    text = f'{size/1024/1024/1024:.1f} GB'
+
+                field = QtWidgets.QTreeWidgetItem()
+                field.setText(0, "Size")
+                field.setText(1, text)
                 fields.append(field)
 
                 att.fields.addTopLevelItems(fields)

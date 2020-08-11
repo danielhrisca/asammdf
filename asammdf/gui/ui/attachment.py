@@ -20,7 +20,8 @@ class Ui_Attachment(object):
         self.fields = QtWidgets.QTreeWidget(Attachment)
         self.fields.setMinimumSize(QtCore.QSize(0, 187))
         self.fields.setObjectName("fields")
-        self.fields.header().setVisible(False)
+        self.fields.header().setVisible(True)
+        self.fields.header().setMinimumSectionSize(100)
         self.horizontalLayout.addWidget(self.fields)
         self.extract_btn = QtWidgets.QPushButton(Attachment)
         icon = QtGui.QIcon()
@@ -37,7 +38,7 @@ class Ui_Attachment(object):
         _translate = QtCore.QCoreApplication.translate
         Attachment.setWindowTitle(_translate("Attachment", "Form"))
         self.number.setText(_translate("Attachment", "Number"))
-        self.fields.headerItem().setText(0, _translate("Attachment", "Field"))
+        self.fields.headerItem().setText(0, _translate("Attachment", "Item"))
         self.fields.headerItem().setText(1, _translate("Attachment", "Value"))
         self.extract_btn.setText(_translate("Attachment", "Extract"))
 
