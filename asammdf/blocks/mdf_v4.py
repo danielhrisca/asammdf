@@ -4195,6 +4195,9 @@ class MDF4(object):
 
         units = units or {}
 
+        if df.shape == (0, 0):
+            return
+
         t = df.index
         index_name = df.index.name
         time_name = index_name or "time"
@@ -4235,54 +4238,53 @@ class MDF4(object):
 
         seek(0, 2)
 
-        if df.shape[0]:
-            virtual_group = VirtualChannelGroup()
-            self.virtual_groups[dg_cntr] = virtual_group
-            self.virtual_groups_map[dg_cntr] = dg_cntr
-            virtual_group.groups.append(dg_cntr)
-            virtual_group.cycles_nr = cycles_nr
+        virtual_group = VirtualChannelGroup()
+        self.virtual_groups[dg_cntr] = virtual_group
+        self.virtual_groups_map[dg_cntr] = dg_cntr
+        virtual_group.groups.append(dg_cntr)
+        virtual_group.cycles_nr = cycles_nr
 
-            # time channel
-            t_type, t_size = fmt_to_datatype_v4(t.dtype, t.shape)
-            kwargs = {
-                "channel_type": v4c.CHANNEL_TYPE_MASTER,
-                "data_type": t_type,
-                "sync_type": sync_type,
-                "byte_offset": 0,
-                "bit_offset": 0,
-                "bit_count": t_size,
-                "min_raw_value": t[0] if cycles_nr else 0,
-                "max_raw_value": t[-1] if cycles_nr else 0,
-                "lower_limit": t[0] if cycles_nr else 0,
-                "upper_limit": t[-1] if cycles_nr else 0,
-                "flags": v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
-            }
-            ch = Channel(**kwargs)
-            ch.unit = time_unit
-            ch.name = time_name
-            ch.source = source_block
-            ch.dtype_fmt = t.dtype
-            name = time_name
-            gp_channels.append(ch)
+        # time channel
+        t_type, t_size = fmt_to_datatype_v4(t.dtype, t.shape)
+        kwargs = {
+            "channel_type": v4c.CHANNEL_TYPE_MASTER,
+            "data_type": t_type,
+            "sync_type": sync_type,
+            "byte_offset": 0,
+            "bit_offset": 0,
+            "bit_count": t_size,
+            "min_raw_value": t[0] if cycles_nr else 0,
+            "max_raw_value": t[-1] if cycles_nr else 0,
+            "lower_limit": t[0] if cycles_nr else 0,
+            "upper_limit": t[-1] if cycles_nr else 0,
+            "flags": v4c.FLAG_PHY_RANGE_OK | v4c.FLAG_VAL_RANGE_OK,
+        }
+        ch = Channel(**kwargs)
+        ch.unit = time_unit
+        ch.name = time_name
+        ch.source = source_block
+        ch.dtype_fmt = t.dtype
+        name = time_name
+        gp_channels.append(ch)
 
-            gp_sdata.append(None)
-            gp_sdata_size.append(0)
-            self.channels_db.add(name, (dg_cntr, ch_cntr))
-            self.masters_db[dg_cntr] = 0
-            # data group record parents
-            parents[ch_cntr] = name, 0
+        gp_sdata.append(None)
+        gp_sdata_size.append(0)
+        self.channels_db.add(name, (dg_cntr, ch_cntr))
+        self.masters_db[dg_cntr] = 0
+        # data group record parents
+        parents[ch_cntr] = name, 0
 
-            # time channel doesn't have channel dependencies
-            gp_dep.append(None)
+        # time channel doesn't have channel dependencies
+        gp_dep.append(None)
 
-            fields.append(t)
-            types.append((name, t.dtype))
-            field_names.get_unique_name(name)
+        fields.append(t)
+        types.append((name, t.dtype))
+        field_names.get_unique_name(name)
 
-            offset += t_size // 8
-            ch_cntr += 1
+        offset += t_size // 8
+        ch_cntr += 1
 
-            gp_sig_types.append(0)
+        gp_sig_types.append(0)
 
         for signal in df:
             if index_name == signal:
@@ -5838,7 +5840,11 @@ class MDF4(object):
             # for embedded attachments extrat data and create new files
             if flags & v4c.FLAG_AT_EMBEDDED:
                 data = attachment.extract()
+                md5_worker = md5()
+                md5_worker.update(data)
+                md5_sum = md5_worker.digest()
             else:
+
                 # for external attachments read the file and return the content
                 if flags & v4c.FLAG_AT_MD5_VALID:
                     data = open(file_path, "rb").read()
@@ -9575,7 +9581,7 @@ class MDF4(object):
                 if addr:
                     attachment_addr = self._attachments_map[addr]
                     if attachment_addr not in self._dbc_cache:
-                        attachment, at_name = self.extract_attachment(
+                        attachment, at_name, md5_sum = self.extract_attachment(
                             index=attachment_addr
                         )
                         if not at_name.name.lower().endswith(("dbc", "arxml")):
