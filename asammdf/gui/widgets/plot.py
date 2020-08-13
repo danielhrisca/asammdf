@@ -694,6 +694,7 @@ class Plot(QtWidgets.QWidget):
     region_moved_signal = QtCore.pyqtSignal(object, list)
     region_removed_signal = QtCore.pyqtSignal(object)
     show_properties = QtCore.pyqtSignal(list)
+    splitter_moved = QtCore.pyqtSignal(object, int)
 
     def __init__(self, signals, with_dots=False, origin=None, *args, **kwargs):
         events = kwargs.pop("events", None)
@@ -754,6 +755,8 @@ class Plot(QtWidgets.QWidget):
         self.splitter.setStretchFactor(0, 1)
         self.splitter.setStretchFactor(1, 2)
         self.splitter.setStretchFactor(2, 0)
+
+        self.splitter.splitterMoved.connect(self.set_splitter)
 
         self.plot.add_channels_request.connect(self.add_channels_request)
         self.setAcceptDrops(True)
@@ -1433,6 +1436,9 @@ class Plot(QtWidgets.QWidget):
                 self.show_properties.emit(
                     [sig.group_index, sig.channel_index, sig.mdf_uuid]
                 )
+
+    def set_splitter(self, pos, index):
+        self.splitter_moved.emit(self, pos)
 
 
 class _Plot(pg.PlotWidget):

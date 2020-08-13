@@ -102,6 +102,7 @@ class WithMDIArea:
     def __init__(self, *args, **kwargs):
         self._cursor_source = None
         self._region_source = None
+        self._splitter_source = None
         self._window_counter = 0
 
     def add_new_channels(self, names, widget):
@@ -1084,6 +1085,7 @@ class WithMDIArea:
                     widget.cursor_removed_signal.connect(self.remove_cursor)
                     widget.region_removed_signal.connect(self.remove_region)
                     widget.region_moved_signal.connect(self.set_region)
+                    widget.splitter_moved.connect(self.set_splitter)
                 elif isinstance(widget, Numeric):
                     widget.timestamp_changed_signal.connect(self.set_cursor)
         else:
@@ -1105,6 +1107,10 @@ class WithMDIArea:
                         pass
                     try:
                         widget.region_modified_signal.disconnect(self.set_region)
+                    except:
+                        pass
+                    try:
+                        widget.splitter_moved.disconnect(self.set_splitter)
                     except:
                         pass
                 elif isinstance(widget, Numeric):
@@ -1146,6 +1152,19 @@ class WithMDIArea:
                         wid.plot.keyPressEvent(event)
                     wid.plot.region.setRegion(region)
             self._region_source = None
+
+    def set_splitter(self, widget, selection_width):
+        if self._splitter_source is None:
+            self._splitter_source = widget
+            for mdi in self.mdi_area.subWindowList():
+                wid = mdi.widget()
+                if isinstance(wid, Plot) and wid is not widget:
+                    if selection_width is not None:
+                        total_size = sum(wid.splitter.sizes())
+                        if total_size > selection_width:
+                            wid.splitter.setSizes([selection_width, total_size - selection_width])
+
+            self._splitter_source = None
 
     def remove_cursor(self, widget):
         if self._cursor_source is None:
