@@ -709,6 +709,8 @@ class Plot(QtWidgets.QWidget):
         self._can_switch_mode = True
 
         main_layout = QtWidgets.QVBoxLayout(self)
+        main_layout.setSpacing(1)
+        main_layout.setContentsMargins(1,1,1,1)
         # self.setLayout(main_layout)
 
         vbox = QtWidgets.QVBoxLayout()

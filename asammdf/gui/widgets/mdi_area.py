@@ -595,6 +595,8 @@ class WithMDIArea:
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
 
+        w.layout().setSpacing(1)
+
     def get_current_plot(self):
         mdi = self.mdi_area.activeSubWindow()
         if mdi is not None:
@@ -1064,6 +1066,11 @@ class WithMDIArea:
 
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+
+        w.layout().setSpacing(1)
+        plot.splitter.setContentsMargins(1, 1, 1, 1)
+        plot.setContentsMargins(1, 1, 1, 1)
+
 
     def set_line_style(self, with_dots=None):
         if with_dots is not None:
