@@ -46,7 +46,6 @@ class Ui_file_widget(object):
         self.gridLayout_2.setContentsMargins(5, 5, 5, 5)
         self.gridLayout_2.setObjectName("gridLayout_2")
         self.convert_split_size = QtWidgets.QDoubleSpinBox(self.convert_tab)
-        self.convert_split_size.setDecimals(3)
         self.convert_split_size.setMaximum(4.0)
         self.convert_split_size.setObjectName("convert_split_size")
         self.gridLayout_2.addWidget(self.convert_split_size, 4, 1, 1, 1)
@@ -358,7 +357,6 @@ class Ui_file_widget(object):
         self.line_5.setObjectName("line_5")
         self.gridLayout_4.addWidget(self.line_5, 3, 0, 1, 2)
         self.resample_split_size = QtWidgets.QDoubleSpinBox(self.resample_tab)
-        self.resample_split_size.setDecimals(3)
         self.resample_split_size.setMaximum(4.0)
         self.resample_split_size.setObjectName("resample_split_size")
         self.gridLayout_4.addWidget(self.resample_split_size, 6, 1, 1, 1)
@@ -561,7 +559,7 @@ class Ui_file_widget(object):
         self.verticalLayout.addWidget(self.aspects)
 
         self.retranslateUi(file_widget)
-        self.aspects.setCurrentIndex(9)
+        self.aspects.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(file_widget)
 
     def retranslateUi(self, file_widget):

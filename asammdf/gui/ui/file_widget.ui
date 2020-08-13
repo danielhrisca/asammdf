@@ -35,7 +35,7 @@
       <enum>QTabWidget::West</enum>
      </property>
      <property name="currentIndex">
-      <number>9</number>
+      <number>0</number>
      </property>
      <property name="documentMode">
       <bool>false</bool>
@@ -106,9 +106,6 @@
           <widget class="QDoubleSpinBox" name="convert_split_size">
            <property name="suffix">
             <string>MB</string>
-           </property>
-           <property name="decimals">
-            <number>3</number>
            </property>
            <property name="maximum">
             <double>4.000000000000000</double>
@@ -856,9 +853,6 @@
           <widget class="QDoubleSpinBox" name="resample_split_size">
            <property name="suffix">
             <string>MB</string>
-           </property>
-           <property name="decimals">
-            <number>3</number>
            </property>
            <property name="maximum">
             <double>4.000000000000000</double>

@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>707</width>
+    <width>979</width>
     <height>779</height>
    </rect>
   </property>
@@ -24,7 +24,7 @@
        <enum>QTabWidget::West</enum>
       </property>
       <property name="currentIndex">
-       <number>7</number>
+       <number>0</number>
       </property>
       <property name="documentMode">
        <bool>false</bool>
@@ -106,9 +106,6 @@
          <widget class="QDoubleSpinBox" name="concatenate_split_size">
           <property name="suffix">
            <string>MB</string>
-          </property>
-          <property name="decimals">
-           <number>3</number>
           </property>
           <property name="maximum">
            <double>4.000000000000000</double>
@@ -208,9 +205,6 @@
            <widget class="QDoubleSpinBox" name="convert_split_size">
             <property name="suffix">
              <string>MB</string>
-            </property>
-            <property name="decimals">
-             <number>3</number>
             </property>
             <property name="maximum">
              <double>4.000000000000000</double>
@@ -644,9 +638,6 @@
             <property name="suffix">
              <string>MB</string>
             </property>
-            <property name="decimals">
-             <number>3</number>
-            </property>
             <property name="maximum">
              <double>4.000000000000000</double>
             </property>
@@ -909,9 +900,6 @@
          <widget class="QDoubleSpinBox" name="stack_split_size">
           <property name="suffix">
            <string>MB</string>
-          </property>
-          <property name="decimals">
-           <number>3</number>
           </property>
           <property name="maximum">
            <double>4.000000000000000</double>

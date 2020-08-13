@@ -547,17 +547,17 @@ def fmt_to_datatype_v4(fmt, shape, array=False):
 
     else:
         if kind == "u":
-            if byteorder in "<":
+            if byteorder == "<":
                 data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
             else:
                 data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
         elif kind == "i":
-            if byteorder in "<":
+            if byteorder == "<":
                 data_type = v4c.DATA_TYPE_SIGNED_INTEL
             else:
                 data_type = v4c.DATA_TYPE_SIGNED_MOTOROLA
         elif kind == "f":
-            if byteorder in "<":
+            if byteorder == "<":
                 data_type = v4c.DATA_TYPE_REAL_INTEL
             else:
                 data_type = v4c.DATA_TYPE_REAL_MOTOROLA
@@ -567,7 +567,7 @@ def fmt_to_datatype_v4(fmt, shape, array=False):
             data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
             size = 1
         elif kind == "c":
-            if byteorder in "<":
+            if byteorder == "<":
                 data_type = v4c.DATA_TYPE_COMPLEX_INTEL
             else:
                 data_type = v4c.DATA_TYPE_COMPLEX_MOTOROLA
