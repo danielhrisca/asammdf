@@ -104,6 +104,7 @@ class WithMDIArea:
         self._region_source = None
         self._splitter_source = None
         self._window_counter = 0
+        self._frameless_windows = False
 
     def add_new_channels(self, names, widget):
         try:
@@ -591,6 +592,9 @@ class WithMDIArea:
             w.setWindowTitle(f"Tabular {self._window_counter}")
             self._window_counter += 1
 
+        if self._frameless_windows:
+            w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+
     def get_current_plot(self):
         mdi = self.mdi_area.activeSubWindow()
         if mdi is not None:
@@ -1057,6 +1061,9 @@ class WithMDIArea:
             before = menu.actions()[0]
             menu.insertAction(before, action)
             w.setSystemMenu(menu)
+
+        if self._frameless_windows:
+            w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
 
     def set_line_style(self, with_dots=None):
         if with_dots is not None:

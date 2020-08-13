@@ -38,5 +38,6 @@
     <file alias="lock_range.png">images/lock_range.png</file>
     <file alias="comments.png">images/comments.png</file>
 	<file alias="attach.png">images/attach.png</file>
+	<file alias="window.png">images/window.png</file>
 </qresource>
 </RCC>

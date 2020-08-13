@@ -269,6 +269,16 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
             )
         )
+
+        self.toggle_frame_btn = QtWidgets.QPushButton("", channel_and_search)
+        self.toggle_frame_btn.setToolTip("Toggle sub window frame")
+        icon3 = QtGui.QIcon()
+        icon3.addPixmap(
+            QtGui.QPixmap(":/window.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        self.toggle_frame_btn.setIcon(icon3)
+        self.toggle_frame_btn.setObjectName("set_frame_btn")
+        hbox.addWidget(self.toggle_frame_btn)
         vbox.addLayout(hbox)
 
         self.mdi_area = MdiAreaWidget()
@@ -513,6 +523,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         # self.channels_tree.itemChanged.connect(self.select)
         self.create_window_btn.clicked.connect(self._create_window)
+        self.toggle_frame_btn.clicked.connect(self.toggle_frame)
 
         self.clear_filter_btn.clicked.connect(self.clear_filter)
         self.clear_channels_btn.clicked.connect(self.clear_channels)
@@ -1138,8 +1149,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 iterator += 1
 
     def close(self):
-        for window in self.mdi_area.subWindowList():
-            print(window.windowTitle(), window.geometry())
         mdf_name = self.mdf.name
         self.mdf.close()
         if self.file_name.suffix.lower() in (".dl3", ".erg"):
@@ -1975,3 +1984,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         set(),
                         entries=None,
                     )
+
+    def toggle_frame(self, event=None):
+        self._frameless_windows = not self._frameless_windows
+
+        for w in self.mdi_area.subWindowList():
+            if self._frameless_windows:
+                w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+            else:
+                w.setWindowFlags(w.windowFlags() & (~QtCore.Qt.FramelessWindowHint))
