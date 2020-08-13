@@ -24,7 +24,7 @@ OPS_TO_STR = {
 
 
 class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
-    def __init__(self, channels, all_timebase, *args, **kwargs):
+    def __init__(self, channels, all_timebase, name="", *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
@@ -42,7 +42,13 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
         self.operand1.addItems(sorted(self.channels))
         self.operand1.insertItem(0, "CONSTANT")
-        self.operand1.setCurrentIndex(-1)
+        if name:
+            try:
+                self.operand1.setCurrentText(name)
+            except:
+                self.operand1.setCurrentIndex(-1)
+        else:
+            self.operand1.setCurrentIndex(-1)
 
         self.operand2.addItems(sorted(self.channels))
         self.operand2.insertItem(0, "CONSTANT")
@@ -103,7 +109,14 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         )
         self.function.setCurrentIndex(-1)
         self.channel.addItems(sorted(self.channels))
-        self.channel.setCurrentIndex(-1)
+
+        if name:
+            try:
+                self.channel.setCurrentText(name)
+            except:
+                self.channel.setCurrentIndex(-1)
+        else:
+            self.channel.setCurrentIndex(-1)
 
         self.apply_btn.clicked.connect(self.apply)
         self.cancel_btn.clicked.connect(self.cancel)

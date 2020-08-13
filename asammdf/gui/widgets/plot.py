@@ -776,6 +776,7 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.add_channels_request.connect(self.add_channels_request)
         self.channel_selection.set_time_offset.connect(self.plot.set_time_offset)
         self.channel_selection.show_properties.connect(self._show_properties)
+        self.channel_selection.insert_computation.connect(self.plot.insert_computation)
 
         self.keyboard_events = (
             set(
@@ -2120,16 +2121,7 @@ class _Plot(pg.PlotWidget):
                         self.cursor_moved.emit()
 
             elif key == QtCore.Qt.Key_Insert and modifier == QtCore.Qt.NoModifier:
-                dlg = DefineChannel(self.signals, self.all_timebase, self)
-                dlg.setModal(True)
-                dlg.exec_()
-                sig = dlg.result
-
-                if sig is not None:
-                    sig.uuid = uuid4()
-                    sig.mdf_uuid = uuid4()
-                    self.add_new_channels([sig], computed=True)
-                    self.computation_channel_inserted.emit()
+                self.insert_computation()
 
             else:
                 self.parent().keyPressEvent(event)
@@ -2486,3 +2478,15 @@ class _Plot(pg.PlotWidget):
         self._compute_all_timebase()
 
         self.xrange_changed_handle()
+
+    def insert_computation(self, name=""):
+        dlg = DefineChannel(self.signals, self.all_timebase, name, self)
+        dlg.setModal(True)
+        dlg.exec_()
+        sig = dlg.result
+
+        if sig is not None:
+            sig.uuid = uuid4()
+            sig.mdf_uuid = uuid4()
+            self.add_new_channels([sig], computed=True)
+            self.computation_channel_inserted.emit()

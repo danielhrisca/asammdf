@@ -15,6 +15,7 @@ class ListWidget(QtWidgets.QListWidget):
     items_rearranged = QtCore.pyqtSignal()
     add_channels_request = QtCore.pyqtSignal(list)
     show_properties = QtCore.pyqtSignal(object)
+    insert_computation = QtCore.pyqtSignal(str)
 
     def __init__(self, *args, **kwargs):
 
@@ -186,6 +187,8 @@ class ListWidget(QtWidgets.QListWidget):
         menu.addAction(self.tr("Relative time base shift"))
         menu.addAction(self.tr("Set time base start offset"))
         menu.addSeparator()
+        menu.addAction(self.tr("Insert computation using this channel"))
+        menu.addSeparator()
         menu.addAction(self.tr("Delete (Del)"))
         menu.addSeparator()
         menu.addAction(self.tr("File properties"))
@@ -325,6 +328,12 @@ class ListWidget(QtWidgets.QListWidget):
             if len(selected_items) == 1:
                 item = selected_items[0]
                 self.show_properties.emit(self.itemWidget(item).uuid)
+
+        elif action.text() == "Insert computation using this channel":
+            selected_items = self.selectedItems()
+            if len(selected_items) == 1:
+                item = selected_items[0]
+                self.insert_computation.emit(self.itemWidget(item)._name)
 
 
 class MinimalListWidget(QtWidgets.QListWidget):
