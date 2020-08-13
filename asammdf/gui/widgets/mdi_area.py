@@ -3,6 +3,7 @@ from datetime import datetime
 from functools import partial
 import json
 from traceback import format_exc
+from uuid import uuid4
 
 from natsort import natsorted
 import numpy as np
@@ -647,6 +648,7 @@ class WithMDIArea:
                 )
                 for name in sorted(required-found)
             ]
+            uuid = uuid4()
             for sig in not_found:
                 sig.mdf_uuid = uuid
                 sig.group_index = 0
@@ -857,6 +859,10 @@ class WithMDIArea:
                 )
                 for name in sorted(required-found)
             ]
+            uuid = uuid4()
+            for sig in not_found:
+                sig.mdf_uuid = uuid
+                sig.group_index = 0
 
             signals.extend(not_found)
 
@@ -881,6 +887,11 @@ class WithMDIArea:
             plot.hide()
 
             plot.add_new_channels(signals)
+            for i, sig in enumerate(not_found, len(found)):
+                item = plot.channel_selection.item(i)
+                widget = plot.channel_selection.itemWidget(item)
+                widget.does_not_exist()
+
             needs_update = False
             for channel, sig in zip(found_signals, plot.plot.signals):
                 if "mode" in channel:

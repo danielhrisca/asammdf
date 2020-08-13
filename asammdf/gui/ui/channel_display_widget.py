@@ -29,8 +29,8 @@ class Ui_ChannelDiplay(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.color_btn.sizePolicy().hasHeightForWidth())
         self.color_btn.setSizePolicy(sizePolicy)
-        self.color_btn.setMinimumSize(QtCore.QSize(13, 13))
-        self.color_btn.setMaximumSize(QtCore.QSize(13, 13))
+        self.color_btn.setMinimumSize(QtCore.QSize(16, 16))
+        self.color_btn.setMaximumSize(QtCore.QSize(16, 16))
         self.color_btn.setAutoFillBackground(False)
         self.color_btn.setText("")
         self.color_btn.setFlat(False)
@@ -69,7 +69,7 @@ class Ui_ChannelDiplay(object):
         self.horizontalLayout.setStretch(2, 1)
 
         self.retranslateUi(ChannelDiplay)
-#        QtCore.QMetaObject.connectSlotsByName(ChannelDiplay)
+        QtCore.QMetaObject.connectSlotsByName(ChannelDiplay)
 
     def retranslateUi(self, ChannelDiplay):
         _translate = QtCore.QCoreApplication.translate

@@ -242,3 +242,10 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         info["max"] = float(max_)
 
         return json.dumps(info)
+
+    def does_not_exist(self):
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/error.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.color_btn.setIcon(icon)
+        self.color_btn.setFlat(True)
+        self.color_btn.clicked.disconnect()
