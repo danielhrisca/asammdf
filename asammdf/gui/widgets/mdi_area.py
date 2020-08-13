@@ -10,6 +10,7 @@ import pandas as pd
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ...blocks import v4_constants as v4c
+from ...signal import Signal
 from ...blocks.utils import csv_bytearray2hex, extract_cncomment_xml, MdfException
 from ..dialogs.channel_info import ChannelInfoDialog
 from ..utils import (
@@ -602,9 +603,11 @@ class WithMDIArea:
     def load_window(self, window_info):
 
         uuid = self.uuid
+        geometry = window_info.get("geometry", None)
 
         if window_info["type"] == "Numeric":
             fmt = window_info["configuration"]["format"]
+            required = set(window_info["configuration"]["channels"])
 
             signals_ = [
                 (None, *self.mdf.whereis(name)[0])
@@ -635,6 +638,21 @@ class WithMDIArea:
 
             signals = natsorted(signals, key=lambda x: x.name)
 
+            found = set(sig.name for sig in signals)
+            not_found = [
+                Signal(
+                    [],
+                    [],
+                    name=name,
+                )
+                for name in sorted(required-found)
+            ]
+            for sig in not_found:
+                sig.mdf_uuid = uuid
+                sig.group_index = 0
+
+            signals.extend(not_found)
+
             numeric = Numeric(signals)
 
             if not self.subplots:
@@ -645,11 +663,11 @@ class WithMDIArea:
                 w.showMaximized()
             else:
                 w = self.mdi_area.addSubWindow(numeric)
+                w.show()
 
-                if len(self.mdi_area.subWindowList()) == 1:
-                    w.showMaximized()
+                if geometry:
+                    w.setGeometry(*geometry)
                 else:
-                    w.show()
                     self.mdi_area.tileSubWindows()
 
             if window_info["title"]:
@@ -681,6 +699,7 @@ class WithMDIArea:
             )
 
         elif window_info["type"] == "Plot":
+            required = set(e["name"] for e in window_info["configuration"]["channels"])
 
             found_signals = [
                 channel
@@ -829,6 +848,18 @@ class WithMDIArea:
                 events = []
                 origin = self.files.widget(0).mdf.start_time
 
+            found = set(sig.name for sig in signals)
+            not_found = [
+                Signal(
+                    [],
+                    [],
+                    name=name,
+                )
+                for name in sorted(required-found)
+            ]
+
+            signals.extend(not_found)
+
             plot = Plot([], self.with_dots, events=events, origin=origin)
 
             if not self.subplots:
@@ -840,10 +871,11 @@ class WithMDIArea:
             else:
                 w = self.mdi_area.addSubWindow(plot)
 
-                if len(self.mdi_area.subWindowList()) == 1:
-                    w.showMaximized()
+                w.show()
+
+                if geometry:
+                    w.setGeometry(*geometry)
                 else:
-                    w.show()
                     self.mdi_area.tileSubWindows()
 
             plot.hide()
@@ -915,6 +947,7 @@ class WithMDIArea:
             self.set_subplots_link(self.subplots_link)
 
         elif window_info["type"] == "Tabular":
+            required = set(window_info["configuration"]["channels"])
 
             signals_ = [
                 (None, *self.mdf.whereis(name)[0])
@@ -930,6 +963,14 @@ class WithMDIArea:
                 ignore_value2text_conversions=self.ignore_value2text_conversions,
             )
 
+            found = set(signals.columns)
+            dim = len(signals.index)
+
+            for name in sorted(required-found):
+                vals = np.empty(dim)
+                vals.fill(np.NaN)
+                signals[name] = pd.Series(vals, index=signals.index)
+
             tabular = Tabular(signals, start=self.mdf.header.start_time.timestamp())
 
             if not self.subplots:
@@ -941,10 +982,11 @@ class WithMDIArea:
             else:
                 w = self.mdi_area.addSubWindow(tabular)
 
-                if len(self.mdi_area.subWindowList()) == 1:
-                    w.showMaximized()
+                w.show()
+
+                if geometry:
+                    w.setGeometry(*geometry)
                 else:
-                    w.show()
                     self.mdi_area.tileSubWindows()
 
             if window_info["title"]:

@@ -822,9 +822,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         windows = []
         for window in self.mdi_area.subWindowList():
             wid = window.widget()
+            geometry = window.geometry()
             window_config = {
                 "title": window.windowTitle(),
                 "configuration": wid.to_config(),
+                "geometry": [geometry.x(), geometry.y(), geometry.width(), geometry.height()],
             }
             if isinstance(wid, Numeric):
                 window_config["type"] = "Numeric"
@@ -1136,6 +1138,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 iterator += 1
 
     def close(self):
+        for window in self.mdi_area.subWindowList():
+            print(window.windowTitle(), window.geometry())
         mdf_name = self.mdf.name
         self.mdf.close()
         if self.file_name.suffix.lower() in (".dl3", ".erg"):
