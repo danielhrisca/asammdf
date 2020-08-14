@@ -47,6 +47,7 @@ from .tree_item import TreeItem
 class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
     open_new_file = QtCore.pyqtSignal(str)
+    full_screen_toggled = QtCore.pyqtSignal()
 
     def __init__(
         self,
@@ -1916,6 +1917,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if key == QtCore.Qt.Key_F and modifier == QtCore.Qt.ControlModifier:
             self.search()
+        elif key == QtCore.Qt.Key_F8:
+            self.full_screen_toggled.emit()
         else:
             super().keyPressEvent(event)
 

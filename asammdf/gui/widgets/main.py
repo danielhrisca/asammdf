@@ -219,6 +219,12 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/fit.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        fullscreen = QtWidgets.QAction(icon, f"{'Fullscreen': <20}\tF8", menu)
+        fullscreen.triggered.connect(self.toggle_fullscreen)
+        fullscreen.setShortcut(QtCore.Qt.Key_F8)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/fit.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtWidgets.QAction(icon, f"{'Fit trace': <20}\tF", menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_F))
         action.setShortcut(QtCore.Qt.Key_F)
@@ -481,6 +487,8 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         cursors_actions.addAction(action)
 
         self.plot_menu = QtWidgets.QMenu("Plot", self.menubar)
+        self.plot_menu.addAction(fullscreen)
+        self.plot_menu.addSeparator()
         self.plot_menu.addActions(plot_actions.actions())
         self.plot_menu.addSeparator()
         self.plot_menu.addActions(cursors_actions.actions())
@@ -514,6 +522,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.setAcceptDrops(True)
 
         self.show()
+        self.fullscreen = None
 
     def help(self, event):
         webbrowser.open_new(r"http://asammdf.readthedocs.io/en/master/gui.html")
@@ -844,6 +853,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             self.files.setTabToolTip(index, str(file_name))
             self.files.setCurrentIndex(index)
             widget.open_new_file.connect(self._open_file)
+            widget.full_screen_toggled.connect(self.toggle_fullscreen)
 
     def open_file(self, event):
         file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
@@ -991,6 +1001,9 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                         ]
                         self.add_window((ret, names))
 
+        elif key == QtCore.Qt.Key_F8:
+            self.toggle_fullscreen()
+
         else:
             super().keyPressEvent(event)
 
@@ -1011,3 +1024,21 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         QtWidgets.QMessageBox.information(
             self, "Measurement files used for comparison", "\n".join(info),
         )
+
+    def toggle_fullscreen(self):
+        if self.files.count() > 0 or self.fullscreen is not None:
+            if self.fullscreen is None:
+                index = self.files.currentIndex()
+                widget = self.files.widget(index)
+                if widget:
+                    widget.setParent(None)
+                    widget.showFullScreen()
+                    self.fullscreen = widget, index
+            else:
+                widget, index = self.fullscreen
+                file_name = str(Path(widget.mdf.name).name)
+                self.files.insertTab(index, widget, file_name)
+                self.files.setTabToolTip(index, str(widget.mdf.name))
+                self.files.setCurrentIndex(index)
+                self.fullscreen = None
+                self.activateWindow()

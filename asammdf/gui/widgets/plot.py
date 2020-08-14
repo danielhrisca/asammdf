@@ -1329,6 +1329,18 @@ class Plot(QtWidgets.QWidget):
 
         channels = self.plot.add_new_channels(channels)
 
+        count = self.channel_selection.count()
+        if count:
+            for i in range(count):
+                wid = self.channel_selection.itemWidget(self.channel_selection.item(i))
+                if wid.ylink.checkState() == QtCore.Qt.Unchecked:
+                    enforce_y_axis = False
+                    break
+            else:
+                enforce_y_axis = True
+        else:
+            enforce_y_axis = False
+
         for sig in channels:
 
             item = ListItem(
@@ -1357,6 +1369,8 @@ class Plot(QtWidgets.QWidget):
             it.color_changed.connect(self.plot.set_color)
             it.enable_changed.connect(self.plot.set_signal_enable)
             it.ylink_changed.connect(self.plot.set_common_axis)
+            if enforce_y_axis:
+                it.ylink.setCheckState(QtCore.Qt.Checked)
             it.individual_axis_changed.connect(self.plot.set_individual_axis)
 
             self.info_uuid = sig.uuid
