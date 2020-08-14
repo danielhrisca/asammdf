@@ -276,6 +276,27 @@ def from_dict(conversion):
             conversion["conversion_type"] = v4c.CONVERSION_TYPE_TAB
         conversion = v4b.ChannelConversion(**conversion)
 
+    elif "mask_0" in conversion and "text_0" in conversion:
+        conversion["conversion_type"] = v4c.CONVERSION_TYPE_BITFIELD
+        nr = 0
+        while f"text_{nr}" in conversion:
+            val = conversion[f"text_{nr}"]
+            if not isinstance(conversion[f"text_{nr}"], (bytes, str)):
+                partial_conversion = {
+                    "conversion_type": v4c.CONCONVERSION_TYPE_RTABX,
+                    "upper_0": conversion[f"upper_{nr}"],
+                    "lower_0": conversion[f"lower_{nr}"],
+                    "text_0": conversion[f"text_{nr}"] if isinstance(conversion[f"text_{nr}"], bytes) else conversion[f"text_{nr}"].encode('utf-8'),
+                    "default": b'',
+                }
+                conversion[f"text_{nr}"] = from_dict(partial_conversion)
+
+            nr += 1
+
+        conversion["ref_param_nr"] = nr
+        conversion["val_param_nr"] = nr
+        conversion = v4b.ChannelConversion(**conversion)
+
     elif "upper_0" in conversion and "phys_0" in conversion:
         conversion["conversion_type"] = v4c.CONVERSION_TYPE_RTAB
         nr = 0
@@ -305,27 +326,6 @@ def from_dict(conversion):
                 conversion[f"text_{nr}"] = val.encode('utf-8')
             nr += 1
         conversion["ref_param_nr"] = nr + 1
-        conversion = v4b.ChannelConversion(**conversion)
-
-    elif "mask_0" in conversion and "text_0" in conversion:
-        conversion["conversion_type"] = v4c.CONVERSION_TYPE_BITFIELD
-        nr = 0
-        while f"text_{nr}" in conversion:
-            val = conversion[f"text_{nr}"]
-            if not isinstance(conversion[f"text_{nr}"], (bytes, str)):
-                partial_conversion = {
-                    "conversion_type": v4c.CONCONVERSION_TYPE_RTABX,
-                    "upper_0": conversion[f"upper_{nr}"],
-                    "lower_0": conversion[f"lower_{nr}"],
-                    "text_0": conversion[f"text_{nr}"] if isinstance(conversion[f"text_{nr}"], bytes) else conversion[f"text_{nr}"].encode('utf-8'),
-                    "default": b'',
-                }
-                conversion[f"text_{nr}"] = from_dict(partial_conversion)
-
-            nr += 1
-
-        conversion["ref_param_nr"] = nr
-        conversion["val_param_nr"] = nr
         conversion = v4b.ChannelConversion(**conversion)
 
     else:
