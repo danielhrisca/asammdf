@@ -3757,7 +3757,7 @@ formula: {self.formula}
                 "comment_addr",
                 "inv_conv_addr",
             )
-            keys += tuple(f"text_{i}" for i in range(self.links_nr - 4))
+            keys += tuple(f"text_{i}" for i in range(self.val_param_nr))
             keys += (
                 "conversion_type",
                 "precision",
