@@ -3315,13 +3315,16 @@ class ChannelConversion(_ChannelConversionBase):
                         continue
 
                     if isinstance(conv, bytes):
-                        new_val.append(conv)
+                        if conv:
+                            new_val.append(conv)
                     else:
                         prefix, conv = conv
-                        if prefix:
-                            new_val.append(prefix + conv.convert([on]))
-                        else:
-                            new_val.append(conv.convert([on]))
+                        converted_val = conv.convert([on])
+                        if converted_val:
+                            if prefix:
+                                new_val.append(prefix + converted_val)
+                            else:
+                                new_val.append(converted_val)
 
                 new_values.append("|".join(new_val))
 
