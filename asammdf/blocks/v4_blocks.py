@@ -2419,6 +2419,36 @@ class ChannelConversion(_ChannelConversionBase):
                     self.max_phy_value,
                 ) = unpack_from("<2B3H2d", block, 32 + links_nr * 8)
 
+            elif conv == v4c.CONVERSION_TYPE_BITFIELD:
+                (
+                    self.name_addr,
+                    self.unit_addr,
+                    self.comment_addr,
+                    self.inv_conv_addr,
+                ) = unpack_from("<4Q", block)
+
+                links_nr = self.links_nr - 4
+
+                links = unpack_from(f"<{links_nr}Q", block, 32)
+                for i, link in enumerate(links):
+                    self[f"text_{i}"] = link
+
+                (
+                    self.conversion_type,
+                    self.precision,
+                    self.flags,
+                    self.ref_param_nr,
+                    self.val_param_nr,
+                    self.min_phy_value,
+                    self.max_phy_value,
+                ) = unpack_from("<2B3H2d", block, 32 + links_nr * 8)
+
+                values = unpack_from(
+                    f"<{self.val_param_nr}Q", block, 32 + links_nr * 8 + 24
+                )
+                for i, val in enumerate(values[:-1]):
+                    self[f"mask_{i}"] = val
+
             self.referenced_blocks = None
 
             tx_map = kwargs.get("tx_map", {})
@@ -2455,7 +2485,7 @@ class ChannelConversion(_ChannelConversionBase):
 
                 if conv_type in v4c.TABULAR_CONVERSIONS:
                     refs = self.referenced_blocks = {}
-                    if conv_type == v4c.CONVERSION_TYPE_TTAB:
+                    if conv_type in (v4c.CONVERSION_TYPE_TTAB, v4c.CONVERSION_TYPE_BITFIELD):
                         tabs = self.links_nr - 4
                     else:
                         tabs = self.links_nr - 4 - 1
@@ -2502,7 +2532,7 @@ class ChannelConversion(_ChannelConversionBase):
                                 txt = tx_map[address] or b""
                                 if not isinstance(txt, bytes):
                                     txt = txt.encode("utf-8")
-                                refs[f"default_addr"] = txt
+                                refs["default_addr"] = txt
                             else:
                                 stream.seek(address)
                                 _id = stream.read(4)
@@ -2787,6 +2817,30 @@ class ChannelConversion(_ChannelConversionBase):
                 for i in range(kwargs["links_nr"] - 4):
                     self[f"val_{i}"] = kwargs[f"val_{i}"]
                 self.val_default = kwargs["val_default"]
+
+            elif kwargs["conversion_type"] == v4c.CONVERSION_TYPE_BITFIELD:
+                self.referenced_blocks = {}
+                nr = kwargs["val_param_nr"]
+                self.block_len = (nr * 8 * 2) + 80
+                self.links_nr = nr + 4
+                self.name_addr = kwargs.get("name_addr", 0)
+                self.unit_addr = kwargs.get("unit_addr", 0)
+                self.comment_addr = kwargs.get("comment_addr", 0)
+                self.inv_conv_addr = kwargs.get("inv_conv_addr", 0)
+                for i in range(nr):
+                    key = f"text_{i}"
+                    self[key] = 0
+                    self.referenced_blocks[key] = kwargs[key]
+
+                self.conversion_type = v4c.CONVERSION_TYPE_BITFIELD
+                self.precision = kwargs.get("precision", 0)
+                self.flags = kwargs.get("flags", 0)
+                self.ref_param_nr = nr
+                self.val_param_nr = nr
+                self.min_phy_value = kwargs.get("min_phy_value", 0)
+                self.max_phy_value = kwargs.get("max_phy_value", 0)
+                for i in range(nr):
+                    self[f"mask_{i}"] = kwargs[f"mask_{i}"]
 
             else:
                 message = "Conversion {} dynamic creation not implementated"
@@ -3238,6 +3292,41 @@ class ChannelConversion(_ChannelConversionBase):
 
             values = np.array(new_values)
 
+        elif conversion_type == v4c.CONVERSION_TYPE_BITFIELD:
+            nr = self.val_param_nr
+
+            phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
+            masks = np.array([self[f"mask_{i}"] for i in range(nr)])
+
+            phys = [
+                conv if isinstance(conv, bytes) else (
+                    (f'{conv.name}='.encode('utf-8'), conv) if conv.name else (b"", conv)
+                )
+                for conv in phys
+            ]
+
+            new_values = []
+            for val in values:
+                new_val = []
+                masked_values = (masks & val).tolist()
+
+                for on, conv in zip(masked_values, phys):
+                    if not on:
+                        continue
+
+                    if isinstance(conv, bytes):
+                        new_val.append(conv)
+                    else:
+                        prefix, conv = conv
+                        if prefix:
+                            new_val.append(prefix + conv.convert([on]))
+                        else:
+                            new_val.append(conv.convert([on]))
+
+                new_values.append("|".join(new_val))
+
+            values = np.array(new_values)
+
         return values
 
     def metadata(self, indent=""):
@@ -3355,6 +3444,30 @@ class ChannelConversion(_ChannelConversionBase):
                 "max_phy_value",
             )
             keys += tuple(f"val_{i}" for i in range(self.val_param_nr - 1))
+
+        elif self.conversion_type == v4c.CONVERSION_TYPE_BITFIELD:
+            keys = (
+                "id",
+                "reserved0",
+                "block_len",
+                "links_nr",
+                "name_addr",
+                "unit_addr",
+                "comment_addr",
+                "inv_conv_addr",
+            )
+            keys += tuple(f"text_{i}" for i in range(self.links_nr - 4))
+            keys += (
+                "conversion_type",
+                "precision",
+                "flags",
+                "ref_param_nr",
+                "val_param_nr",
+                "min_phy_value",
+                "max_phy_value",
+            )
+            keys += tuple(f"mask_{i}" for i in range(self.val_param_nr))
+
         max_len = max(len(key) for key in keys)
         template = f"{{: <{max_len}}}: {{}}"
 
@@ -3628,6 +3741,32 @@ formula: {self.formula}
             keys += tuple(f"val_{i}" for i in range(self.val_param_nr - 1))
 
             result = pack(fmt, *[getattr(self, key) for key in keys])
+
+        elif self.conversion_type == v4c.CONVERSION_TYPE_BITFIELD:
+            fmt = "<4sI{}Q2B3H{}Q".format(self.links_nr + 2, self.val_param_nr)
+            keys = (
+                "id",
+                "reserved0",
+                "block_len",
+                "links_nr",
+                "name_addr",
+                "unit_addr",
+                "comment_addr",
+                "inv_conv_addr",
+            )
+            keys += tuple(f"text_{i}" for i in range(self.links_nr - 4))
+            keys += (
+                "conversion_type",
+                "precision",
+                "flags",
+                "ref_param_nr",
+                "val_param_nr",
+                "min_phy_value",
+                "max_phy_value",
+            )
+            keys += tuple(f"mask_{i}" for i in range(self.val_param_nr))
+            result = pack(fmt, *[getattr(self, key) for key in keys])
+
         return result
 
     def __str__(self):
