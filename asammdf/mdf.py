@@ -3288,7 +3288,7 @@ class MDF(object):
             .. versionadded:: 5.11.0
 
         only_basenames (False) : bool
-            use jsut the field names, without prefix, for structures and channel
+            use just the field names, without prefix, for structures and channel
             arrays
 
             .. versionadded:: 5.13.0
