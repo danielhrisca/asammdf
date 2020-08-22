@@ -29,9 +29,10 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         self.setupUi(self)
         for sig in signals:
             sig.timestamps = np.around(sig.timestamps, 9)
-        self.signals = {sig.name: sig for sig in signals}
+        self.signals = {}
         self._min = self._max = 0
         self.format = "phys"
+        self.add_new_channels(signals)
 
         self.timestamp.valueChanged.connect(self._timestamp_changed)
         self.timestamp_slider.valueChanged.connect(self._timestamp_slider_changed)
@@ -60,6 +61,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         self._min = float("inf")
         self._max = -float("inf")
         items = []
+
         for sig in self.signals.values():
             sig.kind = sig.samples.dtype.kind
             size = len(sig)
@@ -197,9 +199,18 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         self.channels.sortByColumn(index, order)
 
     def add_new_channels(self, channels):
+        invalid = []
         for sig in channels:
             if sig:
+                if np.any(np.diff(sig.timestamps) < 0):
+                    invalid.append(sig.name)
                 self.signals[sig.name] = sig
+        if invalid:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "The following channels do not have monotonous increasing time stamps:",
+                f"The following channels do not have monotonous increasing time stamps:\n{', '.join(invalid)}",
+            )
         self.build()
 
     def keyPressEvent(self, event):
