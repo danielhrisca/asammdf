@@ -524,7 +524,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         # self.channels_tree.itemChanged.connect(self.select)
         self.create_window_btn.clicked.connect(self._create_window)
-        self.toggle_frame_btn.clicked.connect(self.toggle_frame)
+        self.toggle_frame_btn.clicked.connect(self.toggle_frames)
 
         self.clear_filter_btn.clicked.connect(self.clear_filter)
         self.clear_channels_btn.clicked.connect(self.clear_channels)
@@ -2056,7 +2056,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         entries=None,
                     )
 
-    def toggle_frame(self, event=None):
+    def toggle_frames(self, event=None):
         self._frameless_windows = not self._frameless_windows
 
         for w in self.mdi_area.subWindowList():

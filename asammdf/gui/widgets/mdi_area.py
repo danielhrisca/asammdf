@@ -873,7 +873,7 @@ class WithMDIArea:
 
             signals.extend(not_found)
 
-            plot = Plot([], self.with_dots, events=events, origin=origin)
+            plot = Plot([], with_dots=self.with_dots, events=events, origin=origin)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
@@ -963,6 +963,9 @@ class WithMDIArea:
                 )
 
             self.set_subplots_link(self.subplots_link)
+
+            plot.splitter.setContentsMargins(1, 1, 1, 1)
+            plot.setContentsMargins(1, 1, 1, 1)
 
         elif window_info["type"] == "Tabular":
             required = set(window_info["configuration"]["channels"])
@@ -1068,9 +1071,6 @@ class WithMDIArea:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
 
         w.layout().setSpacing(1)
-        plot.splitter.setContentsMargins(1, 1, 1, 1)
-        plot.setContentsMargins(1, 1, 1, 1)
-
 
     def set_line_style(self, with_dots=None):
         if with_dots is None:

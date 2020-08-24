@@ -95,14 +95,31 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         open_group = QtWidgets.QActionGroup(self)
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/open.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+
         action = QtWidgets.QAction(icon, "Open", menu)
         action.triggered.connect(self.open)
         action.setShortcut(QtGui.QKeySequence("Ctrl+O"))
         open_group.addAction(action)
-        menu.addActions(open_group.actions())
+
         action = QtWidgets.QAction(icon, "Open folder", menu)
         action.triggered.connect(self.open_folder)
         open_group.addAction(action)
+
+        menu.addActions(open_group.actions())
+
+        menu.addSeparator()
+
+        open_group = QtWidgets.QActionGroup(self)
+        action = QtWidgets.QAction(icon, "Open configuration", menu)
+        action.triggered.connect(self.open_configuration)
+        open_group.addAction(action)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtWidgets.QAction(icon, "Save configuration", menu)
+        action.triggered.connect(self.save_configuration)
+        open_group.addAction(action)
+
         menu.addActions(open_group.actions())
 
         # mode_actions
@@ -409,6 +426,13 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             partial(self.show_sub_windows, mode="tile horizontally")
         )
         action.setShortcut(QtGui.QKeySequence("Shift+H"))
+        subs.addAction(action)
+
+        action = QtWidgets.QAction(
+            "{: <20}\tShift+F".format("Toggle sub-plots frames"), menu
+        )
+        action.triggered.connect(self.toggle_frames)
+        action.setShortcut(QtGui.QKeySequence("Shift+F"))
         subs.addAction(action)
 
         # cursors
@@ -1050,3 +1074,22 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
                 for i in range(count):
                     self.files.widget(i).set_line_style(with_dots=self.with_dots)
+
+    def toggle_frames(self, event=None):
+        count = self.files.count()
+
+        for i in range(count):
+            self.files.widget(i).toggle_frames()
+
+    def open_configuration(self, event=None):
+        if self.stackedWidget.currentIndex() == 0:
+            widget = self.files.currentWidget()
+            if widget:
+                widget.load_channel_list()
+
+    def save_configuration(self, event=None):
+        if self.stackedWidget.currentIndex() == 0:
+            widget = self.files.currentWidget()
+            if widget:
+                widget.save_channel_list()
+
