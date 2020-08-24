@@ -435,6 +435,13 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action.setShortcut(QtGui.QKeySequence("Shift+F"))
         subs.addAction(action)
 
+        action = QtWidgets.QAction(
+            "{: <20}\tShift+L".format("Toggle channel list"), menu
+        )
+        action.triggered.connect(self.toggle_channels_list)
+        action.setShortcut(QtGui.QKeySequence("Shift+L"))
+        subs.addAction(action)
+
         # cursors
         cursors_actions = QtWidgets.QActionGroup(self)
 
@@ -1080,6 +1087,13 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         for i in range(count):
             self.files.widget(i).toggle_frames()
+
+    def toggle_channels_list(self, event=None):
+        if self.stackedWidget.currentIndex() == 0:
+            widget = self.files.currentWidget()
+            event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_L, QtCore.Qt.ShiftModifier)
+            if widget:
+                widget.keyPressEvent(event)
 
     def open_configuration(self, event=None):
         if self.stackedWidget.currentIndex() == 0:

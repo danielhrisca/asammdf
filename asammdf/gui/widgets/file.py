@@ -172,10 +172,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         progress.setValue(37)
 
-        splitter = QtWidgets.QSplitter(self)
-        splitter.setOrientation(QtCore.Qt.Vertical)
-
-        channel_and_search = QtWidgets.QWidget(splitter)
+        channel_and_search = QtWidgets.QWidget(self.splitter)
 
         self.channel_view = QtWidgets.QComboBox()
         self.channel_view.addItems(["Natural sort", "Internal file structure"])
@@ -291,7 +288,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.channels_tree.itemDoubleClicked.connect(self.show_info)
         self.filter_tree.itemDoubleClicked.connect(self.show_info)
 
-        self.channels_layout.insertWidget(0, splitter)
+        self.channels_layout.insertWidget(0, channel_and_search)
         self.filter_layout.addWidget(self.filter_tree, 1, 0, 8, 1)
 
         groups_nr = len(self.mdf.groups)
@@ -611,6 +608,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 item.setSizeHint(att.sizeHint())
                 self.attachments.addItem(item)
                 self.attachments.setItemWidget(item, att)
+
+        self._splitter_sizes = None
 
     def set_raster_type(self, event):
         if self.raster_type_channel.isChecked():
@@ -1986,6 +1985,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         elif key == QtCore.Qt.Key_F and modifier == QtCore.Qt.ShiftModifier:
             self.toggle_frames()
+
+        elif key == QtCore.Qt.Key_L and modifier == QtCore.Qt.ShiftModifier:
+            sizes = self.splitter.sizes()
+            if sizes[0]:
+                self._splitter_sizes = sizes
+                self.splitter.setSizes([0, sum(sizes)])
+            else:
+                self.splitter.setSizes(self._splitter_sizes)
 
         elif key == QtCore.Qt.Key_Period and modifier == QtCore.Qt.NoModifier:
             self.set_line_style()
