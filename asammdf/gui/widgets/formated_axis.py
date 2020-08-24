@@ -100,3 +100,11 @@ class FormatedAxis(pg.AxisItem):
         self._adjustSize()
         self.picture = None
         self.update()
+
+    def mouseDragEvent(self, event):
+        if self.linkedView() is None:
+            return
+        if self.orientation in ['left', 'right']:
+            return self.linkedView().mouseDragEvent(event)
+        else:
+            return self.linkedView().mouseDragEvent(event)
