@@ -1437,6 +1437,50 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         )
 
         if file_name:
+            if export_type == "hdf5":
+                try:
+                    from h5py import File as HDF5
+                except ImportError:
+                    QtWidgets.QMessageBox.critical(
+                        self,
+                        "Export to HDF5 unavailale",
+                        "h5py package not found; export to HDF5 is unavailable"
+                    )
+                    return
+
+            elif export_type == "mat":
+                if mat_format == "7.3":
+                    try:
+                        from hdf5storage import savemat
+                    except ImportError:
+                        QtWidgets.QMessageBox.critical(
+                            self,
+                            "Export to mat unavailale",
+                            "hdf5storage package not found; export to mat 7.3 is unavailable"
+                        )
+                        return
+                else:
+                    try:
+                        from scipy.io import savemat
+                    except ImportError:
+                        QtWidgets.QMessageBox.critical(
+                            self,
+                            "Export to mat unavailale",
+                            "scipy package not found; export to mat is unavailable"
+                        )
+                        return
+
+            elif export_type == "parquet":
+                try:
+                    from fastparquet import write as write_parquet
+                except ImportError:
+                    QtWidgets.QMessageBox.critical(
+                        self,
+                        "Export to parquet unavailale",
+                        "fastparquet package not found; export to parquet is unavailable"
+                    )
+                    return
+
             progress = setup_progress(
                 parent=self,
                 title="Export measurement",
@@ -1917,8 +1961,32 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if key == QtCore.Qt.Key_F and modifier == QtCore.Qt.ControlModifier:
             self.search()
+
         elif key == QtCore.Qt.Key_F8:
             self.full_screen_toggled.emit()
+
+        elif key in (QtCore.Qt.Key_V, QtCore.Qt.Key_H, QtCore.Qt.Key_C, QtCore.Qt.Key_T) and modifier == QtCore.Qt.ShiftModifier:
+            if key == QtCore.Qt.Key_V:
+                mode = "tile vertically"
+            elif key == QtCore.Qt.Key_H:
+                mode = "tile horizontally"
+            elif key == QtCore.Qt.Key_C:
+                mode = "cascade"
+            elif key == QtCore.Qt.Key_T:
+                mode = "tile"
+
+            if mode == "tile":
+                self.mdi_area.tileSubWindows()
+            elif mode == "cascade":
+                self.mdi_area.cascadeSubWindows()
+            elif mode == "tile vertically":
+                self.mdi_area.tile_vertically()
+            elif mode == "tile horizontally":
+                self.mdi_area.tile_horizontally()
+
+        elif key == QtCore.Qt.Key_Period and modifier == QtCore.Qt.NoModifier:
+            self.set_line_style()
+
         else:
             super().keyPressEvent(event)
 

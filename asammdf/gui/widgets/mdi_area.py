@@ -1073,13 +1073,14 @@ class WithMDIArea:
 
 
     def set_line_style(self, with_dots=None):
-        if with_dots is not None:
+        if with_dots is None:
+            with_dots = not self.with_dots
 
-            self.with_dots = with_dots
+        self.with_dots = with_dots
 
-            current_plot = self.get_current_plot()
-            if current_plot:
-                current_plot.plot.update_lines(with_dots=with_dots)
+        current_plot = self.get_current_plot()
+        if current_plot:
+            current_plot.plot.update_lines(with_dots=with_dots)
 
     def set_subplots(self, option):
         self.subplots = option

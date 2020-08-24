@@ -272,7 +272,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         plot_actions.addAction(action)
 
         action = QtWidgets.QAction("{: <20}\t.".format("Toggle dots"), menu)
-        action.triggered.connect(partial(self.toggle_dots, key=QtCore.Qt.Key_O))
+        action.triggered.connect(partial(self.toggle_dots, key=QtCore.Qt.Key_Period))
         action.setShortcut(QtCore.Qt.Key_Period)
         plot_actions.addAction(action)
 
@@ -1042,3 +1042,11 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 self.files.setCurrentIndex(index)
                 self.fullscreen = None
                 self.activateWindow()
+
+                self.with_dots = widget.with_dots
+                self._settings.setValue("dots", self.with_dots)
+
+                count = self.files.count()
+
+                for i in range(count):
+                    self.files.widget(i).set_line_style(with_dots=self.with_dots)

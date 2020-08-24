@@ -1717,6 +1717,10 @@ class _Plot(pg.PlotWidget):
             self.curves[index].setSymbolPen(color)
             self.curves[index].setSymbolBrush(color)
 
+            if self.signals[index].individual_axis:
+                self.axes[index].setPen(color)
+                self.axes[index].setTextPen(color)
+
         if uuid == self.current_uuid:
             self.y_axis.setPen(color)
             self.y_axis.setTextPen(color)

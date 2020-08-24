@@ -3746,7 +3746,7 @@ formula: {self.formula}
             result = pack(fmt, *[getattr(self, key) for key in keys])
 
         elif self.conversion_type == v4c.CONVERSION_TYPE_BITFIELD:
-            fmt = "<4sI{}Q2B3H{}Q".format(self.links_nr + 2, self.val_param_nr)
+            fmt = "<4sI{}Q2B3H2d{}Q".format(self.links_nr+2, self.val_param_nr)
             keys = (
                 "id",
                 "reserved0",

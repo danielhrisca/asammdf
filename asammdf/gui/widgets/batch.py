@@ -481,10 +481,55 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         if export_type == "csv":
             suffix = ".csv"
         elif export_type == "hdf5":
+            try:
+                from h5py import File as HDF5
+            except ImportError:
+                progress.cancel()
+                QtWidgets.QMessageBox.critical(
+                    self,
+                    "Export to HDF5 unavailale",
+                    "h5py package not found; export to HDF5 is unavailable"
+                )
+                return
+
             suffix = ".hdf"
         elif export_type == "mat":
+            if mat_format == "7.3":
+                try:
+                    from hdf5storage import savemat
+                except ImportError:
+                    progress.cancel()
+                    QtWidgets.QMessageBox.critical(
+                        self,
+                        "Export to mat unavailale",
+                        "hdf5storage package not found; export to mat 7.3 is unavailable"
+                    )
+                    return
+            else:
+                try:
+                    from scipy.io import savemat
+                except ImportError:
+                    progress.cancel()
+                    QtWidgets.QMessageBox.critical(
+                        self,
+                        "Export to mat unavailale",
+                        "scipy package not found; export to mat is unavailable"
+                    )
+                    return
+
             suffix = ".mat"
         elif export_type == "parquet":
+            try:
+                from fastparquet import write as write_parquet
+            except ImportError:
+                progress.cancel()
+                QtWidgets.QMessageBox.critical(
+                    self,
+                    "Export to parquet unavailale",
+                    "fastparquet package not found; export to parquet is unavailable"
+                )
+                return
+
             suffix = ".parquet"
 
         for i, (file, source_file) in enumerate(zip(files, source_files)):
