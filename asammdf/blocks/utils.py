@@ -1107,6 +1107,7 @@ def components(
         values = channel[name]
         if len(values.shape) > 1:
             values = list(values)
+
         yield name_, Series(values, index=master)
 
         for name in names[1:]:
