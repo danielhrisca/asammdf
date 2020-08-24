@@ -1518,6 +1518,7 @@ class _Plot(pg.PlotWidget):
         self.plot_item = self.plotItem
         self.plot_item.hideAxis("left")
         self.plot_item.hideAxis("bottom")
+        self.plotItem.showGrid(x=False, y=False)
         self.layout = self.plot_item.layout
         self.scene_ = self.plot_item.scene()
         self.scene_.sigMouseClicked.connect(self._clicked)
@@ -1896,10 +1897,15 @@ class _Plot(pg.PlotWidget):
                     self.cursor_moved.emit()
 
             elif key == QtCore.Qt.Key_G and modifier == QtCore.Qt.NoModifier:
-                if self.plotItem.ctrl.yGridCheck.isChecked():
-                    self.showGrid(x=True, y=False)
+                y = self.plotItem.ctrl.yGridCheck.isChecked()
+                x = self.plotItem.ctrl.xGridCheck.isChecked()
+
+                if x and y:
+                    self.plotItem.showGrid(x=False, y=False)
+                elif x:
+                    self.plotItem.showGrid(x=True, y=True)
                 else:
-                    self.showGrid(x=True, y=True)
+                    self.plotItem.showGrid(x=True, y=False)
 
             elif (
                 key in (QtCore.Qt.Key_I, QtCore.Qt.Key_O)
