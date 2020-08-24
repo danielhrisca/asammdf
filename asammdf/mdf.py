@@ -3439,9 +3439,13 @@ class MDF(object):
 
                     channel_name = used_names.get_unique_name(channel_name)
 
-                    df[channel_name] = pd.Series(
-                        list(sig.samples), index=sig.timestamps,
-                    )
+                    try:
+                        df[channel_name] = pd.Series(
+                            list(sig.samples), index=sig.timestamps,
+                        )
+                    except ValueError:
+                        idx = np.argwhere(np.diff(sig.timestamps, prepend=-np.inf) > 0).flatten()
+                        df[channel_name] = pd.Series(list(sig.samples[idx]), index=sig.timestamps[idx])
 
                 # arrays and structures
                 elif sig.samples.dtype.names:
@@ -3467,6 +3471,11 @@ class MDF(object):
                         df[channel_name] = pd.Series(
                             sig.samples, index=sig.timestamps, dtype="category"
                         )
+                        try:
+                            df[channel_name] = pd.Series(sig.samples, index=sig.timestamps, dtype="category")
+                        except ValueError:
+                            idx = np.argwhere(np.diff(sig.timestamps, prepend=-np.inf) > 0).flatten()
+                            df[channel_name] = pd.Series(sig.samples[idx], index=sig.timestamps[idx], dtype="category")
 #                        unique = np.unique(sig.samples)
 #                        if len(sig.samples) / len(unique) >= 2:
 #                            df[channel_name] = pd.Series(
@@ -3479,7 +3488,11 @@ class MDF(object):
                     else:
                         if reduce_memory_usage:
                             sig.samples = downcast(sig.samples)
-                        df[channel_name] = pd.Series(sig.samples, index=sig.timestamps)
+                        try:
+                            df[channel_name] = pd.Series(sig.samples, index=sig.timestamps)
+                        except ValueError:
+                            idx = np.argwhere(np.diff(sig.timestamps, prepend=-np.inf) > 0).flatten()
+                            df[channel_name] = pd.Series(sig.samples[idx], index=sig.timestamps[idx])
 
             if self._callback:
                 self._callback(group_index + 1, groups_nr)
