@@ -1064,6 +1064,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 if widget:
                     widget.setParent(None)
                     widget.showFullScreen()
+                    widget.autofit_sub_plots()
                     self.fullscreen = widget, index
             else:
                 widget, index = self.fullscreen
@@ -1073,6 +1074,8 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 self.files.setCurrentIndex(index)
                 self.fullscreen = None
                 self.activateWindow()
+
+                widget.autofit_sub_plots()
 
                 self.with_dots = widget.with_dots
                 self._settings.setValue("dots", self.with_dots)

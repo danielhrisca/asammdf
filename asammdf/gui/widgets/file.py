@@ -2074,3 +2074,16 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
             else:
                 w.setWindowFlags(w.windowFlags() & (~QtCore.Qt.FramelessWindowHint))
+
+    def autofit_sub_plots(self):
+        geometries = []
+        for window in self.mdi_area.subWindowList():
+            geometry = window.geometry()
+            geometries.append(geometry)
+
+        if len(set((g.width(), g.x()) for g in geometries)) == 1:
+            self.mdi_area.tile_vertically()
+        elif len(set((g.height(), g.y()) for g in geometries)) == 1:
+            self.mdi_area.tile_horizontally()
+        else:
+            self.mdi_area.tileSubWindows()
