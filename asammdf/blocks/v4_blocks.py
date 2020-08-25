@@ -12,6 +12,7 @@ from textwrap import wrap
 import time
 import xml.etree.ElementTree as ET
 from zlib import compress, decompress
+from traceback import format_exc
 
 from numexpr import evaluate
 import numpy as np
@@ -606,18 +607,19 @@ class Channel:
 
                 address = self.conversion_addr
                 if address:
-                    if mapped:
-                        (size,) = UINT64_uf(stream, address + 8)
-                        raw_bytes = stream[address : address + size]
-                    else:
-                        stream.seek(address + 8)
-                        (size,) = UINT64_u(stream.read(8))
-                        stream.seek(address)
-                        raw_bytes = stream.read(size)
-                    if raw_bytes in cc_map:
-                        conv = cc_map[raw_bytes]
-                    else:
-                        try:
+                    try:
+                        if mapped:
+                            (size,) = UINT64_uf(stream, address + 8)
+                            raw_bytes = stream[address : address + size]
+                        else:
+                            stream.seek(address + 8)
+                            (size,) = UINT64_u(stream.read(8))
+                            stream.seek(address)
+                            raw_bytes = stream.read(size)
+                        if raw_bytes in cc_map:
+                            conv = cc_map[raw_bytes]
+                        else:
+
                             conv = ChannelConversion(
                                 raw_bytes=raw_bytes,
                                 stream=stream,
@@ -626,11 +628,11 @@ class Channel:
                                 tx_map=tx_map,
                             )
                             cc_map[raw_bytes] = conv
-                        except Exception as err:
-                            logger.warning(
-                                f"Channel conversion parsing error: {err}. The error is ignored and the channel conversion is None"
-                            )
-                            conv = None
+                    except:
+                        logger.warning(
+                            f"Channel conversion parsing error: {format_exc()}. The error is ignored and the channel conversion is None"
+                        )
+                        conv = None
 
                     self.conversion = conv
                 else:
@@ -638,22 +640,29 @@ class Channel:
 
                 address = self.source_addr
                 if address:
-                    if mapped:
-                        raw_bytes = stream[address : address + v4c.SI_BLOCK_SIZE]
-                    else:
-                        stream.seek(address)
-                        raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
-                    if raw_bytes in si_map:
-                        source = si_map[raw_bytes]
-                    else:
-                        source = SourceInformation(
-                            raw_bytes=raw_bytes,
-                            stream=stream,
-                            address=address,
-                            mapped=mapped,
-                            tx_map=tx_map,
+                    try:
+                        if mapped:
+                            raw_bytes = stream[address : address + v4c.SI_BLOCK_SIZE]
+                        else:
+                            stream.seek(address)
+                            raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
+                        if raw_bytes in si_map:
+                            source = si_map[raw_bytes]
+                        else:
+                            source = SourceInformation(
+                                raw_bytes=raw_bytes,
+                                stream=stream,
+                                address=address,
+                                mapped=mapped,
+                                tx_map=tx_map,
+                            )
+                            si_map[raw_bytes] = source
+                    except:
+                        logger.warning(
+                            f"Channel source parsing error: {format_exc()}. The error is ignored and the channel source is None"
                         )
-                        si_map[raw_bytes] = source
+                        conv = None
+
                     self.source = source
                 else:
                     self.source = None
@@ -796,14 +805,15 @@ class Channel:
 
                 address = self.conversion_addr
                 if address:
-                    stream.seek(address + 8)
-                    (size,) = UINT64_u(stream.read(8))
-                    stream.seek(address)
-                    raw_bytes = stream.read(size)
-                    if raw_bytes in cc_map:
-                        conv = cc_map[raw_bytes]
-                    else:
-                        try:
+                    try:
+                        stream.seek(address + 8)
+                        (size,) = UINT64_u(stream.read(8))
+                        stream.seek(address)
+                        raw_bytes = stream.read(size)
+                        if raw_bytes in cc_map:
+                            conv = cc_map[raw_bytes]
+                        else:
+
                             conv = ChannelConversion(
                                 raw_bytes=raw_bytes,
                                 stream=stream,
@@ -811,29 +821,37 @@ class Channel:
                                 tx_map=tx_map,
                             )
                             cc_map[raw_bytes] = conv
-                        except Exception as err:
-                            logger.warning(
-                                f"Channel conversion parsing error: {err}. The error is ignored and the channel conversion is None"
-                            )
-                            conv = None
+                    except:
+                        logger.warning(
+                            f"Channel conversion parsing error: {format_exc()}. The error is ignored and the channel conversion is None"
+                        )
+                        conv = None
+
                     self.conversion = conv
                 else:
                     self.conversion = None
 
                 address = self.source_addr
                 if address:
-                    stream.seek(address)
-                    raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
-                    if raw_bytes in si_map:
-                        source = si_map[raw_bytes]
-                    else:
-                        source = SourceInformation(
-                            raw_bytes=raw_bytes,
-                            stream=stream,
-                            address=address,
-                            tx_map=tx_map,
+                    try:
+                        stream.seek(address)
+                        raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
+                        if raw_bytes in si_map:
+                            source = si_map[raw_bytes]
+                        else:
+                            source = SourceInformation(
+                                raw_bytes=raw_bytes,
+                                stream=stream,
+                                address=address,
+                                tx_map=tx_map,
+                            )
+                            si_map[raw_bytes] = source
+                    except:
+                        logger.warning(
+                            f"Channel source parsing error: {format_exc()}. The error is ignored and the channel source is None"
                         )
-                        si_map[raw_bytes] = source
+                        conv = None
+
                     self.source = source
                 else:
                     self.source = None

@@ -779,7 +779,8 @@ class MDF3(object):
             self._callback(0, cg_count)
         current_cg_index = 0
 
-        # performance optimization
+        stream.seek(0, 2)
+        self.file_limit = stream.tell()
         stream.seek(0)
 
         dg_cntr = 0
@@ -800,6 +801,11 @@ class MDF3(object):
         dg_addr = self.header.first_dg_addr
         # read each data group sequentially
         while dg_addr:
+            if dg_addr > self.file_limit:
+                logger.warning(
+                    f"Data group address {dg_addr:X} is outside the file size {self.file_limit}"
+                )
+                break
             data_group = DataGroup(address=dg_addr, stream=stream, mapped=mapped)
             record_id_nr = data_group.record_id_len
             cg_nr = data_group.cg_nr
@@ -809,7 +815,13 @@ class MDF3(object):
             # read trigger information if available
             trigger_addr = data_group.trigger_addr
             if trigger_addr:
-                trigger = TriggerBlock(address=trigger_addr, stream=stream)
+                if trigger_addr > self.file_limit:
+                    logger.warning(
+                        f"Trigger address {trigger_addr:X} is outside the file size {self.file_limit}"
+                    )
+                    trigger = None
+                else:
+                    trigger = TriggerBlock(address=trigger_addr, stream=stream)
             else:
                 trigger = None
 
@@ -838,6 +850,11 @@ class MDF3(object):
                 grp.data_group = DataGroup(**kargs)
 
                 # read each channel group sequentially
+                if cg_addr > self.file_limit:
+                    logger.warning(
+                        f"Channel group address {cg_addr:X} is outside the file size {self.file_limit}"
+                    )
+                    break
                 grp.channel_group = ChannelGroup(address=cg_addr, stream=stream)
 
                 # go to first channel of the current channel group
@@ -846,6 +863,11 @@ class MDF3(object):
                 grp_chs = grp.channels
 
                 while ch_addr:
+                    if cg_addr > self.file_limit:
+                        logger.warning(
+                            f"Channel address {ch_addr:X} is outside the file size {self.file_limit}"
+                        )
+                        break
                     # read channel block and create channel object
                     new_ch = Channel(
                         address=ch_addr,

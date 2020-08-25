@@ -719,7 +719,7 @@ class MDF4(object):
                                     dep.input_quantity_channels.append(None)
 
                         if dep.flags & v4c.FLAG_CA_OUTPUT_QUANTITY:
-                            ch_addr = dep[f"output_quantity_ch_addr"]
+                            ch_addr = dep["output_quantity_ch_addr"]
                             if ch_addr:
                                 ref_channel = self._ch_map[ch_addr]
                                 dep.output_quantity_channel = ref_channel
@@ -727,7 +727,7 @@ class MDF4(object):
                                 dep.output_quantity_channel = None
 
                         if dep.flags & v4c.FLAG_CA_COMPARISON_QUANTITY:
-                            ch_addr = dep[f"comparison_quantity_ch_addr"]
+                            ch_addr = dep["comparison_quantity_ch_addr"]
                             if ch_addr:
                                 ref_channel = self._ch_map[ch_addr]
                                 dep.comparison_quantity_channel = ref_channel
@@ -857,6 +857,7 @@ class MDF4(object):
                 use_display_names=self._use_display_names,
                 mapped=mapped,
                 tx_map=self._interned_strings,
+                file_limit=self.file_limit,
             )
 
             if self._remove_source_from_channel_names:
