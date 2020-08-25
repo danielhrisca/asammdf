@@ -633,6 +633,7 @@ class Channel:
                             f"Channel conversion parsing error: {format_exc()}. The error is ignored and the channel conversion is None"
                         )
                         conv = None
+                        raise
 
                     self.conversion = conv
                 else:
@@ -2464,7 +2465,7 @@ class ChannelConversion(_ChannelConversionBase):
                 values = unpack_from(
                     f"<{self.val_param_nr}Q", block, 32 + links_nr * 8 + 24
                 )
-                for i, val in enumerate(values[:-1]):
+                for i, val in enumerate(values):
                     self[f"mask_{i}"] = val
 
             self.referenced_blocks = None
@@ -2543,7 +2544,7 @@ class ChannelConversion(_ChannelConversionBase):
 
                         else:
                             refs[f"text_{i}"] = b""
-                    if conv_type != v4c.CONVERSION_TYPE_TTAB:
+                    if conv_type not in  (v4c.CONVERSION_TYPE_TTAB, v4c.CONVERSION_TYPE_BITFIELD):
                         address = self.default_addr
                         if address:
                             if address in tx_map:
@@ -3314,7 +3315,7 @@ class ChannelConversion(_ChannelConversionBase):
             nr = self.val_param_nr
 
             phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
-            masks = np.array([self[f"mask_{i}"] for i in range(nr)])
+            masks = np.array([self[f"mask_{i}"] for i in range(nr)], dtype='u8')
 
             phys = [
                 conv if isinstance(conv, bytes) else (
@@ -3324,6 +3325,7 @@ class ChannelConversion(_ChannelConversionBase):
             ]
 
             new_values = []
+            values = values.astype('u8').tolist()
             for val in values:
                 new_val = []
                 masked_values = (masks & val).tolist()
@@ -3344,7 +3346,7 @@ class ChannelConversion(_ChannelConversionBase):
                             else:
                                 new_val.append(converted_val)
 
-                new_values.append("|".join(new_val))
+                new_values.append(b"|".join(new_val))
 
             values = np.array(new_values)
 
