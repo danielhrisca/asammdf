@@ -339,6 +339,7 @@ class ListWidget(QtWidgets.QListWidget):
 class MinimalListWidget(QtWidgets.QListWidget):
 
     itemsDeleted = QtCore.pyqtSignal(list)
+    itemsPasted = QtCore.pyqtSignal()
 
     def __init__(self, *args, **kwargs):
 
@@ -357,6 +358,7 @@ class MinimalListWidget(QtWidgets.QListWidget):
 
     def keyPressEvent(self, event):
         key = event.key()
+        modifiers = event.modifiers()
         if key == QtCore.Qt.Key_Delete:
             selected_items = self.selectedItems()
             deleted = []
@@ -366,17 +368,38 @@ class MinimalListWidget(QtWidgets.QListWidget):
                 self.takeItem(row)
             if deleted:
                 self.itemsDeleted.emit(deleted)
+        elif key == QtCore.Qt.Key_C and modifiers == QtCore.Qt.ControlModifier:
+            try:
+                text = [
+                    item.text()
+                    for item in self.selectedItems()
+                ]
+                text = "\n".join(text)
+            except:
+                text = ""
+            QtWidgets.QApplication.instance().clipboard().setText(text)
+        elif key == QtCore.Qt.Key_V and modifiers == QtCore.Qt.ControlModifier:
+            lines = QtWidgets.QApplication.instance().clipboard().text().splitlines()
+            if lines:
+                try:
+                    self.addItems(lines)
+                    self.itemsPasted.emit()
+                except:
+                    pass
         else:
             super().keyPressEvent(event)
 
     def open_menu(self, position):
 
-        item = self.itemAt(position)
-        if item is None:
-            return
-
-        menu = QtWidgets.QMenu()
-        menu.addAction(self.tr("Delete (Del)"))
+        if self.count() == 0:
+            menu = QtWidgets.QMenu()
+            menu.addAction(self.tr("Paste names (Ctrl+V)"))
+        else:
+            menu = QtWidgets.QMenu()
+            menu.addAction(self.tr("Copy names (Ctrl+C)"))
+            menu.addAction(self.tr("Paste names (Ctrl+V)"))
+            menu.addSeparator()
+            menu.addAction(self.tr("Delete (Del)"))
 
         action = menu.exec_(self.viewport().mapToGlobal(position))
 
@@ -386,5 +409,15 @@ class MinimalListWidget(QtWidgets.QListWidget):
         if action.text() == "Delete (Del)":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.KeyPress, QtCore.Qt.Key_Delete, QtCore.Qt.NoModifier,
+            )
+            self.keyPressEvent(event)
+        elif action.text() == "Copy names (Ctrl+C)":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.KeyPress, QtCore.Qt.Key_C, QtCore.Qt.ControlModifier,
+            )
+            self.keyPressEvent(event)
+        elif action.text() == "Paste names (Ctrl+V)":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.KeyPress, QtCore.Qt.Key_V, QtCore.Qt.ControlModifier,
             )
             self.keyPressEvent(event)
