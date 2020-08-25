@@ -633,7 +633,6 @@ class Channel:
                             f"Channel conversion parsing error: {format_exc()}. The error is ignored and the channel conversion is None"
                         )
                         conv = None
-                        raise
 
                     self.conversion = conv
                 else:
