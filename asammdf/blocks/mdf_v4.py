@@ -1725,9 +1725,6 @@ class MDF4(object):
         channel numbers
 
 
-        If the *raster* keyword argument is not *None* the output is
-        interpolated accordingly.
-
         Parameters
         ----------
         name : string
@@ -1736,6 +1733,9 @@ class MDF4(object):
             0-based group index
         index : int
             0-based channel index
+        source : str
+            can be used for multiple occurence of the same channel name to
+            filter the target channel
 
         Returns
         -------
@@ -1743,7 +1743,7 @@ class MDF4(object):
             selected channel's group and channel index
 
         """
-        suppress = True
+
         if name is None:
             if group is None or index is None:
                 message = (
@@ -1778,7 +1778,7 @@ class MDF4(object):
                 elif group is None:
 
                     gp_nr, ch_nr = self.channels_db[name][0]
-                    if len(self.channels_db[name]) > 1 and not suppress:
+                    if len(self.channels_db[name]) > 1:
                         message = (
                             f'Multiple occurances for channel "{name}". '
                             f"Using first occurance from data group {gp_nr}. "
