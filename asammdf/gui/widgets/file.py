@@ -268,15 +268,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             )
         )
 
-        self.toggle_frame_btn = QtWidgets.QPushButton("", channel_and_search)
-        self.toggle_frame_btn.setToolTip("Toggle sub window frame")
-        icon3 = QtGui.QIcon()
-        icon3.addPixmap(
-            QtGui.QPixmap(":/window.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
-        self.toggle_frame_btn.setIcon(icon3)
-        self.toggle_frame_btn.setObjectName("set_frame_btn")
-        hbox.addWidget(self.toggle_frame_btn)
         vbox.addLayout(hbox)
 
         self.mdi_area = MdiAreaWidget()
@@ -521,7 +512,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         # self.channels_tree.itemChanged.connect(self.select)
         self.create_window_btn.clicked.connect(self._create_window)
-        self.toggle_frame_btn.clicked.connect(self.toggle_frames)
 
         self.clear_filter_btn.clicked.connect(self.clear_filter)
         self.clear_channels_btn.clicked.connect(self.clear_channels)

@@ -19,6 +19,14 @@
 ----
 Tips
 ----
+
+
+Data coupling
+=============
+All the data returned by the MDF methods is decoupled from the raw data found in the original file. 
+For example, if you modify the Signal returned by the ``get`` call the changes will not be seen in the
+raw data. A second ``get`` call of the same channel name will once again give you the data found in the
+original file.
     
     
 Chunked data access

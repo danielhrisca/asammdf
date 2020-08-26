@@ -7501,7 +7501,9 @@ class MDF4(object):
                                         except KeyError:
                                             pass
 
-                    gp_master = self.masters_db[gp_index]
+
+
+                    gp_master = self.masters_db.get(gp_index, None)
                     if gp_master is not None and gp_master in channels:
                         channels.remove(gp_master)
 
