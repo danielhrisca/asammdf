@@ -204,9 +204,9 @@ From left to right the buttons have the following functionality
     .. image:: images/advanced_search.png
  
 * **Add window**: generates a new window (Numeric, Plot or Tabular) based on the current checked channels from the channels tree. 
-If sub-plots are disabled in the settings then the current window is replaced by the new plot. 
-If sub-plots are enabled then a new sub-plot will be added, and the already existing sub-plots will not be affected. 
-Tthe same channel can be used in multiple sub-plots.
+  If sub-plots are disabled in the settings then the current window is replaced by the new plot. 
+  If sub-plots are enabled then a new sub-plot will be added, and the already existing sub-plots will not be affected. 
+  Tthe same channel can be used in multiple sub-plots.
 
 
 5. Plot/Sub-plots area
