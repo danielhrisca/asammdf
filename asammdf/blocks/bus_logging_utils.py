@@ -150,7 +150,7 @@ def extract_signal(signal, payload, raw=False):
             conv = {'a': 1.0, 'b': 0.0}
 
         else:
-            conv = {'a': signal.factor, 'b': signal.offset}
+            conv = {'a': float(signal.factor), 'b': float(signal.offset)}
 
         conv = from_dict(conv)
 
