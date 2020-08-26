@@ -1210,23 +1210,6 @@ class MDF4(object):
             split_size = int(split_size)
             invalidation_split_size = int(invalidation_split_size)
 
-            if not group.sorted:
-                cg_size = group.record_size
-                record_id = channel_group.record_id
-                record_id_nr = data_group.record_id_len
-
-                if record_id_nr == 1:
-                    _unpack_stuct = UINT8_u
-                elif record_id_nr == 2:
-                    _unpack_stuct = UINT16_u
-                elif record_id_nr == 4:
-                    _unpack_stuct = UINT32_u
-                elif record_id_nr == 8:
-                    _unpack_stuct = UINT64_u
-                else:
-                    message = f"invalid record id size {record_id_nr}"
-                    raise MdfException(message)
-
             blocks = iter(group.data_blocks)
 
             if group.data_blocks:
@@ -1256,16 +1239,15 @@ class MDF4(object):
                     except StopIteration:
                         break
 
-                    if group.sorted:
-                        if offset + size < record_offset + 1:
-                            offset += size
-                            if rm and invalidation_size:
-                                if invalidation_info.all_valid:
-                                    count = size // samples_size
-                                    invalidation_offset += count * invalidation_size
-                                else:
-                                    invalidation_offset += invalidation_info.raw_size
-                            continue
+                    if offset + size < record_offset + 1:
+                        offset += size
+                        if rm and invalidation_size:
+                            if invalidation_info.all_valid:
+                                count = size // samples_size
+                                invalidation_offset += count * invalidation_size
+                            else:
+                                invalidation_offset += invalidation_info.raw_size
+                        continue
 
                     seek(address)
                     new_data = read(block_size)
@@ -1285,32 +1267,8 @@ class MDF4(object):
                     if block_limit is not None:
                         new_data = new_data[:block_limit]
 
-                    new_data = memoryview(new_data)
-
-                    if not group.sorted:
-                        rec_data = []
-
-                        i = 0
-                        size = len(new_data)
-                        while i < size:
-                            (rec_id,) = _unpack_stuct(new_data[i : i + record_id_nr])
-                            # skip record id
-                            i += record_id_nr
-                            rec_size = cg_size[rec_id]
-                            if rec_size:
-                                endpoint = i + rec_size
-                                if rec_id == record_id:
-                                    rec_data.append(new_data[i:endpoint])
-                                i = endpoint
-                            else:
-                                (rec_size,) = UINT32_u(new_data[i : i + 4])
-                                endpoint = i + rec_size + 4
-                                if rec_id == record_id:
-                                    rec_data.append(new_data[i:endpoint])
-                                i = endpoint
-                        new_data = b"".join(rec_data)
-
-                        size = len(new_data)
+                    if len(data) > split_size - cur_size:
+                        new_data = memoryview(new_data)
 
                     if rm and invalidation_size:
 
