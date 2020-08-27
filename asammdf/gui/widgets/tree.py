@@ -90,7 +90,7 @@ class TreeWidget(QtWidgets.QTreeWidget):
 
         data = [
             pack(
-                f"<36s3q{name_length}s",
+                f"<12s3q{name_length}s",
                 uuid,
                 group_index,
                 channel_index,

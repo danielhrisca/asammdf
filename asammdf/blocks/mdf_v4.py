@@ -2885,7 +2885,6 @@ class MDF4(object):
 
                 # source for channel
                 source = signal.source
-#                print(source)
                 if source:
                     if source in si_map:
                         ch.source = si_map[source]

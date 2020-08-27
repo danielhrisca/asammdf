@@ -84,9 +84,9 @@ def extract_mime_names(data):
         pos = 0
         while pos < size:
             mdf_uuid, group_index, channel_index, name_length = unpack(
-                "<36s3q", data[pos : pos + 60]
+                "<12s3q", data[pos : pos + 36]
             )
-            pos += 60
+            pos += 36
             name = data[pos : pos + name_length].decode("utf-8")
             pos += name_length
             name = COMPARISON_NAME.match(name).group('name').strip()

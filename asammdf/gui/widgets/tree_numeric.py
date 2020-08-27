@@ -81,7 +81,7 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
 
             data.append(
                 pack(
-                    f"<36s3q{len(info)}s",
+                    f"<12s3q{len(info)}s",
                     str(item.mdf_uuid).encode("ascii"),
                     entry[0],
                     entry[1],
