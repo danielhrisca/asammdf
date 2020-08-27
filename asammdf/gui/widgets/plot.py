@@ -63,8 +63,8 @@ class PlotSignal(Signal):
             encoding=signal.encoding,
         )
 
-        self.uuid = getattr(signal, "uuid", str(os.urandom(6).hex()()))
-        self.mdf_uuid = getattr(signal, "mdf_uuid", str(os.urandom(6).hex()()))
+        self.uuid = getattr(signal, "uuid", os.urandom(6).hex())
+        self.mdf_uuid = getattr(signal, "mdf_uuid", os.urandom(6).hex())
 
         self.group_index = getattr(signal, "group_index", -1)
         self.channel_index = getattr(signal, "channel_index", -1)
@@ -1283,7 +1283,7 @@ class Plot(QtWidgets.QWidget):
     def add_new_channels(self, channels):
 
         for sig in channels:
-            sig.uuid = str(os.urandom(6).hex()())
+            sig.uuid = os.urandom(6).hex()
 
         invalid = []
 
