@@ -6623,7 +6623,9 @@ class MDF4(object):
         gp_nr = group_index
         ch_nr = channel_index
         # get data group record
-        parents, dtypes = self._prepare_record(grp)
+        parents, dtypes = group.parents, group.types
+        if parents is None:
+            parents, dtypes = self._prepare_record(grp)
 
         # get group data
         if data is None:
@@ -6679,8 +6681,6 @@ class MDF4(object):
 
                 channel_values.append(vals)
                 count += 1
-
-
 
             if count > 1:
                 total_size = sum(len(_) for _ in channel_values)

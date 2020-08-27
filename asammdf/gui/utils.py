@@ -10,8 +10,8 @@ from pathlib import Path
 import lxml
 import natsort
 import numpy as np
-from uuid import UUID
 import re
+import os
 
 from PyQt5 import QtGui
 from PyQt5 import QtWidgets
@@ -90,7 +90,7 @@ def extract_mime_names(data):
             name = data[pos : pos + name_length].decode("utf-8")
             pos += name_length
             name = COMPARISON_NAME.match(name).group('name').strip()
-            names.append((name, group_index, channel_index, UUID(mdf_uuid.decode('ascii'))))
+            names.append((name, group_index, channel_index, mdf_uuid.decode('ascii')))
     return names
 
 

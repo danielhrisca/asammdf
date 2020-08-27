@@ -3,7 +3,7 @@ from datetime import datetime
 from functools import partial
 import json
 from traceback import format_exc
-from uuid import uuid4
+import os
 
 from natsort import natsorted
 import numpy as np
@@ -655,7 +655,7 @@ class WithMDIArea:
                 )
                 for name in sorted(required-found)
             ]
-            uuid = uuid4()
+            uuid = os.urandom(6).hex()
             for sig in not_found:
                 sig.mdf_uuid = uuid
                 sig.group_index = 0
@@ -866,7 +866,7 @@ class WithMDIArea:
                 )
                 for name in sorted(required-found)
             ]
-            uuid = uuid4()
+            uuid = str(os.urandom(6).hex()())
             for sig in not_found:
                 sig.mdf_uuid = uuid
                 sig.group_index = 0

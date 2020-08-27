@@ -6,7 +6,6 @@ import os
 from pathlib import Path
 from struct import unpack
 from time import perf_counter
-from uuid import uuid4
 
 import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -64,8 +63,8 @@ class PlotSignal(Signal):
             encoding=signal.encoding,
         )
 
-        self.uuid = getattr(signal, "uuid", uuid4())
-        self.mdf_uuid = getattr(signal, "mdf_uuid", uuid4())
+        self.uuid = getattr(signal, "uuid", str(os.urandom(6).hex()()))
+        self.mdf_uuid = getattr(signal, "mdf_uuid", str(os.urandom(6).hex()()))
 
         self.group_index = getattr(signal, "group_index", -1)
         self.channel_index = getattr(signal, "channel_index", -1)
@@ -1284,7 +1283,7 @@ class Plot(QtWidgets.QWidget):
     def add_new_channels(self, channels):
 
         for sig in channels:
-            sig.uuid = uuid4()
+            sig.uuid = str(os.urandom(6).hex()())
 
         invalid = []
 
@@ -1703,7 +1702,7 @@ class _Plot(pg.PlotWidget):
                             if curve.opts["pen"].style() != style:
                                 curve.opts["pen"].setStyle(style)
                             curve.update()
-                            curve.sigPlotChanged.emit(curve)
+#                            curve.sigPlotChanged.emit(curve)
 
                 if sig.enable:
                     curve.show()
@@ -2510,7 +2509,7 @@ class _Plot(pg.PlotWidget):
         sig = dlg.result
 
         if sig is not None:
-            sig.uuid = uuid4()
-            sig.mdf_uuid = uuid4()
+            sig.uuid = str(os.urandom(6).hex()())
+            sig.mdf_uuid = str(os.urandom(6).hex()())
             self.add_new_channels([sig], computed=True)
             self.computation_channel_inserted.emit()

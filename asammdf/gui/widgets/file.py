@@ -7,7 +7,6 @@ from pathlib import Path
 from tempfile import gettempdir
 from time import perf_counter
 from traceback import format_exc
-from uuid import uuid4
 
 from natsort import natsorted
 import numpy as np
@@ -64,7 +63,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         WithMDIArea.__init__(self)
         self.setupUi(self)
         self._settings = QtCore.QSettings()
-        self.uuid = uuid4()
+        self.uuid = os.urandom(6).hex()
 
         file_name = Path(file_name)
         self.subplots = subplots
