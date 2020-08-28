@@ -2625,7 +2625,7 @@ class MDF(object):
 
                     source = cg.acq_source_addr
                     if source:
-                        source = SourceInformation(address=source, stream=stream)
+                        source = SourceInformation(address=source, stream=stream, mapped=False, tx_map={})
                         for addr in (
                             source.name_addr,
                             source.path_addr,
@@ -2646,7 +2646,7 @@ class MDF(object):
 
                     source = ch.source_addr
                     if source:
-                        source = SourceInformation(address=source, stream=stream)
+                        source = SourceInformation(address=source, stream=stream, mapped=False, tx_map={})
                         for addr in (
                             source.name_addr,
                             source.path_addr,
@@ -2659,7 +2659,7 @@ class MDF(object):
 
                     conv = ch.conversion_addr
                     if conv:
-                        conv = ChannelConversion(address=conv, stream=stream)
+                        conv = ChannelConversion(address=conv, stream=stream, mapped=False, tx_map={}, si_map={})
                         for addr in (conv.name_addr, conv.unit_addr, conv.comment_addr):
                             if addr and addr not in texts:
                                 stream.seek(addr + 8)

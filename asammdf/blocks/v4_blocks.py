@@ -3254,7 +3254,7 @@ class ChannelConversion(_ChannelConversionBase):
                 ret[idx] = default.convert(values[idx])
 
             idx = ~idx
-            if np.any(idx_eq):
+            if np.any(idx):
                 indexes = idx1[idx]
                 unique = np.unique(indexes)
                 for val in unique:
