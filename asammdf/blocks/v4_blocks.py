@@ -2969,11 +2969,13 @@ class ChannelConversion(_ChannelConversionBase):
             a = self.a
             b = self.b
 
-            names = values.dtype.names
-            if names:
-                name = names[0]
-                vals = values[name]
-                if (a, b) != (1, 0):
+            if (a, b) != (1, 0):
+
+                if values.dtype.names:
+                    names = values.dtype.names
+                    name = names[0]
+                    vals = values[name]
+
                     vals = vals * a
                     if b:
                         vals += b
@@ -2986,11 +2988,12 @@ class ChannelConversion(_ChannelConversionBase):
                         ],
                     )
 
-            else:
-                if (a, b) != (1, 0):
+                else:
+
                     values = values * a
                     if b:
                         values += b
+
         elif conversion_type == v4c.CONVERSION_TYPE_RAT:
             P1 = self.P1
             P2 = self.P2
@@ -3109,8 +3112,6 @@ class ChannelConversion(_ChannelConversionBase):
             nr = self.val_param_nr
             raw_vals = [self[f"val_{i}"] for i in range(nr)]
 
-            ret = np.array([None] * len(values), dtype="O")
-
             phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
 
             default = self.referenced_blocks["default_addr"]
@@ -3132,25 +3133,26 @@ class ChannelConversion(_ChannelConversionBase):
                 idx1 = np.searchsorted(raw_vals, vals, side="right") - 1
                 idx2 = np.searchsorted(raw_vals, vals, side="left")
 
-                idx = np.argwhere(idx1 != idx2).flatten()
+                idx = idx1 != idx2
 
                 if isinstance(default, bytes):
                     ret[idx] = default
                 else:
                     ret[idx] = default.convert(vals[idx])
 
-                idx = np.argwhere(idx1 == idx2).flatten()
-                if len(idx):
+                idx = ~idx
+
+                if np.any(idx):
                     indexes = idx1[idx]
                     unique = np.unique(indexes)
                     for val in unique:
 
                         item = phys[val]
-                        idx_ = np.argwhere(indexes == val).flatten()
+                        idx_ = indexes == val
                         if isinstance(item, bytes):
-                            ret[idx[idx_]] = item
+                            ret[idx][idx_] = item
                         else:
-                            ret[idx[idx_]] = item.convert(vals[idx[idx_]])
+                            ret[idx][idx_] = item.convert(vals[idx][idx_])
 
                 all_bytes = True
                 for v in ret:
@@ -3185,25 +3187,25 @@ class ChannelConversion(_ChannelConversionBase):
                 idx1 = np.searchsorted(raw_vals, values, side="right") - 1
                 idx2 = np.searchsorted(raw_vals, values, side="left")
 
-                idx = np.argwhere(idx1 != idx2).flatten()
+                idx = idx1 != idx2
 
                 if isinstance(default, bytes):
                     ret[idx] = default
                 else:
                     ret[idx] = default.convert(values[idx])
 
-                idx = np.argwhere(idx1 == idx2).flatten()
-                if len(idx):
+                idx = ~idx
+                if np.any(idx):
                     indexes = idx1[idx]
                     unique = np.unique(indexes)
                     for val in unique:
 
                         item = phys[val]
-                        idx_ = np.argwhere(indexes == val).flatten()
+                        idx_ = indexes == val
                         if isinstance(item, bytes):
-                            ret[idx[idx_]] = item
+                            ret[idx][idx_] = item
                         else:
-                            ret[idx[idx_]] = item.convert(values[idx[idx_]])
+                            ret[idx][idx_] = item.convert(values[idx][idx_])
 
                 all_bytes = True
                 for v in ret:
@@ -3244,27 +3246,27 @@ class ChannelConversion(_ChannelConversionBase):
             idx1 = np.searchsorted(lower, values, side="right") - 1
             idx2 = np.searchsorted(upper, values, side="left")
 
-            idx_ne = np.argwhere(idx1 != idx2).flatten()
-            idx_eq = np.argwhere(idx1 == idx2).flatten()
+            idx = idx1 != idx2
 
             if isinstance(default, bytes):
-                ret[idx_ne] = default
+                ret[idx] = default
             else:
-                ret[idx_ne] = default.convert(values[idx_ne])
+                ret[idx] = default.convert(values[idx])
 
-            if len(idx_eq):
-                indexes = idx1[idx_eq]
+            idx = ~idx
+            if np.any(idx_eq):
+                indexes = idx1[idx]
                 unique = np.unique(indexes)
                 for val in unique:
 
                     item = phys[val]
-                    idx_ = np.argwhere(indexes == val).flatten()
+                    idx_ = indexes == val
 
                     if isinstance(item, bytes):
-                        ret[idx_eq[idx_]] = item
+                        ret[idx][idx_] = item
                     else:
                         try:
-                            ret[idx_eq[idx_]] = item.convert(values[idx_eq[idx_]])
+                            ret[idx][idx_] = item.convert(values[idx][idx_])
                         except:
                             print(self)
                             raise

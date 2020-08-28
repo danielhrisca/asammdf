@@ -6654,6 +6654,11 @@ class MDF4(object):
 
         encoding = None
 
+        if channel.dtype_fmt.subdtype:
+            channel_dtype = channel.dtype_fmt.subdtype[0]
+        else:
+            channel_dtype = channel.dtype_fmt
+
         # get channel values
         if channel_type in {
             v4c.CHANNEL_TYPE_VIRTUAL,
@@ -6788,11 +6793,6 @@ class MDF4(object):
 
                         if data_type in v4c.INT_TYPES:
 
-                            if channel.dtype_fmt.subdtype:
-                                channel_dtype = channel.dtype_fmt.subdtype[0]
-                            else:
-                                channel_dtype = channel.dtype_fmt
-
                             if channel_dtype.byteorder == "|" and data_type in (
                                 v4c.DATA_TYPE_SIGNED_MOTOROLA,
                                 v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
@@ -6801,7 +6801,8 @@ class MDF4(object):
                             else:
                                 view = f"{channel_dtype.byteorder}u{vals.itemsize}"
 
-                            vals = vals.view(view)
+                            if dtype(view) != vals.dtype:
+                                vals = vals.view(view)
 
                             if bit_offset:
                                 vals = vals >> bit_offset
@@ -6814,7 +6815,8 @@ class MDF4(object):
                                     vals = vals & mask
                             elif data_type in v4c.SIGNED_INT:
                                 view = f"{channel_dtype.byteorder}i{vals.itemsize}"
-                                vals = vals.view(view)
+                                if dtype(view) != vals.dtype:
+                                    vals = vals.view(view)
 
                         else:
                             if bit_count != size * 8:
@@ -6823,10 +6825,6 @@ class MDF4(object):
                                 )
                             else:
                                 if kind_ in "ui":
-                                    if channel.dtype_fmt.subdtype:
-                                        channel_dtype = channel.dtype_fmt.subdtype[0]
-                                    else:
-                                        channel_dtype = channel.dtype_fmt
                                     vals = vals.view(channel_dtype)
 
                 else:
@@ -6835,10 +6833,6 @@ class MDF4(object):
                 if self._single_bit_uint_as_bool and bit_count == 1:
                     vals = array(vals, dtype=bool)
                 else:
-                    if channel.dtype_fmt.subdtype:
-                        channel_dtype = channel.dtype_fmt.subdtype[0]
-                    else:
-                        channel_dtype = channel.dtype_fmt
                     if vals.dtype != channel_dtype:
                         vals = vals.astype(channel_dtype)
 
@@ -6918,11 +6912,6 @@ class MDF4(object):
 
                             if data_type in v4c.INT_TYPES:
 
-                                if channel.dtype_fmt.subdtype:
-                                    channel_dtype = channel.dtype_fmt.subdtype[0]
-                                else:
-                                    channel_dtype = channel.dtype_fmt
-
                                 if channel_dtype.byteorder == "|" and data_type in (
                                     v4c.DATA_TYPE_SIGNED_MOTOROLA,
                                     v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
@@ -6930,7 +6919,9 @@ class MDF4(object):
                                     view = f">u{vals.itemsize}"
                                 else:
                                     view = f"{channel_dtype.byteorder}u{vals.itemsize}"
-                                vals = vals.view(view)
+
+                                if dtype(view) != vals.dtype:
+                                    vals = vals.view(view)
 
                                 if bit_offset:
                                     vals = vals >> bit_offset
@@ -6945,7 +6936,8 @@ class MDF4(object):
                                         vals = vals & mask
                                 elif data_type in v4c.SIGNED_INT:
                                     view = f"{channel_dtype.byteorder}i{vals.itemsize}"
-                                    vals = vals.view(view)
+                                    if dtype(view) != vals.dtype:
+                                        vals = vals.view(view)
 
                             else:
                                 if bit_count != size * 8:
@@ -6954,12 +6946,6 @@ class MDF4(object):
                                     )
                                 else:
                                     if kind_ in "ui":
-                                        if channel.dtype_fmt.subdtype:
-                                            channel_dtype = channel.dtype_fmt.subdtype[
-                                                0
-                                            ]
-                                        else:
-                                            channel_dtype = channel.dtype_fmt
                                         vals = vals.view(channel_dtype)
 
                     else:
@@ -6969,10 +6955,6 @@ class MDF4(object):
                         vals = array(vals, dtype=bool)
                     else:
 
-                        if channel.dtype_fmt.subdtype:
-                            channel_dtype = channel.dtype_fmt.subdtype[0]
-                        else:
-                            channel_dtype = channel.dtype_fmt
                         if vals.dtype != channel_dtype:
                             vals = vals.astype(channel_dtype)
 
@@ -9608,8 +9590,7 @@ class MDF4(object):
                 buses = unique(bus_ids)
 
                 for bus in buses:
-                    idx_ = argwhere(bus_ids == bus).ravel()
-                    bus_msg_ids = msg_ids[idx_]
+                    bus_msg_ids = msg_ids[bus_ids == bus]
 
                     unique_ids = sorted(unique(bus_msg_ids).astype("<u8"))
 
@@ -9677,7 +9658,7 @@ class MDF4(object):
                     continue
 
                 for bus in buses:
-                    idx_ = argwhere(bus_ids == bus).ravel()
+                    idx_ = bus_ids == bus
                     bus_msg_ids = msg_ids.samples[idx_]
 
                     bus_t = msg_ids.timestamps[idx_]
@@ -9695,7 +9676,7 @@ class MDF4(object):
                         if message is None:
                             continue
 
-                        idx = argwhere(bus_msg_ids == msg_id).ravel()
+                        idx = bus_msg_ids == msg_id
                         payload = bus_data_bytes[idx]
                         t = bus_t[idx]
 
