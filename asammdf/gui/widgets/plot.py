@@ -1770,11 +1770,14 @@ class _Plot(pg.PlotWidget):
             self.view_boxes[index].setXLink(None)
             self.axes[index].hide()
 
-            self._timebase_db[id(sig.timestamps)].remove(uuid)
+            try:
+                self._timebase_db[id(sig.timestamps)].remove(uuid)
 
-            if len(self._timebase_db[id(sig.timestamps)]) == 0:
-                del self._timebase_db[id(sig.timestamps)]
-                self._compute_all_timebase()
+                if len(self._timebase_db[id(sig.timestamps)]) == 0:
+                    del self._timebase_db[id(sig.timestamps)]
+                    self._compute_all_timebase()
+            except:
+                pass
 
         if self.cursor1:
             self.cursor_move_finished.emit()

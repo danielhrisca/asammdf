@@ -661,7 +661,7 @@ class Channel:
                         logger.warning(
                             f"Channel source parsing error: {format_exc()}. The error is ignored and the channel source is None"
                         )
-                        conv = None
+                        source = None
 
                     self.source = source
                 else:
@@ -819,6 +819,7 @@ class Channel:
                                 stream=stream,
                                 address=address,
                                 tx_map=tx_map,
+                                mapped=mapped,
                             )
                             cc_map[raw_bytes] = conv
                     except:
@@ -844,13 +845,14 @@ class Channel:
                                 stream=stream,
                                 address=address,
                                 tx_map=tx_map,
+                                mapped=mapped,
                             )
                             si_map[raw_bytes] = source
                     except:
                         logger.warning(
                             f"Channel source parsing error: {format_exc()}. The error is ignored and the channel source is None"
                         )
-                        conv = None
+                        source = None
 
                     self.source = source
                 else:
