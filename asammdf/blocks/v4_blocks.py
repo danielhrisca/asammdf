@@ -469,7 +469,7 @@ class Channel:
             self.address = address = kwargs["address"]
             self.dtype_fmt = self.attachment = None
             stream = kwargs["stream"]
-            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
+            mapped = kwargs["mapped"]
 
             if mapped:
 
@@ -579,7 +579,7 @@ class Channel:
                     ) = params
 
                 self.name = get_text_v4(self.name_addr, stream, mapped=mapped)
-                tx_map = kwargs.get("tx_map", {})
+                tx_map = kwargs["tx_map"]
                 addr = self.unit_addr
                 if addr in tx_map:
                     self.unit = tx_map[addr]
@@ -588,7 +588,7 @@ class Channel:
                     tx_map[addr] = self.unit
                 self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
 
-                if kwargs.get("use_display_names", True):
+                if kwargs["use_display_names"]:
                     try:
                         display_name = ET.fromstring(sanitize_xml(self.comment)).find(
                             ".//names/display"
@@ -602,8 +602,8 @@ class Channel:
                 else:
                     self.display_name = ""
 
-                si_map = kwargs.get("si_map", {})
-                cc_map = kwargs.get("cc_map", {})
+                si_map = kwargs["si_map"]
+                cc_map = kwargs["cc_map"]
 
                 address = self.conversion_addr
                 if address:
@@ -777,7 +777,7 @@ class Channel:
                     ) = params
 
                 self.name = get_text_v4(self.name_addr, stream)
-                tx_map = kwargs.get("tx_map", {})
+                tx_map = kwargs["tx_map"]
                 addr = self.unit_addr
                 if addr in tx_map:
                     self.unit = tx_map[addr]
@@ -786,7 +786,7 @@ class Channel:
                     tx_map[addr] = self.unit
                 self.comment = get_text_v4(self.comment_addr, stream)
 
-                if kwargs.get("use_display_names", True):
+                if kwargs["use_display_names"]:
                     try:
                         display_name = ET.fromstring(sanitize_xml(self.comment)).find(
                             ".//names/display"
@@ -800,8 +800,8 @@ class Channel:
                 else:
                     self.display_name = ""
 
-                si_map = kwargs.get("si_map", {})
-                cc_map = kwargs.get("cc_map", {})
+                si_map = kwargs["si_map"]
+                cc_map = kwargs["cc_map"]
 
                 address = self.conversion_addr
                 if address:
@@ -1804,7 +1804,7 @@ class ChannelGroup:
             self.acq_name = get_text_v4(self.acq_name_addr, stream, mapped=mapped)
             self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
 
-            si_map = kwargs.get("si_map", {})
+            si_map = kwargs["si_map"]
 
             address = self.acq_source_addr
             if address:
@@ -1821,6 +1821,7 @@ class ChannelGroup:
                         stream=stream,
                         address=address,
                         mapped=mapped,
+                        tx_map=kwargs["tx_map"],
                     )
                     si_map[raw_bytes] = source
                 self.acq_source = source
@@ -2162,10 +2163,10 @@ class ChannelConversion(_ChannelConversionBase):
 
         if "stream" in kwargs:
             stream = kwargs["stream"]
-            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
+            mapped = kwargs["mapped"]
 
             try:
-                self.address = address = kwargs.get("address", 0)
+                self.address = address = kwargs["address"]
                 block = kwargs["raw_bytes"]
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(
                     block
@@ -2469,7 +2470,7 @@ class ChannelConversion(_ChannelConversionBase):
 
             self.referenced_blocks = None
 
-            tx_map = kwargs.get("tx_map", {})
+            tx_map = kwargs["tx_map"]
 
             addr = self.name_addr
             if addr in tx_map:
@@ -5627,10 +5628,10 @@ class SourceInformation:
         if "stream" in kwargs:
 
             stream = kwargs["stream"]
-            mapped = kwargs.get("mapped", False) or not is_file_like(stream)
+            mapped = kwargs["mapped"]
             try:
                 block = kwargs["raw_bytes"]
-                self.address = kwargs.get("address", 0)
+                self.address = kwargs["address"]
             except KeyError:
                 self.address = address = kwargs["address"]
                 stream.seek(address)
@@ -5656,7 +5657,7 @@ class SourceInformation:
                 logger.exception(message)
                 raise MdfException(message)
 
-            tx_map = kwargs.get("tx_map", {})
+            tx_map = kwargs["tx_map"]
 
             address = self.name_addr
             if address in tx_map:

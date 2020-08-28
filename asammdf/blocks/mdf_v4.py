@@ -564,6 +564,7 @@ class MDF4(object):
                     mapped=mapped,
                     si_map=self._si_map,
                     version=self.version,
+                    tx_map=self._interned_strings,
                 )
                 self._cg_map[cg_addr] = dg_cntr
                 channel_group = grp.channel_group = block
@@ -740,6 +741,7 @@ class MDF4(object):
                                 if cc_addr:
                                     conv = ChannelConversion(
                                         stream=stream, address=cc_addr, mapped=mapped,
+                                        tx_map={},
                                     )
                                     dep.axis_conversions.append(conv)
                                 else:
@@ -1530,7 +1532,7 @@ class MDF4(object):
                             # adjust size to 1, 2, 4 or 8 bytes
                             size = bit_offset + bit_count
 
-                            byte_size, rem = divmod(size, 8)
+                            byte_size, rem = size // 8, size % 8
                             if rem:
                                 byte_size += 1
                             bit_size = byte_size * 8
@@ -1619,7 +1621,7 @@ class MDF4(object):
 
                 else:
                     size = bit_offset + bit_count
-                    byte_size, rem = divmod(size, 8)
+                    byte_size, rem = size // 8, size % 8
                     if rem:
                         byte_size += 1
 
@@ -2402,7 +2404,7 @@ class MDF4(object):
             self._invalidation_cache[(group_index, offset, _count)] = invalidation
 
         ch_invalidation_pos = channel.pos_invalidation_bit
-        pos_byte, pos_offset = divmod(ch_invalidation_pos, 8)
+        pos_byte, pos_offset = ch_invalidation_pos // 8, ch_invalidation_pos % 8
 
         mask = 1 << pos_offset
 
@@ -6157,7 +6159,10 @@ class MDF4(object):
         grp = group
         gp_nr = group_index
         # get data group record
-        parents, dtypes = self._prepare_record(grp)
+        parents, dtypes = group.parents, group.types
+        if parents is None:
+            parents, dtypes = self._prepare_record(grp)
+
 
         # get group data
         if data is None:
@@ -6323,7 +6328,10 @@ class MDF4(object):
         gp_nr = group_index
         ch_nr = channel_index
         # get data group record
-        parents, dtypes = self._prepare_record(grp)
+        parents, dtypes = group.parents, group.types
+        if parents is None:
+            parents, dtypes = self._prepare_record(grp)
+
 
         # get group data
         if data is None:

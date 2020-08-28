@@ -25,11 +25,7 @@ from .list_item import ListItem
 
 bin_ = bin
 
-
 HERE = Path(__file__).resolve().parent
-
-
-# pg.setConfigOption("useOpenGL", True)
 
 
 if not hasattr(pg.InfiniteLine, "addMarker"):
