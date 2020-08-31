@@ -3133,26 +3133,25 @@ class ChannelConversion(_ChannelConversionBase):
                 idx1 = np.searchsorted(raw_vals, vals, side="right") - 1
                 idx2 = np.searchsorted(raw_vals, vals, side="left")
 
-                idx = idx1 != idx2
+                idx = np.argwhere(idx1 != idx2).flatten()
 
                 if isinstance(default, bytes):
                     ret[idx] = default
                 else:
                     ret[idx] = default.convert(vals[idx])
 
-                idx = ~idx
-
-                if np.any(idx):
+                idx = np.argwhere(idx1 == idx2).flatten()
+                if len(idx):
                     indexes = idx1[idx]
                     unique = np.unique(indexes)
                     for val in unique:
 
                         item = phys[val]
-                        idx_ = indexes == val
+                        idx_ = np.argwhere(indexes == val).flatten()
                         if isinstance(item, bytes):
-                            ret[idx][idx_] = item
+                            ret[idx[idx_]] = item
                         else:
-                            ret[idx][idx_] = item.convert(vals[idx][idx_])
+                            ret[idx[idx_]] = item.convert(vals[idx[idx_]])
 
                 all_bytes = True
                 for v in ret:
@@ -3187,25 +3186,25 @@ class ChannelConversion(_ChannelConversionBase):
                 idx1 = np.searchsorted(raw_vals, values, side="right") - 1
                 idx2 = np.searchsorted(raw_vals, values, side="left")
 
-                idx = idx1 != idx2
+                idx = np.argwhere(idx1 != idx2).flatten()
 
                 if isinstance(default, bytes):
                     ret[idx] = default
                 else:
                     ret[idx] = default.convert(values[idx])
 
-                idx = ~idx
-                if np.any(idx):
+                idx = np.argwhere(idx1 == idx2).flatten()
+                if len(idx):
                     indexes = idx1[idx]
                     unique = np.unique(indexes)
                     for val in unique:
 
                         item = phys[val]
-                        idx_ = indexes == val
+                        idx_ = np.argwhere(indexes == val).flatten()
                         if isinstance(item, bytes):
-                            ret[idx][idx_] = item
+                            ret[idx[idx_]] = item
                         else:
-                            ret[idx][idx_] = item.convert(values[idx][idx_])
+                            ret[idx[idx_]] = item.convert(values[idx[idx_]])
 
                 all_bytes = True
                 for v in ret:
@@ -3246,27 +3245,27 @@ class ChannelConversion(_ChannelConversionBase):
             idx1 = np.searchsorted(lower, values, side="right") - 1
             idx2 = np.searchsorted(upper, values, side="left")
 
-            idx = idx1 != idx2
+            idx_ne = np.argwhere(idx1 != idx2).flatten()
+            idx_eq = np.argwhere(idx1 == idx2).flatten()
 
             if isinstance(default, bytes):
-                ret[idx] = default
+                ret[idx_ne] = default
             else:
-                ret[idx] = default.convert(values[idx])
+                ret[idx_ne] = default.convert(values[idx_ne])
 
-            idx = ~idx
-            if np.any(idx):
-                indexes = idx1[idx]
+            if len(idx_eq):
+                indexes = idx1[idx_eq]
                 unique = np.unique(indexes)
                 for val in unique:
 
                     item = phys[val]
-                    idx_ = indexes == val
+                    idx_ = np.argwhere(indexes == val).flatten()
 
                     if isinstance(item, bytes):
-                        ret[idx][idx_] = item
+                        ret[idx_eq[idx_]] = item
                     else:
                         try:
-                            ret[idx][idx_] = item.convert(values[idx][idx_])
+                            ret[idx_eq[idx_]] = item.convert(values[idx_eq[idx_]])
                         except:
                             print(self)
                             raise
