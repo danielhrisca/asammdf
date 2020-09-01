@@ -22,7 +22,7 @@ from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_group_info import ChannelGroupInfoDialog
 from ..dialogs.channel_info import ChannelInfoDialog
 from ..ui import resource_rc as resource_rc
-from ..ui.file_widget import Ui_file_widget
+from ..ui.file_widget2 import Ui_file_widget
 from ..utils import (
     add_children,
     compute_signal,
@@ -171,103 +171,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         progress.setValue(37)
 
-        channel_and_search = QtWidgets.QWidget(self.splitter)
+        self.channel_view.currentIndexChanged.connect(partial(self._update_channel_tree, widget=self.channels_tree))
+        self.filter_view.currentIndexChanged.connect(partial(self._update_channel_tree, widget=self.filter_tree))
 
-        self.channel_view = QtWidgets.QComboBox()
-        self.channel_view.addItems(["Natural sort", "Internal file structure"])
-        self.channel_view.setCurrentIndex(0)
-        self.channel_view.currentIndexChanged.connect(self._update_channel_tree)
-
-        self.channels_tree = TreeWidget(self)
         self.channels_tree.setDragEnabled(True)
-
-        self.filter_tree = TreeWidget(self)
-
-        vbox = QtWidgets.QVBoxLayout(channel_and_search)
-        vbox.setSpacing(2)
-        self.advanced_search_btn = QtWidgets.QPushButton("", channel_and_search)
-        icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/search.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
-        self.advanced_search_btn.setIcon(icon)
-        self.advanced_search_btn.setToolTip("Advanced search and select channels")
-        self.advanced_search_btn.clicked.connect(self.search)
-        vbox.addWidget(self.channel_view)
-
-        vbox.addWidget(self.channels_tree, 1)
-
-        hbox = QtWidgets.QHBoxLayout()
-
-        self.clear_channels_btn = QtWidgets.QPushButton("", channel_and_search)
-        self.clear_channels_btn.setToolTip("Reset selection")
-        icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/erase.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
-        self.clear_channels_btn.setIcon(icon)
-        self.clear_channels_btn.setObjectName("clear_channels_btn")
-
-        self.load_channel_list_btn = QtWidgets.QPushButton("", channel_and_search)
-        self.load_channel_list_btn.setToolTip("Load channel selection list")
-        icon1 = QtGui.QIcon()
-        icon1.addPixmap(
-            QtGui.QPixmap(":/open.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
-        self.load_channel_list_btn.setIcon(icon1)
-        self.load_channel_list_btn.setObjectName("load_channel_list_btn")
-
-        self.save_channel_list_btn = QtWidgets.QPushButton("", channel_and_search)
-        self.save_channel_list_btn.setToolTip("Save channel selection list")
-        icon2 = QtGui.QIcon()
-        icon2.addPixmap(
-            QtGui.QPixmap(":/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
-        self.save_channel_list_btn.setIcon(icon2)
-        self.save_channel_list_btn.setObjectName("save_channel_list_btn")
-
-        self.select_all_btn = QtWidgets.QPushButton("", channel_and_search)
-        self.select_all_btn.setToolTip("Select all channels")
-        icon1 = QtGui.QIcon()
-        icon1.addPixmap(
-            QtGui.QPixmap(":/checkmark.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
-        self.select_all_btn.setIcon(icon1)
-
-        hbox.addWidget(self.load_channel_list_btn)
-        hbox.addWidget(self.save_channel_list_btn)
-        line = QtWidgets.QFrame()
-        line.setFrameShape(QtWidgets.QFrame.VLine)
-        line.setFrameShadow(QtWidgets.QFrame.Sunken)
-        hbox.addWidget(line)
-        hbox.addWidget(self.select_all_btn)
-        hbox.addWidget(self.clear_channels_btn)
-        line = QtWidgets.QFrame()
-        line.setFrameShape(QtWidgets.QFrame.VLine)
-        line.setFrameShadow(QtWidgets.QFrame.Sunken)
-        hbox.addWidget(line)
-        hbox.addWidget(self.advanced_search_btn)
-        line = QtWidgets.QFrame()
-        line.setFrameShape(QtWidgets.QFrame.VLine)
-        line.setFrameShadow(QtWidgets.QFrame.Sunken)
-        hbox.addWidget(line)
-        self.create_window_btn = QtWidgets.QPushButton("", channel_and_search)
-        self.create_window_btn.setToolTip("Create window using the selected channels")
-        icon3 = QtGui.QIcon()
-        icon3.addPixmap(
-            QtGui.QPixmap(":/graph.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
-        self.create_window_btn.setIcon(icon3)
-        self.create_window_btn.setObjectName("create_window_btn")
-        hbox.addWidget(self.create_window_btn)
-
-        hbox.addSpacerItem(
-            QtWidgets.QSpacerItem(
-                40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
-            )
-        )
-
-        vbox.addLayout(hbox)
 
         self.mdi_area = MdiAreaWidget()
         self.mdi_area.add_window_request.connect(self.add_window)
@@ -278,21 +185,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.channels_tree.itemDoubleClicked.connect(self.show_info)
         self.filter_tree.itemDoubleClicked.connect(self.show_info)
 
-        self.channels_layout.insertWidget(0, channel_and_search)
-        self.filter_layout.addWidget(self.filter_tree, 1, 0, 8, 1)
-
-        groups_nr = len(self.mdf.groups)
-
-        self.channels_tree.setHeaderLabel("Channels")
-        self.channels_tree.setToolTip(
-            "Double click channel to see extended information"
-        )
-        self.filter_tree.setHeaderLabel("Channels")
-        self.filter_tree.setToolTip("Double click channel to see extended information")
-
         self.channel_view.setCurrentIndex(-1)
+        self.filter_view.setCurrentIndex(-1)
         self.channel_view.setCurrentText(
             self._settings.value("channels_view", "Internal file structure")
+        )
+        self.filter_view.setCurrentText(
+            self._settings.value("filter_view", "Internal file structure")
         )
 
         progress.setValue(70)
@@ -301,44 +200,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         progress.setValue(90)
 
-        self.resample_format.insertItems(0, SUPPORTED_VERSIONS)
-        index = self.resample_format.findText(self.mdf.version)
-        if index >= 0:
-            self.resample_format.setCurrentIndex(index)
-        self.resample_compression.insertItems(
+        self.mdf_version.insertItems(0, SUPPORTED_VERSIONS)
+        self.mdf_compression.insertItems(
             0, ("no compression", "deflate", "transposed deflate")
         )
-        self.resample_split_size.setValue(10)
-        self.resample_btn.clicked.connect(self.resample)
-
-        self.filter_format.insertItems(0, SUPPORTED_VERSIONS)
-        index = self.filter_format.findText(self.mdf.version)
-        if index >= 0:
-            self.filter_format.setCurrentIndex(index)
-        self.filter_compression.insertItems(
-            0, ("no compression", "deflate", "transposed deflate")
-        )
-        self.filter_split_size.setValue(10)
-        self.filter_btn.clicked.connect(self.filter)
-
-        self.convert_format.insertItems(0, SUPPORTED_VERSIONS)
-        self.convert_compression.insertItems(
-            0, ("no compression", "deflate", "transposed deflate")
-        )
-        self.convert_split_size.setValue(10)
-        self.convert_btn.clicked.connect(self.convert)
-
-        self.cut_format.insertItems(0, SUPPORTED_VERSIONS)
-        index = self.cut_format.findText(self.mdf.version)
-        if index >= 0:
-            self.cut_format.setCurrentIndex(index)
-        self.cut_compression.insertItems(
-            0, ("no compression", "deflate", "transposed deflate")
-        )
-        self.cut_split_size.setValue(10)
-        self.cut_btn.clicked.connect(self.cut)
-
-        self.cut_interval.setText("Unknown measurement interval")
+        self.mdf_split_size.setValue(10)
 
         self.extract_can_format.insertItems(0, SUPPORTED_VERSIONS)
         index = self.extract_can_format.findText(self.mdf.version)
@@ -366,12 +232,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         self.empty_channels.insertItems(0, ("skip", "zeros"))
         self.empty_channels_can.insertItems(0, ("skip", "zeros"))
+        self.empty_channels_mat.insertItems(0, ("skip", "zeros"))
         self.mat_format.insertItems(0, ("4", "5", "7.3"))
         self.oned_as.insertItems(0, ("row", "column"))
-        self.export_type.insertItems(0, ("csv", "hdf5", "mat", "parquet"))
-        self.export_btn.clicked.connect(self.export)
-        self.export_type.currentTextChanged.connect(self.export_changed)
-        self.export_type.setCurrentIndex(-1)
+
+        self.output_format.currentTextChanged.connect(self.output_format_changed)
 
         # info tab
         file_stats = os.stat(self.mdf.name)
@@ -527,9 +392,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.save_channel_list_btn.clicked.connect(self.save_channel_list)
         self.load_filter_list_btn.clicked.connect(self.load_filter_list)
         self.save_filter_list_btn.clicked.connect(self.save_filter_list)
+        self.advanced_search_btn.clicked.connect(self.search)
+        self.advanced_serch_filter_btn.clicked.connect(self.search)
+        self.raster_search_btn.clicked.connect(self.raster_search)
 
         self.scramble_btn.clicked.connect(self.scramble)
         self.setAcceptDrops(True)
+
+        self.apply_btn.clicked.connect(self.apply_processing)
 
         if self.mdf.version >= "4.00":
             for i, attachment in enumerate(self.mdf.attachments, 1):
@@ -610,119 +480,126 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.raster_channel.setCurrentIndex(0)
             self.raster.setEnabled(True)
 
-    def _update_channel_tree(self, index=None):
-        if self.channel_view.currentIndex() == -1:
+    def _update_channel_tree(self, index=None, widget=None):
+        if widget is self.channels_tree and self.channel_view.currentIndex() == -1:
+            return
+        elif widget is self.filter_tree and self.filter_view.currentIndex() == -1:
             return
 
-        if self._show_filter_tree:
-            widgets = (self.channels_tree, self.filter_tree)
-        else:
-            widgets = (self.channels_tree,)
-        for widget in widgets:
-            iterator = QtWidgets.QTreeWidgetItemIterator(widget)
-            signals = set()
+        view = self.channel_view if widget is self.channels_tree else self.filter_view
 
-            if self.channel_view.currentIndex() == 0:
-                while iterator.value():
-                    item = iterator.value()
+        iterator = QtWidgets.QTreeWidgetItemIterator(widget)
+        signals = set()
 
-                    if item.entry[1] != 0xFFFFFFFFFFFFFFFF:
-                        if item.checkState(0) == QtCore.Qt.Checked:
-                            signals.add(item.entry)
+        if self.channel_view.currentIndex() == 0:
+            while iterator.value():
+                item = iterator.value()
 
-                    iterator += 1
-            else:
-                while iterator.value():
-                    item = iterator.value()
-
+                if item.entry[1] != 0xFFFFFFFFFFFFFFFF:
                     if item.checkState(0) == QtCore.Qt.Checked:
                         signals.add(item.entry)
 
-                    iterator += 1
-
-            widget.clear()
-
-            if self.channel_view.currentIndex() == 0:
-                items = []
-                for i, group in enumerate(self.mdf.groups):
-                    for j, ch in enumerate(group.channels):
-                        entry = i, j
-
-                        channel = TreeItem(entry, ch.name, mdf_uuid=self.uuid)
-                        channel.setText(0, ch.name)
-                        if entry in signals:
-                            channel.setCheckState(0, QtCore.Qt.Checked)
-                        else:
-                            channel.setCheckState(0, QtCore.Qt.Unchecked)
-                        items.append(channel)
-
-                if len(items) < 30000:
-                    items = natsorted(items, key=lambda x: x.name)
-                else:
-                    items.sort(key=lambda x: x.name)
-                widget.addTopLevelItems(items)
-            else:
-                for i, group in enumerate(self.mdf.groups):
-                    entry = i, 0xFFFFFFFFFFFFFFFF
-                    channel_group = TreeItem(entry, mdf_uuid=self.uuid)
-                    comment = group.channel_group.comment
-                    comment = extract_cncomment_xml(comment)
-
-                    if comment:
-                        channel_group.setText(0, f"Channel group {i} ({comment})")
-                    else:
-                        channel_group.setText(0, f"Channel group {i}")
-                    channel_group.setFlags(
-                        channel_group.flags()
-                        | QtCore.Qt.ItemIsTristate
-                        | QtCore.Qt.ItemIsUserCheckable
-                    )
-
-                    widget.addTopLevelItem(channel_group)
-
-                    channels = [
-                        HelperChannel(name=ch.name, entry=(i, j))
-                        for j, ch in enumerate(group.channels)
-                    ]
-
-                    add_children(
-                        channel_group,
-                        channels,
-                        group.channel_dependencies,
-                        signals,
-                        entries=None,
-                        mdf_uuid=self.uuid,
-                    )
-
-        self._settings.setValue("channels_view", self.channel_view.currentText())
-
-    def export_changed(self, name):
-        if name == "parquet":
-            self.export_compression.setEnabled(True)
-            self.export_compression.clear()
-            self.export_compression.addItems(["GZIP", "SNAPPY"])
-            self.export_compression.setCurrentIndex(-1)
-        elif name == "hdf5":
-            self.export_compression.setEnabled(True)
-            self.export_compression.clear()
-            self.export_compression.addItems(["gzip", "lzf", "szip"])
-            self.export_compression.setCurrentIndex(-1)
-        elif name == "mat":
-            self.export_compression.setEnabled(True)
-            self.export_compression.clear()
-            self.export_compression.addItems(["enabled", "disabled"])
-            self.export_compression.setCurrentIndex(-1)
+                iterator += 1
         else:
-            self.export_compression.clear()
-            self.export_compression.setEnabled(False)
+            while iterator.value():
+                item = iterator.value()
 
-    def search(self):
+                if item.checkState(0) == QtCore.Qt.Checked:
+                    signals.add(item.entry)
+
+                iterator += 1
+
+        widget.clear()
+
+        if view.currentIndex() == 0:
+            items = []
+            for i, group in enumerate(self.mdf.groups):
+                for j, ch in enumerate(group.channels):
+                    entry = i, j
+
+                    channel = TreeItem(entry, ch.name, mdf_uuid=self.uuid)
+                    channel.setText(0, ch.name)
+                    if entry in signals:
+                        channel.setCheckState(0, QtCore.Qt.Checked)
+                    else:
+                        channel.setCheckState(0, QtCore.Qt.Unchecked)
+                    items.append(channel)
+
+            if len(items) < 30000:
+                items = natsorted(items, key=lambda x: x.name)
+            else:
+                items.sort(key=lambda x: x.name)
+            widget.addTopLevelItems(items)
+        else:
+            for i, group in enumerate(self.mdf.groups):
+                entry = i, 0xFFFFFFFFFFFFFFFF
+                channel_group = TreeItem(entry, mdf_uuid=self.uuid)
+                comment = group.channel_group.comment
+                comment = extract_cncomment_xml(comment)
+
+                if comment:
+                    channel_group.setText(0, f"Channel group {i} ({comment})")
+                else:
+                    channel_group.setText(0, f"Channel group {i}")
+                channel_group.setFlags(
+                    channel_group.flags()
+                    | QtCore.Qt.ItemIsTristate
+                    | QtCore.Qt.ItemIsUserCheckable
+                )
+
+                widget.addTopLevelItem(channel_group)
+
+                channels = [
+                    HelperChannel(name=ch.name, entry=(i, j))
+                    for j, ch in enumerate(group.channels)
+                ]
+
+                add_children(
+                    channel_group,
+                    channels,
+                    group.channel_dependencies,
+                    signals,
+                    entries=None,
+                    mdf_uuid=self.uuid,
+                )
+
+        setting = "channels_view" if widget is self.channels_tree else "filter_view"
+        self._settings.setValue(setting, self.channel_view.currentText())
+
+    def output_format_changed(self, name):
+        if name == "MDF":
+            self.output_options.setCurrentIndex(0)
+        elif name == "MAT":
+            self.output_options.setCurrentIndex(2)
+
+            self.export_compression_mat.clear()
+            self.export_compression_mat.addItems(["enabled", "disabled"])
+            self.export_compression_mat.setCurrentIndex(0)
+        else:
+            self.output_options.setCurrentIndex(1)
+            if name == "Parquet":
+                self.export_compression.setEnabled(True)
+                self.export_compression.clear()
+                self.export_compression.addItems(["GZIP", "SNAPPY"])
+                self.export_compression.setCurrentIndex(0)
+            elif name == "HDF5":
+                self.export_compression.setEnabled(True)
+                self.export_compression.clear()
+                self.export_compression.addItems(["gzip", "lzf", "szip"])
+                self.export_compression.setCurrentIndex(0)
+            elif name:
+                self.export_compression.clear()
+                self.export_compression.setEnabled(False)
+
+    def search(self, event=None):
         if self.aspects.tabText(self.aspects.currentIndex()) == "Channels":
             show_add_window = True
             widget = self.channels_tree
+            view = self.channel_view
         else:
             show_add_window = False
             widget = self.filter_tree
+            view = self.filter_view
         dlg = AdvancedSearch(
             self.mdf.channels_db, show_add_window=show_add_window, parent=self,
         )
@@ -731,7 +608,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         result = dlg.result
         if result:
             names = set()
-            if self.channel_view.currentIndex() == 1:
+            if view.currentIndex() == 1:
                 iterator = QtWidgets.QTreeWidgetItemIterator(widget)
 
                 dg_cntr = -1
@@ -941,7 +818,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
                 signals = []
-                if self.channel_view.currentIndex() == 1:
+                if self.filter_view.currentIndex() == 1:
                     while iterator.value():
                         item = iterator.value()
                         if item.parent() is None:
@@ -1147,374 +1024,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         self.mdf = None
 
-    def convert(self, event):
-        version = self.convert_format.currentText()
-
-        if version < "4.00":
-            filter = "MDF version 3 files (*.dat *.mdf)"
-            suffix = ".mdf"
-        else:
-            filter = "MDF version 4 files (*.mf4)"
-            suffix = ".mf4"
-
-        split = self.convert_split.checkState() == QtCore.Qt.Checked
-        if split:
-            split_size = int(self.convert_split_size.value() * 1024 * 1024)
-        else:
-            split_size = 0
-
-        self.mdf.configure(write_fragment_size=split_size)
-
-        compression = self.convert_compression.currentIndex()
-
-        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self,
-            "Select output measurement file",
-            "",
-            f"{filter};;All files (*.*)",
-            filter,
-        )
-
-        if file_name:
-            file_name = Path(file_name).with_suffix(suffix)
-
-            progress = setup_progress(
-                parent=self,
-                title="Converting measurement",
-                message=f'Converting "{self.file_name}" from {self.mdf.version} to {version}',
-                icon_name="convert",
-            )
-
-            # convert self.mdf
-            target = self.mdf.convert
-            kwargs = {"version": version}
-
-            mdf = run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=50,
-                offset=0,
-                progress=progress,
-            )
-
-            if mdf is TERMINATED:
-                progress.cancel()
-                return
-
-            mdf.configure(write_fragment_size=split_size)
-
-            # then save it
-            progress.setLabelText(f'Saving converted file "{file_name}"')
-
-            target = mdf.save
-            kwargs = {"dst": file_name, "compression": compression, "overwrite": True}
-
-            run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=50,
-                offset=50,
-                progress=progress,
-            )
-
-            self.progress = None
-            progress.cancel()
-
-    def resample(self, event):
-        version = self.resample_format.currentText()
-
-        if self.raster_type_channel.isChecked():
-            raster = self.raster_channel.currentText()
-        else:
-            raster = self.raster.value()
-
-        if version < "4.00":
-            filter = "MDF version 3 files (*.dat *.mdf)"
-            suffix = ".mdf"
-        else:
-            filter = "MDF version 4 files (*.mf4)"
-            suffix = ".mf4"
-
-        split = self.resample_split.checkState() == QtCore.Qt.Checked
-        if split:
-            split_size = int(self.resample_split_size.value() * 1024 * 1024)
-        else:
-            split_size = 0
-
-        self.mdf.configure(write_fragment_size=split_size)
-
-        compression = self.resample_compression.currentIndex()
-        time_from_zero = self.resample_time_from_zero.checkState() == QtCore.Qt.Checked
-
-        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self,
-            "Select output measurement file",
-            "",
-            f"{filter};;All files (*.*)",
-            filter,
-        )
-
-        if file_name:
-            file_name = Path(file_name).with_suffix(suffix)
-
-            progress = setup_progress(
-                parent=self,
-                title="Resampling measurement",
-                message=f'Resampling "{self.file_name}" to {raster}s raster ',
-                icon_name="resample",
-            )
-
-            # resample self.mdf
-            target = self.mdf.resample
-            kwargs = {
-                "raster": raster,
-                "version": version,
-                "time_from_zero": time_from_zero,
-            }
-
-            mdf = run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=66,
-                offset=0,
-                progress=progress,
-            )
-
-            if mdf is TERMINATED:
-                progress.cancel()
-                return
-
-            mdf.configure(write_fragment_size=split_size)
-
-            # then save it
-            progress.setLabelText(f'Saving resampled file "{file_name}"')
-
-            target = mdf.save
-            kwargs = {"dst": file_name, "compression": compression, "overwrite": True}
-
-            run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=34,
-                offset=66,
-                progress=progress,
-            )
-
-            self.progress = None
-            progress.cancel()
-
-    def cut(self, event):
-        version = self.cut_format.currentText()
-        start = self.cut_start.value()
-        stop = self.cut_stop.value()
-        time_from_zero = self.cut_time_from_zero.checkState() == QtCore.Qt.Checked
-
-        if self.whence.checkState() == QtCore.Qt.Checked:
-            whence = 1
-        else:
-            whence = 0
-
-        if version < "4.00":
-            filter = "MDF version 3 files (*.dat *.mdf)"
-            suffix = ".mdf"
-        else:
-            filter = "MDF version 4 files (*.mf4)"
-            suffix = ".mf4"
-
-        split = self.cut_split.checkState() == QtCore.Qt.Checked
-        if split:
-            split_size = int(self.cut_split_size.value() * 1024 * 1024)
-        else:
-            split_size = 0
-
-        self.mdf.configure(write_fragment_size=split_size)
-
-        compression = self.cut_compression.currentIndex()
-
-        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self,
-            "Select output measurement file",
-            "",
-            f"{filter};;All files (*.*)",
-            filter,
-        )
-
-        if file_name:
-            file_name = Path(file_name).with_suffix(suffix)
-            progress = setup_progress(
-                parent=self,
-                title="Cutting measurement",
-                message=f'Cutting "{self.file_name}" from {start}s to {stop}s',
-                icon_name="cut",
-            )
-
-            # cut self.mdf
-            target = self.mdf.cut
-            kwargs = {
-                "start": start,
-                "stop": stop,
-                "whence": whence,
-                "version": version,
-                "time_from_zero": time_from_zero,
-            }
-
-            mdf = run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=66,
-                offset=0,
-                progress=progress,
-            )
-
-            if mdf is TERMINATED:
-                progress.cancel()
-                return
-
-            mdf.configure(write_fragment_size=split_size)
-
-            # then save it
-            progress.setLabelText(f'Saving cut file "{file_name}"')
-
-            target = mdf.save
-            kwargs = {"dst": file_name, "compression": compression, "overwrite": True}
-
-            run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=34,
-                offset=66,
-                progress=progress,
-            )
-
-            self.progress = None
-            progress.cancel()
-
-    def export(self, event):
-        export_type = self.export_type.currentText()
-
-        single_time_base = self.single_time_base.checkState() == QtCore.Qt.Checked
-        time_from_zero = self.time_from_zero.checkState() == QtCore.Qt.Checked
-        use_display_names = self.use_display_names.checkState() == QtCore.Qt.Checked
-        empty_channels = self.empty_channels.currentText()
-        mat_format = self.mat_format.currentText()
-        raster = self.export_raster.value() or None
-        oned_as = self.oned_as.currentText()
-        reduce_memory_usage = self.reduce_memory_usage.checkState() == QtCore.Qt.Checked
-        compression = self.export_compression.currentText()
-        time_as_date = self.time_as_date.checkState() == QtCore.Qt.Checked
-
-        filters = {
-            "csv": "CSV files (*.csv)",
-            "hdf5": "HDF5 files (*.hdf)",
-            "mat": "Matlab MAT files (*.mat)",
-            "parquet": "Apache Parquet files (*.parquet)",
-        }
-
-        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self,
-            "Select export file",
-            "",
-            f"{filters[export_type]};;All files (*.*)",
-            filters[export_type],
-        )
-
-        if file_name:
-            if export_type == "hdf5":
-                try:
-                    from h5py import File as HDF5
-                except ImportError:
-                    QtWidgets.QMessageBox.critical(
-                        self,
-                        "Export to HDF5 unavailale",
-                        "h5py package not found; export to HDF5 is unavailable"
-                    )
-                    return
-
-            elif export_type == "mat":
-                if mat_format == "7.3":
-                    try:
-                        from hdf5storage import savemat
-                    except ImportError:
-                        QtWidgets.QMessageBox.critical(
-                            self,
-                            "Export to mat unavailale",
-                            "hdf5storage package not found; export to mat 7.3 is unavailable"
-                        )
-                        return
-                else:
-                    try:
-                        from scipy.io import savemat
-                    except ImportError:
-                        QtWidgets.QMessageBox.critical(
-                            self,
-                            "Export to mat unavailale",
-                            "scipy package not found; export to mat is unavailable"
-                        )
-                        return
-
-            elif export_type == "parquet":
-                try:
-                    from fastparquet import write as write_parquet
-                except ImportError:
-                    QtWidgets.QMessageBox.critical(
-                        self,
-                        "Export to parquet unavailale",
-                        "fastparquet package not found; export to parquet is unavailable"
-                    )
-                    return
-
-            progress = setup_progress(
-                parent=self,
-                title="Export measurement",
-                message=f'Exporting "{self.file_name}" to {export_type}',
-                icon_name="export",
-            )
-
-            if export_type == "mat":
-                if compression:
-                    compression = True if compression == "enabled" else False
-                else:
-                    compression = False
-
-            # cut self.mdf
-            target = self.mdf.export
-            kwargs = {
-                "fmt": export_type,
-                "filename": file_name,
-                "single_time_base": single_time_base,
-                "use_display_names": use_display_names,
-                "time_from_zero": time_from_zero,
-                "empty_channels": empty_channels,
-                "format": mat_format,
-                "raster": raster,
-                "oned_as": oned_as,
-                "reduce_memory_usage": reduce_memory_usage,
-                "compression": compression,
-                "time_as_date": time_as_date,
-            }
-
-            mdf = run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=100,
-                offset=0,
-                progress=progress,
-            )
-
-            if mdf is TERMINATED:
-                progress.cancel()
-                return
-
-            self.progress = None
-            progress.cancel()
-
     def _create_window(self, event):
 
         ret, ok = QtWidgets.QInputDialog.getItem(
@@ -1563,105 +1072,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         iterator += 1
 
             self.add_window((ret, signals))
-
-    def filter(self, event):
-        iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
-
-        channels = []
-
-        if self.channel_view.currentIndex() == 1:
-            while iterator.value():
-                item = iterator.value()
-
-                if item.checkState(0) == QtCore.Qt.Checked:
-                    group, index = item.entry
-
-                    if index != 0xFFFFFFFFFFFFFFFF:
-                        channels.append((None, group, index))
-
-                iterator += 1
-        else:
-            while iterator.value():
-                item = iterator.value()
-
-                if item.checkState(0) == QtCore.Qt.Checked:
-                    group, index = item.entry
-                    channels.append((None, group, index))
-
-                iterator += 1
-
-        version = self.filter_format.itemText(self.filter_format.currentIndex())
-
-        if version < "4.00":
-            filter = "MDF version 3 files (*.dat *.mdf)"
-            suffix = ".mdf"
-        else:
-            filter = "MDF version 4 files (*.mf4)"
-            suffix = ".mf4"
-
-        split = self.filter_split.checkState() == QtCore.Qt.Checked
-        if split:
-            split_size = int(self.filter_split_size.value() * 1024 * 1024)
-        else:
-            split_size = 0
-
-        self.mdf.configure(write_fragment_size=split_size)
-
-        compression = self.filter_compression.currentIndex()
-
-        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self,
-            "Select output measurement file",
-            "",
-            f"{filter};;All files (*.*)",
-            filter,
-        )
-
-        if file_name:
-            file_name = Path(file_name).with_suffix(suffix)
-            progress = setup_progress(
-                parent=self,
-                title="Filtering measurement",
-                message=f'Filtering selected channels from "{self.file_name}"',
-                icon_name="filter",
-            )
-
-            # filtering self.mdf
-            target = self.mdf.filter
-            kwargs = {"channels": channels, "version": version}
-
-            mdf = run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=66,
-                offset=0,
-                progress=progress,
-            )
-
-            if mdf is TERMINATED:
-                progress.cancel()
-                return
-
-            mdf.configure(write_fragment_size=split_size)
-
-            # then save it
-            progress.setLabelText(f'Saving filtered file "{file_name}"')
-
-            target = mdf.save
-            kwargs = {"dst": file_name, "compression": compression, "overwrite": True}
-
-            run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=34,
-                offset=66,
-                progress=progress,
-            )
-
-            self.progress = None
-            progress.cancel()
 
     def scramble(self, event):
 
@@ -1990,70 +1400,68 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             super().keyPressEvent(event)
 
     def aspect_changed(self, index):
-        if (
-            self.aspects.tabText(self.aspects.currentIndex()) == "Resample"
-            and not self.raster_channel.count()
-        ):
-            self.raster_channel.setSizeAdjustPolicy(
-                QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon
-            )
-            self.raster_channel.addItems(self.channels_db_items)
-            self.raster_channel.setMinimumWidth(100)
-        elif (
-            self.aspects.tabText(self.aspects.currentIndex()) == "Filter"
-            and not self._show_filter_tree
-        ):
-            self._show_filter_tree = True
 
-            widget = self.filter_tree
+        if self.aspects.tabText(self.aspects.currentIndex()) == "Modify && Export":
 
-            if self.channel_view.currentIndex() == 0:
-                items = []
-                for i, group in enumerate(self.mdf.groups):
-                    for j, ch in enumerate(group.channels):
-                        entry = i, j
+            if not self.raster_channel.count():
+                self.raster_channel.setSizeAdjustPolicy(
+                    QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon
+                )
+                self.raster_channel.addItems(self.channels_db_items)
+                self.raster_channel.setMinimumWidth(100)
 
-                        channel = TreeItem(entry, ch.name)
-                        channel.setText(0, ch.name)
-                        channel.setCheckState(0, QtCore.Qt.Unchecked)
-                        items.append(channel)
+            if not self._show_filter_tree:
+                self._show_filter_tree = True
 
-                if len(items) < 30000:
-                    items = natsorted(items, key=lambda x: x.name)
-                else:
-                    items.sort(key=lambda x: x.name)
-                widget.addTopLevelItems(items)
-            else:
-                for i, group in enumerate(self.mdf.groups):
-                    entry = i, 0xFFFFFFFFFFFFFFFF
-                    channel_group = TreeItem(entry)
-                    comment = group.channel_group.comment
-                    comment = extract_cncomment_xml(comment)
+                widget = self.filter_tree
 
-                    if comment:
-                        channel_group.setText(0, f"Channel group {i} ({comment})")
+                if self.channel_view.currentIndex() == 0:
+                    items = []
+                    for i, group in enumerate(self.mdf.groups):
+                        for j, ch in enumerate(group.channels):
+                            entry = i, j
+
+                            channel = TreeItem(entry, ch.name)
+                            channel.setText(0, ch.name)
+                            channel.setCheckState(0, QtCore.Qt.Unchecked)
+                            items.append(channel)
+
+                    if len(items) < 30000:
+                        items = natsorted(items, key=lambda x: x.name)
                     else:
-                        channel_group.setText(0, f"Channel group {i}")
-                    channel_group.setFlags(
-                        channel_group.flags()
-                        | QtCore.Qt.ItemIsTristate
-                        | QtCore.Qt.ItemIsUserCheckable
-                    )
+                        items.sort(key=lambda x: x.name)
+                    widget.addTopLevelItems(items)
+                else:
+                    for i, group in enumerate(self.mdf.groups):
+                        entry = i, 0xFFFFFFFFFFFFFFFF
+                        channel_group = TreeItem(entry)
+                        comment = group.channel_group.comment
+                        comment = extract_cncomment_xml(comment)
 
-                    widget.addTopLevelItem(channel_group)
+                        if comment:
+                            channel_group.setText(0, f"Channel group {i} ({comment})")
+                        else:
+                            channel_group.setText(0, f"Channel group {i}")
+                        channel_group.setFlags(
+                            channel_group.flags()
+                            | QtCore.Qt.ItemIsTristate
+                            | QtCore.Qt.ItemIsUserCheckable
+                        )
 
-                    channels = [
-                        HelperChannel(name=ch.name, entry=(i, j))
-                        for j, ch in enumerate(group.channels)
-                    ]
+                        widget.addTopLevelItem(channel_group)
 
-                    add_children(
-                        channel_group,
-                        channels,
-                        group.channel_dependencies,
-                        set(),
-                        entries=None,
-                    )
+                        channels = [
+                            HelperChannel(name=ch.name, entry=(i, j))
+                            for j, ch in enumerate(group.channels)
+                        ]
+
+                        add_children(
+                            channel_group,
+                            channels,
+                            group.channel_dependencies,
+                            set(),
+                            entries=None,
+                        )
 
     def toggle_frames(self, event=None):
         self._frameless_windows = not self._frameless_windows
@@ -2076,3 +1484,462 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.mdi_area.tile_horizontally()
         else:
             self.mdi_area.tileSubWindows()
+
+    def _current_options(self):
+        options = {
+            "needs_cut": self.cut_group.isChecked(),
+            "cut_start": self.cut_start.value(),
+            "cut_stop": self.cut_stop.value(),
+            "cut_time_from_zero": self.cut_time_from_zero.checkState() == QtCore.Qt.Checked,
+            "whence": int(self.whence.checkState() == QtCore.Qt.Checked),
+
+            "needs_resample": self.resample_group.isChecked(),
+            "raster_type_step": self.raster_type_step.isChecked(),
+            "raster_type_channel": self.raster_type_channel.isChecked(),
+            "raster": self.raster.value(),
+            "raster_channel": self.raster_channel.currentText(),
+            "resample_time_from_zero": self.resample_time_from_zero.checkState() == QtCore.Qt.Checked,
+
+            "output_format": self.output_format.currentText(),
+        }
+
+        output_format = self.output_format.currentText()
+
+        if output_format == "MDF":
+
+            new = {
+                "mdf_version": self.mdf_version.currentText(),
+                "mdf_compression": self.mdf_compression.currentIndex(),
+                "mdf_split": self.mdf_split.checkState() == QtCore.Qt.Checked,
+                "mdf_split_size": self.mdf_split_size.value() * 1024 * 1024,
+            }
+
+        elif output_format == "MAT":
+
+            new = {
+                "single_time_base": self.single_time_base_mat.checkState() == QtCore.Qt.Checked,
+                "time_from_zero": self.time_from_zero_mat.checkState() == QtCore.Qt.Checked,
+                "time_as_date": self.time_as_date_mat.checkState() == QtCore.Qt.Checked,
+                "use_display_names": self.use_display_names_mat.checkState() == QtCore.Qt.Checked,
+                "reduce_memory_usage": self.reduce_memory_usage_mat.checkState() == QtCore.Qt.Checked,
+                "compression": self.export_compression_mat.currentText() == "enabled",
+                "empty_channels": self.empty_channels_mat.currentText(),
+                "mat_format": self.mat_format.currentText(),
+                "oned_as": self.oned_as.currentText(),
+            }
+
+        else:
+
+            new = {
+                "single_time_base": self.single_time_base.checkState() == QtCore.Qt.Checked,
+                "time_from_zero": self.time_from_zero.checkState() == QtCore.Qt.Checked,
+                "time_as_date": self.time_as_date.checkState() == QtCore.Qt.Checked,
+                "use_display_names": self.use_display_names.checkState() == QtCore.Qt.Checked,
+                "reduce_memory_usage": self.reduce_memory_usage.checkState() == QtCore.Qt.Checked,
+                "compression": self.export_compression.currentText(),
+                "empty_channels": self.empty_channels.currentText(),
+                "mat_format": None,
+                "oned_as": None,
+            }
+
+        options.update(new)
+
+        class Options:
+
+            def __init__(self, opts):
+                self._opts = opts
+                for k, v in opts.items():
+                    setattr(self, k, v)
+
+        return Options(options)
+
+    def _get_filtered_channels(self):
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
+
+        channels = []
+        count = 0
+
+        if self.filter_view.currentIndex() == 1:
+            while iterator.value():
+                item = iterator.value()
+
+                if item.checkState(0) == QtCore.Qt.Checked:
+                    group, index = item.entry
+
+                    if index != 0xFFFFFFFFFFFFFFFF:
+                        channels.append((None, group, index))
+                        count += 1
+
+                iterator += 1
+        else:
+            while iterator.value():
+                item = iterator.value()
+
+                if item.checkState(0) == QtCore.Qt.Checked:
+                    group, index = item.entry
+                    channels.append((None, group, index))
+                    count += 1
+
+                iterator += 1
+
+        if not channels:
+            return False, channels
+        else:
+            if len(channels) == count:
+                return False, channels
+            else:
+                return True, channels
+
+    def apply_processing(self, event):
+
+        steps = 1
+        if self.cut_group.isChecked():
+            steps += 1
+        if self.resample_group.isChecked():
+            steps += 1
+        needs_filter, channels = self._get_filtered_channels()
+        if needs_filter:
+            steps += 1
+
+        opts = self._current_options()
+
+        output_format = opts.output_format
+
+        if output_format == 'MDF':
+            version = opts.mdf_version
+
+            if version < "4.00":
+                filter = "MDF version 3 files (*.dat *.mdf)"
+            else:
+                filter = "MDF version 4 files (*.mf4)"
+
+            file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
+                self,
+                "Select output measurement file",
+                "",
+                f"{filter};;All files (*.*)",
+                filter,
+            )
+
+        else:
+            filters = {
+                "CSV": "CSV files (*.csv)",
+                "HDF5": "HDF5 files (*.hdf)",
+                "MAT": "Matlab MAT files (*.mat)",
+                "Parquet": "Apache Parquet files (*.parquet)",
+            }
+
+            file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
+                self,
+                "Select export file",
+                "",
+                f"{filters[output_format]};;All files (*.*)",
+                filters[output_format],
+            )
+
+        if file_name:
+            if output_format == "HDF5":
+                try:
+                    from h5py import File as HDF5
+                except ImportError:
+                    QtWidgets.QMessageBox.critical(
+                        self,
+                        "Export to HDF5 unavailale",
+                        "h5py package not found; export to HDF5 is unavailable"
+                    )
+                    return
+
+            elif output_format == "MAT":
+                if opts.mat_format == "7.3":
+                    try:
+                        from hdf5storage import savemat
+                    except ImportError:
+                        QtWidgets.QMessageBox.critical(
+                            self,
+                            "Export to mat unavailale",
+                            "hdf5storage package not found; export to mat 7.3 is unavailable"
+                        )
+                        return
+                else:
+                    try:
+                        from scipy.io import savemat
+                    except ImportError:
+                        QtWidgets.QMessageBox.critical(
+                            self,
+                            "Export to mat unavailale",
+                            "scipy package not found; export to mat is unavailable"
+                        )
+                        return
+
+            elif output_format == "Parquet":
+                try:
+                    from fastparquet import write as write_parquet
+                except ImportError:
+                    QtWidgets.QMessageBox.critical(
+                        self,
+                        "Export to parquet unavailale",
+                        "fastparquet package not found; export to parquet is unavailable"
+                    )
+                    return
+        else:
+            return
+
+        split_size = opts.mdf_split_size if output_format == 'MDF' else 0
+        self.mdf.configure(read_fragment_size=split_size)
+
+        mdf = None
+        progress = None
+
+        if needs_filter:
+
+            progress = setup_progress(
+                parent=self,
+                title="Filtering measurement",
+                message=f'Filtering selected channels from "{self.file_name}"',
+                icon_name="filter",
+            )
+
+            # filtering self.mdf
+            target = self.mdf.filter
+            kwargs = {
+                "channels": channels,
+                "version": opts.mdf_version if output_format == 'MDF' else '4.10',
+            }
+
+            result = run_thread_with_progress(
+                self,
+                target=target,
+                kwargs=kwargs,
+                factor=99,
+                offset=0,
+                progress=progress,
+            )
+
+            if result is TERMINATED:
+                progress.cancel()
+                return
+            else:
+                mdf = result
+
+            mdf.configure(read_fragment_size=split_size, write_fragment_size=split_size)
+
+        if opts.needs_cut:
+
+            if progress is None:
+                progress = setup_progress(
+                    parent=self,
+                    title="Cutting measurement",
+                    message=f'Cutting from {opts.cut_start}s to {opts.cut_stop}s',
+                    icon_name="cut",
+                )
+            else:
+                icon = QtGui.QIcon()
+                icon.addPixmap(
+                    QtGui.QPixmap(":/cut.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                )
+                progress.setWindowIcon(icon)
+                progress.setWindowTitle("Cutting measurement")
+                progress.setLabelText(f'Cutting from {opts.cut_start}s to {opts.cut_stop}s')
+
+            # cut self.mdf
+            target = self.mdf.cut if mdf is None else mdf.cut
+            kwargs = {
+                "start": opts.cut_start,
+                "stop": opts.cut_stop,
+                "whence": opts.whence,
+                "version": opts.mdf_version if output_format == 'MDF' else '4.10',
+                "time_from_zero": opts.cut_time_from_zero,
+            }
+
+            result = run_thread_with_progress(
+                self,
+                target=target,
+                kwargs=kwargs,
+                factor=99,
+                offset=0,
+                progress=progress,
+            )
+
+            if result is TERMINATED:
+                progress.cancel()
+                return
+            else:
+                if mdf is None:
+                    mdf = result
+                else:
+                    mdf.close()
+                    mdf = result
+
+            mdf.configure(read_fragment_size=split_size, write_fragment_size=split_size)
+
+        if opts.needs_resample:
+
+            if opts.raster_type_channel:
+                raster = opts.raster_channel
+                message = f'Resampling using channel "{raster}"'
+            else:
+                raster = opts.raster
+                message = f'Resampling to {raster}s raster'
+
+            if progress is None:
+                progress = setup_progress(
+                    parent=self,
+                    title="Resampling measurement",
+                    message=message,
+                    icon_name="resample",
+                )
+            else:
+                icon = QtGui.QIcon()
+                icon.addPixmap(
+                    QtGui.QPixmap(":/resample.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                )
+                progress.setWindowIcon(icon)
+                progress.setWindowTitle("Resampling measurement")
+                progress.setLabelText(message)
+
+
+            # resample self.mdf
+            target = self.mdf.resample if mdf is None else mdf.resample
+            kwargs = {
+                "raster": raster,
+                "version": opts.mdf_version if output_format == 'MDF' else '4.10',
+                "time_from_zero": opts.resample_time_from_zero,
+            }
+
+            result = run_thread_with_progress(
+                self,
+                target=target,
+                kwargs=kwargs,
+                factor=99,
+                offset=0,
+                progress=progress,
+            )
+
+            if result is TERMINATED:
+                progress.cancel()
+                return
+            else:
+                if mdf is None:
+                    mdf = result
+                else:
+                    mdf.close()
+                    mdf = result
+
+            mdf.configure(read_fragment_size=split_size, write_fragment_size=split_size)
+
+        if output_format == "MDF":
+            if mdf is None:
+                if progress is None:
+                    progress = setup_progress(
+                        parent=self,
+                        title="Converting measurement",
+                        message=f'Converting "{self.file_name}" from {self.mdf.version} to {version}',
+                        icon_name="convert",
+                    )
+                else:
+                    icon = QtGui.QIcon()
+                    icon.addPixmap(
+                        QtGui.QPixmap(":/convert.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                    )
+                    progress.setWindowIcon(icon)
+                    progress.setWindowTitle("Converting measurement")
+                    progress.setLabelText(f'Converting "{self.file_name}" from {self.mdf.version} to {version}')
+
+                # convert self.mdf
+                target = self.mdf.convert
+                kwargs = {"version": version}
+
+                result = run_thread_with_progress(
+                    self,
+                    target=target,
+                    kwargs=kwargs,
+                    factor=99,
+                    offset=0,
+                    progress=progress,
+                )
+
+                if result is TERMINATED:
+                    progress.cancel()
+                    return
+                else:
+                    mdf = result
+
+            mdf.configure(read_fragment_size=split_size, write_fragment_size=split_size)
+
+            # then save it
+            progress.setLabelText(f'Saving output file "{file_name}"')
+
+            target = mdf.save
+            kwargs = {"dst": file_name, "compression": opts.mdf_compression, "overwrite": True}
+
+            run_thread_with_progress(
+                self,
+                target=target,
+                kwargs=kwargs,
+                factor=99,
+                offset=0,
+                progress=progress,
+            )
+
+            self.progress = None
+            progress.cancel()
+
+        else:
+            if progress is None:
+                progress = setup_progress(
+                    parent=self,
+                    title="Export measurement",
+                    message=f'Exporting to {output_format}',
+                    icon_name="export",
+                )
+            else:
+                icon = QtGui.QIcon()
+                icon.addPixmap(
+                    QtGui.QPixmap(":/export.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                )
+                progress.setWindowIcon(icon)
+                progress.setWindowTitle("Export measurement")
+                progress.setLabelText(f'Exporting to {output_format}')
+
+            target = self.mdf.export if mdf is None else mdf.export
+            kwargs = {
+                "fmt": opts.output_format.lower(),
+                "filename": file_name,
+                "single_time_base": opts.single_time_base,
+                "use_display_names": opts.use_display_names,
+                "time_from_zero": opts.time_from_zero,
+                "empty_channels": opts.empty_channels,
+                "format": opts.mat_format,
+                "raster": None,
+                "oned_as": opts.oned_as,
+                "reduce_memory_usage": opts.reduce_memory_usage,
+                "compression": opts.compression,
+                "time_as_date": opts.time_as_date,
+                "ignore_value2text_conversions": self.ignore_value2text_conversions,
+            }
+
+            result = run_thread_with_progress(
+                self,
+                target=target,
+                kwargs=kwargs,
+                factor=99,
+                offset=0,
+                progress=progress,
+            )
+
+            self.progress = None
+            progress.cancel()
+
+    def raster_search(self, event):
+        dlg = AdvancedSearch(
+            self.mdf.channels_db, show_add_window=False, parent=self,
+        )
+        dlg.setModal(True)
+        dlg.exec_()
+        result = dlg.result
+        if result:
+            dg_cntr, ch_cntr = next(iter(result))
+
+            name = self.mdf.groups[dg_cntr].channels[ch_cntr].name
+
+            self.raster_channel.setCurrentText(name)
