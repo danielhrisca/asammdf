@@ -22,7 +22,7 @@ from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_group_info import ChannelGroupInfoDialog
 from ..dialogs.channel_info import ChannelInfoDialog
 from ..ui import resource_rc as resource_rc
-from ..ui.file_widget2 import Ui_file_widget
+from ..ui.file_widget import Ui_file_widget
 from ..utils import (
     add_children,
     compute_signal,
@@ -173,6 +173,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         self.channel_view.currentIndexChanged.connect(partial(self._update_channel_tree, widget=self.channels_tree))
         self.filter_view.currentIndexChanged.connect(partial(self._update_channel_tree, widget=self.filter_tree))
+        self.channel_view.currentTextChanged.connect(partial(self._update_channel_tree, widget=self.channels_tree))
+        self.filter_view.currentTextChanged.connect(partial(self._update_channel_tree, widget=self.filter_tree))
 
         self.channels_tree.setDragEnabled(True)
 
@@ -491,7 +493,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         iterator = QtWidgets.QTreeWidgetItemIterator(widget)
         signals = set()
 
-        if self.channel_view.currentIndex() == 0:
+        if widget.mode == "Internal file structure":
             while iterator.value():
                 item = iterator.value()
 
@@ -510,8 +512,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 iterator += 1
 
         widget.clear()
+        widget.mode = view.currentText()
 
-        if view.currentIndex() == 0:
+        if widget.mode == "Natural sort":
             items = []
             for i, group in enumerate(self.mdf.groups):
                 for j, ch in enumerate(group.channels):
@@ -530,7 +533,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             else:
                 items.sort(key=lambda x: x.name)
             widget.addTopLevelItems(items)
-        else:
+        elif widget.mode == "Internal file structure":
             for i, group in enumerate(self.mdf.groups):
                 entry = i, 0xFFFFFFFFFFFFFFFF
                 channel_group = TreeItem(entry, mdf_uuid=self.uuid)
@@ -562,9 +565,24 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     entries=None,
                     mdf_uuid=self.uuid,
                 )
+        else:
+            items = []
+            for entry in signals:
+                gp_index, ch_index = entry
+                ch = self.mdf.groups[gp_index].channels[ch_index]
+                channel = TreeItem(entry, ch.name, mdf_uuid=self.uuid)
+                channel.setText(0, ch.name)
+                channel.setCheckState(0, QtCore.Qt.Checked)
+                items.append(channel)
+
+            if len(items) < 30000:
+                items = natsorted(items, key=lambda x: x.name)
+            else:
+                items.sort(key=lambda x: x.name)
+            widget.addTopLevelItems(items)
 
         setting = "channels_view" if widget is self.channels_tree else "filter_view"
-        self._settings.setValue(setting, self.channel_view.currentText())
+        self._settings.setValue(setting, view.currentText())
 
     def output_format_changed(self, name):
         if name == "MDF":
@@ -606,9 +624,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         dlg.setModal(True)
         dlg.exec_()
         result = dlg.result
+
         if result:
             names = set()
-            if view.currentIndex() == 1:
+            if view.currentText() == "Internal file structure":
                 iterator = QtWidgets.QTreeWidgetItemIterator(widget)
 
                 dg_cntr = -1
@@ -628,6 +647,37 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                     iterator += 1
                     ch_cntr += 1
+            elif view.currentText() == "Selected channels only":
+                iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
+
+                signals = set()
+                while iterator.value():
+                    item = iterator.value()
+
+                    if item.checkState(0) == QtCore.Qt.Checked:
+                        signals.add(item.entry)
+
+                    iterator += 1
+
+                signals = signals | result
+
+                widget.clear()
+
+                items = []
+                for entry in signals:
+                    gp_index, ch_index = entry
+                    ch = self.mdf.groups[gp_index].channels[ch_index]
+                    channel = TreeItem(entry, ch.name, mdf_uuid=self.uuid)
+                    channel.setText(0, ch.name)
+                    channel.setCheckState(0, QtCore.Qt.Checked)
+                    items.append(channel)
+
+                if len(items) < 30000:
+                    items = natsorted(items, key=lambda x: x.name)
+                else:
+                    items.sort(key=lambda x: x.name)
+                widget.addTopLevelItems(items)
+
             else:
                 iterator = QtWidgets.QTreeWidgetItemIterator(widget)
                 while iterator.value():
@@ -638,6 +688,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         names.add(item.text(0))
 
                     iterator += 1
+
 
             if dlg.add_window_request:
                 options = [
@@ -674,7 +725,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
         signals = []
-        if self.channel_view.currentIndex() == 1:
+        if self.channel_view.currentText() == "Internal file structure":
             while iterator.value():
                 item = iterator.value()
                 if item.parent() is None:
@@ -777,7 +828,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
-                if self.channel_view.currentIndex() == 1:
+                if self.channel_view.currentText() == "Internal file structure":
                     while iterator.value():
                         item = iterator.value()
                         if item.parent() is None:
@@ -818,7 +869,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
                 signals = []
-                if self.filter_view.currentIndex() == 1:
+                if self.filter_view.currentText() == "Internal file structure":
                     while iterator.value():
                         item = iterator.value()
                         if item.parent() is None:
@@ -892,7 +943,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
-                if self.channel_view.currentIndex() == 1:
+                if self.channel_view.currentText() == "Internal file structure":
                     while iterator.value():
                         item = iterator.value()
                         if item.parent() is None:
@@ -907,7 +958,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             item.setCheckState(0, QtCore.Qt.Unchecked)
 
                         iterator += 1
-                else:
+                elif self.channel_view.currentText() == "Natural sort":
                     while iterator.value():
                         item = iterator.value()
 
@@ -919,6 +970,27 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             item.setCheckState(0, QtCore.Qt.Unchecked)
 
                         iterator += 1
+
+                else:
+                    items = []
+                    self.filter_tree.clear()
+
+                    for i, gp in enumerate(self.mdf.groups):
+                        for j, ch in enumerate(gp.channels):
+                            if ch.name in channels:
+                                entry = i, j
+                                channel = TreeItem(entry, ch.name, mdf_uuid=self.uuid)
+                                channel.setText(0, ch.name)
+                                channel.setCheckState(0, QtCore.Qt.Checked)
+                                items.append(channel)
+
+                                channels.pop(channels.index(channel_name))
+
+                    if len(items) < 30000:
+                        items = natsorted(items, key=lambda x: x.name)
+                    else:
+                        items.sort(key=lambda x: x.name)
+                    self.filter_tree.addTopLevelItems(items)
 
     def compute_cut_hints(self):
         t_min = []
@@ -1415,7 +1487,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 widget = self.filter_tree
 
-                if self.channel_view.currentIndex() == 0:
+                if self.filter_view.currentText() == "Natural sort":
                     items = []
                     for i, group in enumerate(self.mdf.groups):
                         for j, ch in enumerate(group.channels):
@@ -1431,7 +1503,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     else:
                         items.sort(key=lambda x: x.name)
                     widget.addTopLevelItems(items)
-                else:
+
+                elif self.filter_view.currentText() == "Internal file structure":
                     for i, group in enumerate(self.mdf.groups):
                         entry = i, 0xFFFFFFFFFFFFFFFF
                         channel_group = TreeItem(entry)

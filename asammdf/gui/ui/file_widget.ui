@@ -38,7 +38,7 @@
       <enum>QTabWidget::West</enum>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <property name="documentMode">
       <bool>false</bool>
@@ -69,6 +69,11 @@
              <item>
               <property name="text">
                <string>Internal file structure</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>Selected channels only</string>
               </property>
              </item>
             </widget>
@@ -204,6 +209,11 @@
            <item>
             <property name="text">
              <string>Internal file structure</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>Selected channels only</string>
             </property>
            </item>
           </widget>

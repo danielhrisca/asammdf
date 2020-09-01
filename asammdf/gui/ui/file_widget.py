@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'file_widget2.ui'
+# Form implementation generated from reading ui file 'file_widget.ui'
 #
 # Created by: PyQt5 UI code generator 5.9.2
 #
@@ -34,6 +34,7 @@ class Ui_file_widget(object):
         self.verticalLayout_4.setObjectName("verticalLayout_4")
         self.channel_view = QtWidgets.QComboBox(self.verticalLayoutWidget)
         self.channel_view.setObjectName("channel_view")
+        self.channel_view.addItem("")
         self.channel_view.addItem("")
         self.channel_view.addItem("")
         self.verticalLayout_4.addWidget(self.channel_view)
@@ -97,6 +98,7 @@ class Ui_file_widget(object):
         self.verticalLayout_2.setObjectName("verticalLayout_2")
         self.filter_view = QtWidgets.QComboBox(self.modify)
         self.filter_view.setObjectName("filter_view")
+        self.filter_view.addItem("")
         self.filter_view.addItem("")
         self.filter_view.addItem("")
         self.verticalLayout_2.addWidget(self.filter_view)
@@ -492,6 +494,7 @@ class Ui_file_widget(object):
         self.aspects.setToolTip(_translate("file_widget", "Load channel selection list"))
         self.channel_view.setItemText(0, _translate("file_widget", "Natural sort"))
         self.channel_view.setItemText(1, _translate("file_widget", "Internal file structure"))
+        self.channel_view.setItemText(2, _translate("file_widget", "Selected channels only"))
         self.channels_tree.setToolTip(_translate("file_widget", "Double click channel to see extended information"))
         self.channels_tree.headerItem().setText(0, _translate("file_widget", "Channels"))
         self.save_channel_list_btn.setToolTip(_translate("file_widget", "Save channel selection list"))
@@ -500,6 +503,7 @@ class Ui_file_widget(object):
         self.aspects.setTabText(self.aspects.indexOf(self.channels_tab), _translate("file_widget", "Channels"))
         self.filter_view.setItemText(0, _translate("file_widget", "Natural sort"))
         self.filter_view.setItemText(1, _translate("file_widget", "Internal file structure"))
+        self.filter_view.setItemText(2, _translate("file_widget", "Selected channels only"))
         self.filter_tree.setToolTip(_translate("file_widget", "Double click channel to see extended information"))
         self.filter_tree.headerItem().setText(0, _translate("file_widget", "Channels"))
         self.load_filter_list_btn.setToolTip(_translate("file_widget", "Load channel selection list"))

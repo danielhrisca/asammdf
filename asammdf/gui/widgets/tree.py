@@ -13,6 +13,8 @@ class TreeWidget(QtWidgets.QTreeWidget):
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.setUniformRowHeights(True)
 
+        self.mode = "Natural sort"
+
     def keyPressEvent(self, event):
         key = event.key()
         if key == QtCore.Qt.Key_Space:
