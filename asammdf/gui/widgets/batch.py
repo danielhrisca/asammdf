@@ -458,7 +458,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         use_display_names = self.use_display_names.checkState() == QtCore.Qt.Checked
         empty_channels = self.empty_channels.currentText()
         mat_format = self.mat_format.currentText()
-        raster = self.export_raster.value()
+        raster = self.export_raster.value() or None
         oned_as = self.oned_as.currentText()
         reduce_memory_usage = self.reduce_memory_usage.checkState() == QtCore.Qt.Checked
         compression = self.export_compression.currentText()

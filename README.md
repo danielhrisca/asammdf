@@ -83,8 +83,8 @@ The main goals for this library are:
     * full handling of bus logging measurements: currently only CAN bus logging is implemented with the
       ability to *get* signals defined in the attached CAN database (.arxml or .dbc). Signals can also
       be extracted from an anonymous CAN logging measurement by providing a CAN database (.dbc or .arxml)
-    * handling of unfinished measurements (mdf 4): warnings are logged based on the unfinished status flags
-      but no further steps are taken to sanitize the measurement
+    * handling of unfinished measurements (mdf 4): finalization is attempted when the file is loaded, hoever the
+      not all the finalization steps are supported
     * full support for remaining mdf 4 channel arrays types
     * xml schema for MDBLOCK: most metadata stored in the comment blocks will not be available
     * full handling of event blocks: events are transfered to the new files (in case of calling methods
