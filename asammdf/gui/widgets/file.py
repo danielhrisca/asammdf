@@ -1631,13 +1631,17 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         channels = []
         count = 0
+        total = 0
 
-        if self.filter_view.currentIndex() == 1:
+        if self.filter_view.currentText() == "Internal file structure":
             while iterator.value():
                 item = iterator.value()
 
+                group, index = item.entry
+                if index != 0xFFFFFFFFFFFFFFFF:
+                    total += 1
+
                 if item.checkState(0) == QtCore.Qt.Checked:
-                    group, index = item.entry
 
                     if index != 0xFFFFFFFFFFFFFFFF:
                         channels.append((None, group, index))
@@ -1653,12 +1657,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     channels.append((None, group, index))
                     count += 1
 
+                total += 1
+
                 iterator += 1
 
         if not channels:
             return False, channels
         else:
-            if len(channels) == count:
+            if total == count:
                 return False, channels
             else:
                 return True, channels
