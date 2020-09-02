@@ -219,17 +219,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.extract_can_csv_btn.clicked.connect(self.extract_can_csv_logging)
         self.load_can_database_btn.clicked.connect(self.load_can_database)
 
-        if self.mdf.version >= "4.00":
-            if any(
-                group.channel_group.flags & FLAG_CG_BUS_EVENT
-                for group in self.mdf.groups
-            ):
-                self.aspects.setTabEnabled(7, True)
-            else:
-                self.aspects.setTabEnabled(7, False)
-        else:
-            self.aspects.setTabEnabled(7, False)
-
         progress.setValue(99)
 
         self.empty_channels.insertItems(0, ("skip", "zeros"))
@@ -409,7 +398,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         self.apply_btn.clicked.connect(self.apply_processing)
 
-        if self.mdf.version >= "4.00":
+        if self.mdf.version >= "4.00" and self.mdf.attachments:
             for i, attachment in enumerate(self.mdf.attachments, 1):
                 att = Attachment(attachment)
                 att.number.setText(f'{i}.')
@@ -475,6 +464,17 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 item.setSizeHint(att.sizeHint())
                 self.attachments.addItem(item)
                 self.attachments.setItemWidget(item, att)
+        else:
+            self.aspects.removeTab(4)
+
+        if self.mdf.version >= "4.00":
+            if not any(
+                group.channel_group.flags & FLAG_CG_BUS_EVENT
+                for group in self.mdf.groups
+            ):
+                self.aspects.removeTab(2)
+        else:
+            self.aspects.removeTab(2)
 
         self._splitter_sizes = None
 
@@ -1886,7 +1886,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 progress.setWindowIcon(icon)
                 progress.setWindowTitle("Resampling measurement")
                 progress.setLabelText(message)
-
 
             # resample self.mdf
             target = self.mdf.resample if mdf is None else mdf.resample

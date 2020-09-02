@@ -449,6 +449,9 @@
               <property name="decimals">
                <number>6</number>
               </property>
+              <property name="minimum">
+               <double>0.000001000000000</double>
+              </property>
              </widget>
             </item>
             <item row="3" column="0">
@@ -870,7 +873,7 @@
         <normaloff>:/down.png</normaloff>:/down.png</iconset>
       </attribute>
       <attribute name="title">
-       <string>CAN logging</string>
+       <string>CAN Logging</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_8">
        <item row="2" column="1">

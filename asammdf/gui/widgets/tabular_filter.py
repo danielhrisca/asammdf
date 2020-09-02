@@ -52,7 +52,7 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
                             f"{column_name} requires an integer target value",
                         )
                 else:
-                    if self.as_hex:
+                    if self.as_hex[idx]:
                         try:
                             self._target = int(target, 16)
                             self.target.setText(f"0x{self._target:X}")
