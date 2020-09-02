@@ -398,6 +398,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.advanced_serch_filter_btn.clicked.connect(self.search)
         self.raster_search_btn.clicked.connect(self.raster_search)
 
+        self.filter_tree.itemChanged.connect(self.filter_changed)
+        self._selected_filter = set()
+
         self.scramble_btn.clicked.connect(self.scramble)
         self.setAcceptDrops(True)
 
@@ -931,15 +934,25 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         info = json.load(infile)
                     channels = info.get("selected_channels", [])
                 elif extension == '.txt':
-                    with open(file_name, "r") as infile:
-                        channels = [line.strip() for line in infile.readlines()]
-                        channels = [name for name in channels if name]
+                    try:
+                        with open(file_name, "r") as infile:
+                            info = json.load(infile)
+                        channels = info.get("selected_channels", [])
+                    except:
+                        with open(file_name, "r") as infile:
+                            channels = [line.strip() for line in infile.readlines()]
+                            channels = [name for name in channels if name]
 
             else:
                 info = file_name
                 channels = info.get("selected_channels", [])
 
             if channels:
+
+                self.filter_tree.itemChanged.disconnect()
+                self._selected_filter = set(channels)
+                self.selected_filter_channels.clear()
+                self.selected_filter_channels.addItems(sorted(channels))
 
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
@@ -991,6 +1004,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     else:
                         items.sort(key=lambda x: x.name)
                     self.filter_tree.addTopLevelItems(items)
+
+                self.filter_tree.itemChanged.connect(self.filter_changed)
 
     def compute_cut_hints(self):
         t_min = []
@@ -2022,3 +2037,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             name = self.mdf.groups[dg_cntr].channels[ch_cntr].name
 
             self.raster_channel.setCurrentText(name)
+
+    def filter_changed(self, item, column):
+        name = item.text(0)
+        if item.checkState(0) == QtCore.Qt.Checked:
+            self._selected_filter.add(name)
+        else:
+            if name in self._selected_filter:
+                self._selected_filter.remove(name)
+
+        self.selected_filter_channels.clear()
+        self.selected_filter_channels.addItems(sorted(self._selected_filter))
