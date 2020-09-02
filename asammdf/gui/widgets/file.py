@@ -400,6 +400,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         self.filter_tree.itemChanged.connect(self.filter_changed)
         self._selected_filter = set()
+        self._filter_timer = QtCore.QTimer()
+        self._filter_timer.setSingleShot(True)
+        self._filter_timer.timeout.connect(self.update_selected_filter_channels)
 
         self.scramble_btn.clicked.connect(self.scramble)
         self.setAcceptDrops(True)
@@ -949,11 +952,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             if channels:
 
-                self.filter_tree.itemChanged.disconnect()
-                self._selected_filter = set(channels)
-                self.selected_filter_channels.clear()
-                self.selected_filter_channels.addItems(sorted(channels))
-
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
                 if self.channel_view.currentText() == "Internal file structure":
@@ -1004,8 +1002,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     else:
                         items.sort(key=lambda x: x.name)
                     self.filter_tree.addTopLevelItems(items)
-
-                self.filter_tree.itemChanged.connect(self.filter_changed)
 
     def compute_cut_hints(self):
         t_min = []
@@ -2045,6 +2041,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         else:
             if name in self._selected_filter:
                 self._selected_filter.remove(name)
+        self._filter_timer.start(10)
 
+    def update_selected_filter_channels(self):
         self.selected_filter_channels.clear()
         self.selected_filter_channels.addItems(sorted(self._selected_filter))
