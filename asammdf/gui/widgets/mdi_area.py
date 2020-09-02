@@ -866,7 +866,7 @@ class WithMDIArea:
                 )
                 for name in sorted(required-found)
             ]
-            uuid = str(os.urandom(6).hex()())
+            uuid = os.urandom(6).hex()
             for sig in not_found:
                 sig.mdf_uuid = uuid
                 sig.group_index = 0

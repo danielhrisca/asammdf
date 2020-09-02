@@ -2508,7 +2508,7 @@ class _Plot(pg.PlotWidget):
         sig = dlg.result
 
         if sig is not None:
-            sig.uuid = str(os.urandom(6).hex()())
-            sig.mdf_uuid = str(os.urandom(6).hex()())
+            sig.uuid = os.urandom(6).hex()
+            sig.mdf_uuid = os.urandom(6).hex()
             self.add_new_channels([sig], computed=True)
             self.computation_channel_inserted.emit()
