@@ -616,10 +616,15 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 self.export_compression.setEnabled(False)
 
     def search(self, event=None):
+        toggle_frames = False
         if self.aspects.tabText(self.aspects.currentIndex()) == "Channels":
             show_add_window = True
             widget = self.channels_tree
             view = self.channel_view
+
+            if self._frameless_windows:
+                toggle_frames = True
+                self.toggle_frames()
         else:
             show_add_window = False
             widget = self.filter_tree
@@ -724,6 +729,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         widget = widgets[index - 3]
 
                         self.add_new_channels(signals, widget)
+
+        if toggle_frames:
+            self.toggle_frames()
 
     def to_config(self):
         config = {}
