@@ -140,23 +140,26 @@ def extract_signal(signal, payload, raw=False):
         vals = as_non_byte_sized_signed_int(vals, bit_count)
 
     if not raw:
+        a, b = float(signal.factor), float(signal.offset)
+
         if signal.values:
 
             conv = {}
-
             for i, (val, text) in enumerate(signal.values.items()):
                 conv[f"upper_{i}"] = val
                 conv[f"lower_{i}"] = val
                 conv[f"text_{i}"] = text
 
-            conv = {"a": 1.0, "b": 0.0}
+            conv['default'] = from_dict({'a': a, 'b': b})
+
+            vals = conv.convert(vals)
 
         else:
-            conv = {"a": float(signal.factor), "b": float(signal.offset)}
 
-        conv = from_dict(conv)
-
-        vals = conv.convert(vals)
+            if (a, b) != (1, 0):
+                vals = vals * a
+                if b:
+                    vals += b
 
     return vals
 

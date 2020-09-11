@@ -2803,7 +2803,7 @@ class ChannelConversion(_ChannelConversionBase):
                     default = kwargs["default_addr"]
                 else:
                     default = kwargs.get("default", b"")
-                if b"{X}" in default:
+                if isinstance(default, bytes) and b"{X}" in default:
                     default = (
                         default.decode("latin-1").replace("{X}", "X").split('"')[1]
                     )
