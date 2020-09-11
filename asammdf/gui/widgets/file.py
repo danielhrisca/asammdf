@@ -491,7 +491,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
     def _update_channel_tree(self, index=None, widget=None):
         if widget is self.channels_tree and self.channel_view.currentIndex() == -1:
             return
-        elif widget is self.filter_tree and self.filter_view.currentIndex() == -1:
+        elif widget is self.filter_tree and (self.filter_view.currentIndex() == -1 or not self._show_filter_tree):
             return
 
         view = self.channel_view if widget is self.channels_tree else self.filter_view
@@ -539,6 +539,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             else:
                 items.sort(key=lambda x: x.name)
             widget.addTopLevelItems(items)
+
         elif widget.mode == "Internal file structure":
             for i, group in enumerate(self.mdf.groups):
                 entry = i, 0xFFFFFFFFFFFFFFFF
