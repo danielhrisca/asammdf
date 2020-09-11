@@ -12,6 +12,7 @@ from shutil import copy
 from struct import unpack
 import xml.etree.ElementTree as ET
 from pprint import pprint
+from time import perf_counter
 
 import numpy as np
 import pandas as pd
@@ -1056,34 +1057,38 @@ class MDF(object):
                     df.index = index
                     df.index.name = "timestamps"
 
+
+                if hasattr(self, "can_logging_db") and self.can_logging_db:
+
+                    dropped = {}
+
+                    for name_ in df.columns:
+                        if name_.endswith("CAN_DataFrame.ID"):
+                            dropped[name_] = pd.Series(
+                                csv_int2hex(df[name_].astype("<u4") & 0x1FFFFFFF),
+                                index=df.index,
+                            )
+
+                        elif name_.endswith("CAN_DataFrame.DataBytes"):
+                            dropped[name_] = pd.Series(
+                                csv_bytearray2hex(df[name_]), index=df.index
+                            )
+
+                    df = df.drop(columns=list(dropped))
+                    for name, s in dropped.items():
+                        df[name] = s
+
                 with open(filename, "w", newline="") as csvfile:
+
                     writer = csv.writer(csvfile)
-
-                    if hasattr(self, "can_logging_db") and self.can_logging_db:
-
-                        dropped = {}
-
-                        for name_ in df.columns:
-                            if name_.endswith("CAN_DataFrame.ID"):
-                                dropped[name_] = pd.Series(
-                                    csv_int2hex(df[name_].astype("<u4") & 0x1FFFFFFF),
-                                    index=df.index,
-                                )
-
-                            elif name_.endswith("CAN_DataFrame.DataBytes"):
-                                dropped[name_] = pd.Series(
-                                    csv_bytearray2hex(df[name_]), index=df.index
-                                )
-
-                        df = df.drop(columns=list(dropped))
-                        for name, s in dropped.items():
-                            df[name] = s
 
                     names_row = [df.index.name, *df.columns]
                     writer.writerow(names_row)
 
-                    vals = [df.index, *(df[name] for name in df)]
-
+                    if reduce_memory_usage:
+                        vals = [df.index, *(df[name] for name in df)]
+                    else:
+                        vals = [df.index.to_list(), *(df[name].to_list() for name in df)]
                     count = len(df.index)
 
                     if self._terminate:
@@ -1176,7 +1181,11 @@ class MDF(object):
                         names_row = [df.index.name, *df.columns]
                         writer.writerow(names_row)
 
-                        vals = [df.index, *(df[name] for name in df)]
+                        if reduce_memory_usage:
+                            vals = [df.index, *(df[name] for name in df)]
+                        else:
+                            vals = [df.index.to_list(), *(df[name].to_list() for name in df)]
+                        count = len(df.index)
 
                         count = len(df.index)
 
