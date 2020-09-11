@@ -3168,7 +3168,9 @@ class MDF3(object):
                 if time_ch.data_type in v23c.INT_TYPES:
 
                     dtype_fmt = get_fmt_v3(
-                        time_ch.data_type, time_ch.bit_count, self.identification.byte_order
+                        time_ch.data_type,
+                        time_ch.bit_count,
+                        self.identification.byte_order,
                     )
                     channel_dtype = dtype(dtype_fmt.split(")")[-1])
 

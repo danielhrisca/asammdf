@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
+
 import numpy as np
+
 from ..blocks.utils import plausible_timestamps
 
 try:

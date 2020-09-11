@@ -242,7 +242,6 @@ class PlotWindow(QtWidgets.QMainWindow):
         action.setShortcut(QtGui.QKeySequence("Alt+S"))
         samples_format_actions.addAction(action)
 
-
         # info
 
         info = QtWidgets.QActionGroup(self)

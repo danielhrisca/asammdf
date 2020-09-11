@@ -488,7 +488,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 QtWidgets.QMessageBox.critical(
                     self,
                     "Export to HDF5 unavailale",
-                    "h5py package not found; export to HDF5 is unavailable"
+                    "h5py package not found; export to HDF5 is unavailable",
                 )
                 return
 
@@ -502,7 +502,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     QtWidgets.QMessageBox.critical(
                         self,
                         "Export to mat unavailale",
-                        "hdf5storage package not found; export to mat 7.3 is unavailable"
+                        "hdf5storage package not found; export to mat 7.3 is unavailable",
                     )
                     return
             else:
@@ -513,7 +513,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     QtWidgets.QMessageBox.critical(
                         self,
                         "Export to mat unavailale",
-                        "scipy package not found; export to mat is unavailable"
+                        "scipy package not found; export to mat is unavailable",
                     )
                     return
 
@@ -526,7 +526,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 QtWidgets.QMessageBox.critical(
                     self,
                     "Export to parquet unavailale",
-                    "fastparquet package not found; export to parquet is unavailable"
+                    "fastparquet package not found; export to parquet is unavailable",
                 )
                 return
 

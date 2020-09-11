@@ -182,15 +182,15 @@ def get_text_v3(address, stream, mapped=False, decode=True):
         return "" if decode else b""
 
     if mapped:
-        block_id = stream[address: address+2]
-        if block_id != b'TX':
+        block_id = stream[address : address + 2]
+        if block_id != b"TX":
             return "" if decode else b""
         (size,) = UINT16_uf(stream, address + 2)
         text_bytes = stream[address + 4 : address + size].strip(b" \r\t\n\0")
     else:
         stream.seek(address)
         block_id = stream.read(2)
-        if block_id != b'TX':
+        if block_id != b"TX":
             return "" if decode else b""
         size = UINT16_u(stream.read(2))[0] - 4
         text_bytes = stream.read(size).strip(b" \r\t\n\0")
@@ -227,15 +227,15 @@ def get_text_v4(address, stream, mapped=False, decode=True):
         return "" if decode else b""
 
     if mapped:
-        block_id = stream[address: address+4]
-        if block_id not in (b'##TX', b'##MD'):
+        block_id = stream[address : address + 4]
+        if block_id not in (b"##TX", b"##MD"):
             return "" if decode else b""
         (size,) = UINT64_uf(stream, address + 8)
         text_bytes = stream[address + 24 : address + size].strip(b" \r\t\n\0")
     else:
         stream.seek(address)
         block_id = stream.read(8)[:4]
-        if block_id not in (b'##TX', b'##MD'):
+        if block_id not in (b"##TX", b"##MD"):
             return "" if decode else b""
         size, _ = TWO_UINT64_u(stream.read(16))
         text_bytes = stream.read(size - 24).strip(b" \r\t\n\0")
@@ -359,7 +359,11 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
     if data_type in v4c.NON_SCALAR_TYPES:
         size = size // 8
 
-        if data_type in (v4c.DATA_TYPE_BYTEARRAY, v4c.DATA_TYPE_MIME_STREAM, v4c.DATA_TYPE_MIME_SAMPLE):
+        if data_type in (
+            v4c.DATA_TYPE_BYTEARRAY,
+            v4c.DATA_TYPE_MIME_STREAM,
+            v4c.DATA_TYPE_MIME_SAMPLE,
+        ):
             if channel_type == v4c.CHANNEL_TYPE_VALUE:
                 fmt = f"({size},)u1"
             else:
@@ -1460,7 +1464,7 @@ def all_blocks_addresses(obj):
     blocks = {}
 
     for match in re.finditer(pattern, source):
-        btype = match.group('block')
+        btype = match.group("block")
         start = match.start()
 
         btype_addresses = blocks.setdefault(btype, [])

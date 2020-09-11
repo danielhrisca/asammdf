@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
-from pathlib import Path
 from hashlib import md5
+from pathlib import Path
+
 from PyQt5 import QtWidgets
 
+from ...blocks import v4_constants as v4c
 from ..ui import resource_rc as resource_rc
 from ..ui.attachment import Ui_Attachment
-from ...blocks import v4_constants as v4c
 
 
 class Attachment(Ui_Attachment, QtWidgets.QWidget):
@@ -44,18 +45,14 @@ class Attachment(Ui_Attachment, QtWidgets.QWidget):
                         "Can't extract attachment - wrong checksum",
                         f'ATBLOCK md5sum="{self.attachment["md5_sum"]}" '
                         f"and external attachment data <{file_path}> has "
-                        f'md5sum="{md5_sum}"'
+                        f'md5sum="{md5_sum}"',
                     )
                     return
             else:
                 data = file_path.read_bytes()
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self,
-            "Select extracted file",
-            "",
-            "All files (*.*)",
-            "All files (*.*)",
+            self, "Select extracted file", "", "All files (*.*)", "All files (*.*)",
         )
         if file_name:
             file_name = Path(file_name)

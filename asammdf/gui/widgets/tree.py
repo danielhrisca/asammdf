@@ -41,7 +41,6 @@ class TreeWidget(QtWidgets.QTreeWidget):
             super().keyPressEvent(event)
 
     def mouseMoveEvent(self, e):
-
         def get_data(item):
             data = set()
             count = item.childCount()

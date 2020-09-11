@@ -370,10 +370,7 @@ class MinimalListWidget(QtWidgets.QListWidget):
                 self.itemsDeleted.emit(deleted)
         elif key == QtCore.Qt.Key_C and modifiers == QtCore.Qt.ControlModifier:
             try:
-                text = [
-                    item.text()
-                    for item in self.selectedItems()
-                ]
+                text = [item.text() for item in self.selectedItems()]
                 text = "\n".join(text)
             except:
                 text = ""

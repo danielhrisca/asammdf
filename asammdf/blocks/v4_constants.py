@@ -338,7 +338,7 @@ FLAG_CG_TO_STRING = {
 FLAG_AT_TO_STRING = {
     FLAG_AT_EMBEDDED: "Embedded",
     FLAG_AT_COMPRESSED_EMBEDDED: "Compressed",
-    FLAG_AT_MD5_VALID: "MD5 sum valid"
+    FLAG_AT_MD5_VALID: "MD5 sum valid",
 }
 
 FLAG_CN_ALL_INVALID = 1

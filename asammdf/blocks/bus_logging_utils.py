@@ -1,6 +1,8 @@
 import numpy as np
+
 from .conversion_utils import from_dict
 from .utils import as_non_byte_sized_signed_int, MdfException
+
 
 def extract_signal(signal, payload, raw=False):
     vals = payload
@@ -143,14 +145,14 @@ def extract_signal(signal, payload, raw=False):
             conv = {}
 
             for i, (val, text) in enumerate(signal.values.items()):
-                conv[f'upper_{i}'] = val
-                conv[f'lower_{i}'] = val
-                conv[f'text_{i}'] = text
+                conv[f"upper_{i}"] = val
+                conv[f"lower_{i}"] = val
+                conv[f"text_{i}"] = text
 
-            conv = {'a': 1.0, 'b': 0.0}
+            conv = {"a": 1.0, "b": 0.0}
 
         else:
-            conv = {'a': float(signal.factor), 'b': float(signal.offset)}
+            conv = {"a": float(signal.factor), "b": float(signal.offset)}
 
         conv = from_dict(conv)
 
@@ -163,7 +165,18 @@ def extract_can_signal(signal, payload, raw=False):
     return extract_signal(signal, payload, raw)
 
 
-def extract_mux(payload, message, message_id, bus, t, muxer=None, muxer_values=None, original_message_id=None, raw=False, include_message_name=False):
+def extract_mux(
+    payload,
+    message,
+    message_id,
+    bus,
+    t,
+    muxer=None,
+    muxer_values=None,
+    original_message_id=None,
+    raw=False,
+    include_message_name=False,
+):
     """ extract multiplexed CAN signals from the raw payload
 
     Parameters

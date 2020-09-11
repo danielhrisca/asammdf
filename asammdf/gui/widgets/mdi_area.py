@@ -2,8 +2,8 @@
 from datetime import datetime
 from functools import partial
 import json
-from traceback import format_exc
 import os
+from traceback import format_exc
 
 from natsort import natsorted
 import numpy as np
@@ -11,13 +11,13 @@ import pandas as pd
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ...blocks import v4_constants as v4c
-from ...signal import Signal
 from ...blocks.utils import csv_bytearray2hex, extract_cncomment_xml, MdfException
+from ...signal import Signal
 from ..dialogs.channel_info import ChannelInfoDialog
 from ..utils import (
     add_children,
-    compute_signal,
     COLORS,
+    compute_signal,
     extract_mime_names,
     get_required_signals,
     HelperChannel,
@@ -648,12 +648,7 @@ class WithMDIArea:
 
             found = set(sig.name for sig in signals)
             not_found = [
-                Signal(
-                    [],
-                    [],
-                    name=name,
-                )
-                for name in sorted(required-found)
+                Signal([], [], name=name,) for name in sorted(required - found)
             ]
             uuid = os.urandom(6).hex()
             for sig in not_found:
@@ -732,7 +727,9 @@ class WithMDIArea:
                 )
             }
 
-            for signal, entry_info, channel in zip(measured_signals.values(), measured_signals_, found_signals):
+            for signal, entry_info, channel in zip(
+                measured_signals.values(), measured_signals_, found_signals
+            ):
                 signal.computed = False
                 signal.computation = {}
                 signal.color = channel["color"]
@@ -859,12 +856,7 @@ class WithMDIArea:
 
             found = set(sig.name for sig in signals)
             not_found = [
-                Signal(
-                    [],
-                    [],
-                    name=name,
-                )
-                for name in sorted(required-found)
+                Signal([], [], name=name,) for name in sorted(required - found)
             ]
             uuid = os.urandom(6).hex()
             for sig in not_found:
@@ -987,7 +979,7 @@ class WithMDIArea:
             found = set(signals.columns)
             dim = len(signals.index)
 
-            for name in sorted(required-found):
+            for name in sorted(required - found):
                 vals = np.empty(dim)
                 vals.fill(np.NaN)
                 signals[name] = pd.Series(vals, index=signals.index)
@@ -1177,7 +1169,9 @@ class WithMDIArea:
                     if selection_width is not None:
                         total_size = sum(wid.splitter.sizes())
                         if total_size > selection_width:
-                            wid.splitter.setSizes([selection_width, total_size - selection_width])
+                            wid.splitter.setSizes(
+                                [selection_width, total_size - selection_width]
+                            )
 
             self._splitter_source = None
 

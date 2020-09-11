@@ -286,8 +286,10 @@ def from_dict(conversion):
                     "conversion_type": v4c.CONCONVERSION_TYPE_RTABX,
                     "upper_0": conversion[f"upper_{nr}"],
                     "lower_0": conversion[f"lower_{nr}"],
-                    "text_0": conversion[f"text_{nr}"] if isinstance(conversion[f"text_{nr}"], bytes) else conversion[f"text_{nr}"].encode('utf-8'),
-                    "default": b'',
+                    "text_0": conversion[f"text_{nr}"]
+                    if isinstance(conversion[f"text_{nr}"], bytes)
+                    else conversion[f"text_{nr}"].encode("utf-8"),
+                    "default": b"",
                 }
                 conversion[f"text_{nr}"] = from_dict(partial_conversion)
 
@@ -311,7 +313,7 @@ def from_dict(conversion):
         while f"text_{nr}" in conversion:
             val = conversion[f"text_{nr}"]
             if isinstance(val, str):
-                conversion[f"text_{nr}"] = val.encode('utf-8')
+                conversion[f"text_{nr}"] = val.encode("utf-8")
             nr += 1
 
         conversion["ref_param_nr"] = nr + 1
@@ -323,7 +325,7 @@ def from_dict(conversion):
         while f"text_{nr}" in conversion:
             val = conversion[f"text_{nr}"]
             if isinstance(val, str):
-                conversion[f"text_{nr}"] = val.encode('utf-8')
+                conversion[f"text_{nr}"] = val.encode("utf-8")
             nr += 1
         conversion["ref_param_nr"] = nr + 1
         conversion = v4b.ChannelConversion(**conversion)

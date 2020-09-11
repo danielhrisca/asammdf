@@ -246,7 +246,9 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
     def does_not_exist(self):
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/error.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(":/error.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         self.color_btn.setIcon(icon)
         self.color_btn.setFlat(True)
         self.color_btn.clicked.disconnect()

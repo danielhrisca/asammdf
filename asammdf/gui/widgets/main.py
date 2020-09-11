@@ -1094,7 +1094,9 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
     def toggle_channels_list(self, event=None):
         if self.stackedWidget.currentIndex() == 0:
             widget = self.files.currentWidget()
-            event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, QtCore.Qt.Key_L, QtCore.Qt.ShiftModifier)
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.KeyPress, QtCore.Qt.Key_L, QtCore.Qt.ShiftModifier
+            )
             if widget:
                 widget.keyPressEvent(event)
 
@@ -1109,4 +1111,3 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             widget = self.files.currentWidget()
             if widget:
                 widget.save_channel_list()
-

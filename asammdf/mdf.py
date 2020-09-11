@@ -8,23 +8,20 @@ from datetime import datetime, timezone
 from functools import reduce
 import logging
 from pathlib import Path
+from pprint import pprint
 from shutil import copy
 from struct import unpack
-import xml.etree.ElementTree as ET
-from pprint import pprint
 from time import perf_counter
+import xml.etree.ElementTree as ET
 
-from pandas.core.indexes.base import ensure_index
 import numpy as np
 import pandas as pd
+from pandas.core.indexes.base import ensure_index
 
 from .blocks import v2_v3_constants as v23c
 from .blocks import v4_constants as v4c
+from .blocks.bus_logging_utils import extract_can_signal, extract_mux
 from .blocks.conversion_utils import from_dict
-from .blocks.bus_logging_utils import (
-    extract_can_signal,
-    extract_mux,
-)
 from .blocks.mdf_v2 import MDF2
 from .blocks.mdf_v3 import MDF3
 from .blocks.mdf_v4 import MDF4
@@ -1058,7 +1055,6 @@ class MDF(object):
                     df.index = index
                     df.index.name = "timestamps"
 
-
                 if hasattr(self, "can_logging_db") and self.can_logging_db:
 
                     dropped = {}
@@ -1089,7 +1085,10 @@ class MDF(object):
                     if reduce_memory_usage:
                         vals = [df.index, *(df[name] for name in df)]
                     else:
-                        vals = [df.index.to_list(), *(df[name].to_list() for name in df)]
+                        vals = [
+                            df.index.to_list(),
+                            *(df[name].to_list() for name in df),
+                        ]
                     count = len(df.index)
 
                     if self._terminate:
@@ -1185,7 +1184,10 @@ class MDF(object):
                         if reduce_memory_usage:
                             vals = [df.index, *(df[name] for name in df)]
                         else:
-                            vals = [df.index.to_list(), *(df[name].to_list() for name in df)]
+                            vals = [
+                                df.index.to_list(),
+                                *(df[name].to_list() for name in df),
+                            ]
                         count = len(df.index)
 
                         count = len(df.index)
@@ -1228,7 +1230,6 @@ class MDF(object):
 
                     if not channels:
                         continue
-
 
                     channels = self.select(
                         channels,
@@ -1681,10 +1682,7 @@ class MDF(object):
                         else:
                             original_names = included_channel_names[i]
                             different_channel_order = True
-                            remap = [
-                                original_names.index(name)
-                                for name in names
-                            ]
+                            remap = [original_names.index(name) for name in names]
 
                 if not included_channels:
                     continue
@@ -1747,7 +1745,7 @@ class MDF(object):
                                     new_signals[new_index] = sig
                             else:
                                 for new_index, sig in zip(remap, signals[1:]):
-                                    new_signals[new_index+1] = sig
+                                    new_signals[new_index + 1] = sig
                                 new_signals[0] = signals[0]
 
                             signals = new_signals
@@ -2084,7 +2082,7 @@ class MDF(object):
                 reduce_memory_usage=reduce_memory_usage,
                 raw=raw,
                 ignore_value2text_conversions=ignore_value2text_conversions,
-                only_basenames=only_basenames
+                only_basenames=only_basenames,
             )
 
     def resample(self, raster, version=None, time_from_zero=False):
@@ -2635,7 +2633,9 @@ class MDF(object):
 
                     source = cg.acq_source_addr
                     if source:
-                        source = SourceInformation(address=source, stream=stream, mapped=False, tx_map={})
+                        source = SourceInformation(
+                            address=source, stream=stream, mapped=False, tx_map={}
+                        )
                         for addr in (
                             source.name_addr,
                             source.path_addr,
@@ -2656,7 +2656,9 @@ class MDF(object):
 
                     source = ch.source_addr
                     if source:
-                        source = SourceInformation(address=source, stream=stream, mapped=False, tx_map={})
+                        source = SourceInformation(
+                            address=source, stream=stream, mapped=False, tx_map={}
+                        )
                         for addr in (
                             source.name_addr,
                             source.path_addr,
@@ -2669,7 +2671,13 @@ class MDF(object):
 
                     conv = ch.conversion_addr
                     if conv:
-                        conv = ChannelConversion(address=conv, stream=stream, mapped=False, tx_map={}, si_map={})
+                        conv = ChannelConversion(
+                            address=conv,
+                            stream=stream,
+                            mapped=False,
+                            tx_map={},
+                            si_map={},
+                        )
                         for addr in (conv.name_addr, conv.unit_addr, conv.comment_addr):
                             if addr and addr not in texts:
                                 stream.seek(addr + 8)
@@ -3485,7 +3493,7 @@ class MDF(object):
 
         df = pd.DataFrame.from_dict(df)
         df.set_index(master, inplace=True)
-        df.index.name = 'timestamps'
+        df.index.name = "timestamps"
 
         if time_as_date:
             new_index = np.array(df.index) + self.header.start_time.timestamp()
@@ -3498,7 +3506,10 @@ class MDF(object):
         return df
 
     def extract_can_logging(
-        self, dbc_files, version=None, ignore_invalid_signals=False,
+        self,
+        dbc_files,
+        version=None,
+        ignore_invalid_signals=False,
         consolidated_j1939=True,
     ):
         """ extract all possible CAN signal using the provided databases.
@@ -3608,8 +3619,9 @@ class MDF(object):
                     )[0].astype("<u1")
 
                     msg_ids = (
-                        self.get("CAN_DataFrame.ID", group=i, data=fragment,)
-                        .astype('<u4')
+                        self.get("CAN_DataFrame.ID", group=i, data=fragment,).astype(
+                            "<u4"
+                        )
                         & 0x1FFFFFFF
                     )
 
@@ -3639,18 +3651,16 @@ class MDF(object):
 
                         if is_j1939 and not consolidated_j1939:
                             unique_ids = np.unique(
-                                np.core.records.fromarrays(
-                                    [bus_msg_ids, original_ids]
-                                )
+                                np.core.records.fromarrays([bus_msg_ids, original_ids])
                             )
                         else:
                             unique_ids = np.unique(
-                                np.core.records.fromarrays(
-                                    [bus_msg_ids, bus_msg_ids]
-                                )
+                                np.core.records.fromarrays([bus_msg_ids, bus_msg_ids])
                             )
 
-                        total_unique_ids = total_unique_ids | set(tuple(int(e) for e in f) for f in unique_ids)
+                        total_unique_ids = total_unique_ids | set(
+                            tuple(int(e) for e in f) for f in unique_ids
+                        )
 
                         for msg_id_record in unique_ids:
                             msg_id = int(msg_id_record[0])
@@ -3679,8 +3689,14 @@ class MDF(object):
                             t = bus_t[idx]
 
                             extracted_signals = extract_mux(
-                                payload, message, msg_id, bus, t,
-                                original_message_id = original_msg_id if is_j1939 and not consolidated_j1939 else None,
+                                payload,
+                                message,
+                                msg_id,
+                                bus,
+                                t,
+                                original_message_id=original_msg_id
+                                if is_j1939 and not consolidated_j1939
+                                else None,
                             )
 
                             for entry, signals in extracted_signals.items():
@@ -3870,7 +3886,9 @@ class MDF(object):
     def start_time(self, timestamp):
         self.header.start_time = timestamp
 
-    def cleanup_timestamps(self, minimum, maximum, exp_min=-15, exp_max=15, version=None):
+    def cleanup_timestamps(
+        self, minimum, maximum, exp_min=-15, exp_max=15, version=None
+    ):
         """convert *MDF* to other version
 
         .. versionadded:: 5.22.0
@@ -3932,7 +3950,9 @@ class MDF(object):
 
                         t = sigs[0].timestamps
                         if len(t):
-                            all_ok, idx = plausible_timestamps(t, minimum, maximum, exp_min, exp_max)
+                            all_ok, idx = plausible_timestamps(
+                                t, minimum, maximum, exp_min, exp_max
+                            )
                             if not all_ok:
                                 t = t[idx]
                                 if len(t):
@@ -3940,7 +3960,9 @@ class MDF(object):
                                         sig.samples = sig.samples[idx]
                                         sig.timestamps = t
                                         if sig.invalidation_bits is not None:
-                                            sig.invalidation_bits = sig.invalidation_bits[idx]
+                                            sig.invalidation_bits = sig.invalidation_bits[
+                                                idx
+                                            ]
                         cg_nr = out.append(sigs, source_info, common_timebase=True)
                         out.groups[cg_nr].channel_group.comment = self.groups[
                             virtual_group
@@ -3950,7 +3972,9 @@ class MDF(object):
                 else:
                     t, _ = sigs[0]
                     if len(t):
-                        all_ok, idx = plausible_timestamps(t, minimum, maximum, exp_min, exp_max)
+                        all_ok, idx = plausible_timestamps(
+                            t, minimum, maximum, exp_min, exp_max
+                        )
                         if not all_ok:
                             t = t[idx]
                             if len(t):

@@ -10,9 +10,9 @@ from pathlib import Path
 from struct import pack, unpack, unpack_from
 from textwrap import wrap
 import time
+from traceback import format_exc
 import xml.etree.ElementTree as ET
 from zlib import compress, decompress
-from traceback import format_exc
 
 from numexpr import evaluate
 import numpy as np
@@ -2505,7 +2505,10 @@ class ChannelConversion(_ChannelConversionBase):
 
                 if conv_type in v4c.TABULAR_CONVERSIONS:
                     refs = self.referenced_blocks = {}
-                    if conv_type in (v4c.CONVERSION_TYPE_TTAB, v4c.CONVERSION_TYPE_BITFIELD):
+                    if conv_type in (
+                        v4c.CONVERSION_TYPE_TTAB,
+                        v4c.CONVERSION_TYPE_BITFIELD,
+                    ):
                         tabs = self.links_nr - 4
                     else:
                         tabs = self.links_nr - 4 - 1
@@ -2545,7 +2548,10 @@ class ChannelConversion(_ChannelConversionBase):
 
                         else:
                             refs[f"text_{i}"] = b""
-                    if conv_type not in  (v4c.CONVERSION_TYPE_TTAB, v4c.CONVERSION_TYPE_BITFIELD):
+                    if conv_type not in (
+                        v4c.CONVERSION_TYPE_TTAB,
+                        v4c.CONVERSION_TYPE_BITFIELD,
+                    ):
                         address = self.default_addr
                         if address:
                             if address in tx_map:
@@ -3317,17 +3323,21 @@ class ChannelConversion(_ChannelConversionBase):
             nr = self.val_param_nr
 
             phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
-            masks = np.array([self[f"mask_{i}"] for i in range(nr)], dtype='u8')
+            masks = np.array([self[f"mask_{i}"] for i in range(nr)], dtype="u8")
 
             phys = [
-                conv if isinstance(conv, bytes) else (
-                    (f'{conv.name}='.encode('utf-8'), conv) if conv.name else (b"", conv)
+                conv
+                if isinstance(conv, bytes)
+                else (
+                    (f"{conv.name}=".encode("utf-8"), conv)
+                    if conv.name
+                    else (b"", conv)
                 )
                 for conv in phys
             ]
 
             new_values = []
-            values = values.astype('u8').tolist()
+            values = values.astype("u8").tolist()
             for val in values:
                 new_val = []
                 masked_values = (masks & val).tolist()
@@ -3768,7 +3778,7 @@ formula: {self.formula}
             result = pack(fmt, *[getattr(self, key) for key in keys])
 
         elif self.conversion_type == v4c.CONVERSION_TYPE_BITFIELD:
-            fmt = "<4sI{}Q2B3H2d{}Q".format(self.links_nr+2, self.val_param_nr)
+            fmt = "<4sI{}Q2B3H2d{}Q".format(self.links_nr + 2, self.val_param_nr)
             keys = (
                 "id",
                 "reserved0",

@@ -558,7 +558,6 @@ class PlotSignal(Signal):
         if self.trim_info == trim_info:
             return
 
-
         self.trim_info = trim_info
         sig = self
         dim = len(sig.timestamps)
@@ -705,7 +704,7 @@ class Plot(QtWidgets.QWidget):
 
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setSpacing(1)
-        main_layout.setContentsMargins(1,1,1,1)
+        main_layout.setContentsMargins(1, 1, 1, 1)
         # self.setLayout(main_layout)
 
         vbox = QtWidgets.QVBoxLayout()
@@ -729,7 +728,9 @@ class Plot(QtWidgets.QWidget):
         self.splitter.addWidget(widget)
         self.splitter.setOpaqueResize(False)
 
-        self.plot = _Plot(with_dots=with_dots, parent=self, events=events, origin=origin)
+        self.plot = _Plot(
+            with_dots=with_dots, parent=self, events=events, origin=origin
+        )
 
         self.plot.range_modified.connect(self.range_modified)
         self.plot.range_removed.connect(self.range_removed)
@@ -1403,8 +1404,7 @@ class Plot(QtWidgets.QWidget):
 
             view = self.plot.view_boxes[idx]
             channel["view_box"] = [
-                [float(e) for e in axis]
-                for axis in view.viewRange()
+                [float(e) for e in axis] for axis in view.viewRange()
             ]
             channel["mdf_uuid"] = str(sig.mdf_uuid)
 
@@ -1518,7 +1518,6 @@ class _Plot(pg.PlotWidget):
         self.scene_ = self.plot_item.scene()
         self.scene_.sigMouseClicked.connect(self._clicked)
         self.viewbox = self.plot_item.vb
-
 
         self.common_axis_items = set()
         self.common_axis_label = ""
@@ -1698,7 +1697,7 @@ class _Plot(pg.PlotWidget):
                             if curve.opts["pen"].style() != style:
                                 curve.opts["pen"].setStyle(style)
                             curve.update()
-#                            curve.sigPlotChanged.emit(curve)
+                #                            curve.sigPlotChanged.emit(curve)
 
                 if sig.enable:
                     curve.show()
@@ -2276,7 +2275,8 @@ class _Plot(pg.PlotWidget):
         trim_info = start, stop, width
 
         channels = [
-            PlotSignal(sig, i, trim_info=trim_info) for i, sig in enumerate(channels, len(self.signals))
+            PlotSignal(sig, i, trim_info=trim_info)
+            for i, sig in enumerate(channels, len(self.signals))
         ]
 
         for sig in channels:
@@ -2284,10 +2284,7 @@ class _Plot(pg.PlotWidget):
             uuids.add(sig.uuid)
         self.signals.extend(channels)
 
-        self._uuid_map = {
-            sig.uuid: (sig, i)
-            for i, sig in enumerate(self.signals)
-        }
+        self._uuid_map = {sig.uuid: (sig, i) for i, sig in enumerate(self.signals)}
 
         self._compute_all_timebase()
 
@@ -2312,14 +2309,14 @@ class _Plot(pg.PlotWidget):
             view_box.disableAutoRange()
 
             axis.linkToView(view_box)
-#            if len(sig.name) <= 32:
-#                axis.labelText = sig.name
-#            else:
-#                axis.labelText = f"{sig.name[:29]}..."
-#            axis.labelUnits = sig.unit
-#            axis.labelStyle = {"color": color}
-#
-#            axis.setLabel(axis.labelText, sig.unit, color=color)
+            #            if len(sig.name) <= 32:
+            #                axis.labelText = sig.name
+            #            else:
+            #                axis.labelText = f"{sig.name[:29]}..."
+            #            axis.labelUnits = sig.unit
+            #            axis.labelStyle = {"color": color}
+            #
+            #            axis.setLabel(axis.labelText, sig.unit, color=color)
 
             self.layout.addItem(axis, 2, self._axes_layout_pos)
             self._axes_layout_pos += 1
@@ -2350,8 +2347,8 @@ class _Plot(pg.PlotWidget):
                 view_box.setYRange(sig.min, sig.max, padding=0, update=True)
 
             view_box.setGeometry(geometry)
-#            (start, stop), _ = self.viewbox.viewRange()
-#            view_box.setXRange(start, stop, padding=0, update=True)
+            #            (start, stop), _ = self.viewbox.viewRange()
+            #            view_box.setXRange(start, stop, padding=0, update=True)
 
             self.axes.append(axis)
             axis.hide()
@@ -2448,10 +2445,7 @@ class _Plot(pg.PlotWidget):
 
         uuids = [sig.uuid for sig in self.signals]
 
-        self._uuid_map = {
-            sig.uuid: (sig, i)
-            for i, sig in enumerate(self.signals)
-        }
+        self._uuid_map = {sig.uuid: (sig, i) for i, sig in enumerate(self.signals)}
 
         if uuids:
             if self.current_uuid in uuids:
