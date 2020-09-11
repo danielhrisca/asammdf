@@ -1087,8 +1087,8 @@ def components(
 
     Returns
     -------
-    name, series : (str, pandas.Series)
-        tuple of unqiue name and Series object
+    name, series : (str, values)
+        tuple of unique name and values
     """
     names = channel.dtype.names
 
@@ -1108,7 +1108,7 @@ def components(
         if len(values.shape) > 1:
             values = list(values)
 
-        yield name_, Series(values, index=master)
+        yield name_, values
 
         for name in names[1:]:
             values = channel[name]
@@ -1122,7 +1122,7 @@ def components(
                 values = fromarrays(arr, dtype=types)
                 del arr
 
-            yield axis_name, Series(values, index=master, dtype="O")
+            yield axis_name, values
 
     # structure composition
     else:
@@ -1152,7 +1152,7 @@ def components(
                 if len(values.shape) > 1:
                     values = list(values)
 
-                yield name_, Series(values, index=master)
+                yield name_, values
 
 
 class DataBlockInfo:

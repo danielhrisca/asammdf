@@ -14,6 +14,7 @@ import xml.etree.ElementTree as ET
 from pprint import pprint
 from time import perf_counter
 
+from pandas.core.indexes.base import ensure_index
 import numpy as np
 import pandas as pd
 
@@ -3337,7 +3338,8 @@ class MDF(object):
             mdf.close()
             return result
 
-        df = pd.DataFrame()
+        df = {}
+
         self._set_temporary_master(None)
 
         if raster is not None:
@@ -3362,8 +3364,8 @@ class MDF(object):
 
             del masters
 
-        df["timestamps"] = pd.Series(master, index=np.arange(len(master)))
-        df.set_index("timestamps", inplace=True)
+        idx = np.argwhere(np.diff(master, prepend=-np.inf) > 0).flatten()
+        master = master[idx]
 
         used_names = UniqueDB()
         used_names.get_unique_name("timestamps")
@@ -3448,13 +3450,7 @@ class MDF(object):
 
                     channel_name = used_names.get_unique_name(channel_name)
 
-                    try:
-                        df[channel_name] = pd.Series(
-                            list(sig.samples), index=sig.timestamps,
-                        )
-                    except ValueError:
-                        idx = np.argwhere(np.diff(sig.timestamps, prepend=-np.inf) > 0).flatten()
-                        df[channel_name] = pd.Series(list(sig.samples[idx]), index=sig.timestamps[idx])
+                    df[channel_name] = list(sig.samples)
 
                 # arrays and structures
                 elif sig.samples.dtype.names:
@@ -3477,34 +3473,19 @@ class MDF(object):
                     channel_name = used_names.get_unique_name(channel_name)
 
                     if reduce_memory_usage and sig.samples.dtype.kind in "SU":
-                        df[channel_name] = pd.Series(
-                            sig.samples, index=sig.timestamps, dtype="category"
-                        )
-                        try:
-                            df[channel_name] = pd.Series(sig.samples, index=sig.timestamps, dtype="category")
-                        except ValueError:
-                            idx = np.argwhere(np.diff(sig.timestamps, prepend=-np.inf) > 0).flatten()
-                            df[channel_name] = pd.Series(sig.samples[idx], index=sig.timestamps[idx], dtype="category")
-#                        unique = np.unique(sig.samples)
-#                        if len(sig.samples) / len(unique) >= 2:
-#                            df[channel_name] = pd.Series(
-#                                sig.samples, index=sig.timestamps, dtype="category"
-#                            )
-#                        else:
-#                            df[channel_name] = pd.Series(
-#                                sig.samples, index=sig.timestamps
-#                            )
+                        df[channel_name] = sig.samples
+
                     else:
                         if reduce_memory_usage:
                             sig.samples = downcast(sig.samples)
-                        try:
-                            df[channel_name] = pd.Series(sig.samples, index=sig.timestamps)
-                        except ValueError:
-                            idx = np.argwhere(np.diff(sig.timestamps, prepend=-np.inf) > 0).flatten()
-                            df[channel_name] = pd.Series(sig.samples[idx], index=sig.timestamps[idx])
+                        df[channel_name] = sig.samples
 
             if self._callback:
                 self._callback(group_index + 1, groups_nr)
+
+        df = pd.DataFrame.from_dict(df)
+        df.set_index(master, inplace=True)
+        df.index.name = 'timestamps'
 
         if time_as_date:
             new_index = np.array(df.index) + self.header.start_time.timestamp()
