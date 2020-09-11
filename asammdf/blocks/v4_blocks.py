@@ -602,11 +602,9 @@ class Channel:
                 else:
                     self.display_name = ""
 
-                si_map = kwargs["si_map"]
-                cc_map = kwargs["cc_map"]
-
                 address = self.conversion_addr
                 if address:
+                    cc_map = kwargs["cc_map"]
                     try:
                         if mapped:
                             (size,) = UINT64_uf(stream, address + 8)
@@ -640,6 +638,7 @@ class Channel:
 
                 address = self.source_addr
                 if address:
+                    si_map = kwargs["si_map"]
                     try:
                         if mapped:
                             raw_bytes = stream[address : address + v4c.SI_BLOCK_SIZE]
@@ -5563,15 +5562,15 @@ class ListData(_ListDataBase):
             keys += tuple(f"offset_{i}" for i in range(self.data_block_nr))
 
         if self.flags & v4c.FLAG_LD_TIME_VALUES:
-            fmt += f"8s" * self.data_block_nr
+            fmt += "8s" * self.data_block_nr
             keys += tuple(f"time_value_{i}" for i in range(self.data_block_nr))
 
         if self.flags & v4c.FLAG_LD_ANGLE_VALUES:
-            fmt += f"8s" * self.data_block_nr
+            fmt += "8s" * self.data_block_nr
             keys += tuple(f"angle_value_{i}" for i in range(self.data_block_nr))
 
         if self.flags & v4c.FLAG_LD_DISTANCE_VALUES:
-            fmt += f"8s" * self.data_block_nr
+            fmt += "8s" * self.data_block_nr
             keys += tuple(f"distance_value_{i}" for i in range(self.data_block_nr))
 
         result = pack(fmt, *[getattr(self, key) for key in keys])
