@@ -151,7 +151,8 @@ def extract_signal(signal, payload, raw=False):
                 conv[f"text_{i}"] = text
 
             conv['default'] = from_dict({'a': a, 'b': b})
-
+            
+            conv = from_dict(conv) 
             vals = conv.convert(vals)
 
         else:
