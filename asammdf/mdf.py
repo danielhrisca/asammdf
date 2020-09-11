@@ -1124,7 +1124,7 @@ class MDF(object):
                         comment = ""
 
                     if comment:
-                        for char in r" \/:":
+                        for char in r' \/:"':
                             comment = comment.replace(char, "_")
                         group_csv_name = (
                             filename.parent
