@@ -8109,7 +8109,7 @@ class MDF4(object):
         else:
             invalidation_bits = None
 
-        vals = extract_can_signal(signal, vals, raw)
+        vals = extract_can_signal(signal, vals)
 
         comment = signal.comment or ""
 
