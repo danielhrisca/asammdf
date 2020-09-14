@@ -3306,6 +3306,7 @@ class MDF4(object):
                 data_address = self._tempfile.tell()
 
                 data = samples.tobytes()
+                del samples
                 raw_size = len(data)
                 data = lz_compress(data)
 
@@ -3328,6 +3329,7 @@ class MDF4(object):
                 data_address = tell()
 
                 data = samples.tobytes()
+                del samples
                 raw_size = len(data)
                 data = lz_compress(data)
 
