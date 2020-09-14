@@ -3307,21 +3307,47 @@ class MDF4(object):
 
                 data = samples.tobytes()
                 del samples
-                raw_size = len(data)
-                data = lz_compress(data)
 
-                size = len(data)
-                self._tempfile.write(data)
+                if sys.maxsize < 2 ** 32:
+                    total_size = len(data)
 
-                gp.data_blocks.append(
-                    DataBlockInfo(
-                        address=data_address,
-                        block_type=v4c.DZ_BLOCK_LZ,
-                        raw_size=raw_size,
-                        size=size,
-                        param=0,
+                    _20MB = 20 * 1024 * 1024
+
+                    for i in range(ceil(total_size / _20MB)):
+                        data_ = data[i * _20MB: (i+1)* _20MB]
+                        raw_size = len(data_)
+                        data_ = lz_compress(data_)
+
+                        size = len(data_)
+                        self._tempfile.write(data_)
+
+                        gp.data_blocks.append(
+                            DataBlockInfo(
+                                address=data_address,
+                                block_type=v4c.DZ_BLOCK_LZ,
+                                raw_size=raw_size,
+                                size=size,
+                                param=0,
+                            )
+                        )
+
+                else:
+                    raw_size = len(data)
+
+                    data = lz_compress(data)
+
+                    size = len(data)
+                    self._tempfile.write(data)
+
+                    gp.data_blocks.append(
+                        DataBlockInfo(
+                            address=data_address,
+                            block_type=v4c.DZ_BLOCK_LZ,
+                            raw_size=raw_size,
+                            size=size,
+                            param=0,
+                        )
                     )
-                )
 
             else:
                 data_address = self._tempfile.tell()
@@ -3363,6 +3389,7 @@ class MDF4(object):
                             param=None,
                         )
                     )
+
         gp.data_location = v4c.LOCATION_TEMPORARY_FILE
 
         return dg_cntr
