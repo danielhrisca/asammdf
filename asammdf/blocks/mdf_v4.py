@@ -3303,8 +3303,6 @@ class MDF4(object):
         if size:
             if self.version < "4.20":
 
-                data_address = self._tempfile.tell()
-
                 data = samples.tobytes()
                 del samples
 
@@ -3319,6 +3317,7 @@ class MDF4(object):
                         data_ = lz_compress(data_)
 
                         size = len(data_)
+                        data_address = self._tempfile.tell()
                         self._tempfile.write(data_)
 
                         gp.data_blocks.append(
@@ -3332,6 +3331,7 @@ class MDF4(object):
                         )
 
                 else:
+                    data_address = self._tempfile.tell()
                     raw_size = len(data)
 
                     data = lz_compress(data)
