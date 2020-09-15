@@ -3305,9 +3305,6 @@ class MDF4(object):
         if size:
             if self.version < "4.20":
 
-                data = samples.tobytes()
-                del samples
-
                 if sys.maxsize < 2 ** 32:
                     _20MB = 20 * 1024 * 1024
 
