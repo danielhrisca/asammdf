@@ -1078,6 +1078,7 @@ class MDF4(object):
                         if isinstance(address[0], SignalDataBlockInfo):
 
                             if address[0].offsets is not None:
+
                                 with_bounds = True
 
                                 current_offset = 0
@@ -3307,12 +3308,13 @@ class MDF4(object):
                 del samples
 
                 if sys.maxsize < 2 ** 32:
-                    total_size = len(data)
-
                     _20MB = 20 * 1024 * 1024
 
-                    for i in range(ceil(total_size / _20MB)):
-                        data_ = data[i * _20MB: (i+1)* _20MB]
+                    chunk = ceil(_20MB / samples.itemsize)
+                    count = ceil(len(samples) / chunk)
+
+                    for i in range(count):
+                        data_ = samples[i*chunk: (i+1) *chunk].tobytes()
                         raw_size = len(data_)
                         data_ = lz_compress(data_)
 
@@ -3331,6 +3333,10 @@ class MDF4(object):
                         )
 
                 else:
+
+                    data = samples.tobytes()
+                    del samples
+
                     data_address = self._tempfile.tell()
                     raw_size = len(data)
 
@@ -6789,6 +6795,7 @@ class MDF4(object):
                 fragment = data[0]
                 data_bytes, record_start, record_count, invalidation_bytes = fragment
 
+
                 try:
                     parent, bit_offset = parents[ch_nr]
                 except KeyError:
@@ -6901,6 +6908,7 @@ class MDF4(object):
 
                 for count, fragment in enumerate(data, 1):
                     data_bytes, offset, _count, invalidation_bytes = fragment
+
                     if count == 1:
                         record_start = offset
                         record_count = _count
@@ -7069,6 +7077,7 @@ class MDF4(object):
 
         if channel_type == v4c.CHANNEL_TYPE_VLSD:
             count_ = len(vals)
+
 
             signal_data, with_bounds = self._load_signal_data(
                 group=grp, index=ch_nr, offset=record_start, count=count_,
@@ -9619,6 +9628,7 @@ class MDF4(object):
                     group.record = fromstring(fragment[0], dtype=dtypes)
                 else:
                     group.record = None
+
                     return
 
                 self._set_temporary_master(None)

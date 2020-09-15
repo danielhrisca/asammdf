@@ -496,6 +496,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.raster.setEnabled(True)
 
     def _update_channel_tree(self, index=None, widget=None):
+        if widget is None:
+            widget = self.channels_tree
         if widget is self.channels_tree and self.channel_view.currentIndex() == -1:
             return
         elif widget is self.filter_tree and (
