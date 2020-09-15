@@ -3298,6 +3298,7 @@ class MDF4(object):
 
         signals = None
         del signals
+        del fields
 
         size = len(samples) * samples.itemsize
 
