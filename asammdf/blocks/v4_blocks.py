@@ -951,7 +951,7 @@ class Channel:
                     try:
                         CNcomment = ET.fromstring(comment)
                         display_name_element = CNcomment.find(".//names/display")
-                        if display_name is not None:
+                        if display_name_element is not None:
                             display_name_element.text = display_name or ""
                         else:
 

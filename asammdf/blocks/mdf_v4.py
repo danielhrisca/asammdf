@@ -3296,7 +3296,6 @@ class MDF4(object):
         else:
             samples = array([])
 
-        signals = None
         del signals
         del fields
 
@@ -3305,43 +3304,19 @@ class MDF4(object):
         if size:
             if self.version < "4.20":
 
-                if sys.maxsize < 2 ** 32:
-                    _20MB = 20 * 1024 * 1024
+                block_size = self._write_fragment_size or 20 * 1024 * 1024
 
-                    chunk = ceil(_20MB / samples.itemsize)
-                    count = ceil(len(samples) / chunk)
+                chunk = ceil(block_size / samples.itemsize)
+                count = ceil(len(samples) / chunk)
 
-                    for i in range(count):
-                        data_ = samples[i*chunk: (i+1) *chunk].tobytes()
-                        raw_size = len(data_)
-                        data_ = lz_compress(data_)
+                for i in range(count):
+                    data_ = samples[i*chunk: (i+1) *chunk].tobytes()
+                    raw_size = len(data_)
+                    data_ = lz_compress(data_)
 
-                        size = len(data_)
-                        data_address = self._tempfile.tell()
-                        self._tempfile.write(data_)
-
-                        gp.data_blocks.append(
-                            DataBlockInfo(
-                                address=data_address,
-                                block_type=v4c.DZ_BLOCK_LZ,
-                                raw_size=raw_size,
-                                size=size,
-                                param=0,
-                            )
-                        )
-
-                else:
-
-                    data = samples.tobytes()
-                    del samples
-
+                    size = len(data_)
                     data_address = self._tempfile.tell()
-                    raw_size = len(data)
-
-                    data = lz_compress(data)
-
-                    size = len(data)
-                    self._tempfile.write(data)
+                    self._tempfile.write(data_)
 
                     gp.data_blocks.append(
                         DataBlockInfo(
