@@ -26,6 +26,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
         self.signals_descr = {}
         self.start = start
+        self.pattern = {}
 
         if signals is None:
             self.signals = pd.DataFrame()
@@ -358,13 +359,14 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
         config = {
             "sorted": self.sort.checkState() == QtCore.Qt.Checked,
-            "channels": list(self.signals.columns),
+            "channels": list(self.signals.columns) if not self.pattern else [],
             "filtered": bool(self.query.toPlainText()),
             "filters": [
                 self.filters.itemWidget(self.filters.item(i)).to_config()
                 for i in range(count)
-            ],
+            ] if not self.pattern else [],
             "time_as_date": self.time_as_date.checkState() == QtCore.Qt.Checked,
+            "pattern": self.pattern,
         }
 
         return config

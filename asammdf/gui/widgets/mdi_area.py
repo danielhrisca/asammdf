@@ -2,6 +2,7 @@
 from datetime import datetime
 from functools import partial
 import json
+import re
 import os
 from traceback import format_exc
 
@@ -614,50 +615,132 @@ class WithMDIArea:
         geometry = window_info.get("geometry", None)
 
         if window_info["type"] == "Numeric":
-            fmt = window_info["configuration"]["format"]
-            required = set(window_info["configuration"]["channels"])
+            # patterns
+            pattern_info = window_info['configuration'].get('pattern', {})
+            if pattern_info:
+                required = set()
+                found_signals = []
+                fmt = "phys"
 
-            signals_ = [
-                (None, *self.mdf.whereis(name)[0])
-                for name in window_info["configuration"]["channels"]
-                if name in self.mdf
-            ]
+                pattern = pattern_info['pattern']
+                match_type = pattern_info["match_type"]
+                filter_value = pattern_info['filter_value']
+                filter_type = pattern_info['filter_type']
+                raw = pattern_info['raw']
 
-            if not signals_:
-                return
+                if match_type == "Wildcard":
+                    pattern = pattern.replace("*", "_WILDCARD_")
+                    pattern = re.escape(pattern)
+                    pattern = pattern.replace("_WILDCARD_", ".*")
 
-            signals = self.mdf.select(
-                signals_,
-                ignore_value2text_conversions=self.ignore_value2text_conversions,
-                copy_master=False,
-                validate=True,
-                raw=True,
-            )
+                try:
+                    pattern = re.compile(f"(?i){pattern}")
+                    matches = {
+                        name: entries[0]
+                        for name, entries in self.mdf.channels_db.items()
+                        if pattern.match(name)
+                    }
+                except:
+                    print(format_exc())
+                    signals = []
+                else:
 
-            for sig, sig_ in zip(signals, signals_):
-                sig.group_index = sig_[1]
-                sig.mdf_uuid = uuid
+                    psignals = self.mdf.select(
+                        list(matches),
+                        ignore_value2text_conversions=self.ignore_value2text_conversions,
+                        copy_master=False,
+                        validate=True,
+                        raw=True,
+                    )
 
-            signals = [
-                sig
-                for sig in signals
-                if not sig.samples.dtype.names and len(sig.samples.shape) <= 1
-            ]
+                    if filter_type == 'Unspecified':
+                        keep = psignals
+                    else:
 
-            signals = natsorted(signals, key=lambda x: x.name)
+                        keep = []
+                        for i, (name, entry) in enumerate(matches.items()):
+                            sig = psignals[i]
+                            sig.mdf_uuid = uuid
+                            sig.group_index, sig.channel_index = entry
 
-            found = set(sig.name for sig in signals)
-            not_found = [
-                Signal([], [], name=name,) for name in sorted(required - found)
-            ]
-            uuid = os.urandom(6).hex()
-            for sig in not_found:
-                sig.mdf_uuid = uuid
-                sig.group_index = 0
+                            size = len(sig)
+                            if not size:
+                                continue
 
-            signals.extend(not_found)
+                            target = np.ones(size) * filter_value
+
+                            if not raw:
+                                samples = sig.physical().samples
+                            else:
+                                samples = sig.samples
+
+                            if filter_type == 'Contains':
+                                try:
+                                    if np.any(np.isclose(samples, target)):
+                                        keep.append(sig)
+                                except:
+                                    continue
+                            elif filter_type == 'Do not contain':
+                                try:
+                                    if not np.allclose(samples, target):
+                                        keep.append(sig)
+                                except:
+                                    continue
+                            else:
+                                try:
+                                    if np.allclose(samples, target):
+                                        keep.append(sig)
+                                except:
+                                    continue
+                    signals = keep
+
+            else:
+
+                fmt = window_info["configuration"]["format"]
+                required = set(window_info["configuration"]["channels"])
+
+                signals_ = [
+                    (None, *self.mdf.whereis(name)[0])
+                    for name in window_info["configuration"]["channels"]
+                    if name in self.mdf
+                ]
+
+                if not signals_:
+                    return
+
+                signals = self.mdf.select(
+                    signals_,
+                    ignore_value2text_conversions=self.ignore_value2text_conversions,
+                    copy_master=False,
+                    validate=True,
+                    raw=True,
+                )
+
+                for sig, sig_ in zip(signals, signals_):
+                    sig.group_index = sig_[1]
+                    sig.mdf_uuid = uuid
+
+                signals = [
+                    sig
+                    for sig in signals
+                    if not sig.samples.dtype.names and len(sig.samples.shape) <= 1
+                ]
+
+                signals = natsorted(signals, key=lambda x: x.name)
+
+                found = set(sig.name for sig in signals)
+                not_found = [
+                    Signal([], [], name=name,) for name in sorted(required - found)
+                ]
+                uuid = os.urandom(6).hex()
+                for sig in not_found:
+                    sig.mdf_uuid = uuid
+                    sig.group_index = 0
+
+                signals.extend(not_found)
 
             numeric = Numeric(signals)
+            numeric.pattern = pattern_info
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
@@ -703,100 +786,173 @@ class WithMDIArea:
             )
 
         elif window_info["type"] == "Plot":
-            required = set(e["name"] for e in window_info["configuration"]["channels"])
+            # patterns
+            pattern_info = window_info['configuration'].get('pattern', {})
+            if pattern_info:
+                required = set()
+                found_signals = []
 
-            found_signals = [
-                channel
-                for channel in window_info["configuration"]["channels"]
-                if not channel["computed"] and channel["name"] in self.mdf
-            ]
+                pattern = pattern_info['pattern']
+                match_type = pattern_info["match_type"]
+                filter_value = pattern_info['filter_value']
+                filter_type = pattern_info['filter_type']
+                raw = pattern_info['raw']
 
-            measured_signals_ = [
-                (None, *self.mdf.whereis(channel["name"])[0])
-                for channel in found_signals
-            ]
-
-            measured_signals = {
-                sig.name: sig
-                for sig in self.mdf.select(
-                    measured_signals_,
-                    ignore_value2text_conversions=self.ignore_value2text_conversions,
-                    copy_master=False,
-                    validate=True,
-                    raw=True,
-                )
-            }
-
-            for signal, entry_info, channel in zip(
-                measured_signals.values(), measured_signals_, found_signals
-            ):
-                signal.computed = False
-                signal.computation = {}
-                signal.color = channel["color"]
-                signal.group_index = entry_info[1]
-                signal.channel_index = entry_info[2]
-                signal.mdf_uuid = uuid
-
-            if measured_signals:
-                all_timebase = np.unique(
-                    np.concatenate(
-                        [sig.timestamps for sig in measured_signals.values()]
-                    )
-                )
-            else:
-                all_timebase = []
-
-            computed_signals_descriptions = [
-                channel
-                for channel in window_info["configuration"]["channels"]
-                if channel["computed"]
-            ]
-
-            required_channels = []
-            for ch in computed_signals_descriptions:
-                required_channels.extend(get_required_signals(ch))
-
-            required_channels = set(required_channels)
-            required_channels = [
-                (None, *self.mdf.whereis(channel)[0])
-                for channel in required_channels
-                if channel not in list(measured_signals) and channel in self.mdf
-            ]
-            required_channels = {
-                sig.name: sig
-                for sig in self.mdf.select(
-                    required_channels,
-                    ignore_value2text_conversions=self.ignore_value2text_conversions,
-                    copy_master=False,
-                )
-            }
-
-            required_channels.update(measured_signals)
-
-            computed_signals = {}
-
-            for channel in computed_signals_descriptions:
-                computation = channel["computation"]
+                if match_type == "Wildcard":
+                    pattern = pattern.replace("*", "_WILDCARD_")
+                    pattern = re.escape(pattern)
+                    pattern = pattern.replace("_WILDCARD_", ".*")
 
                 try:
+                    pattern = re.compile(f"(?i){pattern}")
+                    matches = [name for name in self.mdf.channels_db if pattern.match(name)]
+                except:
+                    print(format_exc())
+                    signals = []
+                else:
 
-                    signal = compute_signal(
-                        computation, required_channels, all_timebase
+                    psignals = self.mdf.select(
+                        matches,
+                        ignore_value2text_conversions=self.ignore_value2text_conversions,
+                        copy_master=False,
+                        validate=True,
+                        raw=True,
                     )
+
+                    if filter_type == 'Unspecified':
+                        keep = psignals
+                    else:
+
+                        keep = []
+                        for sig in psignals:
+                            size = len(sig)
+                            if not size:
+                                continue
+
+                            target = np.ones(size) * filter_value
+
+
+                            if not raw:
+                                samples = sig.physical().samples
+                            else:
+                                samples = sig.samples
+
+                            if filter_type == 'Contains':
+                                try:
+                                    if np.any(np.isclose(samples, target)):
+                                        keep.append(sig)
+                                except:
+                                    continue
+                            elif filter_type == 'Do not contain':
+                                try:
+                                    if not np.allclose(samples, target):
+                                        keep.append(sig)
+                                except:
+                                    continue
+                            else:
+                                try:
+                                    if np.allclose(samples, target):
+                                        keep.append(sig)
+                                except:
+                                    continue
+                    signals = keep
+
+            else:
+
+                required = set(e["name"] for e in window_info["configuration"]["channels"])
+
+                found_signals = [
+                    channel
+                    for channel in window_info["configuration"]["channels"]
+                    if not channel["computed"] and channel["name"] in self.mdf
+                ]
+
+                measured_signals_ = [
+                    (None, *self.mdf.whereis(channel["name"])[0])
+                    for channel in found_signals
+                ]
+
+                measured_signals = {
+                    sig.name: sig
+                    for sig in self.mdf.select(
+                        measured_signals_,
+                        ignore_value2text_conversions=self.ignore_value2text_conversions,
+                        copy_master=False,
+                        validate=True,
+                        raw=True,
+                    )
+                }
+
+                for signal, entry_info, channel in zip(
+                    measured_signals.values(), measured_signals_, found_signals
+                ):
+                    signal.computed = False
+                    signal.computation = {}
                     signal.color = channel["color"]
-                    signal.computed = True
-                    signal.computation = channel["computation"]
-                    signal.name = channel["name"]
-                    signal.unit = channel["unit"]
-                    signal.group_index = -1
-                    signal.channel_index = -1
+                    signal.group_index = entry_info[1]
+                    signal.channel_index = entry_info[2]
                     signal.mdf_uuid = uuid
 
-                    computed_signals[signal.name] = signal
-                except:
-                    pass
+                if measured_signals:
+                    all_timebase = np.unique(
+                        np.concatenate(
+                            [sig.timestamps for sig in measured_signals.values()]
+                        )
+                    )
+                else:
+                    all_timebase = []
 
-            signals = list(measured_signals.values()) + list(computed_signals.values())
+                computed_signals_descriptions = [
+                    channel
+                    for channel in window_info["configuration"]["channels"]
+                    if channel["computed"]
+                ]
+
+                required_channels = []
+                for ch in computed_signals_descriptions:
+                    required_channels.extend(get_required_signals(ch))
+
+                required_channels = set(required_channels)
+                required_channels = [
+                    (None, *self.mdf.whereis(channel)[0])
+                    for channel in required_channels
+                    if channel not in list(measured_signals) and channel in self.mdf
+                ]
+                required_channels = {
+                    sig.name: sig
+                    for sig in self.mdf.select(
+                        required_channels,
+                        ignore_value2text_conversions=self.ignore_value2text_conversions,
+                        copy_master=False,
+                    )
+                }
+
+                required_channels.update(measured_signals)
+
+                computed_signals = {}
+
+                for channel in computed_signals_descriptions:
+                    computation = channel["computation"]
+
+                    try:
+
+                        signal = compute_signal(
+                            computation, required_channels, all_timebase
+                        )
+                        signal.color = channel["color"]
+                        signal.computed = True
+                        signal.computation = channel["computation"]
+                        signal.name = channel["name"]
+                        signal.unit = channel["unit"]
+                        signal.group_index = -1
+                        signal.channel_index = -1
+                        signal.mdf_uuid = uuid
+
+                        computed_signals[signal.name] = signal
+                    except:
+                        pass
+
+                signals = list(measured_signals.values()) + list(computed_signals.values())
 
             signals = [
                 sig
@@ -866,6 +1022,7 @@ class WithMDIArea:
             signals.extend(not_found)
 
             plot = Plot([], with_dots=self.with_dots, events=events, origin=origin)
+            plot.pattern = pattern_info
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
@@ -937,22 +1094,25 @@ class WithMDIArea:
                 wid = plot.channel_selection.itemWidget(plot.channel_selection.item(i))
                 name = wid._name
 
-                description = descriptions[name]
+                description = descriptions.get(name, None)
+                if description is not None:
 
-                wid.set_fmt(description["fmt"])
-                wid.set_precision(description["precision"])
-                wid.ranges = {
-                    (range["start"], range["stop"]): range["color"]
-                    for range in description["ranges"]
-                }
-                wid.ylink.setCheckState(
-                    QtCore.Qt.Checked
-                    if description["common_axis"]
-                    else QtCore.Qt.Unchecked
-                )
-                wid.display.setCheckState(
-                    QtCore.Qt.Checked if description["enabled"] else QtCore.Qt.Unchecked
-                )
+                    wid.set_fmt(description["fmt"])
+                    wid.set_precision(description["precision"])
+                    wid.ranges = {
+                        (range["start"], range["stop"]): range["color"]
+                        for range in description["ranges"]
+                    }
+                    wid.ylink.setCheckState(
+                        QtCore.Qt.Checked
+                        if description["common_axis"]
+                        else QtCore.Qt.Unchecked
+                    )
+                    wid.display.setCheckState(
+                        QtCore.Qt.Checked if description["enabled"] else QtCore.Qt.Unchecked
+                    )
+                elif pattern_info:
+                    wid.ranges = pattern_info['ranges']
 
             self.set_subplots_link(self.subplots_link)
 
@@ -960,16 +1120,92 @@ class WithMDIArea:
             plot.setContentsMargins(1, 1, 1, 1)
 
         elif window_info["type"] == "Tabular":
-            required = set(window_info["configuration"]["channels"])
+            # patterns
+            pattern_info = window_info['configuration'].get('pattern', {})
+            if pattern_info:
+                required = set()
+                found_signals = []
 
-            signals_ = [
-                (None, *self.mdf.whereis(name)[0])
-                for name in window_info["configuration"]["channels"]
-                if name in self.mdf
-            ]
+                pattern = pattern_info['pattern']
+                match_type = pattern_info["match_type"]
+                filter_value = pattern_info['filter_value']
+                filter_type = pattern_info['filter_type']
+                raw = pattern_info['raw']
 
-            if not signals_:
-                return
+                if match_type == "Wildcard":
+                    pattern = pattern.replace("*", "_WILDCARD_")
+                    pattern = re.escape(pattern)
+                    pattern = pattern.replace("_WILDCARD_", ".*")
+
+                try:
+                    pattern = re.compile(f"(?i){pattern}")
+                    matches = {
+                        name: entries[0]
+                        for name, entries in self.mdf.channels_db.items()
+                        if pattern.match(name)
+                    }
+                except:
+                    print(format_exc())
+                    signals_ = []
+                else:
+
+                    psignals = self.mdf.select(
+                        list(matches),
+                        ignore_value2text_conversions=self.ignore_value2text_conversions,
+                        copy_master=False,
+                        validate=True,
+                        raw=True,
+                    )
+
+                    if filter_type == 'Unspecified':
+                        keep = list(matches)
+                    else:
+
+                        keep = []
+                        for i, (name, entry) in enumerate(matches.items()):
+                            sig = psignals[i]
+                            size = len(sig)
+                            if not size:
+                                continue
+
+                            target = np.ones(size) * filter_value
+
+                            if not raw:
+                                samples = sig.physical().samples
+                            else:
+                                samples = sig.samples
+
+                            if filter_type == 'Contains':
+                                try:
+                                    if np.any(np.isclose(samples, target)):
+                                        keep.append(name)
+                                except:
+                                    continue
+                            elif filter_type == 'Do not contain':
+                                try:
+                                    if not np.allclose(samples, target):
+                                        keep.append(name)
+                                except:
+                                    continue
+                            else:
+                                try:
+                                    if np.allclose(samples, target):
+                                        keep.append(name)
+                                except:
+                                    continue
+                    signals_ = keep
+
+            else:
+                required = set(window_info["configuration"]["channels"])
+
+                signals_ = [
+                    (None, *self.mdf.whereis(name)[0])
+                    for name in window_info["configuration"]["channels"]
+                    if name in self.mdf
+                ]
+
+                if not signals_:
+                    return
 
             signals = self.mdf.to_dataframe(
                 channels=signals_,
@@ -985,6 +1221,7 @@ class WithMDIArea:
                 signals[name] = pd.Series(vals, index=signals.index)
 
             tabular = Tabular(signals, start=self.mdf.header.start_time.timestamp())
+            tabular.pattern = pattern_info
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
@@ -1052,6 +1289,9 @@ class WithMDIArea:
                 )
                 if ok and name:
                     mdi.setWindowTitle(name)
+
+            def set_pattern(mdi):
+                pass
 
             action = QtWidgets.QAction("Set title", menu)
             action.triggered.connect(partial(set_title, w))

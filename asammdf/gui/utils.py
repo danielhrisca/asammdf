@@ -4,7 +4,7 @@ import traceback
 from datetime import datetime
 from io import StringIO
 from time import sleep
-from struct import unpack
+from struct import unpack, pack
 from threading import Thread
 from pathlib import Path
 import lxml
@@ -99,6 +99,7 @@ def load_dsp(file):
         channels = set()
         groups = []
         all_channels = set()
+        patterns = {}
 
         for item in display.findall("CHANNEL"):
             channels.add(item.get("name"))
@@ -117,12 +118,40 @@ def load_dsp(file):
                 }
             )
 
-        return channels, groups, all_channels
+        for item in display.findall("CHANNEL_PATTERN"):
+            info = {
+                'pattern': item.get('name_pattern'),
+                'match_type': 'Wildcard',
+                'filter_type': item.get('filter_type'),
+                'filter_value': float(item.get('filter_value')),
+                'raw': bool(int(item.get('filter_use_raw'))),
+            }
+
+            multi_color = item.find('MULTI_COLOR')
+
+            ranges = {}
+
+            for color in multi_color.findall('color'):
+                min_ = float(color.find('min').get('data'))
+                max_ = float(color.find('max').get('data'))
+                color_ = int(color.find('color').get('data'))
+                c = 0
+                for i in range(3):
+                    c = c << 8
+                    c += color_ & 0xFF
+                    color_ = color_ >> 8
+                ranges[(min_, max_)] = f"#{c:06X}"
+
+            info['ranges'] = ranges
+
+            patterns[info['pattern']] = info
+
+        return channels, groups, all_channels, patterns
 
     dsp = Path(file).read_bytes().replace(b"\0", b"")
     dsp = lxml.etree.fromstring(dsp)
 
-    channels, groups, all_channels = parse_dsp(dsp.find("DISPLAY_INFO"))
+    channels, groups, all_channels, patterns = parse_dsp(dsp.find("DISPLAY_INFO"))
 
     info = {}
     all_channels = natsort.natsorted(all_channels)
@@ -164,6 +193,18 @@ def load_dsp(file):
     }
 
     windows.append(plot)
+
+    for pattern_info in patterns.values():
+        plot = {
+            "type": "Plot",
+            "title": pattern_info['pattern'],
+            "configuration": {
+                "channels": [],
+                "pattern": pattern_info,
+            }
+        }
+
+        windows.append(plot)
 
     return info
 

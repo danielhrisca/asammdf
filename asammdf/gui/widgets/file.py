@@ -646,100 +646,152 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         )
         dlg.setModal(True)
         dlg.exec_()
-        result = dlg.result
+        result, pattern_window = dlg.result, dlg.pattern_window
 
         if result:
-            names = set()
-            if view.currentText() == "Internal file structure":
-                iterator = QtWidgets.QTreeWidgetItemIterator(widget)
-
-                dg_cntr = -1
-                ch_cntr = 0
-
-                while iterator.value():
-                    item = iterator.value()
-                    if item.parent() is None:
-                        iterator += 1
-                        dg_cntr += 1
-                        ch_cntr = 0
-                        continue
-
-                    if (dg_cntr, ch_cntr) in result:
-                        item.setCheckState(0, QtCore.Qt.Checked)
-                        names.add(item.text(0))
-
-                    iterator += 1
-                    ch_cntr += 1
-            elif view.currentText() == "Selected channels only":
-                iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
-
-                signals = set()
-                while iterator.value():
-                    item = iterator.value()
-
-                    if item.checkState(0) == QtCore.Qt.Checked:
-                        signals.add(item.entry)
-
-                    iterator += 1
-
-                signals = signals | result
-
-                widget.clear()
-
-                items = []
-                for entry in signals:
-                    gp_index, ch_index = entry
-                    ch = self.mdf.groups[gp_index].channels[ch_index]
-                    channel = TreeItem(entry, ch.name, mdf_uuid=self.uuid)
-                    channel.setText(0, ch.name)
-                    channel.setCheckState(0, QtCore.Qt.Checked)
-                    items.append(channel)
-
-                if len(items) < 30000:
-                    items = natsorted(items, key=lambda x: x.name)
-                else:
-                    items.sort(key=lambda x: x.name)
-                widget.addTopLevelItems(items)
-
-            else:
-                iterator = QtWidgets.QTreeWidgetItemIterator(widget)
-                while iterator.value():
-                    item = iterator.value()
-
-                    if item.entry in result:
-                        item.setCheckState(0, QtCore.Qt.Checked)
-                        names.add(item.text(0))
-
-                    iterator += 1
-
-            if dlg.add_window_request:
+            if pattern_window:
                 options = [
-                    "New plot window",
-                    "New numeric window",
-                    "New tabular window",
-                ] + [mdi.windowTitle() for mdi in self.mdi_area.subWindowList()]
+                    "New pattern based plot window",
+                    "New pattern based numeric window",
+                    "New pattern based tabular window",
+                ]
                 ret, ok = QtWidgets.QInputDialog.getItem(
-                    None, "Select window type", "Type:", options, 0, False,
+                    None, "Select pattern based window type", "Type:", options, 0, False,
                 )
                 if ok:
                     index = options.index(ret)
-                    signals = [
-                        (None, *self.mdf.whereis(name)[0], self.uuid) for name in names
-                    ]
 
                     if index == 0:
-                        self.add_window(["Plot", signals])
+                        self.load_window(
+                            {
+                                "type": "Plot",
+                                "title": result["pattern"],
+                                "configuration": {
+                                    "channels": [],
+                                    "pattern": result,
+                                }
+                            }
+                        )
                     elif index == 1:
-                        self.add_window(["Numeric", signals])
+                        self.load_window(
+                            {
+                                "type": "Numeric",
+                                "title": result["pattern"],
+                                "configuration": {
+                                    "channels": [],
+                                    "pattern": result,
+                                }
+                            }
+                        )
                     elif index == 2:
-                        self.add_window(["Tabular", signals])
-                    else:
-                        widgets = [
-                            mdi.widget() for mdi in self.mdi_area.subWindowList()
-                        ]
-                        widget = widgets[index - 3]
+                        self.load_window(
+                            {
+                                "type": "Tabular",
+                                "title": result["pattern"],
+                                "configuration": {
+                                    "channels": [],
+                                    "pattern": result,
+                                    "filters": [],
+                                    "time_as_date": False,
+                                    "sorted": False,
+                                    "filtered": False,
+                                }
+                            }
+                        )
 
-                        self.add_new_channels(signals, widget)
+            else:
+
+                names = set()
+                if view.currentText() == "Internal file structure":
+                    iterator = QtWidgets.QTreeWidgetItemIterator(widget)
+
+                    dg_cntr = -1
+                    ch_cntr = 0
+
+                    while iterator.value():
+                        item = iterator.value()
+                        if item.parent() is None:
+                            iterator += 1
+                            dg_cntr += 1
+                            ch_cntr = 0
+                            continue
+
+                        if (dg_cntr, ch_cntr) in result:
+                            item.setCheckState(0, QtCore.Qt.Checked)
+                            names.add(item.text(0))
+
+                        iterator += 1
+                        ch_cntr += 1
+                elif view.currentText() == "Selected channels only":
+                    iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
+
+                    signals = set()
+                    while iterator.value():
+                        item = iterator.value()
+
+                        if item.checkState(0) == QtCore.Qt.Checked:
+                            signals.add(item.entry)
+
+                        iterator += 1
+
+                    signals = signals | result
+
+                    widget.clear()
+
+                    items = []
+                    for entry in signals:
+                        gp_index, ch_index = entry
+                        ch = self.mdf.groups[gp_index].channels[ch_index]
+                        channel = TreeItem(entry, ch.name, mdf_uuid=self.uuid)
+                        channel.setText(0, ch.name)
+                        channel.setCheckState(0, QtCore.Qt.Checked)
+                        items.append(channel)
+
+                    if len(items) < 30000:
+                        items = natsorted(items, key=lambda x: x.name)
+                    else:
+                        items.sort(key=lambda x: x.name)
+                    widget.addTopLevelItems(items)
+
+                else:
+                    iterator = QtWidgets.QTreeWidgetItemIterator(widget)
+                    while iterator.value():
+                        item = iterator.value()
+
+                        if item.entry in result:
+                            item.setCheckState(0, QtCore.Qt.Checked)
+                            names.add(item.text(0))
+
+                        iterator += 1
+
+                if dlg.add_window_request:
+                    options = [
+                        "New plot window",
+                        "New numeric window",
+                        "New tabular window",
+                    ] + [mdi.windowTitle() for mdi in self.mdi_area.subWindowList()]
+                    ret, ok = QtWidgets.QInputDialog.getItem(
+                        None, "Select window type", "Type:", options, 0, False,
+                    )
+                    if ok:
+                        index = options.index(ret)
+                        signals = [
+                            (None, *self.mdf.whereis(name)[0], self.uuid) for name in names
+                        ]
+
+                        if index == 0:
+                            self.add_window(["Plot", signals])
+                        elif index == 1:
+                            self.add_window(["Numeric", signals])
+                        elif index == 2:
+                            self.add_window(["Tabular", signals])
+                        else:
+                            widgets = [
+                                mdi.widget() for mdi in self.mdi_area.subWindowList()
+                            ]
+                            widget = widgets[index - 3]
+
+                            self.add_new_channels(signals, widget)
 
         if toggle_frames:
             self.toggle_frames()

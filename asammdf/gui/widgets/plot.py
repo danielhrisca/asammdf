@@ -694,6 +694,7 @@ class Plot(QtWidgets.QWidget):
         events = kwargs.pop("events", None)
         super().__init__(*args, **kwargs)
         self.setContentsMargins(0, 0, 0, 0)
+        self.pattern = {}
 
         self.info_uuid = None
 
@@ -1411,7 +1412,8 @@ class Plot(QtWidgets.QWidget):
             channels.append(channel)
 
         config = {
-            "channels": channels,
+            "channels": channels if not self.pattern else [],
+            "pattern": self.pattern,
         }
 
         return config

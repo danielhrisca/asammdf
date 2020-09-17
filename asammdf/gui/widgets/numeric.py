@@ -33,6 +33,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         self._min = self._max = 0
         self.format = "phys"
         self.add_new_channels(signals)
+        self.pattern = {}
 
         self.timestamp.valueChanged.connect(self._timestamp_changed)
         self.timestamp_slider.valueChanged.connect(self._timestamp_slider_changed)
@@ -249,7 +250,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         config = {
             "format": self.format,
-            "channels": channels,
+            "channels": channels if not self.pattern else [],
+            "pattern": self.pattern,
         }
 
         return config
