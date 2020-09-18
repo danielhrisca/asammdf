@@ -3183,9 +3183,8 @@ class MDF(object):
                         channel_name = used_names.get_unique_name(channel_name)
 
                         df[channel_name] = pd.Series(
-                            np.array(list(sig.samples), dtype='O'),
+                            list(sig.samples),
                             index=index,
-                            fastpath=True,
                         )
 
                     # arrays and structures
@@ -3480,9 +3479,8 @@ class MDF(object):
                     channel_name = used_names.get_unique_name(channel_name)
 
                     df[channel_name] = pd.Series(
-                        np.array(list(sig.samples), dtype='O'),
+                        list(sig.samples),
                         index=index,
-                        fastpath=True,
                     )
 
                 # arrays and structures
