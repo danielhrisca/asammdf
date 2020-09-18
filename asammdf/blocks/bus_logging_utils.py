@@ -4,7 +4,7 @@ from .conversion_utils import from_dict
 from .utils import as_non_byte_sized_signed_int, MdfException
 
 
-def extract_signal(signal, payload, raw=False):
+def extract_signal(signal, payload, raw=False, ignore_value2text_conversion=True):
     vals = payload
 
     big_endian = False if signal.is_little_endian else True
@@ -142,7 +142,7 @@ def extract_signal(signal, payload, raw=False):
     if not raw:
         a, b = float(signal.factor), float(signal.offset)
 
-        if signal.values:
+        if signal.values and not ignore_value2text_conversion:
 
             conv = {}
             for i, (val, text) in enumerate(signal.values.items()):
@@ -151,8 +151,8 @@ def extract_signal(signal, payload, raw=False):
                 conv[f"text_{i}"] = text
 
             conv['default'] = from_dict({'a': a, 'b': b})
-            
-            conv = from_dict(conv) 
+
+            conv = from_dict(conv)
             vals = conv.convert(vals)
 
         else:
@@ -180,6 +180,7 @@ def extract_mux(
     original_message_id=None,
     raw=False,
     include_message_name=False,
+    ignore_value2text_conversion=True,
 ):
     """ extract multiplexed CAN signals from the raw payload
 
@@ -201,6 +202,11 @@ def extract_mux(
         name of the parent multiplexor signal
     muxer_values (None): np.ndarray
         multiplexor signal values
+    ignore_value2text_conversion (True): bool
+        ignore value to text conversions
+
+        .. versionadded:: 5.23.0
+
 
     Returns
     -------
@@ -254,7 +260,7 @@ def extract_mux(
             payload_ = payload
 
         for sig in pair_signals:
-            samples = extract_signal(sig, payload_, raw)
+            samples = extract_signal(sig, payload_, raw, ignore_value2text_conversion)
             if len(samples) == 0 and len(t_):
                 continue
 
@@ -264,14 +270,20 @@ def extract_mux(
                 sig_name = f"{message.name}.{sig.name}"
             else:
                 sig_name = sig.name
-            signals[sig_name] = {
-                "name": sig_name,
-                "comment": sig.comment or "",
-                "unit": sig.unit or "",
-                "samples": samples,
-                "t": t_,
-                "invalidation_bits": np.isclose(samples, max_val),
-            }
+
+            try:
+                signals[sig_name] = {
+                    "name": sig_name,
+                    "comment": sig.comment or "",
+                    "unit": sig.unit or "",
+                    "samples": samples,
+                    "t": t_,
+                    "invalidation_bits": np.isclose(samples, max_val),
+                }
+            except:
+                print(max_val, max_val.dtype)
+                print(samples, samples.dtype)
+                raise
 
             if sig.multiplex == "Multiplexor":
                 extracted_signals.update(
@@ -284,6 +296,7 @@ def extract_mux(
                         muxer=sig.name,
                         muxer_values=samples,
                         original_message_id=original_message_id,
+                        ignore_value2text_conversion=ignore_value2text_conversion,
                     )
                 )
 

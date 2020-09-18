@@ -3540,6 +3540,7 @@ class MDF(object):
         version=None,
         ignore_invalid_signals=False,
         consolidated_j1939=True,
+        ignore_value2text_conversion=True,
     ):
         """ extract all possible CAN signal using the provided databases.
 
@@ -3558,6 +3559,11 @@ class MDF(object):
             handle PGNs from all the messages as a single instance
 
             .. versionadded:: 5.7.0
+
+        ignore_value2text_conversion (True): bool
+            ignore value to text conversions
+
+            .. versionadded:: 5.23.0
 
 
         Returns
@@ -3726,6 +3732,7 @@ class MDF(object):
                                 original_message_id=original_msg_id
                                 if is_j1939 and not consolidated_j1939
                                 else None,
+                                ignore_value2text_conversion=ignore_value2text_conversion,
                             )
 
                             for entry, signals in extracted_signals.items():
