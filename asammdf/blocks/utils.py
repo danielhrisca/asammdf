@@ -1110,7 +1110,7 @@ def components(
 
         values = channel[name]
         if len(values.shape) > 1:
-            values = list(values)
+            values = np.array(list(values), dtype='O')
 
         yield name_, values
 
@@ -1154,7 +1154,7 @@ def components(
                 else:
                     name_ = unique_names.get_unique_name(name)
                 if len(values.shape) > 1:
-                    values = list(values)
+                    values = np.array(list(values), dtype='O')
 
                 yield name_, values
 

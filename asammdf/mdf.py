@@ -3022,6 +3022,7 @@ class MDF(object):
                 use_interpolation=use_interpolation,
                 only_basenames=only_basenames,
                 chunk_ram_size=chunk_ram_size,
+                interpolate_outwards_with_nan=interpolate_outwards_with_nan,
             )
 
             for df in result:
@@ -3029,7 +3030,7 @@ class MDF(object):
 
             mdf.close()
 
-        df = pd.DataFrame()
+        df = {}
         self._set_temporary_master(None)
 
         if raster is not None:
@@ -3071,11 +3072,9 @@ class MDF(object):
             start = master[0]
             end = master[-1]
 
-            df = pd.DataFrame()
+            df = {}
             self._set_temporary_master(None)
 
-            df["timestamps"] = pd.Series(master, index=np.arange(len(master)))
-            df.set_index("timestamps", inplace=True)
 
             used_names = UniqueDB()
             used_names.get_unique_name("timestamps")
@@ -3169,6 +3168,9 @@ class MDF(object):
 
                 signals = [sig for sig in signals if len(sig)]
 
+                if signals:
+                    index = pd.Index(signals[0].timestamps, tupleize_cols=False)
+
                 for k, sig in enumerate(signals):
                     # byte arrays
                     if len(sig.samples.shape) > 1:
@@ -3181,7 +3183,9 @@ class MDF(object):
                         channel_name = used_names.get_unique_name(channel_name)
 
                         df[channel_name] = pd.Series(
-                            list(sig.samples), index=sig.timestamps,
+                            np.array(list(sig.samples), dtype='O'),
+                            index=index,
+                            fastpath=True,
                         )
 
                     # arrays and structures
@@ -3193,7 +3197,11 @@ class MDF(object):
                             master=sig.timestamps,
                             only_basenames=only_basenames,
                         ):
-                            df[name] = series
+                            df[name] = pd.Series(
+                                series,
+                                index=index,
+                                fastpath=True,
+                            )
 
                     # scalars
                     else:
@@ -3208,21 +3216,31 @@ class MDF(object):
                             unique = np.unique(sig.samples)
                             if len(sig.samples) / len(unique) >= 2:
                                 df[channel_name] = pd.Series(
-                                    sig.samples, index=sig.timestamps, dtype="category"
+                                    sig.samples,
+                                    index=index,
+                                    dtype="category",
                                 )
                             else:
                                 df[channel_name] = pd.Series(
-                                    sig.samples, index=sig.timestamps
+                                    sig.samples,
+                                    index=index,
+                                    fastpath=True,
                                 )
                         else:
                             if reduce_memory_usage:
                                 sig.samples = downcast(sig.samples)
                             df[channel_name] = pd.Series(
-                                sig.samples, index=sig.timestamps
+                                sig.samples,
+                                index=index,
+                                fastpath=True,
                             )
 
                 if self._callback:
                     self._callback(group_index + 1, groups_nr)
+
+            df = pd.DataFrame.from_dict(df)
+            df.set_index(master, inplace=True)
+            df.index.name = "timestamps"
 
             if time_as_date:
                 new_index = np.array(df.index) + self.header.start_time.timestamp()
@@ -3408,7 +3426,7 @@ class MDF(object):
             for sig in signals:
                 if len(sig) == 0:
                     if empty_channels == "zeros":
-                        sig.samples = np.zeros(len(df.index), dtype=sig.samples.dtype)
+                        sig.samples = np.zeros(len(master), dtype=sig.samples.dtype)
                         sig.timestamps = master
                     else:
                         continue
@@ -3447,6 +3465,9 @@ class MDF(object):
 
             signals = [sig for sig in signals if len(sig)]
 
+            if signals:
+                index = pd.Index(signals[0].timestamps, tupleize_cols=False)
+
             for k, sig in enumerate(signals):
                 # byte arrays
                 if len(sig.samples.shape) > 1:
@@ -3458,7 +3479,11 @@ class MDF(object):
 
                     channel_name = used_names.get_unique_name(channel_name)
 
-                    df[channel_name] = list(sig.samples)
+                    df[channel_name] = pd.Series(
+                        np.array(list(sig.samples), dtype='O'),
+                        index=index,
+                        fastpath=True,
+                    )
 
                 # arrays and structures
                 elif sig.samples.dtype.names:
@@ -3469,7 +3494,11 @@ class MDF(object):
                         master=sig.timestamps,
                         only_basenames=only_basenames,
                     ):
-                        df[name] = series
+                        df[name] = pd.Series(
+                            series,
+                            index=index,
+                            fastpath=True
+                        )
 
                 # scalars
                 else:
@@ -3480,13 +3509,13 @@ class MDF(object):
 
                     channel_name = used_names.get_unique_name(channel_name)
 
-                    if reduce_memory_usage and sig.samples.dtype.kind in "SU":
-                        df[channel_name] = sig.samples
-
-                    else:
-                        if reduce_memory_usage:
-                            sig.samples = downcast(sig.samples)
-                        df[channel_name] = sig.samples
+                    if reduce_memory_usage and sig.samples.dtype.kind not in "SU":
+                        sig.samples = downcast(sig.samples)
+                    df[channel_name] = pd.Series(
+                        sig.samples,
+                        index=index,
+                        fastpath=True
+                    )
 
             if self._callback:
                 self._callback(group_index + 1, groups_nr)
