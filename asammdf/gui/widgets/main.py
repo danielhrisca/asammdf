@@ -288,6 +288,11 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action.setShortcut(QtCore.Qt.Key_O)
         plot_actions.addAction(action)
 
+        action = QtWidgets.QAction("{: <20}\tX".format("Zoom to range"), menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_X))
+        action.setShortcut(QtCore.Qt.Key_X)
+        plot_actions.addAction(action)
+
         action = QtWidgets.QAction("{: <20}\t.".format("Toggle dots"), menu)
         action.triggered.connect(partial(self.toggle_dots, key=QtCore.Qt.Key_Period))
         action.setShortcut(QtCore.Qt.Key_Period)

@@ -1837,6 +1837,14 @@ class _Plot(pg.PlotWidget):
                 else:
                     self.region_lock = None
 
+            elif key == QtCore.Qt.Key_X and modifier == QtCore.Qt.NoModifier:
+                if self.region is not None:
+                    self.viewbox.setXRange(*self.region.getRegion(), padding=0)
+                    event_ = QtGui.QKeyEvent(
+                        QtCore.QEvent.KeyPress, QtCore.Qt.Key_R, QtCore.Qt.NoModifier
+                    )
+                    self.keyPressEvent(event_)
+
             elif key == QtCore.Qt.Key_F and modifier == QtCore.Qt.NoModifier:
                 if self.common_axis_items:
                     if any(

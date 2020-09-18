@@ -213,7 +213,7 @@ class MDF3(object):
             self.identification = FileIdentificationBlock(version=version)
             self.version = version
             self.header = HeaderBlock(version=self.version)
-            self.name = Path("new.mdf")
+            self.name = Path("__new__.mdf")
 
         self._sort()
 
@@ -3553,6 +3553,9 @@ class MDF3(object):
 
         if self._callback:
             self._callback(100, 100)
+
+        if self.name == Path("__new__.mdf"):
+            self.name = dst
 
         return dst
 

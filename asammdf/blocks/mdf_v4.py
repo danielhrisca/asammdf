@@ -404,7 +404,7 @@ class MDF4(object):
             self.header = HeaderBlock()
             self.identification = FileIdentificationBlock(version=version)
             self.version = version
-            self.name = Path("new.mf4")
+            self.name = Path("__new__.mf4")
 
         if self.version >= "4.20":
             self._column_storage = kwargs.get("column_storage", True)
@@ -9012,6 +9012,9 @@ class MDF4(object):
 
         if self._callback:
             self._callback(100, 100)
+
+        if self.name == Path("__new__.mf4"):
+            self.name = dst
 
         return dst
 

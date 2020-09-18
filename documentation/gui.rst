@@ -114,11 +114,12 @@ G            Grid                   Toggle grid lines
 H            Home                   XY-axis fit all active channels
 I            Zoom-in                X-axis zoom-in [1]_
 O            Zoom-out               X-axis zoom-out [1]_
+X            Zoom to range          If the region is enabled, it will zoom to it
 M            Statistics             Toggle the display of the statistic panel
 R            Range                  Display a movable range that will trigger the display of the delta values for all plot channels [2]_
 S            Stack                  Y Stack all active channels so that they don't overlap, keeping the X-axis range
 Y            Lock/unlock region     Lock or unlock the left margin of the region
-.            Toggle dots            toogle the display of signal samples (using dots affects performance)
+.            Toggle dots            Toggle the display of signal samples (using dots affects performance)
 ←            Move cursor left       Moves the cursor to the next sample on the left
 →            Move cursor right      Moves the cursor to the next sample on the right
 Ins          Insert computation     Insert new channel in the plot using functions and operations
