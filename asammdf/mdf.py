@@ -3193,14 +3193,10 @@ class MDF(object):
                             sig.samples,
                             sig.name,
                             used_names,
-                            master=sig.timestamps,
+                            master=index,
                             only_basenames=only_basenames,
                         ):
-                            df[name] = pd.Series(
-                                series,
-                                index=index,
-                                fastpath=True,
-                            )
+                            df[name] = series
 
                     # scalars
                     else:
@@ -3489,14 +3485,10 @@ class MDF(object):
                         sig.samples,
                         sig.name,
                         used_names,
-                        master=sig.timestamps,
+                        master=index,
                         only_basenames=only_basenames,
                     ):
-                        df[name] = pd.Series(
-                            series,
-                            index=index,
-                            fastpath=True
-                        )
+                        df[name] = series
 
                 # scalars
                 else:

@@ -1110,7 +1110,10 @@ def components(
 
         values = channel[name]
         if len(values.shape) > 1:
-            values = np.array(list(values), dtype='O')
+            values = Series(
+                list(values),
+                index=master,
+            )
 
         yield name_, values
 
@@ -1123,7 +1126,10 @@ def components(
             if len(values.shape) > 1:
                 arr = [values]
                 types = [("", values.dtype, values.shape[1:])]
-                values = fromarrays(arr, dtype=types)
+                values = Series(
+                    fromarrays(arr, dtype=types),
+                    index=master,
+                )
                 del arr
 
             yield axis_name, values
@@ -1154,7 +1160,10 @@ def components(
                 else:
                     name_ = unique_names.get_unique_name(name)
                 if len(values.shape) > 1:
-                    values = np.array(list(values), dtype='O')
+                    values = Series(
+                        list(values),
+                        index=master,
+                    )
 
                 yield name_, values
 
