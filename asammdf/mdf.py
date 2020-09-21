@@ -3461,7 +3461,15 @@ class MDF(object):
             signals = [sig for sig in signals if len(sig)]
 
             if signals:
-                index = pd.Index(signals[0].timestamps, tupleize_cols=False)
+                diffs = np.diff(signals[0].timestamps, prepend=-np.inf) > 0
+                if np.all(diffs):
+                    index = pd.Index(signals[0].timestamps, tupleize_cols=False)
+                else:
+                    idx = np.argwhere(diffs).flatten()
+                    for sig in signals:
+                        sig.samples = sig.samples[idx]
+                        sig.timestamps = sig.timestamps[idx]
+                    index = pd.Index(signals[0].timestamps, tupleize_cols=False)
 
             for k, sig in enumerate(signals):
                 # byte arrays
