@@ -1114,6 +1114,11 @@ def components(
                 list(values),
                 index=master,
             )
+        else:
+            values = Series(
+                values,
+                index=master,
+            )
 
         yield name_, values
 
@@ -1131,6 +1136,11 @@ def components(
                     index=master,
                 )
                 del arr
+            else:
+                values = Series(
+                    values,
+                    index=master,
+                )
 
             yield axis_name, values
 
@@ -1162,6 +1172,11 @@ def components(
                 if len(values.shape) > 1:
                     values = Series(
                         list(values),
+                        index=master,
+                    )
+                else:
+                    values = Series(
+                        values,
                         index=master,
                     )
 
