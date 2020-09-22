@@ -228,6 +228,8 @@ class MDF3(object):
             virtual_channel_group.record_size = grp.channel_group.samples_byte_nr
             virtual_channel_group.cycles_nr = grp.channel_group.cycles_nr
 
+        self._parent = None
+
     def __del__(self):
         self.close()
 
@@ -2262,6 +2264,7 @@ class MDF3(object):
 
         """
 
+        self._parent = None
         if self._tempfile is not None:
             self._tempfile.close()
         if self._file is not None and not self._from_filelike:
