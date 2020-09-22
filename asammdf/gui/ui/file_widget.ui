@@ -38,7 +38,7 @@
       <enum>QTabWidget::West</enum>
      </property>
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <property name="documentMode">
       <bool>false</bool>
@@ -94,6 +94,9 @@
             <layout class="QHBoxLayout" name="horizontalLayout_2">
              <item>
               <widget class="QPushButton" name="load_channel_list_btn">
+               <property name="toolTip">
+                <string>Load channel selection list</string>
+               </property>
                <property name="text">
                 <string/>
                </property>
@@ -147,6 +150,9 @@
              </item>
              <item>
               <widget class="QPushButton" name="advanced_search_btn">
+               <property name="toolTip">
+                <string>Search and select channels</string>
+               </property>
                <property name="text">
                 <string/>
                </property>
@@ -158,6 +164,9 @@
              </item>
              <item>
               <widget class="QPushButton" name="create_window_btn">
+               <property name="toolTip">
+                <string>Create window</string>
+               </property>
                <property name="text">
                 <string/>
                </property>
@@ -249,7 +258,7 @@
            <item>
             <widget class="QPushButton" name="save_filter_list_btn">
              <property name="toolTip">
-              <string>Sve channel selection list</string>
+              <string>Save channel selection list</string>
              </property>
              <property name="text">
               <string/>

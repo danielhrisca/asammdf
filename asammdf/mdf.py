@@ -3868,14 +3868,23 @@ class MDF(object):
 
         """
 
-        self._mdf.configure(
-            read_fragment_size=read_fragment_size,
-            write_fragment_size=write_fragment_size,
-            use_display_names=use_display_names,
-            single_bit_uint_as_bool=single_bit_uint_as_bool,
-            integer_interpolation=integer_interpolation,
-            copy_on_get=copy_on_get,
-        )
+        if read_fragment_size is not None:
+            self._mdf._read_fragment_size = int(read_fragment_size)
+
+        if write_fragment_size:
+            self._mdf._write_fragment_size = min(int(write_fragment_size), 4 * 2 ** 20)
+
+        if use_display_names is not None:
+            self._mdf._use_display_names = bool(use_display_names)
+
+        if single_bit_uint_as_bool is not None:
+            self._mdf._single_bit_uint_as_bool = bool(single_bit_uint_as_bool)
+
+        if integer_interpolation in (0, 1):
+            self._mdf._integer_interpolation = int(integer_interpolation)
+
+        if copy_on_get is not None:
+            self._mdf.copy_on_get = copy_on_get
 
     @property
     def start_time(self):
