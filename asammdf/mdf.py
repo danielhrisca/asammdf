@@ -16,7 +16,6 @@ import xml.etree.ElementTree as ET
 
 import numpy as np
 import pandas as pd
-from pandas.core.indexes.base import ensure_index
 
 from .blocks import v2_v3_constants as v23c
 from .blocks import v4_constants as v4c
@@ -143,17 +142,20 @@ class MDF(object):
                 )
                 raise MdfException(message)
 
-        self._initial_attributes = set(dir(self))
-        self._link_attributes()
+    def __setattr__(self, item, value):
+        if item == "_mdf":
+            super().__setattr__(item, value)
+        else:
+            setattr(self._mdf, item, value)
 
-    def _link_attributes(self):
-        # link underlying _mdf attributes and methods to the new MDF object
-        for attr in set(dir(self._mdf)) - self._initial_attributes:
-            setattr(self, attr, getattr(self._mdf, attr))
+    def __getattribute__(self, item):
+        try:
+            return super().__getattribute__(item)
+        except:
+            return getattr(self._mdf, item)
 
-        for attr in set(dir(self)) - set(dir(self._mdf)):
-            if not attr.startswith("_"):
-                setattr(self._mdf, attr, getattr(self, attr))
+    def __dir__(self):
+        return sorted(set(super().__dir__()) | set(dir(self._mdf)))
 
     def __enter__(self):
         return self
@@ -196,7 +198,6 @@ class MDF(object):
                 return min(t_min) < min(other_t_min)
 
     def _transfer_events(self, other):
-        self._link_attributes()
 
         def get_scopes(event, events):
             if event.scopes:
@@ -383,7 +384,6 @@ class MDF(object):
             new *MDF* object
 
         """
-        self._link_attributes()
         version = validate_version_argument(version)
 
         out = MDF(version=version)
@@ -478,8 +478,6 @@ class MDF(object):
             new MDF object
 
         """
-
-        self._link_attributes()
 
         if version is None:
             version = self.version
@@ -778,8 +776,6 @@ class MDF(object):
 
 
         """
-
-        self._link_attributes()
 
         header_items = (
             "date",
@@ -1390,9 +1386,6 @@ class MDF(object):
                 comment="">
 
         """
-
-        self._link_attributes()
-
         if version is None:
             version = self.version
         else:
@@ -1493,7 +1486,6 @@ class MDF(object):
             `False`
 
         """
-        self._link_attributes()
 
         gp_nr, ch_nr = self._validate_channel_selection(name, group, index)
 
@@ -1974,8 +1966,6 @@ class MDF(object):
 
         """
 
-        self._link_attributes()
-
         for index in self.virtual_groups:
 
             channels = [
@@ -2067,8 +2057,6 @@ class MDF(object):
             .. versionadded:: 5.21.0
 
         """
-
-        self._link_attributes()
 
         for i in self.virtual_groups:
             yield self.get_group(
@@ -2231,8 +2219,6 @@ class MDF(object):
                 attachment=()>
         ]
         """
-
-        self._link_attributes()
 
         if version is None:
             version = self.version
@@ -2406,8 +2392,6 @@ class MDF(object):
 
         """
 
-        self._link_attributes()
-
         virtual_groups = self.included_channels(
             channels=channels, minimal=False, skip_master=False
         )
@@ -2540,7 +2524,6 @@ class MDF(object):
         ()
 
         """
-        self._link_attributes()
 
         if channel in self:
             return tuple(self.channels_db[channel])
@@ -2897,8 +2880,6 @@ class MDF(object):
 
         """
 
-        self._link_attributes()
-
         channels = [
             (None, gp_index, ch_index)
             for gp_index, channel_indexes in self.included_channels(index)[
@@ -3003,8 +2984,6 @@ class MDF(object):
             yields pandas DataFrame's that should not exceed 200MB of RAM
 
         """
-
-        self._link_attributes()
 
         if channels:
             mdf = self.filter(channels)
@@ -3335,9 +3314,6 @@ class MDF(object):
         dataframe : pandas.DataFrame
 
         """
-
-        self._link_attributes()
-
         if channels:
             mdf = self.filter(channels)
 
@@ -3570,7 +3546,6 @@ class MDF(object):
             new MDF file that contains the succesfully extracted signals
 
         """
-        self._link_attributes()
 
         if version is None:
             version = self.version
@@ -3901,7 +3876,6 @@ class MDF(object):
             integer_interpolation=integer_interpolation,
             copy_on_get=copy_on_get,
         )
-        self._link_attributes()
 
     @property
     def start_time(self):
@@ -3948,7 +3922,7 @@ class MDF(object):
             new *MDF* object
 
         """
-        self._link_attributes()
+
         if version is None:
             version = self.version
         else:
