@@ -411,6 +411,8 @@ class MDF4(object):
         else:
             self._column_storage = False
 
+        self._parent = None
+
     def __del__(self):
         self.close()
 
@@ -5745,13 +5747,11 @@ class MDF4(object):
         channels have been appended, then this must be called just before the
         object is not used anymore to clean-up the temporary file"""
 
+        self._parent = None
         if self._tempfile is not None:
             self._tempfile.close()
         if self._file is not None:
             self._file.close()
-
-        #        if self.name.parent.samefile(Path(gettempdir())):
-        #            self.name.unlink()
 
         for gp in self.groups:
             gp.clear()

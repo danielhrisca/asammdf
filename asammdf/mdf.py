@@ -13,6 +13,8 @@ from shutil import copy
 from struct import unpack
 from time import perf_counter
 import xml.etree.ElementTree as ET
+from traceback import format_exc
+import sys
 
 import numpy as np
 import pandas as pd
@@ -62,7 +64,7 @@ LOCAL_TIMEZONE = datetime.now(timezone.utc).astimezone().tzinfo
 __all__ = ["MDF", "SUPPORTED_VERSIONS"]
 
 
-class MDF(object):
+class MDF:
     """Unified access to MDF v3 and v4 files. Underlying _mdf's attributes and
     methods are linked to the `MDF` object via *setattr*. This is done to expose
     them to the user code and for performance considerations.
@@ -97,6 +99,7 @@ class MDF(object):
     _terminate = False
 
     def __init__(self, name=None, version="4.10", **kwargs):
+        self._mdf = None
         if name:
             if is_file_like(name):
                 file_stream = name
@@ -106,10 +109,13 @@ class MDF(object):
                     file_stream = open(name, "rb")
                 else:
                     raise MdfException(f'File "{name}" does not exist')
+
             file_stream.seek(0)
             magic_header = file_stream.read(8)
+
             if magic_header != b"MDF     " and magic_header != b"UnFinMF ":
-                raise MdfException(f'"{name}" is not a valid ASAM MDF file')
+                raise MdfException(f'"{name}" is not a valid ASAM MDF file: magic header is {magic_header}')
+
             file_stream.seek(8)
             version = file_stream.read(4).decode("ascii").strip(" \0")
             if not version:
@@ -117,6 +123,7 @@ class MDF(object):
                 version = unpack("<H", file_stream.read(2))[0]
                 version = str(version)
                 version = f"{version[0]}.{version[1:]}"
+
             if version in MDF3_VERSIONS:
                 self._mdf = MDF3(name, **kwargs)
             elif version in MDF4_VERSIONS:
@@ -142,17 +149,19 @@ class MDF(object):
                 )
                 raise MdfException(message)
 
+        # we need a backreference to the MDF object to avoid it being garbage
+        # collected in code like this:
+        # MDF(filename).convert('4.10')
+        self._mdf._parent = self
+
     def __setattr__(self, item, value):
         if item == "_mdf":
             super().__setattr__(item, value)
         else:
             setattr(self._mdf, item, value)
 
-    def __getattribute__(self, item):
-        try:
-            return super().__getattribute__(item)
-        except:
-            return getattr(self._mdf, item)
+    def __getattr__(self, item):
+        return getattr(self._mdf, item)
 
     def __dir__(self):
         return sorted(set(super().__dir__()) | set(dir(self._mdf)))
@@ -161,13 +170,20 @@ class MDF(object):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.close()
+        if self._mdf is not None:
+            try:
+                self.close()
+            except:
+                pass
 
     def __del__(self):
-        try:
-            self.close()
-        except:
-            pass
+
+        if self._mdf is not None:
+            try:
+                self.close()
+            except:
+                pass
+        self._mdf = None
 
     def __lt__(self, other):
         if self.header.start_time < other.header.start_time:
@@ -433,6 +449,7 @@ class MDF(object):
         self.configure(copy_on_get=True)
         if self._callback:
             out._callback = out._mdf._callback = self._callback
+
         return out
 
     def cut(
