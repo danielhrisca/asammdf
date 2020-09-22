@@ -3831,61 +3831,6 @@ class MDF(object):
 
         return out
 
-    def configure(
-        self,
-        *,
-        read_fragment_size=None,
-        write_fragment_size=None,
-        use_display_names=None,
-        single_bit_uint_as_bool=None,
-        integer_interpolation=None,
-        copy_on_get=None,
-    ):
-        """ configure MDF parameters
-
-        Parameters
-        ----------
-        read_fragment_size : int
-            size hint of split data blocks, default 8MB; if the initial size is
-            smaller, then no data list is used. The actual split size depends on
-            the data groups' records size
-        write_fragment_size : int
-            size hint of split data blocks, default 4MB; if the initial size is
-            smaller, then no data list is used. The actual split size depends on
-            the data groups' records size. Maximum size is 4MB to ensure
-            compatibility with CANape
-        use_display_names : bool
-            search for display name in the Channel XML comment
-        single_bit_uint_as_bool : bool
-            return single bit channels are np.bool arrays
-        integer_interpolation : int
-            interpolation mode for integer channels:
-
-                * 0 - repeat previous sample
-                * 1 - use linear interpolation
-        copy_on_get : bool
-            copy arrays in the get method
-
-        """
-
-        if read_fragment_size is not None:
-            self._mdf._read_fragment_size = int(read_fragment_size)
-
-        if write_fragment_size:
-            self._mdf._write_fragment_size = min(int(write_fragment_size), 4 * 2 ** 20)
-
-        if use_display_names is not None:
-            self._mdf._use_display_names = bool(use_display_names)
-
-        if single_bit_uint_as_bool is not None:
-            self._mdf._single_bit_uint_as_bool = bool(single_bit_uint_as_bool)
-
-        if integer_interpolation in (0, 1):
-            self._mdf._integer_interpolation = int(integer_interpolation)
-
-        if copy_on_get is not None:
-            self._mdf.copy_on_get = copy_on_get
-
     @property
     def start_time(self):
         """ getter and setter the measurement start timestamp
