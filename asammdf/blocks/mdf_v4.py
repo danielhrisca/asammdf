@@ -7918,7 +7918,9 @@ class MDF4(object):
             canmatrix CAN database object; default *None*
         ignore_invalidation_bits : bool
             option to ignore invalidation bits
-
+        raw : bool
+            return channel samples without appling the conversion rule; default
+            `False`
         Returns
         -------
         sig : Signal
