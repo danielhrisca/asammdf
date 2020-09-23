@@ -3092,6 +3092,8 @@ class MDF:
                 if group_cycles == 0 and empty_channels == "skip":
                     continue
 
+                group_master = self.get_master(index=group_index)
+
                 record_offset = max(
                     np.searchsorted(masters[group_index], start).flatten()[0] - 1, 0
                 )
@@ -3106,14 +3108,14 @@ class MDF:
                     for ch_index in channel_indexes
                 ]
                 signals = [
-                    signal.validate(copy=False)
+                    signal
                     for signal in self.select(
                         channels,
                         raw=True,
                         copy_master=False,
                         record_offset=record_offset,
                         record_count=record_count,
-                        validate=True,
+                        validate=False,
                     )
                 ]
 
@@ -3124,11 +3126,10 @@ class MDF:
                     if len(sig) == 0:
                         if empty_channels == "zeros":
                             sig.samples = np.zeros(
-                                len(df.index), dtype=sig.samples.dtype
+                                len(master) if virtual_group.cycles_nr == 0 else virtual_group.cycles_nr,
+                                dtype=sig.samples.dtype
                             )
-                            sig.timestamps = master
-                        else:
-                            continue
+                            sig.timestamps = master if virtual_group.cycles_nr == 0 else group_master
 
                 if not raw:
                     if ignore_value2text_conversions:
@@ -3152,32 +3153,64 @@ class MDF:
                                     signal.samples
                                 )
 
-                if use_interpolation and not np.array_equal(
-                    master, signals[0].timestamps
-                ):
+                for s_index, sig in enumerate(signals):
+                    sig = sig.validate(copy=False)
 
-                    if interpolate_outwards_with_nan:
-                        timestamps = signals[0].timestamps
+                    if len(sig) == 0:
+                        if empty_channels == "zeros":
+                            sig.samples = np.zeros(
+                                len(master) if virtual_group.cycles_nr ==0 else virtual_group.cycles_nr,
+                                dtype=sig.samples.dtype
+                            )
+                            sig.timestamps = master if virtual_group.cycles_nr == 0 else group_master
+
+                    signals[s_index] = sig
+
+                if use_interpolation:
+                    same_master = np.array_equal(master, group_master)
+
+                    if not same_master and interpolate_outwards_with_nan:
                         idx = np.argwhere(
-                            (master >= timestamps[0]) & (master <= timestamps[-1])
+                            (master >= group_master[0]) & (master <= group_master[-1])
                         ).flatten()
+
+                    cycles = len(group_master)
 
                     signals = [
                         signal.interp(master, self._integer_interpolation)
+                        if not same_master or len(signal) != cycles
+                        else signal
                         for signal in signals
                     ]
 
-                    if interpolate_outwards_with_nan:
+                    if not same_master and interpolate_outwards_with_nan:
                         for sig in signals:
                             sig.timestamps = sig.timestamps[idx]
                             sig.samples = sig.samples[idx]
 
+                    group_master = master
+
                 signals = [sig for sig in signals if len(sig)]
 
                 if signals:
-                    index = pd.Index(signals[0].timestamps, tupleize_cols=False)
+                    diffs = np.diff(group_master, prepend=-np.inf) > 0
+                    if np.all(diffs):
+                        index = pd.Index(group_master, tupleize_cols=False)
 
+                    else:
+                        idx = np.argwhere(diffs).flatten()
+                        group_master = group_master[idx]
+
+                        index = pd.Index(group_master, tupleize_cols=False)
+
+                        for sig in signals:
+                            sig.samples = sig.samples[idx]
+                            sig.timestamps = sig.timestamps[idx]
+
+                size = len(index)
                 for k, sig in enumerate(signals):
+                    sig_index = index if len(sig) == size else pd.Index(sig.timestamps, tupleize_cols=False)
+
                     # byte arrays
                     if len(sig.samples.shape) > 1:
 
@@ -3190,7 +3223,7 @@ class MDF:
 
                         df[channel_name] = pd.Series(
                             list(sig.samples),
-                            index=index,
+                            index=sig_index,
                         )
 
                     # arrays and structures
@@ -3199,7 +3232,7 @@ class MDF:
                             sig.samples,
                             sig.name,
                             used_names,
-                            master=index,
+                            master=sig_index,
                             only_basenames=only_basenames,
                         ):
                             df[name] = series
@@ -3218,13 +3251,13 @@ class MDF:
                             if len(sig.samples) / len(unique) >= 2:
                                 df[channel_name] = pd.Series(
                                     sig.samples,
-                                    index=index,
+                                    index=sig_index,
                                     dtype="category",
                                 )
                             else:
                                 df[channel_name] = pd.Series(
                                     sig.samples,
-                                    index=index,
+                                    index=sig_index,
                                     fastpath=True,
                                 )
                         else:
@@ -3232,7 +3265,7 @@ class MDF:
                                 sig.samples = downcast(sig.samples)
                             df[channel_name] = pd.Series(
                                 sig.samples,
-                                index=index,
+                                index=sig_index,
                                 fastpath=True,
                             )
 
@@ -3427,7 +3460,7 @@ class MDF:
                 if len(sig) == 0:
                     if empty_channels == "zeros":
                         sig.samples = np.zeros(
-                            len(master) if virtual_group.cycles_nr ==0 else virtual_group.cycles_nr,
+                            len(master) if virtual_group.cycles_nr == 0 else virtual_group.cycles_nr,
                             dtype=sig.samples.dtype
                         )
                         sig.timestamps = master if virtual_group.cycles_nr == 0 else group_master
@@ -3500,8 +3533,9 @@ class MDF:
                         sig.samples = sig.samples[idx]
                         sig.timestamps = sig.timestamps[idx]
 
+            size = len(index)
             for k, sig in enumerate(signals):
-                sig_index = index
+                sig_index = index if len(sig) == size else pd.Index(sig.timestamps, tupleize_cols=False)
 
                 # byte arrays
                 if len(sig.samples.shape) > 1:
