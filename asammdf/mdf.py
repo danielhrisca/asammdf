@@ -885,7 +885,6 @@ class MDF:
                 empty_channels=empty_channels,
                 reduce_memory_usage=reduce_memory_usage,
                 ignore_value2text_conversions=ignore_value2text_conversions,
-                raw=raw,
             )
             units = OrderedDict()
             comments = OrderedDict()
@@ -1023,7 +1022,7 @@ class MDF:
                         if not channels:
                             continue
 
-                        channels = self.select(channels, raw=raw)
+                        channels = self.select(channels)
 
                         for j, sig in enumerate(channels):
                             if use_display_names:
@@ -1156,7 +1155,6 @@ class MDF:
                         use_display_names=use_display_names,
                         reduce_memory_usage=reduce_memory_usage,
                         ignore_value2text_conversions=ignore_value2text_conversions,
-                        raw=raw,
                     )
 
                     if time_as_date:
@@ -1250,7 +1248,6 @@ class MDF:
                     channels = self.select(
                         channels,
                         ignore_value2text_conversions=ignore_value2text_conversions,
-                        raw=raw,
                     )
 
                     master = channels[0].copy()
