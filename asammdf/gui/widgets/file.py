@@ -2115,7 +2115,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             progress.cancel()
 
     def raster_search(self, event):
-        dlg = AdvancedSearch(self.mdf.channels_db, show_add_window=False, parent=self,)
+        dlg = AdvancedSearch(self.mdf.channels_db, show_add_window=False, show_pattern=False, parent=self,)
         dlg.setModal(True)
         dlg.exec_()
         result = dlg.result

@@ -792,11 +792,6 @@ class MDF:
 
               .. versionadded:: 5.8.0
 
-            * raw (False) : bool
-              only use raw sample values in the export
-
-              .. versionadded:: 5.23.0
-
 
         """
 
@@ -830,7 +825,6 @@ class MDF:
         ignore_value2text_conversions = kwargs.get(
             "ignore_value2text_conversions", False
         )
-        raw = kwargs.get("raw", False)
 
         if compression == "SNAPPY":
             try:
@@ -3092,8 +3086,6 @@ class MDF:
                 if group_cycles == 0 and empty_channels == "skip":
                     continue
 
-                group_master = self.get_master(index=group_index)
-
                 record_offset = max(
                     np.searchsorted(masters[group_index], start).flatten()[0] - 1, 0
                 )
@@ -3121,6 +3113,8 @@ class MDF:
 
                 if not signals:
                     continue
+
+                group_master = signals[0].timestamps
 
                 for sig in signals:
                     if len(sig) == 0:
@@ -3435,8 +3429,6 @@ class MDF:
             if virtual_group.cycles_nr == 0 and empty_channels == "skip":
                 continue
 
-            group_master = self.get_master(index=group_index)
-
             channels = [
                 (None, gp_index, ch_index)
                 for gp_index, channel_indexes in self.included_channels(
@@ -3455,6 +3447,8 @@ class MDF:
 
             if not signals:
                 continue
+
+            group_master = signals[0].timestamps
 
             for sig in signals:
                 if len(sig) == 0:

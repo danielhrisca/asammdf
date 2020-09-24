@@ -11,7 +11,7 @@ from ..ui.search_dialog import Ui_SearchDialog
 
 class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
     def __init__(
-        self, channels_db, return_names=False, show_add_window=False, *args, **kwargs
+        self, channels_db, return_names=False, show_add_window=False, show_pattern=True, *args, **kwargs
     ):
 
         super().__init__(*args, **kwargs)
@@ -40,6 +40,9 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
         if not show_add_window:
             self.add_window_btn.hide()
+
+        if not show_pattern:
+            self.tabs.removeTab(1)
 
         self.setWindowTitle("Search & select channels")
 

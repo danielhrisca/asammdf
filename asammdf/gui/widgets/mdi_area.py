@@ -1302,6 +1302,11 @@ class WithMDIArea:
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
 
+        if pattern_info:
+            icon = QtGui.QIcon()
+            icon.addPixmap(QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            w.setWindowIcon(icon)
+
         w.layout().setSpacing(1)
 
     def set_line_style(self, with_dots=None):
