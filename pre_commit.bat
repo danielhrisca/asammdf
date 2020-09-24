@@ -1,12 +1,12 @@
-isort -rc asammdf\blocks\
-isort -rc asammdf\gui\dialogs\
-isort -rc asammdf\gui\widgets\
-isort -rc test\
-isort asammdf\gui\plot.py
-isort asammdf\gui\asammdfgui.py
-isort asammdf\mdf.py
-isort asammdf\signal.py
-isort asammdf\version.py
+isort --profile black asammdf\blocks\
+isort --profile black asammdf\gui\dialogs\
+isort --profile black asammdf\gui\widgets\
+isort --profile black test\
+isort --profile black asammdf\gui\plot.py
+isort --profile black asammdf\gui\asammdfgui.py
+isort --profile black asammdf\mdf.py
+isort --profile black asammdf\signal.py
+isort --profile black asammdf\version.py
 
 black asammdf\blocks\
 black asammdf\gui\dialogs\
