@@ -1,40 +1,21 @@
 # -*- coding: utf-8 -*-
 from functools import partial
 import gc
-import json
 import os
 from pathlib import Path
 from textwrap import wrap
 import webbrowser
 
 from natsort import natsorted
-import numpy as np
-import pandas as pd
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
 
-from ...blocks.utils import csv_bytearray2hex, extract_cncomment_xml, MdfException
-from ...mdf import MDF, SUPPORTED_VERSIONS
 from ...version import __version__ as libversion
 from ..dialogs.multi_search import MultiSearch
 from ..ui.main_window import Ui_PyMDFMainWindow
-from ..utils import (
-    add_children,
-    compute_signal,
-    get_required_signals,
-    HelperChannel,
-    load_dsp,
-    run_thread_with_progress,
-    setup_progress,
-    TERMINATED,
-)
 from .batch import BatchWidget
 from .file import FileWidget
-from .list import ListWidget
 from .mdi_area import MdiAreaWidget, WithMDIArea
-from .numeric import Numeric
-from .plot import Plot
-from .tabular import Tabular
 
 
 class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
@@ -375,7 +356,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action = QtWidgets.QAction("{: <20}\tAlt+R".format("Raw samples"), menu)
         action.triggered.connect(
             partial(
-                self.plot_action, key=QtCore.Qt.Key_R, modifier=QtCore.Qt.AltModifier,
+                self.plot_action, key=QtCore.Qt.Key_R, modifier=QtCore.Qt.AltModifier
             )
         )
         action.setShortcut(QtGui.QKeySequence("Alt+R"))
@@ -384,7 +365,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action = QtWidgets.QAction("{: <20}\tAlt+S".format("Scaled samples"), menu)
         action.triggered.connect(
             partial(
-                self.plot_action, key=QtCore.Qt.Key_S, modifier=QtCore.Qt.AltModifier,
+                self.plot_action, key=QtCore.Qt.Key_S, modifier=QtCore.Qt.AltModifier
             )
         )
         action.setShortcut(QtGui.QKeySequence("Alt+S"))
@@ -516,7 +497,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         )
         action.triggered.connect(
             partial(
-                self.plot_action, key=QtCore.Qt.Key_I, modifier=QtCore.Qt.AltModifier,
+                self.plot_action, key=QtCore.Qt.Key_I, modifier=QtCore.Qt.AltModifier
             )
         )
         action.setShortcut(QtGui.QKeySequence("Alt+I"))
@@ -1016,7 +997,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                     str(self.files.widget(i).mdf.name) for i in range(count)
                 ]
 
-                dlg = MultiSearch(channels_dbs, measurements, parent=self,)
+                dlg = MultiSearch(channels_dbs, measurements, parent=self)
                 dlg.setModal(True)
                 dlg.exec_()
                 result = dlg.result
@@ -1058,7 +1039,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             info.extend(wrap(f"{i:> 2}: {name}", 120))
 
         QtWidgets.QMessageBox.information(
-            self, "Measurement files used for comparison", "\n".join(info),
+            self, "Measurement files used for comparison", "\n".join(info)
         )
 
     def toggle_fullscreen(self):

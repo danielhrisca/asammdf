@@ -11,12 +11,11 @@ console.setLevel(logging.DEBUG)
 logger.addHandler(console)
 logger.setLevel(logging.ERROR)
 
-
 from .blocks.mdf_v2 import MDF2
 from .blocks.mdf_v3 import MDF3
 from .blocks.mdf_v4 import MDF4
-from .mdf import MDF, SUPPORTED_VERSIONS
 from .gui import plot
+from .mdf import MDF, SUPPORTED_VERSIONS
 from .signal import Signal
 from .version import __version__
 
@@ -26,7 +25,6 @@ try:
     __cextension__ = True
 except ImportError:
     __cextension__ = False
-
 
 __all__ = [
     "__cextension__",

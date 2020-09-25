@@ -75,9 +75,7 @@ class FormatedAxis(pg.AxisItem):
         return strns
 
     def setLabel(self, text=None, units=None, unitPrefix=None, **args):
-        """ overwrites pyqtgraph setLabel
-
-        """
+        """overwrites pyqtgraph setLabel"""
         show_label = False
         if text is not None:
             self.labelText = text

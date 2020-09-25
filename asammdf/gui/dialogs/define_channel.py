@@ -197,30 +197,30 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
     def apply(self, event):
         if self.operand1.currentIndex() == -1:
             QtWidgets.QMessageBox.warning(
-                None, "Can't compute new channel", "Must select operand 1 first",
+                None, "Can't compute new channel", "Must select operand 1 first"
             )
             return
 
         if self.operand2.currentIndex() == -1:
             QtWidgets.QMessageBox.warning(
-                None, "Can't compute new channel", "Must select operand 2 first",
+                None, "Can't compute new channel", "Must select operand 2 first"
             )
             return
 
         if self.op1_type is not None and self.op1_type.currentIndex() == -1:
             QtWidgets.QMessageBox.warning(
-                None, "Can't compute new channel", "Must select operand 1 type first",
+                None, "Can't compute new channel", "Must select operand 1 type first"
             )
             return
 
         if self.op2_type is not None and self.op2_type.currentIndex() == -1:
             QtWidgets.QMessageBox.warning(
-                None, "Can't compute new channel", "Must select operand 2 type first",
+                None, "Can't compute new channel", "Must select operand 2 type first"
             )
 
         if self.op.currentIndex() == -1:
             QtWidgets.QMessageBox.warning(
-                None, "Can't compute new channel", "Must select operator",
+                None, "Can't compute new channel", "Must select operator"
             )
 
         operand1 = self.operand1.currentText()
@@ -345,13 +345,13 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
     def apply_function(self, event):
         if self.function.currentIndex() == -1:
             QtWidgets.QMessageBox.warning(
-                None, "Can't compute new channel", "Must select a function first",
+                None, "Can't compute new channel", "Must select a function first"
             )
             return
 
         if self.channel.currentIndex() == -1:
             QtWidgets.QMessageBox.warning(
-                None, "Can't compute new channel", "Must select a channel first",
+                None, "Can't compute new channel", "Must select a channel first"
             )
             return
 
@@ -418,7 +418,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             unit = self.function_unit.text() or channel.unit
 
             self.result = AsamSignal(
-                samples=samples, timestamps=timestamps, name=name, unit=unit,
+                samples=samples, timestamps=timestamps, name=name, unit=unit
             )
             self.result.enabled = True
             self.result.computation = {
@@ -429,9 +429,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             }
 
         except Exception as err:
-            QtWidgets.QMessageBox.critical(
-                None, "Function error", str(err),
-            )
+            QtWidgets.QMessageBox.critical(None, "Function error", str(err))
             self.result = None
 
         self.pressed_button = "apply"

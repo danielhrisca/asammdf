@@ -2,9 +2,9 @@
 """
 *asammdf* MDF usage example
 """
-from asammdf import MDF, Signal
 import numpy as np
 
+from asammdf import MDF, Signal
 
 # create 3 Signal objects
 

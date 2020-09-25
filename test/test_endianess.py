@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from pathlib import Path
-import struct
 import tempfile
 import unittest
 
@@ -34,25 +33,25 @@ class TestEndianess(unittest.TestCase):
             mdf = MDF(version=version)
             mdf.append([s1, s2], common_timebase=True)
             outfile = mdf.save(
-                Path(TestEndianess.tempdir.name) / f"out", overwrite=True,
+                Path(TestEndianess.tempdir.name) / f"out", overwrite=True
             )
             mdf.close()
 
             with MDF(outfile) as mdf:
-                self.assertTrue(np.array_equal(mdf.get("Motorola").samples, [2,] * 15))
-                self.assertTrue(np.array_equal(mdf.get("Intel").samples, [4,] * 15))
+                self.assertTrue(np.array_equal(mdf.get("Motorola").samples, [2] * 15))
+                self.assertTrue(np.array_equal(mdf.get("Intel").samples, [4] * 15))
 
         for version in ("3.30", "4.10"):
             mdf = MDF(version=version)
             mdf.append([s2, s1], common_timebase=True)
             outfile = mdf.save(
-                Path(TestEndianess.tempdir.name) / f"out", overwrite=True,
+                Path(TestEndianess.tempdir.name) / f"out", overwrite=True
             )
             mdf.close()
 
             with MDF(outfile) as mdf:
-                self.assertTrue(np.array_equal(mdf.get("Motorola").samples, [2,] * 15))
-                self.assertTrue(np.array_equal(mdf.get("Intel").samples, [4,] * 15))
+                self.assertTrue(np.array_equal(mdf.get("Motorola").samples, [2] * 15))
+                self.assertTrue(np.array_equal(mdf.get("Intel").samples, [4] * 15))
 
     def test_not_aligned_mdf_v3(self):
 
@@ -90,18 +89,16 @@ class TestEndianess(unittest.TestCase):
             ch4.bit_count = 16
 
             outfile = mdf_source.save(
-                Path(TestEndianess.tempdir.name) / f"out", overwrite=True,
+                Path(TestEndianess.tempdir.name) / f"out", overwrite=True
             )
 
             with MDF(outfile) as mdf:
                 self.assertTrue(
-                    np.array_equal(
-                        mdf.get("NotAlignedMotorola").samples, [0x0204,] * 15
-                    )
+                    np.array_equal(mdf.get("NotAlignedMotorola").samples, [0x0204] * 15)
                 )
 
                 self.assertTrue(
-                    np.array_equal(mdf.get("NotAlignedIntel").samples, [0x0402,] * 15)
+                    np.array_equal(mdf.get("NotAlignedIntel").samples, [0x0402] * 15)
                 )
 
             ch3 = mdf_source.groups[0].channels[3]
@@ -115,17 +112,17 @@ class TestEndianess(unittest.TestCase):
             ch4.bit_count = 24
 
             outfile = mdf_source.save(
-                Path(TestEndianess.tempdir.name) / f"out", overwrite=True,
+                Path(TestEndianess.tempdir.name) / f"out", overwrite=True
             )
 
             with MDF(outfile) as mdf:
                 self.assertTrue(
                     np.array_equal(
-                        mdf.get("NotAlignedMotorola").samples, [0x3F0204,] * 15
+                        mdf.get("NotAlignedMotorola").samples, [0x3F0204] * 15
                     )
                 )
                 self.assertTrue(
-                    np.array_equal(mdf.get("NotAlignedIntel").samples, [0x04023F,] * 15)
+                    np.array_equal(mdf.get("NotAlignedIntel").samples, [0x04023F] * 15)
                 )
 
             ch3 = mdf_source.groups[0].channels[3]
@@ -139,20 +136,20 @@ class TestEndianess(unittest.TestCase):
             ch4.bit_count = 21
 
             outfile = mdf_source.save(
-                Path(TestEndianess.tempdir.name) / f"out", overwrite=True,
+                Path(TestEndianess.tempdir.name) / f"out", overwrite=True
             )
 
             with MDF(outfile) as mdf:
                 self.assertTrue(
                     np.array_equal(
                         mdf.get("NotAlignedMotorola").samples,
-                        [(0x3F0204F8 >> 5) & (2 ** 21 - 1),] * 15,
+                        [(0x3F0204F8 >> 5) & (2 ** 21 - 1)] * 15,
                     )
                 )
                 self.assertTrue(
                     np.array_equal(
                         mdf.get("NotAlignedIntel").samples,
-                        [(0xF8040200 >> 6) & (2 ** 21 - 1),] * 15,
+                        [(0xF8040200 >> 6) & (2 ** 21 - 1)] * 15,
                     )
                 )
 
@@ -192,18 +189,16 @@ class TestEndianess(unittest.TestCase):
             ch4.bit_count = 16
 
             outfile = mdf_source.save(
-                Path(TestEndianess.tempdir.name) / f"out", overwrite=True,
+                Path(TestEndianess.tempdir.name) / f"out", overwrite=True
             )
 
             with MDF(outfile) as mdf:
                 self.assertTrue(
-                    np.array_equal(
-                        mdf.get("NotAlignedMotorola").samples, [0x0204,] * 15
-                    )
+                    np.array_equal(mdf.get("NotAlignedMotorola").samples, [0x0204] * 15)
                 )
 
                 self.assertTrue(
-                    np.array_equal(mdf.get("NotAlignedIntel").samples, [0x0402,] * 15)
+                    np.array_equal(mdf.get("NotAlignedIntel").samples, [0x0402] * 15)
                 )
 
             ch3 = mdf_source.groups[0].channels[3]
@@ -217,17 +212,17 @@ class TestEndianess(unittest.TestCase):
             ch4.bit_count = 24
 
             outfile = mdf_source.save(
-                Path(TestEndianess.tempdir.name) / f"out", overwrite=True,
+                Path(TestEndianess.tempdir.name) / f"out", overwrite=True
             )
 
             with MDF(outfile) as mdf:
                 self.assertTrue(
                     np.array_equal(
-                        mdf.get("NotAlignedMotorola").samples, [0x3F0204,] * 15
+                        mdf.get("NotAlignedMotorola").samples, [0x3F0204] * 15
                     )
                 )
                 self.assertTrue(
-                    np.array_equal(mdf.get("NotAlignedIntel").samples, [0x04023F,] * 15)
+                    np.array_equal(mdf.get("NotAlignedIntel").samples, [0x04023F] * 15)
                 )
 
             ch3 = mdf_source.groups[0].channels[3]
@@ -243,20 +238,20 @@ class TestEndianess(unittest.TestCase):
             ch4.bit_offset = 6
 
             outfile = mdf_source.save(
-                Path(TestEndianess.tempdir.name) / f"out", overwrite=True,
+                Path(TestEndianess.tempdir.name) / f"out", overwrite=True
             )
 
             with MDF(outfile) as mdf:
                 self.assertTrue(
                     np.array_equal(
                         mdf.get("NotAlignedMotorola").samples,
-                        [(0x3F0204F8 >> 5) & (2 ** 21 - 1),] * 15,
+                        [(0x3F0204F8 >> 5) & (2 ** 21 - 1)] * 15,
                     )
                 )
                 self.assertTrue(
                     np.array_equal(
                         mdf.get("NotAlignedIntel").samples,
-                        [(0xF8040200 >> 6) & (2 ** 21 - 1),] * 15,
+                        [(0xF8040200 >> 6) & (2 ** 21 - 1)] * 15,
                     )
                 )
 
@@ -307,19 +302,19 @@ class TestEndianess(unittest.TestCase):
                 ch4.bit_count = 16
 
                 outfile = mdf_source.save(
-                    Path(TestEndianess.tempdir.name) / f"out", overwrite=True,
+                    Path(TestEndianess.tempdir.name) / f"out", overwrite=True
                 )
 
                 with MDF(outfile) as mdf:
                     self.assertTrue(
                         np.array_equal(
-                            mdf.get("OverlappingMotorola").samples, [0x0204,] * 15
+                            mdf.get("OverlappingMotorola").samples, [0x0204] * 15
                         )
                     )
 
                     self.assertTrue(
                         np.array_equal(
-                            mdf.get("OverlappingIntel").samples, [0x0402,] * 15
+                            mdf.get("OverlappingIntel").samples, [0x0402] * 15
                         )
                     )
 
@@ -334,18 +329,18 @@ class TestEndianess(unittest.TestCase):
                 ch4.bit_count = 24
 
                 outfile = mdf_source.save(
-                    Path(TestEndianess.tempdir.name) / f"out", overwrite=True,
+                    Path(TestEndianess.tempdir.name) / f"out", overwrite=True
                 )
 
                 with MDF(outfile) as mdf:
                     self.assertTrue(
                         np.array_equal(
-                            mdf.get("OverlappingMotorola").samples, [0x3F0204,] * 15
+                            mdf.get("OverlappingMotorola").samples, [0x3F0204] * 15
                         )
                     )
                     self.assertTrue(
                         np.array_equal(
-                            mdf.get("OverlappingIntel").samples, [0x04023F,] * 15
+                            mdf.get("OverlappingIntel").samples, [0x04023F] * 15
                         )
                     )
 
@@ -360,20 +355,20 @@ class TestEndianess(unittest.TestCase):
                 ch4.bit_count = 21
 
                 outfile = mdf_source.save(
-                    Path(TestEndianess.tempdir.name) / f"out", overwrite=True,
+                    Path(TestEndianess.tempdir.name) / f"out", overwrite=True
                 )
 
                 with MDF(outfile) as mdf:
                     self.assertTrue(
                         np.array_equal(
                             mdf.get("OverlappingMotorola").samples,
-                            [(0x3F0204F8 >> 5) & (2 ** 21 - 1),] * 15,
+                            [(0x3F0204F8 >> 5) & (2 ** 21 - 1)] * 15,
                         )
                     )
                     self.assertTrue(
                         np.array_equal(
                             mdf.get("OverlappingIntel").samples,
-                            [(0xF8040200 >> 6) & (2 ** 21 - 1),] * 15,
+                            [(0xF8040200 >> 6) & (2 ** 21 - 1)] * 15,
                         )
                     )
 
@@ -427,19 +422,19 @@ class TestEndianess(unittest.TestCase):
                 ch4.bit_offset = 0
 
                 outfile = mdf_source.save(
-                    Path(TestEndianess.tempdir.name) / f"out", overwrite=True,
+                    Path(TestEndianess.tempdir.name) / f"out", overwrite=True
                 )
 
                 with MDF(outfile) as mdf:
                     self.assertTrue(
                         np.array_equal(
-                            mdf.get("OverlappingMotorola").samples, [0x0204,] * 15
+                            mdf.get("OverlappingMotorola").samples, [0x0204] * 15
                         )
                     )
 
                     self.assertTrue(
                         np.array_equal(
-                            mdf.get("OverlappingIntel").samples, [0x0402,] * 15
+                            mdf.get("OverlappingIntel").samples, [0x0402] * 15
                         )
                     )
 
@@ -456,18 +451,18 @@ class TestEndianess(unittest.TestCase):
                 ch4.bit_offset = 0
 
                 outfile = mdf_source.save(
-                    Path(TestEndianess.tempdir.name) / f"out", overwrite=True,
+                    Path(TestEndianess.tempdir.name) / f"out", overwrite=True
                 )
 
                 with MDF(outfile) as mdf:
                     self.assertTrue(
                         np.array_equal(
-                            mdf.get("OverlappingMotorola").samples, [0x3F0204,] * 15
+                            mdf.get("OverlappingMotorola").samples, [0x3F0204] * 15
                         )
                     )
                     self.assertTrue(
                         np.array_equal(
-                            mdf.get("OverlappingIntel").samples, [0x04023F,] * 15
+                            mdf.get("OverlappingIntel").samples, [0x04023F] * 15
                         )
                     )
 
@@ -484,20 +479,20 @@ class TestEndianess(unittest.TestCase):
                 ch4.bit_offset = 6
 
                 outfile = mdf_source.save(
-                    Path(TestEndianess.tempdir.name) / f"out", overwrite=True,
+                    Path(TestEndianess.tempdir.name) / f"out", overwrite=True
                 )
 
                 with MDF(outfile) as mdf:
                     self.assertTrue(
                         np.array_equal(
                             mdf.get("OverlappingMotorola").samples,
-                            [(0x3F0204F8 >> 5) & (2 ** 21 - 1),] * 15,
+                            [(0x3F0204F8 >> 5) & (2 ** 21 - 1)] * 15,
                         )
                     )
                     self.assertTrue(
                         np.array_equal(
                             mdf.get("OverlappingIntel").samples,
-                            [(0xF8040200 >> 6) & (2 ** 21 - 1),] * 15,
+                            [(0xF8040200 >> 6) & (2 ** 21 - 1)] * 15,
                         )
                     )
 
@@ -514,7 +509,7 @@ class TestEndianess(unittest.TestCase):
                 ch4.bit_offset = 1
 
                 outfile = mdf_source.save(
-                    Path(TestEndianess.tempdir.name) / f"out", overwrite=True,
+                    Path(TestEndianess.tempdir.name) / f"out", overwrite=True
                 )
 
                 with MDF(outfile) as mdf:

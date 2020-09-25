@@ -3,7 +3,6 @@
 
 from collections import defaultdict
 from copy import deepcopy
-from functools import reduce
 from itertools import product
 import logging
 from math import ceil
@@ -21,19 +20,13 @@ from numpy import (
     column_stack,
     concatenate,
     dtype,
-    flip,
     float32,
     float64,
     frombuffer,
     linspace,
-    packbits,
-    roll,
     searchsorted,
-    uint8,
     uint16,
-    union1d,
     unique,
-    unpackbits,
     zeros,
 )
 from numpy.core.defchararray import decode, encode
@@ -384,7 +377,7 @@ class MDF3(object):
             yield b"", 0, _count
 
     def _prepare_record(self, group):
-        """ compute record dtype and parents dict for this group
+        """compute record dtype and parents dict for this group
 
         Parameters
         ----------
@@ -626,7 +619,7 @@ class MDF3(object):
 
             else:
                 vals = column_stack(
-                    [vals, zeros(len(vals), dtype=f"<({extra_bytes},)u1"),]
+                    [vals, zeros(len(vals), dtype=f"<({extra_bytes},)u1")]
                 )
                 try:
                     vals = vals.view(f"<u{std_size}").ravel()
@@ -885,7 +878,7 @@ class MDF3(object):
                     # check if it has channel dependencies
                     if new_ch.component_addr:
                         dep = ChannelDependency(
-                            address=new_ch.component_addr, stream=stream,
+                            address=new_ch.component_addr, stream=stream
                         )
                         grp.channel_dependencies.append(dep)
                     else:
@@ -975,7 +968,7 @@ class MDF3(object):
         integer_interpolation=None,
         copy_on_get=None,
     ):
-        """ configure MDF parameters
+        """configure MDF parameters
 
         Parameters
         ----------
@@ -1021,7 +1014,7 @@ class MDF3(object):
             self.copy_on_get = copy_on_get
 
     def add_trigger(self, group, timestamp, pre_time=0, post_time=0, comment=""):
-        """ add trigger to data group
+        """add trigger to data group
 
         Parameters
         ----------
@@ -2258,7 +2251,7 @@ class MDF3(object):
         gp.trigger = None
 
     def close(self):
-        """ if the MDF was created with memory='minimum' and new
+        """if the MDF was created with memory='minimum' and new
         channels have been appended, then this must be called just before the
         object is not used anymore to clean-up the temporary file
 
@@ -3063,7 +3056,7 @@ class MDF3(object):
         record_count=None,
         one_piece=False,
     ):
-        """ returns master channel samples for given group
+        """returns master channel samples for given group
 
         Parameters
         ----------
@@ -3230,7 +3223,7 @@ class MDF3(object):
         return timestamps.copy()
 
     def iter_get_triggers(self):
-        """ generator that yields triggers
+        """generator that yields triggers
 
         Returns
         -------
@@ -3642,7 +3635,7 @@ class MDF3(object):
                 group.sorted = True
 
     def included_channels(
-        self, index=None, channels=None, skip_master=True, minimal=True,
+        self, index=None, channels=None, skip_master=True, minimal=True
     ):
 
         if channels is None:
@@ -3742,7 +3735,7 @@ class MDF3(object):
 
         for idx, fragment in enumerate(
             self._load_data(
-                group, record_offset=record_offset, record_count=record_count,
+                group, record_offset=record_offset, record_count=record_count
             )
         ):
 
@@ -3806,11 +3799,11 @@ class MDF3(object):
                                         .view(sig.samples.dtype)
                                     )
                                     sig.samples = encode(
-                                        decode(sig.samples, "utf-16-be"), "latin-1",
+                                        decode(sig.samples, "utf-16-be"), "latin-1"
                                     )
                                 else:
                                     sig.samples = encode(
-                                        decode(sig.samples, sig.encoding), "latin-1",
+                                        decode(sig.samples, sig.encoding), "latin-1"
                                     )
                         else:
                             encodings.append(None)

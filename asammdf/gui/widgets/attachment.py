@@ -52,7 +52,7 @@ class Attachment(Ui_Attachment, QtWidgets.QWidget):
                 data = file_path.read_bytes()
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Select extracted file", "", "All files (*.*)", "All files (*.*)",
+            self, "Select extracted file", "", "All files (*.*)", "All files (*.*)"
         )
         if file_name:
             file_name = Path(file_name)

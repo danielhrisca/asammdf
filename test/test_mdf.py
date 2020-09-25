@@ -429,7 +429,7 @@ class TestMDF(unittest.TestCase):
                         print(file, out, type(inp))
 
                     outfile = input_file.convert(out).save(
-                        Path(TestMDF.tempdir_demo.name) / "tmp", overwrite=True,
+                        Path(TestMDF.tempdir_demo.name) / "tmp", overwrite=True
                     )
 
                     with MDF(outfile, use_display_names=True) as mdf:
@@ -664,7 +664,7 @@ class TestMDF(unittest.TestCase):
                                 types = np.dtype(types)
 
                                 vals = mdf.get(
-                                    "Channel_{}".format(j), group=i, samples_only=True,
+                                    "Channel_{}".format(j), group=i, samples_only=True
                                 )[0]
                                 target = [arr * j for arr in samples]
                                 target = np.core.records.fromarrays(target, dtype=types)
@@ -693,7 +693,7 @@ class TestMDF(unittest.TestCase):
                                 types = np.dtype(types)
 
                                 vals = mdf.get(
-                                    "Channel_{}".format(j), group=i, samples_only=True,
+                                    "Channel_{}".format(j), group=i, samples_only=True
                                 )[0]
                                 target = [samples * j]
                                 target = np.core.records.fromarrays(target, dtype=types)
@@ -729,7 +729,7 @@ class TestMDF(unittest.TestCase):
                                 types = np.dtype(types)
 
                                 vals = mdf.get(
-                                    "Channel_{}".format(j), group=i, samples_only=True,
+                                    "Channel_{}".format(j), group=i, samples_only=True
                                 )[0]
                                 target = [arr * j for arr in samples]
                                 target = np.core.records.fromarrays(target, dtype=types)

@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 import logging
 
-import numpy as np
-
 from ..blocks.utils import plausible_timestamps
 
 try:
     from PyQt5 import QtWidgets
+
     from .widgets.plot_standalone import PlotWindow
 
     QT = True
@@ -18,7 +17,7 @@ logger = logging.getLogger("asammdf")
 
 
 def plot(signals, title="", validate=True, index_only=False):
-    """ create a stand-alone plot using the input signal or signals
+    """create a stand-alone plot using the input signal or signals
 
     Arguments
     ---------

@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime
 from functools import partial
 import json
-import re
 import os
+import re
 from traceback import format_exc
 
 from natsort import natsorted
@@ -12,25 +11,14 @@ import pandas as pd
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ...blocks import v4_constants as v4c
-from ...blocks.utils import csv_bytearray2hex, extract_cncomment_xml, MdfException
+from ...blocks.utils import csv_bytearray2hex, MdfException
+from ...mdf import MDF
 from ...signal import Signal
 from ..dialogs.channel_info import ChannelInfoDialog
-from ..utils import (
-    add_children,
-    COLORS,
-    compute_signal,
-    extract_mime_names,
-    get_required_signals,
-    HelperChannel,
-    load_dsp,
-    run_thread_with_progress,
-    setup_progress,
-    TERMINATED,
-)
+from ..utils import compute_signal, extract_mime_names, get_required_signals
 from .numeric import Numeric
 from .plot import Plot
 from .tabular import Tabular
-from .tree import TreeWidget
 
 
 class MdiAreaWidget(QtWidgets.QMdiArea):
@@ -375,7 +363,7 @@ class WithMDIArea:
 
             def set_title(mdi):
                 name, ok = QtWidgets.QInputDialog.getText(
-                    None, "Set sub-plot title", "Title:",
+                    None, "Set sub-plot title", "Title:"
                 )
                 if ok and name:
                     mdi.setWindowTitle(name)
@@ -524,7 +512,7 @@ class WithMDIArea:
 
             def set_title(mdi):
                 name, ok = QtWidgets.QInputDialog.getText(
-                    None, "Set sub-plot title", "Title:",
+                    None, "Set sub-plot title", "Title:"
                 )
                 if ok and name:
                     mdi.setWindowTitle(name)
@@ -579,7 +567,7 @@ class WithMDIArea:
 
             def set_title(mdi):
                 name, ok = QtWidgets.QInputDialog.getText(
-                    None, "Set sub-plot title", "Title:",
+                    None, "Set sub-plot title", "Title:"
                 )
                 if ok and name:
                     mdi.setWindowTitle(name)
@@ -616,17 +604,17 @@ class WithMDIArea:
 
         if window_info["type"] == "Numeric":
             # patterns
-            pattern_info = window_info['configuration'].get('pattern', {})
+            pattern_info = window_info["configuration"].get("pattern", {})
             if pattern_info:
                 required = set()
                 found_signals = []
                 fmt = "phys"
 
-                pattern = pattern_info['pattern']
+                pattern = pattern_info["pattern"]
                 match_type = pattern_info["match_type"]
-                filter_value = pattern_info['filter_value']
-                filter_type = pattern_info['filter_type']
-                raw = pattern_info['raw']
+                filter_value = pattern_info["filter_value"]
+                filter_type = pattern_info["filter_type"]
+                raw = pattern_info["raw"]
 
                 if match_type == "Wildcard":
                     pattern = pattern.replace("*", "_WILDCARD_")
@@ -653,7 +641,7 @@ class WithMDIArea:
                         raw=True,
                     )
 
-                    if filter_type == 'Unspecified':
+                    if filter_type == "Unspecified":
                         keep = psignals
                     else:
 
@@ -674,13 +662,13 @@ class WithMDIArea:
                             else:
                                 samples = sig.samples
 
-                            if filter_type == 'Contains':
+                            if filter_type == "Contains":
                                 try:
                                     if np.any(np.isclose(samples, target)):
                                         keep.append(sig)
                                 except:
                                     continue
-                            elif filter_type == 'Do not contain':
+                            elif filter_type == "Do not contain":
                                 try:
                                     if not np.allclose(samples, target):
                                         keep.append(sig)
@@ -730,7 +718,7 @@ class WithMDIArea:
 
                 found = set(sig.name for sig in signals)
                 not_found = [
-                    Signal([], [], name=name,) for name in sorted(required - found)
+                    Signal([], [], name=name) for name in sorted(required - found)
                 ]
                 uuid = os.urandom(6).hex()
                 for sig in not_found:
@@ -770,7 +758,7 @@ class WithMDIArea:
 
             def set_title(mdi):
                 name, ok = QtWidgets.QInputDialog.getText(
-                    None, "Set sub-plot title", "Title:",
+                    None, "Set sub-plot title", "Title:"
                 )
                 if ok and name:
                     mdi.setWindowTitle(name)
@@ -787,16 +775,16 @@ class WithMDIArea:
 
         elif window_info["type"] == "Plot":
             # patterns
-            pattern_info = window_info['configuration'].get('pattern', {})
+            pattern_info = window_info["configuration"].get("pattern", {})
             if pattern_info:
                 required = set()
                 found_signals = []
 
-                pattern = pattern_info['pattern']
+                pattern = pattern_info["pattern"]
                 match_type = pattern_info["match_type"]
-                filter_value = pattern_info['filter_value']
-                filter_type = pattern_info['filter_type']
-                raw = pattern_info['raw']
+                filter_value = pattern_info["filter_value"]
+                filter_type = pattern_info["filter_type"]
+                raw = pattern_info["raw"]
 
                 if match_type == "Wildcard":
                     pattern = pattern.replace("*", "_WILDCARD_")
@@ -805,7 +793,9 @@ class WithMDIArea:
 
                 try:
                     pattern = re.compile(f"(?i){pattern}")
-                    matches = [name for name in self.mdf.channels_db if pattern.match(name)]
+                    matches = [
+                        name for name in self.mdf.channels_db if pattern.match(name)
+                    ]
                 except:
                     print(format_exc())
                     signals = []
@@ -819,7 +809,7 @@ class WithMDIArea:
                         raw=True,
                     )
 
-                    if filter_type == 'Unspecified':
+                    if filter_type == "Unspecified":
                         keep = psignals
                     else:
 
@@ -831,19 +821,18 @@ class WithMDIArea:
 
                             target = np.ones(size) * filter_value
 
-
                             if not raw:
                                 samples = sig.physical().samples
                             else:
                                 samples = sig.samples
 
-                            if filter_type == 'Contains':
+                            if filter_type == "Contains":
                                 try:
                                     if np.any(np.isclose(samples, target)):
                                         keep.append(sig)
                                 except:
                                     continue
-                            elif filter_type == 'Do not contain':
+                            elif filter_type == "Do not contain":
                                 try:
                                     if not np.allclose(samples, target):
                                         keep.append(sig)
@@ -859,7 +848,9 @@ class WithMDIArea:
 
             else:
 
-                required = set(e["name"] for e in window_info["configuration"]["channels"])
+                required = set(
+                    e["name"] for e in window_info["configuration"]["channels"]
+                )
 
                 found_signals = [
                     channel
@@ -952,7 +943,9 @@ class WithMDIArea:
                     except:
                         pass
 
-                signals = list(measured_signals.values()) + list(computed_signals.values())
+                signals = list(measured_signals.values()) + list(
+                    computed_signals.values()
+                )
 
             signals = [
                 sig
@@ -1011,9 +1004,7 @@ class WithMDIArea:
                 origin = self.files.widget(0).mdf.start_time
 
             found = set(sig.name for sig in signals)
-            not_found = [
-                Signal([], [], name=name,) for name in sorted(required - found)
-            ]
+            not_found = [Signal([], [], name=name) for name in sorted(required - found)]
             uuid = os.urandom(6).hex()
             for sig in not_found:
                 sig.mdf_uuid = uuid
@@ -1062,7 +1053,7 @@ class WithMDIArea:
 
             def set_title(mdi):
                 name, ok = QtWidgets.QInputDialog.getText(
-                    None, "Set sub-plot title", "Title:",
+                    None, "Set sub-plot title", "Title:"
                 )
                 if ok and name:
                     mdi.setWindowTitle(name)
@@ -1109,10 +1100,12 @@ class WithMDIArea:
                         else QtCore.Qt.Unchecked
                     )
                     wid.display.setCheckState(
-                        QtCore.Qt.Checked if description["enabled"] else QtCore.Qt.Unchecked
+                        QtCore.Qt.Checked
+                        if description["enabled"]
+                        else QtCore.Qt.Unchecked
                     )
                 elif pattern_info:
-                    wid.ranges = pattern_info['ranges']
+                    wid.ranges = pattern_info["ranges"]
 
             self.set_subplots_link(self.subplots_link)
 
@@ -1121,16 +1114,16 @@ class WithMDIArea:
 
         elif window_info["type"] == "Tabular":
             # patterns
-            pattern_info = window_info['configuration'].get('pattern', {})
+            pattern_info = window_info["configuration"].get("pattern", {})
             if pattern_info:
                 required = set()
                 found_signals = []
 
-                pattern = pattern_info['pattern']
+                pattern = pattern_info["pattern"]
                 match_type = pattern_info["match_type"]
-                filter_value = pattern_info['filter_value']
-                filter_type = pattern_info['filter_type']
-                raw = pattern_info['raw']
+                filter_value = pattern_info["filter_value"]
+                filter_type = pattern_info["filter_type"]
+                raw = pattern_info["raw"]
 
                 if match_type == "Wildcard":
                     pattern = pattern.replace("*", "_WILDCARD_")
@@ -1157,7 +1150,7 @@ class WithMDIArea:
                         raw=True,
                     )
 
-                    if filter_type == 'Unspecified':
+                    if filter_type == "Unspecified":
                         keep = list(matches)
                     else:
 
@@ -1175,13 +1168,13 @@ class WithMDIArea:
                             else:
                                 samples = sig.samples
 
-                            if filter_type == 'Contains':
+                            if filter_type == "Contains":
                                 try:
                                     if np.any(np.isclose(samples, target)):
                                         keep.append(name)
                                 except:
                                     continue
-                            elif filter_type == 'Do not contain':
+                            elif filter_type == "Do not contain":
                                 try:
                                     if not np.allclose(samples, target):
                                         keep.append(name)
@@ -1246,7 +1239,7 @@ class WithMDIArea:
                 self._window_counter += 1
 
             filter_count = 0
-            available_columns = [signals.index.name,] + list(signals.columns)
+            available_columns = [signals.index.name] + list(signals.columns)
             for filter_info in window_info["configuration"]["filters"]:
                 if filter_info["column"] in available_columns:
                     tabular.add_filter()
@@ -1285,7 +1278,7 @@ class WithMDIArea:
 
             def set_title(mdi):
                 name, ok = QtWidgets.QInputDialog.getText(
-                    None, "Set sub-plot title", "Title:",
+                    None, "Set sub-plot title", "Title:"
                 )
                 if ok and name:
                     mdi.setWindowTitle(name)
@@ -1304,7 +1297,9 @@ class WithMDIArea:
 
         if pattern_info:
             icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            icon.addPixmap(
+                QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+            )
             w.setWindowIcon(icon)
 
         w.layout().setSpacing(1)
@@ -1446,7 +1441,7 @@ class WithMDIArea:
 
     def save_all_subplots(self):
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Select output measurement file", "", "MDF version 4 files (*.mf4)",
+            self, "Select output measurement file", "", "MDF version 4 files (*.mf4)"
         )
 
         if file_name:

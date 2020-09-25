@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import json
-import os
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 

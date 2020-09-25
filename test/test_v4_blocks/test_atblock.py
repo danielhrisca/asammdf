@@ -55,7 +55,7 @@ class TestATBLOCK(unittest.TestCase):
 
     def test_bytes_compressed(self):
         attachment = AttachmentBlock(
-            file_name=self.filename, data=self.data, embedded=True, compressed=True,
+            file_name=self.filename, data=self.data, embedded=True, compressed=True
         )
         attachment.comment = self.comment
 
@@ -78,7 +78,7 @@ class TestATBLOCK(unittest.TestCase):
 
     def test_bytes_uncompressed(self):
         attachment = AttachmentBlock(
-            file_name=self.filename, data=self.data, embedded=True, compressed=False,
+            file_name=self.filename, data=self.data, embedded=True, compressed=False
         )
         attachment.comment = self.comment
 

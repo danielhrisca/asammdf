@@ -3,7 +3,6 @@
 asammdf utility functions and classes
 """
 
-from collections import namedtuple
 from io import BytesIO
 import logging
 from pathlib import Path
@@ -26,11 +25,11 @@ from . import v2_v3_constants as v3c
 from . import v4_constants as v4c
 
 try:
-    from canmatrix.dbc import load as dbc_load
     from canmatrix.arxml import load as arxml_load
+    from canmatrix.dbc import load as dbc_load
 except ModuleNotFoundError:
-    from canmatrix.formats.dbc import load as dbc_load
     from canmatrix.formats.arxml import load as arxml_load
+    from canmatrix.formats.dbc import load as dbc_load
 
 
 UINT8_u = Struct("<B").unpack
@@ -136,7 +135,7 @@ def extract_cncomment_xml(comment):
 
 
 def matlab_compatible(name):
-    """ make a channel name compatible with Matlab variable naming
+    """make a channel name compatible with Matlab variable naming
 
     Parameters
     ----------
@@ -162,7 +161,7 @@ def matlab_compatible(name):
 
 
 def get_text_v3(address, stream, mapped=False, decode=True):
-    """ faster way to extract strings from mdf versions 2 and 3 TextBlock
+    """faster way to extract strings from mdf versions 2 and 3 TextBlock
 
     Parameters
     ----------
@@ -207,7 +206,7 @@ def get_text_v3(address, stream, mapped=False, decode=True):
 
 
 def get_text_v4(address, stream, mapped=False, decode=True):
-    """ faster way to extract strings from mdf version 4 TextBlock
+    """faster way to extract strings from mdf version 4 TextBlock
 
     Parameters
     ----------
@@ -622,7 +621,7 @@ def as_non_byte_sized_signed_int(integer_array, bit_length):
 
 
 def debug_channel(mdf, group, channel, dependency, file=None):
-    """ use this to print debug information in case of errors
+    """use this to print debug information in case of errors
 
     Parameters
     ----------
@@ -668,7 +667,7 @@ def debug_channel(mdf, group, channel, dependency, file=None):
 
 
 def count_channel_groups(stream, include_channels=False):
-    """ count all channel groups as fast as possible. This is used to provide
+    """count all channel groups as fast as possible. This is used to provide
     reliable progress information when loading a file using the GUI
 
     Parameters
@@ -745,7 +744,7 @@ def count_channel_groups(stream, include_channels=False):
 
 
 def validate_version_argument(version, hint=4):
-    """ validate the version argument against the supported MDF versions. The
+    """validate the version argument against the supported MDF versions. The
     default version used depends on the hint MDF major revision
 
     Parameters
@@ -785,7 +784,7 @@ class ChannelsDB(dict):
         super().__init__()
 
     def add(self, channel_name, entry):
-        """ add name to channels database and check if it contains a source
+        """add name to channels database and check if it contains a source
         path
 
         Parameters
@@ -812,7 +811,7 @@ class ChannelsDB(dict):
 
 
 def randomized_string(size):
-    """ get a \0 terminated string of size length
+    """get a \0 terminated string of size length
 
     Parameters
     ----------
@@ -870,7 +869,7 @@ class UniqueDB(object):
         self._db = {}
 
     def get_unique_name(self, name):
-        """ returns an available unique name
+        """returns an available unique name
 
         Parameters
         ----------
@@ -894,7 +893,7 @@ class UniqueDB(object):
 
 
 def cut_video_stream(stream, start, end, fmt):
-    """ cut video stream from `start` to `end` time
+    """cut video stream from `start` to `end` time
 
     Parameters
     ----------
@@ -1031,10 +1030,10 @@ class Group:
 
 
 class VirtualChannelGroup:
-    """ starting with MDF v4.20 it is possible to use remote masters and column
+    """starting with MDF v4.20 it is possible to use remote masters and column
     oriented storage. This means we now have virtual channel groups that can
     span over multiple regular channel groups. This class facilitates the
-    handling of this virtual groups """
+    handling of this virtual groups"""
 
     __slots__ = (
         "groups",
@@ -1067,9 +1066,9 @@ def block_fields(obj):
 
 
 def components(
-    channel, channel_name, unique_names, prefix="", master=None, only_basenames=False,
+    channel, channel_name, unique_names, prefix="", master=None, only_basenames=False
 ):
-    """ yield pandas Series and unique name based on the ndarray object
+    """yield pandas Series and unique name based on the ndarray object
 
     Parameters
     ----------
@@ -1323,7 +1322,7 @@ def downcast(array):
 
 
 def master_using_raster(mdf, raster, endpoint=False):
-    """ get single master based on the raster
+    """get single master based on the raster
 
     Parameters
     ----------
@@ -1351,12 +1350,12 @@ def master_using_raster(mdf, raster, endpoint=False):
             cycles_nr = group.channel_group.cycles_nr
             if cycles_nr:
                 master_min = mdf.get_master(
-                    group_index, record_offset=0, record_count=1,
+                    group_index, record_offset=0, record_count=1
                 )
                 if len(master_min):
                     t_min.append(master_min[0])
                 master_max = mdf.get_master(
-                    group_index, record_offset=cycles_nr - 1, record_count=1,
+                    group_index, record_offset=cycles_nr - 1, record_count=1
                 )
                 if len(master_max):
                     t_max.append(master_max[0])
@@ -1380,7 +1379,7 @@ def master_using_raster(mdf, raster, endpoint=False):
 
 
 def csv_int2hex(val):
-    """ format CAN id as hex
+    """format CAN id as hex
 
     100 -> 64
 
@@ -1393,7 +1392,7 @@ csv_int2hex = np.vectorize(csv_int2hex, otypes=[str])
 
 
 def csv_bytearray2hex(val):
-    """ format CAN payload as hex strings
+    """format CAN payload as hex strings
 
     b'\xa2\xc3\x08' -> A2 C3 08
 
@@ -1499,7 +1498,7 @@ def all_blocks_addresses(obj):
 
 
 def plausible_timestamps(t, minimum, maximum, exp_min=-15, exp_max=15):
-    """ check if the time stamps are plausible
+    """check if the time stamps are plausible
 
     Parameters
     ----------
