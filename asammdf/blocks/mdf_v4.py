@@ -2463,8 +2463,8 @@ class MDF4(object):
     def append(
         self,
         signals,
-        acq_name=None,
-        acq_source=None,
+        acq_name="",
+        acq_source="",
         comment="Python",
         common_timebase=False,
         units=None,
