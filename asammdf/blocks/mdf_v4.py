@@ -2595,7 +2595,7 @@ class MDF4(object):
         gp.channel_group = ChannelGroup(**kwargs)
         gp.channel_group.acq_name = acq_name
         gp.channel_group.acq_source = source_block
-        gp.channel_grouo.comment = comment
+        gp.channel_group.comment = comment
 
         if any(sig.invalidation_bits is not None for sig in signals):
             invalidation_bytes_nr = 1
