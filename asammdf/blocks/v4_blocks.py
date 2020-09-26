@@ -19,6 +19,7 @@ import numpy as np
 
 from . import v4_constants as v4c
 from ..version import __version__
+from .source_utils import Source
 from .utils import (
     block_fields,
     FLOAT64_u,
@@ -1948,6 +1949,13 @@ class ChannelGroup:
                 self.invalidation_bytes_nr,
             )
         return result
+
+    def _get_append_kwargs(self):
+        return {
+            "acq_name": self.acq_name,
+            "acq_source": Source.from_source(self.acq_source),
+            "comment": self.comment,
+        }
 
     def metadata(self):
         keys = (

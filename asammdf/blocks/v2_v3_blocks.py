@@ -2242,6 +2242,9 @@ class ChannelGroup:
                 self.cycles_nr,
             )
 
+    def _get_append_kwargs(self):
+        return {"comment": self.comment}
+
     def metadata(self):
         keys = (
             "id",

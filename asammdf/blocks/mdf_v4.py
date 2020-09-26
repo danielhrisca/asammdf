@@ -2460,7 +2460,15 @@ class MDF4(object):
         if copy_on_get is not None:
             self.copy_on_get = copy_on_get
 
-    def append(self, signals, source_info="Python", common_timebase=False, units=None):
+    def append(
+        self,
+        signals,
+        acq_name=None,
+        acq_source=None,
+        comment="Python",
+        common_timebase=False,
+        units=None,
+    ):
         """
         Appends a new data group.
 
@@ -2473,8 +2481,12 @@ class MDF4(object):
             list of *Signal* objects, or a single *Signal* object, or a pandas
             *DataFrame* object. All bytes columns in the pandas *DataFrame*
             must be *utf-8* encoded
-        source_info : str | asammdf.source_utils.Source
-            channel group source information; default 'Python'
+        acq_name : str
+            channel group aqcuisition name
+        acq_source : str | asammdf.source_utils.Source
+            channel group acquisition source
+        comment : str
+            channel group comment; default 'Python'
         common_timebase : bool
             flag to hint that the signals have the same timebase. Only set this
             if you know for sure that all appended channels share the same
@@ -2497,39 +2509,40 @@ class MDF4(object):
         >>> s2 = Signal(samples=s2, timestamps=t, unit='-', name='Negative')
         >>> s3 = Signal(samples=s3, timestamps=t, unit='flts', name='Floats')
         >>> mdf = MDF4('new.mdf')
-        >>> mdf.append([s1, s2, s3], 'created by asammdf v4.0.0')
+        >>> mdf.append([s1, s2, s3], comment='created by asammdf v4.0.0')
         >>> # case 2: VTAB conversions from channels inside another file
         >>> mdf1 = MDF4('in.mf4')
         >>> ch1 = mdf1.get("Channel1_VTAB")
         >>> ch2 = mdf1.get("Channel2_VTABR")
         >>> sigs = [ch1, ch2]
         >>> mdf2 = MDF4('out.mf4')
-        >>> mdf2.append(sigs, 'created by asammdf v4.0.0')
-        >>> mdf2.append(ch1, 'just a single channel')
+        >>> mdf2.append(sigs, comment='created by asammdf v4.0.0')
+        >>> mdf2.append(ch1, comment='just a single channel')
         >>> df = pd.DataFrame.from_dict({'s1': np.array([1, 2, 3, 4, 5]), 's2': np.array([-1, -2, -3, -4, -5])})
         >>> units = {'s1': 'V', 's2': 'A'}
         >>> mdf2.append(df, units=units)
 
         """
+        if isinstance(acq_source, str):
+            source_block = SourceInformation()
+            source_block.name = source_block.path = acq_source
+        else:
+            source_block = SourceInformation.from_common_source(acq_source)
 
         if isinstance(signals, Signal):
             signals = [signals]
         elif isinstance(signals, DataFrame):
-            self._append_dataframe(signals, source_info, units=units)
+            self._append_dataframe(
+                signals,
+                acq_name=acq_name,
+                acq_source=source_block,
+                comment=comment,
+                units=units,
+            )
             return
 
         if not signals:
             return
-
-        if isinstance(source_info, str):
-            source_block = SourceInformation()
-            source_block.name = source_block.path = source_info
-        else:
-            if not isinstance(source_info, Source):
-                source_info = Source.from_source(source_info)
-            source_block = SourceInformation.from_common_source(source_info)
-
-        source_info = source_block.name
 
         interp_mode = self._integer_interpolation
 
@@ -2562,7 +2575,9 @@ class MDF4(object):
             t = []
 
         if self.version >= "4.20" and (self._column_storage or 1):
-            return self._append_column_oriented(signals, source_block)
+            return self._append_column_oriented(
+                signals, acq_name=acq_name, acq_source=source_block, comment=comment
+            )
 
         dg_cntr = len(self.groups)
 
@@ -2578,8 +2593,9 @@ class MDF4(object):
         # channel group
         kwargs = {"cycles_nr": cycles_nr, "samples_byte_nr": 0}
         gp.channel_group = ChannelGroup(**kwargs)
+        gp.channel_group.acq_name = acq_name
         gp.channel_group.acq_source = source_block
-        gp.channel_group.acq_name = source_block.name
+        gp.channel_grouo.comment = comment
 
         if any(sig.invalidation_bits is not None for sig in signals):
             invalidation_bytes_nr = 1
@@ -3360,7 +3376,9 @@ class MDF4(object):
 
         return dg_cntr
 
-    def _append_column_oriented(self, signals, source_block):
+    def _append_column_oriented(
+        self, signals, acq_name=None, acq_source=None, comment=None
+    ):
         defined_texts = {}
         si_map = self._si_map
 
@@ -3394,8 +3412,9 @@ class MDF4(object):
         # channel group
         kwargs = {"cycles_nr": cycles_nr, "samples_byte_nr": 0}
         gp.channel_group = ChannelGroup(**kwargs)
-        gp.channel_group.acq_name = source_block.name
-        gp.channel_group.acq_source = source_block
+        gp.channel_group.acq_name = acq_name
+        gp.channel_group.acq_source = acq_source
+        gp.channel_group.comment = comment
 
         self.groups.append(gp)
 
@@ -3539,8 +3558,9 @@ class MDF4(object):
                 "flags": v4c.FLAG_CG_REMOTE_MASTER,
             }
             gp.channel_group = ChannelGroup(**kwargs)
-            gp.channel_group.acq_name = source_block.name
-            gp.channel_group.acq_source = source_block
+            gp.channel_group.acq_name = acq_name
+            gp.channel_group.acq_source = acq_source
+            gp.channel_group.comment = comment
             gp.channel_group.cg_master_index = cg_master_index
 
             self.groups.append(gp)
@@ -4141,20 +4161,13 @@ class MDF4(object):
 
         return initial_dg_cntr
 
-    def _append_dataframe(self, df, source_info="", units=None):
+    def _append_dataframe(
+        self, df, acq_name=None, acq_source=None, comment=None, units=None
+    ):
         """
         Appends a new data group from a Pandas data frame.
 
         """
-
-        if isinstance(source_info, str):
-            source_block = SourceInformation()
-            source_block.name = source_block.path = source_info
-        else:
-            if not isinstance(source_info, Source):
-                source_info = Source.from_source(source_info)
-            source_block = SourceInformation.from_common_source(source_info)
-
         units = units or {}
 
         if df.shape == (0, 0):
@@ -4180,8 +4193,9 @@ class MDF4(object):
         # channel group
         kwargs = {"cycles_nr": cycles_nr, "samples_byte_nr": 0}
         gp.channel_group = ChannelGroup(**kwargs)
-        gp.channel_group.acq_name = source_block.name
-        gp.channel_group.acq_source = source_block
+        gp.channel_group.acq_name = acq_name
+        gp.channel_group.acq_source = acq_source
+        gp.channel_group.comment = comment
 
         self.groups.append(gp)
 
@@ -5282,7 +5296,7 @@ class MDF4(object):
         >>> s2 = Signal(samples=s2, timestamps=t, unit='-', name='Negative')
         >>> s3 = Signal(samples=s3, timestamps=t, unit='flts', name='Floats')
         >>> mdf = MDF4('new.mdf')
-        >>> mdf.append([s1, s2, s3], 'created by asammdf v1.1.0')
+        >>> mdf.append([s1, s2, s3], comment='created by asammdf v1.1.0')
         >>> t = np.array([0.006, 0.007, 0.008, 0.009, 0.010])
         >>> # extend without invalidation bits
         >>> mdf2.extend(0, [(t, None), (s1, None), (s2, None), (s3, None)])
@@ -5525,7 +5539,7 @@ class MDF4(object):
         >>> s2 = Signal(samples=s2, timestamps=t, unit='-', name='Negative')
         >>> s3 = Signal(samples=s3, timestamps=t, unit='flts', name='Floats')
         >>> mdf = MDF4('new.mdf')
-        >>> mdf.append([s1, s2, s3], 'created by asammdf v1.1.0')
+        >>> mdf.append([s1, s2, s3], comment='created by asammdf v1.1.0')
         >>> t = np.array([0.006, 0.007, 0.008, 0.009, 0.010])
         >>> # extend without invalidation bits
         >>> mdf2.extend(0, [(t, None), (s1, None), (s2, None), (s3, None)])
@@ -9739,15 +9753,12 @@ class MDF4(object):
 
                                 cg_nr = self.append(
                                     sigs,
-                                    f"from CAN{bus} message ID=0x{msg_id:X}",
+                                    acq_name=f"from CAN{bus} message ID=0x{msg_id:X}",
+                                    comment=f"{message} 0x{msg_id:X}",
                                     common_timebase=True,
                                 )
 
                                 msg_map[entry] = cg_nr
-
-                                self.groups[
-                                    cg_nr
-                                ].channel_group.comment = f"{message} 0x{msg_id:X}"
 
                                 for ch_index, ch in enumerate(
                                     self.groups[cg_nr].channels
