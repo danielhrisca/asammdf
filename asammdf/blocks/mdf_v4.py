@@ -4238,7 +4238,6 @@ class MDF4(object):
         ch = Channel(**kwargs)
         ch.unit = time_unit
         ch.name = time_name
-        ch.source = source_block
         ch.dtype_fmt = t.dtype
         name = time_name
         gp_channels.append(ch)

@@ -420,9 +420,12 @@ class MDF:
             ):
                 if idx == 0:
                     if sigs:
+                        if version in MDF4_VERSIONS:
+                            cg = self.groups[virtual_group].channel_group
+                            kwargs = cg._get_append_kwargs()
+                        else:
+                            kwargs = {}
                         comment = f"Converted from {self.version} to {version}"
-                        cg = self.groups[virtual_group].channel_group
-                        kwargs = cg._get_append_kwargs()
                         kwargs["comment"] = comment
                         cg_nr = out.append(sigs, common_timebase=True, **kwargs)
                     else:
