@@ -1091,7 +1091,13 @@ class MDF3(object):
             group.trigger = trigger
 
     def append(
-        self, signals, acquisition_info="Python", common_timebase=False, units=None
+        self,
+        signals,
+        acq_name=None,
+        acq_source=None,
+        comment="Python",
+        common_timebase=False,
+        units=None,
     ):
         """Appends a new data group.
 
@@ -1104,8 +1110,12 @@ class MDF3(object):
             list of *Signal* objects, or a single *Signal* object, or a pandas
             *DataFrame* object. All bytes columns in the pandas *DataFrame*
             must be *latin-1* encoded
-        acquisition_info : str
-            acquisition information; default 'Python'
+        acq_name : str
+            channel group acquisition name
+        acq_source : asammdf.source_utils.Source
+            channel group acquisition source
+        comment : str
+            channel group comment; default 'Python'
         common_timebase : bool
             flag to hint that the signals have the same timebase. Only set this
             if you know for sure that all appended channels share the same
@@ -1129,28 +1139,23 @@ class MDF3(object):
         >>> s2 = Signal(samples=s2, timestamps=t, unit='-', name='Negative')
         >>> s3 = Signal(samples=s3, timestamps=t, unit='flts', name='Floats')
         >>> mdf = MDF3('new.mdf')
-        >>> mdf.append([s1, s2, s3], 'created by asammdf v1.1.0')
+        >>> mdf.append([s1, s2, s3], comment='created by asammdf v1.1.0')
         >>> # case 2: VTAB conversions from channels inside another file
         >>> mdf1 = MDF3('in.mdf')
         >>> ch1 = mdf1.get("Channel1_VTAB")
         >>> ch2 = mdf1.get("Channel2_VTABR")
         >>> sigs = [ch1, ch2]
         >>> mdf2 = MDF3('out.mdf')
-        >>> mdf2.append(sigs, 'created by asammdf v1.1.0')
+        >>> mdf2.append(sigs, comment='created by asammdf v1.1.0')
         >>> df = pd.DataFrame.from_dict({'s1': np.array([1, 2, 3, 4, 5]), 's2': np.array([-1, -2, -3, -4, -5])})
         >>> units = {'s1': 'V', 's2': 'A'}
         >>> mdf2.append(df, units=units)
 
         """
-        if not isinstance(acquisition_info, str):
-            if not isinstance(acquisition_info, Source):
-                acquisition_info = Source.from_source(acquisition_info)
-            acquisition_info = acquisition_info.name
-
         if isinstance(signals, Signal):
             signals = [signals]
         elif isinstance(signals, DataFrame):
-            self._append_dataframe(signals, acquisition_info, units=units)
+            self._append_dataframe(signals, comment=comment, units=units)
             return
 
         version = self.version
@@ -1948,7 +1953,7 @@ class MDF3(object):
         else:
             kargs["block_len"] = v23c.CG_PRE_330_BLOCK_SIZE
         gp.channel_group = ChannelGroup(**kargs)
-        gp.channel_group.comment = acquisition_info
+        gp.channel_group.comment = comment
 
         # data group
         if self.version >= "3.20":
@@ -2005,16 +2010,10 @@ class MDF3(object):
 
         return dg_cntr
 
-    def _append_dataframe(self, df, acquisition_info="", units=None):
+    def _append_dataframe(self, df, comment="", units=None):
         """
         Appends a new data group from a Pandas data frame.
         """
-
-        if not isinstance(acquisition_info, str):
-            if not isinstance(acquisition_info, Source):
-                acquisition_info = Source.from_source(acquisition_info)
-            acquisition_info = acquisition_info.name
-
         units = units or {}
 
         t = df.index
@@ -2196,7 +2195,7 @@ class MDF3(object):
         else:
             kargs["block_len"] = v23c.CG_PRE_330_BLOCK_SIZE
         gp.channel_group = ChannelGroup(**kargs)
-        gp.channel_group.comment = source_info
+        gp.channel_group.comment = comment
 
         # data group
         if self.version >= "3.20":
@@ -2301,7 +2300,7 @@ class MDF3(object):
         >>> s2 = Signal(samples=s2, timestamps=t, unit='-', name='Negative')
         >>> s3 = Signal(samples=s3, timestamps=t, unit='flts', name='Floats')
         >>> mdf = MDF3('new.mdf')
-        >>> mdf.append([s1, s2, s3], 'created by asammdf v1.1.0')
+        >>> mdf.append([s1, s2, s3], comment='created by asammdf v1.1.0')
         >>> t = np.array([0.006, 0.007, 0.008, 0.009, 0.010])
         >>> mdf2.extend(0, [(t, None), (s1.samples, None), (s2.samples, None), (s3.samples, None)])
 

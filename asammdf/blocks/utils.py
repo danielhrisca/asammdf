@@ -56,7 +56,6 @@ __all__ = [
     "ChannelsDB",
     "UniqueDB",
     "MdfException",
-    "SignalSource",
     "get_fmt_v3",
     "get_fmt_v4",
     "get_text_v4",

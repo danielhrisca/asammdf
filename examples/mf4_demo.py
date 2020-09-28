@@ -135,7 +135,7 @@ sig = Signal(
 sigs.append(sig)
 
 
-mdf.append(sigs, "single dimensional channels", common_timebase=True)
+mdf.append(sigs, comment="single dimensional channels", common_timebase=True)
 
 
 sigs = []
@@ -259,6 +259,6 @@ l1_arr = np.core.records.fromarrays(l1_arr, dtype=types)
 
 sigs.append(Signal(l1_arr, t, name="Nested_structures"))
 
-mdf.append(sigs, "arrays", common_timebase=True)
+mdf.append(sigs, comment="arrays", common_timebase=True)
 
 mdf.save("demo.mf4", overwrite=True)

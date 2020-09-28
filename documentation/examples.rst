@@ -57,7 +57,7 @@ Working with MDF
 
         # append the 3 signals to the new file
         signals = [s_uint8, s_int32, s_float64]
-        mdf4.append(signals, 'Created by Python')
+        mdf4.append(signals, comment='Created by Python')
 
         # save new file
         mdf4.save('my_new_file.mf4', overwrite=True)
@@ -366,7 +366,7 @@ MF4 demo file generator
     sigs.append(sig)
 
 
-    mdf.append(sigs, 'single dimensional channels', common_timebase=True)
+    mdf.append(sigs, comment='single dimensional channels', common_timebase=True)
 
 
 
@@ -508,7 +508,7 @@ MF4 demo file generator
         )
     )
 
-    mdf.append(sigs, 'arrays', common_timebase=True)
+    mdf.append(sigs, comment='arrays', common_timebase=True)
 
     mdf.save('demo.mf4', overwrite=True)
 

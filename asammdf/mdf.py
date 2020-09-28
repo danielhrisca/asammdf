@@ -419,18 +419,15 @@ class MDF:
                 self._yield_selected_signals(virtual_group, version=version)
             ):
                 if idx == 0:
-                    source_info = (
-                        getattr(
-                            self.groups[virtual_group].channel_group, "acq_source", None
-                        )
-                        or f"Converted from {self.version} to {version}"
-                    )
                     if sigs:
-
-                        cg_nr = out.append(sigs, source_info, common_timebase=True)
-                        out.groups[cg_nr].channel_group.comment = self.groups[
-                            virtual_group
-                        ].channel_group.comment
+                        cg = self.groups[virtual_group].channel_group
+                        cg_nr = out.append(
+                            sigs,
+                            acq_name=getattr(cg, "acq_name", None),
+                            acq_source=getattr(cg, "acq_source", None),
+                            comment=f"Converted from {self.version} to {version}",
+                            common_timebase=True,
+                        )
                     else:
                         break
                 else:
@@ -660,16 +657,14 @@ class MDF:
                         stop_ = f"{stop}s"
                     else:
                         stop_ = "end of measurement"
-                    source_info = (
-                        getattr(
-                            self.groups[group_index].channel_group, "acq_source", None
-                        )
-                        or f"Cut from {start_} to {stop_}"
+                    cg = self.groups[group_index].channel_group
+                    cg_nr = out.append(
+                        signals,
+                        acq_name=getattr(cg, "acq_name", None),
+                        acq_source=getattr(cg, "acq_source", None),
+                        comment=f"Cut from {start_} to {stop_}",
+                        common_timebase=True,
                     )
-                    cg_nr = out.append(signals, source_info, common_timebase=True)
-                    out.groups[cg_nr].channel_group.comment = self.groups[
-                        group_index
-                    ].channel_group.comment
 
                 else:
                     sigs = [(sig.samples, sig.invalidation_bits) for sig in signals]
@@ -695,11 +690,14 @@ class MDF:
                     stop_ = f"{stop}s"
                 else:
                     stop_ = "end of measurement"
-                source_info = (
-                    getattr(self.groups[group_index].channel_group, "acq_source", None)
-                    or f"Cut from {start_} to {stop_}"
+                cg = self.groups[group_index].channel_group
+                out.append(
+                    signals,
+                    acq_name=getattr(cg, "acq_name", None),
+                    acq_source=getattr(cg, "acq_source", None),
+                    comment=f"Cut from {start_} to {stop_}",
+                    common_timebase=True,
                 )
-                out.append(signals, source_info, common_timebase=True)
 
             if self._callback:
                 self._callback(i + 1, groups_nr)
@@ -1437,17 +1435,15 @@ class MDF:
 
                 if idx == 0:
 
-                    source_info = (
-                        getattr(
-                            self.groups[group_index].channel_group, "acq_source", None
-                        )
-                        or f"Signals filtered from <{origin}>"
-                    )
                     if sigs:
-                        cg_nr = mdf.append(sigs, source_info, common_timebase=True)
-                        mdf.groups[cg_nr].channel_group.comment = self.groups[
-                            group_index
-                        ].channel_group.comment
+                        cg = self.groups[group_index].channel_group
+                        cg_nr = mdf.append(
+                            sigs,
+                            acq_name=getattr(cg, "acq_name", None),
+                            acq_source=getattr(cg, "acq_source", None),
+                            comment=f"Signals filtered from <{origin}>",
+                            common_timebase=True,
+                        )
                     else:
                         break
 
@@ -1716,15 +1712,6 @@ class MDF:
                             first_timestamp = first_signal.timestamps[0]
                             original_first_timestamp = first_timestamp
 
-                        source_info = (
-                            getattr(
-                                mdf.groups[group_index].channel_group,
-                                "acq_source",
-                                None,
-                            )
-                            or f"concatenated"
-                        )
-
                         if add_samples_origin:
                             signals.append(
                                 Signal(
@@ -1736,12 +1723,14 @@ class MDF:
                                 )
                             )
 
+                        cg = mdf.groups[group_index].channel_group
                         cg_nr = merged.append(
-                            signals, source_info, common_timebase=True
+                            signals,
+                            acq_name=getattr(cg, "acq_name", None),
+                            acq_source=getattr(cg, "acq_source", None),
+                            comment="concatenated",
+                            common_timebase=True,
                         )
-                        merged.groups[cg_nr].channel_group.comment = mdf.groups[
-                            group_index
-                        ].channel_group.comment
                         cg_map[group_index] = cg_nr
 
                     else:
@@ -1924,16 +1913,14 @@ class MDF:
                             timestamps = signals[0].timestamps + offset
                             for sig in signals:
                                 sig.timestamps = timestamps
-                        source_info = (
-                            getattr(mdf.groups[group].channel_group, "acq_source", None)
-                            or f"stacked"
-                        )
+                        cg = mdf.groups[group].channel_group
                         dg_cntr = stacked.append(
-                            signals, source_info, common_timebase=True
+                            signals,
+                            acq_name=getattr(cg, "acq_name", None),
+                            acq_source=getattr(cg, "acq_source", None),
+                            comment="stacked",
+                            common_timebase=True,
                         )
-                        stacked.groups[dg_cntr].channel_group.comment = mdf.groups[
-                            group
-                        ].channel_group.comment
                     else:
                         master = signals[0][0]
                         if sync:
@@ -2132,7 +2119,7 @@ class MDF:
                 invalidation_bits=None
                 unit=""
                 conversion=None
-                source=SignalSource(name='Python', path='Python', comment='', source_type=4, bus_type=0)
+                source=Source(name='Python', path='Python', comment='', source_type=4, bus_type=0)
                 comment=""
                 mastermeta="('time', 1)"
                 raw=True
@@ -2145,7 +2132,7 @@ class MDF:
                 invalidation_bits=None
                 unit=""
                 conversion=None
-                source=SignalSource(name='Python', path='Python', comment='', source_type=4, bus_type=0)
+                source=Source(name='Python', path='Python', comment='', source_type=4, bus_type=0)
                 comment=""
                 mastermeta="('time', 1)"
                 raw=True
@@ -2160,7 +2147,7 @@ class MDF:
                 invalidation_bits=None
                 unit=""
                 conversion=None
-                source=SignalSource(name='Python', path='Python', comment='', source_type=4, bus_type=0)
+                source=Source(name='Python', path='Python', comment='', source_type=4, bus_type=0)
                 comment=""
                 mastermeta="('time', 1)"
                 raw=True
@@ -2172,7 +2159,7 @@ class MDF:
                 invalidation_bits=None
                 unit=""
                 conversion=None
-                source=SignalSource(name='Python', path='Python', comment='', source_type=4, bus_type=0)
+                source=Source(name='Python', path='Python', comment='', source_type=4, bus_type=0)
                 comment=""
                 mastermeta="('time', 1)"
                 raw=True
@@ -2187,7 +2174,7 @@ class MDF:
                 invalidation_bits=None
                 unit=""
                 conversion=None
-                source=SignalSource(name='Python', path='Python', comment='', source_type=4, bus_type=0)
+                source=Source(name='Python', path='Python', comment='', source_type=4, bus_type=0)
                 comment=""
                 mastermeta="('time', 1)"
                 raw=True
@@ -2199,7 +2186,7 @@ class MDF:
                 invalidation_bits=None
                 unit=""
                 conversion=None
-                source=SignalSource(name='Python', path='Python', comment='', source_type=4, bus_type=0)
+                source=Source(name='Python', path='Python', comment='', source_type=4, bus_type=0)
                 comment=""
                 mastermeta="('time', 1)"
                 raw=True
@@ -2214,7 +2201,7 @@ class MDF:
                 invalidation_bits=None
                 unit=""
                 conversion=None
-                source=SignalSource(name='Python', path='Python', comment='', source_type=4, bus_type=0)
+                source=Source(name='Python', path='Python', comment='', source_type=4, bus_type=0)
                 comment=""
                 mastermeta="('time', 1)"
                 raw=True
@@ -2226,7 +2213,7 @@ class MDF:
                 invalidation_bits=None
                 unit=""
                 conversion=None
-                source=SignalSource(name='Python', path='Python', comment='', source_type=4, bus_type=0)
+                source=Source(name='Python', path='Python', comment='', source_type=4, bus_type=0)
                 comment=""
                 mastermeta="('time', 1)"
                 raw=True
@@ -2292,14 +2279,14 @@ class MDF:
                     if len(sig):
                         sig.timestamps = new_raster
 
-            source_info = (
-                getattr(self.groups[group_index].channel_group, "acq_source", None)
-                or f"resampled to {raster}"
+            cg = self.groups[group_index].channel_group
+            dg_cntr = mdf.append(
+                sigs,
+                acq_name=getattr(cg, "acq_name", None),
+                acq_source=getattr(cg, "acq_source", None),
+                comment=f"resampled to {raster}",
+                common_timebase=True,
             )
-            dg_cntr = mdf.append(sigs, source_info, common_timebase=True)
-            mdf.groups[dg_cntr].channel_group.comment = self.groups[
-                group_index
-            ].channel_group.comment
 
             if self._callback:
                 self._callback(i + 1, groups_nr)
@@ -3842,13 +3829,10 @@ class MDF:
 
                                     cg_nr = out.append(
                                         sigs,
-                                        f"from CAN{bus} message ID=0x{msg_id:X}",
+                                        acq_name=f"from CAN{bus} message ID=0x{msg_id:X}",
+                                        comment=f"{message} 0x{msg_id:X}",
                                         common_timebase=True,
                                     )
-
-                                    out.groups[
-                                        cg_nr
-                                    ].channel_group.comment = f"{message} 0x{msg_id:X}"
 
                                     if ignore_invalid_signals:
                                         max_flags.append([False])
@@ -4000,12 +3984,6 @@ class MDF:
                 self._yield_selected_signals(virtual_group, version=version)
             ):
                 if idx == 0:
-                    source_info = (
-                        getattr(
-                            self.groups[virtual_group].channel_group, "acq_source", None
-                        )
-                        or f"Time stamps cleaned up and converted from {self.version} to {version}"
-                    )
                     if sigs:
 
                         t = sigs[0].timestamps
@@ -4023,10 +4001,14 @@ class MDF:
                                             sig.invalidation_bits = (
                                                 sig.invalidation_bits[idx]
                                             )
-                        cg_nr = out.append(sigs, source_info, common_timebase=True)
-                        out.groups[cg_nr].channel_group.comment = self.groups[
-                            virtual_group
-                        ].channel_group.comment
+                        cg = self.groups[virtual_group].channel_group
+                        cg_nr = out.append(
+                            sigs,
+                            acq_name=getattr(cg, "acq_name", None),
+                            acq_source=getattr(cg, "acq_source", None),
+                            comment=f"Timestamps cleaned up and converted from {self.version} to {version}",
+                            common_timebase=True,
+                        )
                     else:
                         break
                 else:
