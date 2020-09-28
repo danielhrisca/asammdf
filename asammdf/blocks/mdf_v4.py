@@ -8213,7 +8213,10 @@ class MDF4(object):
         if is_file_like(dst):
             dst_ = dst
             file_like = True
-            dst = Path("__file_like.mf4")
+            if hasattr(dst, 'name'):
+                dst = Path(dst.name)
+            else:
+                dst = Path("__file_like.mf4")
             dst_.seek(0)
         else:
             file_like = False
@@ -8992,10 +8995,15 @@ class MDF4(object):
             if not file_like:
                 dst_.close()
 
+        print('>>>', self.name, dst)
+
         if dst == self.name:
             self.close()
-            Path.unlink(self.name)
-            Path.rename(destination, self.name)
+            try:
+                Path.unlink(self.name)
+                Path.rename(destination, self.name)
+            except:
+                pass
 
             self.groups.clear()
             self.header = None

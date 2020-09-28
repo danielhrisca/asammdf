@@ -631,7 +631,7 @@ class PlotSignal(Signal):
                         pos_max = np.nanargmax(samples_)
                         pos_min = np.nanargmin(samples_)
 
-                        pos = sorted((pos_min, pos_max))
+                        pos = [pos_min, pos_max] if pos_min < pos_max else [pos_max, pos_min]
 
                         samples_ = signal_samples[stop_2:stop_][pos]
                         timestamps_ = sig.timestamps[stop_2:stop_][pos]

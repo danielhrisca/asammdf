@@ -1693,6 +1693,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "empty_channels": self.empty_channels_mat.currentText(),
                 "mat_format": self.mat_format.currentText(),
                 "oned_as": self.oned_as.currentText(),
+                "raw": self.raw_mat.checkState() == QtCore.Qt.Checked,
             }
 
         else:
@@ -1710,6 +1711,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "empty_channels": self.empty_channels.currentText(),
                 "mat_format": None,
                 "oned_as": None,
+                "raw": self.raw.checkState() == QtCore.Qt.Checked,
             }
 
         options.update(new)
@@ -2100,6 +2102,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "compression": opts.compression,
                 "time_as_date": opts.time_as_date,
                 "ignore_value2text_conversions": self.ignore_value2text_conversions,
+                "raw": opts.raw,
             }
 
             result = run_thread_with_progress(
