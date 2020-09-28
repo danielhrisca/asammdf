@@ -12,7 +12,7 @@ __all__ = ["conversion_transfer", "from_dict"]
 
 
 def conversion_transfer(conversion, version=3):
-    """ convert between mdf4 and mdf3 channel conversions
+    """convert between mdf4 and mdf3 channel conversions
 
     Parameters
     ----------

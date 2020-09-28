@@ -4,10 +4,8 @@ ASAM MDF version 4 file format module
 
 import bisect
 from collections import defaultdict
-from copy import deepcopy
 from functools import lru_cache
 from hashlib import md5
-from itertools import chain
 import logging
 from math import ceil
 import mmap
@@ -16,17 +14,14 @@ from pathlib import Path
 import shutil
 import sys
 from tempfile import gettempdir, TemporaryFile
-from time import perf_counter
 from traceback import format_exc
-import xml.etree.ElementTree as ET
-from zlib import compress, decompress
+from zlib import decompress
 
 import canmatrix
 from lz4.frame import compress as lz_compress
 from lz4.frame import decompress as lz_decompress
 from numpy import (
     arange,
-    argwhere,
     array,
     array_equal,
     column_stack,
@@ -34,7 +29,6 @@ from numpy import (
     cumsum,
     dtype,
     empty,
-    flip,
     fliplr,
     float32,
     float64,
@@ -43,16 +37,13 @@ from numpy import (
     linspace,
     nonzero,
     packbits,
-    roll,
     searchsorted,
     transpose,
     uint8,
     uint16,
     uint32,
     uint64,
-    union1d,
     unique,
-    unpackbits,
     where,
     zeros,
 )
@@ -79,20 +70,14 @@ from .utils import (
     fmt_to_datatype_v4,
     get_fmt_v4,
     Group,
-    info_to_datatype_v4,
     InvalidationBlockInfo,
     is_file_like,
     load_can_database,
     MdfException,
-    sanitize_xml,
     SignalDataBlockInfo,
-    UINT8_u,
     UINT8_uf,
-    UINT16_u,
     UINT16_uf,
-    UINT32_u,
     UINT32_uf,
-    UINT64_u,
     UINT64_uf,
     UniqueDB,
     validate_version_argument,
@@ -134,7 +119,7 @@ __all__ = ["MDF4"]
 
 
 try:
-    from .cutils import extract, sort_data_block, lengths, get_vlsd_offsets
+    from .cutils import extract, get_vlsd_offsets, lengths, sort_data_block
 
     # for now avoid usign the cextension code
 except:
@@ -221,7 +206,7 @@ except:
         return [len(item) for item in iterable]
 
     def get_vlsd_offsets(data):
-        offsets = [0,] + [len(item) for item in data]
+        offsets = [0] + [len(item) for item in data]
         offsets = cumsum(offsets)
         return offsets[:-1], offsets[-1]
 
@@ -985,7 +970,7 @@ class MDF4(object):
     def _load_signal_data(
         self, address=None, stream=None, group=None, index=None, offset=0, count=None
     ):
-        """ this method is used to get the channel signal data, usually for
+        """this method is used to get the channel signal data, usually for
         VLSD channels
 
         Parameters
@@ -1483,7 +1468,7 @@ class MDF4(object):
                     yield b"", offset, 0, None
 
     def _prepare_record(self, group):
-        """ compute record dtype and parents dict fro this group
+        """compute record dtype and parents dict fro this group
 
         Parameters
         ----------
@@ -2370,7 +2355,7 @@ class MDF4(object):
         return info, uses_ld
 
     def get_invalidation_bits(self, group_index, channel, fragment):
-        """ get invalidation indexes for the channel
+        """get invalidation indexes for the channel
 
         Parameters
         ----------
@@ -2430,7 +2415,7 @@ class MDF4(object):
         integer_interpolation=None,
         copy_on_get=None,
     ):
-        """ configure MDF parameters
+        """configure MDF parameters
 
         Parameters
         ----------
@@ -3312,7 +3297,7 @@ class MDF4(object):
                 count = ceil(len(samples) / chunk)
 
                 for i in range(count):
-                    data_ = samples[i*chunk: (i+1) *chunk].tobytes()
+                    data_ = samples[i * chunk : (i + 1) * chunk].tobytes()
                     raw_size = len(data_)
                     data_ = lz_compress(data_)
 
@@ -4552,7 +4537,7 @@ class MDF4(object):
                 ch.source = si_map[source]
             else:
                 new_source = SourceInformation(
-                    source_type=source.source_type, bus_type=source.bus_type,
+                    source_type=source.source_type, bus_type=source.bus_type
                 )
                 new_source.name = source.name
                 new_source.path = source.path
@@ -4969,7 +4954,7 @@ class MDF4(object):
                 ch.source = si_map[source]
             else:
                 new_source = SourceInformation(
-                    source_type=source.source_type, bus_type=source.bus_type,
+                    source_type=source.source_type, bus_type=source.bus_type
                 )
                 new_source.name = source.name
                 new_source.path = source.path
@@ -5667,7 +5652,7 @@ class MDF4(object):
         mime=r"application/octet-stream",
         embedded=True,
     ):
-        """ attach embedded attachment as application/octet-stream
+        """attach embedded attachment as application/octet-stream
 
         Parameters
         ----------
@@ -5743,7 +5728,7 @@ class MDF4(object):
             return index
 
     def close(self):
-        """ if the MDF was created with memory=False and new
+        """if the MDF was created with memory=False and new
         channels have been appended, then this must be called just before the
         object is not used anymore to clean-up the temporary file"""
 
@@ -5781,7 +5766,7 @@ class MDF4(object):
         self.virtual_groups.clear()
 
     def extract_attachment(self, address=None, index=None):
-        """ extract attachment data by original address or by index. If it is an embedded attachment,
+        """extract attachment data by original address or by index. If it is an embedded attachment,
         then this method creates the new file according to the attachment file
         name information
 
@@ -6211,7 +6196,7 @@ class MDF4(object):
                 channel_values.append(fromstring(bts, types)["vals"].copy())
 
                 if master_is_required:
-                    timestamps.append(self.get_master(gp_nr, fragment, one_piece=True,))
+                    timestamps.append(self.get_master(gp_nr, fragment, one_piece=True))
                 if channel_invalidation_present:
                     invalidation_bits.append(
                         self.get_invalidation_bits(gp_nr, channel, fragment)
@@ -6258,7 +6243,7 @@ class MDF4(object):
 
             if count > 1:
                 out = empty(shape, dtype=channel_values[0].dtype)
-                vals = concatenate(channel_values, out=out,)
+                vals = concatenate(channel_values, out=out)
             else:
                 vals = channel_values[0]
         else:
@@ -6308,8 +6293,8 @@ class MDF4(object):
             t = arange(timestamps[0], timestamps[-1], raster)
 
             vals = Signal(
-                vals, timestamps, name="_", invalidation_bits=invalidation_bits,
-            ).interp(t, interpolation_mode=self._integer_interpolation,)
+                vals, timestamps, name="_", invalidation_bits=invalidation_bits
+            ).interp(t, interpolation_mode=self._integer_interpolation)
 
             vals, timestamps, invalidation_bits = (
                 vals.samples,
@@ -6442,7 +6427,7 @@ class MDF4(object):
 
                             else:
                                 try:
-                                    (ref_dg_nr, ref_ch_nr,) = ca_block.axis_channels[i]
+                                    (ref_dg_nr, ref_ch_nr) = ca_block.axis_channels[i]
                                 except:
                                     debug_channel(self, grp, channel, dependency_list)
                                     raise
@@ -6609,8 +6594,8 @@ class MDF4(object):
             t = arange(timestamps[0], timestamps[-1], raster)
 
             vals = Signal(
-                vals, timestamps, name="_", invalidation_bits=invalidation_bits,
-            ).interp(t, interpolation_mode=self._integer_interpolation,)
+                vals, timestamps, name="_", invalidation_bits=invalidation_bits
+            ).interp(t, interpolation_mode=self._integer_interpolation)
 
             vals, timestamps, invalidation_bits = (
                 vals.samples,
@@ -6751,8 +6736,8 @@ class MDF4(object):
                     t = arange(timestamps[0], timestamps[-1], raster)
 
                 vals = Signal(
-                    vals, timestamps, name="_", invalidation_bits=invalidation_bits,
-                ).interp(t, interpolation_mode=self._integer_interpolation,)
+                    vals, timestamps, name="_", invalidation_bits=invalidation_bits
+                ).interp(t, interpolation_mode=self._integer_interpolation)
 
                 vals, timestamps, invalidation_bits = (
                     vals.samples,
@@ -6767,7 +6752,6 @@ class MDF4(object):
 
                 fragment = data[0]
                 data_bytes, record_start, record_count, invalidation_bytes = fragment
-
 
                 try:
                     parent, bit_offset = parents[ch_nr]
@@ -7039,8 +7023,8 @@ class MDF4(object):
                     t = arange(timestamps[0], timestamps[-1], raster)
 
                 vals = Signal(
-                    vals, timestamps, name="_", invalidation_bits=invalidation_bits,
-                ).interp(t, interpolation_mode=self._integer_interpolation,)
+                    vals, timestamps, name="_", invalidation_bits=invalidation_bits
+                ).interp(t, interpolation_mode=self._integer_interpolation)
 
                 vals, timestamps, invalidation_bits = (
                     vals.samples,
@@ -7051,9 +7035,8 @@ class MDF4(object):
         if channel_type == v4c.CHANNEL_TYPE_VLSD:
             count_ = len(vals)
 
-
             signal_data, with_bounds = self._load_signal_data(
-                group=grp, index=ch_nr, offset=record_start, count=count_,
+                group=grp, index=ch_nr, offset=record_start, count=count_
             )
 
             if signal_data:
@@ -7291,7 +7274,7 @@ class MDF4(object):
 
             else:
                 vals = column_stack(
-                    [vals, zeros(len(vals), dtype=f"<({extra_bytes},)u1"),]
+                    [vals, zeros(len(vals), dtype=f"<({extra_bytes},)u1")]
                 )
                 try:
                     vals = vals.view(f"<u{std_size}").ravel()
@@ -7330,7 +7313,7 @@ class MDF4(object):
             return vals
 
     def included_channels(
-        self, index=None, channels=None, skip_master=True, minimal=True,
+        self, index=None, channels=None, skip_master=True, minimal=True
     ):
 
         if channels is None:
@@ -7523,13 +7506,13 @@ class MDF4(object):
             grp.read_split_count = count
             data_streams.append(
                 self._load_data(
-                    grp, record_offset=record_offset, record_count=record_count,
+                    grp, record_offset=record_offset, record_count=record_count
                 )
             )
             if group_index == index:
                 master_index = idx
 
-        encodings = {group_index: [None,] for groups_index in groups}
+        encodings = {group_index: [None] for groups_index in groups}
 
         self._set_temporary_master(None)
         idx = 0
@@ -7609,7 +7592,7 @@ class MDF4(object):
                                             .view(sig.samples.dtype)
                                         )
                                         sig.samples = encode(
-                                            decode(sig.samples, "utf-16-be"), "latin-1",
+                                            decode(sig.samples, "utf-16-be"), "latin-1"
                                         )
                                     else:
                                         sig.samples = encode(
@@ -7660,7 +7643,7 @@ class MDF4(object):
         record_count=None,
         one_piece=False,
     ):
-        """ returns master channel samples for given group
+        """returns master channel samples for given group
 
         Parameters
         ----------
@@ -7888,9 +7871,15 @@ class MDF4(object):
         return timestamps
 
     def get_can_signal(
-        self, name, database=None, db=None, ignore_invalidation_bits=False, data=None, raw=False
+        self,
+        name,
+        database=None,
+        db=None,
+        ignore_invalidation_bits=False,
+        data=None,
+        raw=False,
     ):
-        """ get CAN message signal. You can specify an external CAN database (
+        """get CAN message signal. You can specify an external CAN database (
         *database* argument) or canmatrix databse object that has already been
         loaded from a file (*db* argument).
 
@@ -8107,7 +8096,7 @@ class MDF4(object):
             ps = (can_ids.samples >> 8) & 0xFF
             pf = (can_ids.samples >> 16) & 0xFF
             _pgn = pf << 8
-            _pgn = where(pf >= 240, _pgn + ps, _pgn,)
+            _pgn = where(pf >= 240, _pgn + ps, _pgn)
 
             idx = nonzero(_pgn == message.arbitration_id.pgn)[0]
         else:
@@ -9680,7 +9669,7 @@ class MDF4(object):
 
                 msg_ids = (
                     self.get(
-                        "CAN_DataFrame.ID", group=group_index, data=fragment,
+                        "CAN_DataFrame.ID", group=group_index, data=fragment
                     ).astype("<u4")
                     & 0x1FFFFFFF
                 )
@@ -9689,7 +9678,7 @@ class MDF4(object):
                     ps = (msg_ids.samples >> 8) & 0xFF
                     pf = (msg_ids.samples >> 16) & 0xFF
                     _pgn = pf << 8
-                    msg_ids.samples = where(pf >= 240, _pgn + ps, _pgn,)
+                    msg_ids.samples = where(pf >= 240, _pgn + ps, _pgn)
 
                 data_bytes = self.get(
                     "CAN_DataFrame.DataBytes",

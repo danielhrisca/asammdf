@@ -108,5 +108,5 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
             info.extend(wrap(f"{i:> 2}: {name}", 120))
 
         QtWidgets.QMessageBox.information(
-            self, "Measurement files used for comparison", "\n".join(info),
+            self, "Measurement files used for comparison", "\n".join(info)
         )

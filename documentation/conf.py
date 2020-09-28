@@ -152,7 +152,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "asammdf.tex", "asammdf Documentation", "Daniel Hrisca", "manual"),
+    (master_doc, "asammdf.tex", "asammdf Documentation", "Daniel Hrisca", "manual")
 ]
 
 
@@ -177,7 +177,7 @@ texinfo_documents = [
         "asammdf",
         "One line description of project.",
         "Miscellaneous",
-    ),
+    )
 ]
 
 

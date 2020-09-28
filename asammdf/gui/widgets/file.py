@@ -5,17 +5,13 @@ import json
 import os
 from pathlib import Path
 from tempfile import gettempdir
-from time import perf_counter
-from traceback import format_exc
 
 from natsort import natsorted
-import numpy as np
-import pandas as pd
 import psutil
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
 
-from ...blocks.utils import csv_bytearray2hex, extract_cncomment_xml, MdfException
+from ...blocks.utils import extract_cncomment_xml
 from ...blocks.v4_constants import FLAG_AT_TO_STRING, FLAG_CG_BUS_EVENT
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ..dialogs.advanced_search import AdvancedSearch
@@ -25,8 +21,6 @@ from ..ui import resource_rc as resource_rc
 from ..ui.file_widget import Ui_file_widget
 from ..utils import (
     add_children,
-    compute_signal,
-    get_required_signals,
     HelperChannel,
     load_dsp,
     load_lab,
@@ -38,7 +32,6 @@ from .attachment import Attachment
 from .mdi_area import MdiAreaWidget, WithMDIArea
 from .numeric import Numeric
 from .plot import Plot
-from .tree import TreeWidget
 from .tree_item import TreeItem
 
 
@@ -97,7 +90,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             extension = file_name.suffix.lower().strip(".")
             progress.setLabelText(f"Converting from {extension} to mdf")
 
-            from mfile import ERG, BSIG
+            from mfile import BSIG, ERG
 
             if file_name.suffix.lower() == ".erg":
                 cls = ERG
@@ -642,7 +635,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             widget = self.filter_tree
             view = self.filter_view
         dlg = AdvancedSearch(
-            self.mdf.channels_db, show_add_window=show_add_window, parent=self,
+            self.mdf.channels_db, show_add_window=show_add_window, parent=self
         )
         dlg.setModal(True)
         dlg.exec_()
@@ -656,7 +649,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     "New pattern based tabular window",
                 ]
                 ret, ok = QtWidgets.QInputDialog.getItem(
-                    None, "Select pattern based window type", "Type:", options, 0, False,
+                    None, "Select pattern based window type", "Type:", options, 0, False
                 )
                 if ok:
                     index = options.index(ret)
@@ -666,10 +659,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             {
                                 "type": "Plot",
                                 "title": result["pattern"],
-                                "configuration": {
-                                    "channels": [],
-                                    "pattern": result,
-                                }
+                                "configuration": {"channels": [], "pattern": result},
                             }
                         )
                     elif index == 1:
@@ -677,10 +667,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             {
                                 "type": "Numeric",
                                 "title": result["pattern"],
-                                "configuration": {
-                                    "channels": [],
-                                    "pattern": result,
-                                }
+                                "configuration": {"channels": [], "pattern": result},
                             }
                         )
                     elif index == 2:
@@ -695,7 +682,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                     "time_as_date": False,
                                     "sorted": False,
                                     "filtered": False,
-                                }
+                                },
                             }
                         )
 
@@ -771,12 +758,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         "New tabular window",
                     ] + [mdi.windowTitle() for mdi in self.mdi_area.subWindowList()]
                     ret, ok = QtWidgets.QInputDialog.getItem(
-                        None, "Select window type", "Type:", options, 0, False,
+                        None, "Select window type", "Type:", options, 0, False
                     )
                     if ok:
                         index = options.index(ret)
                         signals = [
-                            (None, *self.mdf.whereis(name)[0], self.uuid) for name in names
+                            (None, *self.mdf.whereis(name)[0], self.uuid)
+                            for name in names
                         ]
 
                         if index == 0:
@@ -1085,12 +1073,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         for i, group in enumerate(self.mdf.groups):
             cycles_nr = group.channel_group.cycles_nr
             if cycles_nr:
-                master_min = self.mdf.get_master(i, record_offset=0, record_count=1,)
+                master_min = self.mdf.get_master(i, record_offset=0, record_count=1)
                 if len(master_min):
                     t_min.append(master_min[0])
                 self.mdf._master_channel_cache.clear()
                 master_max = self.mdf.get_master(
-                    i, record_offset=cycles_nr - 1, record_count=1,
+                    i, record_offset=cycles_nr - 1, record_count=1
                 )
                 if len(master_max):
                     t_max.append(master_max[0])
@@ -1246,7 +1234,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         kwargs = {"name": self.file_name, "callback": self.update_progress}
 
         mdf = run_thread_with_progress(
-            self, target=target, kwargs=kwargs, factor=100, offset=0, progress=progress,
+            self, target=target, kwargs=kwargs, factor=100, offset=0, progress=progress
         )
 
         if mdf is TERMINATED:
@@ -2115,7 +2103,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             progress.cancel()
 
     def raster_search(self, event):
-        dlg = AdvancedSearch(self.mdf.channels_db, show_add_window=False, show_pattern=False, parent=self,)
+        dlg = AdvancedSearch(
+            self.mdf.channels_db, show_add_window=False, show_pattern=False, parent=self
+        )
         dlg.setModal(True)
         dlg.exec_()
         result = dlg.result

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from PyQt5 import QtCore, QtWidgets, uic
+from PyQt5 import QtCore, QtWidgets
 
 from ..ui import resource_rc as resource_rc
 from ..ui.search_widget import Ui_SearchWidget

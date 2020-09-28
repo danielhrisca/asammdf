@@ -45,10 +45,10 @@ class TestATBLOCK(unittest.TestCase):
 
     def test_bytes(self):
 
-        block = TextBlock(text=self.plain_text, meta=False,)
+        block = TextBlock(text=self.plain_text, meta=False)
         self.assertEqual(bytes(block), self.plain_bytes)
 
-        block = TextBlock(text=self.meta_text, meta=True,)
+        block = TextBlock(text=self.meta_text, meta=True)
         self.assertEqual(bytes(block), self.meta_bytes)
 
 

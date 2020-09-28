@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from time import perf_counter
-
 import numpy as np
 import pandas as pd
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -87,7 +85,7 @@ class ChannelGroupInfoWidget(Ui_ChannelGroupInfo, QtWidgets.QWidget):
         data = b"".join(
             e[0]
             for e in self.mdf._load_data(
-                self.group, record_offset=record_offset, record_count=record_count,
+                self.group, record_offset=record_offset, record_count=record_count
             )
         )
 
