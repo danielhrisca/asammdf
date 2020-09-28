@@ -1111,7 +1111,7 @@ class MDF3(object):
             *DataFrame* object. All bytes columns in the pandas *DataFrame*
             must be *latin-1* encoded
         acq_name : str
-            channel group aqcuisition name
+            channel group acquisition name
         acq_source : asammdf.source_utils.Source
             channel group acquisition source
         comment : str

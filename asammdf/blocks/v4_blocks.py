@@ -19,7 +19,6 @@ import numpy as np
 
 from . import v4_constants as v4c
 from ..version import __version__
-from .source_utils import Source
 from .utils import (
     block_fields,
     FLOAT64_u,
