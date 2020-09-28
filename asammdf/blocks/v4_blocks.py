@@ -1950,13 +1950,6 @@ class ChannelGroup:
             )
         return result
 
-    def _get_append_kwargs(self):
-        return {
-            "acq_name": self.acq_name,
-            "acq_source": Source.from_source(self.acq_source),
-            "comment": self.comment,
-        }
-
     def metadata(self):
         keys = (
             "id",

@@ -2463,8 +2463,8 @@ class MDF4(object):
     def append(
         self,
         signals,
-        acq_name="",
-        acq_source="",
+        acq_name=None,
+        acq_source=None,
         comment="Python",
         common_timebase=False,
         units=None,
@@ -2483,7 +2483,7 @@ class MDF4(object):
             must be *utf-8* encoded
         acq_name : str
             channel group aqcuisition name
-        acq_source : str | asammdf.source_utils.Source
+        acq_source : asammdf.source_utils.Source
             channel group acquisition source
         comment : str
             channel group comment; default 'Python'
@@ -2523,11 +2523,11 @@ class MDF4(object):
         >>> mdf2.append(df, units=units)
 
         """
-        if isinstance(acq_source, str):
-            source_block = SourceInformation()
-            source_block.name = source_block.path = acq_source
-        else:
-            source_block = SourceInformation.from_common_source(acq_source)
+        source_block = (
+            SourceInformation.from_common_source(acq_source)
+            if acq_source
+            else acq_source
+        )
 
         if isinstance(signals, Signal):
             signals = [signals]

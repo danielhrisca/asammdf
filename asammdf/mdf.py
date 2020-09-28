@@ -420,14 +420,14 @@ class MDF:
             ):
                 if idx == 0:
                     if sigs:
-                        if version in MDF4_VERSIONS:
-                            cg = self.groups[virtual_group].channel_group
-                            kwargs = cg._get_append_kwargs()
-                        else:
-                            kwargs = {}
-                        comment = f"Converted from {self.version} to {version}"
-                        kwargs["comment"] = comment
-                        cg_nr = out.append(sigs, common_timebase=True, **kwargs)
+                        cg = self.groups[virtual_group].channel_group
+                        cg_nr = out.append(
+                            sigs,
+                            acq_name=getattr(cg, "acq_name", None),
+                            acq_source=getattr(cg, "acq_source", None),
+                            comment=f"Converted from {self.version} to {version}",
+                            common_timebase=True,
+                        )
                     else:
                         break
                 else:
@@ -658,9 +658,13 @@ class MDF:
                     else:
                         stop_ = "end of measurement"
                     cg = self.groups[group_index].channel_group
-                    kwargs = cg._get_append_kwargs()
-                    kwargs["comment"] = f"Cut from {start_} to {stop_}"
-                    cg_nr = out.append(signals, common_timebase=True, **kwargs)
+                    cg_nr = out.append(
+                        signals,
+                        acq_name=getattr(cg, "acq_name", None),
+                        acq_source=getattr(cg, "acq_source", None),
+                        comment=f"Cut from {start_} to {stop_}",
+                        common_timebase=True,
+                    )
 
                 else:
                     sigs = [(sig.samples, sig.invalidation_bits) for sig in signals]
@@ -687,9 +691,13 @@ class MDF:
                 else:
                     stop_ = "end of measurement"
                 cg = self.groups[group_index].channel_group
-                kwargs = cg._get_append_kwargs()
-                kwargs["comment"] = f"Cut from {start_} to {stop_}"
-                out.append(signals, common_timebase=True, **kwargs)
+                out.append(
+                    signals,
+                    acq_name=getattr(cg, "acq_name", None),
+                    acq_source=getattr(cg, "acq_source", None),
+                    comment=f"Cut from {start_} to {stop_}",
+                    common_timebase=True,
+                )
 
             if self._callback:
                 self._callback(i + 1, groups_nr)
@@ -1429,9 +1437,13 @@ class MDF:
 
                     if sigs:
                         cg = self.groups[group_index].channel_group
-                        kwargs = cg._get_append_kwargs()
-                        kwargs["comment"] = f"Signals filtered from <{origin}>"
-                        cg_nr = mdf.append(sigs, common_timebase=True, **kwargs)
+                        cg_nr = mdf.append(
+                            sigs,
+                            acq_name=getattr(cg, "acq_name", None),
+                            acq_source=getattr(cg, "acq_source", None),
+                            comment=f"Signals filtered from <{origin}>",
+                            common_timebase=True,
+                        )
                     else:
                         break
 
@@ -1712,9 +1724,13 @@ class MDF:
                             )
 
                         cg = mdf.groups[group_index].channel_group
-                        kwargs = cg._get_append_kwargs()
-                        kwargs["comment"] = "concatenated"
-                        cg_nr = merged.append(signals, common_timebase=True, **kwargs)
+                        cg_nr = merged.append(
+                            signals,
+                            acq_name=getattr(cg, "acq_name", None),
+                            acq_source=getattr(cg, "acq_source", None),
+                            comment="concatenated",
+                            common_timebase=True,
+                        )
                         cg_map[group_index] = cg_nr
 
                     else:
@@ -1898,10 +1914,12 @@ class MDF:
                             for sig in signals:
                                 sig.timestamps = timestamps
                         cg = mdf.groups[group].channel_group
-                        kwargs = cg._get_append_kwargs()
-                        kwargs["comment"] = "stacked"
                         dg_cntr = stacked.append(
-                            signals, common_timebase=True, **kwargs
+                            signals,
+                            acq_name=getattr(cg, "acq_name", None),
+                            acq_source=getattr(cg, "acq_source", None),
+                            comment="stacked",
+                            common_timebase=True,
                         )
                     else:
                         master = signals[0][0]
@@ -2262,9 +2280,13 @@ class MDF:
                         sig.timestamps = new_raster
 
             cg = self.groups[group_index].channel_group
-            kwargs = cg._get_append_kwargs()
-            kwargs["comment"] = f"resampled to {raster}"
-            dg_cntr = mdf.append(sigs, common_timebase=True, **kwargs)
+            dg_cntr = mdf.append(
+                sigs,
+                acq_name=getattr(cg, "acq_name", None),
+                acq_source=getattr(cg, "acq_source", None),
+                comment=f"resampled to {raster}",
+                common_timebase=True,
+            )
 
             if self._callback:
                 self._callback(i + 1, groups_nr)
@@ -3980,11 +4002,13 @@ class MDF:
                                                 sig.invalidation_bits[idx]
                                             )
                         cg = self.groups[virtual_group].channel_group
-                        kwargs = cg._get_append_kwargs()
-                        kwargs[
-                            "comment"
-                        ] = f"Timestamps cleaned up and converted from {self.version} to {version}"
-                        cg_nr = out.append(sigs, common_timebase=True, **kwargs)
+                        cg_nr = out.append(
+                            sigs,
+                            acq_name=getattr(cg, "acq_name", None),
+                            acq_source=getattr(cg, "acq_source", None),
+                            comment=f"Timestamps cleaned up and converted from {self.version} to {version}",
+                            common_timebase=True,
+                        )
                     else:
                         break
                 else:

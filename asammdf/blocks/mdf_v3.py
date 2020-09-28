@@ -1090,7 +1090,15 @@ class MDF3(object):
 
             group.trigger = trigger
 
-    def append(self, signals, comment="Python", common_timebase=False, units=None):
+    def append(
+        self,
+        signals,
+        acq_name=None,
+        acq_source=None,
+        comment="Python",
+        common_timebase=False,
+        units=None,
+    ):
         """Appends a new data group.
 
         For channel dependencies type Signals, the *samples* attribute must be
@@ -1102,6 +1110,10 @@ class MDF3(object):
             list of *Signal* objects, or a single *Signal* object, or a pandas
             *DataFrame* object. All bytes columns in the pandas *DataFrame*
             must be *latin-1* encoded
+        acq_name : str
+            channel group aqcuisition name
+        acq_source : asammdf.source_utils.Source
+            channel group acquisition source
         comment : str
             channel group comment; default 'Python'
         common_timebase : bool
