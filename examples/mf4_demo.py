@@ -1,5 +1,6 @@
-from asammdf import MDF, Signal
 import numpy as np
+
+from asammdf import MDF, Signal
 
 cycles = 100
 sigs = []
@@ -20,10 +21,7 @@ sig = Signal(
 sigs.append(sig)
 
 # linear
-conversion = {
-    "a": 2,
-    "b": -0.5,
-}
+conversion = {"a": 2, "b": -0.5}
 sig = Signal(
     np.ones(cycles, dtype=np.int64),
     t,
@@ -36,9 +34,7 @@ sigs.append(sig)
 
 
 # algebraic
-conversion = {
-    "formula": "2 * sin(X)",
-}
+conversion = {"formula": "2 * sin(X)"}
 sig = Signal(
     np.arange(cycles, dtype=np.int32) / 100.0,
     t,
@@ -50,14 +46,7 @@ sig = Signal(
 sigs.append(sig)
 
 # rational
-conversion = {
-    "P1": 0,
-    "P2": 4,
-    "P3": -0.5,
-    "P4": 0,
-    "P5": 0,
-    "P6": 1,
-}
+conversion = {"P1": 0, "P2": 4, "P3": -0.5, "P4": 0, "P5": 0, "P6": 1}
 sig = Signal(
     np.ones(cycles, dtype=np.int64),
     t,
@@ -81,7 +70,7 @@ sigs.append(sig)
 
 # byte array
 ones = np.ones(cycles, dtype=np.dtype("(8,)u1"))
-sig = Signal(ones * 111, t, name="Channel_bytearay", comment="Byte array channel",)
+sig = Signal(ones * 111, t, name="Channel_bytearay", comment="Byte array channel")
 sigs.append(sig)
 
 # tabular
@@ -146,7 +135,7 @@ sig = Signal(
 sigs.append(sig)
 
 
-mdf.append(sigs, "single dimensional channels", common_timebase=True)
+mdf.append(sigs, comment="single dimensional channels", common_timebase=True)
 
 
 sigs = []
@@ -174,13 +163,9 @@ sig = Signal(
 sigs.append(sig)
 
 # lookup tabel with default axis
-samples = [
-    np.ones((cycles, 2, 3), dtype=np.uint64) * 4,
-]
+samples = [np.ones((cycles, 2, 3), dtype=np.uint64) * 4]
 
-types = [
-    ("Channel_lookup_with_default_axis", "(2, 3)<u8"),
-]
+types = [("Channel_lookup_with_default_axis", "(2, 3)<u8")]
 
 sig = Signal(
     np.core.records.fromarrays(samples, dtype=np.dtype(types)),
@@ -260,27 +245,20 @@ l2_arr = [
     l3_arr,
 ]
 
-types = [
-    ("level21", l3_arr.dtype),
-    ("level22", l3_arr.dtype),
-]
+types = [("level21", l3_arr.dtype), ("level22", l3_arr.dtype)]
 
 l2_arr = np.core.records.fromarrays(l2_arr, dtype=types)
 
 
-l1_arr = [
-    l2_arr,
-]
+l1_arr = [l2_arr]
 
-types = [
-    ("level11", l2_arr.dtype),
-]
+types = [("level11", l2_arr.dtype)]
 
 l1_arr = np.core.records.fromarrays(l1_arr, dtype=types)
 
 
-sigs.append(Signal(l1_arr, t, name="Nested_structures",))
+sigs.append(Signal(l1_arr, t, name="Nested_structures"))
 
-mdf.append(sigs, "arrays", common_timebase=True)
+mdf.append(sigs, comment="arrays", common_timebase=True)
 
 mdf.save("demo.mf4", overwrite=True)

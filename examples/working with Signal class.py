@@ -2,9 +2,9 @@
 """
 *asammdf* Signal usage example
 """
-from asammdf import Signal
 import numpy as np
 
+from asammdf import Signal
 
 # create 3 Signal objects with different time stamps
 

@@ -2,16 +2,22 @@
 import re
 
 from natsort import natsorted
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtCore, QtWidgets
 
-from .range_editor import RangeEditor
 from ..ui import resource_rc as resource_rc
 from ..ui.search_dialog import Ui_SearchDialog
+from .range_editor import RangeEditor
 
 
 class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
     def __init__(
-        self, channels_db, return_names=False, show_add_window=False, show_pattern=True, *args, **kwargs
+        self,
+        channels_db,
+        return_names=False,
+        show_add_window=False,
+        show_pattern=True,
+        *args,
+        **kwargs,
     ):
 
         super().__init__(*args, **kwargs)
@@ -96,10 +102,10 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.result = {
             "pattern": self.pattern.text().strip(),
             "match_type": self.pattern_match_type.currentText(),
-            'filter_type': self.filter_type.currentText(),
-            'filter_value': self.filter_value.value(),
-            'raw': self.raw.checkState() == QtCore.Qt.Checked,
-            'ranges': self.ranges,
+            "filter_type": self.filter_type.currentText(),
+            "filter_value": self.filter_value.value(),
+            "raw": self.raw.checkState() == QtCore.Qt.Checked,
+            "ranges": self.ranges,
         }
 
         self.pattern_window = True
@@ -132,4 +138,3 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         dlg.exec_()
         if dlg.pressed_button == "apply":
             self.ranges = dlg.result
-

@@ -150,7 +150,7 @@ def extract_signal(signal, payload, raw=False, ignore_value2text_conversion=True
                 conv[f"lower_{i}"] = val
                 conv[f"text_{i}"] = text
 
-            conv['default'] = from_dict({'a': a, 'b': b})
+            conv["default"] = from_dict({"a": a, "b": b})
 
             conv = from_dict(conv)
             vals = conv.convert(vals)
@@ -182,7 +182,7 @@ def extract_mux(
     include_message_name=False,
     ignore_value2text_conversion=True,
 ):
-    """ extract multiplexed CAN signals from the raw payload
+    """extract multiplexed CAN signals from the raw payload
 
     Parameters
     ----------

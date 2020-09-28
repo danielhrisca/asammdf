@@ -4,7 +4,6 @@ from functools import partial, reduce
 import logging
 import os
 from pathlib import Path
-from struct import unpack
 from time import perf_counter
 
 import numpy as np
@@ -1068,7 +1067,7 @@ class Plot(QtWidgets.QWidget):
 
             if self.info.isVisible():
                 self.info.hide()
-                self.splitter.setSizes((ch_size, plt_size + info_size, 0,))
+                self.splitter.setSizes((ch_size, plt_size + info_size, 0))
 
             else:
 
@@ -1392,7 +1391,7 @@ class Plot(QtWidgets.QWidget):
             channel["color"] = sig.color
             channel["computed"] = sig.computed
             ranges = [
-                {"start": start, "stop": stop, "color": color,}
+                {"start": start, "stop": stop, "color": color}
                 for (start, stop), color in item.ranges.items()
             ]
             channel["ranges"] = ranges
@@ -2425,7 +2424,7 @@ class _Plot(pg.PlotWidget):
         needs_timebase_compute = False
 
         indexes = sorted(
-            [(self.signal_by_uuid(uuid)[1], uuid) for uuid in deleted], reverse=True,
+            [(self.signal_by_uuid(uuid)[1], uuid) for uuid in deleted], reverse=True
         )
 
         for i, uuid in indexes:

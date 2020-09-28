@@ -2,9 +2,9 @@
 """
 *asammdf* MDF usage example
 """
-from asammdf import MDF, Signal
 import numpy as np
 
+from asammdf import MDF, Signal
 
 # create 3 Signal objects
 
@@ -38,7 +38,7 @@ with MDF(version="4.10") as mdf4:
 
     # append the 3 signals to the new file
     signals = [s_uint8, s_int32, s_float64]
-    mdf4.append(signals, "Created by Python")
+    mdf4.append(signals, comment="Created by Python")
 
     # save new file
     mdf4.save("my_new_file.mf4", overwrite=True)

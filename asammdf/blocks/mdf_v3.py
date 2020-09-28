@@ -3,7 +3,6 @@
 
 from collections import defaultdict
 from copy import deepcopy
-from functools import reduce
 from itertools import product
 import logging
 from math import ceil
@@ -21,19 +20,13 @@ from numpy import (
     column_stack,
     concatenate,
     dtype,
-    flip,
     float32,
     float64,
     frombuffer,
     linspace,
-    packbits,
-    roll,
     searchsorted,
-    uint8,
     uint16,
-    union1d,
     unique,
-    unpackbits,
     zeros,
 )
 from numpy.core.defchararray import decode, encode
@@ -384,7 +377,7 @@ class MDF3(object):
             yield b"", 0, _count
 
     def _prepare_record(self, group):
-        """ compute record dtype and parents dict for this group
+        """compute record dtype and parents dict for this group
 
         Parameters
         ----------
@@ -626,7 +619,7 @@ class MDF3(object):
 
             else:
                 vals = column_stack(
-                    [vals, zeros(len(vals), dtype=f"<({extra_bytes},)u1"),]
+                    [vals, zeros(len(vals), dtype=f"<({extra_bytes},)u1")]
                 )
                 try:
                     vals = vals.view(f"<u{std_size}").ravel()
@@ -885,7 +878,7 @@ class MDF3(object):
                     # check if it has channel dependencies
                     if new_ch.component_addr:
                         dep = ChannelDependency(
-                            address=new_ch.component_addr, stream=stream,
+                            address=new_ch.component_addr, stream=stream
                         )
                         grp.channel_dependencies.append(dep)
                     else:
@@ -975,7 +968,7 @@ class MDF3(object):
         integer_interpolation=None,
         copy_on_get=None,
     ):
-        """ configure MDF parameters
+        """configure MDF parameters
 
         Parameters
         ----------
@@ -1021,7 +1014,7 @@ class MDF3(object):
             self.copy_on_get = copy_on_get
 
     def add_trigger(self, group, timestamp, pre_time=0, post_time=0, comment=""):
-        """ add trigger to data group
+        """add trigger to data group
 
         Parameters
         ----------
@@ -1098,7 +1091,13 @@ class MDF3(object):
             group.trigger = trigger
 
     def append(
-        self, signals, acquisition_info="Python", common_timebase=False, units=None
+        self,
+        signals,
+        acq_name=None,
+        acq_source=None,
+        comment="Python",
+        common_timebase=False,
+        units=None,
     ):
         """Appends a new data group.
 
@@ -1111,8 +1110,12 @@ class MDF3(object):
             list of *Signal* objects, or a single *Signal* object, or a pandas
             *DataFrame* object. All bytes columns in the pandas *DataFrame*
             must be *latin-1* encoded
-        acquisition_info : str
-            acquisition information; default 'Python'
+        acq_name : str
+            channel group acquisition name
+        acq_source : asammdf.source_utils.Source
+            channel group acquisition source
+        comment : str
+            channel group comment; default 'Python'
         common_timebase : bool
             flag to hint that the signals have the same timebase. Only set this
             if you know for sure that all appended channels share the same
@@ -1136,28 +1139,23 @@ class MDF3(object):
         >>> s2 = Signal(samples=s2, timestamps=t, unit='-', name='Negative')
         >>> s3 = Signal(samples=s3, timestamps=t, unit='flts', name='Floats')
         >>> mdf = MDF3('new.mdf')
-        >>> mdf.append([s1, s2, s3], 'created by asammdf v1.1.0')
+        >>> mdf.append([s1, s2, s3], comment='created by asammdf v1.1.0')
         >>> # case 2: VTAB conversions from channels inside another file
         >>> mdf1 = MDF3('in.mdf')
         >>> ch1 = mdf1.get("Channel1_VTAB")
         >>> ch2 = mdf1.get("Channel2_VTABR")
         >>> sigs = [ch1, ch2]
         >>> mdf2 = MDF3('out.mdf')
-        >>> mdf2.append(sigs, 'created by asammdf v1.1.0')
+        >>> mdf2.append(sigs, comment='created by asammdf v1.1.0')
         >>> df = pd.DataFrame.from_dict({'s1': np.array([1, 2, 3, 4, 5]), 's2': np.array([-1, -2, -3, -4, -5])})
         >>> units = {'s1': 'V', 's2': 'A'}
         >>> mdf2.append(df, units=units)
 
         """
-        if not isinstance(acquisition_info, str):
-            if not isinstance(acquisition_info, Source):
-                acquisition_info = Source.from_source(acquisition_info)
-            acquisition_info = acquisition_info.name
-
         if isinstance(signals, Signal):
             signals = [signals]
         elif isinstance(signals, DataFrame):
-            self._append_dataframe(signals, acquisition_info, units=units)
+            self._append_dataframe(signals, comment=comment, units=units)
             return
 
         version = self.version
@@ -1955,7 +1953,7 @@ class MDF3(object):
         else:
             kargs["block_len"] = v23c.CG_PRE_330_BLOCK_SIZE
         gp.channel_group = ChannelGroup(**kargs)
-        gp.channel_group.comment = acquisition_info
+        gp.channel_group.comment = comment
 
         # data group
         if self.version >= "3.20":
@@ -2012,16 +2010,10 @@ class MDF3(object):
 
         return dg_cntr
 
-    def _append_dataframe(self, df, acquisition_info="", units=None):
+    def _append_dataframe(self, df, comment="", units=None):
         """
         Appends a new data group from a Pandas data frame.
         """
-
-        if not isinstance(acquisition_info, str):
-            if not isinstance(acquisition_info, Source):
-                acquisition_info = Source.from_source(acquisition_info)
-            acquisition_info = acquisition_info.name
-
         units = units or {}
 
         t = df.index
@@ -2203,7 +2195,7 @@ class MDF3(object):
         else:
             kargs["block_len"] = v23c.CG_PRE_330_BLOCK_SIZE
         gp.channel_group = ChannelGroup(**kargs)
-        gp.channel_group.comment = source_info
+        gp.channel_group.comment = comment
 
         # data group
         if self.version >= "3.20":
@@ -2258,7 +2250,7 @@ class MDF3(object):
         gp.trigger = None
 
     def close(self):
-        """ if the MDF was created with memory='minimum' and new
+        """if the MDF was created with memory='minimum' and new
         channels have been appended, then this must be called just before the
         object is not used anymore to clean-up the temporary file
 
@@ -2308,7 +2300,7 @@ class MDF3(object):
         >>> s2 = Signal(samples=s2, timestamps=t, unit='-', name='Negative')
         >>> s3 = Signal(samples=s3, timestamps=t, unit='flts', name='Floats')
         >>> mdf = MDF3('new.mdf')
-        >>> mdf.append([s1, s2, s3], 'created by asammdf v1.1.0')
+        >>> mdf.append([s1, s2, s3], comment='created by asammdf v1.1.0')
         >>> t = np.array([0.006, 0.007, 0.008, 0.009, 0.010])
         >>> mdf2.extend(0, [(t, None), (s1.samples, None), (s2.samples, None), (s3.samples, None)])
 
@@ -3063,7 +3055,7 @@ class MDF3(object):
         record_count=None,
         one_piece=False,
     ):
-        """ returns master channel samples for given group
+        """returns master channel samples for given group
 
         Parameters
         ----------
@@ -3230,7 +3222,7 @@ class MDF3(object):
         return timestamps.copy()
 
     def iter_get_triggers(self):
-        """ generator that yields triggers
+        """generator that yields triggers
 
         Returns
         -------
@@ -3642,7 +3634,7 @@ class MDF3(object):
                 group.sorted = True
 
     def included_channels(
-        self, index=None, channels=None, skip_master=True, minimal=True,
+        self, index=None, channels=None, skip_master=True, minimal=True
     ):
 
         if channels is None:
@@ -3742,7 +3734,7 @@ class MDF3(object):
 
         for idx, fragment in enumerate(
             self._load_data(
-                group, record_offset=record_offset, record_count=record_count,
+                group, record_offset=record_offset, record_count=record_count
             )
         ):
 
@@ -3806,11 +3798,11 @@ class MDF3(object):
                                         .view(sig.samples.dtype)
                                     )
                                     sig.samples = encode(
-                                        decode(sig.samples, "utf-16-be"), "latin-1",
+                                        decode(sig.samples, "utf-16-be"), "latin-1"
                                     )
                                 else:
                                     sig.samples = encode(
-                                        decode(sig.samples, sig.encoding), "latin-1",
+                                        decode(sig.samples, sig.encoding), "latin-1"
                                     )
                         else:
                             encodings.append(None)

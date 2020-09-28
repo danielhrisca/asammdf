@@ -2,17 +2,13 @@
 from pathlib import Path
 
 import psutil
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5 import QtCore, QtWidgets
 
-from ...blocks.utils import extract_cncomment_xml, MdfException
 from ...mdf import MDF, SUPPORTED_VERSIONS
-from ...signal import Signal
 from ..ui import resource_rc as resource_rc
 from ..ui.batch_widget import Ui_batch_widget
 from ..utils import run_thread_with_progress, setup_progress, TERMINATED
 from .list import MinimalListWidget
-from .tree import TreeWidget
-from .tree_item import TreeItem
 
 
 class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):

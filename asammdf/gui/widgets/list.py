@@ -200,7 +200,7 @@ class ListWidget(QtWidgets.QListWidget):
 
         if action.text() == "Copy name (Ctrl+C)":
             event = QtGui.QKeyEvent(
-                QtCore.QEvent.KeyPress, QtCore.Qt.Key_C, QtCore.Qt.ControlModifier,
+                QtCore.QEvent.KeyPress, QtCore.Qt.Key_C, QtCore.Qt.ControlModifier
             )
             self.itemWidget(item).keyPressEvent(event)
 
@@ -261,7 +261,7 @@ class ListWidget(QtWidgets.QListWidget):
         elif action.text() == "Set unit":
             selected_items = self.selectedItems()
 
-            unit, ok = QtWidgets.QInputDialog.getText(None, "Set new unit", "Unit:",)
+            unit, ok = QtWidgets.QInputDialog.getText(None, "Set new unit", "Unit:")
 
             if ok:
 
@@ -277,7 +277,7 @@ class ListWidget(QtWidgets.QListWidget):
             selected_items = self.selectedItems()
 
             precision, ok = QtWidgets.QInputDialog.getInt(
-                None, "Set new precision (float decimals)", "Precision:",
+                None, "Set new precision (float decimals)", "Precision:"
             )
 
             if ok and 0 <= precision <= 15:
@@ -298,12 +298,12 @@ class ListWidget(QtWidgets.QListWidget):
 
                 if action.text() == "Relative time base shift":
                     offset, ok = QtWidgets.QInputDialog.getDouble(
-                        self, "Relative offset [s]", "Offset [s]:",
+                        self, "Relative offset [s]", "Offset [s]:"
                     )
                     absolute = False
                 else:
                     offset, ok = QtWidgets.QInputDialog.getDouble(
-                        self, "Absolute time start offset [s]", "Offset [s]:",
+                        self, "Absolute time start offset [s]", "Offset [s]:"
                     )
                     absolute = True
                 if ok:
@@ -315,11 +315,11 @@ class ListWidget(QtWidgets.QListWidget):
                         if item in selected_items:
 
                             uuids.append(widget.uuid)
-                    self.set_time_offset.emit([absolute, offset,] + uuids)
+                    self.set_time_offset.emit([absolute, offset] + uuids)
 
         elif action.text() == "Delete (Del)":
             event = QtGui.QKeyEvent(
-                QtCore.QEvent.KeyPress, QtCore.Qt.Key_Delete, QtCore.Qt.NoModifier,
+                QtCore.QEvent.KeyPress, QtCore.Qt.Key_Delete, QtCore.Qt.NoModifier
             )
             self.keyPressEvent(event)
 
@@ -405,16 +405,16 @@ class MinimalListWidget(QtWidgets.QListWidget):
 
         if action.text() == "Delete (Del)":
             event = QtGui.QKeyEvent(
-                QtCore.QEvent.KeyPress, QtCore.Qt.Key_Delete, QtCore.Qt.NoModifier,
+                QtCore.QEvent.KeyPress, QtCore.Qt.Key_Delete, QtCore.Qt.NoModifier
             )
             self.keyPressEvent(event)
         elif action.text() == "Copy names (Ctrl+C)":
             event = QtGui.QKeyEvent(
-                QtCore.QEvent.KeyPress, QtCore.Qt.Key_C, QtCore.Qt.ControlModifier,
+                QtCore.QEvent.KeyPress, QtCore.Qt.Key_C, QtCore.Qt.ControlModifier
             )
             self.keyPressEvent(event)
         elif action.text() == "Paste names (Ctrl+V)":
             event = QtGui.QKeyEvent(
-                QtCore.QEvent.KeyPress, QtCore.Qt.Key_V, QtCore.Qt.ControlModifier,
+                QtCore.QEvent.KeyPress, QtCore.Qt.Key_V, QtCore.Qt.ControlModifier
             )
             self.keyPressEvent(event)

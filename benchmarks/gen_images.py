@@ -7,7 +7,7 @@ import numpy as np
 
 
 def generate_graphs(result, topic, aspect, for_doc=False):
-    """ genrate graphs from result file
+    """genrate graphs from result file
 
     Parameters
     ----------

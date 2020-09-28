@@ -217,7 +217,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
                     if f"{column_name}__as__bytes" not in df.columns:
                         df[f"{column_name}__as__bytes"] = pd.Series(
-                            [bytes(s) for s in df[column_name]], index=df.index,
+                            [bytes(s) for s in df[column_name]], index=df.index
                         )
                     val = bytes.fromhex(target)
 
@@ -364,7 +364,9 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             "filters": [
                 self.filters.itemWidget(self.filters.item(i)).to_config()
                 for i in range(count)
-            ] if not self.pattern else [],
+            ]
+            if not self.pattern
+            else [],
             "time_as_date": self.time_as_date.checkState() == QtCore.Qt.Checked,
             "pattern": self.pattern,
         }
