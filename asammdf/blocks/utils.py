@@ -1127,10 +1127,8 @@ def components(
             else:
                 axis_name = unique_names.get_unique_name(name)
             if len(values.shape) > 1:
-                arr = [values]
-                types = [("", values.dtype, values.shape[1:])]
                 values = Series(
-                    fromarrays(arr, dtype=types),
+                    list(values),
                     index=master,
                 )
                 del arr

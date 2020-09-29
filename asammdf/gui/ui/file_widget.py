@@ -200,6 +200,7 @@ class Ui_file_widget(object):
         self.raster_channel = QtWidgets.QComboBox(self.resample_group)
         self.raster_channel.setEnabled(False)
         self.raster_channel.setInsertPolicy(QtWidgets.QComboBox.InsertAtBottom)
+        self.raster_channel.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon)
         self.raster_channel.setObjectName("raster_channel")
         self.gridLayout_21.addWidget(self.raster_channel, 2, 1, 1, 1)
         self.raster_search_btn = QtWidgets.QPushButton(self.resample_group)
@@ -505,7 +506,7 @@ class Ui_file_widget(object):
         self.verticalLayout.addWidget(self.aspects)
 
         self.retranslateUi(file_widget)
-        self.aspects.setCurrentIndex(1)
+        self.aspects.setCurrentIndex(0)
         self.output_options.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(file_widget)
 

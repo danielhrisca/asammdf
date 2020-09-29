@@ -737,6 +737,9 @@
               <property name="insertPolicy">
                <enum>QComboBox::InsertAtBottom</enum>
               </property>
+              <property name="sizeAdjustPolicy">
+               <enum>QComboBox::AdjustToMinimumContentsLengthWithIcon</enum>
+              </property>
              </widget>
             </item>
            </layout>

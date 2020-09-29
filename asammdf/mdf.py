@@ -1420,7 +1420,7 @@ class MDF:
         mdf.header.start_time = self.header.start_time
 
         if self.name:
-            origin = self.name.parent
+            origin = self.name.name
         else:
             origin = "New MDF"
 

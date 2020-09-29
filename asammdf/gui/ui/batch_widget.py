@@ -341,6 +341,7 @@ class Ui_batch_widget(object):
         self.raster_channel = QtWidgets.QComboBox(self.resample_tab)
         self.raster_channel.setEnabled(False)
         self.raster_channel.setInsertPolicy(QtWidgets.QComboBox.InsertAtBottom)
+        self.raster_channel.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon)
         self.raster_channel.setObjectName("raster_channel")
         self.verticalLayout_2.addWidget(self.raster_channel)
         self.gridLayout_4.addLayout(self.verticalLayout_2, 0, 1, 1, 1)

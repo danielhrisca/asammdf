@@ -8998,8 +8998,6 @@ class MDF4(object):
             if not file_like:
                 dst_.close()
 
-        print('>>>', self.name, dst)
-
         if dst == self.name:
             self.close()
             try:
