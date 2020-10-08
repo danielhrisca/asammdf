@@ -194,6 +194,8 @@ class AttachmentBlock:
 
         except KeyError:
 
+            self.address = 0
+
             file_name = Path(kwargs.get("file_name", None) or "bin.bin")
 
             data = kwargs["data"]

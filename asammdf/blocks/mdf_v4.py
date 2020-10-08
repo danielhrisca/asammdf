@@ -5725,6 +5725,7 @@ class MDF4(object):
             index = v4c.MAX_UINT64 - 1
             while index in self._attachments_map:
                 index -= 1
+            at_block.address = index
             self.attachments.append(at_block)
 
             suffix = Path(file_name).suffix.lower().strip(".")
