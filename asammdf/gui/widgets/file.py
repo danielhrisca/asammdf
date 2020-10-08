@@ -206,7 +206,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.mdf_compression.insertItems(
             0, ("no compression", "deflate", "transposed deflate")
         )
-        self.mdf_split_size.setValue(10)
+        self.mdf_split_size.setValue(4)
 
         self.extract_can_format.insertItems(0, SUPPORTED_VERSIONS)
         index = self.extract_can_format.findText(self.mdf.version)

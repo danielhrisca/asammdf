@@ -8585,7 +8585,9 @@ class MDF4(object):
             at_map = {}
             if self.attachments:
                 for at_block in self.attachments:
+                    index = self._attachments_map[at_block.address]
                     address = at_block.to_blocks(address, blocks, defined_texts)
+                    self._attachments_map[address] = index
 
                 for i in range(len(self.attachments) - 1):
                     at_block = self.attachments[i]

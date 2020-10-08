@@ -39,6 +39,8 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.cancel_pattern_btn.clicked.connect(self._cancel_pattern)
         self.define_ranges_btn.clicked.connect(self._define_ranges)
 
+        self.search_box.setFocus()
+
         self._return_names = return_names
         self.ranges = {}
 

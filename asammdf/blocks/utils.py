@@ -1131,7 +1131,6 @@ def components(
                     list(values),
                     index=master,
                 )
-                del arr
             else:
                 values = Series(
                     values,
