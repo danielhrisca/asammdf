@@ -2510,34 +2510,6 @@ class MDF:
 
         return signals
 
-    def whereis(self, channel):
-        """get ocurrences of channel name in the file
-
-        Parameters
-        ----------
-        channel : str
-            channel name string
-
-        Returns
-        -------
-        ocurrences : tuple
-
-
-        Examples
-        --------
-        >>> mdf = MDF(file_name)
-        >>> mdf.whereis('VehicleSpeed') # "VehicleSpeed" exists in the file
-        ((1, 2), (2, 4))
-        >>> mdf.whereis('VehicleSPD') # "VehicleSPD" doesn't exist in the file
-        ()
-
-        """
-
-        if channel in self:
-            return tuple(self.channels_db[channel])
-        else:
-            return tuple()
-
     @staticmethod
     def scramble(name, skip_attachments=False, **kwargs):
         """scramble text blocks and keep original file structure
