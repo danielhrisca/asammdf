@@ -650,6 +650,13 @@ class PlotSignal(Signal):
 
     def value_at_timestamp(self, stamp):
         cut = self.cut(stamp, stamp)
+
+        if len(self.timestamps) and self.timestamps[-1] < stamp:
+            cut.samples = self.samples[-1:]
+            cut.phys_samples = self.phys_samples[-1:]
+            cut.raw_samples = self.raw_samples[-1:]
+            cut.timestamps = self.timestamps[-1:]
+
         if self.mode == "raw":
             values = cut.raw_samples
         else:
