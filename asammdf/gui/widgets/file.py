@@ -1386,7 +1386,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         single_time_base = self.single_time_base_can.checkState() == QtCore.Qt.Checked
         time_from_zero = self.time_from_zero_can.checkState() == QtCore.Qt.Checked
         empty_channels = self.empty_channels_can.currentText()
-        raster = self.export_raster.value()
+        raster = self.export_raster_can.value()
         time_as_date = self.can_time_as_date.checkState() == QtCore.Qt.Checked
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(

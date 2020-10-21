@@ -260,14 +260,14 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         if (
             self.op.currentIndex() < 0
             or not self.target.text().strip()
-            or not self.pattern.text().strip()
+            or not self.pattern_match.text().strip()
         ):
             self.match.setText("invalid input values")
             return
 
         operator = self.op.currentText()
 
-        pattern = self.pattern.text().strip().replace("*", "_WILDCARD_")
+        pattern = self.pattern_match.text().strip().replace("*", "_WILDCARD_")
         pattern = re.escape(pattern)
         pattern = pattern.replace("_WILDCARD_", ".*")
 
@@ -320,14 +320,14 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         if (
             self.op.currentIndex() < 0
             or not self.target.text().strip()
-            or not self.pattern.text().strip()
+            or not self.pattern_match.text().strip()
         ):
             self.match.setText("invalid input values")
             return
 
         operator = self.op.currentText()
 
-        pattern = self.pattern.text().strip().replace("*", "_WILDCARD_")
+        pattern = self.pattern_match.text().strip().replace("*", "_WILDCARD_")
         pattern = re.escape(pattern)
         pattern = pattern.replace("_WILDCARD_", ".*")
 

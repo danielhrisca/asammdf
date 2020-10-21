@@ -88,6 +88,8 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                 name = name.rsplit(".", 1)[0]
                 prefixes.add(f"{name}.")
 
+        self.filters.minimal_menu = True
+
         self.prefix.insertItems(0, sorted(prefixes))
         self.prefix.setEnabled(False)
 

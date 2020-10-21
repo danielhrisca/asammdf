@@ -136,7 +136,7 @@
     </widget>
    </item>
    <item row="4" column="0" colspan="9">
-    <widget class="ListWidget" name="filters"/>
+    <widget class="MinimalListWidget" name="filters"/>
    </item>
    <item row="5" column="0" colspan="9">
     <widget class="QGroupBox" name="groupBox">
@@ -205,7 +205,7 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>ListWidget</class>
+   <class>MinimalListWidget</class>
    <extends>QListWidget</extends>
    <header>asammdf/gui/widgets/list.h</header>
   </customwidget>

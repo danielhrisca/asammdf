@@ -41,7 +41,8 @@ class ListWidget(QtWidgets.QListWidget):
             deleted = []
             for item in selected_items:
                 row = self.row(item)
-                deleted.append(self.itemWidget(item).uuid)
+                item_widget = self.itemWidget(item)
+                deleted.append(getattr(item_widget, "uuid", None))
                 self.takeItem(row)
             if deleted:
                 self.itemsDeleted.emit(deleted)
@@ -356,6 +357,8 @@ class MinimalListWidget(QtWidgets.QListWidget):
         self.setAcceptDrops(True)
         self.show()
 
+        self.minimal_menu = False
+
     def keyPressEvent(self, event):
         key = event.key()
         modifiers = event.modifiers()
@@ -387,16 +390,22 @@ class MinimalListWidget(QtWidgets.QListWidget):
             super().keyPressEvent(event)
 
     def open_menu(self, position):
+        menu = QtWidgets.QMenu()
 
-        if self.count() == 0:
-            menu = QtWidgets.QMenu()
-            menu.addAction(self.tr("Paste names (Ctrl+V)"))
+        if self.minimal_menu:
+            if self.count() > 0:
+                menu.addAction(self.tr("Delete (Del)"))
+            else:
+                return
         else:
-            menu = QtWidgets.QMenu()
-            menu.addAction(self.tr("Copy names (Ctrl+C)"))
-            menu.addAction(self.tr("Paste names (Ctrl+V)"))
-            menu.addSeparator()
-            menu.addAction(self.tr("Delete (Del)"))
+            if self.count() == 0:
+                menu.addAction(self.tr("Paste names (Ctrl+V)"))
+            else:
+                menu = QtWidgets.QMenu()
+                menu.addAction(self.tr("Copy names (Ctrl+C)"))
+                menu.addAction(self.tr("Paste names (Ctrl+V)"))
+                menu.addSeparator()
+                menu.addAction(self.tr("Delete (Del)"))
 
         action = menu.exec_(self.viewport().mapToGlobal(position))
 
