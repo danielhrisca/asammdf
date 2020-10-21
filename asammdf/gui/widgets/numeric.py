@@ -33,6 +33,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         self._min = self._max = 0
         self.format = "phys"
         self.add_new_channels(signals)
+        self.pattern = {}
 
         self.timestamp.valueChanged.connect(self._timestamp_changed)
         self.timestamp_slider.valueChanged.connect(self._timestamp_slider_changed)
@@ -249,7 +250,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         config = {
             "format": self.format,
-            "channels": channels,
+            "channels": channels if not self.pattern else [],
+            "pattern": self.pattern,
         }
 
         return config
@@ -258,14 +260,14 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         if (
             self.op.currentIndex() < 0
             or not self.target.text().strip()
-            or not self.pattern.text().strip()
+            or not self.pattern_match.text().strip()
         ):
-            self.match.setText(f"invalid input values")
+            self.match.setText("invalid input values")
             return
 
         operator = self.op.currentText()
 
-        pattern = self.pattern.text().strip().replace("*", "_WILDCARD_")
+        pattern = self.pattern_match.text().strip().replace("*", "_WILDCARD_")
         pattern = re.escape(pattern)
         pattern = pattern.replace("_WILDCARD_", ".*")
 
@@ -273,13 +275,13 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         matches = [name for name in self.signals if pattern.match(name)]
 
         if not matches:
-            self.match.setText(f"the pattern does not match any channel name")
+            self.match.setText("the pattern does not match any channel name")
             return
 
         try:
             target = float(self.target.text().strip())
         except:
-            self.match.setText(f"the target must a numeric value")
+            self.match.setText("the target must a numeric value")
         else:
 
             if target.is_integer():
@@ -312,20 +314,20 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                 self.timestamp.setValue(timestamp)
                 self.match.setText(f"condition found for {signal_name}")
             else:
-                self.match.setText(f"condition not found")
+                self.match.setText("condition not found")
 
     def search_backward(self):
         if (
             self.op.currentIndex() < 0
             or not self.target.text().strip()
-            or not self.pattern.text().strip()
+            or not self.pattern_match.text().strip()
         ):
-            self.match.setText(f"invalid input values")
+            self.match.setText("invalid input values")
             return
 
         operator = self.op.currentText()
 
-        pattern = self.pattern.text().strip().replace("*", "_WILDCARD_")
+        pattern = self.pattern_match.text().strip().replace("*", "_WILDCARD_")
         pattern = re.escape(pattern)
         pattern = pattern.replace("_WILDCARD_", ".*")
 
@@ -333,7 +335,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         matches = [name for name in self.signals if pattern.match(name)]
 
         if not matches:
-            self.match.setText(f"the pattern does not match any channel name")
+            self.match.setText("the pattern does not match any channel name")
             return
 
         try:

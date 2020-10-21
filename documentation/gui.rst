@@ -42,9 +42,9 @@ Menu
 
 File
 ----
-The first menu command is *Open*. Depending on the mode this allows to open files indivisually or for batch processing.
+The first menu command is *Open*. Depending on the mode this allows to open files individually or for batch processing.
 
-The second menu command is *Open folder*. If this is selected then, starting with the selected root folder, all subfolders are 
+The second menu command is *Open folder*. If this is selected then, starting with the selected root folder, all sub-folders are 
 searched recursively for MDF files. 
 
 Once a file has been opened, the user can load or save a display configuration using the *Open configuration* and *Save configuration* 
@@ -54,7 +54,7 @@ menu items.
 Mode
 ----
 
-* *Single files* : files are opened idividually
+* *Single files* : files are opened individually
 * *Batch processing* : allows processing multiple files 
 * *Comparison* : show channels from all the opened files
 
@@ -89,10 +89,10 @@ The following settings are available
 * **Plot X axis**: select how the X axis will be displayed
 
       * ``seconds`` 
-	  * ``time`` : values will be formated as hours, minutes and seconds
+	  * ``time`` : values will be formatted as hours, minutes and seconds
       * ``date`` : the values will use the measurement start datetime
       
-* **Theme**: switch application theme (dark theme requires `qdarkstyle` package)
+* **Theme**: switch application theme
 
       * ``Dark``
       * ``Light``
@@ -106,7 +106,7 @@ Plot
 There are several keyboard shortcuts for handling the plots:
 
 ============ ====================== ================================================================================================================
-Shortcut     Action                 Desctiption
+Shortcut     Action                 Description
 ============ ====================== ================================================================================================================
 C            Cursor                 Displays a movable cursor that will trigger the display of the current value for all plot channels
 F            Fit                    Y-axis fit all active channels on the screen, keeping the current X-axis range
@@ -114,11 +114,12 @@ G            Grid                   Toggle grid lines
 H            Home                   XY-axis fit all active channels
 I            Zoom-in                X-axis zoom-in [1]_
 O            Zoom-out               X-axis zoom-out [1]_
+X            Zoom to range          If the region is enabled, it will zoom to it
 M            Statistics             Toggle the display of the statistic panel
 R            Range                  Display a movable range that will trigger the display of the delta values for all plot channels [2]_
 S            Stack                  Y Stack all active channels so that they don't overlap, keeping the X-axis range
 Y            Lock/unlock region     Lock or unlock the left margin of the region
-.            Toggle dots            toogle the display of signal samples (using dots affects performance)
+.            Toggle dots            Toggle the display of signal samples (using dots affects performance)
 ←            Move cursor left       Moves the cursor to the next sample on the left
 →            Move cursor right      Moves the cursor to the next sample on the right
 Ins          Insert computation     Insert new channel in the plot using functions and operations
@@ -166,7 +167,7 @@ Layout elements
 1. Opened files tabs
 ^^^^^^^^^^^^^^^^^^^^
 In the single files mode, you can open multiple files in parallel. The tab names have the title set to the short file name, and the complete file path can be seen as 
-the tab tooltip.
+the tab tool-tip.
 
 There is no restriction, so the same file can be opened several times.
 
@@ -200,13 +201,16 @@ From left to right the buttons have the following functionality
 
       * the dialog can use wildcard and regex patterns
       * multiple channels can be selected, and thus checked in the channels tree
+      * in the "Pattern based window" tab the user can define a pattern that will be used to filter out the channels from the 
+        measurement file, and as a second filtering step some condition can be used based on the channels values. This information
+        will be saved in the window configuration. The pattern based windows can be easily recognized by the title bar icon
      
     .. image:: images/advanced_search.png
  
 * **Add window**: generates a new window (Numeric, Plot or Tabular) based on the current checked channels from the channels tree. 
   If sub-plots are disabled in the settings then the current window is replaced by the new plot. 
   If sub-plots are enabled then a new sub-plot will be added, and the already existing sub-plots will not be affected. 
-  Tthe same channel can be used in multiple sub-plots.
+  The same channel can be used in multiple sub-plots.
 
 
 5. Plot/Sub-plots area
@@ -221,7 +225,7 @@ The time stamps can be selected using the spin box or the slider.
 
 7. Plot window
 ^^^^^^^^^^^^^^
-Plot windows are used to grphically display the channel samples.
+Plot windows are used to graphically display the channel samples.
 `pyqtgraph` is used for the plots; to get the best performance consider the following tips
 
 * limit the number of channels: plotting hundreds of channels can get really slow
@@ -300,7 +304,7 @@ The sub-plots can be tiled as a grid, vertically or horizontally
 
 Drag & Drop
 -----------
-Channels can be draged and dropped between sub-plots for easier configuration.
+Channels can be dragged and dropped between sub-plots for easier configuration.
 
 .. image:: images/drag_and_drop.gif
 

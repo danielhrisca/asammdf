@@ -3,7 +3,7 @@
 classes that implement the blocks for MDF version 4
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from hashlib import md5
 import logging
 from pathlib import Path
@@ -27,8 +27,6 @@ from .utils import (
     MdfException,
     sanitize_xml,
     UINT8_uf,
-    UINT32_u,
-    UINT32_uf,
     UINT64_u,
     UINT64_uf,
 )
@@ -196,6 +194,8 @@ class AttachmentBlock:
 
         except KeyError:
 
+            self.address = 0
+
             file_name = Path(kwargs.get("file_name", None) or "bin.bin")
 
             data = kwargs["data"]
@@ -216,7 +216,7 @@ class AttachmentBlock:
 
             else:
                 self.file_name = str(file_name)
-                self.file_name.write_bytes(data)
+                file_name.write_bytes(data)
                 embedded_size = 0
                 data = b""
 
@@ -330,7 +330,7 @@ class AttachmentBlock:
 
 
 class Channel:
-    """ If the `load_metadata` keyword argument is not provided or is False,
+    """If the `load_metadata` keyword argument is not provided or is False,
     then the conversion, source and display name information is not processed.
     Further more if the `parse_xml_comment` is not provided or is False, then
     the display name information from the channel comment is not processed (this
@@ -951,7 +951,7 @@ class Channel:
                     try:
                         CNcomment = ET.fromstring(comment)
                         display_name_element = CNcomment.find(".//names/display")
-                        if display_name is not None:
+                        if display_name_element is not None:
                             display_name_element.text = display_name or ""
                         else:
 
@@ -1622,7 +1622,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
             keys += tuple(f"cycle_count_{i}" for i in range(data_links_nr))
 
         fmt = "<4sI{}Q2BHIiI{}Q{}d{}Q".format(
-            self.links_nr + 2, dims_nr, sum(dim_sizes), data_links_nr,
+            self.links_nr + 2, dims_nr, sum(dim_sizes), data_links_nr
         )
 
         result = pack(fmt, *[getattr(self, key) for key in keys])
@@ -1707,7 +1707,7 @@ class ChannelGroup:
             mapped = kwargs.get("mapped", False) or not is_file_like(stream)
 
             if mapped:
-                (self.id, self.reserved0, self.block_len, self.links_nr,) = COMMON_uf(
+                (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(
                     stream, address
                 )
 
@@ -2498,7 +2498,7 @@ class ChannelConversion(_ChannelConversionBase):
 
             if conv_type == v4c.CONVERSION_TYPE_ALG:
                 self.formula = get_text_v4(
-                    self.formula_addr, stream, mapped=mapped,
+                    self.formula_addr, stream, mapped=mapped
                 ).replace("x", "X")
             else:
                 self.formula = ""
@@ -5115,7 +5115,7 @@ class HeaderBlock:
 
     @property
     def start_time(self):
-        """ getter and setter the measurement start timestamp
+        """getter and setter the measurement start timestamp
 
         Returns
         -------

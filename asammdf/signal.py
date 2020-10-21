@@ -164,7 +164,7 @@ class Signal(object):
 """
 
     def plot(self, validate=True, index_only=False):
-        """ plot Signal samples. Pyqtgraph is used if it is available; in this
+        """plot Signal samples. Pyqtgraph is used if it is available; in this
         case see the GUI plot documentation to see the available commands
 
         Parameters
@@ -188,7 +188,6 @@ class Signal(object):
         except:
             try:
                 import matplotlib.pyplot as plt
-                from mpl_toolkits.mplot3d import axes3d
                 from matplotlib.widgets import Slider
             except ImportError:
                 logging.warning("Signal plotting requires pyqtgraph or matplotlib")
@@ -700,7 +699,7 @@ class Signal(object):
         return result
 
     def extend(self, other):
-        """ extend signal with samples from another signal
+        """extend signal with samples from another signal
 
         Parameters
         ----------
@@ -763,7 +762,7 @@ class Signal(object):
         return result
 
     def interp(self, new_timestamps, interpolation_mode=0):
-        """ returns a new *Signal* interpolated using the *new_timestamps*
+        """returns a new *Signal* interpolated using the *new_timestamps*
 
         Parameters
         ----------
@@ -883,7 +882,7 @@ class Signal(object):
             )
 
     def __apply_func(self, other, func_name):
-        """ delegate operations to the *samples* attribute, but in a time
+        """delegate operations to the *samples* attribute, but in a time
         correct manner by considering the *timestamps*
 
         """
@@ -1100,7 +1099,7 @@ class Signal(object):
         self.samples[idx] = val
 
     def astype(self, np_type):
-        """ returns new *Signal* with samples of dtype *np_type*
+        """returns new *Signal* with samples of dtype *np_type*
 
         Parameters
         ----------
@@ -1169,7 +1168,7 @@ class Signal(object):
         )
 
     def validate(self, copy=True):
-        """ appply invalidation bits if they are available for this signal
+        """appply invalidation bits if they are available for this signal
 
         Parameters
         ----------

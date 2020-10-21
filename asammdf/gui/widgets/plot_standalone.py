@@ -1,15 +1,12 @@
 # -*- coding: utf-8 -*-
 from functools import partial
 import logging
-import sys
 import webbrowser
 
-import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
 
 from ..ui import resource_rc as resource_rc
-from .channel_stats import ChannelStats
 from .plot import Plot
 
 bin_ = bin
@@ -227,7 +224,7 @@ class PlotWindow(QtWidgets.QMainWindow):
         action = QtWidgets.QAction("{: <20}\tAlt+R".format("Raw samples"), menu)
         action.triggered.connect(
             partial(
-                self.plot_action, key=QtCore.Qt.Key_R, modifier=QtCore.Qt.AltModifier,
+                self.plot_action, key=QtCore.Qt.Key_R, modifier=QtCore.Qt.AltModifier
             )
         )
         action.setShortcut(QtGui.QKeySequence("Alt+R"))
@@ -236,7 +233,7 @@ class PlotWindow(QtWidgets.QMainWindow):
         action = QtWidgets.QAction("{: <20}\tAlt+S".format("Scaled samples"), menu)
         action.triggered.connect(
             partial(
-                self.plot_action, key=QtCore.Qt.Key_S, modifier=QtCore.Qt.AltModifier,
+                self.plot_action, key=QtCore.Qt.Key_S, modifier=QtCore.Qt.AltModifier
             )
         )
         action.setShortcut(QtGui.QKeySequence("Alt+S"))
@@ -322,7 +319,7 @@ class PlotWindow(QtWidgets.QMainWindow):
         )
         action.triggered.connect(
             partial(
-                self.plot_action, key=QtCore.Qt.Key_I, modifier=QtCore.Qt.AltModifier,
+                self.plot_action, key=QtCore.Qt.Key_I, modifier=QtCore.Qt.AltModifier
             )
         )
         action.setShortcut(QtGui.QKeySequence("Alt+I"))

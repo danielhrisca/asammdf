@@ -97,7 +97,7 @@ class TestMDF4(unittest.TestCase):
             embedded=True,
         )
         outfile = mdf.save(
-            Path(TestMDF4.tempdir.name) / "attachment.mf4", overwrite=True,
+            Path(TestMDF4.tempdir.name) / "attachment.mf4", overwrite=True
         )
 
         with MDF(outfile) as attachment_mdf:
@@ -121,7 +121,7 @@ class TestMDF4(unittest.TestCase):
             embedded=True,
         )
         outfile = mdf.save(
-            Path(TestMDF4.tempdir.name) / "attachment.mf4", overwrite=True,
+            Path(TestMDF4.tempdir.name) / "attachment.mf4", overwrite=True
         )
 
         with MDF(outfile) as attachment_mdf:

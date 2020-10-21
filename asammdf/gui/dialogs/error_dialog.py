@@ -6,7 +6,6 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ..ui import resource_rc as resource_rc
 from ..ui.error_dialog import Ui_ErrorDialog
-from ..widgets.collapsiblebox import CollapsibleBox
 
 
 class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):

@@ -1,27 +1,22 @@
 # -*- coding: utf-8 -*-
-import traceback
-
 from datetime import datetime
 from io import StringIO
-from time import sleep
+from pathlib import Path
+import re
 from struct import unpack
 from threading import Thread
-from pathlib import Path
+from time import sleep
+import traceback
+
 import lxml
 import natsort
 import numpy as np
-import re
-import os
-
-from PyQt5 import QtGui
-from PyQt5 import QtWidgets
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ..mdf import MDF, MDF2, MDF3, MDF4
 from ..signal import Signal
 from .dialogs.error_dialog import ErrorDialog
 from .widgets.tree_item import TreeItem
-
 
 COLORS = [
     "#1f77b4",
@@ -36,7 +31,7 @@ COLORS = [
     "#17becf",
 ]
 
-COMPARISON_NAME = re.compile(r'(\s*\d+:)?(?P<name>.+)')
+COMPARISON_NAME = re.compile(r"(\s*\d+:)?(?P<name>.+)")
 
 TERMINATED = object()
 
@@ -89,8 +84,8 @@ def extract_mime_names(data):
             pos += 36
             name = data[pos : pos + name_length].decode("utf-8")
             pos += name_length
-            name = COMPARISON_NAME.match(name).group('name').strip()
-            names.append((name, group_index, channel_index, mdf_uuid.decode('ascii')))
+            name = COMPARISON_NAME.match(name).group("name").strip()
+            names.append((name, group_index, channel_index, mdf_uuid.decode("ascii")))
     return names
 
 
@@ -99,6 +94,7 @@ def load_dsp(file):
         channels = set()
         groups = []
         all_channels = set()
+        patterns = {}
 
         for item in display.findall("CHANNEL"):
             channels.add(item.get("name"))
@@ -117,12 +113,40 @@ def load_dsp(file):
                 }
             )
 
-        return channels, groups, all_channels
+        for item in display.findall("CHANNEL_PATTERN"):
+            info = {
+                "pattern": item.get("name_pattern"),
+                "match_type": "Wildcard",
+                "filter_type": item.get("filter_type"),
+                "filter_value": float(item.get("filter_value")),
+                "raw": bool(int(item.get("filter_use_raw"))),
+            }
+
+            multi_color = item.find("MULTI_COLOR")
+
+            ranges = {}
+
+            for color in multi_color.findall("color"):
+                min_ = float(color.find("min").get("data"))
+                max_ = float(color.find("max").get("data"))
+                color_ = int(color.find("color").get("data"))
+                c = 0
+                for i in range(3):
+                    c = c << 8
+                    c += color_ & 0xFF
+                    color_ = color_ >> 8
+                ranges[(min_, max_)] = f"#{c:06X}"
+
+            info["ranges"] = ranges
+
+            patterns[info["pattern"]] = info
+
+        return channels, groups, all_channels, patterns
 
     dsp = Path(file).read_bytes().replace(b"\0", b"")
     dsp = lxml.etree.fromstring(dsp)
 
-    channels, groups, all_channels = parse_dsp(dsp.find("DISPLAY_INFO"))
+    channels, groups, all_channels, patterns = parse_dsp(dsp.find("DISPLAY_INFO"))
 
     info = {}
     all_channels = natsort.natsorted(all_channels)
@@ -136,7 +160,7 @@ def load_dsp(file):
         "configuration": {
             "channels": all_channels,
             "format": "phys",
-        }
+        },
     }
 
     windows.append(numeric)
@@ -147,7 +171,7 @@ def load_dsp(file):
         "configuration": {
             "channels": [
                 {
-                    "color": COLORS[i%len(COLORS)],
+                    "color": COLORS[i % len(COLORS)],
                     "common_axis": False,
                     "computed": False,
                     "enabled": True,
@@ -160,35 +184,43 @@ def load_dsp(file):
                 }
                 for i, name in enumerate(all_channels)
             ]
-        }
+        },
     }
 
     windows.append(plot)
+
+    for pattern_info in patterns.values():
+        plot = {
+            "type": "Plot",
+            "title": pattern_info["pattern"],
+            "configuration": {
+                "channels": [],
+                "pattern": pattern_info,
+            },
+        }
+
+        windows.append(plot)
 
     return info
 
 
 def load_lab(file):
     sections = {}
-    with open(file, 'r') as lab:
+    with open(file, "r") as lab:
         for line in lab:
             line = line.strip()
             if not line:
                 continue
 
-            if line.startswith('[') and line.endswith(']'):
-                section_name = line.strip('[]')
+            if line.startswith("[") and line.endswith("]"):
+                section_name = line.strip("[]")
                 s = []
                 sections[section_name] = s
 
             else:
                 s.append(line)
 
-    return {
-        name: channels
-        for name, channels in sections.items()
-        if channels
-    }
+    return {name: channels for name, channels in sections.items() if channels}
 
 
 def run_thread_with_progress(
@@ -392,18 +424,17 @@ def compute_signal(description, measured_signals, all_timebase):
             samples = func(channel.samples, *args)
             timestamps = channel.timestamps
 
-        result = Signal(samples=samples, timestamps=timestamps, name="_",)
+        result = Signal(samples=samples, timestamps=timestamps, name="_")
 
     return result
 
 
-def add_children(widget, channels, channel_dependencies, signals, entries=None, mdf_uuid=None):
+def add_children(
+    widget, channels, channel_dependencies, signals, entries=None, mdf_uuid=None
+):
     children = []
     if entries is not None:
-        channels_ = [
-            channels[i]
-            for _, i in entries
-        ]
+        channels_ = [channels[i] for _, i in entries]
     else:
         channels_ = channels
 
@@ -419,12 +450,12 @@ def add_children(widget, channels, channel_dependencies, signals, entries=None, 
         dep = channel_dependencies[entry[1]]
         if dep and isinstance(dep[0], tuple):
             child.setFlags(
-                child.flags()
-                | QtCore.Qt.ItemIsTristate
-                | QtCore.Qt.ItemIsUserCheckable
+                child.flags() | QtCore.Qt.ItemIsTristate | QtCore.Qt.ItemIsUserCheckable
             )
 
-            add_children(child, channels, channel_dependencies, signals, dep, mdf_uuid=mdf_uuid)
+            add_children(
+                child, channels, channel_dependencies, signals, dep, mdf_uuid=mdf_uuid
+            )
 
         if entry in signals:
             child.setCheckState(0, QtCore.Qt.Checked)
@@ -445,4 +476,3 @@ class HelperChannel:
         self.name = name
         self.entry = entry
         self.added = False
-

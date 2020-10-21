@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import json
-import os
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -127,7 +126,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self._value = value
         if self.ranges and value not in ("", "n.a."):
             for (start, stop), color in self.ranges.items():
-                if start <= value < stop:
+                if start <= value <= stop:
                     self.setStyleSheet(f"background-color: {color};")
                     break
             else:

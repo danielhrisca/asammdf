@@ -2,12 +2,11 @@
 
 # Form implementation generated from reading ui file 'tabular.ui'
 #
-# Created by: PyQt5 UI code generator 5.12
+# Created by: PyQt5 UI code generator 5.9.2
 #
 # WARNING! All changes made in this file will be lost!
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-
 
 class Ui_TabularDisplay(object):
     def setupUi(self, TabularDisplay):
@@ -26,19 +25,13 @@ class Ui_TabularDisplay(object):
         self.gridLayout_2.addWidget(self.sort, 2, 6, 1, 1)
         self.apply_filters_btn = QtWidgets.QPushButton(TabularDisplay)
         icon1 = QtGui.QIcon()
-        icon1.addPixmap(
-            QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon1.addPixmap(QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.apply_filters_btn.setIcon(icon1)
         self.apply_filters_btn.setObjectName("apply_filters_btn")
         self.gridLayout_2.addWidget(self.apply_filters_btn, 3, 4, 1, 1)
-        spacerItem = QtWidgets.QSpacerItem(
-            200, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
-        )
+        spacerItem = QtWidgets.QSpacerItem(200, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.gridLayout_2.addItem(spacerItem, 3, 5, 1, 1)
-        spacerItem1 = QtWidgets.QSpacerItem(
-            20, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
-        )
+        spacerItem1 = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
         self.gridLayout_2.addItem(spacerItem1, 3, 2, 1, 2)
         self.remove_prefix = QtWidgets.QCheckBox(TabularDisplay)
         self.remove_prefix.setObjectName("remove_prefix")
@@ -68,13 +61,11 @@ class Ui_TabularDisplay(object):
         self.tree.setObjectName("tree")
         self.tree.headerItem().setText(0, "1")
         self.gridLayout_2.addWidget(self.tree, 0, 0, 1, 8)
-        self.filters = ListWidget(TabularDisplay)
+        self.filters = MinimalListWidget(TabularDisplay)
         self.filters.setObjectName("filters")
         self.gridLayout_2.addWidget(self.filters, 4, 0, 1, 9)
         self.groupBox = QtWidgets.QGroupBox(TabularDisplay)
-        sizePolicy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum
-        )
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Minimum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.groupBox.sizePolicy().hasHeightForWidth())
@@ -86,9 +77,7 @@ class Ui_TabularDisplay(object):
         self.gridLayout.setSpacing(0)
         self.gridLayout.setObjectName("gridLayout")
         self.query = QtWidgets.QTextEdit(self.groupBox)
-        sizePolicy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.MinimumExpanding
-        )
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.MinimumExpanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(self.query.sizePolicy().hasHeightForWidth())
@@ -118,6 +107,5 @@ class Ui_TabularDisplay(object):
         self.time_as_date.setText(_translate("TabularDisplay", "Time as date"))
         self.groupBox.setTitle(_translate("TabularDisplay", "pandas DataFrame query"))
 
-
-from asammdf.gui.widgets.list import ListWidget
+from asammdf.gui.widgets.list import MinimalListWidget
 from . import resource_rc

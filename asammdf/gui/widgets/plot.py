@@ -4,7 +4,6 @@ from functools import partial, reduce
 import logging
 import os
 from pathlib import Path
-from struct import unpack
 from time import perf_counter
 
 import numpy as np
@@ -631,7 +630,7 @@ class PlotSignal(Signal):
                         pos_max = np.nanargmax(samples_)
                         pos_min = np.nanargmin(samples_)
 
-                        pos = sorted((pos_min, pos_max))
+                        pos = [pos_min, pos_max] if pos_min < pos_max else [pos_max, pos_min]
 
                         samples_ = signal_samples[stop_2:stop_][pos]
                         timestamps_ = sig.timestamps[stop_2:stop_][pos]
@@ -651,6 +650,13 @@ class PlotSignal(Signal):
 
     def value_at_timestamp(self, stamp):
         cut = self.cut(stamp, stamp)
+
+        if len(self.timestamps) and self.timestamps[-1] < stamp:
+            cut.samples = self.samples[-1:]
+            cut.phys_samples = self.phys_samples[-1:]
+            cut.raw_samples = self.raw_samples[-1:]
+            cut.timestamps = self.timestamps[-1:]
+
         if self.mode == "raw":
             values = cut.raw_samples
         else:
@@ -694,6 +700,7 @@ class Plot(QtWidgets.QWidget):
         events = kwargs.pop("events", None)
         super().__init__(*args, **kwargs)
         self.setContentsMargins(0, 0, 0, 0)
+        self.pattern = {}
 
         self.info_uuid = None
 
@@ -1067,7 +1074,7 @@ class Plot(QtWidgets.QWidget):
 
             if self.info.isVisible():
                 self.info.hide()
-                self.splitter.setSizes((ch_size, plt_size + info_size, 0,))
+                self.splitter.setSizes((ch_size, plt_size + info_size, 0))
 
             else:
 
@@ -1391,7 +1398,7 @@ class Plot(QtWidgets.QWidget):
             channel["color"] = sig.color
             channel["computed"] = sig.computed
             ranges = [
-                {"start": start, "stop": stop, "color": color,}
+                {"start": start, "stop": stop, "color": color}
                 for (start, stop), color in item.ranges.items()
             ]
             channel["ranges"] = ranges
@@ -1411,7 +1418,8 @@ class Plot(QtWidgets.QWidget):
             channels.append(channel)
 
         config = {
-            "channels": channels,
+            "channels": channels if not self.pattern else [],
+            "pattern": self.pattern,
         }
 
         return config
@@ -1834,6 +1842,14 @@ class _Plot(pg.PlotWidget):
                         self.region_lock = self.region.getRegion()[0]
                 else:
                     self.region_lock = None
+
+            elif key == QtCore.Qt.Key_X and modifier == QtCore.Qt.NoModifier:
+                if self.region is not None:
+                    self.viewbox.setXRange(*self.region.getRegion(), padding=0)
+                    event_ = QtGui.QKeyEvent(
+                        QtCore.QEvent.KeyPress, QtCore.Qt.Key_R, QtCore.Qt.NoModifier
+                    )
+                    self.keyPressEvent(event_)
 
             elif key == QtCore.Qt.Key_F and modifier == QtCore.Qt.NoModifier:
                 if self.common_axis_items:
@@ -2415,7 +2431,7 @@ class _Plot(pg.PlotWidget):
         needs_timebase_compute = False
 
         indexes = sorted(
-            [(self.signal_by_uuid(uuid)[1], uuid) for uuid in deleted], reverse=True,
+            [(self.signal_by_uuid(uuid)[1], uuid) for uuid in deleted], reverse=True
         )
 
         for i, uuid in indexes:

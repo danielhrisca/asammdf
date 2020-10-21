@@ -2,15 +2,22 @@
 import re
 
 from natsort import natsorted
-from PyQt5 import QtWidgets
+from PyQt5 import QtCore, QtWidgets
 
 from ..ui import resource_rc as resource_rc
 from ..ui.search_dialog import Ui_SearchDialog
+from .range_editor import RangeEditor
 
 
 class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
     def __init__(
-        self, channels_db, return_names=False, show_add_window=False, *args, **kwargs
+        self,
+        channels_db,
+        return_names=False,
+        show_add_window=False,
+        show_pattern=True,
+        *args,
+        **kwargs,
     ):
 
         super().__init__(*args, **kwargs)
@@ -28,10 +35,22 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.search_box.editingFinished.connect(self.search_text_changed)
         self.match_kind.currentTextChanged.connect(self.search_box.textChanged.emit)
 
+        self.apply_pattern_btn.clicked.connect(self._apply_pattern)
+        self.cancel_pattern_btn.clicked.connect(self._cancel_pattern)
+        self.define_ranges_btn.clicked.connect(self._define_ranges)
+
+        self.search_box.setFocus()
+
         self._return_names = return_names
+        self.ranges = {}
+
+        self.pattern_window = False
 
         if not show_add_window:
             self.add_window_btn.hide()
+
+        if not show_pattern:
+            self.tabs.removeTab(1)
 
         self.setWindowTitle("Search & select channels")
 
@@ -81,6 +100,19 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                     self.result.add(entry)
         self.close()
 
+    def _apply_pattern(self, event):
+        self.result = {
+            "pattern": self.pattern.text().strip(),
+            "match_type": self.pattern_match_type.currentText(),
+            "filter_type": self.filter_type.currentText(),
+            "filter_value": self.filter_value.value(),
+            "raw": self.raw.checkState() == QtCore.Qt.Checked,
+            "ranges": self.ranges,
+        }
+
+        self.pattern_window = True
+        self.close()
+
     def _add_window(self, event):
         count = self.selection.count()
 
@@ -98,3 +130,13 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
     def _cancel(self, event):
         self.result = set()
         self.close()
+
+    def _cancel_pattern(self, event):
+        self.result = {}
+        self.close()
+
+    def _define_ranges(self, event=None):
+        dlg = RangeEditor("", self.ranges)
+        dlg.exec_()
+        if dlg.pressed_button == "apply":
+            self.ranges = dlg.result

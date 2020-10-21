@@ -7,7 +7,6 @@ import logging
 from struct import pack, unpack, unpack_from
 import sys
 from textwrap import wrap
-import time
 from traceback import format_exc
 
 from numexpr import evaluate
@@ -58,7 +57,7 @@ __all__ = [
 
 
 class Channel:
-    """ CNBLOCK class
+    """CNBLOCK class
 
     If the `load_metadata` keyword argument is not provided or is False,
     then the conversion, source and display name information is not processed.
@@ -797,7 +796,7 @@ class _ChannelConversionBase:
 
 
 class ChannelConversion(_ChannelConversionBase):
-    """ CCBLOCK class
+    """CCBLOCK class
 
     *ChannelConversion* has the following common fields
 
@@ -1644,7 +1643,7 @@ address: {hex(self.address)}
 
 
 class ChannelDependency:
-    """ CDBLOCK class
+    """CDBLOCK class
 
     CDBLOCK fields
 
@@ -1756,7 +1755,7 @@ class ChannelDependency:
 
 
 class ChannelExtension:
-    """ CEBLOCK class
+    """CEBLOCK class
 
     CEBLOCK has the following common fields
 
@@ -2060,7 +2059,7 @@ address: {hex(self.address)}
 
 
 class ChannelGroup:
-    """ CGBLOCK class
+    """CGBLOCK class
 
     CGBLOCK fields
 
@@ -2339,7 +2338,7 @@ class DataBlock:
 
 
 class DataGroup:
-    """ DGBLOCK class
+    """DGBLOCK class
 
     DGBLOCK fields
 
@@ -2464,7 +2463,7 @@ class DataGroup:
 
 
 class FileIdentificationBlock:
-    """ IDBLOCK class
+    """IDBLOCK class
 
     IDBLOCK fields
 
@@ -2563,7 +2562,7 @@ class FileIdentificationBlock:
 
 
 class HeaderBlock:
-    """ HDBLOCK class
+    """HDBLOCK class
 
     HDBLOCK fields
 
@@ -2750,7 +2749,7 @@ class HeaderBlock:
 
     @property
     def start_time(self):
-        """ getter and setter the measurement start timestamp
+        """getter and setter the measurement start timestamp
 
         Returns
         -------
@@ -2808,7 +2807,7 @@ class HeaderBlock:
 
 
 class ProgramBlock:
-    """ PRBLOCK class
+    """PRBLOCK class
 
     PRBLOCK fields
 
@@ -2865,7 +2864,7 @@ class ProgramBlock:
 
 
 class TextBlock:
-    """ TXBLOCK class
+    """TXBLOCK class
 
     TXBLOCK fields
 
@@ -2952,7 +2951,7 @@ class TextBlock:
         self.__setattr__(item, value)
 
     def __bytes__(self):
-        return v23c.COMMON_p(self.id, self.block_len,) + self.text
+        return v23c.COMMON_p(self.id, self.block_len) + self.text
 
     def __repr__(self):
         return (
@@ -2963,7 +2962,7 @@ class TextBlock:
 
 
 class TriggerBlock:
-    """ TRBLOCK class
+    """TRBLOCK class
 
     TRBLOCK fields
 
