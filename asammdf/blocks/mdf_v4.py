@@ -7767,6 +7767,7 @@ class MDF4(MDF_Common):
         ignore_invalidation_bits=False,
         data=None,
         raw=False,
+        ignore_value2text_conversion=True
     ):
         """get CAN message signal. You can specify an external CAN database (
         *database* argument) or canmatrix databse object that has already been
