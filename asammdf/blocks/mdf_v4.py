@@ -805,7 +805,7 @@ class MDF4(MDF_Common):
         self._cc_map.clear()
 
         self._interned_strings.clear()
-        del self._attachments_map
+        self._attachments_map.clear()
 
         self.progress = cg_count, cg_count
 
