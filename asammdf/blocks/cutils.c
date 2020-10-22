@@ -19,11 +19,9 @@ struct node {
 };
 
 
-
-
 static PyObject* sort_data_block(PyObject* self, PyObject* args)
 {
-    unsigned long long id_size, position=0, size, tgt=10000;
+    unsigned long long id_size=0, position=0, size=0;
     unsigned long rec_size, length, rec_id;
     PyObject *signal_data, *partial_records, *record_size, *optional, *mlist;
     PyObject *bts, *key, *value, *rem=NULL;
@@ -32,7 +30,7 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
     
     
 
-    if (!PyArg_ParseTuple(args, "OOOk|O", &signal_data, &partial_records, &record_size, &id_size, &optional))
+    if (!PyArg_ParseTuple(args, "OOOK|O", &signal_data, &partial_records, &record_size, &id_size, &optional))
     {
         snprintf(err_string, 1024, "sort_data_block was called with wrong parameters");
         PyErr_SetString(PyExc_ValueError, err_string);
@@ -58,12 +56,11 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
  
         buf = (unsigned char *) PyBytes_AS_STRING(signal_data);
         orig = buf;
-        size = PyBytes_GET_SIZE(signal_data);
+        size = (unsigned long long) PyBytes_GET_SIZE(signal_data);
         end = buf + size;
         
         while (buf + id_size < end)
         {
-            if (buf == orig) printf(" \b");
             rec_id = 0; 
             for (unsigned char i=0; i<id_size; i++, buf++) {
                 rec_id += (*buf) << (i <<3);
@@ -141,7 +138,8 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
 
 static PyObject* extract(PyObject* self, PyObject* args)
 {
-    int i=0, j, count, max=0, is_byte_array;
+    int i=0, j, count, max=0;
+	bool is_byte_array;
     int pos=0;
     int size;
     PyObject *signal_data;
@@ -151,7 +149,7 @@ static PyObject* extract(PyObject* self, PyObject* args)
     void *addr;
     unsigned char * addr2;
 
-    if(!PyArg_ParseTuple(args, "Oi", &signal_data, &is_byte_array))
+    if(!PyArg_ParseTuple(args, "Op", &signal_data, &is_byte_array))
     {
         snprintf(err_string, 1024, "extract was called with wrong parameters");
         PyErr_SetString(PyExc_ValueError, err_string);
@@ -159,7 +157,7 @@ static PyObject* extract(PyObject* self, PyObject* args)
     }
     else
     {
-        buf = PyBytes_AS_STRING(signal_data);
+        buf = (unsigned char *) PyBytes_AS_STRING(signal_data);
 
         count = 0;
 
@@ -220,54 +218,6 @@ static PyObject* extract(PyObject* self, PyObject* args)
     }
 
     return (PyObject *) vals;
-}
-
-
-static PyObject* extract_parent(PyObject* self, PyObject* args)
-{
-    int i=0, j, count, max=0, is_byte_array;
-    PyObject *data, *dtype, *dimensions_vals, *bts;
-    unsigned char *buf, *buf2;
-    PyArrayObject *vals;
-    PyArray_Descr *descr;
-    void *addr;
-    unsigned char * addr2;
-    unsigned long record_size, offset, size, dimensions;
-
-    if(!PyArg_ParseTuple(args, "OiiiO", &data, &record_size, &offset, &size, &dtype))
-    {
-        printf("ext len 0\n");
-    }
-    else
-    {
-        buf = PyBytes_AS_STRING(data);
-        
-        /*npy_intp dims = (npy_intp) dimensions; 
-        npy_intp dims_vals[dimensions];
-        
-        for (i=0; i<dimensions; i++)
-        {
-            dims_vals[i] = (npy_intp) PyLong_AsLong(PyTuple_GetItem(dimensions_vals, i));
-        }
-        
-        vals = (PyArrayObject *) PyArray_Empty(dims, dims_vals, dtype, 0);*/
-        
-        count = (int) (PyBytes_GET_SIZE(data) / record_size);
-        
-        bts = PyBytes_FromStringAndSize(NULL, count * size);
-        buf2 = PyBytes_AS_STRING(bts);
-        
-        buf += offset;
-        for (i=0; i<count; i++)
-        {
-            memcpy(buf2, buf, size);
-            buf2 += size;
-            buf += record_size;
-        }
-
-    }
-
-    return bts;
 }
 
 
@@ -344,171 +294,6 @@ static PyObject* get_vlsd_offsets(PyObject* self, PyObject* args)
 }
 
 
-static PyObject* get_text_bytes(PyObject* self, PyObject* args)
-{
-    int i=0;
-    unsigned char mapped;
-    unsigned long long address, size;
-    Py_ssize_t count;
-    int pos=0;
-    PyObject *lst, *item, *stream, *bts, *text, *result;
-    npy_intp dim[1];
-    PyArrayObject *values;
-    unsigned char *data;
-
-    if(!PyArg_ParseTuple(args, "KOB", &address, &stream, &lst))
-    {
-        snprintf(err_string, 1024, "get_text_bytes was called with wrong parameters");
-        PyErr_SetString(PyExc_ValueError, err_string);
-        return 0;
-    }
-    else
-    {
-        if (address == 0)
-        {
-            result = PyUnicode_New(0, 127);
-        }
-        else
-        {
-            
-            PyObject* STRIP = PyBytes_FromStringAndSize(" \r\t\n\n", 5);
-            char *d_ = PyBytes_AS_STRING(STRIP);
-            d_[4] = "\0";
-            
-            PyObject_CallMethod(
-                stream,
-                "seek",
-                "K",
-                address + 8
-            );
-            
-            bts = PyObject_CallMethod(
-                stream,
-                "read",
-                "K",
-                16
-            );
-            
-            data = PyBytes_AS_STRING(bts);
-            memcpy(
-                &size,
-                data,
-                8
-            );
-            
-            Py_DECREF(bts);
-            
-            bts = PyObject_CallMethod(
-                stream,
-                "read",
-                "K",
-                size
-            );
-          
-            
-            text = PyObject_CallMethod(
-                bts,
-                "strip",
-                "O",
-                STRIP
-            );
-            
-            Py_DECREF(bts);
-            bts = text;
-            
-            text = PyObject_CallMethod(
-                bts,
-                "decode",
-                "O",
-                PyUnicode_New("utf-8", 255)
-            );
-            Py_DECREF(bts);
-            
-            result = text;
-        }
-    }
-    return result;
-}
-
-
-static PyObject* raw_channel_bytes(PyObject* self, PyObject* args)
-{
-    unsigned long i=0;
-    unsigned long record_size, byte_offset, byte_size, size, count;
-    PyObject *record_bytes;
-    PyObject *result;
-    unsigned char *buf, *end, *out_ptr;
-
-    if (!PyArg_ParseTuple(args, "Okkkk", &record_bytes, &record_size, &count, &byte_offset, &byte_size))
-    {
-        snprintf(err_string, 1024, "raw_channel_bytes was called with wrong parameters");
-        PyErr_SetString(PyExc_ValueError, err_string);
-        return 0;
-    }
-    else
-    {
-        
-        buf = PyBytes_AS_STRING(record_bytes);
-        buf += byte_offset;
-        
-        result = PyByteArray_FromStringAndSize(NULL, count * byte_size);
-   
-        out_ptr = PyByteArray_AS_STRING(result);
-         
-        for (i=0; i<count; i++) {
-            memcpy(out_ptr, buf, byte_size);
-            out_ptr += byte_size;
-            buf += record_size;
-        }
-    }
-
-    return result;
-}
-
-static PyObject* raw_channel(PyObject* self, PyObject* args)
-{
-    unsigned long i=0;
-    unsigned long record_size, byte_offset, byte_size, size, count;
-    PyObject *record_bytes;
-    PyObject *result, *dtype;
-    PyArrayObject * vals;
-    unsigned char *buf, *end, *out_ptr, *addr;
-
-    if (!PyArg_ParseTuple(args, "OOkkk", &record_bytes, &dtype, &record_size, &byte_offset, &byte_size))
-    {
-        snprintf(err_string, 1024, "raw_channel was called with wrong parameters");
-        PyErr_SetString(PyExc_ValueError, err_string);
-        return 0;
-    }
-    else
-    {
-        
-        
-        buf = PyBytes_AS_STRING(record_bytes);
-        buf += byte_offset;
-        size = PyBytes_GET_SIZE(record_bytes);
-        count = (unsigned long) size / record_size;
-        
-        npy_intp dims[1];
-        dims[0] = count;   
-        
-        vals = (PyArrayObject *) PyArray_Empty(1, dims, PyArray_DescrNew((PyArray_Descr*)dtype), 0);
-
-        addr = (unsigned char *) PyArray_GETPTR1(vals, 0);
-         
-        for (i=0; i<count; i++) {
-            memcpy(addr, buf, byte_size);
-            addr += byte_size;
-            buf += record_size;
-        }
-        
-        result = (PyObject *) vals;
-    }
-
-    return result;
-}
-
-
 
 // Our Module's Function Definition struct
 // We require this `NULL` to signal the end of our method
@@ -516,14 +301,10 @@ static PyObject* raw_channel(PyObject* self, PyObject* args)
 static PyMethodDef myMethods[] =
 {
     { "extract", extract, METH_VARARGS, "extract VLSD samples from raw block" },
-    { "extract_parent", extract_parent, METH_VARARGS, "extract VLSD samples from raw block" },
     { "lengths", lengths, METH_VARARGS, "lengths" },
     { "get_vlsd_offsets", get_vlsd_offsets, METH_VARARGS, "get_vlsd_offsets" },
     { "sort_data_block", sort_data_block, METH_VARARGS, "sort raw data group block" },
-    { "get_text_bytes", get_text_bytes, METH_VARARGS, "sort raw data group block" },
-    { "raw_channel_bytes", raw_channel_bytes, METH_VARARGS, "raw_channel_bytes" },
-    { "raw_channel", raw_channel, METH_VARARGS, "raw_channel_bytes" },
-    
+
     { NULL, NULL, 0, NULL }
 };
 
