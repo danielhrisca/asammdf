@@ -734,7 +734,6 @@ class Channel:
                     at_map = kwargs.get("at_map", {})
                     if params[10]:
                         params = list(params)
-                        self.attachment = []
                         self.attachment_addr = links[8]
                         self.attachment = at_map.get(links[8], 0)
                         self.links_nr -= params[10] - 1

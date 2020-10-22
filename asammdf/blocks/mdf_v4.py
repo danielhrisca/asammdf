@@ -805,6 +805,7 @@ class MDF4(MDF_Common):
         self._cc_map.clear()
 
         self._interned_strings.clear()
+        del self._attachments_map
 
         self.progress = cg_count, cg_count
 
@@ -854,6 +855,12 @@ class MDF4(MDF_Common):
                 tx_map=self._interned_strings,
                 file_limit=self.file_limit,
             )
+
+            if channel.channel_type == v4c.CHANNEL_TYPE_SYNC:
+                channel.attachment = self._attachments_map.get(
+                    channel.data_block_addr,
+                    None,
+                )
 
             if self._remove_source_from_channel_names:
                 channel.name = channel.name.split(path_separator, 1)[0]
@@ -2608,6 +2615,7 @@ class MDF4(MDF_Common):
                 s_type, s_size = fmt_to_datatype_v4(sig_dtype, sig_shape)
 
                 byte_size = s_size // 8 or 1
+                data_block_addr = 0
 
                 if sig_dtype.kind == "u" and signal.bit_count <= 4:
                     s_size = signal.bit_count
@@ -2616,27 +2624,23 @@ class MDF4(MDF_Common):
                     channel_type = v4c.CHANNEL_TYPE_SYNC
                     if signal.attachment:
                         at_data, at_name, hash_sum = signal.attachment
-                        attachment_addr = self.attach(
+                        attachment_index = self.attach(
                             at_data, at_name, hash_sum, mime="video/avi", embedded=False
                         )
-                        data_block_addr = attachment_addr
-                        attachment = self._attachments_map[attachment_addr]
+                        attachment = attachment_index
                     else:
-                        data_block_addr = 0
                         attachment = None
 
                     sync_type = v4c.SYNC_TYPE_TIME
                 else:
                     channel_type = v4c.CHANNEL_TYPE_VALUE
-                    data_block_addr = 0
                     sync_type = v4c.SYNC_TYPE_NONE
 
                     if signal.attachment:
                         at_data, at_name, hash_sum = signal.attachment
 
-                        attachment_addr = self.attach(at_data, at_name, hash_sum)
-                        kwargs["attachment_addr"] = attachment_addr
-                        attachment = self._attachments_map[attachment_addr]
+                        attachment_index = self.attach(at_data, at_name, hash_sum)
+                        attachment = attachment_index
                     else:
                         attachment = None
 
@@ -2652,7 +2656,7 @@ class MDF4(MDF_Common):
                 }
 
                 if attachment is not None:
-                    kwargs["attachment_addr"] = attachment_addr
+                    kwargs["attachment_addr"] = 0
 
                 if invalidation_bytes_nr and signal.invalidation_bits is not None:
                     inval_bits.append(signal.invalidation_bits)
@@ -4361,12 +4365,11 @@ class MDF4(MDF_Common):
                 mime = "applciation/A2L"
             else:
                 mime = f"application/x-{suffix}"
-            attachment_addr = self.attach(
+            attachment_index = self.attach(
                 at_data, at_name, hash_sum=hash_sum, mime=mime
             )
-            attachment = self._attachments_map[attachment_addr]
+            attachment = attachment_index
         else:
-            attachment_addr = 0
             attachment = None
 
         # add channel block
@@ -4379,8 +4382,8 @@ class MDF4(MDF_Common):
             "precision": 0,
         }
 
-        if attachment_addr:
-            kwargs["attachment_addr"] = attachment_addr
+        if attachment is not None:
+            kwargs["attachment_addr"] = 0
 
         source_bus = signal.source and signal.source.source_type == v4c.SOURCE_BUS
 
@@ -4791,12 +4794,11 @@ class MDF4(MDF_Common):
                 suffix = Path(at_name).suffix.strip(".")
             else:
                 suffix = "dbc"
-            attachment_addr = self.attach(
+            attachment_index = self.attach(
                 at_data, at_name, hash_sum=hash_sum, mime=f"application/x-{suffix}"
             )
-            attachment = self._attachments_map[attachment_addr]
+            attachment = attachment_index
         else:
-            attachment_addr = 0
             attachment = None
 
         # add channel block
@@ -4809,8 +4811,8 @@ class MDF4(MDF_Common):
             "precision": 0,
         }
 
-        if attachment_addr:
-            kwargs["attachment_addr"] = attachment_addr
+        if attachment is not None:
+            kwargs["attachment_addr"] = 0
 
         source_bus = signal.source and signal.source.source_type == v4c.SOURCE_BUS
 
@@ -5610,10 +5612,7 @@ class MDF4(MDF_Common):
                 file_name=file_name,
             )
             at_block["creator_index"] = creator_index
-            index = v4c.MAX_UINT64 - 1
-            while index in self._attachments_map:
-                index -= 1
-            at_block.address = index
+
             self.attachments.append(at_block)
 
             suffix = Path(file_name).suffix.lower().strip(".")
@@ -5625,8 +5624,8 @@ class MDF4(MDF_Common):
             at_block.mime = mime
             at_block.comment = comment
 
+            index = len(self.attachments) - 1
             self._attachments_cache[hash_sum] = index
-            self._attachments_map[index] = len(self.attachments) - 1
 
             return index
 
@@ -5654,7 +5653,6 @@ class MDF4(MDF_Common):
         self.file_comment = None
         self.events.clear()
 
-        self._attachments_map.clear()
         self._ch_map.clear()
         self._master_channel_metadata.clear()
         self._invalidation_cache.clear()
@@ -5668,15 +5666,13 @@ class MDF4(MDF_Common):
         self._dbc_cache.clear()
         self.virtual_groups.clear()
 
-    def extract_attachment(self, address=None, index=None):
-        """extract attachment data by original address or by index. If it is an embedded attachment,
+    def extract_attachment(self, index=None):
+        """extract attachment data by index. If it is an embedded attachment,
         then this method creates the new file according to the attachment file
         name information
 
         Parameters
         ----------
-        address : int
-            attachment index; default *None*
         index : int
             attachment index; default *None*
 
@@ -5686,11 +5682,9 @@ class MDF4(MDF_Common):
             tuple of attachment data and path
 
         """
-        if address is None and index is None:
+        if index is None:
             return b"", Path(""), md5().digest()
 
-        if address is not None:
-            index = self._attachments_map[address]
         attachment = self.attachments[index]
 
         current_path = Path.cwd()
@@ -5987,12 +5981,8 @@ class MDF4(MDF_Common):
                 else:
                     source = None
 
-            if hasattr(channel, "attachment_addr"):
-                index = self._attachments_map[channel.attachment_addr]
-                attachment = self.extract_attachment(index=index)
-            elif channel_type == v4c.CHANNEL_TYPE_SYNC and channel.data_block_addr:
-                index = self._attachments_map[channel.data_block_addr]
-                attachment = self.extract_attachment(index=index)
+            if channel.attachment is not None:
+                attachment = self.extract_attachment(channel.attachment)
             else:
                 attachment = None
 
@@ -7814,7 +7804,7 @@ class MDF4(MDF_Common):
         ignore_value2text_conversion : bool
             return channel samples without values that have a description in .dbc or .arxml file
             `True`
-            
+
         Returns
         -------
         sig : Signal
@@ -8465,9 +8455,7 @@ class MDF4(MDF_Common):
             at_map = {}
             if self.attachments:
                 for at_block in self.attachments:
-                    index = self._attachments_map[at_block.address]
                     address = at_block.to_blocks(address, blocks, defined_texts)
-                    self._attachments_map[address] = index
 
                 for i in range(len(self.attachments) - 1):
                     at_block = self.attachments[i]
@@ -8518,9 +8506,8 @@ class MDF4(MDF_Common):
                     )
 
                     if channel.channel_type == v4c.CHANNEL_TYPE_SYNC:
-                        if channel.data_block_addr:
-                            idx = self._attachments_map[channel.data_block_addr]
-                            channel.data_block_addr = self.attachments[idx].address
+                        if channel.attachment is not None:
+                            channel.data_block_addr = self.attachments[channel.attachment].address
                     else:
                         sdata, with_bounds = self._load_signal_data(group=gp, index=j)
                         if sdata:
@@ -9464,13 +9451,10 @@ class MDF4(MDF_Common):
 
         for i, channel in enumerate(channels):
             if channel.name == "CAN_DataFrame":
-                try:
-                    addr = channel.attachment_addr
-                except AttributeError:
-                    addr = 0
-                if addr:
-                    attachment_addr = self._attachments_map[addr]
+                attachment_addr = channel.attachment
+                if attachment_addr is not None:
                     if attachment_addr not in self._dbc_cache:
+
                         attachment, at_name, md5_sum = self.extract_attachment(
                             index=attachment_addr
                         )
