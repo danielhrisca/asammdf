@@ -7767,6 +7767,7 @@ class MDF4(MDF_Common):
         ignore_invalidation_bits=False,
         data=None,
         raw=False,
+        ignore_value2text_conversion=True
     ):
         """get CAN message signal. You can specify an external CAN database (
         *database* argument) or canmatrix databse object that has already been
@@ -7810,6 +7811,10 @@ class MDF4(MDF_Common):
         raw : bool
             return channel samples without appling the conversion rule; default
             `False`
+        ignore_value2text_conversion : bool
+            return channel samples without values that have a description in .dbc or .arxml file
+            `True`
+            
         Returns
         -------
         sig : Signal
@@ -7999,7 +8004,7 @@ class MDF4(MDF_Common):
         else:
             invalidation_bits = None
 
-        vals = extract_can_signal(signal, vals, raw)
+        vals = extract_can_signal(signal, vals, raw, ignore_value2text_conversion)
 
         comment = signal.comment or ""
 
