@@ -780,6 +780,7 @@ class Signal(object):
             new interpolated *Signal*
 
         """
+
         if not len(self.samples) or not len(new_timestamps):
             return Signal(
                 self.samples[:0].copy(),
@@ -813,6 +814,7 @@ class Signal(object):
             else:
 
                 kind = self.samples.dtype.kind
+
                 if kind == "f":
                     s = np.interp(new_timestamps, self.timestamps, self.samples)
 
@@ -826,6 +828,12 @@ class Signal(object):
                     else:
                         invalidation_bits = None
                 elif kind in "ui":
+                    if interpolation_mode == 0:
+                        if self.raw and self.conversion:
+                            kind = self.conversion.convert(self.samples[:1]).dtype.kind
+                            if kind == "f":
+                                interpolation_mode = 1
+
                     if interpolation_mode == 1:
                         s = np.interp(
                             new_timestamps, self.timestamps, self.samples
@@ -891,29 +899,32 @@ class Signal(object):
             if len(self) and len(other):
                 start = max(self.timestamps[0], other.timestamps[0])
                 stop = min(self.timestamps[-1], other.timestamps[-1])
-                s1 = self.cut(start, stop)
-                s2 = other.cut(start, stop)
+                s1 = self.physical().cut(start, stop)
+                s2 = other.physical().cut(start, stop)
             else:
                 s1 = self
                 s2 = other
             time = np.union1d(s1.timestamps, s2.timestamps)
-            s = self.interp(time).samples
-            o = other.interp(time).samples
+            s = s1.interp(time).samples
+            o = s2.interp(time).samples
             func = getattr(s, func_name)
+            conversion = None
             s = func(o)
         elif other is None:
             s = self.samples
+            conversion = self.conversion
             time = self.timestamps
         else:
             func = getattr(self.samples, func_name)
             s = func(other)
+            conversion = self.conversion
             time = self.timestamps
         return Signal(
             samples=s,
             timestamps=time,
             unit=self.unit,
             name=self.name,
-            conversion=self.conversion,
+            conversion=conversion,
             raw=self.raw,
             master_metadata=self.master_metadata,
             display_name=self.display_name,
