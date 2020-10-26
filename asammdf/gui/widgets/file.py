@@ -339,11 +339,15 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             item = QtWidgets.QTreeWidgetItem()
             item.setText(0, "Cycles")
             item.setText(1, str(cycles))
+            if cycles:
+                item.setForeground(1, QtGui.QBrush(QtCore.Qt.darkGreen))
             channel_group.addChild(item)
 
             item = QtWidgets.QTreeWidgetItem()
             item.setText(0, "Raw size")
             item.setText(1, f"{size / 1024 / 1024:.1f} MB")
+            if cycles:
+                item.setForeground(1, QtGui.QBrush(QtCore.Qt.darkGreen))
             channel_group.addChild(item)
 
             channel_groups_children.append(channel_group)

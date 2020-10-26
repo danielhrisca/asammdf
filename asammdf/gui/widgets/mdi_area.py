@@ -11,7 +11,7 @@ import pandas as pd
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ...blocks import v4_constants as v4c
-from ...blocks.utils import csv_bytearray2hex, MdfException
+from ...blocks.utils import csv_bytearray2hex, MdfException, extract_cncomment_xml
 from ...mdf import MDF
 from ...signal import Signal
 from ..dialogs.channel_info import ChannelInfoDialog
@@ -397,7 +397,11 @@ class WithMDIArea:
                         event_info["type"] = v4c.EVENT_TYPE_TO_STRING[event.event_type]
                         description = event.name
                         if event.comment:
-                            description += f" ({event.comment})"
+                            try:
+                                comment = extract_cncomment_xml(event.comment)
+                            except:
+                                comment = event.comment
+                            description += f" ({comment})"
                         event_info["description"] = description
                         event_info["index"] = pos
 
@@ -971,7 +975,11 @@ class WithMDIArea:
                         event_info["type"] = v4c.EVENT_TYPE_TO_STRING[event.event_type]
                         description = event.name
                         if event.comment:
-                            description += f" ({event.comment})"
+                            try:
+                                comment = extract_cncomment_xml(event.comment)
+                            except:
+                                comment = event.comment
+                            description += f" ({comment})"
                         event_info["description"] = description
                         event_info["index"] = pos
 

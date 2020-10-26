@@ -1138,6 +1138,7 @@ name: {self.name}
 display name: {self.display_name}
 address: {hex(self.address)}
 comment: {self.comment}
+unit: {self.unit}
 
 """.split(
             "\n"
