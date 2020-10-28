@@ -1,6 +1,8 @@
 #include <Python.h>
 #include "numpy/arrayobject.h"
 #include "numpy/ndarrayobject.h"
+#include <stdio.h>
+#include <stdbool.h>
 
 #define PY_PRINTF(o) \
     PyObject_Print(o, stdout, 0); printf("\n");
@@ -19,17 +21,17 @@ struct node {
 };
 
 
+
+
 static PyObject* sort_data_block(PyObject* self, PyObject* args)
 {
-    unsigned long long id_size=0, position=0, size=0;
+    unsigned long long id_size=0, position=0, size, tgt=10000;
     unsigned long rec_size, length, rec_id;
     PyObject *signal_data, *partial_records, *record_size, *optional, *mlist;
     PyObject *bts, *key, *value, *rem=NULL;
-    unsigned char *buf, *end, *orig, val;
+    unsigned char *buf, *end, *orig;
     struct node * head = NULL, *last=NULL, *item;
     
-    
-
     if (!PyArg_ParseTuple(args, "OOOK|O", &signal_data, &partial_records, &record_size, &id_size, &optional))
     {
         snprintf(err_string, 1024, "sort_data_block was called with wrong parameters");
@@ -39,6 +41,7 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
     else
     {
         Py_ssize_t pos = 0;
+		position = 0;
        
         while (PyDict_Next(record_size, &pos, &key, &value)) 
         {
@@ -59,8 +62,9 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
         size = (unsigned long long) PyBytes_GET_SIZE(signal_data);
         end = buf + size;
         
-        while (buf + id_size < end)
+        while ((buf + id_size) < end)
         {
+ 
             rec_id = 0; 
             for (unsigned char i=0; i<id_size; i++, buf++) {
                 rec_id += (*buf) << (i <<3);
@@ -78,7 +82,7 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
             }
             
             if (!mlist) {
-                snprintf(err_string, 1024, "Unknown record id %d ", rec_id);
+                snprintf(err_string, 1024, "Unknown record id %uld ", rec_id);
                 PyErr_SetString(PyExc_ValueError, err_string);
                 return 0;
             }
@@ -88,7 +92,7 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
                 if (rec_size + position + id_size > size) {
                     break;
                 }
-                bts = PyBytes_FromStringAndSize(buf, rec_size);
+                bts = PyBytes_FromStringAndSize((const char *)buf, (Py_ssize_t) rec_size);
                 PyList_Append(
                     mlist,
                     bts
@@ -108,13 +112,13 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
                 if (position + length + id_size > size) {
                     break;
                 }
-                bts = PyBytes_FromStringAndSize(buf, length);
+                bts = PyBytes_FromStringAndSize((const char *)buf, (Py_ssize_t) length);
                 PyList_Append(mlist, bts);
                 Py_DECREF(bts);
                 buf += length;
             }
 
-            position = (unsigned long long) buf - (unsigned long long) orig;
+            position = (unsigned long long) (buf - orig);
         } 
         
         while (head != NULL) {
@@ -129,8 +133,14 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
         head = NULL;
         last = NULL;
         item = NULL;
-
-        rem = PyBytes_FromStringAndSize(orig+position, size - position);
+		mlist = NULL;
+		
+        rem = PyBytes_FromStringAndSize((const char *) (orig + position), (Py_ssize_t) (size - position));
+		
+		buf = NULL;
+		orig = NULL;
+		end = NULL;
+	
         return rem;
     }
 }
@@ -138,7 +148,7 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
 
 static PyObject* extract(PyObject* self, PyObject* args)
 {
-    int i=0, j, count, max=0;
+    int i=0, count, max=0;
 	bool is_byte_array;
     int pos=0;
     int size;
@@ -157,7 +167,7 @@ static PyObject* extract(PyObject* self, PyObject* args)
     }
     else
     {
-        buf = (unsigned char *) PyBytes_AS_STRING(signal_data);
+        buf = PyBytes_AS_STRING(signal_data);
 
         count = 0;
 
@@ -288,11 +298,10 @@ static PyObject* get_vlsd_offsets(PyObject* self, PyObject* args)
         }
     }
 
-    result = PyTuple_Pack(2, values, PyLong_FromUnsignedLong(current_size));
+    result = PyTuple_Pack(2, values, PyLong_FromUnsignedLongLong(current_size));
 
     return result;
 }
-
 
 
 // Our Module's Function Definition struct
@@ -304,7 +313,7 @@ static PyMethodDef myMethods[] =
     { "lengths", lengths, METH_VARARGS, "lengths" },
     { "get_vlsd_offsets", get_vlsd_offsets, METH_VARARGS, "get_vlsd_offsets" },
     { "sort_data_block", sort_data_block, METH_VARARGS, "sort raw data group block" },
-
+    
     { NULL, NULL, 0, NULL }
 };
 
