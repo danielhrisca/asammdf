@@ -3591,6 +3591,7 @@ class MDF:
     def extract_can_logging(
         self,
         dbc_files,
+        dbs=(),
         version=None,
         ignore_invalid_signals=False,
         consolidated_j1939=True,
@@ -3602,6 +3603,8 @@ class MDF:
         ----------
         dbc_files : iterable
             iterable of str or pathlib.Path objects
+        dbs : iterable
+            iterable of (canmatrix.CanMatrix, str) tuples
         version (None) : str
             output file version
         ignore_invalid_signals (False) : bool
@@ -3640,7 +3643,7 @@ class MDF:
 
         max_flags = []
 
-        valid_dbc_files = []
+        valid_dbc_files = list(dbs)
         for dbc_name in dbc_files:
             dbc = load_can_database(dbc_name)
             if dbc is None:

@@ -3,11 +3,13 @@ from pathlib import Path
 import tempfile
 import unittest
 import urllib
+import urllib.request
 from zipfile import ZipFile
 
 import numpy as np
 
 from asammdf import MDF
+from asammdf.blocks.utils import load_can_database
 
 
 class TestCANBusLogging(unittest.TestCase):
@@ -59,15 +61,20 @@ class TestCANBusLogging(unittest.TestCase):
             if input_file.suffix == ".npy"
         ]
 
-        out = mdf.extract_can_logging([dbc])
+        database = load_can_database(dbc)
+        outs = (
+            mdf.extract_can_logging([dbc]),
+            mdf.extract_can_logging((), dbs=[(database, dbc)]),
+        )
 
         for signal in signals:
             name = signal.stem
 
             target = np.load(signal)
-            values = out.get(name).samples
+            for out in outs:
+                values = out.get(name).samples
 
-            self.assertTrue(np.array_equal(values, target))
+                self.assertTrue(np.array_equal(values, target))
 
     def test_j1939_extract(self):
         print("J1939 extract")
@@ -94,15 +101,20 @@ class TestCANBusLogging(unittest.TestCase):
             if input_file.suffix == ".npy"
         ]
 
-        out = mdf.extract_can_logging([dbc])
+        database = load_can_database(dbc)
+        outs = (
+            mdf.extract_can_logging([dbc]),
+            mdf.extract_can_logging((), dbs=[(database, dbc)]),
+        )
 
         for signal in signals:
             name = signal.stem
 
             target = np.load(signal)
-            values = out.get(name).samples
+            for out in outs:
+                values = out.get(name).samples
 
-            self.assertTrue(np.array_equal(values, target))
+                self.assertTrue(np.array_equal(values, target))
 
     def test_j1939_get_can_signal(self):
         print("J1939 get CAN signal")
