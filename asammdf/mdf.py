@@ -788,7 +788,7 @@ class MDF:
             * raw (False) : bool
               export all channels using the raw values
 
-              .. versionadded:: 5.24.0
+              .. versionadded:: 6.0.0
 
 
         """

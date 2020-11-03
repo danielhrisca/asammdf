@@ -69,42 +69,45 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 "| (or)",
                 ">> (right shift)",
                 "<< (left shift)",
+                "average",
+                "maximum",
+                "minimum",
             ]
         )
 
         self.function.addItems(
             sorted(
                 [
-                    "arccos",
-                    "arcsin",
-                    "arctan",
-                    "cos",
-                    "deg2rad",
-                    "degrees",
-                    "rad2deg",
-                    "radians",
-                    "sin",
-                    "tan",
-                    "ceil",
-                    "floor",
-                    "rint",
-                    "around",
-                    "fix",
-                    "trunc",
-                    "cumprod",
-                    "cumsum",
-                    "diff",
-                    "gradient",
-                    "exp",
-                    "log10",
-                    "log",
-                    "log2",
-                    "absolute",
-                    "cbrt",
-                    "clip",
-                    "sqrt",
-                    "square",
-                ]
+                 'absolute',
+                 'arccos',
+                 'arcsin',
+                 'arctan',
+                 'around',
+                 'cbrt',
+                 'ceil',
+                 'clip',
+                 'cos',
+                 'cumprod',
+                 'cumsum',
+                 'deg2rad',
+                 'degrees',
+                 'diff',
+                 'exp',
+                 'fix',
+                 'floor',
+                 'gradient',
+                 'log',
+                 'log10',
+                 'log2',
+                 'rad2deg',
+                 'radians',
+                 'rint',
+                 'sin',
+                 'sqrt',
+                 'square',
+                 'tan',
+                 'trunc'
+                 ]
             )
         )
         self.function.setCurrentIndex(-1)
@@ -249,7 +252,30 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         op = self.op.currentText().split(" ")[0]
 
         try:
-            self.result = eval(f"operand1 {op} operand2")
+            if op in OPS_TO_STR:
+                self.result = eval(f"operand1 {op} operand2")
+            elif op == "average":
+                self.result = (operand1 + operand2) / 2
+            elif op in ('maximum', 'minimum'):
+                if isinstance(operand1, (int, float)) and isinstance(operand2, (int, float)):
+                    fnc = min if op == 'minimum' else max
+                    self.result = fnc(operand1, operand2)
+                elif isinstance(operand1, (int, float)):
+                    fnc = np.minimum if op == 'minimum' else np.maximum
+                    operand1 = [operand1]
+                    self.result = operand2.copy()
+                    self.result.samples = fnc(self.result.samples, operand1)
+                elif isinstance(operand2, (int, float)):
+                    fnc = np.minimum if op == 'minimum' else np.maximum
+                    operand2 = [operand2]
+                    self.result = operand1.copy()
+                    self.result.samples = fnc(self.result.samples, operand2)
+                else:
+                    fnc = np.minimum if op == 'minimum' else np.maximum
+                    t = np.union1d(operand1.timestamps, operand2.timestamps)
+                    operand1 = operand1.interp(t)
+                    operand2 = operand2.interp(t)
+                    self.result = Signal(fnc(operand1.samples, operand2.samples), t, name='_')
             if not hasattr(self.result, "name"):
                 self.result = AsamSignal(
                     name="_",
@@ -260,7 +286,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             name = self.name.text()
 
             if not name:
-                name = f"COMP_{operand1_str}{OPS_TO_STR[op]}{operand2_str}"
+                name = f"COMP_{operand1_str}{OPS_TO_STR.get(op, f'_{op}_')}{operand2_str}"
 
             self.result.name = name
             self.result.unit = self.unit.text()
