@@ -1007,7 +1007,7 @@ class MDF3(MDF_Common):
             must be *latin-1* encoded
         acq_name : str
             channel group acquisition name
-        acq_source : asammdf.source_utils.Source
+        acq_source : Source
             channel group acquisition source
         comment : str
             channel group comment; default 'Python'
