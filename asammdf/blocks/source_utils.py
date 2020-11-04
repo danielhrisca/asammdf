@@ -65,16 +65,16 @@ class Source:
                     source.name,
                     source.path,
                     source.comment,
-                    self.SOURCE_OTHER,  # source type other
-                    self.BUS_TYPE_NONE,  # bus type none
+                    cls.SOURCE_OTHER,  # source type other
+                    cls.BUS_TYPE_NONE,  # bus type none
                 )
             else:
                 source = cls(
                     source.name,
                     source.path,
                     source.comment,
-                    self.SOURCE_BUS,  # source type bus
-                    self.BUS_TYPE_CAN,  # bus type CAN
+                    cls.SOURCE_BUS,  # source type bus
+                    cls.BUS_TYPE_CAN,  # bus type CAN
                 )
 
         elif isinstance(source, v4b.SourceInformation):
