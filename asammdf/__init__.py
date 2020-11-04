@@ -14,6 +14,7 @@ logger.setLevel(logging.ERROR)
 from .blocks.mdf_v2 import MDF2
 from .blocks.mdf_v3 import MDF3
 from .blocks.mdf_v4 import MDF4
+from .blocks.source_utils import Source
 from .gui import plot
 from .mdf import MDF, SUPPORTED_VERSIONS
 from .signal import Signal
@@ -33,7 +34,8 @@ __all__ = [
     "MDF2",
     "MDF3",
     "MDF4",
-    "Signal",
-    "SUPPORTED_VERSIONS",
     "plot",
+    "Signal",
+    "Source",
+    "SUPPORTED_VERSIONS",
 ]
