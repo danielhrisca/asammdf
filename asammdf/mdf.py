@@ -13,6 +13,7 @@ from shutil import copy
 from struct import unpack
 import xml.etree.ElementTree as ET
 
+from canmatrix import CanMatrix
 import numpy as np
 import pandas as pd
 
@@ -3585,7 +3586,10 @@ class MDF:
         Parameters
         ----------
         dbc_files : iterable
-            iterable of str or pathlib.Path objects
+            iterable of str, pathlib.Path or canamtrix.CanMatrix objects
+
+            .. versionchanged:: 6.0.0 added canmatrix.CanMatrix type
+
         version (None) : str
             output file version
         ignore_invalid_signals (False) : bool
@@ -3625,12 +3629,18 @@ class MDF:
         max_flags = []
 
         valid_dbc_files = []
+        unique_name = UniqueDB()
         for dbc_name in dbc_files:
-            dbc = load_can_database(dbc_name)
-            if dbc is None:
-                continue
+            if isinstance(dbc_name, CanMatrix):
+                valid_dbc_files.append(
+                    (dbc_name, unique_name.get_unique_name("UserProvidedCanMatrix"))
+                )
             else:
-                valid_dbc_files.append((dbc, dbc_name))
+                dbc = load_can_database(dbc_name)
+                if dbc is None:
+                    continue
+                else:
+                    valid_dbc_files.append((dbc, dbc_name))
 
         count = sum(
             1

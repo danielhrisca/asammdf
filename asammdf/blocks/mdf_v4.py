@@ -7773,7 +7773,7 @@ class MDF4(MDF_Common):
           starts from 1 and the `MESSAGE_ID` is the decimal message ID as found
           in the database. Example: CAN1.CAN_DataFrame_218.FL_WheelSpeed
 
-        * ``<MESSAGE_NAME>.SIGNAL_NAME`` - in this case the first occurence of
+        * ``<MESSAGE_NAME>.<SIGNAL_NAME>`` - in this case the first occurence of
           the message name and signal are returned (the same message could be
           found on muplit CAN buses; for example on CAN1 and CAN3)
           Example: Wheels.FL_WheelSpeed
@@ -7986,7 +7986,7 @@ class MDF4(MDF_Common):
         else:
             idx = nonzero(can_ids.samples == message.arbitration_id.id)[0]
 
-        vals = payload[idx]
+        payload = payload[idx]
         t = can_ids.timestamps[idx].copy()
 
         if can_ids.invalidation_bits is not None:
@@ -7994,35 +7994,37 @@ class MDF4(MDF_Common):
         else:
             invalidation_bits = None
 
-        vals = extract_can_signal(signal, vals, raw, ignore_value2text_conversion)
+        if not ignore_invalidation_bits and invalidation_bits is not None:
+            payload = payload[nonzero(~invalidation_bits)[0]]
+            t = t[nonzero(~invalidation_bits)[0]]
+
+        extracted_signals = extract_mux(
+            payload,
+            message,
+            None,
+            None,
+            t,
+            original_message_id=None,
+            ignore_value2text_conversion=ignore_value2text_conversion,
+            raw=raw,
+        )
 
         comment = signal.comment or ""
 
-        if ignore_invalidation_bits:
+        for entry, signals in extracted_signals.items():
+            for name_, sig in signals.items():
+                if name_ == signal.name:
+                    return Signal(
+                        samples=sig['samples'],
+                        timestamps=sig['t'],
+                        name=name,
+                        unit=signal.unit or "",
+                        comment=comment,
+                    )
 
-            sig = Signal(
-                samples=vals,
-                timestamps=t,
-                name=name,
-                unit=signal.unit or "",
-                comment=comment,
-                invalidation_bits=invalidation_bits,
-            )
-            return sig
-
-        else:
-
-            if invalidation_bits is not None:
-                vals = vals[nonzero(~invalidation_bits)[0]]
-                t = t[nonzero(~invalidation_bits)[0]]
-
-            return Signal(
-                samples=vals,
-                timestamps=t,
-                name=name,
-                unit=signal.unit or "",
-                comment=comment,
-            )
+        raise MdfException(
+            f'No logging from "{signal}" was found in the measurement'
+        )
 
     def info(self):
         """get MDF information as a dict
