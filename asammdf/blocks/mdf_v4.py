@@ -23,6 +23,7 @@ from lz4.frame import decompress as lz_decompress
 from numpy import (
     arange,
     array,
+    argwhere,
     array_equal,
     column_stack,
     concatenate,
@@ -361,6 +362,8 @@ class MDF4(MDF_Common):
 
                 if version >= "4.10" and flags:
                     tmpdir = Path(gettempdir())
+                    print(tmpdir)
+                    print(name)
                     self.name = tmpdir / Path(name).name
                     shutil.copy(name, self.name)
                     self._file = open(self.name, "rb+")
@@ -7895,7 +7898,7 @@ class MDF4(MDF_Common):
             raise MdfException(
                 f'Signal "{signal}" not found in message "{message.name}" of "{database}"'
             )
-
+        print(self.bus_logging_map["CAN"])
         if can_id is None:
             index = None
             for _can_id, messages in self.bus_logging_map["CAN"].items():
@@ -7982,9 +7985,9 @@ class MDF4(MDF_Common):
             _pgn = pf << 8
             _pgn = where(pf >= 240, _pgn + ps, _pgn)
 
-            idx = nonzero(_pgn == message.arbitration_id.pgn)[0]
+            idx = argwhere(_pgn == message.arbitration_id.pgn).ravel()
         else:
-            idx = nonzero(can_ids.samples == message.arbitration_id.id)[0]
+            idx = argwhere(can_ids.samples == message.arbitration_id.id).ravel()
 
         payload = payload[idx]
         t = can_ids.timestamps[idx].copy()
@@ -9442,6 +9445,7 @@ class MDF4(MDF_Common):
                     and source.bus_type in (v4c.BUS_TYPE_CAN, v4c.BUS_TYPE_OTHER)
                     and "CAN_DataFrame" in [ch.name for ch in group.channels]
                 ):
+                    print('CAN', index)
                     self._process_can_logging(index, group)
 
     def _process_can_logging(self, group_index, grp):
@@ -9473,6 +9477,8 @@ class MDF4(MDF_Common):
                     else:
                         dbc = self._dbc_cache[attachment_addr]
                 break
+
+        print('dbc', dbc is None)
 
         if dbc is None:
             parents, dtypes = self._prepare_record(group)
@@ -9507,9 +9513,12 @@ class MDF4(MDF_Common):
                 )
 
                 if len(bus_ids) == 0:
+                    print('zero')
                     continue
 
                 buses = unique(bus_ids)
+
+                print(buses)
 
                 for bus in buses:
                     bus_msg_ids = msg_ids[bus_ids == bus]

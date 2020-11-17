@@ -373,6 +373,10 @@ class MDF:
                     event.scopes.append(group)
                     self.events.append(event)
 
+    def _transfer_metadata(self):
+        self._transfer_events()
+        self._transfer_header_data()
+
     def __contains__(self, channel):
         """ if *'channel name'* in *'mdf file'* """
         return channel in self.channels_db
@@ -441,7 +445,7 @@ class MDF:
             if self._terminate:
                 return
 
-        out._transfer_events(self)
+        out._transfer_metadata(self)
         self.configure(copy_on_get=True)
         if self._callback:
             out._callback = out._mdf._callback = self._callback
@@ -709,7 +713,7 @@ class MDF:
 
         self.configure(copy_on_get=True)
 
-        out._transfer_events(self)
+        out._transfer_metadata(self)
         if self._callback:
             out._callback = out._mdf._callback = self._callback
         return out
@@ -1466,7 +1470,7 @@ class MDF:
 
         self.configure(copy_on_get=True)
 
-        mdf._transfer_events(self)
+        mdf._transfer_metadata(self)
         if self._callback:
             mdf._callback = mdf._mdf._callback = self._callback
         return mdf
@@ -1812,7 +1816,7 @@ class MDF:
             if MDF._terminate:
                 return
 
-            merged._transfer_events(mdf)
+            merged._transfer_metadata(mdf)
 
         try:
             merged._process_bus_logging()
@@ -2305,7 +2309,7 @@ class MDF:
         if self._callback:
             self._callback(groups_nr, groups_nr)
 
-        mdf._transfer_events(self)
+        mdf._transfer_metadata(self)
         if self._callback:
             mdf._callback = mdf._mdf._callback = self._callback
         return mdf
@@ -4024,7 +4028,7 @@ class MDF:
             if self._terminate:
                 return
 
-        out._transfer_events(self)
+        out._transfer_metadata(self)
         self.configure(copy_on_get=True)
         if self._callback:
             out._callback = out._mdf._callback = self._callback
