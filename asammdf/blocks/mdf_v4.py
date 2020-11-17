@@ -7756,7 +7756,6 @@ class MDF4(MDF_Common):
         self,
         name,
         database=None,
-        db=None,
         ignore_invalidation_bits=False,
         data=None,
         raw=False,
@@ -7796,9 +7795,11 @@ class MDF4(MDF_Common):
         name : str
             signal name
         database : str
-            path of external CAN database file (.dbc or .arxml); default *None*
-        db : canmatrix.database
-            canmatrix CAN database object; default *None*
+            path of external CAN database file (.dbc or .arxml) or canmatrix.CanMatrix; default *None*
+
+            .. versionchanged:: 6.0.0
+                `db` and `database` arguments were merged into this single argument
+
         ignore_invalidation_bits : bool
             option to ignore invalidation bits
         raw : bool
@@ -7815,10 +7816,10 @@ class MDF4(MDF_Common):
 
         """
 
-        if database is None and db is None:
+        if database is None:
             return self.get(name)
 
-        if db is None:
+        if isinstance(database, (str, Path)):
 
             if not str(database).lower().endswith(("dbc", "arxml")):
                 message = f'Expected .dbc or .arxml file as CAN channel attachment but got "{database}"'
@@ -7834,6 +7835,8 @@ class MDF4(MDF_Common):
                     db = load_can_database(database, db_string)
                     if db is None:
                         raise MdfException("failed to load database")
+        else:
+            db = database
 
         is_j1939 = db.contains_j1939
 
