@@ -373,9 +373,15 @@ class MDF:
                     event.scopes.append(group)
                     self.events.append(event)
 
-    def _transfer_metadata(self):
-        self._transfer_events()
-        self._transfer_header_data()
+    def _transfer_header_data(self, other):
+        self.header.author = other.header.author
+        self.header.department = other.header.department
+        self.header.project = other.header.project
+        self.header.subject = other.header.subject
+
+    def _transfer_metadata(self, other):
+        self._transfer_events(other)
+        self._transfer_header_data(other)
 
     def __contains__(self, channel):
         """ if *'channel name'* in *'mdf file'* """

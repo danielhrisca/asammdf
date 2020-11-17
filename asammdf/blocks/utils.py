@@ -15,7 +15,23 @@ import sys
 from tempfile import TemporaryDirectory
 import xml.etree.ElementTree as ET
 
-from cchardet import detect
+try:
+    from chardet import detect
+except:
+    try:
+        from cchardet import detect
+    except:
+        def detect(text):
+            for encoding in ('utf-8', 'latin-1', 'cp1250', 'cp1252'):
+                try:
+                    text.decode(encoding)
+                    break
+                except:
+                    continue
+            else:
+                encoding = None
+            return {"encoding": encoding}
+
 import numpy as np
 from numpy import arange, interp, where
 from numpy.core.records import fromarrays
@@ -196,8 +212,11 @@ def get_text_v3(address, stream, mapped=False, decode=True):
         try:
             text = text_bytes.decode("latin-1")
         except UnicodeDecodeError:
-            encoding = detect(text_bytes)["encoding"]
-            text = text_bytes.decode(encoding, "ignore")
+            try:
+                encoding = detect(text_bytes)["encoding"]
+                text = text_bytes.decode(encoding, "ignore")
+            except:
+                text = "<!text_decode_error>"
     else:
         text = text_bytes
 
@@ -241,8 +260,11 @@ def get_text_v4(address, stream, mapped=False, decode=True):
         try:
             text = text_bytes.decode("utf-8")
         except UnicodeDecodeError:
-            encoding = detect(text_bytes)["encoding"]
-            text = text_bytes.decode(encoding, "ignore")
+            try:
+                encoding = detect(text_bytes)["encoding"]
+                text = text_bytes.decode(encoding, "ignore")
+            except:
+                text = "<!text_decode_error>"
     else:
         text = text_bytes
 
