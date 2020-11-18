@@ -378,6 +378,7 @@ class MDF:
         self.header.department = other.header.department
         self.header.project = other.header.project
         self.header.subject = other.header.subject
+        self.header.comment = other.header.comment
 
     def _transfer_metadata(self, other):
         self._transfer_events(other)
