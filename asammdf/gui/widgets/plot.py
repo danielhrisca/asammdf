@@ -18,6 +18,7 @@ from ..utils import COLORS, extract_mime_names
 from .channel_display import ChannelDisplay
 from .channel_stats import ChannelStats
 from .cursor import Cursor
+from .dict_to_tree import ComputedChannelInfoWindow
 from .formated_axis import FormatedAxis
 from .list import ListWidget
 from .list_item import ListItem
@@ -1265,6 +1266,10 @@ class Plot(QtWidgets.QWidget):
         it = ChannelDisplay(sig.uuid, unit, sig.samples.dtype.kind, 3, tooltip, self)
         it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
+        font = QtGui.QFont()
+        font.setItalic(True)
+        it.name.setFont(font)
+
         it.set_name(name)
         it.set_value("")
         it.set_color(sig.color)
@@ -1362,6 +1367,11 @@ class Plot(QtWidgets.QWidget):
             it = ChannelDisplay(sig.uuid, sig.unit, kind, 3, tooltip, self)
             it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
+            if sig.computed:
+                font = QtGui.QFont()
+                font.setItalic(True)
+                it.name.setFont(font)
+
             it.set_name(sig.name)
             it.set_value("")
             it.set_color(sig.color)
@@ -1452,10 +1462,15 @@ class Plot(QtWidgets.QWidget):
 
     def _show_properties(self, uuid):
         for sig in self.plot.signals:
-            if sig.uuid == uuid and not sig.computed:
-                self.show_properties.emit(
-                    [sig.group_index, sig.channel_index, sig.mdf_uuid]
-                )
+            if sig.uuid == uuid:
+                if sig.computed:
+                    view = ComputedChannelInfoWindow(sig, self)
+                    view.show()
+
+                else:
+                    self.show_properties.emit(
+                        [sig.group_index, sig.channel_index, sig.mdf_uuid]
+                    )
 
     def set_splitter(self, pos, index):
         self.splitter_moved.emit(self, pos)

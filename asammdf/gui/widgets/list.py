@@ -193,7 +193,7 @@ class ListWidget(QtWidgets.QListWidget):
         menu.addSeparator()
         menu.addAction(self.tr("Delete (Del)"))
         menu.addSeparator()
-        menu.addAction(self.tr("File properties"))
+        menu.addAction(self.tr("File/Computation properties"))
 
         action = menu.exec_(self.viewport().mapToGlobal(position))
 
