@@ -68,8 +68,9 @@ class Ui_ChannelDiplay(object):
         self.horizontalLayout.addWidget(self.individual_axis)
         self.horizontalLayout.setStretch(2, 1)
 
-        self.retranslateUi(ChannelDiplay)
-        QtCore.QMetaObject.connectSlotsByName(ChannelDiplay)
+        # self.retranslateUi(ChannelDiplay)
+        self.ylink.setToolTip("enable common Y axis")
+        # QtCore.QMetaObject.connectSlotsByName(ChannelDiplay)
 
     def retranslateUi(self, ChannelDiplay):
         _translate = QtCore.QCoreApplication.translate

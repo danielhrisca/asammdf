@@ -109,6 +109,7 @@ class WithMDIArea:
 
     def add_new_channels(self, names, widget):
         if isinstance(widget, Plot):
+            ignore_value2text_conversions = False
             current_count = len(widget.plot.signals)
             count = len(names)
             if current_count + count > 200:
@@ -123,6 +124,9 @@ class WithMDIArea:
 
                 if ret != QtWidgets.QMessageBox.Yes:
                     return
+        else:
+            ignore_value2text_conversions = self.ignore_value2text_conversions
+
         try:
 
             signals_ = [name for name in names if name[1:] != (-1, -1)]
@@ -144,7 +148,7 @@ class WithMDIArea:
 
                 selected_signals = file.mdf.select(
                     uuids_signals,
-                    ignore_value2text_conversions=self.ignore_value2text_conversions,
+                    ignore_value2text_conversions=ignore_value2text_conversions,
                     copy_master=False,
                     validate=True,
                     raw=True,
@@ -386,6 +390,11 @@ class WithMDIArea:
                     w.show()
                     self.mdi_area.tileSubWindows()
 
+            if self._frameless_windows:
+                w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+
+            w.layout().setSpacing(1)
+
             menu = w.systemMenu()
 
             def set_title(mdi):
@@ -393,6 +402,7 @@ class WithMDIArea:
                     None, "Set sub-plot title", "Title:"
                 )
                 if ok and name:
+                    widget = mdi.widget()
                     mdi.setWindowTitle(name)
 
             action = QtWidgets.QAction("Set title", menu)
@@ -477,6 +487,11 @@ class WithMDIArea:
                     w.show()
                     self.mdi_area.tileSubWindows()
 
+            if self._frameless_windows:
+                w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+
+            w.layout().setSpacing(1)
+
             plot.hide()
 
             plot.add_new_channels(signals)
@@ -537,8 +552,6 @@ class WithMDIArea:
                 signals = list(computed_signals.values())
                 plot.add_new_channels(signals)
 
-            plot.show()
-
             menu = w.systemMenu()
 
             def set_title(mdi):
@@ -573,7 +586,9 @@ class WithMDIArea:
             )
 
             plot.show_properties.connect(self._show_info)
+            plot.channel_selection.setCurrentRow(0)
 
+            plot.show()
             self.set_subplots_link(self.subplots_link)
 
         elif window_type == "Tabular":
@@ -595,6 +610,10 @@ class WithMDIArea:
                     self.mdi_area.tileSubWindows()
 
             menu = w.systemMenu()
+            if self._frameless_windows:
+                w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+
+            w.layout().setSpacing(1)
 
             def set_title(mdi):
                 name, ok = QtWidgets.QInputDialog.getText(
@@ -611,11 +630,6 @@ class WithMDIArea:
 
             w.setWindowTitle(f"Tabular {self._window_counter}")
             self._window_counter += 1
-
-        if self._frameless_windows:
-            w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
-
-        w.layout().setSpacing(1)
 
     def get_current_plot(self):
         mdi = self.mdi_area.activeSubWindow()

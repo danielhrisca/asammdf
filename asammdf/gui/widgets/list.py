@@ -325,7 +325,7 @@ class ListWidget(QtWidgets.QListWidget):
             )
             self.keyPressEvent(event)
 
-        elif action.text() == "File properties":
+        elif action.text() == "File/Computation properties":
             selected_items = self.selectedItems()
             if len(selected_items) == 1:
                 item = selected_items[0]

@@ -1070,7 +1070,6 @@ class Plot(QtWidgets.QWidget):
         key = event.key()
         modifiers = event.modifiers()
         if key == QtCore.Qt.Key_M and modifiers == QtCore.Qt.NoModifier:
-
             ch_size, plt_size, info_size = self.splitter.sizes()
 
             if self.info.isVisible():
@@ -1583,7 +1582,6 @@ class _Plot(pg.PlotWidget):
         self.view_boxes = []
         self.curves = []
 
-        self.viewbox.sigResized.connect(self.update_views)
         self._prev_geometry = self.viewbox.sceneBoundingRect()
 
         self.resizeEvent = self._resizeEvent
@@ -1650,6 +1648,10 @@ class _Plot(pg.PlotWidget):
                     },
                 )
                 self.plotItem.addItem(line, ignoreBounds=True)
+
+        self.viewbox.sigResized.connect(self.update_views)
+        if signals:
+            self.update_views()
 
     def update_lines(self, with_dots=None, force=False):
         with_dots_changed = False
@@ -2265,6 +2267,7 @@ class _Plot(pg.PlotWidget):
             axis.update()
 
         self.current_uuid = uuid
+        axis.setWidth()
 
     def _clicked(self, event):
         modifiers = QtGui.QApplication.keyboardModifiers()
@@ -2332,6 +2335,8 @@ class _Plot(pg.PlotWidget):
             start_t, stop_t = np.amin(self.all_timebase), np.amax(self.all_timebase)
             self.viewbox.setXRange(start_t, stop_t)
 
+        axis_uuid = None
+
         for index, sig in enumerate(channels, initial_index):
             color = sig.color
 
@@ -2346,6 +2351,7 @@ class _Plot(pg.PlotWidget):
                 axis.text_conversion = sig.conversion
 
             view_box = pg.ViewBox(enableMenu=False)
+            view_box.setGeometry(geometry)
             view_box.disableAutoRange()
 
             axis.linkToView(view_box)
@@ -2386,7 +2392,6 @@ class _Plot(pg.PlotWidget):
             if not sig.empty:
                 view_box.setYRange(sig.min, sig.max, padding=0, update=True)
 
-            view_box.setGeometry(geometry)
             #            (start, stop), _ = self.viewbox.viewRange()
             #            view_box.setXRange(start, stop, padding=0, update=True)
 
@@ -2395,13 +2400,16 @@ class _Plot(pg.PlotWidget):
             view_box.addItem(curve)
 
             if initial_index == 0 and index == 0:
-                self.set_current_uuid(sig.uuid)
+                axis_uuid = sig.uuid
 
         for index, sig in enumerate(channels, initial_index):
             self.view_boxes[index].setXLink(self.viewbox)
 
         for curve in self.curves[initial_index:]:
             curve.show()
+
+        if axis_uuid is not None:
+            self.set_current_uuid(sig.uuid)
 
         return channels
 

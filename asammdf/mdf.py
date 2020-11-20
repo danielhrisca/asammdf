@@ -1535,7 +1535,9 @@ class MDF:
 
     @staticmethod
     def concatenate(
-        files, version="4.10", sync=True, add_samples_origin=False, **kwargs
+        files, version="4.10", sync=True, add_samples_origin=False,
+        direct_timestamp_continuation=False,
+        **kwargs
     ):
         """concatenates several files. The files
         must have the same internal structure (same number of groups, and same
@@ -1552,6 +1554,11 @@ class MDF:
         add_samples_origin : bool
             option to create a new "__samples_origin" channel that will hold
             the index of the measurement from where each timestamp originated
+        direct_timestamp_continuation (False) : bool
+            the time stamps from the next file will be added right after the last
+            time stamp from the previous file; default False
+
+            .. versionadded:: 6.0.0
 
         kwargs :
 
@@ -1782,7 +1789,7 @@ class MDF:
                             if last_timestamp is None:
                                 last_timestamp = master[-1]
                             else:
-                                if last_timestamp >= master[0]:
+                                if last_timestamp >= master[0] or direct_timestamp_continuation:
                                     if len(master) >= 2:
                                         delta = master[1] - master[0]
                                     else:
