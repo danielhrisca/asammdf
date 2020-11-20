@@ -43,7 +43,7 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
             data = e.mimeData()
             if data.hasFormat("application/octet-stream-asammdf"):
                 names = extract_mime_names(data)
-                ret, ok = QtWidgets.QInputDialog.getItem(
+                window_type, ok = QtWidgets.QInputDialog.getItem(
                     None,
                     "Select window type",
                     "Type:",
@@ -52,7 +52,19 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
                     False,
                 )
                 if ok:
-                    self.add_window_request.emit([ret, names])
+                    if window_type == "Plot" and len(names) > 200:
+                        ret = QtWidgets.QMessageBox.question(
+                            self,
+                            "Continue plotting large number of channels?",
+                            "For optimal performance it is advised not plot more than 200 channels. "
+                            f"You are attempting to plot {len(names)} channels.\n"
+                            "Do you wish to continue?",
+                        )
+
+                        if ret != QtWidgets.QMessageBox.Yes:
+                            return
+
+                    self.add_window_request.emit([window_type, names])
 
     def tile_vertically(self):
         sub_windows = self.subWindowList()
@@ -96,6 +108,21 @@ class WithMDIArea:
         self._frameless_windows = False
 
     def add_new_channels(self, names, widget):
+        if isinstance(widget, Plot):
+            current_count = len(widget.plot.signals)
+            count = len(names)
+            if current_count + count > 200:
+                ret = QtWidgets.QMessageBox.question(
+                    self,
+                    "Continue plotting large number of channels?",
+                    "For optimal performance it is advised not plot more than 200 channels. "
+                    f"You are attempting to add {count} new channels to a plot that already "
+                    f"contains {current_count} channels.\n"
+                    "Do you wish to continue?",
+                )
+
+                if ret != QtWidgets.QMessageBox.Yes:
+                    return
         try:
 
             signals_ = [name for name in names if name[1:] != (-1, -1)]

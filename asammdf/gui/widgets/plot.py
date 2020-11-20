@@ -1575,6 +1575,13 @@ class _Plot(pg.PlotWidget):
 
         self._uuid_map = {}
 
+        self._enabled_changed_signals = []
+        self._enable_timer = QtCore.QTimer()
+        self._enable_timer.setSingleShot(True)
+        self._enable_timer.timeout.connect(
+            self._signals_enabled_changed_handler
+        )
+
         if signals:
             self.add_new_channels(signals)
 
@@ -1763,7 +1770,6 @@ class _Plot(pg.PlotWidget):
 
         if state in (QtCore.Qt.Checked, True, 1):
             self.signals[index].enable = True
-            self.curves[index].show()
             self.view_boxes[index].setXLink(self.viewbox)
             if self.signals[index].individual_axis:
                 self.axes[index].show()
@@ -1773,7 +1779,6 @@ class _Plot(pg.PlotWidget):
 
         else:
             self.signals[index].enable = False
-            self.curves[index].hide()
             self.view_boxes[index].setXLink(None)
             self.axes[index].hide()
 
@@ -1782,10 +1787,14 @@ class _Plot(pg.PlotWidget):
 
                 if len(self._timebase_db[id(sig.timestamps)]) == 0:
                     del self._timebase_db[id(sig.timestamps)]
-                    self._compute_all_timebase()
             except:
                 pass
 
+        self._enable_timer.start(50)
+
+    def _signals_enabled_changed_handler(self):
+        self._compute_all_timebase()
+        self.update_lines(force=True)
         if self.cursor1:
             self.cursor_move_finished.emit()
 

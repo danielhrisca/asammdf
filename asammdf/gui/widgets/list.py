@@ -46,6 +46,7 @@ class ListWidget(QtWidgets.QListWidget):
                 self.takeItem(row)
             if deleted:
                 self.itemsDeleted.emit(deleted)
+
         elif key == QtCore.Qt.Key_Space and modifiers == QtCore.Qt.NoModifier:
             selected_items = self.selectedItems()
             if not selected_items:
