@@ -7342,7 +7342,7 @@ class MDF4(MDF_Common):
 
                 if master not in result:
                     result[master] = {}
-                    result[master][master] = [self.masters_db[master]]
+                    result[master][master] = [self.masters_db.get(master, None)]
 
                 result[master][gp_index] = sorted(channels)
 
