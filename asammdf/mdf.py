@@ -1820,7 +1820,10 @@ class MDF:
                 last_timestamps[i] = last_timestamp
 
             mdf.configure(copy_on_get=True)
-
+            
+            if mdf_index == 0:
+                merged._transfer_metadata(mdf)
+                
             if not input_types[mdf_index]:
                 mdf.close()
 
@@ -1829,8 +1832,6 @@ class MDF:
 
             if MDF._terminate:
                 return
-
-            merged._transfer_metadata(mdf)
 
         try:
             merged._process_bus_logging()
@@ -1968,6 +1969,9 @@ class MDF:
                 callback(mdf_index, files_nr)
 
             mdf.configure(copy_on_get=True)
+            
+            if mdf_index == 0:
+                stacked._transfer_metadata(mdf)
 
             if not input_types[mdf_index]:
                 mdf.close()
