@@ -18,7 +18,6 @@ from ..utils import COLORS, extract_mime_names
 from .channel_display import ChannelDisplay
 from .channel_stats import ChannelStats
 from .cursor import Cursor
-from .dict_to_tree import ComputedChannelInfoWindow
 from .formated_axis import FormatedAxis
 from .list import ListWidget
 from .list_item import ListItem
@@ -161,6 +160,13 @@ class PlotSignal(Signal):
                     self._rms_raw = "n.a."
 
             self.empty = False
+
+            if self._min == self._max:
+                self.factor = 50.0
+                self.offset = -(self._min - 1)
+            else:
+                self.factor = 100.0 / (self._max - self._min)
+                self.offset = -self._min
 
         else:
             self.empty = True
@@ -649,6 +655,8 @@ class PlotSignal(Signal):
                     sig.plot_samples = signal_samples[start_:stop_]
                     sig.plot_timestamps = sig.timestamps[start_:stop_]
 
+        self.plot_samples = (self.plot_samples + self.offset) * self.factor
+
     def value_at_timestamp(self, stamp):
         cut = self.cut(stamp, stamp)
 
@@ -894,19 +902,11 @@ class Plot(QtWidgets.QWidget):
                 sig, idx = self.plot.signal_by_uuid(uuid)
 
                 curve = self.plot.curves[idx]
-                viewbox = self.plot.view_boxes[idx]
 
                 if curve.isVisible():
                     index = np.argwhere(sig.timestamps == next_pos).flatten()
                     if len(index):
-                        _, (y_min, y_max) = viewbox.viewRange()
-
                         sample = sig.samples[index[0]]
-                        sample = (sample - y_min) / (y_max - y_min) * (
-                            hint_max - hint_min
-                        ) + hint_min
-
-                        y.append(sample)
 
             # self.plot.viewbox.setYRange(hint_min, hint_max, padding=0)
             # self.plot.cursor_hint.setData(x=[next_pos] * len(y), y=y)
@@ -1070,6 +1070,7 @@ class Plot(QtWidgets.QWidget):
         key = event.key()
         modifiers = event.modifiers()
         if key == QtCore.Qt.Key_M and modifiers == QtCore.Qt.NoModifier:
+
             ch_size, plt_size, info_size = self.splitter.sizes()
 
             if self.info.isVisible():
@@ -1265,10 +1266,6 @@ class Plot(QtWidgets.QWidget):
         it = ChannelDisplay(sig.uuid, unit, sig.samples.dtype.kind, 3, tooltip, self)
         it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
-        font = QtGui.QFont()
-        font.setItalic(True)
-        it.name.setFont(font)
-
         it.set_name(name)
         it.set_value("")
         it.set_color(sig.color)
@@ -1366,11 +1363,6 @@ class Plot(QtWidgets.QWidget):
             it = ChannelDisplay(sig.uuid, sig.unit, kind, 3, tooltip, self)
             it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
-            if sig.computed:
-                font = QtGui.QFont()
-                font.setItalic(True)
-                it.name.setFont(font)
-
             it.set_name(sig.name)
             it.set_value("")
             it.set_color(sig.color)
@@ -1461,15 +1453,10 @@ class Plot(QtWidgets.QWidget):
 
     def _show_properties(self, uuid):
         for sig in self.plot.signals:
-            if sig.uuid == uuid:
-                if sig.computed:
-                    view = ComputedChannelInfoWindow(sig, self)
-                    view.show()
-
-                else:
-                    self.show_properties.emit(
-                        [sig.group_index, sig.channel_index, sig.mdf_uuid]
-                    )
+            if sig.uuid == uuid and not sig.computed:
+                self.show_properties.emit(
+                    [sig.group_index, sig.channel_index, sig.mdf_uuid]
+                )
 
     def set_splitter(self, pos, index):
         self.splitter_moved.emit(self, pos)
@@ -1540,6 +1527,7 @@ class _Plot(pg.PlotWidget):
         self.scene_ = self.plot_item.scene()
         self.scene_.sigMouseClicked.connect(self._clicked)
         self.viewbox = self.plot_item.vb
+        self.viewbox.setYRange(0, 100, padding=0)
 
         self.common_axis_items = set()
         self.common_axis_label = ""
@@ -1565,7 +1553,7 @@ class _Plot(pg.PlotWidget):
         self.y_axis = FormatedAxis("left")
         self.layout.removeItem(axis)
         self.layout.addItem(self.y_axis, 2, 0)
-        self.y_axis.linkToView(axis.linkedView())
+        # self.y_axis.linkToView(axis.linkedView())
         self.plot_item.axes["left"]["item"] = self.y_axis
 
         self.cursor_hint = pg.PlotDataItem(
@@ -1579,21 +1567,14 @@ class _Plot(pg.PlotWidget):
         )
         self.viewbox.addItem(self.cursor_hint)
 
-        self.view_boxes = []
         self.curves = []
 
+        self.viewbox.sigResized.connect(self.update_views)
         self._prev_geometry = self.viewbox.sceneBoundingRect()
 
         self.resizeEvent = self._resizeEvent
 
         self._uuid_map = {}
-
-        self._enabled_changed_signals = []
-        self._enable_timer = QtCore.QTimer()
-        self._enable_timer.setSingleShot(True)
-        self._enable_timer.timeout.connect(
-            self._signals_enabled_changed_handler
-        )
 
         if signals:
             self.add_new_channels(signals)
@@ -1649,10 +1630,6 @@ class _Plot(pg.PlotWidget):
                 )
                 self.plotItem.addItem(line, ignoreBounds=True)
 
-        self.viewbox.sigResized.connect(self.update_views)
-        if signals:
-            self.update_views()
-
     def update_lines(self, with_dots=None, force=False):
         with_dots_changed = False
 
@@ -1696,11 +1673,11 @@ class _Plot(pg.PlotWidget):
                             "https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip"
                         )
                         logger.warning(message)
-                    self.view_boxes[i].removeItem(self.curves[i])
+                    self.viewbox.removeItem(self.curves[i])
 
                     self.curves[i] = curve
 
-                    self.view_boxes[i].addItem(curve)
+                    self.viewbox.addItem(curve)
                 else:
                     curve = self.curves[i]
 
@@ -1787,6 +1764,7 @@ class _Plot(pg.PlotWidget):
 
         if state in (QtCore.Qt.Checked, True, 1):
             self.signals[index].enable = True
+            self.curves[index].show()
             self.view_boxes[index].setXLink(self.viewbox)
             if self.signals[index].individual_axis:
                 self.axes[index].show()
@@ -1796,6 +1774,7 @@ class _Plot(pg.PlotWidget):
 
         else:
             self.signals[index].enable = False
+            self.curves[index].hide()
             self.view_boxes[index].setXLink(None)
             self.axes[index].hide()
 
@@ -1804,22 +1783,16 @@ class _Plot(pg.PlotWidget):
 
                 if len(self._timebase_db[id(sig.timestamps)]) == 0:
                     del self._timebase_db[id(sig.timestamps)]
+                    self._compute_all_timebase()
             except:
                 pass
 
-        self._enable_timer.start(50)
-
-    def _signals_enabled_changed_handler(self):
-        self._compute_all_timebase()
-        self.update_lines(force=True)
         if self.cursor1:
             self.cursor_move_finished.emit()
 
     def update_views(self):
         geometry = self.viewbox.sceneBoundingRect()
         if geometry != self._prev_geometry:
-            for view_box in self.view_boxes:
-                view_box.setGeometry(geometry)
             self._prev_geometry = geometry
 
     def get_stats(self, uuid):
@@ -2245,12 +2218,9 @@ class _Plot(pg.PlotWidget):
 
         else:
             self.common_viewbox.setYLink(None)
-            for sig_, vbox in zip(self.signals, self.view_boxes):
-                if sig_.uuid not in self.common_axis_items:
-                    vbox.setYLink(None)
 
-            viewbox.setYRange(*self.view_boxes[index].viewRange()[1], padding=0)
-            self.view_boxes[index].setYLink(viewbox)
+            # viewbox.setYRange(*self.view_boxes[index].viewRange()[1], padding=0)
+
             if len(sig.name) <= 32:
                 if sig.unit:
                     axis.setLabel(f"{sig.name} [{sig.unit}]")
@@ -2267,7 +2237,6 @@ class _Plot(pg.PlotWidget):
             axis.update()
 
         self.current_uuid = uuid
-        axis.setWidth()
 
     def _clicked(self, event):
         modifiers = QtGui.QApplication.keyboardModifiers()
@@ -2312,7 +2281,7 @@ class _Plot(pg.PlotWidget):
                 if not computed:
                     sig.computation = {}
 
-        (start, stop), _ = self.viewbox.viewRange()
+        (start, stop), (low, high) = self.viewbox.viewRange()
 
         width = self.width() - self.y_axis.width()
         trim_info = start, stop, width
@@ -2335,8 +2304,6 @@ class _Plot(pg.PlotWidget):
             start_t, stop_t = np.amin(self.all_timebase), np.amax(self.all_timebase)
             self.viewbox.setXRange(start_t, stop_t)
 
-        axis_uuid = None
-
         for index, sig in enumerate(channels, initial_index):
             color = sig.color
 
@@ -2350,11 +2317,8 @@ class _Plot(pg.PlotWidget):
             if sig.conversion and hasattr(sig.conversion, "text_0"):
                 axis.text_conversion = sig.conversion
 
-            view_box = pg.ViewBox(enableMenu=False)
-            view_box.setGeometry(geometry)
-            view_box.disableAutoRange()
 
-            axis.linkToView(view_box)
+            # axis.linkToView(view_box)
             #            if len(sig.name) <= 32:
             #                axis.labelText = sig.name
             #            else:
@@ -2366,8 +2330,6 @@ class _Plot(pg.PlotWidget):
 
             self.layout.addItem(axis, 2, self._axes_layout_pos)
             self._axes_layout_pos += 1
-
-            self.scene_.addItem(view_box)
 
             t = sig.plot_timestamps
 
@@ -2387,29 +2349,17 @@ class _Plot(pg.PlotWidget):
 
             curve.sigClicked.connect(partial(self.curve_clicked.emit, index))
 
-            self.view_boxes.append(view_box)
             self.curves.append(curve)
-            if not sig.empty:
-                view_box.setYRange(sig.min, sig.max, padding=0, update=True)
-
-            #            (start, stop), _ = self.viewbox.viewRange()
-            #            view_box.setXRange(start, stop, padding=0, update=True)
 
             self.axes.append(axis)
             axis.hide()
-            view_box.addItem(curve)
+            self.viewbox.addItem(curve)
 
             if initial_index == 0 and index == 0:
-                axis_uuid = sig.uuid
-
-        for index, sig in enumerate(channels, initial_index):
-            self.view_boxes[index].setXLink(self.viewbox)
+                self.set_current_uuid(sig.uuid)
 
         for curve in self.curves[initial_index:]:
             curve.show()
-
-        if axis_uuid is not None:
-            self.set_current_uuid(sig.uuid)
 
         return channels
 
