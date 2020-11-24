@@ -2470,14 +2470,20 @@ class _Plot(pg.PlotWidget):
             item = self.curves.pop(i)
             item.hide()
             item.setParent(None)
-
-            item = self.view_boxes.pop(i)
-            item.hide()
-            item.setParent(None)
+            self.view_boxes[i].removeItem(item)
 
             item = self.axes.pop(i)
+            item.unlinkFromView()
             item.hide()
             item.setParent(None)
+
+            item = self.view_boxes.pop(i)
+            self.layout.removeItem(item)
+            self.scene_.removeItem(item)
+            item.hide()
+            item.setParent(None)
+            item.setXLink(None)
+            item.setYLink(None)
 
             sig = self.signals.pop(i)
 
