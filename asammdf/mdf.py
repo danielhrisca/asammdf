@@ -100,9 +100,11 @@ class MDF:
         if name:
             if is_file_like(name):
                 file_stream = name
+                do_close = False
             else:
                 name = Path(name)
                 if name.is_file():
+                    do_close = True
                     file_stream = open(name, "rb")
                 else:
                     raise MdfException(f'File "{name}" does not exist')
@@ -122,6 +124,9 @@ class MDF:
                 version = unpack("<H", file_stream.read(2))[0]
                 version = str(version)
                 version = f"{version[0]}.{version[1:]}"
+
+            if do_close:
+                file_stream.close()
 
             if version in MDF3_VERSIONS:
                 self._mdf = MDF3(name, **kwargs)
