@@ -2,6 +2,7 @@
 """
 asammdf utility functions for channel conversions
 """
+from functools import lru_cache
 
 from . import v2_v3_blocks as v3b
 from . import v2_v3_constants as v3c
@@ -11,6 +12,7 @@ from . import v4_constants as v4c
 __all__ = ["conversion_transfer", "from_dict"]
 
 
+@lru_cache(maxsize=1024)
 def conversion_transfer(conversion, version=3):
     """convert between mdf4 and mdf3 channel conversions
 
@@ -247,6 +249,7 @@ def conversion_transfer(conversion, version=3):
     return conversion
 
 
+@lru_cache(maxsize=1024)
 def from_dict(conversion):
     if not conversion:
         conversion = None

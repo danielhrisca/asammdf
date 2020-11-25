@@ -3,6 +3,7 @@
 asammdf utility functions and classes
 """
 
+from functools import lru_cache
 from io import BytesIO
 import logging
 from pathlib import Path
@@ -275,6 +276,7 @@ def sanitize_xml(text):
     return re.sub(_xmlns_pattern, "", text)
 
 
+@lru_cache(maxsize=1024)
 def get_fmt_v3(data_type, size, byte_order=v3c.BYTE_ORDER_INTEL):
     """convert mdf versions 2 and 3 channel data type to numpy dtype format
     string
@@ -358,6 +360,7 @@ def get_fmt_v3(data_type, size, byte_order=v3c.BYTE_ORDER_INTEL):
     return fmt
 
 
+@lru_cache(maxsize=1024)
 def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
     """convert mdf version 4 channel data type to numpy dtype format string
 
@@ -444,6 +447,7 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
     return fmt
 
 
+@lru_cache(maxsize=1024)
 def fmt_to_datatype_v3(fmt, shape, array=False):
     """convert numpy dtype format string to mdf versions 2 and 3
     channel data type and size
@@ -508,6 +512,7 @@ def fmt_to_datatype_v3(fmt, shape, array=False):
     return data_type, size
 
 
+@lru_cache(maxsize=1024)
 def info_to_datatype_v4(signed, little_endian):
     """map CAN signal to MDF integer types
 
@@ -539,6 +544,7 @@ def info_to_datatype_v4(signed, little_endian):
     return datatype
 
 
+@lru_cache(maxsize=1024)
 def fmt_to_datatype_v4(fmt, shape, array=False):
     """convert numpy dtype format string to mdf version 4 channel data
     type and size

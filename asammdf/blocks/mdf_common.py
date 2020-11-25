@@ -49,7 +49,7 @@ class MDF_Common:
     def _set_temporary_master(self, master):
         self._master = master
 
-    @lru_cache(maxsize=1024)
+    # @lru_cache(maxsize=1024)
     def _validate_channel_selection(
         self, name=None, group=None, index=None, source=None
     ):
