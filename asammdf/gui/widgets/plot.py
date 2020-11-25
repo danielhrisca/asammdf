@@ -2474,6 +2474,7 @@ class _Plot(pg.PlotWidget):
 
             item = self.axes.pop(i)
             item.unlinkFromView()
+            self.layout.removeItem(item)
             item.hide()
             item.setParent(None)
 

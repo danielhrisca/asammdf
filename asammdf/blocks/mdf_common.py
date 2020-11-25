@@ -121,33 +121,53 @@ class MDF_Common:
                         raise MdfException(f"{name} with source {source} not found")
                 elif group is None:
 
-                    gp_nr, ch_nr = self.channels_db[name][0]
-                    if len(self.channels_db[name]) > 1:
+                    entries = self.channels_db[name]
+                    if len(entries) > 1:
                         message = (
                             f'Multiple occurances for channel "{name}". '
-                            f"Using first occurance from data group {gp_nr}. "
                             'Provide both "group" and "index" arguments'
                             " to select another data group"
                         )
-                        logger.warning(message)
+                        logger.exception(message)
+                        raise MdfException(message)
+                    else:
+                        gp_nr, ch_nr = entries[0]
 
                 else:
                     if index is not None and index < 0:
                         gp_nr = group
                         ch_nr = index
                     else:
-                        for gp_nr, ch_nr in self.channels_db[name]:
-                            if gp_nr == group:
-                                if index is None:
-                                    break
-                                elif index == ch_nr:
-                                    break
-                        else:
-                            if index is None:
+                        if index is None:
+                            entries = [
+                                (gp_nr, ch_nr)
+                                for gp_nr, ch_nr in self.channels_db[name]
+                                if gp_nr == group
+                            ]
+                            count = len(entries)
+
+                            if count == 1:
+                                gp_nr, ch_nr = entries[0]
+
+                            elif count == 0:
                                 message = f'Channel "{name}" not found in group {group}'
+                                raise MdfException(message)
+
+                            else:
+                                message = (
+                                    f'Multiple occurances for channel "{name}" in group {group}. '
+                                    'Provide also the "index" argument'
+                                    " to select the desired channel"
+                                )
+                                raise MdfException(message)
+                        else:
+                            if (group, index) in self.channels_db[name]:
+                                ch_nr = index
+                                gp_nr = group
                             else:
                                 message = f'Channel "{name}" not found in group {group} at index {index}'
-                            raise MdfException(message)
+                                raise MdfException(message)
+
 
         return gp_nr, ch_nr
 
