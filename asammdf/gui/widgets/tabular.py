@@ -24,6 +24,9 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
+        self.tree.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.tree.customContextMenuRequested.connect(self.open_menu)
+
         self.signals_descr = {}
         self.start = start
         self.pattern = {}
@@ -451,3 +454,29 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
     def prefix_changed(self, index):
         self.remove_prefix_changed(QtCore.Qt.Checked)
+
+    def open_menu(self, position):
+        menu = QtWidgets.QMenu()
+
+        menu.addAction(self.tr("Export to CSV"))
+
+        action = menu.exec_(self.tree.viewport().mapToGlobal(position))
+
+        if action is None:
+            return
+
+        if action.text() == "Export to CSV":
+            file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
+                self,
+                "Select output CSV file",
+                "",
+                "CSV (*.csv)",
+            )
+
+            if file_name:
+                self.signals.to_csv(
+                    file_name,
+                    index_label="timestamps",
+                )
+
+
