@@ -96,28 +96,43 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         self.prefix.currentIndexChanged.connect(self.prefix_changed)
 
         self.tree_scroll.valueChanged.connect(self._display)
-        self.tree.verticalScrollBar().valueChanged.connect(self._scroll_tree)
+        self.tree.currentItemChanged.connect(self._scroll_tree)
 
-    def _scroll_tree(self, value):
+    def _scroll_tree(self, selected_item):
+        count = self.tree.topLevelItemCount()
+        if count <= 1:
+            return
+
+        first = self.tree.topLevelItem(0)
+        last = self.tree.topLevelItem(count-1)
+
         if (
-            value == self.tree.verticalScrollBar().minimum()
+            selected_item is first
             and self.tree_scroll.value() != self.tree_scroll.minimum()
         ):
+            current_index = selected_item.text(0)
             self.tree_scroll.setValue(
                 self.tree_scroll.value() - self.tree_scroll.singleStep()
             )
-            self.tree.verticalScrollBar().setValue(
-                self.tree.verticalScrollBar().value()
-                + self.tree.verticalScrollBar().singleStep()
-            )
-        elif value == self.tree.verticalScrollBar().maximum():
+
+            item = self.tree.findItems(current_index, QtCore.Qt.MatchExactly)[0]
+            above = self.tree.itemAbove(item)
+            self.tree.scrollToItem(above, QtWidgets.QAbstractItemView.PositionAtTop)
+            self.tree.setCurrentItem(item)
+
+        elif (
+            selected_item is last
+            and self.tree_scroll.value() != self.tree_scroll.maximum()
+        ):
+            current_index = selected_item.text(0)
             self.tree_scroll.setValue(
                 self.tree_scroll.value() + self.tree_scroll.singleStep()
             )
-            self.tree.verticalScrollBar().setValue(
-                self.tree.verticalScrollBar().value()
-                - self.tree.verticalScrollBar().singleStep()
-            )
+
+            item = self.tree.findItems(current_index, QtCore.Qt.MatchExactly)[0]
+            below = self.tree.itemBelow(item)
+            self.tree.scrollToItem(below, QtWidgets.QAbstractItemView.PositionAtBottom)
+            self.tree.setCurrentItem(item)
 
     def _sort(self, index, mode):
         ascending = mode == QtCore.Qt.AscendingOrder
@@ -309,8 +324,10 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             index = df.index.tz_localize("UTC").tz_convert(LOCAL_TIMEZONE)
         else:
             index = df.index
+
+        index_str = index.astype(str)
         items = [
-            index.astype(str),
+            index_str,
         ]
 
         for i, name in enumerate(df.columns):
