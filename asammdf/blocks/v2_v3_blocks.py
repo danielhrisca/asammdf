@@ -496,6 +496,9 @@ class Channel:
                 self.display_name_addr = kwargs.get("display_name_addr", 0)
                 self.additional_byte_offset = kwargs.get("additional_byte_offset", 0)
 
+        if self.display_name == self.name:
+            self.display_name = ""
+
     def to_blocks(self, address, blocks, defined_texts, cc_map, si_map):
         key = "long_name_addr"
         text = self.name

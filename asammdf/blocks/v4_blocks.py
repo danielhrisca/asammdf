@@ -902,6 +902,9 @@ class Channel:
             self.data_block_addr = 0
             self.channel_type = v4c.CHANNEL_TYPE_VALUE
 
+        if self.display_name == self.name:
+            self.display_name = ""
+
     def __getitem__(self, item):
         return self.__getattribute__(item)
 

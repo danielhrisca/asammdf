@@ -61,6 +61,8 @@ FLOAT64_u = Struct("<d").unpack
 FLOAT64_uf = Struct("<d").unpack_from
 TWO_UINT64_u = Struct("<2Q").unpack
 TWO_UINT64_uf = Struct("<2Q").unpack_from
+BLK_COMMON_uf = Struct("<4s4xQ").unpack_from
+BLK_COMMON_u = Struct("<4s4xQ8x").unpack
 
 _xmlns_pattern = re.compile(' xmlns="[^"]*"')
 
@@ -245,18 +247,17 @@ def get_text_v4(address, stream, mapped=False, decode=True):
         return "" if decode else b""
 
     if mapped:
-        block_id = stream[address : address + 4]
+        block_id, size = BLK_COMMON_uf(stream, address)
         if block_id not in (b"##TX", b"##MD"):
             return "" if decode else b""
-        (size,) = UINT64_uf(stream, address + 8)
         text_bytes = stream[address + 24 : address + size].strip(b" \r\t\n\0")
     else:
         stream.seek(address)
-        block_id = stream.read(8)[:4]
+        block_id, size = BLK_COMMON_u(stream.read(24))
         if block_id not in (b"##TX", b"##MD"):
             return "" if decode else b""
-        size, _ = TWO_UINT64_u(stream.read(16))
         text_bytes = stream.read(size - 24).strip(b" \r\t\n\0")
+
     if decode:
         try:
             text = text_bytes.decode("utf-8")
