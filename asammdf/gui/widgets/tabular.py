@@ -6,9 +6,10 @@ from traceback import format_exc
 import numpy as np
 import numpy.core.defchararray as npchar
 import pandas as pd
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore, QtWidgets, QtGui
 
 from ...blocks.utils import csv_bytearray2hex, csv_int2hex, pandas_query_compatible
+from ..utils import run_thread_with_progress
 from ..ui import resource_rc as resource_rc
 from ..ui.tabular import Ui_TabularDisplay
 from .tabular_filter import TabularFilter
@@ -474,9 +475,35 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             )
 
             if file_name:
-                self.signals.to_csv(
-                    file_name,
-                    index_label="timestamps",
+                self.progress = 0, 0
+                progress = QtWidgets.QProgressDialog(
+                    f'Data export to CSV file "{file_name}"', "", 0, 0, self.parent()
                 )
 
+                progress.setWindowModality(QtCore.Qt.ApplicationModal)
+                progress.setCancelButton(None)
+                progress.setAutoClose(True)
+                progress.setWindowTitle("Export tabular window to CSV")
+                icon = QtGui.QIcon()
+                icon.addPixmap(QtGui.QPixmap(":/csv.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+                progress.setWindowIcon(icon)
+                progress.show()
+
+                target = self.signals.to_csv
+                kwargs = {
+                    "path_or_buf": file_name,
+                    "index_label": "timestamps",
+                    "date_format": "%Y-%m-%d %H:%M:%S.%f%z",
+                }
+
+                result = run_thread_with_progress(
+                    self,
+                    target=target,
+                    kwargs=kwargs,
+                    factor=0,
+                    offset=0,
+                    progress=progress,
+                )
+
+                progress.cancel()
 

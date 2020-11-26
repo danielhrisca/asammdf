@@ -244,9 +244,12 @@ def run_thread_with_progress(
             MDF4._terminate = True
         else:
             if widget.progress is not None:
-                progress.setValue(
-                    int(widget.progress[0] / widget.progress[1] * factor) + offset
-                )
+                if widget.progress != (0, 0):
+                    progress.setValue(
+                        int(widget.progress[0] / widget.progress[1] * factor) + offset
+                    )
+                else:
+                    progress.setRange(0, 0)
         sleep(0.1)
 
     if termination_request:
