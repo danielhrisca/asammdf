@@ -1685,7 +1685,7 @@ class MDF4(MDF_Common):
 
         if mapped:
             if address:
-                id_string, _1, block_len = COMMON_SHORT_uf(stream, address)
+                id_string, block_len = COMMON_SHORT_uf(stream, address)
 
                 # can be a DataBlock
                 if id_string == block_type:
@@ -1709,17 +1709,12 @@ class MDF4(MDF_Common):
                 # or a DataZippedBlock
                 elif id_string == b"##DZ":
                     (
-                        _1,
-                        _2,
-                        _3,
-                        _4,
                         original_type,
                         zip_type,
-                        _5,
                         param,
                         original_size,
                         zip_size,
-                    ) = v4c.DZ_COMMON_uf(stream, address)
+                    ) = v4c.DZ_COMMON_INFO_uf(stream, address)
 
                     if original_size:
                         if zip_type == v4c.FLAG_DZ_DEFLATE:
@@ -1750,7 +1745,7 @@ class MDF4(MDF_Common):
                         for i in range(dl.data_block_nr):
                             addr = dl[f"data_block_addr{i}"]
 
-                            id_string, _1, block_len = COMMON_SHORT_uf(stream, addr)
+                            id_string, block_len = COMMON_SHORT_uf(stream, addr)
                             # can be a DataBlock
                             if id_string == block_type:
                                 size = block_len - 24
@@ -1773,17 +1768,12 @@ class MDF4(MDF_Common):
                             # or a DataZippedBlock
                             elif id_string == b"##DZ":
                                 (
-                                    _1,
-                                    _2,
-                                    _3,
-                                    _4,
                                     original_type,
                                     zip_type,
-                                    _5,
                                     param,
                                     original_size,
                                     zip_size,
-                                ) = v4c.DZ_COMMON_uf(stream, addr)
+                                ) = v4c.DZ_COMMON_INFO_uf(stream, addr)
 
                                 if original_size:
                                     if zip_type == v4c.FLAG_DZ_DEFLATE:
@@ -1817,7 +1807,7 @@ class MDF4(MDF_Common):
                         for i in range(ld.data_block_nr):
                             addr = ld[f"data_block_addr_{i}"]
 
-                            id_string, _1, block_len = COMMON_SHORT_uf(stream, addr)
+                            id_string, block_len = COMMON_SHORT_uf(stream, addr)
                             # can be a DataBlock
                             if id_string == b"##DV":
                                 size = block_len - 24
@@ -1840,17 +1830,12 @@ class MDF4(MDF_Common):
                             # or a DataZippedBlock
                             elif id_string == b"##DZ":
                                 (
-                                    _1,
-                                    _2,
-                                    _3,
-                                    _4,
                                     original_type,
                                     zip_type,
-                                    _5,
                                     param,
                                     original_size,
                                     zip_size,
-                                ) = v4c.DZ_COMMON_uf(stream, addr)
+                                ) = v4c.DZ_COMMON_INFO_uf(stream, addr)
 
                                 if original_size:
                                     if zip_type == v4c.FLAG_DZ_DEFLATE:
@@ -1877,7 +1862,7 @@ class MDF4(MDF_Common):
                             if has_invalidation:
                                 inval_addr = ld[f"invalidation_bits_addr_{i}"]
                                 if inval_addr:
-                                    id_string, _1, block_len = COMMON_SHORT_uf(
+                                    id_string, block_len = COMMON_SHORT_uf(
                                         stream, inval_addr
                                     )
                                     if id_string == b"##DI":
@@ -1900,17 +1885,12 @@ class MDF4(MDF_Common):
                                             )
                                     else:
                                         (
-                                            _1,
-                                            _2,
-                                            _3,
-                                            _4,
                                             original_type,
                                             zip_type,
-                                            _5,
                                             param,
                                             original_size,
                                             zip_size,
-                                        ) = v4c.DZ_COMMON_uf(stream, inval_addr)
+                                        ) = v4c.DZ_COMMON_INFO_uf(stream, inval_addr)
 
                                         if original_size:
                                             if zip_type == v4c.FLAG_DZ_DEFLATE:
@@ -1962,7 +1942,7 @@ class MDF4(MDF_Common):
 
             if address:
                 stream.seek(address)
-                id_string, _1, block_len = COMMON_SHORT_u(
+                id_string, block_len = COMMON_SHORT_u(
                     stream.read(COMMON_SHORT_SIZE)
                 )
 
@@ -1989,17 +1969,12 @@ class MDF4(MDF_Common):
                 elif id_string == b"##DZ":
                     stream.seek(address)
                     (
-                        _1,
-                        _2,
-                        _3,
-                        _4,
                         original_type,
                         zip_type,
-                        _5,
                         param,
                         original_size,
                         zip_size,
-                    ) = v4c.DZ_COMMON_u(stream.read(v4c.DZ_COMMON_SIZE))
+                    ) = v4c.DZ_COMMON_INFO_u(stream.read(v4c.DZ_COMMON_SIZE))
 
                     if original_size:
                         if zip_type == v4c.FLAG_DZ_DEFLATE:
@@ -2032,7 +2007,7 @@ class MDF4(MDF_Common):
                             addr = dl[f"data_block_addr{i}"]
 
                             stream.seek(addr)
-                            id_string, _, block_len = COMMON_SHORT_u(
+                            id_string, block_len = COMMON_SHORT_u(
                                 stream.read(COMMON_SHORT_SIZE)
                             )
 
@@ -2059,17 +2034,12 @@ class MDF4(MDF_Common):
                             elif id_string == b"##DZ":
                                 stream.seek(addr)
                                 (
-                                    _1,
-                                    _2,
-                                    _3,
-                                    _4,
                                     original_type,
                                     zip_type,
-                                    _5,
                                     param,
                                     original_size,
                                     zip_size,
-                                ) = v4c.DZ_COMMON_u(stream.read(v4c.DZ_COMMON_SIZE))
+                                ) = v4c.DZ_COMMON_INFO_u(stream.read(v4c.DZ_COMMON_SIZE))
 
                                 if original_size:
                                     if zip_type == v4c.FLAG_DZ_DEFLATE:
@@ -2104,7 +2074,7 @@ class MDF4(MDF_Common):
                             addr = ld[f"data_block_addr{i}"]
 
                             stream.seek(addr)
-                            id_string, _, block_len = COMMON_SHORT_u(
+                            id_string, block_len = COMMON_SHORT_u(
                                 stream.read(COMMON_SHORT_SIZE)
                             )
                             # can be a DataBlock
@@ -2130,17 +2100,12 @@ class MDF4(MDF_Common):
                             elif id_string == b"##DZ":
                                 stream.seek(addr)
                                 (
-                                    _1,
-                                    _2,
-                                    _3,
-                                    _4,
                                     original_type,
                                     zip_type,
-                                    _5,
                                     param,
                                     original_size,
                                     zip_size,
-                                ) = v4c.DZ_COMMON_u(stream.read(v4c.DZ_COMMON_SIZE))
+                                ) = v4c.DZ_COMMON_INFO_u(stream.read(v4c.DZ_COMMON_SIZE))
 
                                 if original_size:
                                     if zip_type == v4c.FLAG_DZ_DEFLATE:
@@ -2168,7 +2133,7 @@ class MDF4(MDF_Common):
                                 inval_addr = ld[f"invalidation_bits_addr_{i}"]
                                 if inval_addr:
                                     stream.seek(inval_addr)
-                                    id_string, _1, block_len = COMMON_SHORT_u(
+                                    id_string, block_len = COMMON_SHORT_u(
                                         stream.read(COMMON_SHORT_SIZE)
                                     )
                                     if id_string == b"##DI":
@@ -2191,17 +2156,12 @@ class MDF4(MDF_Common):
                                             )
                                     else:
                                         (
-                                            _1,
-                                            _2,
-                                            _3,
-                                            _4,
                                             original_type,
                                             zip_type,
-                                            _5,
                                             param,
                                             original_size,
                                             zip_size,
-                                        ) = v4c.DZ_COMMON_u(
+                                        ) = v4c.DZ_COMMON_INFO_u(
                                             stream.read(v4c.DZ_COMMON_SIZE)
                                         )
 

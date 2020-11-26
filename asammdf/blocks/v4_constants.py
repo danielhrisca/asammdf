@@ -549,7 +549,7 @@ COMMON_u = struct.Struct(FMT_COMMON).unpack
 COMMON_uf = struct.Struct(FMT_COMMON).unpack_from
 COMMON_p = struct.Struct(FMT_COMMON).pack
 
-FMT_COMMON_SHORT = "<4sIQ"
+FMT_COMMON_SHORT = "<4s4xQ"
 COMMON_SHORT_u = struct.Struct(FMT_COMMON_SHORT).unpack
 COMMON_SHORT_uf = struct.Struct(FMT_COMMON_SHORT).unpack_from
 COMMON_SHORT_p = struct.Struct(FMT_COMMON_SHORT).pack
@@ -719,9 +719,11 @@ KEYS_DZ_BLOCK = (
     "zip_size",
     "data",
 )
-DZ_COMMON_u = struct.Struct(FMT_DZ_COMMON).unpack
-DZ_COMMON_uf = struct.Struct(FMT_DZ_COMMON).unpack_from
 DZ_COMMON_p = struct.Struct(FMT_DZ_COMMON).pack
+
+FMT_DZ_INFO_COMMON = "<24x2sB1xI2Q"
+DZ_COMMON_INFO_u = struct.Struct(FMT_DZ_INFO_COMMON).unpack
+DZ_COMMON_INFO_uf = struct.Struct(FMT_DZ_INFO_COMMON).unpack_from
 
 FMT_HL_BLOCK = "<4sI3QHB5s"
 KEYS_HL_BLOCK = (
