@@ -100,9 +100,18 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         self.prefix.currentIndexChanged.connect(self.prefix_changed)
 
         self.tree_scroll.valueChanged.connect(self._display)
+        self.tree.verticalScrollBar().valueChanged.connect(self._scroll_tree)
         self.tree.currentItemChanged.connect(self._scroll_tree)
 
     def _scroll_tree(self, selected_item):
+        if isinstance(selected_item, int):
+            count = self.tree.topLevelItemCount()
+            selected_item = self.tree.topLevelItem(
+                int(
+                    selected_item / self.tree.verticalScrollBar().maximum() * (count - 1)
+                )
+            )
+
         count = self.tree.topLevelItemCount()
         if count <= 1:
             return
