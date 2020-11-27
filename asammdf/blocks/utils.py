@@ -17,10 +17,10 @@ from tempfile import TemporaryDirectory
 import xml.etree.ElementTree as ET
 
 try:
-    from chardet import detect
+    from cchardet import detect
 except:
     try:
-        from cchardet import detect
+        from chardet import detect
     except:
         def detect(text):
             for encoding in ('utf-8', 'latin-1', 'cp1250', 'cp1252'):
