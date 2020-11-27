@@ -362,8 +362,6 @@ class MDF4(MDF_Common):
 
                 if version >= "4.10" and flags:
                     tmpdir = Path(gettempdir())
-                    print(tmpdir)
-                    print(name)
                     self.name = tmpdir / Path(name).name
                     shutil.copy(name, self.name)
                     self._file = open(self.name, "rb+")
@@ -1065,7 +1063,6 @@ class MDF4(MDF_Common):
                 data = []
                 stream = self._tempfile
                 address = group.signal_data[index]
-
                 if address:
                     if isinstance(address, int):
 
@@ -7861,7 +7858,7 @@ class MDF4(MDF_Common):
             raise MdfException(
                 f'Signal "{signal}" not found in message "{message.name}" of "{database}"'
             )
-        print(self.bus_logging_map["CAN"])
+
         if can_id is None:
             index = None
             for _can_id, messages in self.bus_logging_map["CAN"].items():
@@ -9408,7 +9405,6 @@ class MDF4(MDF_Common):
                     and source.bus_type in (v4c.BUS_TYPE_CAN, v4c.BUS_TYPE_OTHER)
                     and "CAN_DataFrame" in [ch.name for ch in group.channels]
                 ):
-                    print('CAN', index)
                     self._process_can_logging(index, group)
 
     def _process_can_logging(self, group_index, grp):
@@ -9440,8 +9436,6 @@ class MDF4(MDF_Common):
                     else:
                         dbc = self._dbc_cache[attachment_addr]
                 break
-
-        print('dbc', dbc is None)
 
         if dbc is None:
             parents, dtypes = self._prepare_record(group)
@@ -9476,12 +9470,9 @@ class MDF4(MDF_Common):
                 )
 
                 if len(bus_ids) == 0:
-                    print('zero')
                     continue
 
                 buses = unique(bus_ids)
-
-                print(buses)
 
                 for bus in buses:
                     bus_msg_ids = msg_ids[bus_ids == bus]

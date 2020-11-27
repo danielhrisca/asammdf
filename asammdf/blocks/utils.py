@@ -405,6 +405,29 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
         elif data_type == v4c.DATA_TYPE_CANOPEN_TIME:
             fmt = "V6"
 
+    elif channel_type in v4c.VIRTUAL_TYPES:
+        if data_type == v4c.DATA_TYPE_UNSIGNED_INTEL:
+            fmt = "<u8"
+
+        elif data_type == v4c.DATA_TYPE_UNSIGNED_MOTOROLA:
+            fmt = ">u8"
+
+        elif data_type == v4c.DATA_TYPE_SIGNED_INTEL:
+            fmt = "<i8"
+
+        elif data_type == v4c.DATA_TYPE_SIGNED_MOTOROLA:
+            fmt = ">i8"
+
+        elif data_type == v4c.DATA_TYPE_REAL_INTEL:
+            fmt = "<f8"
+
+        elif data_type == v4c.DATA_TYPE_REAL_MOTOROLA:
+            fmt = ">f8"
+        elif data_type == v4c.DATA_TYPE_COMPLEX_INTEL:
+            fmt = "<c8"
+        elif data_type == v4c.DATA_TYPE_COMPLEX_MOTOROLA:
+            fmt = ">c8"
+
     else:
         if size > 64 and data_type in (
             v4c.DATA_TYPE_UNSIGNED_INTEL,
