@@ -1497,8 +1497,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self,
             "Select CAN database file",
             "",
-            "ARXML or DBC (*.dbc *.axml)",
-            "ARXML or DBC (*.dbc *.axml)",
+            "ARXML or DBC (*.dbc *.arxml)",
+            "ARXML or DBC (*.dbc *.arxml)",
         )
 
         if file_names:

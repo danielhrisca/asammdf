@@ -1296,14 +1296,20 @@ class Plot(QtWidgets.QWidget):
         invalid = []
 
         for channel in channels:
-            if np.any(np.diff(channel.timestamps) < 0):
-                invalid.append(channel.name)
+            diff = np.diff(channel.timestamps)
+            invalid_indexes = np.argwhere(diff <= 0).ravel()
+            if len(invalid_indexes):
+                invalid_indexes = invalid_indexes[:10] + 1
+                idx = invalid_indexes[0]
+                ts = channel.timestamps[idx-1:idx+2]
+                invalid.append(f"{channel.name} @ index {invalid_indexes[:10] - 1} with first time stamp error: {ts}")
 
         if invalid:
+            errors = '\n'.join(invalid)
             QtWidgets.QMessageBox.warning(
                 self,
                 "The following channels do not have monotonous increasing time stamps:",
-                f"The following channels do not have monotonous increasing time stamps:\n{', '.join(invalid)}",
+                f"The following channels do not have monotonous increasing time stamps:\n{errors}",
             )
             self.plot._can_trim = False
 
