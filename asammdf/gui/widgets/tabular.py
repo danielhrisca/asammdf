@@ -369,8 +369,12 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                     except:
                         items.append(npchar.decode(column, "latin-1"))
                 elif kind == "O":
-                    if name.endswith(".DataBytes") and name.replace(".DataBytes", ".DLC") in df:
-                        items.append(pd.Series(csv_bytearray2hex(df[name], df[name.replace(".DataBytes", ".DLC")])).values)
+                    if name.endswith(".DataBytes") and name.replace(".DataBytes", ".DataLength") in df:
+                        items.append(
+                            pd.Series(
+                                csv_bytearray2hex(df[name], df[name.replace(".DataBytes", ".DataLength")])
+                            ).values
+                        )
                     else:
 
                         try:

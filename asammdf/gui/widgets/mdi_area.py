@@ -365,19 +365,19 @@ class WithMDIArea:
             for signal in signals:
                 if len(signal.samples.shape) > 1:
                     if signal.name.endswith(".DataBytes"):
-                        dlc = signal.name.replace(".DataBytes", ".DLC")
+                        length_name = signal.name.replace(".DataBytes", ".DataLength")
                         for s in signals:
-                            if s.name == dlc:
-                                s = s.samples
+                            if s.name == length_name:
+                                length = s.samples
                                 break
                         else:
-                            if dlc in self.mdf:
-                                s = self.mdf.get(dlc, samples_only=True)[0]
+                            if length_name in self.mdf:
+                                length = self.mdf.get(length_name, samples_only=True)[0]
                             else:
-                                s = None
+                                length = None
                     else:
-                        s = None
-                    signal.samples = csv_bytearray2hex(pd.Series(list(signal.samples)), s)
+                        length = None
+                    signal.samples = csv_bytearray2hex(pd.Series(list(signal.samples)), length)
 
                 if signal.name.endswith("CAN_DataFrame.ID"):
                     signal.samples = signal.samples.astype("<u4") & 0x1FFFFFFF
