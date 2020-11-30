@@ -81,13 +81,19 @@ def extract_signal(signal, payload, raw=False, ignore_value2text_conversion=True
                 ]
             )
 
-            try:
-                vals = vals.view(f">u{std_size}").ravel()
-            except:
-                vals = np.frombuffer(vals.tobytes(), dtype=f">u{std_size}")
+            if std_size > 8:
+                fmt = f"({std_size},)u1"
+            else:
+                fmt = f">u{std_size}"
 
-            vals = vals >> (extra_bytes * 8 + bit_offset)
-            vals &= (2 ** bit_count) - 1
+            try:
+                vals = vals.view(fmt).ravel()
+            except:
+                vals = np.frombuffer(vals.tobytes(), dtype=fmt)
+
+            if std_size <= 8:
+                vals = vals >> (extra_bytes * 8 + bit_offset)
+                vals &= (2 ** bit_count) - 1
 
         else:
             vals = np.column_stack(
@@ -96,45 +102,64 @@ def extract_signal(signal, payload, raw=False, ignore_value2text_conversion=True
                     np.zeros(len(vals), dtype=f"<({extra_bytes},)u1"),
                 ]
             )
-            try:
-                vals = vals.view(f"<u{std_size}").ravel()
-            except:
-                vals = np.frombuffer(vals.tobytes(), dtype=f"<u{std_size}")
 
-            vals = vals >> bit_offset
-            vals &= (2 ** bit_count) - 1
+            if std_size > 8:
+                fmt = f"({std_size},)u1"
+            else:
+                fmt = f"<u{std_size}"
+
+            try:
+                vals = vals.view(fmt).ravel()
+            except:
+                vals = np.frombuffer(vals.tobytes(), dtype=fmt)
+
+            if std_size <= 8:
+                vals = vals >> bit_offset
+                vals &= (2 ** bit_count) - 1
 
     else:
         if big_endian:
+            if std_size > 8:
+                fmt = f"({std_size},)u1"
+            else:
+                fmt = f">u{std_size}"
+
             try:
                 vals = (
                     vals[:, start_byte : start_byte + byte_size]
-                    .view(f">u{std_size}")
+                    .view(fmt)
                     .ravel()
                 )
             except:
                 vals = np.frombuffer(
                     vals[:, start_byte : start_byte + byte_size].tobytes(),
-                    dtype=f">u{std_size}",
+                    dtype=fmt,
                 )
 
-            vals = vals >> bit_offset
-            vals &= (2 ** bit_count) - 1
+            if std_size <= 8:
+                vals = vals >> bit_offset
+                vals &= (2 ** bit_count) - 1
         else:
+            if std_size > 8:
+                fmt = f"({std_size},)u1"
+            else:
+                fmt = f"<u{std_size}"
+
             try:
                 vals = (
                     vals[:, start_byte : start_byte + byte_size]
-                    .view(f"<u{std_size}")
+                    .view(fmt)
                     .ravel()
                 )
             except:
                 vals = np.frombuffer(
                     vals[:, start_byte : start_byte + byte_size].tobytes(),
-                    dtype=f"<u{std_size}",
+                    dtype=fmt,
                 )
 
-            vals = vals >> bit_offset
-            vals &= (2 ** bit_count) - 1
+            if std_size <= 8:
+                vals = vals >> bit_offset
+                vals &= (2 ** bit_count) - 1
 
     if signed:
         vals = as_non_byte_sized_signed_int(vals, bit_count)
