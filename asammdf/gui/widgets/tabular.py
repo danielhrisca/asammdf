@@ -104,17 +104,19 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         self.tree.currentItemChanged.connect(self._scroll_tree)
 
     def _scroll_tree(self, selected_item):
-        if isinstance(selected_item, int):
-            count = self.tree.topLevelItemCount()
-            selected_item = self.tree.topLevelItem(
-                int(
-                    selected_item / self.tree.verticalScrollBar().maximum() * (count - 1)
-                )
-            )
-
         count = self.tree.topLevelItemCount()
         if count <= 1:
             return
+
+        if isinstance(selected_item, int):
+
+            try:
+                row = int(
+                    selected_item / self.tree.verticalScrollBar().maximum() * (count - 1)
+                )
+            except:
+                row = count - 1
+            selected_item = self.tree.topLevelItem(row)
 
         first = self.tree.topLevelItem(0)
         last = self.tree.topLevelItem(count-1)
@@ -131,7 +133,11 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             item = self.tree.findItems(current_index, QtCore.Qt.MatchExactly)[0]
             above = self.tree.itemAbove(item)
             self.tree.scrollToItem(above, QtWidgets.QAbstractItemView.PositionAtTop)
-            self.tree.setCurrentItem(item)
+            try:
+                item = self.tree.itemBelow(above)
+                self.tree.setCurrentItem(item)
+            except:
+                pass
 
         elif (
             selected_item is last
@@ -145,7 +151,11 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             item = self.tree.findItems(current_index, QtCore.Qt.MatchExactly)[0]
             below = self.tree.itemBelow(item)
             self.tree.scrollToItem(below, QtWidgets.QAbstractItemView.PositionAtBottom)
-            self.tree.setCurrentItem(item)
+            try:
+                item = self.tree.itemAbove(below)
+                self.tree.setCurrentItem(item)
+            except:
+                pass
 
     def _sort(self, index, mode):
         ascending = mode == QtCore.Qt.AscendingOrder
@@ -359,10 +369,14 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                     except:
                         items.append(npchar.decode(column, "latin-1"))
                 elif kind == "O":
-                    try:
-                        items.append(pd.Series(csv_bytearray2hex(df[name])).values)
-                    except:
-                        items.append(pd.Series(df[name]).values)
+                    if name.endswith(".DataBytes") and name.replace(".DataBytes", ".DLC") in df:
+                        items.append(pd.Series(csv_bytearray2hex(df[name], df[name.replace(".DataBytes", ".DLC")])).values)
+                    else:
+
+                        try:
+                            items.append(pd.Series(csv_bytearray2hex(df[name])).values)
+                        except:
+                            items.append(pd.Series(df[name]).values)
                 else:
                     items.append(column)
 

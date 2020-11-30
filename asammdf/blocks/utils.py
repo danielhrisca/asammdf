@@ -1439,13 +1439,16 @@ def csv_int2hex(val):
 csv_int2hex = np.vectorize(csv_int2hex, otypes=[str])
 
 
-def csv_bytearray2hex(val):
+def csv_bytearray2hex(val, size=None):
     """format CAN payload as hex strings
 
     b'\xa2\xc3\x08' -> A2 C3 08
 
     """
-    val = val.tobytes().hex().upper()
+    if size is not None:
+        val = val.tobytes()[:size].hex().upper()
+    else:
+        val = val.tobytes().hex().upper()
 
     vals = [val[i : i + 2] for i in range(0, len(val), 2)]
 
