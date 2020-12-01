@@ -304,7 +304,7 @@ def extract_mux(
                     "unit": sig.unit or "",
                     "samples": samples,
                     "t": t_,
-                    "invalidation_bits": np.isclose(samples, max_val) if len(samples.shape) == 1 else np.ones(len(samples), dtype=bool),
+                    "invalidation_bits": np.isclose(samples, max_val) if len(samples.shape) == 1 else np.zeros(len(samples), dtype=bool),
                 }
             except:
                 raise

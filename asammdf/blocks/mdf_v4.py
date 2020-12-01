@@ -3277,6 +3277,7 @@ class MDF4(MDF_Common):
         offset = 0
 
         prepare_record = True
+        source_block = None
 
         master_metadata = signals[0].master_metadata
         if master_metadata:

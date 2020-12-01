@@ -5730,7 +5730,7 @@ class SourceInformation:
             bus_type=self.bus_type,
         )
         source.name = self.name
-        source.commnet = self.comment
+        source.comment = self.comment
         source.path = self.path
 
         return source

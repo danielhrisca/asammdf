@@ -18,6 +18,31 @@ logger = logging.getLogger("asammdf.gui")
 LOCAL_TIMEZONE = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
 
 
+class TabularTreeItem(QtWidgets.QTreeWidgetItem):
+
+    def __init__(self, column_types, as_hex, *args, **kwargs):
+        self.column_types = column_types
+        self.as_hex = as_hex
+        super().__init__(*args, **kwargs)
+
+    def __lt__(self, other):
+        column = self.treeWidget().sortColumn()
+
+        dtype = self.column_types[column]
+
+        if dtype in "ui":
+            if self.as_hex[column]:
+                return int(self.text(column), 16) < int(other.text(column), 16)
+            else:
+                return int(self.text(column)) < int(other.text(column))
+
+        elif dtype == "f":
+            return float(self.text(column)) < float(other.text(column))
+
+        else:
+            return self.text(column) < other.text(column)
+
+
 class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
     add_channels_request = QtCore.pyqtSignal(list)
 
@@ -317,7 +342,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             for name, s in dropped.items():
                 df[name[dim:]] = s
 
-        names = [df.index.name, *df.columns]
+        names = ["Index", df.index.name, *df.columns]
 
         if reset_header_names:
             self.header_names = names
@@ -343,13 +368,17 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
         df = self.df.iloc[max(0, position * 10 - 50) : max(0, position * 10 + 100)]
 
+        items = [
+            [str(e) for e in range(max(0, position * 10 - 50), max(0, position * 10 + 100))]
+        ]
+
         if df.index.dtype.kind == "M":
             index = df.index.tz_localize("UTC").tz_convert(LOCAL_TIMEZONE)
         else:
             index = df.index
 
         index_str = index.astype(str)
-        items = [
+        items += [
             index_str,
         ]
 
@@ -391,7 +420,14 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                 self.tree.verticalScrollBar().maximum()
             )
 
-        items = [QtWidgets.QTreeWidgetItem(row) for row in zip(*items)]
+        column_types = [
+            "u", df.index.dtype.kind,
+            *[df[name].dtype.kind for name in df.columns]
+        ]
+
+        as_hex = [False, False] + self.as_hex
+
+        items = [TabularTreeItem(column_types, as_hex, row) for row in zip(*items)]
 
         self.tree.addTopLevelItems(items)
 
