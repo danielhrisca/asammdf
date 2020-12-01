@@ -5724,6 +5724,17 @@ class SourceInformation:
     def __contains__(self, item):
         return hasattr(self, item)
 
+    def copy(self):
+        source = SourceInformation(
+            source_type=self.source_type,
+            bus_type=self.bus_type,
+        )
+        source.name = self.name
+        source.commnet = self.comment
+        source.path = self.path
+
+        return source
+
     def metadata(self):
         max_len = max(len(key) for key in v4c.KEYS_SOURCE_INFORMATION)
         template = f"{{: <{max_len}}}: {{}}"

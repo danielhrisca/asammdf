@@ -3112,7 +3112,6 @@ class MDF4(MDF_Common):
             invalidation_bytes_nr = len(inval_bits) // 8
 
             gp.channel_group.invalidation_bytes_nr = invalidation_bytes_nr
-
             inval_bits = fliplr(
                 packbits(array(inval_bits).T).reshape(
                     (cycles_nr, invalidation_bytes_nr)

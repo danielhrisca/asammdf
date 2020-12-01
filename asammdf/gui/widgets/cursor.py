@@ -12,6 +12,12 @@ class Cursor(pg.InfiniteLine):
 
         self.addMarker("^", 0)
         self.addMarker("v", 1)
+        
+        self._settings = QtCore.QSettings()
+        if self._settings.value("plot_background") == "White":
+            self.label.setColor(QtGui.QColor(0, 59, 126))
+        else:
+            self.label.setColor(QtGui.QColor("#ffffff"))
 
         self.label.show()
 

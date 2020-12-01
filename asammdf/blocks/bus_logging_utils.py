@@ -240,6 +240,7 @@ def extract_mux(
         multiplexors
 
     """
+
     if muxer is None:
         if message.is_multiplexed:
             for sig in message:
@@ -303,11 +304,9 @@ def extract_mux(
                     "unit": sig.unit or "",
                     "samples": samples,
                     "t": t_,
-                    "invalidation_bits": np.isclose(samples, max_val),
+                    "invalidation_bits": np.isclose(samples, max_val) if len(samples.shape) == 1 else np.ones(len(samples), dtype=bool),
                 }
             except:
-                print(max_val, max_val.dtype)
-                print(samples, samples.dtype)
                 raise
 
             if sig.multiplex == "Multiplexor":

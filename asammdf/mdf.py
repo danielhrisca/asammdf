@@ -49,10 +49,11 @@ from .blocks.v2_v3_blocks import ChannelConversion as ChannelConversionV3
 from .blocks.v2_v3_blocks import ChannelExtension
 from .blocks.v2_v3_blocks import HeaderBlock as HeaderV3
 from .blocks.v4_blocks import ChannelConversion as ChannelConversionV4
-from .blocks.v4_blocks import EventBlock
+from .blocks.v4_blocks import EventBlock, FileHistory
 from .blocks.v4_blocks import HeaderBlock as HeaderV4
 from .blocks.v4_blocks import SourceInformation
 from .signal import Signal
+from .version import __version__
 
 logger = logging.getLogger("asammdf")
 LOCAL_TIMEZONE = datetime.now(timezone.utc).astimezone().tzinfo
@@ -378,16 +379,40 @@ class MDF:
                     event.scopes.append(group)
                     self.events.append(event)
 
-    def _transfer_header_data(self, other):
+    def _transfer_header_data(self, other, message=""):
         self.header.author = other.header.author
         self.header.department = other.header.department
         self.header.project = other.header.project
         self.header.subject = other.header.subject
         self.header.comment = other.header.comment
+        if self.version >= '4.00' and message:
+            fh = FileHistory()
+            fh.comment = f"""<FHcomment>
+    <TX>{message}</TX>
+    <tool_id>asammdf</tool_id>
+    <tool_vendor>asammdf</tool_vendor>
+    <tool_version>{__version__}</tool_version>
+</FHcomment>"""
 
-    def _transfer_metadata(self, other):
+            self.file_history = [fh]
+
+    @staticmethod
+    def _transfer_channel_group_data(sgroup, ogroup):
+        if not hasattr(sgroup, "acq_name") or not hasattr(ogroup, "acq_name"):
+            sgroup.comment = ogroup.comment
+        else:
+
+            sgroup.flags = ogroup.flags
+            sgroup.path_separator = ogroup.path_separator
+            sgroup.comment = ogroup.comment
+            sgroup.acq_name = ogroup.acq_name
+            acq_source = ogroup.acq_source
+            if acq_source:
+                sgroup.acq_source = acq_source.copy()
+
+    def _transfer_metadata(self, other, message=""):
         self._transfer_events(other)
-        self._transfer_header_data(other)
+        self._transfer_header_data(other, message)
 
     def __contains__(self, channel):
         """ if *'channel name'* in *'mdf file'* """
@@ -441,10 +466,10 @@ class MDF:
                         cg = self.groups[virtual_group].channel_group
                         cg_nr = out.append(
                             sigs,
-                            acq_name=getattr(cg, "acq_name", None),
-                            acq_source=getattr(cg, "acq_source", None),
-                            comment=f"Converted from {self.version} to {version}",
                             common_timebase=True,
+                        )
+                        MDF._transfer_channel_group_data(
+                            out.groups[cg_nr].channel_group, cg
                         )
                     else:
                         break
@@ -457,7 +482,7 @@ class MDF:
             if self._terminate:
                 return
 
-        out._transfer_metadata(self)
+        out._transfer_metadata(self, message=f"Converted from <{self.name}>")
         self.configure(copy_on_get=True)
         if self._callback:
             out._callback = out._mdf._callback = self._callback
@@ -678,10 +703,10 @@ class MDF:
                     cg = self.groups[group_index].channel_group
                     cg_nr = out.append(
                         signals,
-                        acq_name=getattr(cg, "acq_name", None),
-                        acq_source=getattr(cg, "acq_source", None),
-                        comment=f"Cut from {start_} to {stop_}",
                         common_timebase=True,
+                    )
+                    MDF._transfer_channel_group_data(
+                        out.groups[cg_nr].channel_group, cg
                     )
 
                 else:
@@ -709,12 +734,12 @@ class MDF:
                 else:
                     stop_ = "end of measurement"
                 cg = self.groups[group_index].channel_group
-                out.append(
+                cg_nr = out.append(
                     signals,
-                    acq_name=getattr(cg, "acq_name", None),
-                    acq_source=getattr(cg, "acq_source", None),
-                    comment=f"Cut from {start_} to {stop_}",
                     common_timebase=True,
+                )
+                MDF._transfer_channel_group_data(
+                    out.groups[cg_nr].channel_group, cg
                 )
 
             if self._callback:
@@ -725,7 +750,7 @@ class MDF:
 
         self.configure(copy_on_get=True)
 
-        out._transfer_metadata(self)
+        out._transfer_metadata(self, message=f"Cut from {start_} to {stop_}")
         if self._callback:
             out._callback = out._mdf._callback = self._callback
         return out
@@ -1463,10 +1488,10 @@ class MDF:
                         cg = self.groups[group_index].channel_group
                         cg_nr = mdf.append(
                             sigs,
-                            acq_name=getattr(cg, "acq_name", None),
-                            acq_source=getattr(cg, "acq_source", None),
-                            comment=f"Signals filtered from <{origin}>",
                             common_timebase=True,
+                        )
+                        MDF._transfer_channel_group_data(
+                            mdf.groups[cg_nr].channel_group, cg
                         )
                     else:
                         break
@@ -1482,7 +1507,7 @@ class MDF:
 
         self.configure(copy_on_get=True)
 
-        mdf._transfer_metadata(self)
+        mdf._transfer_metadata(self, message=f"Filtered from {self.name}")
         if self._callback:
             mdf._callback = mdf._mdf._callback = self._callback
         return mdf
@@ -1757,10 +1782,10 @@ class MDF:
                         cg = mdf.groups[group_index].channel_group
                         cg_nr = merged.append(
                             signals,
-                            acq_name=getattr(cg, "acq_name", None),
-                            acq_source=getattr(cg, "acq_source", None),
-                            comment="concatenated",
                             common_timebase=True,
+                        )
+                        MDF._transfer_channel_group_data(
+                            merged.groups[cg_nr].channel_group, cg
                         )
                         cg_map[group_index] = cg_nr
 
@@ -1948,10 +1973,10 @@ class MDF:
                         cg = mdf.groups[group].channel_group
                         dg_cntr = stacked.append(
                             signals,
-                            acq_name=getattr(cg, "acq_name", None),
-                            acq_source=getattr(cg, "acq_source", None),
-                            comment="stacked",
                             common_timebase=True,
+                        )
+                        MDF._transfer_channel_group_data(
+                            stacked.groups[dg_cntr].channel_group, cg
                         )
                     else:
                         master = signals[0][0]
@@ -2317,10 +2342,10 @@ class MDF:
             cg = self.groups[group_index].channel_group
             dg_cntr = mdf.append(
                 sigs,
-                acq_name=getattr(cg, "acq_name", None),
-                acq_source=getattr(cg, "acq_source", None),
-                comment=f"resampled to {raster}",
                 common_timebase=True,
+            )
+            MDF._transfer_channel_group_data(
+                mdf.groups[dg_cntr].channel_group, cg
             )
 
             if self._callback:
@@ -2332,7 +2357,7 @@ class MDF:
         if self._callback:
             self._callback(groups_nr, groups_nr)
 
-        mdf._transfer_metadata(self)
+        mdf._transfer_metadata(self, message=f"Resampled from {self.name}")
         if self._callback:
             mdf._callback = mdf._mdf._callback = self._callback
         return mdf
