@@ -4,7 +4,7 @@ import site
 from pathlib import Path
 
 if sys.platform.startswith('linux'):
-    asammdf_path = Path('/home/appveyor/.local/lib/python3.7/site-packages/asammdf/gui/asammdfgui.py')
+    asammdf_path = Path('/home/appveyor/venv3.7/lib/python3.7/site-packages/asammdf/gui/asammdfgui.py')
 elif sys.platform.startswith('win'):
     asammdf_path = Path(site.getsitepackages()[1]) / 'asammdf' / 'gui' / 'asammdfgui.py'
 else:
