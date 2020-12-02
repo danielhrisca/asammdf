@@ -60,13 +60,26 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         if signals is None:
             self.signals = pd.DataFrame()
         else:
+            index = pd.Series(np.arange(len(signals), dtype='u8'), index=signals.index)
+            signals["Index"] = index
+            names = ["timestamps"] + list(signals.columns)
+            signals["timestamps"] = signals.index
+            signals.set_index(index, inplace=True)
+            signals = signals[names]
             dropped = {}
 
             for name_ in signals.columns:
                 col = signals[name_]
                 if col.dtype.kind == "O":
-                    #                    dropped[name_] = pd.Series(csv_bytearray2hex(col), index=signals.index)
-                    self.signals_descr[name_] = 1
+                    if name_.endswith(".DataBytes") and name_.replace(".DataBytes", ".DataLength") in signals:
+                        dropped[name_] = pd.Series(
+                            csv_bytearray2hex(col, signals[name_.replace(".DataBytes", ".DataLength")]),
+                            index=signals.index
+                        )
+                    else:
+                        dropped[name_] = pd.Series(csv_bytearray2hex(col), index=signals.index)
+                    self.signals_descr[name_] = 0
+                    print(name_, dropped[name_].dtype, dropped[name_])
                 elif col.dtype.kind == "S":
                     try:
                         dropped[name_] = pd.Series(
@@ -80,7 +93,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                 else:
                     self.signals_descr[name_] = 0
 
-            signals = signals.drop(columns=list(dropped))
+            signals = signals.drop(columns=["Index", *list(dropped)])
             for name, s in dropped.items():
                 signals[name] = s
 
@@ -100,7 +113,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             for name in self.signals.columns
         ]
 
-        self._original_index = self.signals.index.values
+        self._original_timestamps = signals["timestamps"]
 
         self.build(self.signals, True)
 
@@ -268,7 +281,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                     filters.append("!=")
                     filters.append(column_name)
             else:
-                if column_name == df.index.name and df.index.dtype.kind == "M":
+                if column_name == "timestamps" and df["timestamps"].dtype.kind == "M":
 
                     ts = pd.Timestamp(target, tz=LOCAL_TIMEZONE)
                     ts = ts.tz_convert("UTC").to_datetime64()
@@ -342,7 +355,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             for name, s in dropped.items():
                 df[name[dim:]] = s
 
-        names = ["Index", df.index.name, *df.columns]
+        names = ["Index", *df.columns]
 
         if reset_header_names:
             self.header_names = names
@@ -368,21 +381,17 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
         df = self.df.iloc[max(0, position * 10 - 50) : max(0, position * 10 + 100)]
 
-        items = [
-            [str(e) for e in range(max(0, position * 10 - 50), max(0, position * 10 + 100))]
-        ]
-
-        if df.index.dtype.kind == "M":
-            index = df.index.tz_localize("UTC").tz_convert(LOCAL_TIMEZONE)
+        if df["timestamps"].dtype.kind == "M":
+            timestamps = df["timestamps"].tz_localize("UTC").tz_convert(LOCAL_TIMEZONE)
         else:
-            index = df.index
+            timestamps = df["timestamps"]
 
-        index_str = index.astype(str)
-        items += [
-            index_str,
+        timestamps = timestamps.astype(str)
+        items = [
+            df.index.astype(str), timestamps
         ]
 
-        for i, name in enumerate(df.columns):
+        for i, name in enumerate(df.columns[1:], 1):
             column = df[name]
             kind = column.dtype.kind
 
@@ -398,18 +407,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                     except:
                         items.append(npchar.decode(column, "latin-1"))
                 elif kind == "O":
-                    if name.endswith(".DataBytes") and name.replace(".DataBytes", ".DataLength") in df:
-                        items.append(
-                            pd.Series(
-                                csv_bytearray2hex(df[name], df[name.replace(".DataBytes", ".DataLength")])
-                            ).values
-                        )
-                    else:
-
-                        try:
-                            items.append(pd.Series(csv_bytearray2hex(df[name])).values)
-                        except:
-                            items.append(pd.Series(df[name]).values)
+                    items.append(column)
                 else:
                     items.append(column)
 
@@ -421,11 +419,11 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             )
 
         column_types = [
-            "u", df.index.dtype.kind,
+            "u",
             *[df[name].dtype.kind for name in df.columns]
         ]
 
-        as_hex = [False, False] + self.as_hex
+        as_hex = [False] + self.as_hex
 
         items = [TabularTreeItem(column_types, as_hex, row) for row in zip(*items)]
 
@@ -481,9 +479,9 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                 else:
                     filter.validate_target()
 
-            index = pd.to_datetime(self.signals.index + self.start, unit="s")
+            timestamps = pd.to_datetime(self.signals["timestamps"] + self.start, unit="s")
 
-            self.signals.index = index
+            self.signals["timestamps"] = timestamps
         else:
             for i in range(count):
                 filter = self.filters.itemWidget(self.filters.item(i))
@@ -493,8 +491,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                     filter.column_changed(0)
                 else:
                     filter.validate_target()
-            self.signals.index = self._original_index
-        self.signals.index.name = "timestamps"
+            self.signals["timestamps"] = self._original_timestamps
 
         if self.query.toPlainText():
             self.apply_filters()
