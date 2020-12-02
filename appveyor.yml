@@ -74,11 +74,11 @@ for:
       - sh: "echo $HOME"
       - sh: "source $HOME/venv3.7/bin/activate"
       - sh: "pip3 install --upgrade pip"
-      - sh: "pip3 install --upgrade setuptools --user"
-      - sh: "pip3 -m pip install wheel --user"
-      - sh: "pip3 -m pip install -r pip_requirements_tests.txt --user"
-      - sh: "pip3 -m pip install PyQt5>=5.13.1 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph --user"
-      - sh: "pip3 -m pip install . --user"
+      - sh: "pip3 install --upgrade setuptools"
+      - sh: "pip3 -m pip install wheel"
+      - sh: "pip3 -m pip install -r pip_requirements_tests.txt"
+      - sh: "pip3 -m pip install PyQt5>=5.13.1 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph"
+      - sh: "pip3 -m pip install ."
       - sh: >-
           if [ $APPVEYOR_REPO_BRANCH != "master" ] ; then
              $HOME/venv3.7/bin/pyinstaller asammdf_noconsole.spec
