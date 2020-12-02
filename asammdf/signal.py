@@ -5,6 +5,7 @@ import logging
 from textwrap import fill
 
 import numpy as np
+from numpy.core.defchararray import encode
 
 from .blocks import v2_v3_blocks as v3b
 from .blocks import v4_blocks as v4b
@@ -92,6 +93,20 @@ class Signal(object):
         else:
             if not isinstance(samples, np.ndarray):
                 samples = np.array(samples)
+                if samples.dtype.kind == "U":
+                    if encoding is None:
+                        encodings = ["utf-8", "latin-1"]
+                    else:
+                        encodings = [encoding, "utf-8", "latin-1"]
+                    for encoding in encodings:
+                        try:
+                            samples = encode(samples, encoding)
+                            break
+                        except:
+                            continue
+                    else:
+                        samples = encode(samples, encodings[0], errors="ignore")
+
             if not isinstance(timestamps, np.ndarray):
                 timestamps = np.array(timestamps, dtype=np.float64)
             if samples.shape[0] != timestamps.shape[0]:

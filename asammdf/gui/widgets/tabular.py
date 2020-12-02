@@ -62,10 +62,9 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         else:
             index = pd.Series(np.arange(len(signals), dtype='u8'), index=signals.index)
             signals["Index"] = index
-            names = ["timestamps"] + list(signals.columns)
+
             signals["timestamps"] = signals.index
             signals.set_index(index, inplace=True)
-            signals = signals[names]
             dropped = {}
 
             for name_ in signals.columns:
@@ -79,7 +78,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                     else:
                         dropped[name_] = pd.Series(csv_bytearray2hex(col), index=signals.index)
                     self.signals_descr[name_] = 0
-                    print(name_, dropped[name_].dtype, dropped[name_])
+
                 elif col.dtype.kind == "S":
                     try:
                         dropped[name_] = pd.Series(
@@ -97,7 +96,13 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             for name, s in dropped.items():
                 signals[name] = s
 
-            self.signals = signals
+            names = list(signals.columns)
+            names = [
+                "timestamps",
+                *[name for name in names if name.endswith((".ID", ".DataBytes"))],
+                *[name for name in names if name != "timestamps" and not name.endswith((".ID", ".DataBytes"))],
+            ]
+            self.signals = signals[names]
 
         self.as_hex = [
             name.endswith(
