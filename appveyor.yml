@@ -13,9 +13,9 @@ environment:
     #- APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017 
     #  PYTHON: "C:\\Python37-x64"
     #  PY: "37-x64"
-    #- APPVEYOR_BUILD_WORKER_IMAGE: macos
-    #  PYTHON: venv3.7
-    #  PY: "37-x64"
+    - APPVEYOR_BUILD_WORKER_IMAGE: macos
+      PYTHON: venv3.7
+      PY: "37-x64"
 
 for:
   -
@@ -81,13 +81,13 @@ for:
       - sh: "pip3 install ."
       - sh: >-
           if [ $APPVEYOR_REPO_BRANCH != "master" ] ; then
-             $HOME/venv3.7/bin/pyinstaller asammdf_noconsole.spec
+             pyinstaller asammdf_noconsole.spec
           fi
       - sh: >-
           if [ $APPVEYOR_REPO_BRANCH != "master" ] ; then
              mv dist/asammdfgui dist/asammdfgui_noconsole
           fi
-      - sh: "source deactivate"
+      - sh: "deactivate"
       
     #build: Script
     
@@ -101,7 +101,7 @@ for:
       # to put the Python version you want to use on PATH.
       - sh: "source $HOME/venv3.7/bin/activate"
       - sh: "python3 test/run_all.py"
-      - sh: "source deactivate"
+      - sh: "deactivate"
       
     after_test:
       # This step builds your wheels.
@@ -110,7 +110,7 @@ for:
       # interpreter
       - sh: "source $HOME/venv3.7/bin/activate"
       - sh: "python3 setup.py bdist_wheel"
-      - sh: "source deactivate"
+      - sh: "deactivate"
       
     artifacts:
       # bdist_wheel puts your built wheel in the dist directory
@@ -125,20 +125,23 @@ for:
       # We need wheel installed to build wheels
       # - sh: "sudo apt-get --yes --force-yes update"
       # - sh: "sudo DEBIAN_FRONTEND=noninteractive apt-get --yes install python3-dev python3-pip python3-setuptools"
-      - sh: "~/$PYTHON/bin/python -m pip install --upgrade pip"
-      - sh: "~/$PYTHON/bin/python -m pip install --upgrade setuptools"
-      - sh: "~/$PYTHON/bin/python -m pip install wheel"
-      - sh: "~/$PYTHON/bin/python -m pip install -r pip_requirements_tests.txt"
-      - sh: "~/$PYTHON/bin/python -m pip install PyQt5>=5.13.1 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph"
-      - sh: "~/$PYTHON/bin/python -m pip install ."
+      - sh: "echo ~/$PYTHON"
+      - sh: "source ~/$PYTHON/bin activate"
+      - sh: "pip3 install --upgrade pip"
+      - sh: "pip3 install --upgrade setuptools"
+      - sh: "pip3 install wheel"
+      - sh: "pip3 install -r pip_requirements_tests.txt"
+      - sh: "pip3 install PyQt5>=5.13.1 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph"
+      - sh: "pip3 install ."
       - sh: >-
           if [ $APPVEYOR_REPO_BRANCH != "master" ] ; then
-             ~/$PYTHON/bin/python -m pyinstaller asammdf_noconsole.spec
+             pyinstaller asammdf_noconsole.spec
           fi
       - sh: >-
           if [ $APPVEYOR_REPO_BRANCH != "master" ] ; then
              mv dist/asammdfgui dist/asammdfgui_noconsole
           fi
+      - sh: "deactivate"
       
     # build: off
     
@@ -150,14 +153,18 @@ for:
       # Note that you must use the environment variable %PYTHON% to refer to
       # the interpreter you're using - Appveyor does not do anything special
       # to put the Python version you want to use on PATH.
-      - sh: "~/$PYTHON/bin/python test/run_all.py"
+      - sh: "source ~/$PYTHON/bin activate"
+      - sh: "python3 test/run_all.py"
+      - sh: "deactivate"
       
     after_test:
       # This step builds your wheels.
       # Again, you only need build.cmd if you're building C extensions for
       # 64-bit Python 3.3/3.4. And you need to use %PYTHON% to get the correct
       # interpreter
-      - sh: "~/$PYTHON/bin/python setup.py bdist_wheel"
+      - sh: "source ~/$PYTHON/bin activate"
+      - sh: "python3 setup.py bdist_wheel"
+      - sh: "deactivate"
       
     artifacts:
       # bdist_wheel puts your built wheel in the dist directory
