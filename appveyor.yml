@@ -38,7 +38,7 @@ for:
       - cmd: "if \"%PY%\" == \"37-x64\" ( if NOT \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\Scripts\\pyinstaller asammdf.spec))"
       - cmd: "if \"%PY%\" == \"37-x64\" ( if NOT \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe))"
       
-    build: off
+    # build: off
     
     test_script:
       # Put your test command here.
@@ -85,7 +85,7 @@ for:
              mv dist/asammdfgui dist/asammdfgui_noconsole
           fi
       
-    # build: off
+    #build: Script
     
     test_script:
       # Put your test command here.
@@ -132,7 +132,7 @@ for:
              mv dist/asammdfgui dist/asammdfgui_noconsole
           fi
       
-    build: off
+    # build: off
     
     test_script:
       # Put your test command here.
