@@ -24,14 +24,14 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
     add_channels_request = QtCore.pyqtSignal(list)
     timestamp_changed_signal = QtCore.pyqtSignal(object, float)
 
-    def __init__(self, signals, *args, **kwargs):
+    def __init__(self, signals, format="phys", *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         for sig in signals:
             sig.timestamps = np.around(sig.timestamps, 9)
         self.signals = {}
         self._min = self._max = 0
-        self.format = "phys"
+        self.format = format
         self.add_new_channels(signals)
         self.pattern = {}
 
@@ -47,6 +47,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         self.forward.clicked.connect(self.search_forward)
         self.backward.clicked.connect(self.search_backward)
         self.op.addItems([">", ">=", "<", "<=", "==", "!="])
+
+        self.format_selection.currentTextChanged.connect(self.set_format)
 
         self.build()
 
@@ -223,12 +225,11 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             and modifier == QtCore.Qt.ControlModifier
         ):
             if key == QtCore.Qt.Key_H:
-                self.format = "hex"
+                self.format_selection.setCurrentText("hex")
             elif key == QtCore.Qt.Key_B:
-                self.format = "bin"
+                self.format_selection.setCurrentText("bin")
             else:
-                self.format = "phys"
-            self._update_values()
+                self.format_selection.setCurrentText("phys")
             event.accept()
         elif key == QtCore.Qt.Key_Right and modifier == QtCore.Qt.NoModifier:
             self.timestamp_slider.setValue(self.timestamp_slider.value() + 1)
@@ -376,3 +377,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                 self.match.setText(f"condition found for {signal_name}")
             else:
                 self.match.setText(f"condition not found")
+
+    def set_format(self, fmt):
+        self.format = fmt
+        self._update_values()

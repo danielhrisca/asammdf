@@ -13,7 +13,26 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout" stretch="1,0,0,0,0">
+  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,1,0,0,0,0">
+   <item>
+    <widget class="QComboBox" name="format_selection">
+     <item>
+      <property name="text">
+       <string>phys</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>hex</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>bin</string>
+      </property>
+     </item>
+    </widget>
+   </item>
    <item>
     <widget class="NumericTreeWidget" name="channels">
      <property name="font">

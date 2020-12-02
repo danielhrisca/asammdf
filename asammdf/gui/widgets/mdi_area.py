@@ -643,14 +643,12 @@ class WithMDIArea:
             w.setWindowTitle(f"Tabular {self._window_counter}")
             self._window_counter += 1
 
-    def get_current_plot(self):
+    def get_current_widget(self):
         mdi = self.mdi_area.activeSubWindow()
         if mdi is not None:
             widget = mdi.widget()
-            if isinstance(widget, Plot):
-                return widget
-            else:
-                return None
+
+            return widget
         else:
             return None
 
@@ -1371,8 +1369,8 @@ class WithMDIArea:
 
         self.with_dots = with_dots
 
-        current_plot = self.get_current_plot()
-        if current_plot:
+        current_plot = self.get_current_widget()
+        if current_plot and isinstance(current_plot, Plot):
             current_plot.plot.update_lines(with_dots=with_dots)
 
     def set_subplots(self, option):

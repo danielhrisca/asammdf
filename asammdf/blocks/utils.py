@@ -1426,6 +1426,19 @@ def master_using_raster(mdf, raster, endpoint=False):
     return master
 
 
+def csv_int2bin(val):
+    """format CAN id as bin
+
+    100 -> 1100100
+
+    """
+
+    return f"{val:b}"
+
+
+csv_int2bin = np.vectorize(csv_int2bin, otypes=[str])
+
+
 def csv_int2hex(val):
     """format CAN id as hex
 

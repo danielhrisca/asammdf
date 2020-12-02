@@ -13,85 +13,38 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout_2" rowstretch="5,0,0,0,0,0" columnstretch="0,0,0,0,0,1,0,0,0">
-   <item row="3" column="1">
-    <widget class="QPushButton" name="add_filter_btn">
-     <property name="text">
-      <string>Add new filter</string>
+  <layout class="QGridLayout" name="gridLayout_2" rowstretch="5,0,0,0,0,0" columnstretch="0,0,0,0,0,0,0,0,0">
+   <item row="0" column="0" colspan="8">
+    <widget class="QTreeWidget" name="tree">
+     <property name="font">
+      <font>
+       <family>Lucida Console</family>
+      </font>
      </property>
-     <property name="icon">
-      <iconset resource="resource.qrc">
-       <normaloff>:/plus.png</normaloff>:/plus.png</iconset>
+     <property name="verticalScrollBarPolicy">
+      <enum>Qt::ScrollBarAlwaysOff</enum>
      </property>
+     <property name="selectionBehavior">
+      <enum>QAbstractItemView::SelectRows</enum>
+     </property>
+     <property name="uniformRowHeights">
+      <bool>true</bool>
+     </property>
+     <property name="allColumnsShowFocus">
+      <bool>true</bool>
+     </property>
+     <attribute name="headerHighlightSections">
+      <bool>true</bool>
+     </attribute>
+     <attribute name="headerShowSortIndicator" stdset="0">
+      <bool>false</bool>
+     </attribute>
     </widget>
-   </item>
-   <item row="2" column="6">
-    <widget class="QCheckBox" name="sort">
-     <property name="text">
-      <string>Enable column sorting</string>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="4">
-    <widget class="QPushButton" name="apply_filters_btn">
-     <property name="text">
-      <string>Apply filters</string>
-     </property>
-     <property name="icon">
-      <iconset resource="resource.qrc">
-       <normaloff>:/filter.png</normaloff>:/filter.png</iconset>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="5">
-    <spacer name="horizontalSpacer_2">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>200</width>
-       <height>20</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item row="3" column="2" colspan="2">
-    <spacer name="horizontalSpacer">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>20</height>
-      </size>
-     </property>
-    </spacer>
    </item>
    <item row="3" column="6">
     <widget class="QCheckBox" name="remove_prefix">
      <property name="text">
       <string>Remove prefix</string>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="8">
-    <widget class="QScrollBar" name="tree_scroll">
-     <property name="maximum">
-      <number>9999</number>
-     </property>
-     <property name="singleStep">
-      <number>1</number>
-     </property>
-     <property name="pageStep">
-      <number>10</number>
-     </property>
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="invertedAppearance">
-      <bool>false</bool>
      </property>
     </widget>
    </item>
@@ -107,36 +60,6 @@
       <bool>true</bool>
      </property>
     </widget>
-   </item>
-   <item row="2" column="7" colspan="2">
-    <widget class="QCheckBox" name="time_as_date">
-     <property name="text">
-      <string>Time as date</string>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="0" colspan="8">
-    <widget class="QTreeWidget" name="tree">
-     <property name="font">
-      <font>
-       <family>Lucida Console</family>
-      </font>
-     </property>
-     <property name="verticalScrollBarPolicy">
-      <enum>Qt::ScrollBarAlwaysOff</enum>
-     </property>
-     <property name="uniformRowHeights">
-      <bool>true</bool>
-     </property>
-     <column>
-      <property name="text">
-       <string notr="true">1</string>
-      </property>
-     </column>
-    </widget>
-   </item>
-   <item row="4" column="0" colspan="9">
-    <widget class="MinimalListWidget" name="filters"/>
    </item>
    <item row="5" column="0" colspan="9">
     <widget class="QGroupBox" name="groupBox">
@@ -199,6 +122,109 @@
        </widget>
       </item>
      </layout>
+    </widget>
+   </item>
+   <item row="2" column="6">
+    <widget class="QCheckBox" name="sort">
+     <property name="text">
+      <string>Enable column sorting</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="0" colspan="9">
+    <widget class="MinimalListWidget" name="filters"/>
+   </item>
+   <item row="3" column="1">
+    <widget class="QPushButton" name="add_filter_btn">
+     <property name="text">
+      <string>Add new filter</string>
+     </property>
+     <property name="icon">
+      <iconset resource="resource.qrc">
+       <normaloff>:/plus.png</normaloff>:/plus.png</iconset>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="2" colspan="2">
+    <spacer name="horizontalSpacer">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="2" column="7" colspan="2">
+    <widget class="QCheckBox" name="time_as_date">
+     <property name="text">
+      <string>Time as date</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="5">
+    <spacer name="horizontalSpacer_2">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>200</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="3" column="4">
+    <widget class="QPushButton" name="apply_filters_btn">
+     <property name="text">
+      <string>Apply filters</string>
+     </property>
+     <property name="icon">
+      <iconset resource="resource.qrc">
+       <normaloff>:/filter.png</normaloff>:/filter.png</iconset>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="8">
+    <widget class="QScrollBar" name="tree_scroll">
+     <property name="maximum">
+      <number>9999</number>
+     </property>
+     <property name="singleStep">
+      <number>1</number>
+     </property>
+     <property name="pageStep">
+      <number>10</number>
+     </property>
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="invertedAppearance">
+      <bool>false</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="1">
+    <widget class="QComboBox" name="format_selection">
+     <item>
+      <property name="text">
+       <string>phys</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>hex</string>
+      </property>
+     </item>
+     <item>
+      <property name="text">
+       <string>bin</string>
+      </property>
+     </item>
     </widget>
    </item>
   </layout>

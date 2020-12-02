@@ -16,6 +16,7 @@ from ..ui.main_window import Ui_PyMDFMainWindow
 from .batch import BatchWidget
 from .file import FileWidget
 from .mdi_area import MdiAreaWidget, WithMDIArea
+from .plot import Plot
 
 
 class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
@@ -556,12 +557,12 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, key, modifier)
         if self.stackedWidget.currentIndex() == 0:
             widget = self.files.currentWidget()
-            if widget and widget.get_current_plot():
-                widget.get_current_plot().keyPressEvent(event)
+            if widget and widget.get_current_widget():
+                widget.get_current_widget().keyPressEvent(event)
         elif self.stackedWidget.currentIndex() == 2:
             widget = self
-            if widget and widget.get_current_plot():
-                widget.get_current_plot().keyPressEvent(event)
+            if widget and widget.get_current_widget():
+                widget.get_current_widget().keyPressEvent(event)
 
     def toggle_dots(self, key):
         self.with_dots = not self.with_dots
@@ -637,10 +638,10 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         else:
             widget = None
         if widget:
-            plot = widget.get_current_plot()
-            if plot:
-                widget.get_current_plot().plot.x_axis.format = fmt
-                widget.get_current_plot().plot.x_axis.updateAutoSIPrefix()
+            plot = widget.get_current_widget()
+            if plot and isinstance(plot, Plot):
+                widget.get_current_widget().plot.x_axis.format = fmt
+                widget.get_current_widget().plot.x_axis.updateAutoSIPrefix()
                 if plot.plot.cursor1 is not None:
                     plot.cursor_moved()
                 if plot.plot.region is not None:

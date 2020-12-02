@@ -8,7 +8,7 @@ import numpy.core.defchararray as npchar
 import pandas as pd
 from PyQt5 import QtCore, QtWidgets, QtGui
 
-from ...blocks.utils import csv_bytearray2hex, csv_int2hex, pandas_query_compatible
+from ...blocks.utils import csv_bytearray2hex, csv_int2hex, csv_int2bin, pandas_query_compatible
 from ..utils import run_thread_with_progress
 from ..ui import resource_rc as resource_rc
 from ..ui.tabular import Ui_TabularDisplay
@@ -46,7 +46,7 @@ class TabularTreeItem(QtWidgets.QTreeWidgetItem):
 class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
     add_channels_request = QtCore.pyqtSignal(list)
 
-    def __init__(self, signals=None, start=0, *args, **kwargs):
+    def __init__(self, signals=None, start=0, format="phys", *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
@@ -56,6 +56,8 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         self.signals_descr = {}
         self.start = start
         self.pattern = {}
+        self.format = format
+        self.format_selection.setCurrentText(format)
 
         if signals is None:
             self.signals = pd.DataFrame()
@@ -145,6 +147,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         self.tree_scroll.valueChanged.connect(self._display)
         self.tree.verticalScrollBar().valueChanged.connect(self._scroll_tree)
         self.tree.currentItemChanged.connect(self._scroll_tree)
+        self.format_selection.currentTextChanged.connect(self.set_format)
 
     def _scroll_tree(self, selected_item):
         count = self.tree.topLevelItemCount()
@@ -400,21 +403,25 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             column = df[name]
             kind = column.dtype.kind
 
-            if self.as_hex[i]:
-                items.append(pd.Series(csv_int2hex(column.astype("<u4"))).values)
-            else:
-
-                if kind in "uif":
-                    items.append(column.astype(str))
-                elif kind == "S":
-                    try:
-                        items.append(npchar.decode(column, "utf-8"))
-                    except:
-                        items.append(npchar.decode(column, "latin-1"))
-                elif kind == "O":
-                    items.append(column)
+            if kind in "ui":
+                if self.format == "hex":
+                    items.append(pd.Series(csv_int2hex(column)).values)
+                elif self.format == "bin":
+                    items.append(pd.Series(csv_int2bin(column)).values)
                 else:
-                    items.append(column)
+                    items.append(column.astype(str))
+
+            elif kind == "f":
+                items.append(column.astype(str))
+            elif kind == "S":
+                try:
+                    items.append(npchar.decode(column, "utf-8"))
+                except:
+                    items.append(npchar.decode(column, "latin-1"))
+            elif kind == "O":
+                items.append(column)
+            else:
+                items.append(column)
 
         if position == 0:
             self.tree.verticalScrollBar().setSliderPosition(0)
@@ -458,6 +465,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             else [],
             "time_as_date": self.time_as_date.checkState() == QtCore.Qt.Checked,
             "pattern": self.pattern,
+            "format": self.format,
         }
 
         return config
@@ -572,3 +580,27 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
                 progress.cancel()
 
+    def keyPressEvent(self, event):
+        key = event.key()
+        modifier = event.modifiers()
+
+        if (
+            key in (QtCore.Qt.Key_H, QtCore.Qt.Key_B, QtCore.Qt.Key_P)
+            and modifier == QtCore.Qt.ControlModifier
+        ):
+            if key == QtCore.Qt.Key_H:
+                self.format_selection.setCurrentText("hex")
+            elif key == QtCore.Qt.Key_B:
+                self.format_selection.setCurrentText("bin")
+            else:
+                self.format_selection.setCurrentText("phys")
+
+            event.accept()
+        else:
+            super().keyPressEvent(event)
+
+    def set_format(self, fmt):
+        self.format = fmt
+        self.build(self.signals)
+        if self.query.toPlainText():
+            self.apply_filters()
