@@ -4097,15 +4097,17 @@ class MDF:
             out._callback = out._mdf._callback = self._callback
         return out
 
-    def whereis(self, channel, source=None):
+    def whereis(self, channel, source_name=None, source_path=None):
         """get ocurrences of channel name in the file
 
         Parameters
         ----------
         channel : str
             channel name string
-        source (None) : str
-            filter the channel occurences using the source name
+        source_name (None) : str
+            filter occurences using source name
+        source_path (None) : str
+            filter occurences using source path
 
             .. versionadded:: 6.0.0
 
@@ -4123,19 +4125,9 @@ class MDF:
         ()
 
         """
-
-        if channel in self:
-            if source:
-                try:
-                    entry = self._validate_channel_selection(channel, source=source)
-                except:
-                    return tuple()
-                else:
-                    return (entry,)
-            else:
-                return tuple(self.channels_db[channel])
-        else:
-            return tuple()
+        return self._filter_occurences(
+            self.channels_db[channel], source_name=source_name, source_path=source_path
+        )
 
 
 if __name__ == "__main__":

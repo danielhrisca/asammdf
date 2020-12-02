@@ -14,6 +14,29 @@ __all__ = ["MDF_Common"]
 class MDF_Common:
     """common methods for MDF objects"""
 
+    def _filter_occurences(self, occurences, source_name=None, source_path=None):
+        occurences = (
+            (gp_idx, cn_idx)
+            for gp_idx, cn_idx in occurences
+            if (
+                not source_name
+                or source_name == self.groups[gp_idx].channels[cn_idx].source.name
+                or (
+                    self.version >= "4.00"
+                    and source_name == self.groups[gp_idx].channel_group.acq_source.name
+                )
+            )
+            and (
+                not source_path
+                or source_path == self.groups[gp_idx].channels[cn_idx].source.path
+                or (
+                    self.version >= "4.00"
+                    and source_path == self.groups[gp_idx].channel_group.acq_source.path
+                )
+            )
+        )
+        return occurences
+
     def _get_source_name(self, group, index):
         source = self.groups[group].channels[index].source
         cn_source = source.name if source else ""
