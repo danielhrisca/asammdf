@@ -10,12 +10,12 @@ environment:
 
     # - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
     
-    #- APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017 
-    #  PYTHON: "C:\\Python37-x64"
-    #  PY: "37-x64"
-    - APPVEYOR_BUILD_WORKER_IMAGE: macos
-      PYTHON: venv3.7
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017 
+      PYTHON: "C:\\Python37-x64"
       PY: "37-x64"
+    # - APPVEYOR_BUILD_WORKER_IMAGE: macos
+    #   PYTHON: venv3.7
+    #   PY: "37-x64"
 
 for:
   -
@@ -27,6 +27,8 @@ for:
       # We need wheel installed to build wheels
       - cmd: set PATH=%PATH%;%PYTHON%\Scripts
       - cmd: set LLVM_DIR="C:\Program Files\LLVM\bin"
+      - cmd: "cd %PYTHON%"
+      - cmd: "dir"
       - cmd: "%PYTHON%\\python.exe -m pip install --upgrade pip"
       - cmd: "%PYTHON%\\python.exe -m pip install --upgrade setuptools"
       - cmd: "%PYTHON%\\python.exe -m pip install wheel"
@@ -77,7 +79,7 @@ for:
       - sh: "pip3 install --upgrade setuptools"
       - sh: "pip3 install wheel"
       - sh: "pip3 install -r pip_requirements_tests.txt"
-      - sh: "pip3 install PyQt5>=5.13.1 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph"
+      - sh: "pip3 install PyQt5>=5.13.1 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph"
       - sh: "pip3 install ."
       - sh: >-
           if [ $APPVEYOR_REPO_BRANCH != "master" ] ; then
@@ -131,7 +133,7 @@ for:
       - sh: "pip3 install --upgrade setuptools"
       - sh: "pip3 install wheel"
       - sh: "pip3 install -r pip_requirements_tests.txt"
-      - sh: "pip3 install PyQt5>=5.13.1 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph"
+      - sh: "pip3 install PyQt5>=5.13.1 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph"
       - sh: "pip3 install ."
       - sh: >-
           if [ $APPVEYOR_REPO_BRANCH != "master" ] ; then
