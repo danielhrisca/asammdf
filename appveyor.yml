@@ -10,7 +10,7 @@ environment:
 
     # - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
     
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017 
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       PYTHON: "C:\\Python37-x64"
       PY: "37-x64"
     # - APPVEYOR_BUILD_WORKER_IMAGE: macos
@@ -21,7 +21,7 @@ for:
   -
     matrix:
       only:
-        - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+        - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
         
     install:
       # We need wheel installed to build wheels
