@@ -17,6 +17,7 @@ environment:
 install:
   # We need wheel installed to build wheels
   - cmd: set PATH=%PATH%;%PYTHON%\Scripts
+  - cmd: set LLVM_DIR="C:\Program Files\LLVM\bin"
   - cmd: "%PYTHON%\\python.exe -m pip install --upgrade pip"
   - cmd: "%PYTHON%\\python.exe -m pip install --upgrade setuptools"
   - cmd: "%PYTHON%\\python.exe -m pip install wheel"
