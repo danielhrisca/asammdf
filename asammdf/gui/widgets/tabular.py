@@ -387,7 +387,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         df = self.df.iloc[max(0, position * 10 - 50) : max(0, position * 10 + 100)]
 
         if df["timestamps"].dtype.kind == "M":
-            timestamps = df["timestamps"].tz_localize("UTC").tz_convert(LOCAL_TIMEZONE)
+            timestamps = pd.Index(df["timestamps"]).tz_localize("UTC").tz_convert(LOCAL_TIMEZONE)
         else:
             timestamps = df["timestamps"]
 
