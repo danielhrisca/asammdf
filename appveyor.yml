@@ -39,7 +39,7 @@ for:
       - cmd: "if \"%PY%\" == \"37-x64\" ( if NOT \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\Scripts\\pyinstaller asammdf.spec))"
       - cmd: "if \"%PY%\" == \"37-x64\" ( if NOT \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe))"
       
-    build: Script
+    build_script:
     
     test_script:
       # Put your test command here.
@@ -71,12 +71,12 @@ for:
       # We need wheel installed to build wheels
       - sh: "sudo apt-get --yes --force-yes update"
       - sh: "sudo DEBIAN_FRONTEND=noninteractive apt-get --yes install python3-dev python3-pip python3-setuptools"
-      - sh: "python3 -m pip install --upgrade pip --user"
-      - sh: "python3 -m pip install --upgrade setuptools --user"
-      - sh: "python3 -m pip install wheel --user"
-      - sh: "python3 -m pip install -r pip_requirements_tests.txt --user"
-      - sh: "python3 -m pip install PyQt5>=5.13.1 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph --user"
-      - sh: "python3 -m pip install . --user"
+      - sh: "$HOME/venv3.7 -m pip install --upgrade pip --user"
+      - sh: "$HOME/venv3.7 -m pip install --upgrade setuptools --user"
+      - sh: "$HOME/venv3.7 -m pip install wheel --user"
+      - sh: "$HOME/venv3.7 -m pip install -r pip_requirements_tests.txt --user"
+      - sh: "$HOME/venv3.7 -m pip install PyQt5>=5.13.1 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph --user"
+      - sh: "$HOME/venv3.7 -m pip install . --user"
       - sh: >-
           if [ $APPVEYOR_REPO_BRANCH != "master" ] ; then
              /home/appveyor/.local/bin/pyinstaller asammdf_noconsole.spec
@@ -126,7 +126,7 @@ for:
       - sh: "~/$PYTHON/bin/python -m pip install ."
       - sh: >-
           if [ $APPVEYOR_REPO_BRANCH != "master" ] ; then
-             /Users/appveyor/venv3.7.7/Scripts/pyinstaller asammdf_noconsole.spec
+             /Users/appveyor/.local/bin/pyinstaller asammdf_noconsole.spec
           fi
       - sh: >-
           if [ $APPVEYOR_REPO_BRANCH != "master" ] ; then
