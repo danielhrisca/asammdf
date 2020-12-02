@@ -8,7 +8,8 @@ environment:
     # The list here is complete (excluding Python 2.6, which
     # isn't covered by this document) at the time of writing.
 
-    # - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
+    - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
+    
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017 
       PYTHON: "C:\\Python37-x64"
       PY: "37-x64"
@@ -38,7 +39,7 @@ for:
       - cmd: "if \"%PY%\" == \"37-x64\" ( if NOT \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\Scripts\\pyinstaller asammdf.spec))"
       - cmd: "if \"%PY%\" == \"37-x64\" ( if NOT \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe))"
       
-    # build: off
+    build: Script
     
     test_script:
       # Put your test command here.
@@ -77,11 +78,11 @@ for:
       - sh: "python3 -m pip install PyQt5>=5.13.1 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph --user"
       - sh: "python3 -m pip install . --user"
       - sh: >-
-          if [ $APPVEYOR_REPO_BRANCH == "master" ] ; then
+          if [ $APPVEYOR_REPO_BRANCH != "master" ] ; then
              /home/appveyor/.local/bin/pyinstaller asammdf_noconsole.spec
           fi
       - sh: >-
-          if [ $APPVEYOR_REPO_BRANCH == "master" ] ; then
+          if [ $APPVEYOR_REPO_BRANCH != "master" ] ; then
              mv dist/asammdfgui dist/asammdfgui_noconsole
           fi
       
@@ -125,7 +126,7 @@ for:
       - sh: "~/$PYTHON/bin/python -m pip install ."
       - sh: >-
           if [ $APPVEYOR_REPO_BRANCH != "master" ] ; then
-             /home/appveyor/.local/bin/pyinstaller asammdf_noconsole.spec
+             /Users/appveyor/venv3.7.7/Scripts/pyinstaller asammdf_noconsole.spec
           fi
       - sh: >-
           if [ $APPVEYOR_REPO_BRANCH != "master" ] ; then
@@ -149,7 +150,7 @@ for:
       # Again, you only need build.cmd if you're building C extensions for
       # 64-bit Python 3.3/3.4. And you need to use %PYTHON% to get the correct
       # interpreter
-      - sh: "python3 setup.py bdist_wheel"
+      - sh: "~/$PYTHON/bin/python setup.py bdist_wheel"
       
     artifacts:
       # bdist_wheel puts your built wheel in the dist directory
