@@ -42,6 +42,7 @@ for:
       - cmd: "if \"%PY%\" == \"37-x64\" ( if NOT \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe))"
       
     build_script:
+      - cmd: "echo BUILD_BUILD"
     
     test_script:
       # Put your test command here.
