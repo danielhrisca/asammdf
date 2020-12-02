@@ -8,7 +8,7 @@ if sys.platform.startswith('linux'):
 elif sys.platform.startswith('win'):
     asammdf_path = Path(site.getsitepackages()[1]) / 'asammdf' / 'gui' / 'asammdfgui.py'
 else:
-    asammdf_path = Path('/Users/appveyor/venv3.7.7/site-packages/asammdf/gui/asammdfgui.py')
+    asammdf_path = Path('/Users/appveyor/venv3.7/lib/python3.7/site-packages/asammdf/gui/asammdfgui.py')
 
 block_cipher = None
 added_files = []
