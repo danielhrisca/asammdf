@@ -3,11 +3,13 @@ import sys
 import site
 from pathlib import Path
 
-if sys.platform.startswith('linux'):
-    asammdf_path = Path('/home/appveyor/.local/lib/python3.6/site-packages/asammdf/gui/asammdfgui.py')
-else:
+#if sys.platform.startswith('linux'):
+#    asammdf_path = Path('/home/appveyor/.local/lib/python3.8/site-packages/asammdf/gui/asammdfgui.py')
+#elif sys.platform.startswith('linux'):
+#    asammdf_path = Path('/home/appveyor/.local/lib/python3.8/site-packages/asammdf/gui/asammdfgui.py')
+#else:
 
-    asammdf_path = Path(site.getsitepackages()[1]) / 'asammdf' / 'gui' / 'asammdfgui.py'
+asammdf_path = Path(site.getsitepackages()[1]) / 'asammdf' / 'gui' / 'asammdfgui.py'
 
 block_cipher = None
 added_files = []
