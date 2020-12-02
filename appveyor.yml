@@ -71,21 +71,23 @@ for:
       # We need wheel installed to build wheels
       # - sh: "sudo apt-get --yes --force-yes update"
       # - sh: "sudo DEBIAN_FRONTEND=noninteractive apt-get --yes install python3-dev python3-pip python3-setuptools"
-      - sh: "ls -l $HOME/venv3.7"
-      - sh: "$HOME/venv3.7/python -m pip install --upgrade pip --user"
-      - sh: "$HOME/venv3.7/python -m pip install --upgrade setuptools --user"
-      - sh: "$HOME/venv3.7/python -m pip install wheel --user"
-      - sh: "$HOME/venv3.7/python -m pip install -r pip_requirements_tests.txt --user"
-      - sh: "$HOME/venv3.7/python -m pip install PyQt5>=5.13.1 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph --user"
-      - sh: "$HOME/venv3.7/python -m pip install . --user"
+      - sh: "echo $HOME"
+      - sh: "source $HOME/venv3.7/bin/activate"
+      - sh: "pip3 install --upgrade pip"
+      - sh: "pip3 install --upgrade setuptools --user"
+      - sh: "pip3 -m pip install wheel --user"
+      - sh: "pip3 -m pip install -r pip_requirements_tests.txt --user"
+      - sh: "pip3 -m pip install PyQt5>=5.13.1 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph --user"
+      - sh: "pip3 -m pip install . --user"
       - sh: >-
           if [ $APPVEYOR_REPO_BRANCH != "master" ] ; then
-             /home/appveyor/.local/bin/pyinstaller asammdf_noconsole.spec
+             $HOME/venv3.7/bin/pyinstaller asammdf_noconsole.spec
           fi
       - sh: >-
           if [ $APPVEYOR_REPO_BRANCH != "master" ] ; then
              mv dist/asammdfgui dist/asammdfgui_noconsole
           fi
+      - sh: "source deactivate"
       
     #build: Script
     
@@ -97,14 +99,18 @@ for:
       # Note that you must use the environment variable %PYTHON% to refer to
       # the interpreter you're using - Appveyor does not do anything special
       # to put the Python version you want to use on PATH.
+      - sh: "source $HOME/venv3.7/bin/activate"
       - sh: "python3 test/run_all.py"
+      - sh: "source deactivate"
       
     after_test:
       # This step builds your wheels.
       # Again, you only need build.cmd if you're building C extensions for
       # 64-bit Python 3.3/3.4. And you need to use %PYTHON% to get the correct
       # interpreter
+      - sh: "source $HOME/venv3.7/bin/activate"
       - sh: "python3 setup.py bdist_wheel"
+      - sh: "source deactivate"
       
     artifacts:
       # bdist_wheel puts your built wheel in the dist directory
