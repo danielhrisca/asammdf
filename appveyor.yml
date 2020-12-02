@@ -12,68 +12,151 @@ environment:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017 
       PYTHON: "C:\\Python37-x64"
       PY: "37-x64"
+    - APPVEYOR_BUILD_WORKER_IMAGE: macos
+      PYTHON: venv3.7
+      PY: "37-x64"
+
+for:
+  -
+    matrix:
+      only:
+        - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+        
+    install:
+      # We need wheel installed to build wheels
+      - cmd: set PATH=%PATH%;%PYTHON%\Scripts
+      - cmd: set LLVM_DIR="C:\Program Files\LLVM\bin"
+      - cmd: "%PYTHON%\\python.exe -m pip install --upgrade pip"
+      - cmd: "%PYTHON%\\python.exe -m pip install --upgrade setuptools"
+      - cmd: "%PYTHON%\\python.exe -m pip install wheel"
+      - cmd: "%PYTHON%\\python.exe -m pip install -r pip_requirements_tests.txt"
+      - cmd: "if \"%PY%\" == \"37-x64\" ( if NOT \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\python.exe -m pip install PyQt5==5.13.1 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil lxml))"
+      - cmd: "if \"%PY%\" == \"37-x64\" ( if NOT \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\python.exe -m pip install https://github.com/pyinstaller/pyinstaller/archive/develop.zip pyqtgraph))"
+      - cmd: "if \"%PY%\" == \"37-x64\" ( if NOT \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\python.exe -m pip install .))"
+      - cmd: "if \"%PY%\" == \"37-x64\" ( if NOT \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\Scripts\\pyinstaller asammdf_noconsole.spec))"
+      - cmd: "if \"%PY%\" == \"37-x64\" ( if NOT \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%_noconsole.exe))"
+      - cmd: "if \"%PY%\" == \"37-x64\" ( if NOT \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\Scripts\\pyinstaller asammdf.spec))"
+      - cmd: "if \"%PY%\" == \"37-x64\" ( if NOT \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe))"
+      
+    build: off
+    
+    test_script:
+      # Put your test command here.
+      # If you don't need to build C extensions on 64-bit Python 3.3 or 3.4,
+      # you can remove "build.cmd" from the front of the command, as it's
+      # only needed to support those cases.
+      # Note that you must use the environment variable %PYTHON% to refer to
+      # the interpreter you're using - Appveyor does not do anything special
+      # to put the Python version you want to use on PATH.
+      - cmd: "%PYTHON%\\python.exe test/run_all.py"
+      
+    after_test:
+      # This step builds your wheels.
+      # Again, you only need build.cmd if you're building C extensions for
+      # 64-bit Python 3.3/3.4. And you need to use %PYTHON% to get the correct
+      # interpreter
+      - cmd: "%PYTHON%\\python.exe setup.py bdist_wheel"
+      
+    artifacts:
+      # bdist_wheel puts your built wheel in the dist directory
+      - path: dist\*
+      
+  -
+    matrix:
+      only:
+        - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
+        
+    install:
+      # We need wheel installed to build wheels
+      - sh: "sudo apt-get --yes --force-yes update"
+      - sh: "sudo DEBIAN_FRONTEND=noninteractive apt-get --yes install python3-dev python3-pip python3-setuptools"
+      - sh: "python3 -m pip install --upgrade pip --user"
+      - sh: "python3 -m pip install --upgrade setuptools --user"
+      - sh: "python3 -m pip install wheel --user"
+      - sh: "python3 -m pip install -r pip_requirements_tests.txt --user"
+      - sh: "python3 -m pip install PyQt5>=5.13.1 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil https://github.com/pyinstaller/pyinstaller/archive/develop.zip pyqtgraph --user"
+      - sh: "python3 -m pip install . --user"
+      - sh: >-
+          if [ $APPVEYOR_REPO_BRANCH == "master" ] ; then
+             /home/appveyor/.local/bin/pyinstaller asammdf_noconsole.spec
+          fi
+      - sh: >-
+          if [ $APPVEYOR_REPO_BRANCH == "master" ] ; then
+             mv dist/asammdfgui dist/asammdfgui_noconsole
+          fi
+      
+    build: off
+    
+    test_script:
+      # Put your test command here.
+      # If you don't need to build C extensions on 64-bit Python 3.3 or 3.4,
+      # you can remove "build.cmd" from the front of the command, as it's
+      # only needed to support those cases.
+      # Note that you must use the environment variable %PYTHON% to refer to
+      # the interpreter you're using - Appveyor does not do anything special
+      # to put the Python version you want to use on PATH.
+      - sh: "python3 test/run_all.py"
+      
+    after_test:
+      # This step builds your wheels.
+      # Again, you only need build.cmd if you're building C extensions for
+      # 64-bit Python 3.3/3.4. And you need to use %PYTHON% to get the correct
+      # interpreter
+      - sh: "python3 setup.py bdist_wheel"
+      
+    artifacts:
+      # bdist_wheel puts your built wheel in the dist directory
+      - path: dist\*
+      
+  -
+    matrix:
+      only:
+        - APPVEYOR_BUILD_WORKER_IMAGE: macos
+
+    install:
+      # We need wheel installed to build wheels
+      # - sh: "sudo apt-get --yes --force-yes update"
+      # - sh: "sudo DEBIAN_FRONTEND=noninteractive apt-get --yes install python3-dev python3-pip python3-setuptools"
+      - sh: "~/$PYTHON/bin/python -m pip install --upgrade pip --user"
+      - sh: "~/$PYTHON/bin/python -m pip install --upgrade setuptools --user"
+      - sh: "~/$PYTHON/bin/python -m pip install wheel --user"
+      - sh: "~/$PYTHON/bin/python -m pip install -r pip_requirements_tests.txt --user"
+      - sh: "~/$PYTHON/bin/python -m pip install PyQt5>=5.13.1 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil https://github.com/pyinstaller/pyinstaller/archive/develop.zip pyqtgraph --user"
+      - sh: "~/$PYTHON/bin/python -m pip install . --user"
+      - sh: >-
+          if [ $APPVEYOR_REPO_BRANCH != "master" ] ; then
+             /home/appveyor/.local/bin/pyinstaller asammdf_noconsole.spec
+          fi
+      - sh: >-
+          if [ $APPVEYOR_REPO_BRANCH != "master" ] ; then
+             mv dist/asammdfgui dist/asammdfgui_noconsole
+          fi
+      
+    build: off
+    
+    test_script:
+      # Put your test command here.
+      # If you don't need to build C extensions on 64-bit Python 3.3 or 3.4,
+      # you can remove "build.cmd" from the front of the command, as it's
+      # only needed to support those cases.
+      # Note that you must use the environment variable %PYTHON% to refer to
+      # the interpreter you're using - Appveyor does not do anything special
+      # to put the Python version you want to use on PATH.
+      - sh: "~/$PYTHON/bin/python test/run_all.py"
+      
+    after_test:
+      # This step builds your wheels.
+      # Again, you only need build.cmd if you're building C extensions for
+      # 64-bit Python 3.3/3.4. And you need to use %PYTHON% to get the correct
+      # interpreter
+      - sh: "python3 setup.py bdist_wheel"
+      
+    artifacts:
+      # bdist_wheel puts your built wheel in the dist directory
+      - path: dist\*
+
+  
 
 
-install:
-  # We need wheel installed to build wheels
-  - cmd: set PATH=%PATH%;%PYTHON%\Scripts
-  - cmd: set LLVM_DIR="C:\Program Files\LLVM\bin"
-  - cmd: "%PYTHON%\\python.exe -m pip install --upgrade pip"
-  - cmd: "%PYTHON%\\python.exe -m pip install --upgrade setuptools"
-  - cmd: "%PYTHON%\\python.exe -m pip install wheel"
-  - cmd: "%PYTHON%\\python.exe -m pip install -r pip_requirements_tests.txt"
-  - cmd: "if \"%PY%\" == \"37-x64\" ( if NOT \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\python.exe -m pip install PyQt5==5.13.1 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil lxml))"
-  - cmd: "if \"%PY%\" == \"37-x64\" ( if NOT \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\python.exe -m pip install https://github.com/pyinstaller/pyinstaller/archive/develop.zip pyqtgraph))"
-  - cmd: "if \"%PY%\" == \"37-x64\" ( if NOT \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\python.exe -m pip install .))"
-  - cmd: "if \"%PY%\" == \"37-x64\" ( if NOT \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\Scripts\\pyinstaller asammdf_noconsole.spec))"
-  - cmd: "if \"%PY%\" == \"37-x64\" ( if NOT \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%_noconsole.exe))"
-  - cmd: "if \"%PY%\" == \"37-x64\" ( if NOT \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (%PYTHON%\\Scripts\\pyinstaller asammdf.spec))"
-  - cmd: "if \"%PY%\" == \"37-x64\" ( if NOT \"%APPVEYOR_REPO_BRANCH%\" == \"master\" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe))"
-  - sh: "sudo apt-get --yes --force-yes update"
-  - sh: "sudo DEBIAN_FRONTEND=noninteractive apt-get --yes install python3-dev python3-pip python3-setuptools"
-  - sh: "python3 -m pip install --upgrade pip --user"
-  - sh: "python3 -m pip install --upgrade setuptools --user"
-  - sh: "python3 -m pip install wheel --user"
-  - sh: "python3 -m pip install -r pip_requirements_tests.txt --user"
-  - sh: "python3 -m pip install PyQt5>=5.13.1 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil https://github.com/pyinstaller/pyinstaller/archive/develop.zip pyqtgraph --user"
-  - sh: "python3 -m pip install . --user"
-  - sh: >-
-      if [ $APPVEYOR_REPO_BRANCH == "master" ] ; then
-         /home/appveyor/.local/bin/pyinstaller asammdf_noconsole.spec
-      fi
-  - sh: >-
-      if [ $APPVEYOR_REPO_BRANCH == "master" ] ; then
-         mv dist/asammdfgui dist/asammdfgui_noconsole
-      fi
-
-build: off
-
-test_script:
-  # Put your test command here.
-  # If you don't need to build C extensions on 64-bit Python 3.3 or 3.4,
-  # you can remove "build.cmd" from the front of the command, as it's
-  # only needed to support those cases.
-  # Note that you must use the environment variable %PYTHON% to refer to
-  # the interpreter you're using - Appveyor does not do anything special
-  # to put the Python version you want to use on PATH.
-  - cmd: "%PYTHON%\\python.exe test/run_all.py"
-  - sh: "python3 test/run_all.py"
-
-after_test:
-  # This step builds your wheels.
-  # Again, you only need build.cmd if you're building C extensions for
-  # 64-bit Python 3.3/3.4. And you need to use %PYTHON% to get the correct
-  # interpreter
-  - cmd: "%PYTHON%\\python.exe setup.py bdist_wheel"
-  - sh: "python3 setup.py bdist_wheel"
-
-artifacts:
-  # bdist_wheel puts your built wheel in the dist directory
-  - path: dist\*
-
-#on_success:
-#  You can use this step to upload your artifacts to a public website.
-#  See Appveyor's documentation for more details. Or you can simply
-#  access your wheels from the Appveyor "artifacts" tab for your build.
 
 
