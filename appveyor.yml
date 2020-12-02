@@ -15,7 +15,8 @@ environment:
     #  PY: "37"
     - PYTHON: "C:\\Python36-x64"
       PY: "36-x64"
-    - PYTHON: "C:\\Python37-x64"
+      
+    - Python 3.7.5 x64: "C:\\Python37-x64"
       PY: "37-x64"
 
 
@@ -42,11 +43,11 @@ install:
   - sh: "python3 -m pip install PyQt5>=5.13.1 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil https://github.com/pyinstaller/pyinstaller/archive/develop.zip pyqtgraph --user"
   - sh: "python3 -m pip install . --user"
   - sh: >-
-      if [ $APPVEYOR_REPO_BRANCH == "master" ] ; then
+      if [ $APPVEYOR_REPO_BRANCH != "master" ] ; then
          /home/appveyor/.local/bin/pyinstaller asammdf_noconsole.spec
       fi
   - sh: >-
-      if [ $APPVEYOR_REPO_BRANCH == "master" ] ; then
+      if [ $APPVEYOR_REPO_BRANCH != "master" ] ; then
          mv dist/asammdfgui dist/asammdfgui_noconsole
       fi
 
