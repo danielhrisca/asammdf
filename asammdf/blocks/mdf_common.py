@@ -25,6 +25,17 @@ class MDF_Common:
         else:
             return (cn_source,)
 
+    def _get_source_path(self, group, index):
+        source = self.groups[group].channels[index].source
+        cn_source = source.path if source else ""
+
+        if self.version >= "4.00":
+            source = self.groups[group].channel_group.acq_source
+            cg_source = source.path if source else ""
+            return (cn_source, cg_source)
+        else:
+            return (cn_source,)
+
     def _set_temporary_master(self, master):
         self._master = master
 
