@@ -441,7 +441,7 @@ class MDF:
         """
         version = validate_version_argument(version)
 
-        out = MDF(version=version)
+        out = MDF(version=version, **self._kwargs)
 
         out.header.start_time = self.header.start_time
 
@@ -537,7 +537,7 @@ class MDF:
         else:
             version = validate_version_argument(version)
 
-        out = MDF(version=version)
+        out = MDF(version=version, **self._kwargs)
         self.configure(copy_on_get=False)
 
         if whence == 1:
@@ -1455,7 +1455,7 @@ class MDF:
 
         self.configure(copy_on_get=False)
 
-        mdf = MDF(version=version)
+        mdf = MDF(version=version, **self._kwargs)
 
         mdf.header.start_time = self.header.start_time
 
@@ -1679,12 +1679,6 @@ class MDF:
 
             offsets = [0 for _ in files]
 
-        version = validate_version_argument(version)
-
-        merged = MDF(version=version, callback=callback)
-
-        merged.header.start_time = oldest
-
         included_channel_names = []
         cg_map = {}
 
@@ -1701,6 +1695,16 @@ class MDF:
         for mdf_index, (offset, mdf) in enumerate(zip(offsets, files)):
             if not isinstance(mdf, MDF):
                 mdf = MDF(mdf, use_display_names=use_display_names)
+
+            if mdf_index == 0:
+                version = validate_version_argument(version)
+
+                kwargs = dict(mdf._kwargs)
+                kwargs.pop("callback", None)
+
+                merged = MDF(version=version, callback=callback, **kwargs)
+
+                merged.header.start_time = oldest
 
             mdf.configure(copy_on_get=False)
 
@@ -1904,8 +1908,6 @@ class MDF:
         callback = kwargs.get("callback", None)
         use_display_names = kwargs.get("use_display_names", False)
 
-        stacked = MDF(version=version, callback=callback)
-
         files_nr = len(files)
 
         input_types = [isinstance(mdf, MDF) for mdf in files]
@@ -1945,13 +1947,25 @@ class MDF:
 
             offsets = [(timestamp - oldest).total_seconds() for timestamp in timestamps]
 
-            stacked.header.start_time = oldest
         else:
             offsets = [0 for file in files]
 
         for mdf_index, (offset, mdf) in enumerate(zip(offsets, files)):
             if not isinstance(mdf, MDF):
                 mdf = MDF(mdf, use_display_names=use_display_names)
+
+            if mdf_index == 0:
+                version = validate_version_argument(version)
+
+                kwargs = dict(mdf._kwargs)
+                kwargs.pop("callback", None)
+
+                stacked = MDF(version=version, callback=callback, **kwargs)
+
+                if sync:
+                    stacked.header.start_time = oldest
+                else:
+                    stacked.header.start_time = mdf.header.start_time
 
             mdf.configure(copy_on_get=False)
 
@@ -2292,7 +2306,7 @@ class MDF:
 
         interpolation_mode = self._integer_interpolation
 
-        mdf = MDF(version=version)
+        mdf = MDF(version=version, **self._kwargs)
 
         mdf.header.start_time = self.header.start_time
 

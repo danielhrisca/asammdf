@@ -52,6 +52,7 @@ except ModuleNotFoundError:
 
 UINT8_u = Struct("<B").unpack
 UINT16_u = Struct("<H").unpack
+UINT32_p = Struct("<I").pack
 UINT32_u = Struct("<I").unpack
 UINT64_u = Struct("<Q").unpack
 UINT8_uf = Struct("<B").unpack_from

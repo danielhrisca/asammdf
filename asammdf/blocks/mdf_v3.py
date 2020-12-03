@@ -145,6 +145,7 @@ class MDF3(MDF_Common):
     _terminate = False
 
     def __init__(self, name=None, version="3.30", **kwargs):
+        self._kwargs = kwargs
         self.groups = []
         self.header = None
         self.identification = None

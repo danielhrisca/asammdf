@@ -78,6 +78,7 @@ from .utils import (
     SignalDataBlockInfo,
     UINT8_uf,
     UINT16_uf,
+    UINT32_p,
     UINT32_uf,
     UINT64_uf,
     UniqueDB,
@@ -242,6 +243,9 @@ class MDF4(MDF_Common):
 
     version : string
         mdf file version ('4.00', '4.10', '4.11', '4.20'); default '4.10'
+
+    kwargs :
+
     callback : function
         keyword only argument: function to call to update the progress; the
         function must accept two arguments (the current progress and maximum
@@ -251,7 +255,14 @@ class MDF4(MDF_Common):
         search for the display name; XML parsing is quite expensive so setting
         this to *False* can decrease the loading times very much; default
         *False*
+    remove_source_from_channel_names (True) : bool
 
+    copy_on_get (True) : bool
+        copy channel values (np.array) to avoid high memory usage
+    compact_vlsd (False) : bool
+        use slower method to save the exact sample size for VLSD channels
+    column_storage (True) : bool
+        use column storage for MDF version >= 4.20
 
     Attributes
     ----------
@@ -291,6 +302,7 @@ class MDF4(MDF_Common):
 
     def __init__(self, name=None, version="4.10", **kwargs):
 
+        self._kwargs = kwargs
         self.groups = []
         self.header = None
         self.identification = None
@@ -331,6 +343,7 @@ class MDF4(MDF_Common):
             "remove_source_from_channel_names", False
         )
         self.copy_on_get = kwargs.get("copy_on_get", True)
+        self.compact_vlsd = kwargs.get("compact_vlsd", False)
         self._single_bit_uint_as_bool = False
         self._integer_interpolation = 0
         self.virtual_groups = {}  # master group 2 referencing groups
@@ -3006,32 +3019,74 @@ class MDF4(MDF_Common):
                 else:
                     raise MdfException(f'wrong encoding "{encoding}" for string signal')
 
-                offsets = arange(len(samples), dtype=uint64) * (
-                    signal.samples.itemsize + 4
-                )
+                if self.compact_vlsd:
+                    data = []
+                    offsets = []
+                    off = 0
+                    if encoding == "utf-16-le":
+                        for elem in samples:
+                            offsets.append(off)
+                            size = len(elem)
+                            if size % 2:
+                                size += 1
+                                elem = elem + b'\0'
+                            data.append(UINT32_p(size))
+                            data.append(elem)
+                            off += size + 4
+                    else:
+                        for elem in samples:
+                            offsets.append(off)
+                            size = len(elem)
+                            data.append(UINT32_p(size))
+                            data.append(elem)
+                            off += size + 4
 
-                values = [full(len(samples), samples.itemsize, dtype=uint32), samples]
-
-                types_ = [("o", uint32), ("s", sig_dtype)]
-
-                data = fromarrays(values, dtype=types_)
-
-                data_size = len(data) * data.itemsize
-                if data_size:
-                    data_addr = tell()
-                    info = SignalDataBlockInfo(
-                        address=data_addr,
-                        size=data_size,
-                        count=len(data),
-                        offsets=offsets,
-                    )
-                    gp_sdata.append([info])
-                    gp_sdata_size.append(data_size)
-                    data.tofile(file)
+                    data_size = off
+                    offsets = array(offsets, dtype=uint64)
+                    if data_size:
+                        data_addr = tell()
+                        info = SignalDataBlockInfo(
+                            address=data_addr,
+                            size=data_size,
+                            count=len(samples),
+                            offsets=offsets,
+                        )
+                        gp_sdata.append([info])
+                        gp_sdata_size.append(data_size)
+                        file.seek(0, 2)
+                        file.write(b''.join(data))
+                    else:
+                        data_addr = 0
+                        gp_sdata.append([])
+                        gp_sdata_size.append(0)
                 else:
-                    data_addr = 0
-                    gp_sdata.append([])
-                    gp_sdata_size.append(0)
+
+                    offsets = arange(len(samples), dtype=uint64) * (
+                        signal.samples.itemsize + 4
+                    )
+
+                    values = [full(len(samples), samples.itemsize, dtype=uint32), samples]
+
+                    types_ = [("o", uint32), ("s", sig_dtype)]
+
+                    data = fromarrays(values, dtype=types_)
+
+                    data_size = len(data) * data.itemsize
+                    if data_size:
+                        data_addr = tell()
+                        info = SignalDataBlockInfo(
+                            address=data_addr,
+                            size=data_size,
+                            count=len(data),
+                            offsets=offsets,
+                        )
+                        gp_sdata.append([info])
+                        gp_sdata_size.append(data_size)
+                        data.tofile(file)
+                    else:
+                        data_addr = 0
+                        gp_sdata.append([])
+                        gp_sdata_size.append(0)
 
                 # compute additional byte offset for large records size
                 byte_size = 8
@@ -5238,32 +5293,77 @@ class MDF4(MDF_Common):
                         inval_bits.append(invalidation_bits)
 
             else:
-                cur_offset = sum(blk.size for blk in gp.signal_data[i])
+                if self.compact_vlsd:
+                    cur_offset = sum(blk.size for blk in gp.signal_data[i])
 
-                offsets = arange(len(signal), dtype=uint64) * (signal.itemsize + 4)
+                    data = []
+                    offsets = []
+                    off = 0
+                    if gp.channels[i].data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
+                        for elem in signal:
+                            offsets.append(off)
+                            size = len(elem)
+                            if size % 2:
+                                size += 1
+                                elem = elem + b'\0'
+                            data.append(UINT32_p(size))
+                            data.append(elem)
+                            off += size + 4
+                    else:
+                        for elem in signal:
+                            offsets.append(off)
+                            size = len(elem)
+                            data.append(UINT32_p(size))
+                            data.append(elem)
+                            off += size + 4
 
-                values = [full(len(signal), signal.itemsize, dtype=uint32), signal]
+                    offsets = array(offsets, dtype=uint64)
 
-                types_ = [("", uint32), ("", signal.dtype)]
+                    stream.seek(0, 2)
+                    addr = stream.tell()
 
-                values = fromarrays(values, dtype=types_)
+                    data_size = off
+                    if data_size:
+                        info = SignalDataBlockInfo(
+                            address=addr,
+                            size=data_size,
+                            count=len(signal),
+                            offsets=offsets,
+                        )
+                        gp.signal_data[i].append(info)
+                        stream.write(b''.join(data))
 
-                stream.seek(0, 2)
-                addr = stream.tell()
-                block_size = len(values) * values.itemsize
-                if block_size:
-                    info = SignalDataBlockInfo(
-                        address=addr,
-                        size=block_size,
-                        count=len(values),
-                        offsets=offsets,
-                    )
-                    gp.signal_data[i].append(info)
-                    values.tofile(stream)
+                    offsets += cur_offset
+                    fields.append(offsets)
+                    types.append(("", uint64))
 
-                offsets += cur_offset
-                fields.append(offsets)
-                types.append(("", uint64))
+                else:
+                    cur_offset = sum(blk.size for blk in gp.signal_data[i])
+
+                    offsets = arange(len(signal), dtype=uint64) * (signal.itemsize + 4)
+
+                    values = [full(len(signal), signal.itemsize, dtype=uint32), signal]
+
+                    types_ = [("", uint32), ("", signal.dtype)]
+
+                    values = fromarrays(values, dtype=types_)
+
+                    stream.seek(0, 2)
+                    addr = stream.tell()
+                    block_size = len(values) * values.itemsize
+                    if block_size:
+                        info = SignalDataBlockInfo(
+                            address=addr,
+                            size=block_size,
+                            count=len(values),
+                            offsets=offsets,
+                        )
+                        gp.signal_data[i].append(info)
+                        values.tofile(stream)
+
+                    offsets += cur_offset
+                    fields.append(offsets)
+                    types.append(("", uint64))
 
                 if invalidation_bytes_nr and invalidation_bits is not None:
                     inval_bits.append(invalidation_bits)
