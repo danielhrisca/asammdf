@@ -1,28 +1,25 @@
 # -*- coding: utf-8 -*-
 import os
 from pathlib import Path
-from functools import partial
 
-import psutil
-from PyQt5 import QtCore, QtWidgets, QtGui
 from natsort import natsorted
+import psutil
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ...blocks.utils import extract_cncomment_xml
 from ...mdf import MDF, SUPPORTED_VERSIONS
+from ..dialogs.advanced_search import AdvancedSearch
 from ..ui import resource_rc as resource_rc
 from ..ui.batch_widget import Ui_batch_widget
-from ..dialogs.advanced_search import AdvancedSearch
-from .tree_item import TreeItem
 from ..utils import (
     add_children,
     HelperChannel,
-    load_dsp,
-    load_lab,
     run_thread_with_progress,
     setup_progress,
     TERMINATED,
 )
 from .list import MinimalListWidget
+from .tree_item import TreeItem
 
 
 class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
@@ -77,12 +74,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.output_format.currentTextChanged.connect(self.output_format_changed)
 
         self.filter_view.setCurrentIndex(-1)
-        self.filter_view.currentIndexChanged.connect(
-            self._update_channel_tree
-        )
-        self.filter_view.currentTextChanged.connect(
-            self._update_channel_tree
-        )
+        self.filter_view.currentIndexChanged.connect(self._update_channel_tree)
+        self.filter_view.currentTextChanged.connect(self._update_channel_tree)
         self.filter_view.setCurrentText(
             self._settings.value("filter_view", "Internal file structure")
         )
@@ -669,39 +662,36 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     print(err)
                     return
             elif file_name.suffix.lower() == ".dl3":
-                    progress.setLabelText(
-                        f"Converting file {i+1} of {count} from dl3 to mdf"
-                    )
-                    datalyser_active = any(
-                        proc.name() == "Datalyser3.exe"
-                        for proc in psutil.process_iter()
-                    )
-                    try:
-                        import win32com.client
+                progress.setLabelText(
+                    f"Converting file {i+1} of {count} from dl3 to mdf"
+                )
+                datalyser_active = any(
+                    proc.name() == "Datalyser3.exe" for proc in psutil.process_iter()
+                )
+                try:
+                    import win32com.client
 
-                        index = 0
-                        while True:
-                            mdf_name = file_name.with_suffix(f".{index}.mdf")
-                            if mdf_name.exists():
-                                index += 1
-                            else:
-                                break
+                    index = 0
+                    while True:
+                        mdf_name = file_name.with_suffix(f".{index}.mdf")
+                        if mdf_name.exists():
+                            index += 1
+                        else:
+                            break
 
-                        datalyser = win32com.client.Dispatch(
-                            "Datalyser3.Datalyser3_COM"
-                        )
-                        if not datalyser_active:
-                            try:
-                                datalyser.DCOM_set_datalyser_visibility(False)
-                            except:
-                                pass
-                        datalyser.DCOM_convert_file_mdf_dl3(file_name, str(mdf_name), 0)
-                        if not datalyser_active:
-                            datalyser.DCOM_TerminateDAS()
-                        files[i] = mdf_name
-                    except Exception as err:
-                        print(err)
-                        return
+                    datalyser = win32com.client.Dispatch("Datalyser3.Datalyser3_COM")
+                    if not datalyser_active:
+                        try:
+                            datalyser.DCOM_set_datalyser_visibility(False)
+                        except:
+                            pass
+                    datalyser.DCOM_convert_file_mdf_dl3(file_name, str(mdf_name), 0)
+                    if not datalyser_active:
+                        datalyser.DCOM_TerminateDAS()
+                    files[i] = mdf_name
+                except Exception as err:
+                    print(err)
+                    return
             elif file_name.suffix.lower() in (".mdf", ".mf4"):
                 files[i] = MDF(file_name)
 
@@ -1082,7 +1072,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             version = opts.mdf_version
 
         if output_format == "HDF5":
-            suffix = '.hdf'
+            suffix = ".hdf"
             try:
                 from h5py import File as HDF5
             except ImportError:
@@ -1094,7 +1084,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 return
 
         elif output_format == "MAT":
-            suffix = '.mat'
+            suffix = ".mat"
             if opts.mat_format == "7.3":
                 try:
                     from hdf5storage import savemat
@@ -1117,7 +1107,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     return
 
         elif output_format == "Parquet":
-            suffix = '.parquet'
+            suffix = ".parquet"
             try:
                 from fastparquet import write as write_parquet
             except ImportError:
@@ -1128,7 +1118,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 )
                 return
         elif output_format == "CSV":
-            suffix = '.csv'
+            suffix = ".csv"
 
         output_folder = self.modify_output_folder.text().strip()
         if output_folder:
@@ -1181,7 +1171,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 else:
                     mdf = result
 
-                mdf.configure(read_fragment_size=split_size, write_fragment_size=split_size)
+                mdf.configure(
+                    read_fragment_size=split_size, write_fragment_size=split_size
+                )
 
             if opts.needs_cut:
 
@@ -1232,7 +1224,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                         mdf.close()
                         mdf = result
 
-                mdf.configure(read_fragment_size=split_size, write_fragment_size=split_size)
+                mdf.configure(
+                    read_fragment_size=split_size, write_fragment_size=split_size
+                )
 
             if opts.needs_resample:
 
@@ -1253,7 +1247,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 else:
                     icon = QtGui.QIcon()
                     icon.addPixmap(
-                        QtGui.QPixmap(":/resample.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                        QtGui.QPixmap(":/resample.png"),
+                        QtGui.QIcon.Normal,
+                        QtGui.QIcon.Off,
                     )
                     progress.setWindowIcon(icon)
                     progress.setWindowTitle("Resampling measurement")
@@ -1286,7 +1282,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                         mdf.close()
                         mdf = result
 
-                mdf.configure(read_fragment_size=split_size, write_fragment_size=split_size)
+                mdf.configure(
+                    read_fragment_size=split_size, write_fragment_size=split_size
+                )
 
             if output_format == "MDF":
                 if mdf is None:
@@ -1294,7 +1292,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                         progress = setup_progress(
                             parent=self,
                             title="Converting measurement",
-                            message=f'Converting from {mdf_file.version} to {version}',
+                            message=f"Converting from {mdf_file.version} to {version}",
                             icon_name="convert",
                         )
                     else:
@@ -1307,7 +1305,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                         progress.setWindowIcon(icon)
                         progress.setWindowTitle("Converting measurement")
                         progress.setLabelText(
-                            f'Converting from {mdf_file.version} to {version}'
+                            f"Converting from {mdf_file.version} to {version}"
                         )
 
                     # convert mdf_file
@@ -1329,24 +1327,30 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     else:
                         mdf = result
 
-                if version >= '4.00':
-                    suffix = '.mf4'
+                if version >= "4.00":
+                    suffix = ".mf4"
                 else:
-                    suffix = '.mdf'
+                    suffix = ".mdf"
 
-                mdf.configure(read_fragment_size=split_size, write_fragment_size=split_size)
+                mdf.configure(
+                    read_fragment_size=split_size, write_fragment_size=split_size
+                )
 
                 if output_folder is not None:
                     if root is None:
                         file_name = output_folder / Path(mdf_file.name).name
                     else:
-                        file_name = output_folder / Path(mdf_file.name).relative_to(root)
+                        file_name = output_folder / Path(mdf_file.name).relative_to(
+                            root
+                        )
 
                     if not file_name.parent.exists():
                         os.makedirs(file_name.parent, exist_ok=True)
                 else:
                     file_name = Path(mdf_file.name)
-                    file_name = file_name.parent / (file_name.stem + '.modified' + suffix)
+                    file_name = file_name.parent / (
+                        file_name.stem + ".modified" + suffix
+                    )
                 file_name = file_name.with_suffix(suffix)
 
                 # then save it
@@ -1382,7 +1386,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 else:
                     icon = QtGui.QIcon()
                     icon.addPixmap(
-                        QtGui.QPixmap(":/export.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                        QtGui.QPixmap(":/export.png"),
+                        QtGui.QIcon.Normal,
+                        QtGui.QIcon.Off,
                     )
                     progress.setWindowIcon(icon)
                     progress.setWindowTitle("Export measurement")

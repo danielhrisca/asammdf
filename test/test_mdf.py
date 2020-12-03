@@ -275,7 +275,9 @@ class TestMDF(unittest.TestCase):
                     for signal in signals:
                         name = signal.stem
                         target = np.load(signal)
-                        values = input_file.get(name, *input_file.whereis(name)[0]).samples
+                        values = input_file.get(
+                            name, *input_file.whereis(name)[0]
+                        ).samples
 
                         self.assertTrue(np.array_equal(target, values))
 
@@ -786,8 +788,12 @@ class TestMDF(unittest.TestCase):
 
                             for signal in signals:
                                 target = np.load(signal)
-                                sig = mdf2.get(signal.stem, *mdf2.whereis(signal.stem)[0])
-                                timestamps = input_file.get(signal.stem, *input_file.whereis(signal.stem)[0]).timestamps
+                                sig = mdf2.get(
+                                    signal.stem, *mdf2.whereis(signal.stem)[0]
+                                )
+                                timestamps = input_file.get(
+                                    signal.stem, *input_file.whereis(signal.stem)[0]
+                                ).timestamps
 
                                 self.assertTrue(np.array_equal(sig.samples, target))
                                 self.assertTrue(

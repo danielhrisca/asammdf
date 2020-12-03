@@ -631,7 +631,11 @@ class PlotSignal(Signal):
                         pos_max = np.nanargmax(samples_)
                         pos_min = np.nanargmin(samples_)
 
-                        pos = [pos_min, pos_max] if pos_min < pos_max else [pos_max, pos_min]
+                        pos = (
+                            [pos_min, pos_max]
+                            if pos_min < pos_max
+                            else [pos_max, pos_min]
+                        )
 
                         samples_ = signal_samples[stop_2:stop_][pos]
                         timestamps_ = sig.timestamps[stop_2:stop_][pos]
@@ -1301,11 +1305,13 @@ class Plot(QtWidgets.QWidget):
             if len(invalid_indexes):
                 invalid_indexes = invalid_indexes[:10] + 1
                 idx = invalid_indexes[0]
-                ts = channel.timestamps[idx-1:idx+2]
-                invalid.append(f"{channel.name} @ index {invalid_indexes[:10] - 1} with first time stamp error: {ts}")
+                ts = channel.timestamps[idx - 1 : idx + 2]
+                invalid.append(
+                    f"{channel.name} @ index {invalid_indexes[:10] - 1} with first time stamp error: {ts}"
+                )
 
         if invalid:
-            errors = '\n'.join(invalid)
+            errors = "\n".join(invalid)
             QtWidgets.QMessageBox.warning(
                 self,
                 "The following channels do not have monotonous increasing time stamps:",
@@ -1597,9 +1603,7 @@ class _Plot(pg.PlotWidget):
         self._enabled_changed_signals = []
         self._enable_timer = QtCore.QTimer()
         self._enable_timer.setSingleShot(True)
-        self._enable_timer.timeout.connect(
-            self._signals_enabled_changed_handler
-        )
+        self._enable_timer.timeout.connect(self._signals_enabled_changed_handler)
 
         if signals:
             self.add_new_channels(signals)

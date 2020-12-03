@@ -22,8 +22,9 @@ except:
     try:
         from chardet import detect
     except:
+
         def detect(text):
-            for encoding in ('utf-8', 'latin-1', 'cp1250', 'cp1252'):
+            for encoding in ("utf-8", "latin-1", "cp1250", "cp1252"):
                 try:
                     text.decode(encoding)
                     break
@@ -33,9 +34,9 @@ except:
                 encoding = None
             return {"encoding": encoding}
 
+
 import numpy as np
 from numpy import arange, interp, where
-from numpy.core.records import fromarrays
 from pandas import Series
 
 from . import v2_v3_constants as v3c

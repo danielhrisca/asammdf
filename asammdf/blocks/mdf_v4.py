@@ -4,7 +4,6 @@ ASAM MDF version 4 file format module
 
 import bisect
 from collections import defaultdict
-from functools import lru_cache
 from hashlib import md5
 import logging
 from math import ceil
@@ -22,8 +21,8 @@ from lz4.frame import compress as lz_compress
 from lz4.frame import decompress as lz_decompress
 from numpy import (
     arange,
-    array,
     argwhere,
+    array,
     array_equal,
     column_stack,
     concatenate,
@@ -55,7 +54,7 @@ from pandas import DataFrame
 from . import v4_constants as v4c
 from ..signal import Signal
 from ..version import __version__
-from .bus_logging_utils import extract_can_signal, extract_mux
+from .bus_logging_utils import extract_mux
 from .conversion_utils import conversion_transfer
 from .mdf_common import MDF_Common
 from .source_utils import Source
@@ -1666,7 +1665,6 @@ class MDF4(MDF_Common):
 
         return parents, dtypes
 
-
     def _get_data_blocks_info(
         self,
         address,
@@ -1939,9 +1937,7 @@ class MDF4(MDF_Common):
 
             if address:
                 stream.seek(address)
-                id_string, block_len = COMMON_SHORT_u(
-                    stream.read(COMMON_SHORT_SIZE)
-                )
+                id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
                 # can be a DataBlock
                 if id_string == block_type:
@@ -2036,7 +2032,9 @@ class MDF4(MDF_Common):
                                     param,
                                     original_size,
                                     zip_size,
-                                ) = v4c.DZ_COMMON_INFO_u(stream.read(v4c.DZ_COMMON_SIZE))
+                                ) = v4c.DZ_COMMON_INFO_u(
+                                    stream.read(v4c.DZ_COMMON_SIZE)
+                                )
 
                                 if original_size:
                                     if zip_type == v4c.FLAG_DZ_DEFLATE:
@@ -2102,7 +2100,9 @@ class MDF4(MDF_Common):
                                     param,
                                     original_size,
                                     zip_size,
-                                ) = v4c.DZ_COMMON_INFO_u(stream.read(v4c.DZ_COMMON_SIZE))
+                                ) = v4c.DZ_COMMON_INFO_u(
+                                    stream.read(v4c.DZ_COMMON_SIZE)
+                                )
 
                                 if original_size:
                                     if zip_type == v4c.FLAG_DZ_DEFLATE:
@@ -5847,9 +5847,7 @@ class MDF4(MDF_Common):
 
         """
 
-        gp_nr, ch_nr = self._validate_channel_selection(
-            name, group, index
-        )
+        gp_nr, ch_nr = self._validate_channel_selection(name, group, index)
 
         grp = self.groups[gp_nr]
 
@@ -7716,7 +7714,7 @@ class MDF4(MDF_Common):
         ignore_invalidation_bits=False,
         data=None,
         raw=False,
-        ignore_value2text_conversion=True
+        ignore_value2text_conversion=True,
     ):
         """get CAN message signal. You can specify an external CAN database (
         *database* argument) or canmatrix databse object that has already been
@@ -7978,16 +7976,14 @@ class MDF4(MDF_Common):
             for name_, sig in signals.items():
                 if name_ == signal.name:
                     return Signal(
-                        samples=sig['samples'],
-                        timestamps=sig['t'],
+                        samples=sig["samples"],
+                        timestamps=sig["t"],
                         name=name,
                         unit=signal.unit or "",
                         comment=comment,
                     )
 
-        raise MdfException(
-            f'No logging from "{signal}" was found in the measurement'
-        )
+        raise MdfException(f'No logging from "{signal}" was found in the measurement')
 
     def info(self):
         """get MDF information as a dict
@@ -8051,7 +8047,7 @@ class MDF4(MDF_Common):
         if is_file_like(dst):
             dst_ = dst
             file_like = True
-            if hasattr(dst, 'name'):
+            if hasattr(dst, "name"):
                 dst = Path(dst.name)
             else:
                 dst = Path("__file_like.mf4")
@@ -8472,7 +8468,9 @@ class MDF4(MDF_Common):
 
                     if channel.channel_type == v4c.CHANNEL_TYPE_SYNC:
                         if channel.attachment is not None:
-                            channel.data_block_addr = self.attachments[channel.attachment].address
+                            channel.data_block_addr = self.attachments[
+                                channel.attachment
+                            ].address
                     else:
                         sdata, with_bounds = self._load_signal_data(group=gp, index=j)
                         if sdata:

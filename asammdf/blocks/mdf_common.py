@@ -2,44 +2,23 @@
 ASAM MDF version 4 file format module
 """
 
-from functools import lru_cache
 import logging
 
-from .utils import (
-    all_blocks_addresses,
-    as_non_byte_sized_signed_int,
-    CHANNEL_COUNT,
-    ChannelsDB,
-    CONVERT,
-    count_channel_groups,
-    DataBlockInfo,
-    debug_channel,
-    extract_cncomment_xml,
-    fmt_to_datatype_v4,
-    get_fmt_v4,
-    Group,
-    InvalidationBlockInfo,
-    is_file_like,
-    load_can_database,
-    MdfException,
-)
+from .utils import MdfException
 
 logger = logging.getLogger("asammdf")
 
 __all__ = ["MDF_Common"]
 
 
-
 class MDF_Common:
-    """common methods for MDF objects
-
-    """
+    """common methods for MDF objects"""
 
     def _get_source_name(self, group, index):
         source = self.groups[group].channels[index].source
         cn_source = source.name if source else ""
 
-        if self.version >= '4.00':
+        if self.version >= "4.00":
             source = self.groups[group].channel_group.acq_source
             cg_source = source.name if source else ""
             return (cn_source, cg_source)
@@ -168,6 +147,4 @@ class MDF_Common:
                                 message = f'Channel "{name}" not found in group {group} at index {index}'
                                 raise MdfException(message)
 
-
         return gp_nr, ch_nr
-

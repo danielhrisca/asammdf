@@ -125,11 +125,7 @@ def extract_signal(signal, payload, raw=False, ignore_value2text_conversion=True
                 fmt = f">u{std_size}"
 
             try:
-                vals = (
-                    vals[:, start_byte : start_byte + byte_size]
-                    .view(fmt)
-                    .ravel()
-                )
+                vals = vals[:, start_byte : start_byte + byte_size].view(fmt).ravel()
             except:
                 vals = np.frombuffer(
                     vals[:, start_byte : start_byte + byte_size].tobytes(),
@@ -146,11 +142,7 @@ def extract_signal(signal, payload, raw=False, ignore_value2text_conversion=True
                 fmt = f"<u{std_size}"
 
             try:
-                vals = (
-                    vals[:, start_byte : start_byte + byte_size]
-                    .view(fmt)
-                    .ravel()
-                )
+                vals = vals[:, start_byte : start_byte + byte_size].view(fmt).ravel()
             except:
                 vals = np.frombuffer(
                     vals[:, start_byte : start_byte + byte_size].tobytes(),
@@ -304,7 +296,11 @@ def extract_mux(
                     "unit": sig.unit or "",
                     "samples": samples,
                     "t": t_,
-                    "invalidation_bits": np.isclose(samples, max_val) if len(samples.shape) == 1 else np.zeros(len(samples), dtype=bool),
+                    "invalidation_bits": (
+                        np.isclose(samples, max_val)
+                        if len(samples.shape) == 1
+                        else np.zeros(len(samples), dtype=bool)
+                    ),
                 }
             except:
                 raise

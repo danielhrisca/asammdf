@@ -11,7 +11,7 @@ import pandas as pd
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ...blocks import v4_constants as v4c
-from ...blocks.utils import csv_bytearray2hex, MdfException, extract_cncomment_xml
+from ...blocks.utils import csv_bytearray2hex, extract_cncomment_xml, MdfException
 from ...mdf import MDF
 from ...signal import Signal
 from ..dialogs.channel_info import ChannelInfoDialog
@@ -377,7 +377,9 @@ class WithMDIArea:
                                 length = None
                     else:
                         length = None
-                    signal.samples = csv_bytearray2hex(pd.Series(list(signal.samples)), length)
+                    signal.samples = csv_bytearray2hex(
+                        pd.Series(list(signal.samples)), length
+                    )
 
                 if signal.name.endswith("CAN_DataFrame.ID"):
                     signal.samples = signal.samples.astype("<u4") & 0x1FFFFFFF

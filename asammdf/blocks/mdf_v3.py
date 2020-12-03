@@ -2635,9 +2635,7 @@ class MDF3(MDF_Common):
 
         """
 
-        gp_nr, ch_nr = self._validate_channel_selection(
-            name, group, index
-        )
+        gp_nr, ch_nr = self._validate_channel_selection(name, group, index)
 
         original_data = data
 
