@@ -6,12 +6,17 @@ from traceback import format_exc
 import numpy as np
 import numpy.core.defchararray as npchar
 import pandas as pd
-from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
-from ...blocks.utils import csv_bytearray2hex, csv_int2hex, csv_int2bin, pandas_query_compatible
-from ..utils import run_thread_with_progress
+from ...blocks.utils import (
+    csv_bytearray2hex,
+    csv_int2bin,
+    csv_int2hex,
+    pandas_query_compatible,
+)
 from ..ui import resource_rc as resource_rc
 from ..ui.tabular import Ui_TabularDisplay
+from ..utils import run_thread_with_progress
 from .tabular_filter import TabularFilter
 
 logger = logging.getLogger("asammdf.gui")
@@ -19,7 +24,6 @@ LOCAL_TIMEZONE = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinf
 
 
 class TabularTreeItem(QtWidgets.QTreeWidgetItem):
-
     def __init__(self, column_types, as_hex, *args, **kwargs):
         self.column_types = column_types
         self.as_hex = as_hex
@@ -62,7 +66,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         if signals is None:
             self.signals = pd.DataFrame()
         else:
-            index = pd.Series(np.arange(len(signals), dtype='u8'), index=signals.index)
+            index = pd.Series(np.arange(len(signals), dtype="u8"), index=signals.index)
             signals["Index"] = index
 
             signals["timestamps"] = signals.index
@@ -72,13 +76,20 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             for name_ in signals.columns:
                 col = signals[name_]
                 if col.dtype.kind == "O":
-                    if name_.endswith(".DataBytes") and name_.replace(".DataBytes", ".DataLength") in signals:
+                    if (
+                        name_.endswith(".DataBytes")
+                        and name_.replace(".DataBytes", ".DataLength") in signals
+                    ):
                         dropped[name_] = pd.Series(
-                            csv_bytearray2hex(col, signals[name_.replace(".DataBytes", ".DataLength")]),
-                            index=signals.index
+                            csv_bytearray2hex(
+                                col, signals[name_.replace(".DataBytes", ".DataLength")]
+                            ),
+                            index=signals.index,
                         )
                     else:
-                        dropped[name_] = pd.Series(csv_bytearray2hex(col), index=signals.index)
+                        dropped[name_] = pd.Series(
+                            csv_bytearray2hex(col), index=signals.index
+                        )
                     self.signals_descr[name_] = 0
 
                 elif col.dtype.kind == "S":
@@ -102,7 +113,11 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             names = [
                 "timestamps",
                 *[name for name in names if name.endswith((".ID", ".DataBytes"))],
-                *[name for name in names if name != "timestamps" and not name.endswith((".ID", ".DataBytes"))],
+                *[
+                    name
+                    for name in names
+                    if name != "timestamps" and not name.endswith((".ID", ".DataBytes"))
+                ],
             ]
             self.signals = signals[names]
 
@@ -158,14 +173,16 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
             try:
                 row = int(
-                    selected_item / self.tree.verticalScrollBar().maximum() * (count - 1)
+                    selected_item
+                    / self.tree.verticalScrollBar().maximum()
+                    * (count - 1)
                 )
             except:
                 row = count - 1
             selected_item = self.tree.topLevelItem(row)
 
         first = self.tree.topLevelItem(0)
-        last = self.tree.topLevelItem(count-1)
+        last = self.tree.topLevelItem(count - 1)
 
         if (
             selected_item is first
@@ -390,14 +407,14 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         df = self.df.iloc[max(0, position * 10 - 50) : max(0, position * 10 + 100)]
 
         if df["timestamps"].dtype.kind == "M":
-            timestamps = pd.Index(df["timestamps"]).tz_localize("UTC").tz_convert(LOCAL_TIMEZONE)
+            timestamps = (
+                pd.Index(df["timestamps"]).tz_localize("UTC").tz_convert(LOCAL_TIMEZONE)
+            )
         else:
             timestamps = df["timestamps"]
 
         timestamps = timestamps.astype(str)
-        items = [
-            df.index.astype(str), timestamps
-        ]
+        items = [df.index.astype(str), timestamps]
 
         for i, name in enumerate(df.columns[1:], 1):
             column = df[name]
@@ -430,10 +447,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                 self.tree.verticalScrollBar().maximum()
             )
 
-        column_types = [
-            "u",
-            *[df[name].dtype.kind for name in df.columns]
-        ]
+        column_types = ["u", *[df[name].dtype.kind for name in df.columns]]
 
         as_hex = [False] + self.as_hex
 
@@ -492,7 +506,9 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                 else:
                     filter.validate_target()
 
-            timestamps = pd.to_datetime(self.signals["timestamps"] + self.start, unit="s")
+            timestamps = pd.to_datetime(
+                self.signals["timestamps"] + self.start, unit="s"
+            )
 
             self.signals["timestamps"] = timestamps
         else:
@@ -558,7 +574,9 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                 progress.setAutoClose(True)
                 progress.setWindowTitle("Export tabular window to CSV")
                 icon = QtGui.QIcon()
-                icon.addPixmap(QtGui.QPixmap(":/csv.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+                icon.addPixmap(
+                    QtGui.QPixmap(":/csv.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                )
                 progress.setWindowIcon(icon)
                 progress.show()
 

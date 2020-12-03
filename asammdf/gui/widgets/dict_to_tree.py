@@ -1,18 +1,21 @@
 # taken from https://stackoverflow.com/a/46096319/11009349
 
-from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
 from PyQt5 import QtGui
+from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
+
 
 class ViewTree(QTreeWidget):
     def __init__(self, value, parent=None):
         super().__init__(parent)
         self.setHeaderLabel("Computation parameters")
+
         def fill_item(item, value):
             def new_item(parent, text, val=None):
                 child = QTreeWidgetItem([text])
                 fill_item(child, val)
                 parent.addChild(child)
                 child.setExpanded(True)
+
             if value is None:
                 return
             elif isinstance(value, dict):
@@ -20,8 +23,11 @@ class ViewTree(QTreeWidget):
                     new_item(item, str(key), val)
             elif isinstance(value, (list, tuple)):
                 for val in value:
-                    text = (str(val) if not isinstance(val, (dict, list, tuple))
-                            else '[%s]' % type(val).__name__)
+                    text = (
+                        str(val)
+                        if not isinstance(val, (dict, list, tuple))
+                        else "[%s]" % type(val).__name__
+                    )
                     new_item(item, text, val)
             else:
                 new_item(item, str(value))

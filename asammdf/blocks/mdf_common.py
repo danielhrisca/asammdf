@@ -29,17 +29,14 @@ logger = logging.getLogger("asammdf")
 __all__ = ["MDF_Common"]
 
 
-
 class MDF_Common:
-    """common methods for MDF objects
-
-    """
+    """common methods for MDF objects"""
 
     def _get_source_name(self, group, index):
         source = self.groups[group].channels[index].source
         cn_source = source.name if source else ""
 
-        if self.version >= '4.00':
+        if self.version >= "4.00":
             source = self.groups[group].channel_group.acq_source
             cg_source = source.name if source else ""
             return (cn_source, cg_source)
@@ -168,6 +165,4 @@ class MDF_Common:
                                 message = f'Channel "{name}" not found in group {group} at index {index}'
                                 raise MdfException(message)
 
-
         return gp_nr, ch_nr
-

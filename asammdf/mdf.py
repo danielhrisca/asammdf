@@ -385,7 +385,7 @@ class MDF:
         self.header.project = other.header.project
         self.header.subject = other.header.subject
         self.header.comment = other.header.comment
-        if self.version >= '4.00' and message:
+        if self.version >= "4.00" and message:
             fh = FileHistory()
             fh.comment = f"""<FHcomment>
     <TX>{message}</TX>
@@ -738,9 +738,7 @@ class MDF:
                     signals,
                     common_timebase=True,
                 )
-                MDF._transfer_channel_group_data(
-                    out.groups[cg_nr].channel_group, cg
-                )
+                MDF._transfer_channel_group_data(out.groups[cg_nr].channel_group, cg)
 
             if self._callback:
                 self._callback(i + 1, groups_nr)
@@ -1565,9 +1563,12 @@ class MDF:
 
     @staticmethod
     def concatenate(
-        files, version="4.10", sync=True, add_samples_origin=False,
+        files,
+        version="4.10",
+        sync=True,
+        add_samples_origin=False,
         direct_timestamp_continuation=False,
-        **kwargs
+        **kwargs,
     ):
         """concatenates several files. The files
         must have the same internal structure (same number of groups, and same
@@ -1819,7 +1820,10 @@ class MDF:
                             if last_timestamp is None:
                                 last_timestamp = master[-1]
                             else:
-                                if last_timestamp >= master[0] or direct_timestamp_continuation:
+                                if (
+                                    last_timestamp >= master[0]
+                                    or direct_timestamp_continuation
+                                ):
                                     if len(master) >= 2:
                                         delta = master[1] - master[0]
                                     else:
@@ -1850,10 +1854,10 @@ class MDF:
                 last_timestamps[i] = last_timestamp
 
             mdf.configure(copy_on_get=True)
-            
+
             if mdf_index == 0:
                 merged._transfer_metadata(mdf)
-                
+
             if not input_types[mdf_index]:
                 mdf.close()
 
@@ -1999,7 +2003,7 @@ class MDF:
                 callback(mdf_index, files_nr)
 
             mdf.configure(copy_on_get=True)
-            
+
             if mdf_index == 0:
                 stacked._transfer_metadata(mdf)
 
@@ -2344,9 +2348,7 @@ class MDF:
                 sigs,
                 common_timebase=True,
             )
-            MDF._transfer_channel_group_data(
-                mdf.groups[dg_cntr].channel_group, cg
-            )
+            MDF._transfer_channel_group_data(mdf.groups[dg_cntr].channel_group, cg)
 
             if self._callback:
                 self._callback(i + 1, groups_nr)
@@ -4116,7 +4118,7 @@ class MDF:
                 except:
                     return tuple()
                 else:
-                    return (entry, )
+                    return (entry,)
             else:
                 return tuple(self.channels_db[channel])
         else:
