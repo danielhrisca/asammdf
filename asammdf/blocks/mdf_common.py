@@ -14,27 +14,36 @@ __all__ = ["MDF_Common"]
 class MDF_Common:
     """common methods for MDF objects"""
 
-    def _get_source_name(self, group, index):
-        source = self.groups[group].channels[index].source
-        cn_source = source.name if source else ""
+    def _get_source_names(self, gp_idx, cn_idx):
+        group = self.groups[gp_idx]
+        cn_source_name = group.channels[cn_idx].source.name
+        cg_source_name = (
+            group.channel_group.acq_source.name if self.version >= "4.00" else None
+        )
+        return cn_source_name, cg_source_name
 
-        if self.version >= "4.00":
-            source = self.groups[group].channel_group.acq_source
-            cg_source = source.name if source else ""
-            return (cn_source, cg_source)
-        else:
-            return (cn_source,)
+    def _get_source_paths(self, gp_idx, cn_idx):
+        group = self.groups[gp_idx]
+        cn_source_path = group.channels[cn_idx].source.path
+        cg_source_path = (
+            group.channel_group.acq_source.path if self.version >= "4.00" else None
+        )
+        return cn_source_path, cg_source_path
 
-    def _get_source_path(self, group, index):
-        source = self.groups[group].channels[index].source
-        cn_source = source.path if source else ""
-
-        if self.version >= "4.00":
-            source = self.groups[group].channel_group.acq_source
-            cg_source = source.path if source else ""
-            return (cn_source, cg_source)
-        else:
-            return (cn_source,)
+    def _filter_occurences(self, occurences, source_name=None, source_path=None):
+        occurences = (
+            (gp_idx, cn_idx)
+            for gp_idx, cn_idx in occurences
+            if (
+                source_name is None
+                or source_name in self._get_source_names(gp_idx, cn_idx)
+            )
+            and (
+                source_path is None
+                or source_path in self._get_source_paths(gp_idx, cn_idx)
+            )
+        )
+        return occurences
 
     def _set_temporary_master(self, master):
         self._master = master
@@ -105,7 +114,7 @@ class MDF_Common:
             else:
                 if source is not None:
                     for gp_nr, ch_nr in self.channels_db[name]:
-                        if source in self._get_source_name(gp_nr, ch_nr):
+                        if source in self._get_source_names(gp_nr, ch_nr):
                             break
                     else:
                         raise MdfException(f"{name} with source {source} not found")
