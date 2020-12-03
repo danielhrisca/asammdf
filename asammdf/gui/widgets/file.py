@@ -208,21 +208,22 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         )
         self.mdf_split_size.setValue(4)
 
-        self.extract_can_format.insertItems(0, SUPPORTED_VERSIONS)
-        index = self.extract_can_format.findText(self.mdf.version)
+        self.extract_bus_format.insertItems(0, SUPPORTED_VERSIONS)
+        index = self.extract_bus_format.findText(self.mdf.version)
         if index >= 0:
-            self.extract_can_format.setCurrentIndex(index)
-        self.extract_can_compression.insertItems(
+            self.extract_bus_format.setCurrentIndex(index)
+        self.extract_bus_compression.insertItems(
             0, ("no compression", "deflate", "transposed deflate")
         )
-        self.extract_can_btn.clicked.connect(self.extract_can_logging)
-        self.extract_can_csv_btn.clicked.connect(self.extract_can_csv_logging)
+        self.extract_bus_btn.clicked.connect(self.extract_bus_logging)
+        self.extract_bus_csv_btn.clicked.connect(self.extract_bus_csv_logging)
         self.load_can_database_btn.clicked.connect(self.load_can_database)
+        self.load_lin_database_btn.clicked.connect(self.load_lin_database)
 
         progress.setValue(99)
 
         self.empty_channels.insertItems(0, ("skip", "zeros"))
-        self.empty_channels_can.insertItems(0, ("skip", "zeros"))
+        self.empty_channels_bus.insertItems(0, ("skip", "zeros"))
         self.empty_channels_mat.insertItems(0, ("skip", "zeros"))
         self.mat_format.insertItems(0, ("4", "5", "7.3"))
         self.oned_as.insertItems(0, ("row", "column"))
@@ -1252,18 +1253,28 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         self.open_new_file.emit(str(path.with_suffix(f".scrambled{path.suffix}")))
 
-    def extract_can_logging(self, event):
-        version = self.extract_can_format.currentText()
+    def extract_bus_logging(self, event):
+        version = self.extract_bus_format.currentText()
+
+        self.output_info_bus.setPlainText("")
+
+        database_files = {}
+
         count = self.can_database_list.count()
+        if count:
+            database_files["CAN"] = []
+            for i in range(count):
+                item = self.can_database_list.item(i)
+                database_files["CAN"].append(item.text())
 
-        self.output_info_can.setPlainText("")
+        count = self.lin_database_list.count()
+        if count:
+            database_files["LIN"] = []
+            for i in range(count):
+                item = self.lin_database_list.item(i)
+                database_files["LIN"].append(item.text())
 
-        dbc_files = []
-        for i in range(count):
-            item = self.can_database_list.item(i)
-            dbc_files.append(item.text())
-
-        compression = self.extract_can_compression.currentIndex()
+        compression = self.extract_bus_compression.currentIndex()
         ignore_invalid_signals = (
             self.ignore_invalid_signals_mdf.checkState() == QtCore.Qt.Checked
         )
@@ -1274,6 +1285,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         else:
             filter = "MDF version 4 files (*.mf4)"
             suffix = ".mf4"
+
+        if not database_files:
+            return
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,
@@ -1289,15 +1303,15 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             progress = setup_progress(
                 parent=self,
-                title="Extract CAN logging",
-                message=f'Extracting CAN signals from "{self.file_name}"',
+                title="Extract Bus logging",
+                message=f'Extracting Bus signals from "{self.file_name}"',
                 icon_name="down",
             )
 
             # convert self.mdf
-            target = self.mdf.extract_can_logging
+            target = self.mdf.extract_bus_logging
             kwargs = {
-                "dbc_files": dbc_files,
+                "database_files": database_files,
                 "version": version,
                 "ignore_invalid_signals": ignore_invalid_signals,
             }
@@ -1337,61 +1351,76 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.progress = None
             progress.cancel()
 
-            call_info = dict(self.mdf.last_call_info)
+            bus_call_info = dict(self.mdf.last_call_info)
 
-            found_id_count = sum(len(e) for e in call_info["found_ids"].values())
+            message = []
 
-            message = [
-                "Summary:",
-                f'- {found_id_count} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
-            ]
-            if call_info["unknown_id_count"]:
-                message.append(
-                    f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file'
-                )
-            else:
-                message.append(f"- no unknown IDs inf the MDF4 file")
+            for bus, call_info in bus_call_info.items():
 
-            message += [
-                "",
-                "Detailed information:",
-                "",
-                "The following CAN IDs were in the MDF log file and matched in the DBC:",
-            ]
-            for dbc_name, found_ids in call_info["found_ids"].items():
-                for msg_id, msg_name in sorted(found_ids):
-                    message.append(f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>")
+                found_id_count = sum(len(e) for e in call_info["found_ids"].values())
 
-            message += [
-                "",
-                "The following CAN IDs were in the MDF log file, but not matched in the DBC:",
-            ]
-            for msg_id in sorted(call_info["unknown_ids"]):
-                message.append(f"- 0x{msg_id:X}")
+                message += [
+                    f"{bus} bus summary:",
+                    f'- {found_id_count} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
+                ]
+                if call_info["unknown_id_count"]:
+                    message.append(
+                        f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file'
+                    )
+                else:
+                    message.append(f"- no unknown IDs inf the MDF4 file")
 
-            self.output_info_can.setPlainText("\n".join(message))
+                message += [
+                    "",
+                    "Detailed information:",
+                    "",
+                    f"The following {bus} IDs were in the MDF log file and matched in the DBC:",
+                ]
+                for dbc_name, found_ids in call_info["found_ids"].items():
+                    for msg_id, msg_name in sorted(found_ids):
+                        message.append(f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>")
+
+                message += [
+                    "",
+                    f"The following {bus} IDs were in the MDF log file, but not matched in the DBC:",
+                ]
+                for msg_id in sorted(call_info["unknown_ids"]):
+                    message.append(f"- 0x{msg_id:X}")
+                message.append('\n\n')
+
+            self.output_info_bus.setPlainText("\n".join(message))
 
             self.open_new_file.emit(str(file_name))
 
-    def extract_can_csv_logging(self, event):
-        version = self.extract_can_format.currentText()
+    def extract_bus_csv_logging(self, event):
+        version = self.extract_bus_format.currentText()
+
+        self.output_info_bus.setPlainText("")
+
+        database_files = {}
+
         count = self.can_database_list.count()
+        if count:
+            database_files["CAN"] = []
+            for i in range(count):
+                item = self.can_database_list.item(i)
+                database_files["CAN"].append(item.text())
 
-        self.output_info_can.setPlainText("")
-
-        dbc_files = []
-        for i in range(count):
-            item = self.can_database_list.item(i)
-            dbc_files.append(item.text())
+        count = self.lin_database_list.count()
+        if count:
+            database_files["LIN"] = []
+            for i in range(count):
+                item = self.lin_database_list.item(i)
+                database_files["LIN"].append(item.text())
 
         ignore_invalid_signals = (
             self.ignore_invalid_signals_csv.checkState() == QtCore.Qt.Checked
         )
-        single_time_base = self.single_time_base_can.checkState() == QtCore.Qt.Checked
-        time_from_zero = self.time_from_zero_can.checkState() == QtCore.Qt.Checked
-        empty_channels = self.empty_channels_can.currentText()
-        raster = self.export_raster_can.value()
-        time_as_date = self.can_time_as_date.checkState() == QtCore.Qt.Checked
+        single_time_base = self.single_time_base_bus.checkState() == QtCore.Qt.Checked
+        time_from_zero = self.time_from_zero_bus.checkState() == QtCore.Qt.Checked
+        empty_channels = self.empty_channels_bus.currentText()
+        raster = self.export_raster_bus.value()
+        time_as_date = self.bus_time_as_date.checkState() == QtCore.Qt.Checked
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,
@@ -1405,15 +1434,15 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             progress = setup_progress(
                 parent=self,
-                title="Extract CAN logging to CSV",
-                message=f'Extracting CAN signals from "{self.file_name}"',
+                title="Extract Bus logging to CSV",
+                message=f'Extracting Bus signals from "{self.file_name}"',
                 icon_name="csv",
             )
 
             # convert self.mdf
-            target = self.mdf.extract_can_logging
+            target = self.mdf.extract_bus_logging
             kwargs = {
-                "dbc_files": dbc_files,
+                "database_files": database_files,
                 "version": version,
                 "ignore_invalid_signals": ignore_invalid_signals,
             }
@@ -1441,7 +1470,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "single_time_base": single_time_base,
                 "time_from_zero": time_from_zero,
                 "empty_channels": empty_channels,
-                "raster": raster,
+                "raster": raster or None,
                 "time_as_date": time_as_date,
                 "ignore_value2text_conversions": self.ignore_value2text_conversions,
             }
@@ -1458,39 +1487,44 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.progress = None
             progress.cancel()
 
-            call_info = dict(self.mdf.last_call_info)
+            bus_call_info = dict(self.mdf.last_call_info)
 
-            found_id_count = sum(len(e) for e in call_info["found_ids"].values())
+            message = []
 
-            message = [
-                "Summary:",
-                f'- {found_id_count} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
-            ]
-            if call_info["unknown_id_count"]:
-                message.append(
-                    f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file'
-                )
-            else:
-                message.append(f"- no unknown IDs inf the MDF4 file")
+            for bus, call_info in bus_call_info.items():
 
-            message += [
-                "",
-                "Detailed information:",
-                "",
-                "The following CAN IDs were in the MDF log file and matched in the DBC:",
-            ]
-            for dbc_name, found_ids in call_info["found_ids"].items():
-                for msg_id, msg_name in sorted(found_ids):
-                    message.append(f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>")
+                found_id_count = sum(len(e) for e in call_info["found_ids"].values())
 
-            message += [
-                "",
-                "The following CAN IDs were in the MDF log file, but not matched in the DBC:",
-            ]
-            for msg_id in sorted(call_info["unknown_ids"]):
-                message.append(f"- 0x{msg_id:X}")
+                message += [
+                    f"{bus} bus summary:",
+                    f'- {found_id_count} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
+                ]
+                if call_info["unknown_id_count"]:
+                    message.append(
+                        f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file'
+                    )
+                else:
+                    message.append(f"- no unknown IDs inf the MDF4 file")
 
-            self.output_info_can.setPlainText("\n".join(message))
+                message += [
+                    "",
+                    "Detailed information:",
+                    "",
+                    f"The following {bus} IDs were in the MDF log file and matched in the DBC:",
+                ]
+                for dbc_name, found_ids in call_info["found_ids"].items():
+                    for msg_id, msg_name in sorted(found_ids):
+                        message.append(f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>")
+
+                message += [
+                    "",
+                    f"The following {bus} IDs were in the MDF log file, but not matched in the DBC:",
+                ]
+                for msg_id in sorted(call_info["unknown_ids"]):
+                    message.append(f"- 0x{msg_id:X}")
+                message.append('\n\n')
+
+            self.output_info_bus.setPlainText("\n".join(message))
 
     def load_can_database(self, event):
         file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
@@ -1503,6 +1537,18 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if file_names:
             self.can_database_list.addItems(file_names)
+
+    def load_lin_database(self, event):
+        file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
+            self,
+            "Select LIN database file",
+            "",
+            "ARXML or DBC (*.dbc *.arxml)",
+            "ARXML or DBC (*.dbc *.arxml)",
+        )
+
+        if file_names:
+            self.lin_database_list.addItems(file_names)
 
     def keyPressEvent(self, event):
         key = event.key()

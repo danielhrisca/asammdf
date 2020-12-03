@@ -3640,9 +3640,9 @@ class MDF:
 
         return df
 
-    def extract_can_logging(
+    def extract_bus_logging(
         self,
-        dbc_files,
+        database_files,
         version=None,
         ignore_invalid_signals=False,
         consolidated_j1939=True,
@@ -3650,10 +3650,14 @@ class MDF:
     ):
         """extract all possible CAN signal using the provided databases.
 
+        Changed in version 6.0.0 from `extract_can_logging`
+
         Parameters
         ----------
-        dbc_files : iterable
-            iterable of str, pathlib.Path or canamtrix.CanMatrix objects
+        database_files : dict
+            each key will contain an iterable of database files for that bus type. The
+            supported bus types are "CAN", "LIN". The iterables will contain the
+            databases as str, pathlib.Path or canamtrix.CanMatrix objects
 
             .. versionchanged:: 6.0.0 added canmatrix.CanMatrix type
 
@@ -3692,6 +3696,38 @@ class MDF:
 
         if self._callback:
             out._callback = out._mdf._callback = self._callback
+
+        self.last_call_info = {}
+
+        if database_files.get("CAN", None):
+            out = self._extract_can_logging(
+                out,
+                database_files["CAN"],
+                ignore_invalid_signals,
+                consolidated_j1939,
+                ignore_value2text_conversion,
+            )
+
+        if database_files.get("LIN", None):
+            out = self._extract_lin_logging(
+                out,
+                database_files["LIN"],
+                ignore_invalid_signals,
+                ignore_value2text_conversion,
+            )
+
+        return out
+
+    def _extract_can_logging(
+        self,
+        output_file,
+        dbc_files,
+        ignore_invalid_signals=False,
+        consolidated_j1939=True,
+        ignore_value2text_conversion=True,
+    ):
+
+        out = output_file
 
         max_flags = []
 
@@ -3938,7 +3974,7 @@ class MDF:
             msg_id for msg_id, not_found in unknown_ids.items() if all(not_found)
         }
 
-        self.last_call_info = {
+        self.last_call_info["CAN"] = {
             "dbc_files": dbc_files,
             "total_unique_ids": total_unique_ids,
             "unknown_id_count": len(unknown_ids),
@@ -3955,7 +3991,7 @@ class MDF:
                     if not max_flags[i][j]:
                         to_keep.append((None, i, j))
 
-            tmp = out.filter(to_keep, version)
+            tmp = out.filter(to_keep, out.version)
             out.close()
             out = tmp
 
@@ -3964,6 +4000,257 @@ class MDF:
         if not out.groups:
             logger.warning(
                 f'No CAN signals could be extracted from "{self.name}". The'
+                "output file will be empty."
+            )
+
+        return out
+
+    def _extract_lin_logging(
+        self,
+        output_file,
+        dbc_files,
+        ignore_invalid_signals=False,
+        ignore_value2text_conversion=True,
+    ):
+
+        out = output_file
+
+        max_flags = []
+
+        valid_dbc_files = []
+        unique_name = UniqueDB()
+        for dbc_name in dbc_files:
+            if isinstance(dbc_name, CanMatrix):
+                valid_dbc_files.append(
+                    (dbc_name, unique_name.get_unique_name("UserProvidedCanMatrix"))
+                )
+            else:
+                dbc = load_can_database(dbc_name)
+                if dbc is None:
+                    continue
+                else:
+                    valid_dbc_files.append((dbc, dbc_name))
+
+        count = sum(
+            1
+            for group in self.groups
+            if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT
+            and group.channel_group.acq_source.bus_type == v4c.BUS_TYPE_LIN
+        )
+        count *= len(valid_dbc_files)
+
+        cntr = 0
+
+        total_unique_ids = set()
+        found_ids = defaultdict(set)
+        not_found_ids = defaultdict(list)
+        unknown_ids = defaultdict(list)
+
+        for dbc, dbc_name in valid_dbc_files:
+            messages = {message.arbitration_id.id: message for message in dbc}
+
+            current_not_found_ids = {
+                (msg_id, message.name) for msg_id, message in messages.items()
+            }
+
+            msg_map = {}
+
+            for i, group in enumerate(self.groups):
+                if (
+                    not group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT
+                    or not group.channel_group.acq_source.bus_type == v4c.BUS_TYPE_LIN
+                    or not "LIN_Frame" in [ch.name for ch in group.channels]
+                ):
+                    continue
+
+                parents, dtypes = self._prepare_record(group)
+                data = self._load_data(group, optimize_read=False)
+
+                for fragment_index, fragment in enumerate(data):
+                    if dtypes.itemsize:
+                        group.record = np.core.records.fromstring(
+                            fragment[0], dtype=dtypes
+                        )
+                    else:
+                        group.record = None
+                        continue
+
+                    self._set_temporary_master(None)
+                    self._set_temporary_master(self.get_master(i, data=fragment))
+
+                    msg_ids = (
+                        self.get("LIN_Frame.ID", group=i, data=fragment).astype(
+                            "<u4"
+                        )
+                        & 0x1FFFFFFF
+                    )
+
+                    original_ids = msg_ids.samples.copy()
+
+                    data_bytes = self.get(
+                        "LIN_Frame.DataBytes",
+                        group=i,
+                        data=fragment,
+                        samples_only=True,
+                    )[0]
+
+                    bus_t = msg_ids.timestamps
+                    bus_msg_ids = msg_ids.samples
+                    bus_data_bytes = data_bytes
+                    original_msg_ids = original_ids
+
+                    unique_ids = np.unique(
+                        np.core.records.fromarrays([bus_msg_ids, bus_msg_ids])
+                    )
+
+                    total_unique_ids = total_unique_ids | set(
+                        tuple(int(e) for e in f) for f in unique_ids
+                    )
+
+                    for msg_id_record in unique_ids:
+                        msg_id = int(msg_id_record[0])
+                        original_msg_id = int(msg_id_record[1])
+                        message = messages.get(msg_id, None)
+                        if message is None:
+                            unknown_ids[msg_id].append(True)
+                            continue
+
+                        found_ids[dbc_name].add((msg_id, message.name))
+                        try:
+                            current_not_found_ids.remove((msg_id, message.name))
+                        except KeyError:
+                            pass
+
+                        unknown_ids[msg_id].append(False)
+
+                        idx = np.argwhere(bus_msg_ids == msg_id).ravel()
+                        payload = bus_data_bytes[idx]
+                        t = bus_t[idx]
+
+                        extracted_signals = extract_mux(
+                            payload,
+                            message,
+                            msg_id,
+                            0,
+                            t,
+                            original_message_id=None,
+                            ignore_value2text_conversion=ignore_value2text_conversion,
+                        )
+
+                        for entry, signals in extracted_signals.items():
+                            if len(next(iter(signals.values()))["samples"]) == 0:
+                                continue
+                            if entry not in msg_map:
+                                sigs = []
+
+                                index = len(out.groups)
+                                msg_map[entry] = index
+
+                                for name_, signal in signals.items():
+                                    sig = Signal(
+                                        samples=signal["samples"],
+                                        timestamps=signal["t"],
+                                        name=signal["name"],
+                                        comment=signal["comment"],
+                                        unit=signal["unit"],
+                                        invalidation_bits=signal[
+                                            "invalidation_bits"
+                                        ]
+                                        if ignore_invalid_signals
+                                        else None,
+                                    )
+
+                                    sig.comment = f"""\
+<CNcomment>
+<TX>{sig.comment}</TX>
+<names>
+<display>
+    LIN.{message.name}.{signal['name']}
+</display>
+</names>
+</CNcomment>"""
+                                    sigs.append(sig)
+
+                                cg_nr = out.append(
+                                    sigs,
+                                    acq_name=f"from LIN message ID=0x{msg_id:X}",
+                                    comment=f"{message} 0x{msg_id:X}",
+                                    common_timebase=True,
+                                )
+
+                                if ignore_invalid_signals:
+                                    max_flags.append([False])
+                                    for ch_index, sig in enumerate(sigs, 1):
+                                        max_flags[cg_nr].append(
+                                            np.all(sig.invalidation_bits)
+                                        )
+
+                            else:
+
+                                index = msg_map[entry]
+
+                                sigs = []
+
+                                for name_, signal in signals.items():
+                                    sigs.append(
+                                        (
+                                            signal["samples"],
+                                            signal["invalidation_bits"]
+                                            if ignore_invalid_signals
+                                            else None,
+                                        )
+                                    )
+
+                                    t = signal["t"]
+
+                                if ignore_invalid_signals:
+                                    for ch_index, sig in enumerate(sigs, 1):
+                                        max_flags[index][ch_index] = max_flags[
+                                                                         index
+                                                                     ][ch_index] or np.all(sig[1])
+
+                                sigs.insert(0, (t, None))
+
+                                out.extend(index, sigs)
+                    self._set_temporary_master(None)
+                    group.record = None
+                cntr += 1
+                if self._callback:
+                    self._callback(cntr, count)
+
+            if current_not_found_ids:
+                not_found_ids[dbc_name] = list(current_not_found_ids)
+
+        unknown_ids = {
+            msg_id for msg_id, not_found in unknown_ids.items() if all(not_found)
+        }
+
+        self.last_call_info["LIN"] = {
+            "dbc_files": dbc_files,
+            "total_unique_ids": total_unique_ids,
+            "unknown_id_count": len(unknown_ids),
+            "not_found_ids": not_found_ids,
+            "found_ids": found_ids,
+            "unknown_ids": unknown_ids,
+        }
+
+        if ignore_invalid_signals:
+            to_keep = []
+
+            for i, group in enumerate(out.groups):
+                for j, channel in enumerate(group.channels[1:], 1):
+                    if not max_flags[i][j]:
+                        to_keep.append((None, i, j))
+
+            tmp = out.filter(to_keep, out.version)
+            out.close()
+            out = tmp
+
+        if self._callback:
+            self._callback(100, 100)
+        if not out.groups:
+            logger.warning(
+                f'No LIN signals could be extracted from "{self.name}". The'
                 "output file will be empty."
             )
 

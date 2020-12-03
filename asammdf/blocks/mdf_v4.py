@@ -315,8 +315,9 @@ class MDF4(MDF_Common):
         self.events = []
         self.bus_logging_map = {
             "CAN": {},
-            "FLEXRAY": {},
             "ETHERNET": {},
+            "FLEXRAY": {},
+            "LIN": {}
         }
 
         self._attachments_map = {}
@@ -821,6 +822,8 @@ class MDF4(MDF_Common):
         self._attachments_map.clear()
 
         self.progress = cg_count, cg_count
+
+        print(self.bus_logging_map)
 
     def _read_channels(
         self,
@@ -8075,13 +8078,17 @@ class MDF4(MDF_Common):
         for entry, signals in extracted_signals.items():
             for name_, sig in signals.items():
                 if name_ == signal.name:
-                    return Signal(
+                    sig = Signal(
                         samples=sig["samples"],
                         timestamps=sig["t"],
                         name=name,
                         unit=signal.unit or "",
                         comment=comment,
                     )
+                    if len(sig):
+                        return sig
+                    else:
+                        raise MdfException(f'No logging from "{signal}" was found in the measurement')
 
         raise MdfException(f'No logging from "{signal}" was found in the measurement')
 
@@ -9498,12 +9505,20 @@ class MDF4(MDF_Common):
             group = self.groups[index]
             if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
                 source = group.channel_group.acq_source
+
                 if (
                     source
                     and source.bus_type in (v4c.BUS_TYPE_CAN, v4c.BUS_TYPE_OTHER)
                     and "CAN_DataFrame" in [ch.name for ch in group.channels]
                 ):
                     self._process_can_logging(index, group)
+
+                if (
+                    source
+                    and source.bus_type in (v4c.BUS_TYPE_LIN, v4c.BUS_TYPE_OTHER)
+                    and "LIN_Frame" in [ch.name for ch in group.channels]
+                ):
+                    self._process_lin_logging(index, group)
 
     def _process_can_logging(self, group_index, grp):
 
@@ -9732,5 +9747,196 @@ class MDF4(MDF_Common):
                                 sigs.insert(0, (t, None))
 
                                 self.extend(index, sigs)
+                self._set_temporary_master(None)
+                group.record = None
+
+    def _process_lin_logging(self, group_index, grp):
+
+        channels = grp.channels
+        group = grp
+
+        dbc = None
+
+        for i, channel in enumerate(channels):
+            if channel.name == "LIN_Frame":
+                attachment_addr = channel.attachment
+                if attachment_addr is not None:
+                    if attachment_addr not in self._dbc_cache:
+
+                        attachment, at_name, md5_sum = self.extract_attachment(
+                            index=attachment_addr
+                        )
+                        if not at_name.name.lower().endswith(("dbc", "arxml")):
+                            message = f'Expected .dbc or .arxml file as LIN channel attachment but got "{at_name}"'
+                            logger.warning(message)
+                        elif not attachment:
+                            message = f'Attachment "{at_name}" not found'
+                            logger.warning(message)
+                        else:
+                            dbc = load_can_database(at_name, attachment)
+                            if dbc:
+                                self._dbc_cache[attachment_addr] = dbc
+                    else:
+                        dbc = self._dbc_cache[attachment_addr]
+                break
+
+        if dbc is None:
+            parents, dtypes = self._prepare_record(group)
+            data = self._load_data(group, optimize_read=False)
+
+            for fragment_index, fragment in enumerate(data):
+                if dtypes.itemsize:
+                    group.record = fromstring(fragment[0], dtype=dtypes)
+                else:
+                    group.record = None
+
+                    return
+
+                self._set_temporary_master(None)
+                self._set_temporary_master(self.get_master(group_index, data=fragment))
+
+                msg_ids = (
+                    self.get(
+                        "LIN_Frame.ID",
+                        group=group_index,
+                        data=fragment,
+                        samples_only=True,
+                    )[0].astype("<u4")
+                    & 0x1FFFFFFF
+                )
+
+                unique_ids = sorted(unique(msg_ids).astype("<u8"))
+
+                lin_map = self.bus_logging_map["LIN"]
+
+                for msg_id in unique_ids:
+                    lin_map[int(msg_id)] = group_index
+
+            self._set_temporary_master(None)
+            group.record = None
+
+        else:
+
+            messages = {message.arbitration_id.id: message for message in dbc}
+
+            msg_map = {}
+
+            parents, dtypes = self._prepare_record(group)
+            data = self._load_data(group, optimize_read=False)
+
+            for fragment_index, fragment in enumerate(data):
+                if dtypes.itemsize:
+                    group.record = fromstring(fragment[0], dtype=dtypes)
+                else:
+                    group.record = None
+                    return
+
+                self._set_temporary_master(None)
+                self._set_temporary_master(self.get_master(group_index, data=fragment))
+
+                msg_ids = (
+                    self.get(
+                        "LIN_Frame.ID", group=group_index, data=fragment
+                    ).astype("<u4")
+                    & 0x1FFFFFFF
+                )
+
+                data_bytes = self.get(
+                    "LIN_Frame.DataBytes",
+                    group=group_index,
+                    data=fragment,
+                    samples_only=True,
+                )[0]
+
+                bus_msg_ids = msg_ids.samples
+
+                bus_t = msg_ids.timestamps
+                bus_data_bytes = data_bytes
+
+                unique_ids = sorted(unique(bus_msg_ids).astype("<u8"))
+
+                lin_map = self.bus_logging_map["LIN"]
+
+                for msg_id in unique_ids:
+                    lin_map[int(msg_id)] = group_index
+
+                for msg_id in unique_ids:
+                    message = messages.get(msg_id, None)
+                    if message is None:
+                        continue
+
+                    idx = bus_msg_ids == msg_id
+                    payload = bus_data_bytes[idx]
+                    t = bus_t[idx]
+
+                    extracted_signals = extract_mux(
+                        payload, message, msg_id, 0, t
+                    )
+
+                    for entry, signals in extracted_signals.items():
+                        if len(next(iter(signals.values()))["samples"]) == 0:
+                            continue
+                        if entry not in msg_map:
+                            sigs = []
+
+                            for name_, signal in signals.items():
+                                sig = Signal(
+                                    samples=signal["samples"],
+                                    timestamps=signal["t"],
+                                    name=signal["name"],
+                                    comment=signal["comment"],
+                                    unit=signal["unit"],
+                                    invalidation_bits=signal["invalidation_bits"],
+                                    display_name=f"LIN.{message.name}.{signal['name']}",
+                                )
+
+                                sigs.append(sig)
+
+                            cg_nr = self.append(
+                                sigs,
+                                acq_name=f"from LIN message ID=0x{msg_id:X}",
+                                comment=f"{message} 0x{msg_id:X}",
+                                common_timebase=True,
+                            )
+
+                            msg_map[entry] = cg_nr
+
+                            for ch_index, ch in enumerate(
+                                self.groups[cg_nr].channels
+                            ):
+                                if ch_index == 0:
+                                    continue
+
+                                entry = cg_nr, ch_index
+
+                                name_ = f"{message}.{ch.name}"
+                                self.channels_db.add(name_, entry)
+
+                                name_ = f"LIN.{message}.{ch.name}"
+                                self.channels_db.add(name_, entry)
+
+                                name_ = f"LIN_Frame_{msg_id}.{ch.name}"
+                                self.channels_db.add(name_, entry)
+
+                                name_ = f"LIN.LIN_Frame_{msg_id}.{ch.name}"
+                                self.channels_db.add(name_, entry)
+
+                        else:
+
+                            index = msg_map[entry]
+
+                            sigs = []
+
+                            for name_, signal in signals.items():
+
+                                sigs.append(
+                                    (signal["samples"], signal["invalidation_bits"])
+                                )
+
+                                t = signal["t"]
+
+                            sigs.insert(0, (t, None))
+
+                            self.extend(index, sigs)
                 self._set_temporary_master(None)
                 group.record = None

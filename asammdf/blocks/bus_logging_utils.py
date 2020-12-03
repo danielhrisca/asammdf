@@ -201,6 +201,10 @@ def extract_can_signal(signal, payload, raw=False, ignore_value2text_conversion=
     return extract_signal(signal, payload, raw, ignore_value2text_conversion)
 
 
+def extract_lin_signal(signal, payload, raw=False, ignore_value2text_conversion=True):
+    return extract_signal(signal, payload, raw, ignore_value2text_conversion)
+
+
 def extract_mux(
     payload,
     message,
