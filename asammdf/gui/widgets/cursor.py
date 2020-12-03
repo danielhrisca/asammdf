@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import pyqtgraph as pg
+from PyQt5 import QtCore, QtGui
 
 
 class Cursor(pg.InfiniteLine):

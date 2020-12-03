@@ -9,6 +9,7 @@ def extract_signal(signal, payload, raw=False, ignore_value2text_conversion=True
 
     big_endian = False if signal.is_little_endian else True
     signed = signal.is_signed
+    is_float = signal.is_float
 
     start_bit = signal.get_startbit(bit_numbering=1)
 
@@ -28,6 +29,12 @@ def extract_signal(signal, payload, raw=False, ignore_value2text_conversion=True
         start_byte, bit_offset = divmod(start_bit, 8)
 
     bit_count = signal.size
+
+    if is_float:
+        if bit_offset:
+            raise MdfException(f"Cannot extract float signal '{signal}' because it is not byte aligned")
+        if bit_count not in (16, 32, 64):
+            raise MdfException(f"Cannot extract float signal '{signal}' because it does not have a standard byte size")
 
     if big_endian:
         byte_pos = start_byte + 1
@@ -83,6 +90,8 @@ def extract_signal(signal, payload, raw=False, ignore_value2text_conversion=True
 
             if std_size > 8:
                 fmt = f"({std_size},)u1"
+            elif is_float:
+                fmt = f">f{std_size}"
             else:
                 fmt = f">u{std_size}"
 
@@ -91,7 +100,7 @@ def extract_signal(signal, payload, raw=False, ignore_value2text_conversion=True
             except:
                 vals = np.frombuffer(vals.tobytes(), dtype=fmt)
 
-            if std_size <= 8:
+            if std_size <= 8 and not is_float:
                 vals = vals >> (extra_bytes * 8 + bit_offset)
                 vals &= (2 ** bit_count) - 1
 
@@ -105,6 +114,8 @@ def extract_signal(signal, payload, raw=False, ignore_value2text_conversion=True
 
             if std_size > 8:
                 fmt = f"({std_size},)u1"
+            elif is_float:
+                fmt = f"<f{std_size}"
             else:
                 fmt = f"<u{std_size}"
 
@@ -113,7 +124,7 @@ def extract_signal(signal, payload, raw=False, ignore_value2text_conversion=True
             except:
                 vals = np.frombuffer(vals.tobytes(), dtype=fmt)
 
-            if std_size <= 8:
+            if std_size <= 8 and not is_float:
                 vals = vals >> bit_offset
                 vals &= (2 ** bit_count) - 1
 
@@ -121,6 +132,8 @@ def extract_signal(signal, payload, raw=False, ignore_value2text_conversion=True
         if big_endian:
             if std_size > 8:
                 fmt = f"({std_size},)u1"
+            elif is_float:
+                fmt = f">f{std_size}"
             else:
                 fmt = f">u{std_size}"
 
@@ -132,12 +145,14 @@ def extract_signal(signal, payload, raw=False, ignore_value2text_conversion=True
                     dtype=fmt,
                 )
 
-            if std_size <= 8:
+            if std_size <= 8 and not is_float:
                 vals = vals >> bit_offset
                 vals &= (2 ** bit_count) - 1
         else:
             if std_size > 8:
                 fmt = f"({std_size},)u1"
+            elif is_float:
+                fmt = f"<f{std_size}"
             else:
                 fmt = f"<u{std_size}"
 
@@ -149,11 +164,11 @@ def extract_signal(signal, payload, raw=False, ignore_value2text_conversion=True
                     dtype=fmt,
                 )
 
-            if std_size <= 8:
+            if std_size <= 8 and not is_float:
                 vals = vals >> bit_offset
                 vals &= (2 ** bit_count) - 1
 
-    if signed:
+    if signed and not is_float:
         vals = as_non_byte_sized_signed_int(vals, bit_count)
 
     if not raw:
@@ -303,6 +318,9 @@ def extract_mux(
                     ),
                 }
             except:
+                print(message, sig)
+                print(samples, set(samples), samples.dtype, samples.shape)
+                print(max_val, max_val.dtype, max_val.shape)
                 raise
 
             if sig.multiplex == "Multiplexor":

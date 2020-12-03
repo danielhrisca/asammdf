@@ -583,7 +583,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
                 target = self.signals.to_csv
                 kwargs = {
                     "path_or_buf": file_name,
-                    "index_label": "timestamps",
+                    "index_label": "Index",
                     "date_format": "%Y-%m-%d %H:%M:%S.%f%z",
                 }
 
