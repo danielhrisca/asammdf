@@ -2,7 +2,6 @@
 """
 asammdf utility functions for channel conversions
 """
-from functools import lru_cache
 
 from . import v2_v3_blocks as v3b
 from . import v2_v3_constants as v3c

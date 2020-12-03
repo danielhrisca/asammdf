@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from functools import partial
 import os
 from pathlib import Path
 
@@ -15,8 +14,6 @@ from ..ui.batch_widget import Ui_batch_widget
 from ..utils import (
     add_children,
     HelperChannel,
-    load_dsp,
-    load_lab,
     run_thread_with_progress,
     setup_progress,
     TERMINATED,

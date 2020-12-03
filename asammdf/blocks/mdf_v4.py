@@ -4,7 +4,6 @@ ASAM MDF version 4 file format module
 
 import bisect
 from collections import defaultdict
-from functools import lru_cache
 from hashlib import md5
 import logging
 from math import ceil
@@ -55,7 +54,7 @@ from pandas import DataFrame
 from . import v4_constants as v4c
 from ..signal import Signal
 from ..version import __version__
-from .bus_logging_utils import extract_can_signal, extract_mux
+from .bus_logging_utils import extract_mux
 from .conversion_utils import conversion_transfer
 from .mdf_common import MDF_Common
 from .source_utils import Source

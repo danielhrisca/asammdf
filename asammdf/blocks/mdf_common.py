@@ -2,27 +2,9 @@
 ASAM MDF version 4 file format module
 """
 
-from functools import lru_cache
 import logging
 
-from .utils import (
-    all_blocks_addresses,
-    as_non_byte_sized_signed_int,
-    CHANNEL_COUNT,
-    ChannelsDB,
-    CONVERT,
-    count_channel_groups,
-    DataBlockInfo,
-    debug_channel,
-    extract_cncomment_xml,
-    fmt_to_datatype_v4,
-    get_fmt_v4,
-    Group,
-    InvalidationBlockInfo,
-    is_file_like,
-    load_can_database,
-    MdfException,
-)
+from .utils import MdfException
 
 logger = logging.getLogger("asammdf")
 

@@ -37,7 +37,6 @@ except:
 
 import numpy as np
 from numpy import arange, interp, where
-from numpy.core.records import fromarrays
 from pandas import Series
 
 from . import v2_v3_constants as v3c

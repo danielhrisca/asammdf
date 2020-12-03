@@ -8,7 +8,6 @@ from datetime import datetime, timezone
 from functools import reduce
 import logging
 from pathlib import Path
-import re
 from shutil import copy
 from struct import unpack
 import xml.etree.ElementTree as ET
