@@ -15,8 +15,8 @@ Features
 * create new mdf files from scratch
 * append new channels
 * read unsorted MDF v3 and v4 files
-* read CAN bus logging files
-* extract CAN signals from anonymous CAN bu logging measurements
+* read CAN and LIN bus logging files
+* extract CAN and LIN signals from anonymous bus logging measurements
 * filter a subset of channels from original mdf file
 * cut measurement to specified time interval
 * convert to different mdf version
@@ -55,9 +55,9 @@ Major features not implemented (yet)
 
     * functionality related to sample reduction block: the sample reduction blocks are simply ignored
     * handling of channel hierarchy: channel hierarchy is ignored
-    * full handling of bus logging measurements: currently only CAN bus logging is implemented with the
-      ability to *get* signals defined in the attached CAN database (.arxml or .dbc). Signals can also
-      be extracted from an anonymous CAN logging measurement by providing a CAN database (.dbc or .arxml)
+    * full handling of bus logging measurements: currently only CAN and LIN bus logging are implemented with the
+      ability to *get* signals defined in the attached CAN/LIN database (.arxml or .dbc). Signals can also
+      be extracted from an anonymous bus logging measurement by providing a CAN or LIN database (.dbc or .arxml)
     * handling of unfinished measurements (mdf 4): warnings are logged based on the unfinished status flags
       but no further steps are taken to sanitize the measurement
     * full support for remaining mdf 4 channel arrays types
@@ -76,7 +76,7 @@ asammdf uses the following libraries
 * numexpr : for algebraic and rational channel conversions
 * wheel : for installation in virtual environments
 * pandas : for DataFrame export
-* canmatrix : to handle CAN bus logging measurements
+* canmatrix : to handle CAN/LIN bus logging measurements
 * natsort
 * lxml : for canmatrix arxml support
 * lz4 : to speed up the disk IO peformance
@@ -93,8 +93,8 @@ other optional dependencies
 * PyQt5 : for GUI tool
 * pyqtgraph : for GUI tool and Signal plotting (preferably the latest develop branch code)
 * matplotlib : as fallback for Signal plotting
-* chardet : to detect non-standard unicode encodings
 * cChardet : to detect non-standard unicode encodings
+* chardet : to detect non-standard unicode encodings 
 
 
 Installation

@@ -2,11 +2,11 @@
 Bus logging
 ------------
 
-Initial read only mode for mdf version 4.10 files containing CAN bus logging
+Initial read only mode for mdf version 4.10 files containing CAN/LIN bus logging
 is now implemented.
 
 To handle this, the **canmatrix** package was added to the dependencies; you will need to install the latest code
-from the **canmatrix** development branch.
+from the **canmatrix** library.
 
 Let's take for example the following situation: the .dbc contains the definition
 for the CAN message called "VehicleStatus" with `ID=123`. This message contains the

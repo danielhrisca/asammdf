@@ -3684,6 +3684,23 @@ class MDF:
         mdf : MDF
             new MDF file that contains the succesfully extracted signals
 
+        Examples
+        --------
+        >>> "extrac CAN and LIN bus logging"
+        >>> mdf = asammdf.MDF(r'bus_logging.mf4')
+        >>> databases = {
+        ...     "CAN": ["file1.dbc", "file2.arxml"],
+        ...     "LIN": ["file3.dbc"],
+        ... }
+        >>> extracted = mdf.extract_bus_logging(database_files=database_files)
+        >>> ...
+        >>> "extrac just LIN bus logging"
+        >>> mdf = asammdf.MDF(r'bus_logging.mf4')
+        >>> databases = {
+        ...     "LIN": ["file3.dbc"],
+        ... }
+        >>> extracted = mdf.extract_bus_logging(database_files=database_files)
+
         """
 
         if version is None:
