@@ -7808,6 +7808,70 @@ class MDF4(MDF_Common):
             timestamps = t
         return timestamps
 
+    def get_bus_signal(
+        self,
+        bus,
+        name,
+        database=None,
+        ignore_invalidation_bits=False,
+        data=None,
+        raw=False,
+        ignore_value2text_conversion=True,
+    ):
+        """get a signal decoded from a raw bus logging. The currently supported buses are
+        CAN and LIN (LDF databases are not supported, they need to be converted to DBC and
+        feed to this function)
+
+        .. versionadded:: 6.0.0
+
+
+        Parameters
+        ----------
+        bus : str
+            "CAN" or "LIN"
+        name : str
+            signal name
+        database : str
+            path of external CAN/LIN database file (.dbc or .arxml) or canmatrix.CanMatrix; default *None*
+
+            .. versionchanged:: 6.0.0
+                `db` and `database` arguments were merged into this single argument
+
+        ignore_invalidation_bits : bool
+            option to ignore invalidation bits
+        raw : bool
+            return channel samples without appling the conversion rule; default
+            `False`
+        ignore_value2text_conversion : bool
+            return channel samples without values that have a description in .dbc or .arxml file
+            `True`
+
+        Returns
+        -------
+        sig : Signal
+            Signal object with the physical values
+
+        """
+
+        if bus == "CAN":
+            return self.get_can_signal(
+                name,
+                database=database,
+                ignore_invalidation_bits=ignore_invalidation_bits,
+                data=data,
+                raw=raw,
+                ignore_value2text_conversion=ignore_value2text_conversion,
+            )
+        elif bus == "LIN":
+            return self.get_lin_signal(
+                name,
+                database=database,
+                ignore_invalidation_bits=ignore_invalidation_bits,
+                data=data,
+                raw=raw,
+                ignore_value2text_conversion=ignore_value2text_conversion,
+            )
+
     def get_can_signal(
         self,
         name,
@@ -8047,6 +8111,180 @@ class MDF4(MDF_Common):
             idx = argwhere(_pgn == message.arbitration_id.pgn).ravel()
         else:
             idx = argwhere(can_ids.samples == message.arbitration_id.id).ravel()
+
+        payload = payload[idx]
+        t = can_ids.timestamps[idx].copy()
+
+        if can_ids.invalidation_bits is not None:
+            invalidation_bits = can_ids.invalidation_bits[idx]
+        else:
+            invalidation_bits = None
+
+        if not ignore_invalidation_bits and invalidation_bits is not None:
+            payload = payload[nonzero(~invalidation_bits)[0]]
+            t = t[nonzero(~invalidation_bits)[0]]
+
+        extracted_signals = extract_mux(
+            payload,
+            message,
+            None,
+            None,
+            t,
+            original_message_id=None,
+            ignore_value2text_conversion=ignore_value2text_conversion,
+            raw=raw,
+        )
+
+        comment = signal.comment or ""
+
+        for entry, signals in extracted_signals.items():
+            for name_, sig in signals.items():
+                if name_ == signal.name:
+                    sig = Signal(
+                        samples=sig["samples"],
+                        timestamps=sig["t"],
+                        name=name,
+                        unit=signal.unit or "",
+                        comment=comment,
+                    )
+                    if len(sig):
+                        return sig
+                    else:
+                        raise MdfException(f'No logging from "{signal}" was found in the measurement')
+
+        raise MdfException(f'No logging from "{signal}" was found in the measurement')
+
+    def get_lin_signal(
+        self,
+        name,
+        database=None,
+        ignore_invalidation_bits=False,
+        data=None,
+        raw=False,
+        ignore_value2text_conversion=True,
+    ):
+        """get LIN message signal. You can specify an external LIN database (
+        *database* argument) or canmatrix databse object that has already been
+        loaded from a file (*db* argument).
+
+        The signal name can be specified in the following ways
+
+        * ``LIN_Frame_<MESSAGE_ID>.<SIGNAL_NAME>`` - Example: LIN_Frame_218.FL_WheelSpeed
+
+        * ``<MESSAGE_NAME>.<SIGNAL_NAME>`` - Example: Wheels.FL_WheelSpeed
+
+        * ``<SIGNAL_NAME>`` - Example: FL_WheelSpeed
+
+        .. versionadded:: 6.0.0
+
+
+        Parameters
+        ----------
+        name : str
+            signal name
+        database : str
+            path of external LIN database file (.dbc or .arxml) or canmatrix.CanMatrix; default *None*
+
+        ignore_invalidation_bits : bool
+            option to ignore invalidation bits
+        raw : bool
+            return channel samples without appling the conversion rule; default
+            `False`
+        ignore_value2text_conversion : bool
+            return channel samples without values that have a description in .dbc or .arxml file
+            `True`
+
+        Returns
+        -------
+        sig : Signal
+            Signal object with the physical values
+
+        """
+
+        if database is None:
+            return self.get(name)
+
+        if isinstance(database, (str, Path)):
+
+            if not str(database).lower().endswith(("dbc", "arxml")):
+                message = f'Expected .dbc or .arxml file as LIN channel attachment but got "{database}"'
+                logger.exception(message)
+                raise MdfException(message)
+            else:
+                db_string = Path(database).read_bytes()
+                md5_sum = md5(db_string).digest()
+
+                if md5_sum in self._external_dbc_cache:
+                    db = self._external_dbc_cache[md5_sum]
+                else:
+                    db = load_can_database(database, db_string)
+                    if db is None:
+                        raise MdfException("failed to load database")
+        else:
+            db = database
+
+        name_ = name.split(".")
+
+        if len(name_) == 2:
+            message_id_str, signal = name_
+
+            message_id = v4c.LIN_DATA_FRAME_PATTERN.search(message_id_str)
+            if message_id is None:
+                message_id = message_id_str
+            else:
+                message_id = int(message_id.group("id"))
+
+            if isinstance(message_id, str):
+                message = db.frame_by_name(message_id)
+            else:
+                message = db.frame_by_id(message_id)
+
+        else:
+            message = None
+            for msg in db:
+                for signal in msg:
+                    if signal.name == name:
+                        message = msg
+
+            signal = name
+
+        if message is None:
+            raise MdfException(f"Could not find signal {name} in {database}")
+
+        for sig in message.signals:
+            if sig.name == signal:
+                signal = sig
+                break
+        else:
+            raise MdfException(
+                f'Signal "{signal}" not found in message "{message.name}" of "{database}"'
+            )
+
+        id_ = message.arbitration_id.id
+
+        if id_ in self.bus_logging_map["LIN"]:
+            index = self.bus_logging_map["LIN"][id_]
+        else:
+            raise MdfException(
+                f'Message "{message.name}" (ID={hex(message.arbitration_id.id)}) not found in the measurement'
+            )
+
+        can_ids = self.get(
+            "LIN_Frame.ID",
+            group=index,
+            ignore_invalidation_bits=ignore_invalidation_bits,
+            data=data,
+        )
+        can_ids.samples = can_ids.samples.astype("<u4") & 0x1FFFFFFF
+        payload = self.get(
+            "LIN_Frame.DataBytes",
+            group=index,
+            samples_only=True,
+            ignore_invalidation_bits=ignore_invalidation_bits,
+            data=data,
+        )[0]
+
+        idx = argwhere(can_ids.samples == message.arbitration_id.id).ravel()
 
         payload = payload[idx]
         t = can_ids.timestamps[idx].copy()
