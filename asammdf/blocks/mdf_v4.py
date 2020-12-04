@@ -823,8 +823,6 @@ class MDF4(MDF_Common):
 
         self.progress = cg_count, cg_count
 
-        print(self.bus_logging_map)
-
     def _read_channels(
         self,
         ch_addr,

@@ -176,10 +176,10 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         count = self.can_database_list.count()
         if count:
-            database_files["Bus"] = []
+            database_files["CAN"] = []
             for i in range(count):
                 item = self.can_database_list.item(i)
-                database_files["Bus"].append(item.text())
+                database_files["CAN"].append(item.text())
 
         count = self.lin_database_list.count()
         if count:
@@ -290,26 +290,26 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 for msg_id in sorted(call_info["unknown_ids"]):
                     message.append(f"- 0x{msg_id:X}")
 
-                file_name = source_file.with_suffix(
-                    ".bus_logging.mdf" if version < "4.00" else ".bus_logging.mf4"
-                )
+            file_name = source_file.with_suffix(
+                ".bus_logging.mdf" if version < "4.00" else ".bus_logging.mf4"
+            )
 
-                # then save it
-                progress.setLabelText(
-                    f'Saving extarcted Bus logging file {i+1} to "{file_name}"'
-                )
+            # then save it
+            progress.setLabelText(
+                f'Saving extarcted Bus logging file {i+1} to "{file_name}"'
+            )
 
-                target = mdf_.save
-                kwargs = {"dst": file_name, "compression": compression, "overwrite": True}
+            target = mdf_.save
+            kwargs = {"dst": file_name, "compression": compression, "overwrite": True}
 
-                run_thread_with_progress(
-                    self,
-                    target=target,
-                    kwargs=kwargs,
-                    factor=int(delta / 2),
-                    offset=int((i + 1 / 2) * delta),
-                    progress=progress,
-                )
+            run_thread_with_progress(
+                self,
+                target=target,
+                kwargs=kwargs,
+                factor=int(delta / 2),
+                offset=int((i + 1 / 2) * delta),
+                progress=progress,
+            )
 
         self.output_info_bus.setText("\n".join(message))
 
@@ -317,14 +317,25 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         progress.cancel()
 
     def extract_bus_csv_logging(self, event):
-        self.output_info_bus.setPlainText("")
         version = self.extract_bus_format.currentText()
-        count = self.bus_database_list.count()
 
-        dbc_files = []
-        for i in range(count):
-            item = self.bus_database_list.item(i)
-            dbc_files.append(item.text())
+        self.output_info_bus.setPlainText("")
+
+        database_files = {}
+
+        count = self.can_database_list.count()
+        if count:
+            database_files["CAN"] = []
+            for i in range(count):
+                item = self.can_database_list.item(i)
+                database_files["CAN"].append(item.text())
+
+        count = self.lin_database_list.count()
+        if count:
+            database_files["LIN"] = []
+            for i in range(count):
+                item = self.lin_database_list.item(i)
+                database_files["LIN"].append(item.text())
 
         ignore_invalid_signals = (
             self.ignore_invalid_signals_csv.checkState() == QtCore.Qt.Checked
@@ -332,7 +343,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         single_time_base = self.single_time_base_bus.checkState() == QtCore.Qt.Checked
         time_from_zero = self.time_from_zero_bus.checkState() == QtCore.Qt.Checked
         empty_channels = self.empty_channels_bus.currentText()
-        raster = self.export_raster.value()
+        raster = self.export_raster_bus.value() or None
         time_as_date = self.bus_time_as_date.checkState() == QtCore.Qt.Checked
 
         count = self.files_list.count()
@@ -348,6 +359,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         files = self._prepare_files(progress)
         source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
+
+        message = []
 
         for i, (file, source_file) in enumerate(zip(files, source_files)):
 
@@ -373,9 +386,11 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             else:
                 mdf = file
 
+            mdf.last_call_info = {}
+
             target = mdf.extract_bus_logging
             kwargs = {
-                "dbc_files": dbc_files,
+                "database_files": database_files,
                 "version": version,
                 "ignore_invalid_signals": ignore_invalid_signals,
             }
@@ -393,46 +408,46 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 progress.cancel()
                 return
 
-            call_info = dict(mdf.last_call_info)
+            bus_call_info = dict(mdf.last_call_info)
 
-            found_id_count = sum(len(e) for e in call_info["found_ids"].values())
+            for bus, call_info in bus_call_info.items():
 
-            message = [
-                "",
-                f'Summary of "{mdf.name}":',
-                f'- {found_id_count} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
-            ]
-            if call_info["unknown_id_count"]:
-                message.append(
-                    f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file'
-                )
-            else:
-                message.append("- no unknown IDs inf the MDF4 file")
+                found_id_count = sum(len(e) for e in call_info["found_ids"].values())
 
-            message += [
-                "",
-                "Detailed information:",
-                "",
-                "The following Bus IDs were in the MDF log file and matched in the DBC:",
-            ]
-            for dbc_name, found_ids in call_info["found_ids"].items():
-                for msg_id, msg_name in sorted(found_ids):
-                    message.append(f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>")
+                message += [
+                    "",
+                    f'Summary of "{mdf.name}":',
+                    f'- {found_id_count} of {len(call_info["total_unique_ids"])} IDs in the MDF4 file were matched in the DBC and converted',
+                ]
+                if call_info["unknown_id_count"]:
+                    message.append(
+                        f'- {call_info["unknown_id_count"]} unknown IDs in the MDF4 file'
+                    )
+                else:
+                    message.append("- no unknown IDs inf the MDF4 file")
 
-            message += [
-                "",
-                "The following Bus IDs were in the MDF log file, but not matched in the DBC:",
-            ]
-            for msg_id in sorted(call_info["unknown_ids"]):
-                message.append(f"- 0x{msg_id:X}")
+                message += [
+                    "",
+                    "Detailed information:",
+                    "",
+                    "The following Bus IDs were in the MDF log file and matched in the DBC:",
+                ]
+                for dbc_name, found_ids in call_info["found_ids"].items():
+                    for msg_id, msg_name in sorted(found_ids):
+                        message.append(f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>")
 
-            self.output_info_bus.append("\n".join(message))
+                message += [
+                    "",
+                    "The following Bus IDs were in the MDF log file, but not matched in the DBC:",
+                ]
+                for msg_id in sorted(call_info["unknown_ids"]):
+                    message.append(f"- 0x{msg_id:X}")
 
             file_name = source_file.with_suffix(".bus_logging.csv")
 
             # then save it
             progress.setLabelText(
-                f'Saving extarcted Bus logging file {i+1} to "{file_name}"'
+                f'Saving extracted Bus logging file {i+1} to "{file_name}"'
             )
 
             target = mdf_.export
@@ -456,6 +471,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 progress=progress,
             )
 
+        self.output_info_bus.setText("\n".join(message))
+
         self.progress = None
         progress.cancel()
 
@@ -468,8 +485,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             "ARXML or DBC (*.dbc *.axml)",
         )
 
-        for file_name in file_names:
-            self.bus_database_list.addItems(file_names)
+        if file_names:
+            self.can_database_list.addItems(file_names)
 
     def load_lin_database(self, event):
         file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
