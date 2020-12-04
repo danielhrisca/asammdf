@@ -1064,7 +1064,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                 channel.setCheckState(0, QtCore.Qt.Checked)
                                 items.append(channel)
 
-                                channels.pop(channels.index(channel_name))
+                                channels.pop(channels.index(ch.name))
 
                     if len(items) < 30000:
                         items = natsorted(items, key=lambda x: x.name)

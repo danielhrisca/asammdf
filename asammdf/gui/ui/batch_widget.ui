@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>979</width>
-    <height>779</height>
+    <height>840</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -24,7 +24,7 @@
        <enum>QTabWidget::West</enum>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <property name="documentMode">
        <bool>false</bool>
@@ -990,27 +990,105 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="extract_can_tab">
+      <widget class="QWidget" name="extract_bus_tab">
        <attribute name="icon">
         <iconset resource="resource.qrc">
          <normaloff>:/down.png</normaloff>:/down.png</iconset>
        </attribute>
        <attribute name="title">
-        <string>CAN logging</string>
+        <string>Bus logging</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_11">
-        <item row="1" column="0" colspan="3">
-         <widget class="MinimalListWidget" name="can_database_list"/>
+        <item row="0" column="2" rowspan="3">
+         <widget class="QTextEdit" name="output_info_bus">
+          <property name="readOnly">
+           <bool>true</bool>
+          </property>
+         </widget>
         </item>
-        <item row="0" column="0">
-         <widget class="QPushButton" name="load_can_database_btn">
-          <property name="text">
-           <string>Load CAN database</string>
+        <item row="2" column="1">
+         <widget class="QGroupBox" name="groupBox_3">
+          <property name="title">
+           <string>CSV</string>
           </property>
-          <property name="icon">
-           <iconset resource="resource.qrc">
-            <normaloff>:/open.png</normaloff>:/open.png</iconset>
-          </property>
+          <layout class="QGridLayout" name="gridLayout_10">
+           <item row="1" column="1">
+            <widget class="QCheckBox" name="time_from_zero_bus">
+             <property name="text">
+              <string>Time from 0s</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="1">
+            <widget class="QLabel" name="label_28">
+             <property name="text">
+              <string>Raster</string>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="1" colspan="3">
+            <widget class="Line" name="line_13">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="2" colspan="2">
+            <widget class="QDoubleSpinBox" name="export_raster_bus">
+             <property name="suffix">
+              <string>s</string>
+             </property>
+             <property name="decimals">
+              <number>6</number>
+             </property>
+            </widget>
+           </item>
+           <item row="8" column="1" colspan="3">
+            <widget class="QPushButton" name="extract_bus_csv_btn">
+             <property name="text">
+              <string>Export to CSV         </string>
+             </property>
+             <property name="icon">
+              <iconset resource="resource.qrc">
+               <normaloff>:/csv.png</normaloff>:/csv.png</iconset>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QCheckBox" name="single_time_base_bus">
+             <property name="text">
+              <string>Single time base</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1">
+            <widget class="QCheckBox" name="ignore_invalid_signals_csv">
+             <property name="toolTip">
+              <string>checks if all samples are eauql to the maximum teoretical signal value</string>
+             </property>
+             <property name="text">
+              <string>Ignore invalid signals</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="2" colspan="2">
+            <widget class="QComboBox" name="empty_channels_bus"/>
+           </item>
+           <item row="5" column="1">
+            <widget class="QLabel" name="label_29">
+             <property name="text">
+              <string>Empty channels</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QCheckBox" name="bus_time_as_date">
+             <property name="text">
+              <string>Time as date</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </widget>
         </item>
         <item row="2" column="0">
@@ -1020,9 +1098,9 @@
           </property>
           <layout class="QGridLayout" name="gridLayout_5">
            <item row="5" column="0" colspan="2">
-            <widget class="QPushButton" name="extract_can_btn">
+            <widget class="QPushButton" name="extract_bus_btn">
              <property name="text">
-              <string>Extract CAN signals</string>
+              <string>Extract Bus signals</string>
              </property>
              <property name="icon">
               <iconset resource="resource.qrc">
@@ -1038,14 +1116,14 @@
             </widget>
            </item>
            <item row="0" column="1">
-            <widget class="QComboBox" name="extract_can_compression">
+            <widget class="QComboBox" name="extract_bus_compression">
              <property name="sizeAdjustPolicy">
               <enum>QComboBox::AdjustToContents</enum>
              </property>
             </widget>
            </item>
            <item row="1" column="1">
-            <widget class="QComboBox" name="extract_can_format">
+            <widget class="QComboBox" name="extract_bus_format">
              <property name="sizeAdjustPolicy">
               <enum>QComboBox::AdjustToContents</enum>
              </property>
@@ -1085,96 +1163,53 @@
           </layout>
          </widget>
         </item>
-        <item row="2" column="1">
-         <widget class="QGroupBox" name="groupBox_3">
-          <property name="title">
-           <string>CSV</string>
+        <item row="0" column="0" colspan="2">
+         <widget class="QTabWidget" name="tabWidget">
+          <property name="currentIndex">
+           <number>0</number>
           </property>
-          <layout class="QGridLayout" name="gridLayout_10">
-           <item row="1" column="1">
-            <widget class="QCheckBox" name="time_from_zero_can">
-             <property name="text">
-              <string>Time from 0s</string>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="1">
-            <widget class="QLabel" name="label_28">
-             <property name="text">
-              <string>Raster</string>
-             </property>
-            </widget>
-           </item>
-           <item row="7" column="1" colspan="3">
-            <widget class="Line" name="line_13">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="2" colspan="2">
-            <widget class="QDoubleSpinBox" name="export_raster_can">
-             <property name="suffix">
-              <string>s</string>
-             </property>
-             <property name="decimals">
-              <number>6</number>
-             </property>
-            </widget>
-           </item>
-           <item row="8" column="1" colspan="3">
-            <widget class="QPushButton" name="extract_can_csv_btn">
-             <property name="text">
-              <string>Export to CSV         </string>
-             </property>
-             <property name="icon">
-              <iconset resource="resource.qrc">
-               <normaloff>:/csv.png</normaloff>:/csv.png</iconset>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QCheckBox" name="single_time_base_can">
-             <property name="text">
-              <string>Single time base</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="1">
-            <widget class="QCheckBox" name="ignore_invalid_signals_csv">
-             <property name="toolTip">
-              <string>checks if all samples are eauql to the maximum teoretical signal value</string>
-             </property>
-             <property name="text">
-              <string>Ignore invalid signals</string>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="2" colspan="2">
-            <widget class="QComboBox" name="empty_channels_can"/>
-           </item>
-           <item row="5" column="1">
-            <widget class="QLabel" name="label_29">
-             <property name="text">
-              <string>Empty channels</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="1">
-            <widget class="QCheckBox" name="can_time_as_date">
-             <property name="text">
-              <string>Time as date</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item row="1" column="3" rowspan="2">
-         <widget class="QTextEdit" name="output_info_can">
-          <property name="readOnly">
-           <bool>true</bool>
-          </property>
+          <widget class="QWidget" name="tab">
+           <attribute name="title">
+            <string>CAN</string>
+           </attribute>
+           <layout class="QVBoxLayout" name="verticalLayout">
+            <item>
+             <widget class="QPushButton" name="load_can_database_btn">
+              <property name="text">
+               <string>Load CAN database</string>
+              </property>
+              <property name="icon">
+               <iconset resource="resource.qrc">
+                <normaloff>:/open.png</normaloff>:/open.png</iconset>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="MinimalListWidget" name="can_database_list"/>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="tab_2">
+           <attribute name="title">
+            <string>LIN</string>
+           </attribute>
+           <layout class="QVBoxLayout" name="verticalLayout_2">
+            <item>
+             <widget class="QPushButton" name="load_lin_database_btn">
+              <property name="text">
+               <string>Load LIN database</string>
+              </property>
+              <property name="icon">
+               <iconset resource="resource.qrc">
+                <normaloff>:/open.png</normaloff>:/open.png</iconset>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="MinimalListWidget" name="lin_database_list"/>
+            </item>
+           </layout>
+          </widget>
          </widget>
         </item>
        </layout>
