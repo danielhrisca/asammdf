@@ -154,15 +154,23 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
         self.filters.minimal_menu = True
 
-        self.prefix.insertItems(0, sorted(prefixes))
+        self.prefix.insertItems(0, sorted(prefixes, key=lambda x: (-len(x), x)))
         self.prefix.setEnabled(False)
 
         self.prefix.currentIndexChanged.connect(self.prefix_changed)
+
+        if prefixes:
+            self.remove_prefix.setCheckState(QtCore.Qt.Checked)
 
         self.tree_scroll.valueChanged.connect(self._display)
         self.tree.verticalScrollBar().valueChanged.connect(self._scroll_tree)
         self.tree.currentItemChanged.connect(self._scroll_tree)
         self.format_selection.currentTextChanged.connect(self.set_format)
+
+        self._settings = QtCore.QSettings()
+        integer_mode = self._settings.value("tabular_format", "phys")
+
+        self.format_selection.setCurrentText(integer_mode)
 
     def _scroll_tree(self, selected_item):
         count = self.tree.topLevelItemCount()
@@ -619,6 +627,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
 
     def set_format(self, fmt):
         self.format = fmt
+        self._settings.setValue("tabular_format", fmt)
         self.build(self.signals)
         if self.query.toPlainText():
             self.apply_filters()

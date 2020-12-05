@@ -50,6 +50,10 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         self.format_selection.currentTextChanged.connect(self.set_format)
 
+        self._settings = QtCore.QSettings()
+        integer_mode = self._settings.value("numeric_format", "phys")
+        self.format_selection.setCurrentText(integer_mode)
+
         self.build()
 
     def items_deleted(self, names):
@@ -380,4 +384,5 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
     def set_format(self, fmt):
         self.format = fmt
+        self._settings.setValue("numeric_format", fmt)
         self._update_values()
