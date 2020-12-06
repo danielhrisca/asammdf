@@ -1,6 +1,6 @@
 
 environment:
-  EXE_BRANCH: "master"
+  EXE_BRANCH: "development"
 
   matrix:
 
@@ -31,7 +31,7 @@ for:
       - cmd: "%PYTHON%\\python.exe -m pip install --upgrade setuptools"
       - cmd: "%PYTHON%\\python.exe -m pip install wheel"
       - cmd: "%PYTHON%\\python.exe -m pip install -r pip_requirements_tests.txt"
-      - cmd: "if \"%APPVEYOR_REPO_BRANCH%\" == \"%EXE_BRANCH%\" (%PYTHON%\\python.exe -m pip install PyQt5==5.13.1 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil lxml)"
+      - cmd: "if \"%APPVEYOR_REPO_BRANCH%\" == \"%EXE_BRANCH%\" (%PYTHON%\\python.exe -m pip install PyQt5 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil lxml)"
       - cmd: "if \"%APPVEYOR_REPO_BRANCH%\" == \"%EXE_BRANCH%\" (%PYTHON%\\python.exe -m pip install pyinstaller pyqtgraph)"
       - cmd: "if \"%APPVEYOR_REPO_BRANCH%\" == \"%EXE_BRANCH%\" (%PYTHON%\\python.exe -m pip install .)"
       - cmd: "if \"%APPVEYOR_REPO_BRANCH%\" == \"%EXE_BRANCH%\" (%PYTHON%\\Scripts\\pyinstaller asammdf_noconsole.spec)"
@@ -77,7 +77,7 @@ for:
       - sh: "pip3 install --upgrade setuptools"
       - sh: "pip3 install wheel"
       - sh: "pip3 install -r pip_requirements_tests.txt"
-      - sh: "pip3 install PyQt5>=5.13.1 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph"
+      - sh: "pip3 install PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph"
       - sh: "pip3 install ."
       - sh: >-
           if [ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH ] ; then
@@ -131,7 +131,7 @@ for:
       - sh: "pip3 install --upgrade setuptools"
       - sh: "pip3 install wheel"
       - sh: "pip3 install -r pip_requirements_tests.txt"
-      - sh: "pip3 install PyQt5>=5.13.1 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph"
+      - sh: "pip3 install PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph"
       - sh: "pip3 install ."
       - sh: >-
           if [ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH ] ; then

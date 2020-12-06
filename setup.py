@@ -122,7 +122,7 @@ setup(
     # for example:
     # $ pip install -e .[dev,test]
     extras_require={
-        "gui": ["PyQt5>=5.13.1", "pyqtgraph==0.11.0rc0", "psutil"],
+        "gui": ["PyQt5>=5.13.1", "pyqtgraph>=0.11.0", "psutil"],
         "decode": ["chardet", "cChardet==2.1.5"],
     },
     # If there are data files included in your packages that need to be
