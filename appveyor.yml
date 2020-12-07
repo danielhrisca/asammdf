@@ -24,8 +24,6 @@ for:
             
             $PYVERSION = @("C:\\Python36-x64","C:\\Python37-x64","C:\\Python38-x64")
             
-            $PYVERSION = @("C:\\Python38-x64")
-            
             foreach ($PY in $PYVERSION)
             {
                 echo "====================================================================="
@@ -57,23 +55,17 @@ for:
     test_script:
     
       - ps: >-
+            $PYVERSION = @("C:\\Python38-x64","C:\\Python37-x64","C:\\Python36-x64")
             
-            echo "pass"
- 
-      #- ps: >-
-      #      $PYVERSION = @("C:\\Python38-x64","C:\\Python37-x64","C:\\Python36-x64")
-      #      
-      #      foreach ($PY in $PYVERSION)
-      #      {
-      #          & "$PY\\Scripts\\pytest" test
-      #      }
+            foreach ($PY in $PYVERSION)
+            {
+                & "$PY\\Scripts\\pytest" test
+            }
       
     after_test:
 
       - ps: >-
             $PYVERSION = @("C:\\Python36-x64","C:\\Python37-x64","C:\\Python38-x64")
-            
-            $PYVERSION = @("C:\\Python38-x64")
             
             foreach ($PY in $PYVERSION)
             {
