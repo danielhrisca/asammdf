@@ -1,5 +1,5 @@
 
-<img align=left src="https://raw.githubusercontent.com/danielhrisca/asammdf/master/asammdf.png" width="192" height="192" />
+<img align=left src="https://raw.githubusercontent.com/danielhrisca/asammdf/master/asammdf.png" width="128" height="128" />
 
 <p align=center>
 
