@@ -9,15 +9,94 @@ environment:
     # The list here is complete (excluding Python 2.6, which
     # isn't covered by this document) at the time of writing.
 
-    - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
+    #- APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
     
-    #- APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
     
     #- APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
       
     #- APPVEYOR_BUILD_WORKER_IMAGE: macos
 
 for: 
+
+  -
+    matrix:
+      only:
+        - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+        
+    install:
+      # We need wheel installed to build wheels
+      - ps: >-
+            $Env:LLVM_DIR="C:\Program Files\LLVM\bin"
+           
+            $PYVERSION = "C:\\Python36", "C:\\Python36-x64", "C:\\Python37", "C:\\Python37-x64", "C:\\Python38", "C:\\Python38-x64"
+            foreach ($PY in $PYVERSION)
+            {
+                $command = "$PYVERSION\\Scripts\\activate"
+                iex $command
+                
+                pip install --upgrade pip
+                pip install --upgrade setuptools
+                pip install wheel
+                pip isntall numpy
+                pip install -r pip_requirements_tests.txt
+                pip install lzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph
+                pip install .
+                
+                if (($APPVEYOR_REPO_BRANCH -eq $EXE_BRANCH) -and ($PY -eq "C:\\Python37-x64")) {
+                    $command = "$PY\\Scripts\\pyinstaller asammdf_noconsole.spec
+                    iex $command
+                    $command = "move dist\\asammdfgui.exe dist\\asammdfgui_noconsole.exe"
+                    
+                    $command = "$PY\\Scripts\\pyinstaller asammdf.spec
+                    iex $command
+                }
+                
+                deactivate
+            }   
+      
+    build : off
+    
+    test_script:
+      # Put your test command here.
+      # If you don't need to build C extensions on 64-bit Python 3.3 or 3.4,
+      # you can remove "build.cmd" from the front of the command, as it's
+      # only needed to support those cases.
+      # Note that you must use the environment variable %PYTHON% to refer to
+      # the interpreter you're using - Appveyor does not do anything special
+      # to put the Python version you want to use on PATH.
+      - ps: >-
+            $PYVERSION = "C:\\Python36", "C:\\Python36-x64", "C:\\Python37", "C:\\Python37-x64", "C:\\Python38", "C:\\Python38-x64"
+            foreach ($PY in $PYVERSION)
+            {
+                $command = "$PYVERSION\\Scripts\\activate"
+                iex $command
+                
+                python test/run_all.py
+                
+                deactivate
+            }
+      
+    after_test:
+      # This step builds your wheels.
+      # Again, you only need build.cmd if you're building C extensions for
+      # 64-bit Python 3.3/3.4. And you need to use %PYTHON% to get the correct
+      # interpreter
+      - ps: >-
+            $PYVERSION = "C:\\Python36", "C:\\Python36-x64", "C:\\Python37", "C:\\Python37-x64", "C:\\Python38", "C:\\Python38-x64"
+            foreach ($PY in $PYVERSION)
+            {
+                $command = "$PYVERSION\\Scripts\\activate"
+                iex $command
+                
+                python setup.py bdist_wheel
+                
+                deactivate
+            }
+      
+    artifacts:
+      # bdist_wheel puts your built wheel in the dist directory
+      - path: dist\*
       
   -
     matrix:
@@ -26,18 +105,19 @@ for:
         
     install:
       - sh: >-
-          for PY in venv3.6 venv3.7 venv3.8 venv3.9
+          for PY in venv3.6 venv3.7 venv3.8
               do
                   source $HOME/$PY/bin/activate
                   
                   pip3 install --upgrade pip
                   pip3 install --upgrade setuptools
                   pip3 install wheel
+                  pip3 isntall numpy
                   pip3 install -r pip_requirements_tests.txt
-                  pip3 install PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph
+                  pip3 install lzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph
                   pip3 install .
                   
-                  if [ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH && $PY == "venv3.7"] ; then
+                  if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH && $PY == "venv3.7" ]] ; then
                      pyinstaller asammdf_noconsole.spec
                   fi
                   
@@ -97,7 +177,7 @@ for:
       - sh: "pip3 install PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph"
       - sh: "pip3 install ."
       - sh: >-
-          if [ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH ] ; then
+          if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH ]] ; then
              pyinstaller asammdf_noconsole.spec
           fi
       - sh: >-
