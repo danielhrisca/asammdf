@@ -34,23 +34,21 @@ for:
             foreach ($PY in $PYVERSION)
             {
                 
-                "$PY\\python.exe -m pip install --upgrade pip"
-                "$PY\\python.exe -m pip install --upgrade setuptools"
-                "$PY\\python.exe -m pip install wheel"
-                "$PY\\python.exe -m pip isntall numpy"
-                "$PY\\python.exe -m pip install -r pip_requirements_tests.txt"
-                "$PY\\python.exe -m pip install lzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph"
-                "$PY\\python.exe -m pip install ."
+                "$PY\\python.exe" -m pip install --upgrade pip
+                "$PY\\python.exe" -m pip install --upgrade setuptools
+                "$PY\\python.exe" -m pip install wheel
+                "$PY\\python.exe" -m pip isntall numpy
+                "$PY\\python.exe" -m pip install -r pip_requirements_tests.txt"
+                "$PY\\python.exe" -m pip install lzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph"
+                "$PY\\python.exe" -m pip install .
                 
                 if (($APPVEYOR_REPO_BRANCH -eq $EXE_BRANCH) -and ($PY -eq "C:\\Python37-x64")) {
-                    $command = "$PY\\Scripts\\pyinstaller asammdf_noconsole.spec"
-                    iex $command
+                    "$PY\\Scripts\\pyinstaller" asammdf_noconsole.spec
                     $src = "dist\\asammdfgui.exe"
                     $dst = "dist\\asammdfgui_noconsole.exe"
                     Move-Item -Path $src -Destination $dst
                     
-                    $command = "$PY\\Scripts\\pyinstaller asammdf.spec"
-                    iex $command
+                    "$PY\\Scripts\\pyinstaller" asammdf.spec
                 }
 
             }   
@@ -67,8 +65,9 @@ for:
       # to put the Python version you want to use on PATH.
       - ps: >-
             $PYVERSION = @("C:\\Python36","C:\\Python36-x64","C:\\Python37","C:\\Python37-x64","C:\\Python38","C:\\Python38-x64")
+            
             foreach ($PY in $PYVERSION)
-            {           
+            {
                 "$PY\\python.exe test/run_all.py"
             }
       
@@ -79,17 +78,9 @@ for:
       # interpreter
       - ps: >-
             $PYVERSION = @("C:\\Python36","C:\\Python36-x64","C:\\Python37","C:\\Python37-x64","C:\\Python38","C:\\Python38-x64")
+            
             foreach ($PY in $PYVERSION)
             {
-                $command = "$PYVERSION\\Scripts\\activate"
-                iex $command
-                
-                python setup.py bdist_wheel
-                
-                deactivate
-            }
-            foreach ($PY in $PYVERSION)
-            {           
                 "$PY\\python.exe setup.py bdist_wheel"
             }
       
