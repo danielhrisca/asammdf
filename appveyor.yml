@@ -39,7 +39,7 @@ for:
                 & "$PY\\python.exe" -m pip install wheel --no-warn-script-location
                 & "$PY\\python.exe" -m pip install numpy --no-warn-script-location
                 & "$PY\\python.exe" -m pip install -r pip_requirements_tests.txt --no-warn-script-location
-                & "$PY\\python.exe" -m pip install lzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph --no-warn-script-location
+                & "$PY\\python.exe" -m pip install pylzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph --no-warn-script-location
                 & "$PY\\python.exe" -m pip install . --no-warn-script-location
                 
                 if (($APPVEYOR_REPO_BRANCH -eq $EXE_BRANCH) -and ($PY -eq "C:\\Python37-x64")) {
@@ -104,7 +104,7 @@ for:
                   pip3 install wheel
                   pip3 install numpy
                   pip3 install -r pip_requirements_tests.txt
-                  pip3 install lzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph
+                  pip3 install pylzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph
                   pip3 install .
                   
                   if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH && $PY == "venv3.7" ]] ; then
