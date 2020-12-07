@@ -34,21 +34,21 @@ for:
             foreach ($PY in $PYVERSION)
             {
                 Get-ChildItem -Path $PY | Format-Table
-                & "$PY\\python.exe -m pip install --upgrade pip"
-                & "$PY\\python.exe -m pip install --upgrade setuptools"
-                & "$PY\\python.exe -m pip install wheel"
-                & "$PY\\python.exe -m pip isntall numpy"
-                & "$PY\\python.exe -m pip install -r pip_requirements_tests.txt"
-                & "$PY\\python.exe -m pip install lzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph"
-                & "$PY\\python.exe -m pip install ."
+                & "$PY\\python.exe" -m pip install --upgrade pip
+                & "$PY\\python.exe" -m pip install --upgrade setuptools
+                & "$PY\\python.exe" -m pip install wheel
+                & "$PY\\python.exe" -m pip isntall numpy
+                & "$PY\\python.exe" -m pip install -r pip_requirements_tests.txt
+                & "$PY\\python.exe" -m pip install lzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph
+                & "$PY\\python.exe" -m pip install .
                 
                 if (($APPVEYOR_REPO_BRANCH -eq $EXE_BRANCH) -and ($PY -eq "C:\\Python37-x64")) {
-                    & "$PY\\Scripts\\pyinstaller asammdf_noconsole.spec"
+                    & "$PY\\Scripts\\pyinstaller" asammdf_noconsole.spec
                     $src = "dist\\asammdfgui.exe"
                     $dst = "dist\\asammdfgui_noconsole.exe"
                     Move-Item -Path $src -Destination $dst
                     
-                    & "$PY\\Scripts\\pyinstaller asammdf.spec"
+                    & "$PY\\Scripts\\pyinstaller" asammdf.spec
                 }
 
             }   
@@ -68,7 +68,7 @@ for:
             
             foreach ($PY in $PYVERSION)
             {
-                "$PY\\python.exe test/run_all.py"
+                & "$PY\\python.exe" test/run_all.py"
             }
       
     after_test:
@@ -81,7 +81,7 @@ for:
             
             foreach ($PY in $PYVERSION)
             {
-                "$PY\\python.exe setup.py bdist_wheel"
+                & "$PY\\python.exe" setup.py bdist_wheel
             }
       
     artifacts:
