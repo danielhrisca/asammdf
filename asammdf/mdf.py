@@ -4096,9 +4096,7 @@ class MDF:
                     self._set_temporary_master(self.get_master(i, data=fragment))
 
                     msg_ids = (
-                        self.get("LIN_Frame.ID", group=i, data=fragment).astype(
-                            "<u4"
-                        )
+                        self.get("LIN_Frame.ID", group=i, data=fragment).astype("<u4")
                         & 0x1FFFFFFF
                     )
 
@@ -4170,9 +4168,7 @@ class MDF:
                                         name=signal["name"],
                                         comment=signal["comment"],
                                         unit=signal["unit"],
-                                        invalidation_bits=signal[
-                                            "invalidation_bits"
-                                        ]
+                                        invalidation_bits=signal["invalidation_bits"]
                                         if ignore_invalid_signals
                                         else None,
                                     )
@@ -4222,9 +4218,9 @@ class MDF:
 
                                 if ignore_invalid_signals:
                                     for ch_index, sig in enumerate(sigs, 1):
-                                        max_flags[index][ch_index] = max_flags[
-                                                                         index
-                                                                     ][ch_index] or np.all(sig[1])
+                                        max_flags[index][ch_index] = max_flags[index][
+                                            ch_index
+                                        ] or np.all(sig[1])
 
                                 sigs.insert(0, (t, None))
 

@@ -169,7 +169,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
     def extract_bus_logging(self, event):
 
         version = self.extract_bus_format.currentText()
- 
+
         self.output_info_bus.setPlainText("")
 
         database_files = {}

@@ -1,6 +1,6 @@
 
 environment:
-  EXE_BRANCH: "development"
+  EXE_BRANCH: "master"
 
   matrix:
 

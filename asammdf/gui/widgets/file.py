@@ -1386,7 +1386,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 ]
                 for msg_id in sorted(call_info["unknown_ids"]):
                     message.append(f"- 0x{msg_id:X}")
-                message.append('\n\n')
+                message.append("\n\n")
 
             self.output_info_bus.setPlainText("\n".join(message))
 
@@ -1522,7 +1522,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 ]
                 for msg_id in sorted(call_info["unknown_ids"]):
                     message.append(f"- 0x{msg_id:X}")
-                message.append('\n\n')
+                message.append("\n\n")
 
             self.output_info_bus.setPlainText("\n".join(message))
 

@@ -313,12 +313,7 @@ class MDF4(MDF_Common):
         self._attachments_cache = {}
         self.file_comment = None
         self.events = []
-        self.bus_logging_map = {
-            "CAN": {},
-            "ETHERNET": {},
-            "FLEXRAY": {},
-            "LIN": {}
-        }
+        self.bus_logging_map = {"CAN": {}, "ETHERNET": {}, "FLEXRAY": {}, "LIN": {}}
 
         self._attachments_map = {}
         self._ch_map = {}
@@ -3030,7 +3025,7 @@ class MDF4(MDF_Common):
                             size = len(elem)
                             if size % 2:
                                 size += 1
-                                elem = elem + b'\0'
+                                elem = elem + b"\0"
                             data.append(UINT32_p(size))
                             data.append(elem)
                             off += size + 4
@@ -3055,7 +3050,7 @@ class MDF4(MDF_Common):
                         gp_sdata.append([info])
                         gp_sdata_size.append(data_size)
                         file.seek(0, 2)
-                        file.write(b''.join(data))
+                        file.write(b"".join(data))
                     else:
                         data_addr = 0
                         gp_sdata.append([])
@@ -3066,7 +3061,10 @@ class MDF4(MDF_Common):
                         signal.samples.itemsize + 4
                     )
 
-                    values = [full(len(samples), samples.itemsize, dtype=uint32), samples]
+                    values = [
+                        full(len(samples), samples.itemsize, dtype=uint32),
+                        samples,
+                    ]
 
                     types_ = [("o", uint32), ("s", sig_dtype)]
 
@@ -5306,7 +5304,7 @@ class MDF4(MDF_Common):
                             size = len(elem)
                             if size % 2:
                                 size += 1
-                                elem = elem + b'\0'
+                                elem = elem + b"\0"
                             data.append(UINT32_p(size))
                             data.append(elem)
                             off += size + 4
@@ -5332,7 +5330,7 @@ class MDF4(MDF_Common):
                             offsets=offsets,
                         )
                         gp.signal_data[i].append(info)
-                        stream.write(b''.join(data))
+                        stream.write(b"".join(data))
 
                     offsets += cur_offset
                     fields.append(offsets)
@@ -8150,7 +8148,9 @@ class MDF4(MDF_Common):
                     if len(sig):
                         return sig
                     else:
-                        raise MdfException(f'No logging from "{signal}" was found in the measurement')
+                        raise MdfException(
+                            f'No logging from "{signal}" was found in the measurement'
+                        )
 
         raise MdfException(f'No logging from "{signal}" was found in the measurement')
 
@@ -8324,7 +8324,9 @@ class MDF4(MDF_Common):
                     if len(sig):
                         return sig
                     else:
-                        raise MdfException(f'No logging from "{signal}" was found in the measurement')
+                        raise MdfException(
+                            f'No logging from "{signal}" was found in the measurement'
+                        )
 
         raise MdfException(f'No logging from "{signal}" was found in the measurement')
 
@@ -10071,9 +10073,9 @@ class MDF4(MDF_Common):
                 self._set_temporary_master(self.get_master(group_index, data=fragment))
 
                 msg_ids = (
-                    self.get(
-                        "LIN_Frame.ID", group=group_index, data=fragment
-                    ).astype("<u4")
+                    self.get("LIN_Frame.ID", group=group_index, data=fragment).astype(
+                        "<u4"
+                    )
                     & 0x1FFFFFFF
                 )
 
@@ -10105,9 +10107,7 @@ class MDF4(MDF_Common):
                     payload = bus_data_bytes[idx]
                     t = bus_t[idx]
 
-                    extracted_signals = extract_mux(
-                        payload, message, msg_id, 0, t
-                    )
+                    extracted_signals = extract_mux(payload, message, msg_id, 0, t)
 
                     for entry, signals in extracted_signals.items():
                         if len(next(iter(signals.values()))["samples"]) == 0:
@@ -10137,9 +10137,7 @@ class MDF4(MDF_Common):
 
                             msg_map[entry] = cg_nr
 
-                            for ch_index, ch in enumerate(
-                                self.groups[cg_nr].channels
-                            ):
+                            for ch_index, ch in enumerate(self.groups[cg_nr].channels):
                                 if ch_index == 0:
                                     continue
 

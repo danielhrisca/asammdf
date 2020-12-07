@@ -32,9 +32,13 @@ def extract_signal(signal, payload, raw=False, ignore_value2text_conversion=True
 
     if is_float:
         if bit_offset:
-            raise MdfException(f"Cannot extract float signal '{signal}' because it is not byte aligned")
+            raise MdfException(
+                f"Cannot extract float signal '{signal}' because it is not byte aligned"
+            )
         if bit_count not in (16, 32, 64):
-            raise MdfException(f"Cannot extract float signal '{signal}' because it does not have a standard byte size")
+            raise MdfException(
+                f"Cannot extract float signal '{signal}' because it does not have a standard byte size"
+            )
 
     if big_endian:
         byte_pos = start_byte + 1
