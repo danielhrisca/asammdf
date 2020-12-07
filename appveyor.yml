@@ -14,8 +14,11 @@ environment:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       PYTHON: "C:\\Python37-x64"
       
-    - APPVEYOR_BUILD_WORKER_IMAGE: macos
-      PYTHON: venv3.7
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+      PYTHON: "C:\\Python38-x64"
+      
+    # - APPVEYOR_BUILD_WORKER_IMAGE: macos
+    #  PYTHON: venv3.7
 
 for:
   -
@@ -31,9 +34,9 @@ for:
       - cmd: "%PYTHON%\\python.exe -m pip install --upgrade setuptools"
       - cmd: "%PYTHON%\\python.exe -m pip install wheel"
       - cmd: "%PYTHON%\\python.exe -m pip install -r pip_requirements_tests.txt"
-      - cmd: "if \"%APPVEYOR_REPO_BRANCH%\" == \"%EXE_BRANCH%\" (%PYTHON%\\python.exe -m pip install PyQt5 h5py xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil lxml)"
-      - cmd: "if \"%APPVEYOR_REPO_BRANCH%\" == \"%EXE_BRANCH%\" (%PYTHON%\\python.exe -m pip install pyinstaller pyqtgraph)"
-      - cmd: "if \"%APPVEYOR_REPO_BRANCH%\" == \"%EXE_BRANCH%\" (%PYTHON%\\python.exe -m pip install .)"
+      - cmd: "%PYTHON%\\python.exe -m pip install PyQt5 h5py xlsxwriter xlrd xlwt pyaml scipy hdf5storage fastparquet cChardet==2.1.5 psutil lxml"
+      - cmd: "%PYTHON%\\python.exe -m pip install pyinstaller pyqtgraph"
+      - cmd: "%PYTHON%\\python.exe -m pip install ."
       - cmd: "if \"%APPVEYOR_REPO_BRANCH%\" == \"%EXE_BRANCH%\" (%PYTHON%\\Scripts\\pyinstaller asammdf_noconsole.spec)"
       - cmd: "if \"%APPVEYOR_REPO_BRANCH%\" == \"%EXE_BRANCH%\" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%_noconsole.exe)"
       - cmd: "if \"%APPVEYOR_REPO_BRANCH%\" == \"%EXE_BRANCH%\" (%PYTHON%\\Scripts\\pyinstaller asammdf.spec)"
@@ -68,10 +71,15 @@ for:
         - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
         
     install:
-      # We need wheel installed to build wheels
-      # - sh: "sudo apt-get --yes --force-yes update"
-      # - sh: "sudo DEBIAN_FRONTEND=noninteractive apt-get --yes install python3-dev python3-pip python3-setuptools"
-      - sh: "echo $HOME"
+      - sh: "source $HOME/venv3.6/bin/activate"
+      - sh: "pip3 install --upgrade pip"
+      - sh: "pip3 install --upgrade setuptools"
+      - sh: "pip3 install wheel"
+      - sh: "pip3 install -r pip_requirements_tests.txt"
+      - sh: "pip3 install PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph"
+      - sh: "pip3 install ."
+      - sh: "deactivate"
+      
       - sh: "source $HOME/venv3.7/bin/activate"
       - sh: "pip3 install --upgrade pip"
       - sh: "pip3 install --upgrade setuptools"
@@ -89,6 +97,15 @@ for:
           fi
       - sh: "deactivate"
       
+      - sh: "source $HOME/venv3.8/bin/activate"
+      - sh: "pip3 install --upgrade pip"
+      - sh: "pip3 install --upgrade setuptools"
+      - sh: "pip3 install wheel"
+      - sh: "pip3 install -r pip_requirements_tests.txt"
+      - sh: "pip3 install PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph"
+      - sh: "pip3 install ."
+      - sh: "deactivate"
+      
     #build: Script
     
     test_script:
@@ -99,7 +116,15 @@ for:
       # Note that you must use the environment variable %PYTHON% to refer to
       # the interpreter you're using - Appveyor does not do anything special
       # to put the Python version you want to use on PATH.
+      - sh: "source $HOME/venv3.6/bin/activate"
+      - sh: "python3 test/run_all.py"
+      - sh: "deactivate"
+      
       - sh: "source $HOME/venv3.7/bin/activate"
+      - sh: "python3 test/run_all.py"
+      - sh: "deactivate"
+      
+      - sh: "source $HOME/venv3.8/bin/activate"
       - sh: "python3 test/run_all.py"
       - sh: "deactivate"
       
@@ -108,7 +133,15 @@ for:
       # Again, you only need build.cmd if you're building C extensions for
       # 64-bit Python 3.3/3.4. And you need to use %PYTHON% to get the correct
       # interpreter
+      - sh: "source $HOME/venv3.6/bin/activate"
+      - sh: "python3 setup.py bdist_wheel"
+      - sh: "deactivate"
+      
       - sh: "source $HOME/venv3.7/bin/activate"
+      - sh: "python3 setup.py bdist_wheel"
+      - sh: "deactivate"
+      
+      - sh: "source $HOME/venv3.8/bin/activate"
       - sh: "python3 setup.py bdist_wheel"
       - sh: "deactivate"
       
