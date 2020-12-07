@@ -57,6 +57,8 @@ class TestMDF(unittest.TestCase):
         with self.assertRaises(MdfException):
             MDF(mdf)
 
+        mdf.close()
+
     def test_wrong_header_version(self):
         mdf = BytesIO(
             b"MDF     AAAA    amdf500d\x00\x00\x00\x00\x9f\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
@@ -147,6 +149,9 @@ class TestMDF(unittest.TestCase):
                                 if not cond:
                                     print(i, j, vals, target, len(vals), len(target))
                                 self.assertTrue(cond)
+
+                if isinstance(inp, BytesIO):
+                    inp.close()
             self.assertTrue(equal)
 
     def test_read_arrays(self):
@@ -247,6 +252,9 @@ class TestMDF(unittest.TestCase):
                                     print(vals)
                                     1 / 0
 
+                if isinstance(inp, BytesIO):
+                    inp.close()
+
             self.assertTrue(equal)
 
     def test_read_demo(self):
@@ -280,6 +288,9 @@ class TestMDF(unittest.TestCase):
                         ).samples
 
                         self.assertTrue(np.array_equal(target, values))
+
+                if isinstance(inp, BytesIO):
+                    inp.close()
 
     def test_convert(self):
         print("MDF convert big files tests")
@@ -442,6 +453,9 @@ class TestMDF(unittest.TestCase):
                             values = mdf.get(name, *mdf.whereis(name)[0]).samples
 
                             self.assertTrue(np.array_equal(target, values))
+
+                if isinstance(inp, BytesIO):
+                    inp.close()
 
     def test_cut(self):
         print("MDF cut big files tests")
@@ -800,6 +814,9 @@ class TestMDF(unittest.TestCase):
                                     np.array_equal(timestamps, sig.timestamps)
                                 )
 
+                if isinstance(inp, BytesIO):
+                    inp.close()
+
     def test_filter(self):
 
         print("MDF read tests")
@@ -842,6 +859,9 @@ class TestMDF(unittest.TestCase):
                         filtered = filtered_mdf.get(name)
                         self.assertTrue(np.array_equal(target, filtered.samples))
 
+                if isinstance(inp, BytesIO):
+                    inp.close()
+
     def test_select(self):
         print("MDF select tests")
 
@@ -882,6 +902,9 @@ class TestMDF(unittest.TestCase):
                     for name, sig in zip(channel_list, selected_signals):
                         target = np.load(signals[name])
                         self.assertTrue(np.array_equal(target, sig.samples))
+
+                if isinstance(inp, BytesIO):
+                    inp.close()
 
     def test_scramble(self):
         print("MDF scramble tests")

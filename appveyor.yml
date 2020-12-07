@@ -31,7 +31,6 @@ for:
             
             foreach ($PY in $PYVERSION)
             {
-                Get-ChildItem -Path $PY | Format-Table
                 & "$PY\\python.exe" -m pip install --upgrade pip --no-warn-script-location
                 & "$PY\\python.exe" -m pip install --upgrade setuptools --no-warn-script-location
                 & "$PY\\python.exe" -m pip install wheel --no-warn-script-location
@@ -41,6 +40,8 @@ for:
                 & "$PY\\python.exe" -m pip install h5py --no-warn-script-location
                 & "$PY\\python.exe" -m pip install pylzma PyQt5 xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph --no-warn-script-location
                 & "$PY\\python.exe" -m pip install . --no-warn-script-location
+                
+                echo "$APPVEYOR_REPO_BRANCH $EXE_BRANCH $PY"
                 
                 if (($APPVEYOR_REPO_BRANCH -eq $EXE_BRANCH) -and ($PY -eq "C:\\Python37-x64")) {
                     & "$PY\\Scripts\\pyinstaller" asammdf_noconsole.spec
