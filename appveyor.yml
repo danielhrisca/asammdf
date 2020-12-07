@@ -31,6 +31,10 @@ for:
             
             foreach ($PY in $PYVERSION)
             {
+                echo "====================================================================="
+                echo "Python version $PY"
+                echo "====================================================================="
+                
                 & "$PY\\python.exe" -m pip install --upgrade pip --no-warn-script-location
                 & "$PY\\python.exe" -m pip install --upgrade setuptools --no-warn-script-location
                 & "$PY\\python.exe" -m pip install wheel --no-warn-script-location
@@ -98,6 +102,10 @@ for:
       - sh: >-
           for PY in venv3.6 venv3.7 venv3.8
               do
+                  echo "====================================================================="
+                  echo "Python version $PY"
+                  echo "====================================================================="
+                  
                   source $HOME/$PY/bin/activate
                   
                   pip3 install --upgrade pip
