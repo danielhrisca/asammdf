@@ -73,6 +73,8 @@ for:
       - ps: >-
             $PYVERSION = @("C:\\Python36-x64","C:\\Python37-x64","C:\\Python38-x64")
             
+            $PYVERSION = @("C:\\Python38-x64")
+            
             foreach ($PY in $PYVERSION)
             {
                 & "$PY\\python.exe" -Wignore setup.py bdist_wheel
