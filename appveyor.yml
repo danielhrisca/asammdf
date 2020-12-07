@@ -69,7 +69,7 @@ for:
             
             foreach ($PY in $PYVERSION)
             {
-                & "$PY\\python.exe" setup.py bdist_wheel
+                & "$PY\\python.exe" -Wignore setup.py bdist_wheel
             }
       
     artifacts:

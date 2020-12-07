@@ -1271,7 +1271,7 @@ class MDF4(MDF_Common):
 
                         nd = frombuffer(new_data[: lines * cols], dtype=uint8)
                         nd = nd.reshape((cols, lines))
-                        new_data = nd.T.tostring() + new_data[lines * cols :]
+                        new_data = nd.T.tobytes() + new_data[lines * cols :]
                     elif block_type == v4c.DZ_BLOCK_LZ:
                         new_data = lz_decompress(new_data)
 
@@ -1312,7 +1312,7 @@ class MDF4(MDF_Common):
                                 )
                                 nd = nd.reshape((cols, lines))
                                 new_invalidation_data = (
-                                    nd.T.tostring()
+                                    nd.T.tobytes()
                                     + new_invalidation_data[lines * cols :]
                                 )
                             if invalidation_info.block_limit is not None:
@@ -2695,7 +2695,7 @@ class MDF4(MDF_Common):
 
                 if names == v4c.CANOPEN_TIME_FIELDS:
 
-                    vals = signal.samples.tostring()
+                    vals = signal.samples.tobytes()
 
                     fields.append(frombuffer(vals, dtype="V6"))
                     types.append((field_name, "V6"))
@@ -2718,7 +2718,7 @@ class MDF4(MDF_Common):
                             )
                         else:
                             vals.append(signal.samples[field])
-                    vals = fromarrays(vals).tostring()
+                    vals = fromarrays(vals).tobytes()
 
                     fields.append(frombuffer(vals, dtype="V7"))
                     types.append((field_name, "V7"))
@@ -5243,7 +5243,7 @@ class MDF4(MDF_Common):
 
                 if names == v4c.CANOPEN_TIME_FIELDS:
 
-                    vals = signal.tostring()
+                    vals = signal.tobytes()
 
                     fields.append(frombuffer(vals, dtype="V6"))
                     types.append(("", "V6"))
@@ -5252,7 +5252,7 @@ class MDF4(MDF_Common):
                     vals = []
                     for field in ("ms", "min", "hour", "day", "month", "year"):
                         vals.append(signal[field])
-                    vals = fromarrays(vals).tostring()
+                    vals = fromarrays(vals).tobytes()
 
                     fields.append(frombuffer(vals, dtype="V7"))
                     types.append(("", "V7"))
@@ -9552,7 +9552,7 @@ class MDF4(MDF_Common):
 
                         nd = fromstring(new_data[: lines * cols], dtype=uint8)
                         nd = nd.reshape((cols, lines))
-                        new_data = nd.T.tostring() + new_data[lines * cols :]
+                        new_data = nd.T.tobytes() + new_data[lines * cols :]
 
                     new_data = rem + new_data
 

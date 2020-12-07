@@ -1489,7 +1489,7 @@ class MDF3(MDF_Common):
 
                 samples = fromarrays(new_fields, dtype=new_types)
 
-                block = samples.tostring()
+                block = samples.tobytes()
 
                 new_gp.data_location = v23c.LOCATION_TEMPORARY_FILE
                 if cycles_nr:
@@ -1870,7 +1870,7 @@ class MDF3(MDF_Common):
         else:
             samples = array([])
 
-        block = samples.tostring()
+        block = samples.tobytes()
 
         gp.data_location = v23c.LOCATION_TEMPORARY_FILE
         if cycles_nr:
@@ -2112,7 +2112,7 @@ class MDF3(MDF_Common):
         else:
             samples = array([])
 
-        block = samples.tostring()
+        block = samples.tobytes()
 
         gp.data_location = v23c.LOCATION_TEMPORARY_FILE
         if cycles_nr:
@@ -2280,7 +2280,7 @@ class MDF3(MDF_Common):
                 new_types = dtype(new_types)
 
                 samples = fromarrays(new_fields, dtype=new_types)
-                samples = samples.tostring()
+                samples = samples.tobytes()
 
                 record_size = new_gp.channel_group.samples_byte_nr
                 extended_size = cycles_nr * record_size
@@ -2336,7 +2336,7 @@ class MDF3(MDF_Common):
         types = dtype(types)
 
         samples = fromarrays(fields, dtype=types)
-        samples = samples.tostring()
+        samples = samples.tobytes()
 
         if cycles_nr:
             stream.seek(0, 2)
