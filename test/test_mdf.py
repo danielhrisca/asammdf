@@ -66,6 +66,8 @@ class TestMDF(unittest.TestCase):
         with self.assertRaises(MdfException):
             MDF(mdf)
 
+        mdf.close()
+
     def test_read(self):
         print("MDF read big files")
         for input_file in Path(TestMDF.tempdir_general.name).iterdir():
@@ -510,7 +512,7 @@ class TestMDF(unittest.TestCase):
 
                     concatenated = MDF.concatenate(
                         [outfile0, outfile1, outfile2, outfile3, outfile4],
-                        version=MDF(input_file).version,
+                        version=mdf.version,
                         sync=whence,
                     )
 
@@ -657,7 +659,7 @@ class TestMDF(unittest.TestCase):
                 cut.close()
 
                 concatenated = MDF.concatenate(
-                    [outfile1, outfile2, outfile3], MDF(input_file).version
+                    [outfile1, outfile2, outfile3], mdf.version
                 )
                 outfile = concatenated.save(Path(TestMDF.tempdir.name) / "tmp_cut", overwrite=True)
 

@@ -190,6 +190,7 @@ def generate_test_file(tmpdir, version="4.10"):
     mdf.append(sigs, common_timebase=True)
 
     name = mdf.save(filename, overwrite=True)
+    mdf.close()
 
 
 def generate_arrays_test_file(tmpdir):
@@ -287,6 +288,8 @@ def generate_arrays_test_file(tmpdir):
     mdf.append(sigs, common_timebase=True)
 
     name = mdf.save(filename, overwrite=True)
+
+    mdf.close()
 
 
 if __name__ == "__main__":
