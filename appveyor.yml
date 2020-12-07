@@ -33,7 +33,7 @@ for:
             
             foreach ($PY in $PYVERSION)
             {
-                
+                Get-ChildItem -Path $PY | Format-Table
                 & "$PY\\python.exe -m pip install --upgrade pip"
                 & "$PY\\python.exe -m pip install --upgrade setuptools"
                 & "$PY\\python.exe -m pip install wheel"
