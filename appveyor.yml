@@ -3,11 +3,6 @@ environment:
   EXE_BRANCH: "master"
 
   matrix:
-
-    # For Python versions available on Appveyor, see
-    # https://www.appveyor.com/docs/windows-images-software/#python
-    # The list here is complete (excluding Python 2.6, which
-    # isn't covered by this document) at the time of writing. 
     
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
     
@@ -23,7 +18,7 @@ for:
         - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
         
     install:
-      # We need wheel installed to build wheels
+
       - ps: >-
             $Env:LLVM_DIR="C:\Program Files\LLVM\bin"
             
@@ -53,21 +48,14 @@ for:
                     
                     & "$PY\\Scripts\\pyinstaller" asammdf.spec
                 }
-
             }   
       
     build : off
     
     test_script:
-      # Put your test command here.
-      # If you don't need to build C extensions on 64-bit Python 3.3 or 3.4,
-      # you can remove "build.cmd" from the front of the command, as it's
-      # only needed to support those cases.
-      # Note that you must use the environment variable %PYTHON% to refer to
-      # the interpreter you're using - Appveyor does not do anything special
-      # to put the Python version you want to use on PATH.
+
       - ps: >-
-            $PYVERSION = @("C:\\Python36-x64","C:\\Python37-x64","C:\\Python38-x64")
+            $PYVERSION = @("C:\\Python38-x64","C:\\Python37-x64","C:\\Python36-x64")
             
             foreach ($PY in $PYVERSION)
             {
@@ -75,10 +63,7 @@ for:
             }
       
     after_test:
-      # This step builds your wheels.
-      # Again, you only need build.cmd if you're building C extensions for
-      # 64-bit Python 3.3/3.4. And you need to use %PYTHON% to get the correct
-      # interpreter
+
       - ps: >-
             $PYVERSION = @("C:\\Python36-x64","C:\\Python37-x64","C:\\Python38-x64")
             
@@ -88,13 +73,15 @@ for:
             }
       
     artifacts:
-      # bdist_wheel puts your built wheel in the dist directory
+
       - path: dist\*
       
   -
     matrix:
       only:
         - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
+        
+    build : off
         
     install:
       - sh: >-
@@ -121,16 +108,8 @@ for:
                   deactivate
               done
 
-    #build: Script
-    
     test_script:
-      # Put your test command here.
-      # If you don't need to build C extensions on 64-bit Python 3.3 or 3.4,
-      # you can remove "build.cmd" from the front of the command, as it's
-      # only needed to support those cases.
-      # Note that you must use the environment variable %PYTHON% to refer to
-      # the interpreter you're using - Appveyor does not do anything special
-      # to put the Python version you want to use on PATH.
+
       - sh: >-
           for PY in venv3.6 venv3.7 venv3.8
               do
@@ -140,10 +119,7 @@ for:
               done
       
     after_test:
-      # This step builds your wheels.
-      # Again, you only need build.cmd if you're building C extensions for
-      # 64-bit Python 3.3/3.4. And you need to use %PYTHON% to get the correct
-      # interpreter
+
       - sh: >-
           for PY in venv3.6 venv3.7 venv3.8
               do
@@ -153,16 +129,18 @@ for:
               done
       
     artifacts:
-      # bdist_wheel puts your built wheel in the dist directory
+    
       - path: dist\*
       
   -
     matrix:
       only:
         - APPVEYOR_BUILD_WORKER_IMAGE: macos
+        
+    build : off
 
     install:
-      # We need wheel installed to build wheels
+
       - sh: >-
           for PY in venv3.6 venv3.7 venv3.8
               do
@@ -187,16 +165,8 @@ for:
                   deactivate
               done
       
-    # build: off
-    
     test_script:
-      # Put your test command here.
-      # If you don't need to build C extensions on 64-bit Python 3.3 or 3.4,
-      # you can remove "build.cmd" from the front of the command, as it's
-      # only needed to support those cases.
-      # Note that you must use the environment variable %PYTHON% to refer to
-      # the interpreter you're using - Appveyor does not do anything special
-      # to put the Python version you want to use on PATH.
+
       - sh: >-
           for PY in venv3.6 venv3.7 venv3.8
               do
@@ -206,10 +176,7 @@ for:
               done
       
     after_test:
-      # This step builds your wheels.
-      # Again, you only need build.cmd if you're building C extensions for
-      # 64-bit Python 3.3/3.4. And you need to use %PYTHON% to get the correct
-      # interpreter
+
       - sh: >-
           for PY in venv3.6 venv3.7 venv3.8
               do
@@ -219,11 +186,5 @@ for:
               done
       
     artifacts:
-      # bdist_wheel puts your built wheel in the dist directory
+    
       - path: dist\*
-
-  
-
-
-
-
