@@ -41,9 +41,9 @@ for:
                 & "$PY\\python.exe" -m pip install pylzma PyQt5 xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph --no-warn-script-location
                 & "$PY\\python.exe" -m pip install . --no-warn-script-location
                 
-                echo "$APPVEYOR_REPO_BRANCH $EXE_BRANCH $PY"
+                echo "$Env:APPVEYOR_REPO_BRANCH $Env:EXE_BRANCH $PY"
                 
-                if (($APPVEYOR_REPO_BRANCH -eq $EXE_BRANCH) -and ($PY -eq "C:\\Python37-x64")) {
+                if (($Env:APPVEYOR_REPO_BRANCH -eq $Env:EXE_BRANCH) -and ($PY -eq "C:\\Python37-x64")) {
                     & "$PY\\Scripts\\pyinstaller" asammdf_noconsole.spec
                     $src = "dist\\asammdfgui.exe"
                     $dst = "dist\\asammdfgui_noconsole.exe"
