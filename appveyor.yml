@@ -59,7 +59,7 @@ for:
             
             foreach ($PY in $PYVERSION)
             {
-                & "$PY\\Scripts\\pytest" test
+                & "$PY\\Scripts\\pytest" test --disable-pytest-warnings -vv -x
             }
       
     after_test:
@@ -114,7 +114,7 @@ for:
           for PY in venv3.6 venv3.7 venv3.8
               do
                   source $HOME/$PY/bin/activate
-                  python3 test/run_all.py
+                  pytest test --disable-pytest-warnings -vv -x
                   deactivate
               done
       
@@ -171,7 +171,7 @@ for:
           for PY in venv3.6 venv3.7 venv3.8
               do
                   source ~/$PY/bin/activate
-                  python3 test/run_all.py
+                  pytest test --disable-pytest-warnings -vv -x
                   deactivate
               done
       
