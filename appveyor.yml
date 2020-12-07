@@ -5,10 +5,10 @@ environment:
   matrix:
     
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-      DRY: true
+      WINDOWS_DRY: true
         
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-      DRY: false
+      WINDOWS_DRY: false
     
     - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
       
@@ -19,8 +19,7 @@ for:
   -
     matrix:
       only:
-        - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-        - DRY: false
+        - WINDOWS_DRY: false
         
     install:
 
@@ -85,8 +84,7 @@ for:
   -
     matrix:
       only:
-        - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-        - DRY: true
+        - WINDOWS_DRY: true
         
     install:
 
