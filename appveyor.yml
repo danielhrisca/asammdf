@@ -37,7 +37,7 @@ for:
                 & "$PY\\python.exe" -m pip install --upgrade pip --no-warn-script-location
                 & "$PY\\python.exe" -m pip install --upgrade setuptools --no-warn-script-location
                 & "$PY\\python.exe" -m pip install wheel --no-warn-script-location
-                & "$PY\\python.exe" -m pip isntall numpy --no-warn-script-location
+                & "$PY\\python.exe" -m pip install numpy --no-warn-script-location
                 & "$PY\\python.exe" -m pip install -r pip_requirements_tests.txt --no-warn-script-location
                 & "$PY\\python.exe" -m pip install lzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph --no-warn-script-location
                 & "$PY\\python.exe" -m pip install . --no-warn-script-location
