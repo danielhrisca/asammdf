@@ -514,7 +514,7 @@ class TestMDF(unittest.TestCase):
                         Path(TestMDF.tempdir.name) / "tmp_cut",
                         overwrite=True,
                         compression=compression,
-
+                    )
 
                     mdf.close()
                     concatenated.close()

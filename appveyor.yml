@@ -45,8 +45,6 @@ for:
                 & "$PY\\python.exe" -m pip install pylzma PyQt5 xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph --no-warn-script-location
                 & "$PY\\python.exe" -m pip install . --no-warn-script-location
                 
-                echo "$Env:APPVEYOR_REPO_BRANCH $Env:EXE_BRANCH $PY"
-                
                 if (($Env:APPVEYOR_REPO_BRANCH -eq $Env:EXE_BRANCH) -and ($PY -eq "C:\\Python37-x64")) {
                     & "$PY\\Scripts\\pyinstaller" asammdf_noconsole.spec
                     $src = "dist\\asammdfgui.exe"
@@ -168,6 +166,10 @@ for:
       - sh: >-
           for PY in venv3.6 venv3.7 venv3.8
               do
+                  echo "====================================================================="
+                  echo "Python version $PY"
+                  echo "====================================================================="
+                  
                   source ~/$PY/bin/activate
                   
                   pip3 install --upgrade pip
