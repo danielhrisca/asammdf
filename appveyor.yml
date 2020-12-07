@@ -33,16 +33,14 @@ for:
             
             foreach ($PY in $PYVERSION)
             {
-                $command = "$PYVERSION\\Scripts\\activate"
-                iex $command
                 
-                pip install --upgrade pip
-                pip install --upgrade setuptools
-                pip install wheel
-                pip isntall numpy
-                pip install -r pip_requirements_tests.txt
-                pip install lzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph
-                pip install .
+                "$PY\\python.exe -m pip install --upgrade pip"
+                "$PY\\python.exe -m pip install --upgrade setuptools"
+                "$PY\\python.exe -m pip install wheel"
+                "$PY\\python.exe -m pip isntall numpy"
+                "$PY\\python.exe -m pip install -r pip_requirements_tests.txt"
+                "$PY\\python.exe -m pip install lzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph"
+                "$PY\\python.exe -m pip install ."
                 
                 if (($APPVEYOR_REPO_BRANCH -eq $EXE_BRANCH) -and ($PY -eq "C:\\Python37-x64")) {
                     $command = "$PY\\Scripts\\pyinstaller asammdf_noconsole.spec"
@@ -54,8 +52,7 @@ for:
                     $command = "$PY\\Scripts\\pyinstaller asammdf.spec"
                     iex $command
                 }
-                
-                deactivate
+
             }   
       
     build : off
@@ -71,13 +68,8 @@ for:
       - ps: >-
             $PYVERSION = @("C:\\Python36","C:\\Python36-x64","C:\\Python37","C:\\Python37-x64","C:\\Python38","C:\\Python38-x64")
             foreach ($PY in $PYVERSION)
-            {
-                $command = "$PYVERSION\\Scripts\\activate"
-                iex $command
-                
-                python test/run_all.py
-                
-                deactivate
+            {           
+                "$PY\\python.exe test/run_all.py"
             }
       
     after_test:
@@ -95,6 +87,10 @@ for:
                 python setup.py bdist_wheel
                 
                 deactivate
+            }
+            foreach ($PY in $PYVERSION)
+            {           
+                "$PY\\python.exe setup.py bdist_wheel"
             }
       
     artifacts:
