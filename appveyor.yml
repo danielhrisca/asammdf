@@ -34,21 +34,21 @@ for:
             foreach ($PY in $PYVERSION)
             {
                 
-                Start-Process -FilePath "$PY\\python.exe" -ArgumentList "-m pip install --upgrade pip"
-                Start-Process -FilePath "$PY\\python.exe" -ArgumentList "-m pip install --upgrade setuptools"
-                Start-Process -FilePath "$PY\\python.exe" -ArgumentList "-m pip install wheel"
-                Start-Process -FilePath "$PY\\python.exe" -ArgumentList "-m pip isntall numpy"
-                Start-Process -FilePath "$PY\\python.exe" -ArgumentList "-m pip install -r pip_requirements_tests.txt"
-                Start-Process -FilePath "$PY\\python.exe" -ArgumentList "-m pip install lzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph"
-                Start-Process -FilePath "$PY\\python.exe" -ArgumentList "-m pip install ."
+                & "$PY\\python.exe -m pip install --upgrade pip"
+                & "$PY\\python.exe -m pip install --upgrade setuptools"
+                & "$PY\\python.exe -m pip install wheel"
+                & "$PY\\python.exe -m pip isntall numpy"
+                & "$PY\\python.exe -m pip install -r pip_requirements_tests.txt"
+                & "$PY\\python.exe -m pip install lzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph"
+                & "$PY\\python.exe -m pip install ."
                 
                 if (($APPVEYOR_REPO_BRANCH -eq $EXE_BRANCH) -and ($PY -eq "C:\\Python37-x64")) {
-                    Start-Process -FilePath "$PY\\Scripts\\pyinstaller" -ArgumentList "asammdf_noconsole.spec"
+                    & "$PY\\Scripts\\pyinstaller asammdf_noconsole.spec"
                     $src = "dist\\asammdfgui.exe"
                     $dst = "dist\\asammdfgui_noconsole.exe"
                     Move-Item -Path $src -Destination $dst
                     
-                    Start-Process -FilePath "$PY\\Scripts\\pyinstaller" -ArgumentList "asammdf.spec"
+                    & "$PY\\Scripts\\pyinstaller asammdf.spec"
                 }
 
             }   
