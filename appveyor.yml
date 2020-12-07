@@ -5,10 +5,10 @@ environment:
   matrix:
     
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-        DRY: true
+      DRY: true
         
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-        DRY: false
+      DRY: false
     
     - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
       
