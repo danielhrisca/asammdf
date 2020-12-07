@@ -17,50 +17,7 @@ environment:
       
     #- APPVEYOR_BUILD_WORKER_IMAGE: macos
 
-for:
-  -
-    matrix:
-      only:
-        - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-        
-    install:
-      # We need wheel installed to build wheels
-      - cmd: set PATH=%PATH%;%PYTHON%\Scripts
-      - cmd: set LLVM_DIR="C:\Program Files\LLVM\bin"
-      - cmd: "%PYTHON%\\python.exe -m pip install --upgrade pip"
-      - cmd: "%PYTHON%\\python.exe -m pip install --upgrade setuptools"
-      - cmd: "%PYTHON%\\python.exe -m pip install wheel"
-      - cmd: "%PYTHON%\\python.exe -m pip install -r pip_requirements_tests.txt"
-      - cmd: "%PYTHON%\\python.exe -m pip install PyQt5 h5py xlsxwriter xlrd xlwt pyaml scipy hdf5storage fastparquet cChardet==2.1.5 psutil lxml"
-      - cmd: "%PYTHON%\\python.exe -m pip install pyinstaller pyqtgraph"
-      - cmd: "%PYTHON%\\python.exe -m pip install ."
-      - cmd: "if \"%APPVEYOR_REPO_BRANCH%\" == \"%EXE_BRANCH%\" (if \"%PYTHON%\" == "C:\\Python37-x64" (%PYTHON%\\Scripts\\pyinstaller asammdf_noconsole.spec))"
-      - cmd: "if \"%APPVEYOR_REPO_BRANCH%\" == \"%EXE_BRANCH%\" (if \"%PYTHON%\" == "C:\\Python37-x64" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%_noconsole.exe))"
-      - cmd: "if \"%APPVEYOR_REPO_BRANCH%\" == \"%EXE_BRANCH%\" (if \"%PYTHON%\" == "C:\\Python37-x64" (%PYTHON%\\Scripts\\pyinstaller asammdf.spec))"
-      - cmd: "if \"%APPVEYOR_REPO_BRANCH%\" == \"%EXE_BRANCH%\" (if \"%PYTHON%\" == "C:\\Python37-x64" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe))"
-      
-    build : off
-    
-    test_script:
-      # Put your test command here.
-      # If you don't need to build C extensions on 64-bit Python 3.3 or 3.4,
-      # you can remove "build.cmd" from the front of the command, as it's
-      # only needed to support those cases.
-      # Note that you must use the environment variable %PYTHON% to refer to
-      # the interpreter you're using - Appveyor does not do anything special
-      # to put the Python version you want to use on PATH.
-      - cmd: "%PYTHON%\\python.exe test/run_all.py"
-      
-    after_test:
-      # This step builds your wheels.
-      # Again, you only need build.cmd if you're building C extensions for
-      # 64-bit Python 3.3/3.4. And you need to use %PYTHON% to get the correct
-      # interpreter
-      - cmd: "%PYTHON%\\python.exe setup.py bdist_wheel"
-      
-    artifacts:
-      # bdist_wheel puts your built wheel in the dist directory
-      - path: dist\*
+for: 
       
   -
     matrix:
