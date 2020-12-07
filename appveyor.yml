@@ -59,7 +59,7 @@ for:
             
             foreach ($PY in $PYVERSION)
             {
-                & "$PY\\python.exe" test/run_all.py
+                & "$PY\\Scripts\\pytest" test
             }
       
     after_test:
