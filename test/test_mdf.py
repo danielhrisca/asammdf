@@ -467,61 +467,57 @@ class TestMDF(unittest.TestCase):
                 for compression in range(3):
                     print(input_file)
 
-                    outfile0 = MDF(input_file)
-                    outfile0.configure(read_fragment_size=8000)
-                    outfile0 = outfile0.cut(
+                    mdf = MDF(input_file)
+
+                    mdf.configure(read_fragment_size=8000)
+                    cut = mdf.cut(
                         stop=-1, whence=whence, include_ends=False
-                    ).save(
-                        Path(TestMDF.tempdir.name) / "tmp0",
-                        overwrite=True,
-                        compression=compression,
                     )
+                    outfile0 = cut.save(Path(TestMDF.tempdir.name) / "tmp0", overwrite=True)
+                    cut.close()
 
-                    outfile1 = MDF(input_file)
-                    outfile1.configure(read_fragment_size=8000)
-                    outfile1 = outfile1.cut(
+                    mdf.configure(read_fragment_size=8000)
+                    cut = mdf.cut(
                         stop=105, whence=whence, include_ends=False
-                    ).save(
-                        Path(TestMDF.tempdir.name) / "tmp1",
-                        overwrite=True,
-                        compression=compression,
                     )
+                    outfile1 = cut.save(Path(TestMDF.tempdir.name) / "tmp1", overwrite=True)
+                    cut.close()
 
-                    outfile2 = MDF(input_file)
-                    outfile2.configure(read_fragment_size=8000)
-                    outfile2 = outfile2.cut(
+                    mdf.configure(read_fragment_size=8000)
+                    cut = mdf.cut(
                         start=105.1, stop=201, whence=whence, include_ends=False
-                    ).save(
-                        Path(TestMDF.tempdir.name) / "tmp2",
-                        overwrite=True,
-                        compression=compression,
                     )
+                    outfile2 = cut.save(Path(TestMDF.tempdir.name) / "tmp2", overwrite=True)
+                    cut.close()
 
-                    outfile3 = MDF(input_file)
-                    outfile3.configure(read_fragment_size=8000)
-                    outfile3 = outfile3.cut(
+                    mdf.configure(read_fragment_size=8000)
+                    cut = mdf.cut(
                         start=201.1, whence=whence, include_ends=False
-                    ).save(Path(TestMDF.tempdir.name) / "tmp3", overwrite=True)
-
-                    outfile4 = MDF(input_file)
-                    outfile4.configure(read_fragment_size=8000)
-                    outfile4 = outfile4.cut(
-                        start=7000, whence=whence, include_ends=False
-                    ).save(
-                        Path(TestMDF.tempdir.name) / "tmp4",
-                        overwrite=True,
-                        compression=compression,
                     )
+                    outfile3 = cut.save(Path(TestMDF.tempdir.name) / "tmp3", overwrite=True)
+                    cut.close()
 
-                    outfile = MDF.concatenate(
+                    mdf.configure(read_fragment_size=8000)
+                    cut = mdf.cut(
+                        start=7000, whence=whence, include_ends=False
+                    )
+                    outfile4 = cut.save(Path(TestMDF.tempdir.name) / "tmp4", overwrite=True)
+                    cut.close()
+
+                    concatenated = MDF.concatenate(
                         [outfile0, outfile1, outfile2, outfile3, outfile4],
                         version=MDF(input_file).version,
                         sync=whence,
-                    ).save(
+                    )
+
+                    outfile = concatenated.save(
                         Path(TestMDF.tempdir.name) / "tmp_cut",
                         overwrite=True,
                         compression=compression,
-                    )
+
+
+                    mdf.close()
+                    concatenated.close()
 
                     with MDF(outfile) as mdf:
 
@@ -635,25 +631,34 @@ class TestMDF(unittest.TestCase):
             for whence in (0, 1):
                 print(input_file, whence)
 
-                outfile1 = MDF(input_file)
-                outfile1.configure(read_fragment_size=8000)
-                outfile1 = outfile1.cut(
-                    stop=105.5, whence=whence, include_ends=False
-                ).save(Path(TestMDF.tempdir.name) / "tmp1", overwrite=True)
-                outfile2 = MDF(input_file)
-                outfile2.configure(read_fragment_size=8000)
-                outfile2 = outfile2.cut(
-                    start=105.5, stop=201.5, whence=whence, include_ends=False
-                ).save(Path(TestMDF.tempdir.name) / "tmp2", overwrite=True)
-                outfile3 = MDF(input_file)
-                outfile3.configure(read_fragment_size=8000)
-                outfile3 = outfile3.cut(
-                    start=201.5, whence=whence, include_ends=False
-                ).save(Path(TestMDF.tempdir.name) / "tmp3", overwrite=True)
+                mdf = MDF(input_file)
 
-                outfile = MDF.concatenate(
+                mdf.configure(read_fragment_size=8000)
+                cut = mdf.cut(
+                    stop=105.5, whence=whence, include_ends=False
+                )
+                outfile1 = cut.save(Path(TestMDF.tempdir.name) / "tmp1", overwrite=True)
+                cut.close()
+
+                cut = mdf.cut(
+                    start=105.5, stop=201.5, whence=whence, include_ends=False
+                )
+                outfile2 = cut.save(Path(TestMDF.tempdir.name) / "tmp2", overwrite=True)
+                cut.close()
+
+                cut = mdf.cut(
+                    start=201.5, whence=whence, include_ends=False
+                )
+                outfile3 = cut.save(Path(TestMDF.tempdir.name) / "tmp3", overwrite=True)
+                cut.close()
+
+                concatenared = MDF.concatenate(
                     [outfile1, outfile2, outfile3], MDF(input_file).version
-                ).save(Path(TestMDF.tempdir.name) / "tmp_cut", overwrite=True)
+                )
+                outfile = concatenared.save(Path(TestMDF.tempdir.name) / "tmp_cut", overwrite=True)
+
+                mdf.close()
+                concatenared.close()
 
                 equal = True
 
@@ -780,23 +785,35 @@ class TestMDF(unittest.TestCase):
                     for whence in (0, 1):
                         print(file, whence)
 
-                        outfile1 = input_file.cut(
+                        cut = input_file.cut(
                             stop=2, whence=whence, include_ends=False
-                        ).save(Path(TestMDF.tempdir.name) / "tmp1", overwrite=True)
-                        outfile2 = input_file.cut(
-                            start=2, stop=6, whence=whence, include_ends=False
-                        ).save(Path(TestMDF.tempdir.name) / "tmp2", overwrite=True)
-                        outfile3 = input_file.cut(
-                            start=6, whence=whence, include_ends=False
-                        ).save(Path(TestMDF.tempdir.name) / "tmp3", overwrite=True)
+                        )
+                        outfile1 = cut.save(Path(TestMDF.tempdir.name) / "tmp1", overwrite=True)
+                        cut.close()
 
-                        outfile = MDF.concatenate(
+                        cut = input_file.cut(
+                            start=2, stop=6, whence=whence, include_ends=False
+                        )
+                        outfile2 = cut.save(Path(TestMDF.tempdir.name) / "tmp2", overwrite=True)
+                        cut.close()
+
+                        cut = input_file.cut(
+                            start=6, whence=whence, include_ends=False
+                        )
+                        outfile3 = cut.save(Path(TestMDF.tempdir.name) / "tmp3", overwrite=True)
+                        cut.close()
+
+
+                        concatenated = MDF.concatenate(
                             [outfile1, outfile2, outfile3],
                             version=input_file.version,
                             use_display_names=True,
-                        ).save(Path(TestMDF.tempdir.name) / "tmp", overwrite=True)
+                        )
+
+                        outfile = concatenated.save(Path(TestMDF.tempdir.name) / "tmp", overwrite=True)
 
                         print("OUT", outfile)
+                        concatenated.close()
 
                         with MDF(outfile, use_display_names=True) as mdf2:
 
