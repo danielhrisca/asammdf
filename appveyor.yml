@@ -102,7 +102,7 @@ for:
                   pip3 install --upgrade pip
                   pip3 install --upgrade setuptools
                   pip3 install wheel
-                  pip3 isntall numpy
+                  pip3 install numpy
                   pip3 install -r pip_requirements_tests.txt
                   pip3 install lzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph
                   pip3 install .
