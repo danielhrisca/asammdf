@@ -28,8 +28,9 @@ for:
       # We need wheel installed to build wheels
       - ps: >-
             $Env:LLVM_DIR="C:\Program Files\LLVM\bin"
-           
+            
             $PYVERSION = @("C:\\Python36","C:\\Python36-x64","C:\\Python37","C:\\Python37-x64","C:\\Python38","C:\\Python38-x64")
+            
             foreach ($PY in $PYVERSION)
             {
                 $command = "$PYVERSION\\Scripts\\activate"
