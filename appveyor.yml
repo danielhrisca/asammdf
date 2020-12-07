@@ -47,7 +47,9 @@ for:
                 if (($APPVEYOR_REPO_BRANCH -eq $EXE_BRANCH) -and ($PY -eq "C:\\Python37-x64")) {
                     $command = "$PY\\Scripts\\pyinstaller asammdf_noconsole.spec
                     iex $command
-                    Move-Item -Path "dist\\asammdfgui.exe" -Destination "dist\\asammdfgui_noconsole.exe"
+                    $src = "dist\\asammdfgui.exe"
+                    $dst = "dist\\asammdfgui_noconsole.exe"
+                    Move-Item -Path $src -Destination $dst
                     
                     $command = "$PY\\Scripts\\pyinstaller asammdf.spec
                     iex $command
