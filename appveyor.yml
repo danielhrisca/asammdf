@@ -11,14 +11,11 @@ environment:
 
     - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
     
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-      PYTHON: "C:\\Python37-x64"
+    #- APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    
+    #- APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
       
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-      PYTHON: "C:\\Python38-x64"
-      
-    # - APPVEYOR_BUILD_WORKER_IMAGE: macos
-    #  PYTHON: venv3.7
+    #- APPVEYOR_BUILD_WORKER_IMAGE: macos
 
 for:
   -
@@ -37,10 +34,10 @@ for:
       - cmd: "%PYTHON%\\python.exe -m pip install PyQt5 h5py xlsxwriter xlrd xlwt pyaml scipy hdf5storage fastparquet cChardet==2.1.5 psutil lxml"
       - cmd: "%PYTHON%\\python.exe -m pip install pyinstaller pyqtgraph"
       - cmd: "%PYTHON%\\python.exe -m pip install ."
-      - cmd: "if \"%APPVEYOR_REPO_BRANCH%\" == \"%EXE_BRANCH%\" (%PYTHON%\\Scripts\\pyinstaller asammdf_noconsole.spec)"
-      - cmd: "if \"%APPVEYOR_REPO_BRANCH%\" == \"%EXE_BRANCH%\" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%_noconsole.exe)"
-      - cmd: "if \"%APPVEYOR_REPO_BRANCH%\" == \"%EXE_BRANCH%\" (%PYTHON%\\Scripts\\pyinstaller asammdf.spec)"
-      - cmd: "if \"%APPVEYOR_REPO_BRANCH%\" == \"%EXE_BRANCH%\" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe)"
+      - cmd: "if \"%APPVEYOR_REPO_BRANCH%\" == \"%EXE_BRANCH%\" (if \"%PYTHON%\" == "C:\\Python37-x64" (%PYTHON%\\Scripts\\pyinstaller asammdf_noconsole.spec))"
+      - cmd: "if \"%APPVEYOR_REPO_BRANCH%\" == \"%EXE_BRANCH%\" (if \"%PYTHON%\" == "C:\\Python37-x64" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%_noconsole.exe))"
+      - cmd: "if \"%APPVEYOR_REPO_BRANCH%\" == \"%EXE_BRANCH%\" (if \"%PYTHON%\" == "C:\\Python37-x64" (%PYTHON%\\Scripts\\pyinstaller asammdf.spec))"
+      - cmd: "if \"%APPVEYOR_REPO_BRANCH%\" == \"%EXE_BRANCH%\" (if \"%PYTHON%\" == "C:\\Python37-x64" (move dist\\asammdfgui.exe dist\\asammdfgui_%PY%.exe))"
       
     build : off
     
@@ -71,41 +68,25 @@ for:
         - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
         
     install:
-      - sh: "source $HOME/venv3.6/bin/activate"
-      - sh: "pip3 install --upgrade pip"
-      - sh: "pip3 install --upgrade setuptools"
-      - sh: "pip3 install wheel"
-      - sh: "pip3 install -r pip_requirements_tests.txt"
-      - sh: "pip3 install PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph"
-      - sh: "pip3 install ."
-      - sh: "deactivate"
-      
-      - sh: "source $HOME/venv3.7/bin/activate"
-      - sh: "pip3 install --upgrade pip"
-      - sh: "pip3 install --upgrade setuptools"
-      - sh: "pip3 install wheel"
-      - sh: "pip3 install -r pip_requirements_tests.txt"
-      - sh: "pip3 install PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph"
-      - sh: "pip3 install ."
       - sh: >-
-          if [ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH ] ; then
-             pyinstaller asammdf_noconsole.spec
-          fi
-      - sh: >-
-          if [ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH ] ; then
-             mv dist/asammdfgui dist/asammdfgui_noconsole
-          fi
-      - sh: "deactivate"
-      
-      - sh: "source $HOME/venv3.8/bin/activate"
-      - sh: "pip3 install --upgrade pip"
-      - sh: "pip3 install --upgrade setuptools"
-      - sh: "pip3 install wheel"
-      - sh: "pip3 install -r pip_requirements_tests.txt"
-      - sh: "pip3 install PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph"
-      - sh: "pip3 install ."
-      - sh: "deactivate"
-      
+          for PY in venv3.6 venv3.7 venv3.8 venv3.9
+              do
+                  source $HOME/$PY/bin/activate
+                  
+                  pip3 install --upgrade pip
+                  pip3 install --upgrade setuptools
+                  pip3 install wheel
+                  pip3 install -r pip_requirements_tests.txt
+                  pip3 install PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet cChardet==2.1.5 psutil pyinstaller pyqtgraph
+                  pip3 install .
+                  
+                  if [ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH && $PY == "venv3.7"] ; then
+                     pyinstaller asammdf_noconsole.spec
+                  fi
+                  
+                  deactivate
+              done
+
     #build: Script
     
     test_script:
@@ -116,34 +97,26 @@ for:
       # Note that you must use the environment variable %PYTHON% to refer to
       # the interpreter you're using - Appveyor does not do anything special
       # to put the Python version you want to use on PATH.
-      - sh: "source $HOME/venv3.6/bin/activate"
-      - sh: "python3 test/run_all.py"
-      - sh: "deactivate"
-      
-      - sh: "source $HOME/venv3.7/bin/activate"
-      - sh: "python3 test/run_all.py"
-      - sh: "deactivate"
-      
-      - sh: "source $HOME/venv3.8/bin/activate"
-      - sh: "python3 test/run_all.py"
-      - sh: "deactivate"
+      - sh: >-
+          for PY in venv3.6 venv3.7 venv3.8
+              do
+                  source $HOME/$PY/bin/activate
+                  python3 test/run_all.py
+                  deactivate
+              done
       
     after_test:
       # This step builds your wheels.
       # Again, you only need build.cmd if you're building C extensions for
       # 64-bit Python 3.3/3.4. And you need to use %PYTHON% to get the correct
       # interpreter
-      - sh: "source $HOME/venv3.6/bin/activate"
-      - sh: "python3 setup.py bdist_wheel"
-      - sh: "deactivate"
-      
-      - sh: "source $HOME/venv3.7/bin/activate"
-      - sh: "python3 setup.py bdist_wheel"
-      - sh: "deactivate"
-      
-      - sh: "source $HOME/venv3.8/bin/activate"
-      - sh: "python3 setup.py bdist_wheel"
-      - sh: "deactivate"
+      - sh: >-
+          for PY in venv3.6 venv3.7 venv3.8
+              do
+                  source $HOME/$PY/bin/activate
+                  python3 setup.py bdist_wheel
+                  deactivate
+              done
       
     artifacts:
       # bdist_wheel puts your built wheel in the dist directory
