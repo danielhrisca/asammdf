@@ -5,6 +5,10 @@ environment:
   matrix:
     
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+        DRY: true
+        
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+        DRY: false
     
     - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
       
@@ -16,6 +20,7 @@ for:
     matrix:
       only:
         - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+        - DRY: false
         
     install:
 
@@ -76,6 +81,32 @@ for:
     artifacts:
 
       - path: dist\*
+      
+  -
+    matrix:
+      only:
+        - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+        - DRY: true
+        
+    install:
+
+      - ps: >-
+            
+            $PYVERSION = @("C:\\Python36","C:\\Python36-x64","C:\\Python37","C:\\Python37-x64","C:\\Python38","C:\\Python38-x64")
+            
+            foreach ($PY in $PYVERSION)
+            {
+                echo "====================================================================="
+                echo "Python version $PY"
+                echo "====================================================================="
+                
+                & "$PY\\python.exe" -m pip install --upgrade pip --no-warn-script-location
+                & "$PY\\python.exe" -m pip install --upgrade setuptools --no-warn-script-location
+                & "$PY\\python.exe" -m pip install wheel --no-warn-script-location
+                & "$PY\\python.exe" -m pip install . --no-warn-script-location
+            }   
+      
+    build : off
       
   -
     matrix:
