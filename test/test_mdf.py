@@ -302,11 +302,13 @@ class TestMDF(unittest.TestCase):
 
                     with MDF(input_file) as mdf:
                         mdf.configure(read_fragment_size=8000)
-                        outfile = mdf.convert(out).save(
+                        converted = mdf.convert(out)
+                        outfile = converted.save(
                             Path(TestMDF.tempdir.name) / f"tmp_convert_{out}",
                             overwrite=True,
                             compression=compression,
                         )
+                        converted.close()
 
                     equal = True
 
@@ -441,9 +443,11 @@ class TestMDF(unittest.TestCase):
                     for out in SUPPORTED_VERSIONS:
                         print(file, out, type(inp))
 
-                    outfile = input_file.convert(out).save(
+                    converted = input_file.convert(out)
+                    outfile = converted.save(
                         Path(TestMDF.tempdir_demo.name) / "tmp", overwrite=True
                     )
+                    converted.close()
 
                     with MDF(outfile, use_display_names=True) as mdf:
 
@@ -652,13 +656,13 @@ class TestMDF(unittest.TestCase):
                 outfile3 = cut.save(Path(TestMDF.tempdir.name) / "tmp3", overwrite=True)
                 cut.close()
 
-                concatenared = MDF.concatenate(
+                concatenated = MDF.concatenate(
                     [outfile1, outfile2, outfile3], MDF(input_file).version
                 )
-                outfile = concatenared.save(Path(TestMDF.tempdir.name) / "tmp_cut", overwrite=True)
+                outfile = concatenated.save(Path(TestMDF.tempdir.name) / "tmp_cut", overwrite=True)
 
                 mdf.close()
-                concatenared.close()
+                concatenated.close()
 
                 equal = True
 
@@ -803,7 +807,6 @@ class TestMDF(unittest.TestCase):
                         outfile3 = cut.save(Path(TestMDF.tempdir.name) / "tmp3", overwrite=True)
                         cut.close()
 
-
                         concatenated = MDF.concatenate(
                             [outfile1, outfile2, outfile3],
                             version=input_file.version,
@@ -875,6 +878,8 @@ class TestMDF(unittest.TestCase):
                         target = np.load(signals[name])
                         filtered = filtered_mdf.get(name)
                         self.assertTrue(np.array_equal(target, filtered.samples))
+
+                    filtered_mdf.close()
 
                 if isinstance(inp, BytesIO):
                     inp.close()
@@ -950,6 +955,8 @@ class TestMDF(unittest.TestCase):
         for i, mdf_df in enumerate(mdf.iter_groups()):
             self.assertTrue(mdf_df.equals(dfs[i]))
 
+        mdf.close()
+
     def test_resample_raster_0(self):
         sigs = [
             Signal(
@@ -966,6 +973,8 @@ class TestMDF(unittest.TestCase):
         with self.assertRaises(AssertionError):
             mdf = mdf.resample(raster=0)
 
+        mdf.close()
+
     def test_resample(self):
         raster = 1.33
         sigs = [
@@ -979,7 +988,8 @@ class TestMDF(unittest.TestCase):
 
         mdf = MDF()
         mdf.append(sigs)
-        mdf = mdf.resample(raster=raster)
+        resampled = mdf.resample(raster=raster)
+        mdf.close()
 
         target_timestamps = np.arange(0, 1500, 1.33)
         target_samples = np.concatenate(
@@ -990,9 +1000,11 @@ class TestMDF(unittest.TestCase):
             ]
         )
 
-        for i, sig in enumerate(mdf.iter_channels(skip_master=True)):
+        for i, sig in enumerate(resampled.iter_channels(skip_master=True)):
             self.assertTrue(np.array_equal(sig.timestamps, target_timestamps))
             self.assertTrue(np.allclose(sig.samples, target_samples))
+
+        resampled.close()
 
     def test_to_dataframe(self):
         dfs = [
@@ -1017,6 +1029,7 @@ class TestMDF(unittest.TestCase):
         target = DataFrame(target)
 
         self.assertTrue(target.equals(mdf.to_dataframe()))
+        mdf.close()
 
 
 if __name__ == "__main__":
