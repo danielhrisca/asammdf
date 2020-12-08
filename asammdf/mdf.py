@@ -8,8 +8,10 @@ from datetime import datetime, timezone
 from functools import reduce
 import logging
 from pathlib import Path
+import re
 from shutil import copy
 from struct import unpack
+from traceback import format_exc
 import xml.etree.ElementTree as ET
 
 from canmatrix import CanMatrix
@@ -2611,129 +2613,134 @@ class MDF:
         count = len(mdf.groups)
 
         if mdf.version >= "4.00":
-            ChannelConversion = ChannelConversionV4
+            try:
+                ChannelConversion = ChannelConversionV4
 
-            stream = mdf._file
+                stream = mdf._file
 
-            if mdf.header.comment_addr:
-                stream.seek(mdf.header.comment_addr + 8)
-                size = UINT64_u(stream.read(8))[0] - 24
-                texts[mdf.header.comment_addr] = randomized_string(size)
-
-            for fh in mdf.file_history:
-                addr = fh.comment_addr
-                if addr and addr not in texts:
-                    stream.seek(addr + 8)
+                if mdf.header.comment_addr:
+                    stream.seek(mdf.header.comment_addr + 8)
                     size = UINT64_u(stream.read(8))[0] - 24
-                    texts[addr] = randomized_string(size)
+                    texts[mdf.header.comment_addr] = randomized_string(size)
 
-            for ev in mdf.events:
-                for addr in (ev.comment_addr, ev.name_addr):
+                for fh in mdf.file_history:
+                    addr = fh.comment_addr
                     if addr and addr not in texts:
                         stream.seek(addr + 8)
                         size = UINT64_u(stream.read(8))[0] - 24
                         texts[addr] = randomized_string(size)
 
-            for at in mdf.attachments:
-                for addr in (at.comment_addr, at.file_name_addr):
-                    if addr and addr not in texts:
-                        stream.seek(addr + 8)
-                        size = UINT64_u(stream.read(8))[0] - 24
-                        texts[addr] = randomized_string(size)
-                if not skip_attachments and at.embedded_data:
-                    texts[at.address + v4c.AT_COMMON_SIZE] = randomized_string(
-                        at.embedded_size
-                    )
-
-            for idx, gp in enumerate(mdf.groups, 1):
-
-                addr = gp.data_group.comment_addr
-                if addr and addr not in texts:
-                    stream.seek(addr + 8)
-                    size = UINT64_u(stream.read(8))[0] - 24
-                    texts[addr] = randomized_string(size)
-
-                cg = gp.channel_group
-                for addr in (cg.acq_name_addr, cg.comment_addr):
-                    if cg.flags & v4c.FLAG_CG_BUS_EVENT:
-                        continue
-
-                    if addr and addr not in texts:
-                        stream.seek(addr + 8)
-                        size = UINT64_u(stream.read(8))[0] - 24
-                        texts[addr] = randomized_string(size)
-
-                    source = cg.acq_source_addr
-                    if source:
-                        source = SourceInformation(
-                            address=source, stream=stream, mapped=False, tx_map={}
-                        )
-                        for addr in (
-                            source.name_addr,
-                            source.path_addr,
-                            source.comment_addr,
-                        ):
-                            if addr and addr not in texts:
-                                stream.seek(addr + 8)
-                                size = UINT64_u(stream.read(8))[0] - 24
-                                texts[addr] = randomized_string(size)
-
-                for ch in gp.channels:
-
-                    for addr in (ch.name_addr, ch.unit_addr, ch.comment_addr):
+                for ev in mdf.events:
+                    for addr in (ev.comment_addr, ev.name_addr):
                         if addr and addr not in texts:
                             stream.seek(addr + 8)
                             size = UINT64_u(stream.read(8))[0] - 24
                             texts[addr] = randomized_string(size)
 
-                    source = ch.source_addr
-                    if source:
-                        source = SourceInformation(
-                            address=source, stream=stream, mapped=False, tx_map={}
+                for at in mdf.attachments:
+                    for addr in (at.comment_addr, at.file_name_addr):
+                        if addr and addr not in texts:
+                            stream.seek(addr + 8)
+                            size = UINT64_u(stream.read(8))[0] - 24
+                            texts[addr] = randomized_string(size)
+                    if not skip_attachments and at.embedded_data:
+                        texts[at.address + v4c.AT_COMMON_SIZE] = randomized_string(
+                            at.embedded_size
                         )
-                        for addr in (
-                            source.name_addr,
-                            source.path_addr,
-                            source.comment_addr,
-                        ):
+
+                for idx, gp in enumerate(mdf.groups, 1):
+
+                    addr = gp.data_group.comment_addr
+                    if addr and addr not in texts:
+                        stream.seek(addr + 8)
+                        size = UINT64_u(stream.read(8))[0] - 24
+                        texts[addr] = randomized_string(size)
+
+                    cg = gp.channel_group
+                    for addr in (cg.acq_name_addr, cg.comment_addr):
+                        if cg.flags & v4c.FLAG_CG_BUS_EVENT:
+                            continue
+
+                        if addr and addr not in texts:
+                            stream.seek(addr + 8)
+                            size = UINT64_u(stream.read(8))[0] - 24
+                            texts[addr] = randomized_string(size)
+
+                        source = cg.acq_source_addr
+                        if source:
+                            source = SourceInformation(
+                                address=source, stream=stream, mapped=False, tx_map={}
+                            )
+                            for addr in (
+                                source.name_addr,
+                                source.path_addr,
+                                source.comment_addr,
+                            ):
+                                if addr and addr not in texts:
+                                    stream.seek(addr + 8)
+                                    size = UINT64_u(stream.read(8))[0] - 24
+                                    texts[addr] = randomized_string(size)
+
+                    for ch in gp.channels:
+
+                        for addr in (ch.name_addr, ch.unit_addr, ch.comment_addr):
                             if addr and addr not in texts:
                                 stream.seek(addr + 8)
                                 size = UINT64_u(stream.read(8))[0] - 24
                                 texts[addr] = randomized_string(size)
 
-                    conv = ch.conversion_addr
-                    if conv:
-                        conv = ChannelConversion(
-                            address=conv,
-                            stream=stream,
-                            mapped=False,
-                            tx_map={},
-                            si_map={},
-                        )
-                        for addr in (conv.name_addr, conv.unit_addr, conv.comment_addr):
-                            if addr and addr not in texts:
-                                stream.seek(addr + 8)
-                                size = UINT64_u(stream.read(8))[0] - 24
-                                texts[addr] = randomized_string(size)
-                        if conv.conversion_type == v4c.CONVERSION_TYPE_ALG:
-                            addr = conv.formula_addr
-                            if addr and addr not in texts:
-                                stream.seek(addr + 8)
-                                size = UINT64_u(stream.read(8))[0] - 24
-                                texts[addr] = randomized_string(size)
+                        source = ch.source_addr
+                        if source:
+                            source = SourceInformation(
+                                address=source, stream=stream, mapped=False, tx_map={}
+                            )
+                            for addr in (
+                                source.name_addr,
+                                source.path_addr,
+                                source.comment_addr,
+                            ):
+                                if addr and addr not in texts:
+                                    stream.seek(addr + 8)
+                                    size = UINT64_u(stream.read(8))[0] - 24
+                                    texts[addr] = randomized_string(size)
 
-                        if conv.referenced_blocks:
-                            for key, block in conv.referenced_blocks.items():
-                                if block:
-                                    if isinstance(block, bytes):
-                                        addr = conv[key]
-                                        if addr not in texts:
-                                            stream.seek(addr + 8)
-                                            size = len(block)
-                                            texts[addr] = randomized_string(size)
+                        conv = ch.conversion_addr
+                        if conv:
+                            conv = ChannelConversion(
+                                address=conv,
+                                stream=stream,
+                                mapped=False,
+                                tx_map={},
+                                si_map={},
+                            )
+                            for addr in (conv.name_addr, conv.unit_addr, conv.comment_addr):
+                                if addr and addr not in texts:
+                                    stream.seek(addr + 8)
+                                    size = UINT64_u(stream.read(8))[0] - 24
+                                    texts[addr] = randomized_string(size)
+                            if conv.conversion_type == v4c.CONVERSION_TYPE_ALG:
+                                addr = conv.formula_addr
+                                if addr and addr not in texts:
+                                    stream.seek(addr + 8)
+                                    size = UINT64_u(stream.read(8))[0] - 24
+                                    texts[addr] = randomized_string(size)
 
-                if callback:
-                    callback(int(idx / count * 66), 100)
+                            if conv.referenced_blocks:
+                                for key, block in conv.referenced_blocks.items():
+                                    if block:
+                                        if isinstance(block, bytes):
+                                            addr = conv[key]
+                                            if addr not in texts:
+                                                stream.seek(addr + 8)
+                                                size = len(block)
+                                                texts[addr] = randomized_string(size)
+
+                    if callback:
+                        callback(int(idx / count * 66), 100)
+
+            except:
+                print(f"Error while scrambling the file: {format_exc()}.\nWill now use fallback method")
+                texts = MDF._fallback_scramble_mf4(name)
 
             mdf.close()
 
@@ -2852,6 +2859,49 @@ class MDF:
                 callback(100, 100)
 
         return dst
+
+    @staticmethod
+    def _fallback_scramble_mf4(name):
+        """scramble text blocks and keep original file structure
+
+        Parameters
+        ----------
+        name : str | pathlib.Path
+            file name
+
+        Returns
+        -------
+        name : pathlib.Path
+            scrambled file name
+
+        """
+
+        name = Path(name)
+
+        pattern = re.compile(
+            rb"(?P<block>##(TX|MD))",
+            re.DOTALL | re.MULTILINE,
+        )
+
+        texts = {}
+
+        with open(name, 'rb') as stream:
+
+            stream.seek(0, 2)
+            file_limit = stream.tell()
+            stream.seek(0)
+
+            for match in re.finditer(pattern, stream.read()):
+                start = match.start()
+
+                if file_limit - start >= 24:
+                    stream.seek(start + 8)
+                    size, = UINT64_u(stream.read(8))
+
+                    if start + size <= file_limit:
+                        texts[start + 24] = randomized_string(size - 24)
+
+        return texts
 
     def get_group(
         self,
