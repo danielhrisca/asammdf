@@ -24,7 +24,7 @@
        <enum>QTabWidget::West</enum>
       </property>
       <property name="currentIndex">
-       <number>3</number>
+       <number>0</number>
       </property>
       <property name="documentMode">
        <bool>false</bool>
@@ -296,7 +296,7 @@
           </property>
           <property name="sizeHint" stdset="0">
            <size>
-            <width>40</width>
+            <width>10</width>
             <height>10</height>
            </size>
           </property>
@@ -304,6 +304,21 @@
         </item>
         <item>
          <layout class="QVBoxLayout" name="verticalLayout_15" stretch="0,0,0,0,1,0">
+          <property name="spacing">
+           <number>2</number>
+          </property>
+          <property name="leftMargin">
+           <number>2</number>
+          </property>
+          <property name="topMargin">
+           <number>2</number>
+          </property>
+          <property name="rightMargin">
+           <number>2</number>
+          </property>
+          <property name="bottomMargin">
+           <number>2</number>
+          </property>
           <item>
            <widget class="QGroupBox" name="cut_group">
             <property name="title">
@@ -316,6 +331,21 @@
              <bool>false</bool>
             </property>
             <layout class="QGridLayout" name="gridLayout_23">
+             <property name="leftMargin">
+              <number>2</number>
+             </property>
+             <property name="topMargin">
+              <number>2</number>
+             </property>
+             <property name="rightMargin">
+              <number>2</number>
+             </property>
+             <property name="bottomMargin">
+              <number>2</number>
+             </property>
+             <property name="spacing">
+              <number>2</number>
+             </property>
              <item row="0" column="0">
               <widget class="QLabel" name="label_62">
                <property name="text">
@@ -385,6 +415,21 @@
              <bool>false</bool>
             </property>
             <layout class="QGridLayout" name="gridLayout_24" columnstretch="0,1,0">
+             <property name="leftMargin">
+              <number>2</number>
+             </property>
+             <property name="topMargin">
+              <number>2</number>
+             </property>
+             <property name="rightMargin">
+              <number>2</number>
+             </property>
+             <property name="bottomMargin">
+              <number>2</number>
+             </property>
+             <property name="spacing">
+              <number>2</number>
+             </property>
              <item row="0" column="0">
               <widget class="QRadioButton" name="raster_type_step">
                <property name="text">
@@ -464,6 +509,21 @@
              <string>Ouput format</string>
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_21">
+             <property name="spacing">
+              <number>2</number>
+             </property>
+             <property name="leftMargin">
+              <number>2</number>
+             </property>
+             <property name="topMargin">
+              <number>2</number>
+             </property>
+             <property name="rightMargin">
+              <number>2</number>
+             </property>
+             <property name="bottomMargin">
+              <number>2</number>
+             </property>
              <item>
               <widget class="QComboBox" name="output_format">
                <item>
@@ -822,6 +882,21 @@
              <string>Output folder</string>
             </property>
             <layout class="QGridLayout" name="gridLayout">
+             <property name="leftMargin">
+              <number>2</number>
+             </property>
+             <property name="topMargin">
+              <number>2</number>
+             </property>
+             <property name="rightMargin">
+              <number>2</number>
+             </property>
+             <property name="bottomMargin">
+              <number>2</number>
+             </property>
+             <property name="spacing">
+              <number>2</number>
+             </property>
              <item row="0" column="0">
               <widget class="QLineEdit" name="modify_output_folder">
                <property name="placeholderText">
@@ -854,7 +929,7 @@
             <property name="sizeHint" stdset="0">
              <size>
               <width>20</width>
-              <height>40</height>
+              <height>2</height>
              </size>
             </property>
            </spacer>
@@ -1012,6 +1087,21 @@
            <string>CSV</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_10">
+           <property name="leftMargin">
+            <number>2</number>
+           </property>
+           <property name="topMargin">
+            <number>2</number>
+           </property>
+           <property name="rightMargin">
+            <number>2</number>
+           </property>
+           <property name="bottomMargin">
+            <number>2</number>
+           </property>
+           <property name="spacing">
+            <number>2</number>
+           </property>
            <item row="1" column="1">
             <widget class="QCheckBox" name="time_from_zero_bus">
              <property name="text">
@@ -1097,6 +1187,21 @@
            <string>MDF</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_5">
+           <property name="leftMargin">
+            <number>2</number>
+           </property>
+           <property name="topMargin">
+            <number>2</number>
+           </property>
+           <property name="rightMargin">
+            <number>2</number>
+           </property>
+           <property name="bottomMargin">
+            <number>2</number>
+           </property>
+           <property name="spacing">
+            <number>2</number>
+           </property>
            <item row="5" column="0" colspan="2">
             <widget class="QPushButton" name="extract_bus_btn">
              <property name="text">
@@ -1173,6 +1278,21 @@
             <string>CAN</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout">
+            <property name="spacing">
+             <number>2</number>
+            </property>
+            <property name="leftMargin">
+             <number>2</number>
+            </property>
+            <property name="topMargin">
+             <number>2</number>
+            </property>
+            <property name="rightMargin">
+             <number>2</number>
+            </property>
+            <property name="bottomMargin">
+             <number>2</number>
+            </property>
             <item>
              <widget class="QPushButton" name="load_can_database_btn">
               <property name="text">
@@ -1194,6 +1314,21 @@
             <string>LIN</string>
            </attribute>
            <layout class="QVBoxLayout" name="verticalLayout_2">
+            <property name="spacing">
+             <number>2</number>
+            </property>
+            <property name="leftMargin">
+             <number>2</number>
+            </property>
+            <property name="topMargin">
+             <number>2</number>
+            </property>
+            <property name="rightMargin">
+             <number>2</number>
+            </property>
+            <property name="bottomMargin">
+             <number>2</number>
+            </property>
             <item>
              <widget class="QPushButton" name="load_lin_database_btn">
               <property name="text">

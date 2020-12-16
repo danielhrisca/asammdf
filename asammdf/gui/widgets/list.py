@@ -300,7 +300,8 @@ class ListWidget(QtWidgets.QListWidget):
 
                 if action.text() == "Relative time base shift":
                     offset, ok = QtWidgets.QInputDialog.getDouble(
-                        self, "Relative offset [s]", "Offset [s]:"
+                        self, "Relative offset [s]", "Offset [s]:",
+                        decimals=6,
                     )
                     absolute = False
                 else:

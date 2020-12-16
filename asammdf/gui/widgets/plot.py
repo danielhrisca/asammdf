@@ -2525,6 +2525,7 @@ class _Plot(pg.PlotWidget):
 
     def set_time_offset(self, info):
         absolute, offset, *uuids = info
+
         signals = [sig for sig in self.signals if sig.uuid in uuids]
 
         if absolute:
@@ -2555,6 +2556,8 @@ class _Plot(pg.PlotWidget):
                 self._timebase_db[id_].remove(sig.uuid)
                 if len(self._timebase_db[id_]) == 0:
                     del self._timebase_db[id_]
+
+        self.xrange_changed_handle()
 
         self._compute_all_timebase()
 
