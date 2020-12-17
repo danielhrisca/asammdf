@@ -103,7 +103,7 @@ try:
             "pandas",
             "numexpr",
             "wheel",
-            "canmatrix",
+            "canmatrix[arxml, dbc]>=0.8",
             "natsort",
             "lxml",
             "lz4",
@@ -129,7 +129,7 @@ try:
         # To provide executable scripts, use entry points in preference to the
         # "scripts" keyword. Entry points provide cross-platform support and allow
         # pip to create the appropriate form of executable for the target platform.
-        entry_points={"console_scripts": ["asammdf=asammdf.gui.asammdfgui:main",],},
+        entry_points={"console_scripts": ["asammdf=asammdf.gui.asammdfgui:main"]},
         ext_package="asammdf.blocks",
         ext_modules=[
             Extension(
@@ -194,7 +194,7 @@ except:
             "pandas",
             "numexpr",
             "wheel",
-            "canmatrix",
+            "canmatrix[arxml, dbc]>=0.8",
             "natsort",
             "lxml",
             "lz4",
@@ -220,5 +220,5 @@ except:
         # To provide executable scripts, use entry points in preference to the
         # "scripts" keyword. Entry points provide cross-platform support and allow
         # pip to create the appropriate form of executable for the target platform.
-        entry_points={"console_scripts": ["asammdf=asammdf.gui.asammdfgui:main",],},
+        entry_points={"console_scripts": ["asammdf=asammdf.gui.asammdfgui:main"]},
     )
