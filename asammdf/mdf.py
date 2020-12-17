@@ -3806,7 +3806,7 @@ class MDF:
                     (dbc_name, unique_name.get_unique_name("UserProvidedCanMatrix"))
                 )
             else:
-                dbc = load_can_database(dbc_name)
+                dbc = load_can_database(Path(dbc_name))
                 if dbc is None:
                     continue
                 else:
@@ -4092,7 +4092,7 @@ class MDF:
                     (dbc_name, unique_name.get_unique_name("UserProvidedCanMatrix"))
                 )
             else:
-                dbc = load_can_database(dbc_name)
+                dbc = load_can_database(Path(dbc_name))
                 if dbc is None:
                     continue
                 else:
