@@ -2,34 +2,11 @@
 asammdf
 
 """
-from distutils.command import build_ext
 from pathlib import Path
 
-from setuptools import find_packages
-
-# Always prefer setuptools over distutils
-try:
-    from setuptools import Extension, setup
-
-    print("using setuptools")
-except ImportError:
-    from distutils.core import Extension, setup
-
-    print("using distutils")
+from setuptools import Extension, find_packages, setup
 
 PROJECT_PATH = Path(__file__).parent
-
-#
-def get_export_symbols(self, ext):
-    parts = ext.name.split(".")
-    print("parts", parts)
-    if parts[-1] == "__init__":
-        initfunc_name = "PyInit_" + parts[-2]
-    else:
-        initfunc_name = "PyInit_" + parts[-1]
-
-
-build_ext.build_ext.get_export_symbols = get_export_symbols
 
 
 def _get_version():
