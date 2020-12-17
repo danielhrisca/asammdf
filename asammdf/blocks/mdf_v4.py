@@ -7938,19 +7938,19 @@ class MDF4(MDF_Common):
             return self.get(name)
 
         if isinstance(database, (str, Path)):
-
-            if not str(database).lower().endswith(("dbc", "arxml")):
-                message = f'Expected .dbc or .arxml file as CAN channel attachment but got "{database}"'
+            database_path = Path(database)
+            if database_path.suffix.lower() not in (".arxml", ".dbc"):
+                message = f'Expected .dbc or .arxml file as CAN channel attachment but got "{database_path}"'
                 logger.exception(message)
                 raise MdfException(message)
             else:
-                db_string = Path(database).read_bytes()
+                db_string = database_path.read_bytes()
                 md5_sum = md5(db_string).digest()
 
                 if md5_sum in self._external_dbc_cache:
                     db = self._external_dbc_cache[md5_sum]
                 else:
-                    db = load_can_database(database, contents=db_string)
+                    db = load_can_database(database_path, contents=db_string)
                     if db is None:
                         raise MdfException("failed to load database")
         else:
@@ -8205,19 +8205,19 @@ class MDF4(MDF_Common):
             return self.get(name)
 
         if isinstance(database, (str, Path)):
-
-            if not str(database).lower().endswith(("dbc", "arxml")):
-                message = f'Expected .dbc or .arxml file as LIN channel attachment but got "{database}"'
+            database_path = Path(database)
+            if database_path.suffix.lower() not in (".arxml", ".dbc"):
+                message = f'Expected .dbc or .arxml file as LIN channel attachment but got "{database_path}"'
                 logger.exception(message)
                 raise MdfException(message)
             else:
-                db_string = Path(database).read_bytes()
+                db_string = database_path.read_bytes()
                 md5_sum = md5(db_string).digest()
 
                 if md5_sum in self._external_dbc_cache:
                     db = self._external_dbc_cache[md5_sum]
                 else:
-                    db = load_can_database(database, contents=db_string)
+                    db = load_can_database(database_path, contents=db_string)
                     if db is None:
                         raise MdfException("failed to load database")
         else:
@@ -9774,7 +9774,7 @@ class MDF4(MDF_Common):
                         attachment, at_name, md5_sum = self.extract_attachment(
                             index=attachment_addr
                         )
-                        if not at_name.name.lower().endswith(("dbc", "arxml")):
+                        if at_name.suffix.lower() not in (".arxml", ".dbc"):
                             message = f'Expected .dbc or .arxml file as CAN channel attachment but got "{at_name}"'
                             logger.warning(message)
                         elif not attachment:
@@ -10004,7 +10004,7 @@ class MDF4(MDF_Common):
                         attachment, at_name, md5_sum = self.extract_attachment(
                             index=attachment_addr
                         )
-                        if not at_name.name.lower().endswith(("dbc", "arxml")):
+                        if at_name.suffix.lower() not in (".arxml", ".dbc"):
                             message = f'Expected .dbc or .arxml file as LIN channel attachment but got "{at_name}"'
                             logger.warning(message)
                         elif not attachment:

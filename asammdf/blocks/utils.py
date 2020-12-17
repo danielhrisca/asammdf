@@ -1482,10 +1482,9 @@ def pandas_query_compatible(name):
     return name
 
 
-def load_can_database(file, contents=None, **kwargs):
-    file_path = Path(file)
-    contents = file_path.read_bytes() if contents is None else contents
-    import_type = file_path.suffix.lstrip(".").lower()
+def load_can_database(path, contents=None, **kwargs):
+    contents = path.read_bytes() if contents is None else contents
+    import_type = path.suffix.lstrip(".").lower()
 
     try:
         dbs = canmatrix.formats.loads(
