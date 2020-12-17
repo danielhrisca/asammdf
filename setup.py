@@ -37,10 +37,8 @@ here = Path(__file__).parent
 long_description = here.joinpath("README.md").read_text(encoding="utf-8")
 
 with here.joinpath("asammdf", "version.py").open() as f:
-    for line in f:
-        if line.startswith("__version__"):
-            version = line.split("=")[-1].strip().strip('"')
-            break
+    line = next(line for line in f if line.startswith("__version__"))
+    version = line.partition("=")[2].strip()[1:-2]
 
 try:
     from numpy import get_include
