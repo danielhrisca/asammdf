@@ -7950,7 +7950,7 @@ class MDF4(MDF_Common):
                 if md5_sum in self._external_dbc_cache:
                     db = self._external_dbc_cache[md5_sum]
                 else:
-                    db = load_can_database(database, db_string)
+                    db = load_can_database(database, contents=db_string)
                     if db is None:
                         raise MdfException("failed to load database")
         else:
@@ -8217,7 +8217,7 @@ class MDF4(MDF_Common):
                 if md5_sum in self._external_dbc_cache:
                     db = self._external_dbc_cache[md5_sum]
                 else:
-                    db = load_can_database(database, db_string)
+                    db = load_can_database(database, contents=db_string)
                     if db is None:
                         raise MdfException("failed to load database")
         else:
@@ -9781,7 +9781,7 @@ class MDF4(MDF_Common):
                             message = f'Attachment "{at_name}" not found'
                             logger.warning(message)
                         else:
-                            dbc = load_can_database(at_name, attachment)
+                            dbc = load_can_database(at_name, contents=attachment)
                             if dbc:
                                 self._dbc_cache[attachment_addr] = dbc
                     else:
@@ -10011,7 +10011,7 @@ class MDF4(MDF_Common):
                             message = f'Attachment "{at_name}" not found'
                             logger.warning(message)
                         else:
-                            dbc = load_can_database(at_name, attachment)
+                            dbc = load_can_database(at_name, contents=attachment)
                             if dbc:
                                 self._dbc_cache[attachment_addr] = dbc
                     else:

@@ -4,7 +4,6 @@ asammdf utility functions and classes
 """
 
 from functools import lru_cache
-from io import BytesIO
 import logging
 from pathlib import Path
 from random import randint
@@ -35,20 +34,13 @@ except:
             return {"encoding": encoding}
 
 
+import canmatrix.formats
 import numpy as np
 from numpy import arange, interp, where
 from pandas import Series
 
 from . import v2_v3_constants as v3c
 from . import v4_constants as v4c
-
-try:
-    from canmatrix.arxml import load as arxml_load
-    from canmatrix.dbc import load as dbc_load
-except ModuleNotFoundError:
-    from canmatrix.formats.arxml import load as arxml_load
-    from canmatrix.formats.dbc import load as dbc_load
-
 
 UINT8_u = Struct("<B").unpack
 UINT16_u = Struct("<H").unpack
@@ -1491,45 +1483,32 @@ def pandas_query_compatible(name):
 
 
 def load_can_database(file, contents=None, **kwargs):
+    file_path = Path(file)
+    contents = file_path.read_bytes() if contents is None else contents
+    import_type = file_path.suffix.lstrip(".").lower()
 
-    file = Path(file)
+    try:
+        dbs = canmatrix.formats.loads(
+            contents, import_type=import_type, key="db", **kwargs
+        )
+    except UnicodeDecodeError:
+        encoding = detect(contents)["encoding"]
+        decoded_contents = contents.decode(encoding)
+        dbs = canmatrix.formats.loads(
+            decoded_contents,
+            import_type=import_type,
+            key="db",
+            encoding=encoding,
+            **kwargs,
+        )
 
-    dbc = None
+    if dbs:
+        first_bus = list(dbs)[0]
+        can_matrix = dbs[first_bus]
+    else:
+        can_matrix = None
 
-    if file.suffix.lower() in (".dbc", ".arxml") or contents:
-        if contents is None and file.exists():
-            contents = file.read_bytes()
-
-        if contents:
-            import_type = file.suffix.lower().strip(".")
-            loads = dbc_load if import_type == "dbc" else arxml_load
-
-            contents = BytesIO(contents)
-            try:
-                try:
-                    dbc = loads(contents, import_type=import_type, key="db", **kwargs)
-                except UnicodeDecodeError:
-                    encoding = detect(contents)["encoding"]
-                    contents = contents.decode(encoding)
-                    dbc = loads(
-                        contents,
-                        importType=import_type,
-                        import_type=import_type,
-                        key="db",
-                        encoding=encoding,
-                    )
-            except:
-                raise
-                dbc = None
-
-    if isinstance(dbc, dict):
-        if dbc:
-            first_bus = list(dbc)[0]
-            dbc = dbc[first_bus]
-        else:
-            dbc = None
-
-    return dbc
+    return can_matrix
 
 
 def all_blocks_addresses(obj):
