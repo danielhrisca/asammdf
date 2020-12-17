@@ -103,7 +103,7 @@ setup(
     keywords="read reader edit editor parse parser asam mdf measurement",
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
-    packages=find_packages(exclude=["contrib", "docs", "test"]),
+    packages=find_packages(include=("asammdf*",)),
     # Alternatively, if you want to distribute just a my_module.py, uncomment
     # this:
     #   py_modules=["my_module"],
@@ -112,14 +112,14 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
-        "numpy>=1.16.1",
-        "pandas",
-        "numexpr",
-        "wheel",
         "canmatrix[arxml, dbc]>=0.8",
-        "natsort",
         "lxml",
         "lz4",
+        "natsort",
+        "numexpr",
+        "numpy>=1.16.1",
+        "pandas",
+        "wheel",
     ],
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
