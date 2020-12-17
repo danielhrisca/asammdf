@@ -1,14 +1,14 @@
-xmlrunner
-coverage
-codacy-coverage
-numpy>=1.16.1
-sphinx_rtd_theme
-pylint>=1.8
-canmatrix
-pandas
-numexpr
-wheel
-lxml
+canmatrix[arxml, dbc]>=0.8
 cChardet==2.1.5
+codacy-coverage
+coverage
+lxml
 lz4
+numexpr
+numpy>=1.16.1
+pandas
+pylint>=1.8
 pytest
+sphinx_rtd_theme
+wheel
+xmlrunner

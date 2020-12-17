@@ -1,9 +1,9 @@
-numpydoc
+matplotlib
 numexpr
 numpy
+numpydoc
 pandas
-matplotlib
-wheel
-sphinx-argparse
 sphinx_autobuild
 sphinx_rtd_theme
+sphinx-argparse
+wheel
