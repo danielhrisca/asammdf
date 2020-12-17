@@ -31,7 +31,7 @@ def get_export_symbols(self, ext):
 build_ext.build_ext.get_export_symbols = get_export_symbols
 
 
-here = Path(__file__)
+here = Path(__file__).parent
 
 # Get the long description from the README file
 long_description = here.joinpath("README.md").read_text()
