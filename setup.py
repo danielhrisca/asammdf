@@ -35,7 +35,7 @@ build_ext.build_ext.get_export_symbols = get_export_symbols
 def _get_version():
     with PROJECT_PATH.joinpath("asammdf", "version.py").open() as f:
         line = next(line for line in f if line.startswith("__version__"))
-    version = line.partition("=")[2].strip()[1:-2]
+    version = line.partition("=")[2].strip()[1:-1]
     return version
 
 
