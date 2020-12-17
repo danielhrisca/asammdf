@@ -129,7 +129,7 @@ And a nicely written tutorial on the [CSS Electronics site](https://canlogger.cs
 Please have a look over the [contributing guidelines](CONTRIBUTING.md)
 
 If you enjoy this library please consider making a donation to the
-[numpy project](https://www.flipcause.com/secure/cause_pdetails/MzUwMQ==).
+[numpy project](https://numfocus.org/donate-to-numpy) or to [danielhrisca using liberapay](https://liberapay.com/danielhrisca/donate) <noscript><a href="https://liberapay.com/danielhrisca/donate"><img alt="Donate using Liberapay" src="https://liberapay.com/assets/widgets/donate.svg"></a></noscript>
 
 ## Contributors
 Thanks to all who contributed with commits to *asammdf*:

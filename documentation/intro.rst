@@ -116,7 +116,7 @@ Contributing & Support
 Please have a look over the `contributing guidelines <https://github.com/danielhrisca/asammdf/blob/master/CONTRIBUTING.md>`_
 
 If you enjoy this library please consider making a donation to the 
-`numpy project <https://www.flipcause.com/secure/cause_pdetails/MzUwMQ==>`_
+`numpy project <https://numfocus.org/donate-to-numpy>`_ or to `danielhrisca using liberapay <https://liberapay.com/danielhrisca/donate>`_
 
 Contributors
 ------------

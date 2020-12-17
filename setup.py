@@ -111,7 +111,7 @@ setup(
         "pandas",
         "numexpr",
         "wheel",
-        "canmatrix",
+        "canmatrix[arxml, dbc]>=0.8",
         "natsort",
         "lxml",
         "lz4",
