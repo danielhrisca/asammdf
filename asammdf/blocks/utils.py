@@ -1484,31 +1484,27 @@ def pandas_query_compatible(name):
 
 def load_can_database(file, contents=None, **kwargs):
     file_path = Path(file)
+    contents = file_path.read_bytes() if contents is None else contents
+    import_type = file_path.suffix.lstrip(".").lower()
 
-    if contents or file_path.exists():
-        contents = file_path.read_bytes() if contents is None else contents
-        import_type = file_path.suffix.lstrip(".").lower()
+    try:
+        dbs = canmatrix.formats.loads(
+            contents, import_type=import_type, key="db", **kwargs
+        )
+    except UnicodeDecodeError:
+        encoding = detect(contents)["encoding"]
+        decoded_contents = contents.decode(encoding)
+        dbs = canmatrix.formats.loads(
+            decoded_contents,
+            import_type=import_type,
+            key="db",
+            encoding=encoding,
+            **kwargs,
+        )
 
-        try:
-            dbs = canmatrix.formats.loads(
-                contents, import_type=import_type, key="db", **kwargs
-            )
-        except UnicodeDecodeError:
-            encoding = detect(contents)["encoding"]
-            decoded_contents = contents.decode(encoding)
-            dbs = canmatrix.formats.loads(
-                decoded_contents,
-                import_type=import_type,
-                key="db",
-                encoding=encoding,
-                **kwargs,
-            )
-
-        if dbs:
-            first_bus = list(dbs)[0]
-            can_matrix = dbs[first_bus]
-        else:
-            can_matrix = None
+    if dbs:
+        first_bus = list(dbs)[0]
+        can_matrix = dbs[first_bus]
     else:
         can_matrix = None
 
