@@ -4,6 +4,7 @@ ASAM MDF version 4 file format module
 
 import bisect
 from collections import defaultdict
+from functools import lru_cache
 from hashlib import md5
 import logging
 from math import ceil
@@ -5725,6 +5726,7 @@ class MDF4(MDF_Common):
         self._dbc_cache.clear()
         self.virtual_groups.clear()
 
+    @lru_cache(maxsize=128)
     def extract_attachment(self, index=None):
         """extract attachment data by index. If it is an embedded attachment,
         then this method creates the new file according to the attachment file
