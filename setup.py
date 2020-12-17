@@ -2,7 +2,6 @@
 asammdf
 
 """
-
 from distutils.command import build_ext
 from pathlib import Path
 
@@ -18,7 +17,9 @@ except ImportError:
 
     print("using distutils")
 
+PROJECT_PATH = Path(__file__).parent
 
+#
 def get_export_symbols(self, ext):
     parts = ext.name.split(".")
     print("parts", parts)
@@ -31,39 +32,45 @@ def get_export_symbols(self, ext):
 build_ext.build_ext.get_export_symbols = get_export_symbols
 
 
-here = Path(__file__).parent
-
-# Get the long description from the README file
-long_description = here.joinpath("README.md").read_text(encoding="utf-8")
-
-with here.joinpath("asammdf", "version.py").open() as f:
-    line = next(line for line in f if line.startswith("__version__"))
+def _get_version():
+    with PROJECT_PATH.joinpath("asammdf", "version.py").open() as f:
+        line = next(line for line in f if line.startswith("__version__"))
     version = line.partition("=")[2].strip()[1:-2]
+    return version
 
-try:
-    from numpy import get_include
-except ImportError:
-    ext_modules = None
-    print(
-        "numpy must be preinstalled to compile the asammdf C extension; falling back to pure python"
-    )
-else:
-    ext_modules = [
-        Extension(
-            "asammdf.blocks.cutils",
-            ["asammdf/blocks/cutils.c"],
-            include_dirs=[get_include()],
+
+def _get_long_description():
+    # Get the long description from the README file
+    return PROJECT_PATH.joinpath("README.md").read_text(encoding="utf-8")
+
+
+def _get_ext_modules():
+    try:
+        from numpy import get_include
+    except ImportError:
+        ext_modules = None
+        print(
+            "numpy must be preinstalled to compile the asammdf C extension; falling back to pure python"
         )
-    ]
+    else:
+        ext_modules = [
+            Extension(
+                "asammdf.blocks.cutils",
+                ["asammdf/blocks/cutils.c"],
+                include_dirs=[get_include()],
+            )
+        ]
+    return ext_modules
+
 
 setup(
     name="asammdf",
     # Versions should comply with PEP440.  For a discussion on single-sourcing
     # the version across setup.py and the project code, see
     # https://packaging.python.org/en/latest/single_source_version.html
-    version=version,
+    version=_get_version(),
     description="ASAM MDF measurement data file parser",
-    long_description=long_description,
+    long_description=_get_long_description(),
     long_description_content_type=r"text/markdown",
     # The project's main homepage.
     url="https://github.com/danielhrisca/asammdf",
@@ -136,5 +143,5 @@ setup(
     # "scripts" keyword. Entry points provide cross-platform support and allow
     # pip to create the appropriate form of executable for the target platform.
     entry_points={"console_scripts": ["asammdf=asammdf.gui.asammdfgui:main"]},
-    ext_modules=ext_modules,
+    ext_modules=_get_ext_modules(),
 )
