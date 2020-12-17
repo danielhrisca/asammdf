@@ -34,7 +34,7 @@ build_ext.build_ext.get_export_symbols = get_export_symbols
 here = Path(__file__).parent
 
 # Get the long description from the README file
-long_description = here.joinpath("README.md").read_text()
+long_description = here.joinpath("README.md").read_text(encoding="utf-8")
 
 with here.joinpath("asammdf", "version.py").open() as f:
     for line in f:
