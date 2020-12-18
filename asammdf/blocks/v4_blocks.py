@@ -596,7 +596,14 @@ class Channel:
                         if display_name is not None:
                             self.display_name = display_name.text or ""
                         else:
-                            self.display_name = ""
+                            display_name = ET.fromstring(sanitize_xml(self.comment)).find(
+                                ".//names/name"
+                            )
+                            if display_name is not None:
+                                self.display_name = display_name.text or ""
+                            else:
+                                self.display_name = ""
+
                     except:
                         self.display_name = ""
                 else:
