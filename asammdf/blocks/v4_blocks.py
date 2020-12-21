@@ -613,26 +613,23 @@ class Channel:
                 if address:
                     cc_map = kwargs["cc_map"]
                     try:
-                        if mapped:
+                        if address in cc_map:
+                            conv = cc_map[address]
+                        else:
                             (size,) = UINT64_uf(stream, address + 8)
                             raw_bytes = stream[address : address + size]
-                        else:
-                            stream.seek(address + 8)
-                            (size,) = UINT64_u(stream.read(8))
-                            stream.seek(address)
-                            raw_bytes = stream.read(size)
-                        if raw_bytes in cc_map:
-                            conv = cc_map[raw_bytes]
-                        else:
 
-                            conv = ChannelConversion(
-                                raw_bytes=raw_bytes,
-                                stream=stream,
-                                address=address,
-                                mapped=mapped,
-                                tx_map=tx_map,
-                            )
-                            cc_map[raw_bytes] = conv
+                            if raw_bytes in cc_map:
+                                conv = cc_map[raw_bytes]
+                            else:
+                                conv = ChannelConversion(
+                                    raw_bytes=raw_bytes,
+                                    stream=stream,
+                                    address=address,
+                                    mapped=mapped,
+                                    tx_map=tx_map,
+                                )
+                                cc_map[raw_bytes] = cc_map[address] = conv
                     except:
                         logger.warning(
                             f"Channel conversion parsing error: {format_exc()}. The error is ignored and the channel conversion is None"
@@ -647,22 +644,22 @@ class Channel:
                 if address:
                     si_map = kwargs["si_map"]
                     try:
-                        if mapped:
+                        if address in si_map:
+                            source = si_map[address]
+                        else:
                             raw_bytes = stream[address : address + v4c.SI_BLOCK_SIZE]
-                        else:
-                            stream.seek(address)
-                            raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
-                        if raw_bytes in si_map:
-                            source = si_map[raw_bytes]
-                        else:
-                            source = SourceInformation(
-                                raw_bytes=raw_bytes,
-                                stream=stream,
-                                address=address,
-                                mapped=mapped,
-                                tx_map=tx_map,
-                            )
-                            si_map[raw_bytes] = source
+
+                            if raw_bytes in si_map:
+                                source = si_map[raw_bytes]
+                            else:
+                                source = SourceInformation(
+                                    raw_bytes=raw_bytes,
+                                    stream=stream,
+                                    address=address,
+                                    mapped=mapped,
+                                    tx_map=tx_map,
+                                )
+                                si_map[raw_bytes] = si_map[address] = source
                     except:
                         logger.warning(
                             f"Channel source parsing error: {format_exc()}. The error is ignored and the channel source is None"
@@ -811,22 +808,25 @@ class Channel:
                 address = self.conversion_addr
                 if address:
                     try:
-                        stream.seek(address + 8)
-                        (size,) = UINT64_u(stream.read(8))
-                        stream.seek(address)
-                        raw_bytes = stream.read(size)
-                        if raw_bytes in cc_map:
-                            conv = cc_map[raw_bytes]
+                        if address in cc_map:
+                            conv = cc_map[address]
                         else:
+                            stream.seek(address + 8)
+                            (size,) = UINT64_u(stream.read(8))
+                            stream.seek(address)
+                            raw_bytes = stream.read(size)
+                            if raw_bytes in cc_map:
+                                conv = cc_map[raw_bytes]
+                            else:
 
-                            conv = ChannelConversion(
-                                raw_bytes=raw_bytes,
-                                stream=stream,
-                                address=address,
-                                tx_map=tx_map,
-                                mapped=mapped,
-                            )
-                            cc_map[raw_bytes] = conv
+                                conv = ChannelConversion(
+                                    raw_bytes=raw_bytes,
+                                    stream=stream,
+                                    address=address,
+                                    tx_map=tx_map,
+                                    mapped=mapped,
+                                )
+                                cc_map[raw_bytes] = cc_map[address] = conv
                     except:
                         logger.warning(
                             f"Channel conversion parsing error: {format_exc()}. The error is ignored and the channel conversion is None"
@@ -840,19 +840,22 @@ class Channel:
                 address = self.source_addr
                 if address:
                     try:
-                        stream.seek(address)
-                        raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
-                        if raw_bytes in si_map:
-                            source = si_map[raw_bytes]
+                        if address in si_map:
+                            source = si_map[address]
                         else:
-                            source = SourceInformation(
-                                raw_bytes=raw_bytes,
-                                stream=stream,
-                                address=address,
-                                tx_map=tx_map,
-                                mapped=mapped,
-                            )
-                            si_map[raw_bytes] = source
+                            stream.seek(address)
+                            raw_bytes = stream.read(v4c.SI_BLOCK_SIZE)
+                            if raw_bytes in si_map:
+                                source = si_map[raw_bytes]
+                            else:
+                                source = SourceInformation(
+                                    raw_bytes=raw_bytes,
+                                    stream=stream,
+                                    address=address,
+                                    tx_map=tx_map,
+                                    mapped=mapped,
+                                )
+                                si_map[raw_bytes] = si_map[address] = source
                     except:
                         logger.warning(
                             f"Channel source parsing error: {format_exc()}. The error is ignored and the channel source is None"
