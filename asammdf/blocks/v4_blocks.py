@@ -21,6 +21,7 @@ from . import v4_constants as v4c
 from ..version import __version__
 from .utils import (
     block_fields,
+    extract_display_name,
     FLOAT64_u,
     get_text_v4,
     is_file_like,
@@ -578,36 +579,28 @@ class Channel:
                         self.upper_ext_limit,
                     ) = params
 
-                self.name = get_text_v4(self.name_addr, stream, mapped=mapped)
                 tx_map = kwargs["tx_map"]
+
+                parsed_strings = kwargs["parsed_strings"]
+                if parsed_strings is None:
+
+                    self.name = get_text_v4(self.name_addr, stream, mapped=mapped)
+                    self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
+
+                    if kwargs["use_display_names"]:
+                        self.display_name = extract_display_name(self.comment)
+                    else:
+                        self.display_name = ""
+                else:
+
+                    self.name, self.display_name, self.comment = parsed_strings
+
                 addr = self.unit_addr
                 if addr in tx_map:
                     self.unit = tx_map[addr]
                 else:
                     self.unit = get_text_v4(addr, stream, mapped=mapped)
                     tx_map[addr] = self.unit
-                self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
-
-                if kwargs["use_display_names"]:
-                    try:
-                        display_name = ET.fromstring(sanitize_xml(self.comment)).find(
-                            ".//names/display"
-                        )
-                        if display_name is not None:
-                            self.display_name = display_name.text or ""
-                        else:
-                            display_name = ET.fromstring(sanitize_xml(self.comment)).find(
-                                ".//names/name"
-                            )
-                            if display_name is not None:
-                                self.display_name = display_name.text or ""
-                            else:
-                                self.display_name = ""
-
-                    except:
-                        self.display_name = ""
-                else:
-                    self.display_name = ""
 
                 address = self.conversion_addr
                 if address:
@@ -778,29 +771,25 @@ class Channel:
                         self.upper_ext_limit,
                     ) = params
 
-                self.name = get_text_v4(self.name_addr, stream)
                 tx_map = kwargs["tx_map"]
+                parsed_strings = kwargs["parsed_strings"]
+
+                if parsed_strings is None:
+                    self.name = get_text_v4(self.name_addr, stream)
+                    self.comment = get_text_v4(self.comment_addr, stream)
+
+                    if kwargs["use_display_names"]:
+                        self.display_name = extract_display_name(self.comment)
+                    else:
+                        self.display_name = ""
+                else:
+                    self.name, self.display_name, self.comment = parsed_strings
                 addr = self.unit_addr
                 if addr in tx_map:
                     self.unit = tx_map[addr]
                 else:
                     self.unit = get_text_v4(addr, stream)
                     tx_map[addr] = self.unit
-                self.comment = get_text_v4(self.comment_addr, stream)
-
-                if kwargs["use_display_names"]:
-                    try:
-                        display_name = ET.fromstring(sanitize_xml(self.comment)).find(
-                            ".//names/display"
-                        )
-                        if display_name is not None:
-                            self.display_name = display_name.text or ""
-                        else:
-                            self.display_name = ""
-                    except ET.ParseError:
-                        self.display_name = ""
-                else:
-                    self.display_name = ""
 
                 si_map = kwargs["si_map"]
                 cc_map = kwargs["cc_map"]

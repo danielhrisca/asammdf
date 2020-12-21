@@ -69,13 +69,16 @@ from .utils import (
     DataBlockInfo,
     debug_channel,
     extract_cncomment_xml,
+    extract_display_name,
     fmt_to_datatype_v4,
     get_fmt_v4,
+    get_text_v4,
     Group,
     InvalidationBlockInfo,
     is_file_like,
     load_can_database,
     MdfException,
+    sanitize_xml,
     SignalDataBlockInfo,
     UINT8_uf,
     UINT16_uf,
@@ -264,6 +267,8 @@ class MDF4(MDF_Common):
         use slower method to save the exact sample size for VLSD channels
     column_storage (True) : bool
         use column storage for MDF version >= 4.20
+    channels : iterable
+        channel names that will used for selective loading
 
     Attributes
     ----------
@@ -329,6 +334,8 @@ class MDF4(MDF_Common):
         self._cn_data_map = {}
         self._dbc_cache = {}
         self._interned_strings = {}
+
+        self.load_filter = set(kwargs.get("channels", []))
 
         self._tempfile = TemporaryFile()
         self._file = None
@@ -830,6 +837,9 @@ class MDF4(MDF_Common):
         mapped=False,
     ):
 
+        filter_channels = len(self.load_filter) > 0
+        use_display_names = self._use_display_names
+
         channels = grp.channels
 
         dependencies = grp.channel_dependencies
@@ -854,17 +864,78 @@ class MDF4(MDF_Common):
                 )
                 break
 
-            channel = Channel(
-                address=ch_addr,
-                stream=stream,
-                cc_map=self._cc_map,
-                si_map=self._si_map,
-                at_map=self._attachments_map,
-                use_display_names=self._use_display_names,
-                mapped=mapped,
-                tx_map=self._interned_strings,
-                file_limit=self.file_limit,
-            )
+            if filter_channels:
+                if mapped:
+                    id_, links_nr, next_ch_addr, name_addr, comment_addr = v4c.CHANNEL_FILTER_uf(
+                        stream,
+                        ch_addr
+                    )
+                    channel_type = stream[ch_addr + v4c.COMMON_SIZE + links_nr * 8]
+                    name = get_text_v4(name_addr, stream, mapped=mapped)
+                    if use_display_names:
+                        comment = get_text_v4(comment_addr, stream, mapped=mapped)
+                        display_name = extract_display_name(comment)
+                    else:
+                        display_name = ""
+                        comment = None
+
+                else:
+                    stream.seek(ch_addr)
+                    id_, links_nr, next_ch_addr, name_addr, comment_addr = v4c.CHANNEL_FILTER_u(
+                        stream.read(v4c.CHANNEL_FILTER_SIZE)
+                    )
+                    stream.seek(v4c.COMMON_SIZE + links_nr * 8)
+                    channel_type = stream.read(1)[0]
+                    name = get_text_v4(name_addr, stream, mapped=mapped)
+
+                    if use_display_names:
+                        comment = get_text_v4(comment_addr, stream, mapped=mapped)
+                        display_name = extract_display_name(comment)
+                    else:
+                        display_name = ""
+                        comment = None
+
+                if id_ != b'##CN':
+                    message = (
+                        f'Expected "##CN" block @{hex(ch_addr)} but found "{id_}"'
+                    )
+                    raise MdfException(message)
+
+                if (
+                    channel_type in v4c.MASTER_TYPES
+                    or name in self.load_filter
+                    or (use_display_names and display_name in self.load_filter)
+                ):
+                    if comment is None:
+                        comment = get_text_v4(comment_addr, stream, mapped=mapped)
+                    channel = Channel(
+                        address=ch_addr,
+                        stream=stream,
+                        cc_map=self._cc_map,
+                        si_map=self._si_map,
+                        at_map=self._attachments_map,
+                        use_display_names=use_display_names,
+                        mapped=mapped,
+                        tx_map=self._interned_strings,
+                        file_limit=self.file_limit,
+                        parsed_strings=(name, display_name, comment),
+                    )
+                else:
+                    ch_addr = next_ch_addr
+                    continue
+            else:
+                channel = Channel(
+                    address=ch_addr,
+                    stream=stream,
+                    cc_map=self._cc_map,
+                    si_map=self._si_map,
+                    at_map=self._attachments_map,
+                    use_display_names=use_display_names,
+                    mapped=mapped,
+                    tx_map=self._interned_strings,
+                    file_limit=self.file_limit,
+                    parsed_strings=None,
+                )
 
             if channel.channel_type == v4c.CHANNEL_TYPE_SYNC:
                 channel.attachment = self._attachments_map.get(
@@ -7434,7 +7505,7 @@ class MDF4(MDF_Common):
             count = self._read_fragment_size // record_size or 1
         else:
             if version < "4.20":
-                count = 8 * 1024 * 1024 // record_size or 1
+                count = 16 * 1024 * 1024 // record_size or 1
             else:
                 count = 128 * 1024 * 1024 // record_size or 1
 
