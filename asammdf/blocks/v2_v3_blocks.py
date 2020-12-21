@@ -214,7 +214,6 @@ class Channel:
                     else:
                         self.name, self.display_name = parsed_strings
 
-
                 elif size == v23c.CN_LONGNAME_BLOCK_SIZE:
                     (
                         self.id,
@@ -451,7 +450,7 @@ class Channel:
                 if address:
                     try:
                         if address in cc_map:
-                            conv = si_map[address]
+                            conv = cc_map[address]
                         else:
                             stream.seek(address + 2)
                             (size,) = UINT16_u(stream.read(2))
