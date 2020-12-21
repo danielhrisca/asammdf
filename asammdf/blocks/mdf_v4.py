@@ -267,8 +267,6 @@ class MDF4(MDF_Common):
         use slower method to save the exact sample size for VLSD channels
     column_storage (True) : bool
         use column storage for MDF version >= 4.20
-    channels : iterable
-        channel names that will used for selective loading
 
     Attributes
     ----------
@@ -306,7 +304,7 @@ class MDF4(MDF_Common):
 
     _terminate = False
 
-    def __init__(self, name=None, version="4.10", **kwargs):
+    def __init__(self, name=None, version="4.10", channels=(), **kwargs):
 
         self._kwargs = kwargs
         self.groups = []
@@ -335,7 +333,7 @@ class MDF4(MDF_Common):
         self._dbc_cache = {}
         self._interned_strings = {}
 
-        self.load_filter = set(kwargs.get("channels", []))
+        self.load_filter = set(channels)
 
         self._tempfile = TemporaryFile()
         self._file = None

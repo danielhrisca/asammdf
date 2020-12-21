@@ -193,19 +193,27 @@ class Channel:
                         self.additional_byte_offset,
                     ) = CHANNEL_DISPLAYNAME_uf(stream, address)
 
-                    addr = self.long_name_addr
-                    if addr:
-                        self.name = get_text_v3(
-                            address=addr, stream=stream, mapped=mapped
-                        )
-                    else:
-                        self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+                    parsed_strings = kwargs['parsed_strings']
 
-                    addr = self.display_name_addr
-                    if addr:
-                        self.display_name = get_text_v3(
-                            address=addr, stream=stream, mapped=mapped
-                        )
+                    if parsed_strings is None:
+
+                        addr = self.long_name_addr
+                        if addr:
+                            self.name = get_text_v3(
+                                address=addr, stream=stream, mapped=mapped
+                            )
+                        else:
+                            self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+
+                        addr = self.display_name_addr
+                        if addr:
+                            self.display_name = get_text_v3(
+                                address=addr, stream=stream, mapped=mapped
+                            )
+
+                    else:
+                        self.name, self.display_name = parsed_strings
+
 
                 elif size == v23c.CN_LONGNAME_BLOCK_SIZE:
                     (
@@ -229,13 +237,20 @@ class Channel:
                         self.long_name_addr,
                     ) = CHANNEL_LONGNAME_uf(stream, address)
 
-                    addr = self.long_name_addr
-                    if addr:
-                        self.name = get_text_v3(
-                            address=addr, stream=stream, mapped=mapped
-                        )
+                    parsed_strings = kwargs['parsed_strings']
+
+                    if parsed_strings is None:
+
+                        addr = self.long_name_addr
+                        if addr:
+                            self.name = get_text_v3(
+                                address=addr, stream=stream, mapped=mapped
+                            )
+                        else:
+                            self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+
                     else:
-                        self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+                        self.name, self.display_name = parsed_strings
 
                 else:
                     (
@@ -311,7 +326,7 @@ class Channel:
                         logger.warning(
                             f"Channel source parsing error: {format_exc()}. The error is ignored and the channel source is None"
                         )
-                        conv = None
+                        source = None
 
                     self.source = source
 
@@ -348,19 +363,26 @@ class Channel:
                         self.additional_byte_offset,
                     ) = CHANNEL_DISPLAYNAME_u(block)
 
-                    addr = self.long_name_addr
-                    if addr:
-                        self.name = get_text_v3(
-                            address=addr, stream=stream, mapped=mapped
-                        )
-                    else:
-                        self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+                    parsed_strings = kwargs['parsed_strings']
 
-                    addr = self.display_name_addr
-                    if addr:
-                        self.display_name = get_text_v3(
-                            address=addr, stream=stream, mapped=mapped
-                        )
+                    if parsed_strings is None:
+
+                        addr = self.long_name_addr
+                        if addr:
+                            self.name = get_text_v3(
+                                address=addr, stream=stream, mapped=mapped
+                            )
+                        else:
+                            self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+
+                        addr = self.display_name_addr
+                        if addr:
+                            self.display_name = get_text_v3(
+                                address=addr, stream=stream, mapped=mapped
+                            )
+
+                    else:
+                        self.name, self.display_name = parsed_strings
 
                 elif size == v23c.CN_LONGNAME_BLOCK_SIZE:
                     (
@@ -384,13 +406,20 @@ class Channel:
                         self.long_name_addr,
                     ) = CHANNEL_LONGNAME_u(block)
 
-                    addr = self.long_name_addr
-                    if addr:
-                        self.name = get_text_v3(
-                            address=addr, stream=stream, mapped=mapped
-                        )
+                    parsed_strings = kwargs['parsed_strings']
+
+                    if parsed_strings is None:
+
+                        addr = self.long_name_addr
+                        if addr:
+                            self.name = get_text_v3(
+                                address=addr, stream=stream, mapped=mapped
+                            )
+                        else:
+                            self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+
                     else:
-                        self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+                        self.name, self.display_name = parsed_strings
 
                 else:
                     (
@@ -470,7 +499,7 @@ class Channel:
                         logger.warning(
                             f"Channel source parsing error: {format_exc()}. The error is ignored and the channel source is None"
                         )
-                        conv = None
+                        source = None
                     self.source = source
 
                 self.comment = get_text_v3(

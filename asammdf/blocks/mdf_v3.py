@@ -48,6 +48,7 @@ from .utils import (
     DataBlockInfo,
     fmt_to_datatype_v3,
     get_fmt_v3,
+    get_text_v3,
     Group,
     is_file_like,
     MdfException,
@@ -144,8 +145,10 @@ class MDF3(MDF_Common):
 
     _terminate = False
 
-    def __init__(self, name=None, version="3.30", **kwargs):
+    def __init__(self, name=None, version="3.30", channels=(), **kwargs):
         self._kwargs = kwargs
+        self.load_filter = set(channels)
+
         self.groups = []
         self.header = None
         self.identification = None
@@ -663,6 +666,7 @@ class MDF3(MDF_Common):
 
     def _read(self, mapped=False):
         stream = self._file
+        filter_channels = len(self.load_filter) > 0
 
         cg_count, _ = count_channel_groups(stream)
         if self._callback:
@@ -753,19 +757,79 @@ class MDF3(MDF_Common):
                 grp_chs = grp.channels
 
                 while ch_addr:
-                    if cg_addr > self.file_limit:
+                    if ch_addr > self.file_limit:
                         logger.warning(
                             f"Channel address {ch_addr:X} is outside the file size {self.file_limit}"
                         )
                         break
-                    # read channel block and create channel object
-                    new_ch = Channel(
-                        address=ch_addr,
-                        stream=stream,
-                        mapped=mapped,
-                        si_map=self._si_map,
-                        cc_map=self._cc_map,
-                    )
+
+                    if filter_channels:
+                        display_name = ""
+                        if mapped:
+                            id_, block_len, next_ch_addr, channel_type, name = v23c.CHANNEL_FILTER_uf(
+                                stream,
+                                ch_addr
+                            )
+                            name = name.decode("latin-1").strip(" \t\n\r\0")
+                            if block_len >= v23c.CN_LONGNAME_BLOCK_SIZE:
+                                tx_address = v23c.UINT32_uf(stream, ch_addr + v23c.CN_SHORT_BLOCK_SIZE)[0]
+                                if tx_address:
+                                    name = get_text_v3(tx_address, stream, mapped=mapped)
+                                if block_len == v23c.CN_DISPLAYNAME_BLOCK_SIZE:
+                                    tx_address = v23c.UINT32_uf(stream, ch_addr + v23c.CN_LONGNAME_BLOCK_SIZE)[0]
+                                    if tx_address:
+                                        display_name = get_text_v3(tx_address, stream, mapped=mapped)
+
+                        else:
+                            stream.seek(ch_addr)
+                            id_, block_len, next_ch_addr, channel_type, name = v23c.CHANNEL_FILTER_u(
+                                stream.read(v23c.CHANNEL_FILTER_SIZE)
+                            )
+                            name = name.decode("latin-1").strip(" \t\n\r\0")
+
+                            if block_len >= v23c.CN_LONGNAME_BLOCK_SIZE:
+                                stream.seek(ch_addr + v23c.CN_SHORT_BLOCK_SIZE)
+                                tx_address = v23c.UINT32_u(stream.read(4))[0]
+                                if tx_address:
+                                    name = get_text_v3(tx_address, stream, mapped=mapped)
+                                if block_len == v23c.CN_DISPLAYNAME_BLOCK_SIZE:
+                                    stream.seek(ch_addr + v23c.CN_LONGNAME_BLOCK_SIZE)
+                                    tx_address = v23c.UINT32_u(stream.read(4))[0]
+                                    if tx_address:
+                                        display_name = get_text_v3(tx_address, stream, mapped=mapped)
+
+                        if id_ != b'CN':
+                            message = (
+                                f'Expected "CN" block @{hex(ch_addr)} but found "{id_}"'
+                            )
+                            raise MdfException(message)
+
+                        if (
+                            channel_type == v23c.CHANNEL_TYPE_MASTER
+                            or name in self.load_filter
+                            or display_name in self.load_filter
+                        ):
+                            new_ch = Channel(
+                                address=ch_addr,
+                                stream=stream,
+                                mapped=mapped,
+                                si_map=self._si_map,
+                                cc_map=self._cc_map,
+                                parsed_strings=(name, display_name),
+                            )
+                        else:
+                            ch_addr = next_ch_addr
+                            continue
+                    else:
+                        # read channel block and create channel object
+                        new_ch = Channel(
+                            address=ch_addr,
+                            stream=stream,
+                            mapped=mapped,
+                            si_map=self._si_map,
+                            cc_map=self._cc_map,
+                            parsed_strings=None,
+                        )
 
                     if self._remove_source_from_channel_names:
                         new_ch.name = new_ch.name.split("\\", 1)[0]

@@ -76,7 +76,15 @@ class MDF:
 
     version : string
         mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20',
-        '3.30', '4.00', '4.10', '4.11', '4.20'); default '4.10'
+        '3.30', '4.00', '4.10', '4.11', '4.20'); default '4.10'. This argument is
+        only used for MDF objects created from scratch; for MDF objects created
+        from a file the version is set to file version
+
+    channels : iterable
+        channel names that will used for selective loading. This can dramatically
+        improve the file loading time.
+
+        .. versionadded:: 6.1.0
 
 
     callback (\*\*kwargs) : function
@@ -97,7 +105,7 @@ class MDF:
 
     _terminate = False
 
-    def __init__(self, name=None, version="4.10", **kwargs):
+    def __init__(self, name=None, version="4.10", channels=(), **kwargs):
         self._mdf = None
         if name:
             if is_file_like(name):
@@ -131,11 +139,11 @@ class MDF:
                 file_stream.close()
 
             if version in MDF3_VERSIONS:
-                self._mdf = MDF3(name, **kwargs)
+                self._mdf = MDF3(name, channels=channels, **kwargs)
             elif version in MDF4_VERSIONS:
-                self._mdf = MDF4(name, **kwargs)
+                self._mdf = MDF4(name, channels=channels, **kwargs)
             elif version in MDF2_VERSIONS:
-                self._mdf = MDF2(name, **kwargs)
+                self._mdf = MDF2(name, channels=channels, **kwargs)
             else:
                 message = f'"{name}" is not a supported MDF file; "{version}" file version was found'
                 raise MdfException(message)
