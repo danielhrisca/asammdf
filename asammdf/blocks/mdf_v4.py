@@ -900,7 +900,8 @@ class MDF4(MDF_Common):
                     raise MdfException(message)
 
                 if (
-                    channel_type in v4c.MASTER_TYPES
+                    channel_composition
+                    or channel_type in v4c.MASTER_TYPES
                     or name in self.load_filter
                     or (use_display_names and display_name in self.load_filter)
                 ):
