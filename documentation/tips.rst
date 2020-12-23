@@ -29,6 +29,7 @@ speed improvement for loading the file, but also when performing operations with
 ``select``, ``get``, etc.).
 
 .. code-block:: python
+
     required_channels = ["Speed", "Acceleration", "Force"]
     mdf = MDF("input.mf4", channels=required_channels)
 
