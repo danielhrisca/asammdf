@@ -4,6 +4,7 @@ asammdf
 """
 from pathlib import Path
 
+from numpy import get_include
 from setuptools import Extension, find_packages, setup
 
 PROJECT_PATH = Path(__file__).parent
@@ -12,32 +13,30 @@ PROJECT_PATH = Path(__file__).parent
 def _get_version():
     with PROJECT_PATH.joinpath("asammdf", "version.py").open() as f:
         line = next(line for line in f if line.startswith("__version__"))
+
     version = line.partition("=")[2].strip()[1:-1]
+
     return version
 
 
 def _get_long_description():
-    # Get the long description from the README file
-    return PROJECT_PATH.joinpath("README.md").read_text(encoding="utf-8")
+    description = PROJECT_PATH.joinpath("README.md").read_text(
+        encoding="utf-8"
+    )
+
+    return description
 
 
 def _get_ext_modules():
-    try:
-        from numpy import get_include
-    except ImportError:
-        ext_modules = None
-        print(
-            "numpy must be preinstalled to compile the asammdf C extension; falling back to pure python"
+    modules = [
+        Extension(
+            "asammdf.blocks.cutils",
+            ["asammdf/blocks/cutils.c"],
+            include_dirs=[get_include()],
         )
-    else:
-        ext_modules = [
-            Extension(
-                "asammdf.blocks.cutils",
-                ["asammdf/blocks/cutils.c"],
-                include_dirs=[get_include()],
-            )
-        ]
-    return ext_modules
+    ]
+
+    return modules
 
 
 setup(
@@ -90,21 +89,27 @@ setup(
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
         "canmatrix[arxml, dbc]>=0.8",
-        "lxml",
         "lz4",
-        "natsort",
         "numexpr",
         "numpy>=1.16.1",
         "pandas",
-        "wheel",
     ],
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
     # for example:
     # $ pip install -e .[dev,test]
     extras_require={
-        "gui": ["PyQt5>=5.13.1", "pyqtgraph>=0.11.0", "psutil"],
-        "decode": ["chardet", "cChardet==2.1.5"],
+        "decode": [
+            "cChardet==2.1.5",
+            "chardet",
+        ],
+        "gui": [
+            "lxml",
+            "natsort",
+            "psutil",
+            "PyQt5>=5.13.1",
+            "pyqtgraph>=0.11.0",
+        ],
     },
     # If there are data files included in your packages that need to be
     # installed, specify them here.  If using Python 2.6 or less, then these
