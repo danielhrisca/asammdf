@@ -1,3 +1,8 @@
+
+# Created by https://www.toptal.com/developers/gitignore/api/python
+# Edit at https://www.toptal.com/developers/gitignore?templates=python
+
+### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -6,19 +11,8 @@ __pycache__/
 # C extensions
 *.so
 
-# MDF files
-*.mf4
-*.mdf
-*.bak
-*.zip
-*.dsp
-*.a2l
-
-test/proxy.py
-
 # Distribution / packaging
 .Python
-env/
 build/
 develop-eggs/
 dist/
@@ -31,9 +25,12 @@ parts/
 sdist/
 var/
 wheels/
+pip-wheel-metadata/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -48,13 +45,17 @@ pip-delete-this-directory.txt
 # Unit test / coverage reports
 htmlcov/
 .tox/
+.nox/
 .coverage
 .coverage.*
 .cache
 nosetests.xml
 coverage.xml
 *.cover
+*.py,cover
 .hypothesis/
+.pytest_cache/
+pytestdebug.log
 
 # Translations
 *.mo
@@ -63,6 +64,8 @@ coverage.xml
 # Django stuff:
 *.log
 local_settings.py
+db.sqlite3
+db.sqlite3-journal
 
 # Flask stuff:
 instance/
@@ -73,6 +76,7 @@ instance/
 
 # Sphinx documentation
 docs/_build/
+doc/_build/
 
 # PyBuilder
 target/
@@ -80,22 +84,39 @@ target/
 # Jupyter Notebook
 .ipynb_checkpoints
 
+# IPython
+profile_default/
+ipython_config.py
+
 # pyenv
 .python-version
 
-# celery beat schedule file
+# pipenv
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   However, in case of collaboration, if having platform-specific dependencies or dependencies
+#   having no cross-platform support, pipenv may install dependencies that don't work, or not
+#   install all needed dependencies.
+#Pipfile.lock
+
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow
+__pypackages__/
+
+# Celery stuff
 celerybeat-schedule
+celerybeat.pid
 
 # SageMath parsed files
 *.sage.py
 
-# dotenv
+# Environments
 .env
-
-# virtualenv
 .venv
+env/
 venv/
 ENV/
+env.bak/
+venv.bak/
+pythonenv*
 
 # Spyder project settings
 .spyderproject
@@ -109,13 +130,16 @@ ENV/
 
 # mypy
 .mypy_cache/
+.dmypy.json
+dmypy.json
 
-test-reports/
-canape*.ini
+# Pyre type checker
+.pyre/
 
-_build/
-debug/
-*.txt
-/asammdf/gui/ssss.txt
-/asammdf/gui/ddsd.csv
-/.tgitconfig
+# pytype static type analyzer
+.pytype/
+
+# profiling data
+.prof
+
+# End of https://www.toptal.com/developers/gitignore/api/python

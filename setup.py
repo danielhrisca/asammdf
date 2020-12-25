@@ -20,9 +20,7 @@ def _get_version():
 
 
 def _get_long_description():
-    description = PROJECT_PATH.joinpath("README.md").read_text(
-        encoding="utf-8"
-    )
+    description = PROJECT_PATH.joinpath("README.md").read_text(encoding="utf-8")
 
     return description
 
