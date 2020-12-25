@@ -271,6 +271,28 @@ def sanitize_xml(text):
     return re.sub(_xmlns_pattern, "", text)
 
 
+def extract_display_name(comment):
+    try:
+        display_name = ET.fromstring(sanitize_xml(comment)).find(
+            ".//names/display"
+        )
+        if display_name is not None:
+            display_name = display_name.text or ""
+        else:
+            display_name = ET.fromstring(sanitize_xml(comment)).find(
+                ".//names/name"
+            )
+            if display_name is not None:
+                display_name = display_name.text or ""
+            else:
+                display_name = ""
+
+    except:
+        display_name = ""
+
+    return display_name
+
+
 @lru_cache(maxsize=1024)
 def get_fmt_v3(data_type, size, byte_order=v3c.BYTE_ORDER_INTEL):
     """convert mdf versions 2 and 3 channel data type to numpy dtype format

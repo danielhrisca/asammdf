@@ -193,19 +193,26 @@ class Channel:
                         self.additional_byte_offset,
                     ) = CHANNEL_DISPLAYNAME_uf(stream, address)
 
-                    addr = self.long_name_addr
-                    if addr:
-                        self.name = get_text_v3(
-                            address=addr, stream=stream, mapped=mapped
-                        )
-                    else:
-                        self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+                    parsed_strings = kwargs['parsed_strings']
 
-                    addr = self.display_name_addr
-                    if addr:
-                        self.display_name = get_text_v3(
-                            address=addr, stream=stream, mapped=mapped
-                        )
+                    if parsed_strings is None:
+
+                        addr = self.long_name_addr
+                        if addr:
+                            self.name = get_text_v3(
+                                address=addr, stream=stream, mapped=mapped
+                            )
+                        else:
+                            self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+
+                        addr = self.display_name_addr
+                        if addr:
+                            self.display_name = get_text_v3(
+                                address=addr, stream=stream, mapped=mapped
+                            )
+
+                    else:
+                        self.name, self.display_name = parsed_strings
 
                 elif size == v23c.CN_LONGNAME_BLOCK_SIZE:
                     (
@@ -229,13 +236,20 @@ class Channel:
                         self.long_name_addr,
                     ) = CHANNEL_LONGNAME_uf(stream, address)
 
-                    addr = self.long_name_addr
-                    if addr:
-                        self.name = get_text_v3(
-                            address=addr, stream=stream, mapped=mapped
-                        )
+                    parsed_strings = kwargs['parsed_strings']
+
+                    if parsed_strings is None:
+
+                        addr = self.long_name_addr
+                        if addr:
+                            self.name = get_text_v3(
+                                address=addr, stream=stream, mapped=mapped
+                            )
+                        else:
+                            self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+
                     else:
-                        self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+                        self.name, self.display_name = parsed_strings
 
                 else:
                     (
@@ -266,19 +280,22 @@ class Channel:
                 address = self.conversion_addr
                 if address:
                     try:
-                        (size,) = UINT16_uf(stream, address + 2)
-                        raw_bytes = stream[address : address + size]
-
-                        if raw_bytes in cc_map:
-                            conv = cc_map[raw_bytes]
+                        if address in cc_map:
+                            conv = cc_map[address]
                         else:
-                            conv = ChannelConversion(
-                                raw_bytes=raw_bytes,
-                                stream=stream,
-                                address=address,
-                                mapped=mapped,
-                            )
-                            cc_map[raw_bytes] = conv
+                            (size,) = UINT16_uf(stream, address + 2)
+                            raw_bytes = stream[address : address + size]
+
+                            if raw_bytes in cc_map:
+                                conv = cc_map[raw_bytes]
+                            else:
+                                conv = ChannelConversion(
+                                    raw_bytes=raw_bytes,
+                                    stream=stream,
+                                    address=address,
+                                    mapped=mapped,
+                                )
+                                cc_map[raw_bytes] = cc_map[address] = conv
                     except:
                         logger.warning(
                             f"Channel conversion parsing error: {format_exc()}. The error is ignored and the channel conversion is None"
@@ -289,23 +306,26 @@ class Channel:
                 address = self.source_addr
                 if address:
                     try:
-                        raw_bytes = stream[address : address + v23c.CE_BLOCK_SIZE]
-
-                        if raw_bytes in si_map:
-                            source = si_map[raw_bytes]
+                        if address in si_map:
+                            source = si_map[address]
                         else:
-                            source = ChannelExtension(
-                                raw_bytes=raw_bytes,
-                                stream=stream,
-                                address=address,
-                                mapped=mapped,
-                            )
-                            si_map[raw_bytes] = source
+                            raw_bytes = stream[address : address + v23c.CE_BLOCK_SIZE]
+
+                            if raw_bytes in si_map:
+                                source = si_map[raw_bytes]
+                            else:
+                                source = ChannelExtension(
+                                    raw_bytes=raw_bytes,
+                                    stream=stream,
+                                    address=address,
+                                    mapped=mapped,
+                                )
+                                si_map[raw_bytes] = si_map[address] = source
                     except:
                         logger.warning(
                             f"Channel source parsing error: {format_exc()}. The error is ignored and the channel source is None"
                         )
-                        conv = None
+                        source = None
 
                     self.source = source
 
@@ -342,19 +362,26 @@ class Channel:
                         self.additional_byte_offset,
                     ) = CHANNEL_DISPLAYNAME_u(block)
 
-                    addr = self.long_name_addr
-                    if addr:
-                        self.name = get_text_v3(
-                            address=addr, stream=stream, mapped=mapped
-                        )
-                    else:
-                        self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+                    parsed_strings = kwargs['parsed_strings']
 
-                    addr = self.display_name_addr
-                    if addr:
-                        self.display_name = get_text_v3(
-                            address=addr, stream=stream, mapped=mapped
-                        )
+                    if parsed_strings is None:
+
+                        addr = self.long_name_addr
+                        if addr:
+                            self.name = get_text_v3(
+                                address=addr, stream=stream, mapped=mapped
+                            )
+                        else:
+                            self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+
+                        addr = self.display_name_addr
+                        if addr:
+                            self.display_name = get_text_v3(
+                                address=addr, stream=stream, mapped=mapped
+                            )
+
+                    else:
+                        self.name, self.display_name = parsed_strings
 
                 elif size == v23c.CN_LONGNAME_BLOCK_SIZE:
                     (
@@ -378,13 +405,20 @@ class Channel:
                         self.long_name_addr,
                     ) = CHANNEL_LONGNAME_u(block)
 
-                    addr = self.long_name_addr
-                    if addr:
-                        self.name = get_text_v3(
-                            address=addr, stream=stream, mapped=mapped
-                        )
+                    parsed_strings = kwargs['parsed_strings']
+
+                    if parsed_strings is None:
+
+                        addr = self.long_name_addr
+                        if addr:
+                            self.name = get_text_v3(
+                                address=addr, stream=stream, mapped=mapped
+                            )
+                        else:
+                            self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+
                     else:
-                        self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+                        self.name, self.display_name = parsed_strings
 
                 else:
                     (
@@ -415,21 +449,24 @@ class Channel:
                 address = self.conversion_addr
                 if address:
                     try:
-                        stream.seek(address + 2)
-                        (size,) = UINT16_u(stream.read(2))
-                        stream.seek(address)
-                        raw_bytes = stream.read(size)
-
-                        if raw_bytes in cc_map:
-                            conv = cc_map[raw_bytes]
+                        if address in cc_map:
+                            conv = cc_map[address]
                         else:
-                            conv = ChannelConversion(
-                                raw_bytes=raw_bytes,
-                                stream=stream,
-                                address=address,
-                                mapped=mapped,
-                            )
-                            cc_map[raw_bytes] = conv
+                            stream.seek(address + 2)
+                            (size,) = UINT16_u(stream.read(2))
+                            stream.seek(address)
+                            raw_bytes = stream.read(size)
+
+                            if raw_bytes in cc_map:
+                                conv = cc_map[raw_bytes]
+                            else:
+                                conv = ChannelConversion(
+                                    raw_bytes=raw_bytes,
+                                    stream=stream,
+                                    address=address,
+                                    mapped=mapped,
+                                )
+                                cc_map[raw_bytes] = cc_map[address] = conv
                     except:
                         logger.warning(
                             f"Channel conversion parsing error: {format_exc()}. The error is ignored and the channel conversion is None"
@@ -441,24 +478,27 @@ class Channel:
                 address = self.source_addr
                 if address:
                     try:
-                        stream.seek(address)
-                        raw_bytes = stream.read(v23c.CE_BLOCK_SIZE)
-
-                        if raw_bytes in si_map:
-                            source = si_map[raw_bytes]
+                        if address in si_map:
+                            source = si_map[address]
                         else:
-                            source = ChannelExtension(
-                                raw_bytes=raw_bytes,
-                                stream=stream,
-                                address=address,
-                                mapped=mapped,
-                            )
-                            si_map[raw_bytes] = source
+                            stream.seek(address)
+                            raw_bytes = stream.read(v23c.CE_BLOCK_SIZE)
+
+                            if raw_bytes in si_map:
+                                source = si_map[raw_bytes]
+                            else:
+                                source = ChannelExtension(
+                                    raw_bytes=raw_bytes,
+                                    stream=stream,
+                                    address=address,
+                                    mapped=mapped,
+                                )
+                                si_map[raw_bytes] = si_map[address] = source
                     except:
                         logger.warning(
                             f"Channel source parsing error: {format_exc()}. The error is ignored and the channel source is None"
                         )
-                        conv = None
+                        source = None
                     self.source = source
 
                 self.comment = get_text_v3(

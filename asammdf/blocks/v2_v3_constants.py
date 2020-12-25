@@ -221,6 +221,11 @@ HEADER_POST_320_EXTRA_KEYS = (
     "timer_identification",
 )
 
+FMT_CHANNEL_FILTER = "<2sHI16xH32s"
+CHANNEL_FILTER_u = struct.Struct(FMT_CHANNEL_FILTER).unpack
+CHANNEL_FILTER_uf = struct.Struct(FMT_CHANNEL_FILTER).unpack_from
+CHANNEL_FILTER_SIZE = 54
+
 FMT_CHANNEL_DISPLAYNAME = "<2sH5IH32s128s4H3d2IH"
 CHANNEL_DISPLAYNAME_u = struct.Struct(FMT_CHANNEL_DISPLAYNAME).unpack
 CHANNEL_DISPLAYNAME_uf = struct.Struct(FMT_CHANNEL_DISPLAYNAME).unpack_from
@@ -453,3 +458,6 @@ KEYS_SAMPLE_REDUCTION_BLOCK = (
     "cycles_nr",
     "time_interval",
 )
+
+UINT32_u = struct.Struct('<I').unpack
+UINT32_uf = struct.Struct('<I').unpack_from

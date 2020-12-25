@@ -21,6 +21,19 @@ Tips
 ----
 
 
+Selective channel loading
+=========================
+Since asammdf 6.1.0 you can use the **channels** argument to perform a selective channel loading. Only the metadata
+of channels found in the selection iterable will be preserved after loading the file. This can yeild a big
+speed improvement for loading the file, but also when performing operations with the MDF object (for example
+``select``, ``get``, etc.).
+
+.. code-block:: python
+
+    required_channels = ["Speed", "Acceleration", "Force"]
+    mdf = MDF("input.mf4", channels=required_channels)
+
+
 Data coupling
 =============
 All the data returned by the MDF methods is decoupled from the raw data found in the original file. 
