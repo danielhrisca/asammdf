@@ -459,5 +459,5 @@ KEYS_SAMPLE_REDUCTION_BLOCK = (
     "time_interval",
 )
 
-UINT32_u = struct.Struct('<I').unpack
-UINT32_uf = struct.Struct('<I').unpack_from
+UINT32_u = struct.Struct("<I").unpack
+UINT32_uf = struct.Struct("<I").unpack_from

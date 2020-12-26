@@ -864,10 +864,13 @@ class MDF4(MDF_Common):
 
             if filter_channels:
                 if mapped:
-                    id_, links_nr, next_ch_addr, name_addr, comment_addr = v4c.CHANNEL_FILTER_uf(
-                        stream,
-                        ch_addr
-                    )
+                    (
+                        id_,
+                        links_nr,
+                        next_ch_addr,
+                        name_addr,
+                        comment_addr,
+                    ) = v4c.CHANNEL_FILTER_uf(stream, ch_addr)
                     channel_type = stream[ch_addr + v4c.COMMON_SIZE + links_nr * 8]
                     name = get_text_v4(name_addr, stream, mapped=mapped)
                     if use_display_names:
@@ -879,9 +882,13 @@ class MDF4(MDF_Common):
 
                 else:
                     stream.seek(ch_addr)
-                    id_, links_nr, next_ch_addr, name_addr, comment_addr = v4c.CHANNEL_FILTER_u(
-                        stream.read(v4c.CHANNEL_FILTER_SIZE)
-                    )
+                    (
+                        id_,
+                        links_nr,
+                        next_ch_addr,
+                        name_addr,
+                        comment_addr,
+                    ) = v4c.CHANNEL_FILTER_u(stream.read(v4c.CHANNEL_FILTER_SIZE))
                     stream.seek(v4c.COMMON_SIZE + links_nr * 8)
                     channel_type = stream.read(1)[0]
                     name = get_text_v4(name_addr, stream, mapped=mapped)
@@ -893,10 +900,8 @@ class MDF4(MDF_Common):
                         display_name = ""
                         comment = None
 
-                if id_ != b'##CN':
-                    message = (
-                        f'Expected "##CN" block @{hex(ch_addr)} but found "{id_}"'
-                    )
+                if id_ != b"##CN":
+                    message = f'Expected "##CN" block @{hex(ch_addr)} but found "{id_}"'
                     raise MdfException(message)
 
                 if (

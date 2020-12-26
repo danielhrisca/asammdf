@@ -2721,7 +2721,11 @@ class MDF:
                                 tx_map={},
                                 si_map={},
                             )
-                            for addr in (conv.name_addr, conv.unit_addr, conv.comment_addr):
+                            for addr in (
+                                conv.name_addr,
+                                conv.unit_addr,
+                                conv.comment_addr,
+                            ):
                                 if addr and addr not in texts:
                                     stream.seek(addr + 8)
                                     size = UINT64_u(stream.read(8))[0] - 24
@@ -2747,7 +2751,9 @@ class MDF:
                         callback(int(idx / count * 66), 100)
 
             except:
-                print(f"Error while scrambling the file: {format_exc()}.\nWill now use fallback method")
+                print(
+                    f"Error while scrambling the file: {format_exc()}.\nWill now use fallback method"
+                )
                 texts = MDF._fallback_scramble_mf4(name)
 
             mdf.close()
@@ -2893,7 +2899,7 @@ class MDF:
 
         texts = {}
 
-        with open(name, 'rb') as stream:
+        with open(name, "rb") as stream:
 
             stream.seek(0, 2)
             file_limit = stream.tell()
@@ -2904,7 +2910,7 @@ class MDF:
 
                 if file_limit - start >= 24:
                     stream.seek(start + 8)
-                    size, = UINT64_u(stream.read(8))
+                    (size,) = UINT64_u(stream.read(8))
 
                     if start + size <= file_limit:
                         texts[start + 24] = randomized_string(size - 24)

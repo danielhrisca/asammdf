@@ -97,10 +97,7 @@ setup(
     # for example:
     # $ pip install -e .[dev,test]
     extras_require={
-        "decode": [
-            "cChardet==2.1.5",
-            "chardet",
-        ],
+        "decode": ["cChardet==2.1.5", "chardet"],
         "gui": [
             "lxml",
             "natsort",

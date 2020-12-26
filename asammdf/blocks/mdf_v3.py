@@ -766,23 +766,40 @@ class MDF3(MDF_Common):
                     if filter_channels:
                         display_name = ""
                         if mapped:
-                            id_, block_len, next_ch_addr, channel_type, name = v23c.CHANNEL_FILTER_uf(
-                                stream,
-                                ch_addr
-                            )
+                            (
+                                id_,
+                                block_len,
+                                next_ch_addr,
+                                channel_type,
+                                name,
+                            ) = v23c.CHANNEL_FILTER_uf(stream, ch_addr)
                             name = name.decode("latin-1").strip(" \t\n\r\0")
                             if block_len >= v23c.CN_LONGNAME_BLOCK_SIZE:
-                                tx_address = v23c.UINT32_uf(stream, ch_addr + v23c.CN_SHORT_BLOCK_SIZE)[0]
+                                tx_address = v23c.UINT32_uf(
+                                    stream, ch_addr + v23c.CN_SHORT_BLOCK_SIZE
+                                )[0]
                                 if tx_address:
-                                    name = get_text_v3(tx_address, stream, mapped=mapped)
+                                    name = get_text_v3(
+                                        tx_address, stream, mapped=mapped
+                                    )
                                 if block_len == v23c.CN_DISPLAYNAME_BLOCK_SIZE:
-                                    tx_address = v23c.UINT32_uf(stream, ch_addr + v23c.CN_LONGNAME_BLOCK_SIZE)[0]
+                                    tx_address = v23c.UINT32_uf(
+                                        stream, ch_addr + v23c.CN_LONGNAME_BLOCK_SIZE
+                                    )[0]
                                     if tx_address:
-                                        display_name = get_text_v3(tx_address, stream, mapped=mapped)
+                                        display_name = get_text_v3(
+                                            tx_address, stream, mapped=mapped
+                                        )
 
                         else:
                             stream.seek(ch_addr)
-                            id_, block_len, next_ch_addr, channel_type, name = v23c.CHANNEL_FILTER_u(
+                            (
+                                id_,
+                                block_len,
+                                next_ch_addr,
+                                channel_type,
+                                name,
+                            ) = v23c.CHANNEL_FILTER_u(
                                 stream.read(v23c.CHANNEL_FILTER_SIZE)
                             )
                             name = name.decode("latin-1").strip(" \t\n\r\0")
@@ -791,14 +808,18 @@ class MDF3(MDF_Common):
                                 stream.seek(ch_addr + v23c.CN_SHORT_BLOCK_SIZE)
                                 tx_address = v23c.UINT32_u(stream.read(4))[0]
                                 if tx_address:
-                                    name = get_text_v3(tx_address, stream, mapped=mapped)
+                                    name = get_text_v3(
+                                        tx_address, stream, mapped=mapped
+                                    )
                                 if block_len == v23c.CN_DISPLAYNAME_BLOCK_SIZE:
                                     stream.seek(ch_addr + v23c.CN_LONGNAME_BLOCK_SIZE)
                                     tx_address = v23c.UINT32_u(stream.read(4))[0]
                                     if tx_address:
-                                        display_name = get_text_v3(tx_address, stream, mapped=mapped)
+                                        display_name = get_text_v3(
+                                            tx_address, stream, mapped=mapped
+                                        )
 
-                        if id_ != b'CN':
+                        if id_ != b"CN":
                             message = (
                                 f'Expected "CN" block @{hex(ch_addr)} but found "{id_}"'
                             )
