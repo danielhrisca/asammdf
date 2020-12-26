@@ -116,10 +116,10 @@ for:
                   pip3 install --upgrade setuptools
                   pip3 install wheel
                   pip3 install numpy
+                  pip3 install .
                   pip3 install -r test/requirements.txt
                   if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH && $PY == "venv3.7" ]] ; then
                       pip3 install pylzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet psutil pyinstaller pyqtgraph
-                      pip3 install .
                       pyinstaller asammdf_noconsole.spec
                   fi
                   
@@ -167,10 +167,10 @@ for:
                   pip3 install --upgrade setuptools
                   pip3 install wheel
                   pip3 install numpy
+                  pip3 install .
                   pip3 install -r test/requirements.txt
                   if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH && $PY == "venv3.7" ]] ; then
                       pip3 install pylzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet psutil pyinstaller pyqtgraph
-                      pip3 install .
                       pyinstaller asammdf_noconsole.spec
                   fi
                   
