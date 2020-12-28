@@ -3,10 +3,7 @@ python:
   - "3.6"
 # command to install dependencies
 install:
-  - pip install coveralls
-  - pip install -r doc/requirements.txt
-  - pip install -r test/requirements.txt
-  - travis_retry pip install coveralls
+  - pip install . -r test/requirements.txt -r doc/requirements.txt coverage coveralls
 # command to run tests
 script:
   - set -e
