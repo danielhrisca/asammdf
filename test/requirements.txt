@@ -1,5 +1,3 @@
 numexpr
 numpy>=1.16.1
 pandas
-pytest
-xmlrunner
