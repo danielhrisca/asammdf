@@ -2,5 +2,4 @@ matplotlib
 numpydoc
 sphinx
 sphinx-argparse
-sphinx-autobuild
 sphinx-rtd-theme
