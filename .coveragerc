@@ -1,2 +1,2 @@
 [run]
-omit = asamdmf/gui/*
+omit = asammdf/gui/*
