@@ -11,8 +11,7 @@ install:
 script:
   - set -e
   - python --version
-  - python -m coverage run --source=asammdf --omit="asammdf/gui/*" test/run_all.py
-  - python -m coverage xml
+  - python -m pytest -vv -k --disable-pytest-warnings --cov-config=.coveragerc --cov-report xml:coverage.xml --cov=asammdf/ test/
   - python -m sphinx -nW -b html documentation documentation/_build/html
 
 after_success:

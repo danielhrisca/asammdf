@@ -1,5 +1,3 @@
-xmlrunner
-coverage
 codacy-coverage
 numpy>=1.16.1
 sphinx_rtd_theme
@@ -12,3 +10,4 @@ lxml
 cChardet==2.1.5
 lz4
 pytest
+pytest-cov
