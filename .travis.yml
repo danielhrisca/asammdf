@@ -11,7 +11,7 @@ install:
 script:
   - set -e
   - python --version
-  - python -m pytest -vv --disable-pytest-warnings --cov-config=.coveragerc --cov-report xml:coverage.xml --cov=asammdf/ test/
+  - python -m pytest -vv --color=yes --disable-pytest-warnings --cov-config=.coveragerc --cov-report xml:coverage.xml --cov=asammdf/ test/
   - python -m sphinx -nW -b html documentation documentation/_build/html
 
 after_success:
