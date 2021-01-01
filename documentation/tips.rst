@@ -28,6 +28,11 @@ of channels found in the selection iterable will be preserved after loading the 
 speed improvement for loading the file, but also when performing operations with the MDF object (for example
 ``select``, ``get``, etc.).
 
+.. code-block:: python
+
+    required_channels = ["Speed", "Acceleration", "Force"]
+    mdf = MDF("input.mf4", channels=required_channels)
+
 
 Data coupling
 =============

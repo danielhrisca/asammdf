@@ -3465,7 +3465,7 @@ class MDF:
         dataframe : pandas.DataFrame
 
         """
-        if channels:
+        if channels is not None:
             mdf = self.filter(channels)
 
             result = mdf.to_dataframe(
