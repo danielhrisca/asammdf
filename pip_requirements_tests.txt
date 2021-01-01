@@ -11,3 +11,7 @@ cChardet==2.1.5
 lz4
 pytest
 pytest-cov
+pyaml
+xlsxwriter
+xlrd
+xlwt
