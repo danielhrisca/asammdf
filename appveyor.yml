@@ -84,6 +84,7 @@ for:
               
               if (($Env:APPVEYOR_REPO_BRANCH -eq $Env:EXE_BRANCH) -and ($PY -eq "C:\\Python37-x64")) {
                   & "$PY\\python.exe" -m pip install -e .[decode,gui] --no-warn-script-location
+                  & "$PY\\python.exe" -m pip install pyinstaller --no-warn-script-location
                   & "$PY\\Scripts\\pyinstaller" asammdf_noconsole.spec
                   $src = "dist\\asammdfgui.exe"
                   $dst = "dist\\asammdfgui_noconsole.exe"
@@ -141,6 +142,7 @@ for:
                   
                   if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH && $PY == "venv3.7" ]] ; then
                       pip3 install -e .[decode,gui]
+                      pip3 install pyinstaller
                       pyinstaller asammdf_noconsole.spec
                   fi
                   
@@ -191,12 +193,6 @@ for:
                   pip3 install -e .
                   pip3 install -r test/requirements.txt
                   
-                  if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH && $PY == "venv3.7" ]] ; then
-                      pip3 install -e .[decode,gui]
-                      pyinstaller asammdf_noconsole.spec
-                  fi
-                  
-                  deactivate
               done
 
     test_script:
@@ -245,6 +241,7 @@ for:
                   
                   if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH && $PY == "venv3.7" ]] ; then
                       pip3 install -e .[decode,gui]
+                      pip3 install pyinstaller
                       pyinstaller asammdf_noconsole.spec
                   fi
                   
