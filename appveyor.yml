@@ -40,7 +40,7 @@ for:
               
               if (($Env:APPVEYOR_REPO_BRANCH -eq $Env:EXE_BRANCH) -and ($PY -eq "C:\\Python37-x64")) {
                   & "$PY\\python.exe" -m pip install h5py --no-warn-script-location
-                  & "$PY\\python.exe" -m pip install pylzma PyQt5 xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet psutil pyinstaller pyqtgraph --no-warn-script-location
+                  & "$PY\\python.exe" -m pip install natsort pylzma PyQt5 xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet psutil pyinstaller pyqtgraph --no-warn-script-location
                     
                   & "$PY\\Scripts\\pyinstaller" asammdf_noconsole.spec
                   $src = "dist\\asammdfgui.exe"
@@ -120,7 +120,7 @@ for:
                   pip3 install .
                   pip3 install -r test/requirements.txt pytest
                   if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH && $PY == "venv3.7" ]] ; then
-                      pip3 install pylzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet psutil pyinstaller pyqtgraph
+                      pip3 install natsort pylzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet psutil pyinstaller pyqtgraph
                       pyinstaller asammdf_noconsole.spec
                   fi
                   
@@ -172,7 +172,7 @@ for:
                   pip3 install .
                   pip3 install -r test/requirements.txt pytest
                   if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH && $PY == "venv3.7" ]] ; then
-                      pip3 install pylzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet psutil pyinstaller pyqtgraph
+                      pip3 install natsort pylzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet psutil pyinstaller pyqtgraph
                       pyinstaller asammdf_noconsole.spec
                   fi
                   
