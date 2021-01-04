@@ -11,6 +11,7 @@ environment:
     - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
 
     - APPVEYOR_BUILD_WORKER_IMAGE: macos
+    - APPVEYOR_BUILD_WORKER_IMAGE: macos-mojave
 
 for:
   - matrix:
@@ -150,6 +151,7 @@ for:
   - matrix:
       only:
         - APPVEYOR_BUILD_WORKER_IMAGE: macos
+        - APPVEYOR_BUILD_WORKER_IMAGE: macos-mojave
 
     build: off
 
