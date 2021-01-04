@@ -27,6 +27,7 @@ jobs:
         pip install pytest pytest-cov
         pip install wheel numpy lz4 canmatrix pandas numexpr cChardet==2.1.5 natsort
         pip install .
+        ls -l asammdf/blocks
         
     - name: Test with pytest
       run: |
