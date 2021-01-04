@@ -104,6 +104,11 @@ setup(
             "psutil",
             "PyQt5>=5.13.1",
             "pyqtgraph>=0.11.0",
+            "h5py",
+            "fastparquet",
+            "scipy",
+            "hdf5storage",
+            "snappy",
         ],
     },
     # If there are data files included in your packages that need to be

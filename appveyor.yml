@@ -3,20 +3,14 @@ environment:
 
   matrix:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-      WINDOWS_DRY: true
-
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-      WINDOWS_DRY: false
-
     - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
-
     - APPVEYOR_BUILD_WORKER_IMAGE: macos
     - APPVEYOR_BUILD_WORKER_IMAGE: macos-mojave
 
 for:
   - matrix:
       only:
-        - WINDOWS_DRY: false
+        - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
 
     install:
       - ps: >-
@@ -34,14 +28,12 @@ for:
               & "$PY\\python.exe" -m pip install --upgrade setuptools --no-warn-script-location
               & "$PY\\python.exe" -m pip install wheel --no-warn-script-location
               & "$PY\\python.exe" -m pip install numpy --no-warn-script-location
-              & "$PY\\python.exe" -m pip install . --no-warn-script-location
+              & "$PY\\python.exe" -m pip install -e .[decode,gui] --no-warn-script-location
               
-              & "$PY\\python.exe" -m pip install -r test/requirements.txt pytest --no-warn-script-location
+              & "$PY\\python.exe" -m pip install -r test/requirements.txt --no-warn-script-location
               
               if (($Env:APPVEYOR_REPO_BRANCH -eq $Env:EXE_BRANCH) -and ($PY -eq "C:\\Python37-x64")) {
-                  & "$PY\\python.exe" -m pip install h5py --no-warn-script-location
-                  & "$PY\\python.exe" -m pip install natsort pylzma PyQt5 xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet psutil pyinstaller pyqtgraph --no-warn-script-location
-                    
+ 
                   & "$PY\\Scripts\\pyinstaller" asammdf_noconsole.spec
                   $src = "dist\\asammdfgui.exe"
                   $dst = "dist\\asammdfgui_noconsole.exe"
@@ -68,34 +60,11 @@ for:
 
           foreach ($PY in $PYVERSION)
           {
-              & "$PY\\python.exe" -Wignore setup.py bdist_wheel
+              & "$PY\\python.exe" -Wignore setup.py bdist_wheel sdist
           }
 
     artifacts:
       - path: dist\*
-
-  - matrix:
-      only:
-        - WINDOWS_DRY: true
-
-    install:
-      - ps: >-
-
-          $PYVERSION = @("C:\\Python36","C:\\Python36-x64","C:\\Python37","C:\\Python37-x64","C:\\Python38","C:\\Python38-x64")
-
-          foreach ($PY in $PYVERSION)
-          {
-              echo "====================================================================="
-              echo "Python version $PY"
-              echo "====================================================================="
-              
-              & "$PY\\python.exe" -m pip install --upgrade pip --no-warn-script-location
-              & "$PY\\python.exe" -m pip install --upgrade setuptools --no-warn-script-location
-              & "$PY\\python.exe" -m pip install wheel --no-warn-script-location
-              & "$PY\\python.exe" -m pip install . --no-warn-script-location
-          }
-
-    build: off
 
   - matrix:
       only:
@@ -117,10 +86,10 @@ for:
                   pip3 install --upgrade setuptools
                   pip3 install wheel
                   pip3 install numpy
-                  pip3 install .
-                  pip3 install -r test/requirements.txt pytest
+                  pip3 install -e .[decode,gui]
+                  pip3 install -r test/requirements.txt 
+                  
                   if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH && $PY == "venv3.7" ]] ; then
-                      pip3 install natsort pylzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet psutil pyinstaller pyqtgraph
                       pyinstaller asammdf_noconsole.spec
                   fi
                   
@@ -169,10 +138,10 @@ for:
                   pip3 install --upgrade setuptools
                   pip3 install wheel
                   pip3 install numpy
-                  pip3 install .
-                  pip3 install -r test/requirements.txt pytest
+                  pip3 install -e .[decode,gui]
+                  pip3 install -r test/requirements.txt
+                  
                   if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH && $PY == "venv3.7" ]] ; then
-                      pip3 install natsort pylzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet psutil pyinstaller pyqtgraph
                       pyinstaller asammdf_noconsole.spec
                   fi
                   
