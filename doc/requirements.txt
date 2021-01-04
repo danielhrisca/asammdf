@@ -3,3 +3,8 @@ numpydoc
 sphinx
 sphinx-argparse
 sphinx-rtd-theme
+# canmatrix ImportError workaround
+PyYAML
+xlrd
+XlsxWriter
+xlwt
