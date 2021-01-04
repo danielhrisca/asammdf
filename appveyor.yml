@@ -3,11 +3,61 @@ environment:
 
   matrix:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
     - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
     - APPVEYOR_BUILD_WORKER_IMAGE: macos
     - APPVEYOR_BUILD_WORKER_IMAGE: macos-mojave
 
 for:
+  - matrix:
+      only:
+        - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+
+    install:
+      - ps: >-
+          $Env:LLVM_DIR="C:\Program Files\LLVM\bin"
+
+          $PYVERSION = @("C:\\Python39","C:\\Python39-x64")
+
+          foreach ($PY in $PYVERSION)
+          {
+              echo "====================================================================="
+              echo "Python version $PY"
+              echo "====================================================================="
+              
+              & "$PY\\python.exe" -m pip install --upgrade pip --no-warn-script-location
+              & "$PY\\python.exe" -m pip install --upgrade setuptools --no-warn-script-location
+              & "$PY\\python.exe" -m pip install wheel --no-warn-script-location
+              & "$PY\\python.exe" -m pip install numpy --no-warn-script-location
+              & "$PY\\python.exe" -m pip install -e . --no-warn-script-location
+              
+              & "$PY\\python.exe" -m pip install -r test/requirements.txt --no-warn-script-location
+              
+          }
+
+    build: off
+
+    test_script:
+      - ps: >-
+          $PYVERSION = @("C:\\Python39","C:\\Python39-x64")
+
+          foreach ($PY in $PYVERSION)
+          {
+              & "$PY\\Scripts\\pytest" test --color=yes --disable-pytest-warnings -vv -x
+          }
+
+    after_test:
+      - ps: >-
+          $PYVERSION = @("C:\\Python39","C:\\Python39-x64")
+
+          foreach ($PY in $PYVERSION)
+          {
+              & "$PY\\python.exe" -Wignore setup.py bdist_wheel sdist
+          }
+
+    artifacts:
+      - path: dist\*
+      
   - matrix:
       only:
         - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
@@ -74,7 +124,7 @@ for:
 
     install:
       - sh: >-
-          for PY in venv3.6 venv3.7 venv3.8
+          for PY in venv3.6 venv3.7 venv3.8 venv3.9
               do
                   echo "====================================================================="
                   echo "Python version $PY"
@@ -99,7 +149,7 @@ for:
 
     test_script:
       - sh: >-
-          for PY in venv3.6 venv3.7 venv3.8
+          for PY in venv3.6 venv3.7 venv3.8 venv3.9
               do
                   source $HOME/$PY/bin/activate
                   pytest test --color=yes --disable-pytest-warnings -vv -x
@@ -108,7 +158,7 @@ for:
 
     after_test:
       - sh: >-
-          for PY in venv3.6 venv3.7 venv3.8
+          for PY in venv3.6 venv3.7 venv3.8 venv3.9
               do
                   source $HOME/$PY/bin/activate
                   python3 setup.py bdist_wheel
@@ -126,7 +176,7 @@ for:
 
     install:
       - sh: >-
-          for PY in venv3.6 venv3.7 venv3.8
+          for PY in venv3.6 venv3.7 venv3.8 venv3.9
               do
                   echo "====================================================================="
                   echo "Python version $PY"
@@ -151,7 +201,7 @@ for:
 
     test_script:
       - sh: >-
-          for PY in venv3.6 venv3.7 venv3.8
+          for PY in venv3.6 venv3.7 venv3.8 venv3.9
               do
                   source ~/$PY/bin/activate
                   pytest test --color=yes --disable-pytest-warnings -vv -x
@@ -160,7 +210,7 @@ for:
 
     after_test:
       - sh: >-
-          for PY in venv3.6 venv3.7 venv3.8
+          for PY in venv3.6 venv3.7 venv3.8 venv3.9
               do
                   source ~/$PY/bin/activate
                   python3 setup.py bdist_wheel
@@ -178,7 +228,7 @@ for:
 
     install:
       - sh: >-
-          for PY in venv3.6 venv3.7 venv3.8
+          for PY in venv3.6 venv3.7 venv3.8 venv3.9
               do
                   echo "====================================================================="
                   echo "Python version $PY"
@@ -203,7 +253,7 @@ for:
 
     test_script:
       - sh: >-
-          for PY in venv3.6 venv3.7 venv3.8
+          for PY in venv3.6 venv3.7 venv3.8 venv3.9
               do
                   source ~/$PY/bin/activate
                   pytest test --color=yes --disable-pytest-warnings -vv -x
@@ -212,7 +262,7 @@ for:
 
     after_test:
       - sh: >-
-          for PY in venv3.6 venv3.7 venv3.8
+          for PY in venv3.6 venv3.7 venv3.8 venv3.9
               do
                   source ~/$PY/bin/activate
                   python3 setup.py bdist_wheel
