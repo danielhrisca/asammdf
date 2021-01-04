@@ -170,7 +170,7 @@ for:
     artifacts:
       - path: dist\*
       
-- matrix:
+  - matrix:
       only:
         - APPVEYOR_BUILD_WORKER_IMAGE: macos
 
