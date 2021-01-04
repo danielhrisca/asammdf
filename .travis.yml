@@ -3,13 +3,12 @@ python:
   - "3.6"
 # command to install dependencies
 install:
-  - pip install . -r test/requirements.txt -r doc/requirements.txt xmlrunner coverage coveralls
+  - pip install . -r test/requirements.txt -r doc/requirements.txt pytest pytest-cov coveralls
 # command to run tests
 script:
   - set -e
   - python --version
-  - python -m coverage run --source=asammdf --omit="asammdf/gui/*" test/run_all.py
-  - python -m coverage xml
+  - python -m pytest -vv --color=yes --disable-pytest-warnings --cov-config=.coveragerc --cov-report xml:coverage.xml --cov=asammdf/ test/
   - python -m sphinx -nW -b html doc doc/_build/html
 
 after_success:
