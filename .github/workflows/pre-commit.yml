@@ -26,6 +26,7 @@ jobs:
         python -m pip install --upgrade pip setuptools wheel
         pip install pytest pytest-cov
         pip install wheel numpy lz4 canmatrix pandas numexpr cChardet==2.1.5 natsort
+        python setup.py build_ext --inplace
         
     - name: Test with pytest
       run: |
