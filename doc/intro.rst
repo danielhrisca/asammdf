@@ -110,6 +110,12 @@ Installation
        pip install asammdf
        # or for anaconda
        conda install -c conda-forge asammdf
+       
+In case a wheel is not present for you OS/Python versions and you
+lack the proper compiler setup to compile the c-extension code, then
+you can simply copy-paste the pacakge code to your site-packages. In this 
+way the python fallback code will be used instead of the compiled c-extension code.
+
 
 Contributing & Support
 ======================
