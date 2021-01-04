@@ -130,6 +130,7 @@ try:
 #    for now avoid usign the cextension code
 #    2/0
 except:
+    2/0 
 
     def extract(signal_data, is_byte_array, offsets=()):
         #        offsets_ = set(offsets)

@@ -30,4 +30,4 @@ jobs:
         
     - name: Test with pytest
       run: |
-        pytest test --color=yes --disable-pytest-warnings -vv -x
+        pytest test --color=yes --disable-pytest-warnings -v
