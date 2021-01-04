@@ -1,9 +1,0 @@
-numpydoc
-numexpr
-numpy
-pandas
-matplotlib
-wheel
-sphinx-argparse
-sphinx_autobuild
-sphinx_rtd_theme

@@ -193,7 +193,7 @@ class Channel:
                         self.additional_byte_offset,
                     ) = CHANNEL_DISPLAYNAME_uf(stream, address)
 
-                    parsed_strings = kwargs['parsed_strings']
+                    parsed_strings = kwargs["parsed_strings"]
 
                     if parsed_strings is None:
 
@@ -203,7 +203,9 @@ class Channel:
                                 address=addr, stream=stream, mapped=mapped
                             )
                         else:
-                            self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+                            self.name = self.short_name.decode("latin-1").strip(
+                                " \t\n\r\0"
+                            )
 
                         addr = self.display_name_addr
                         if addr:
@@ -236,7 +238,7 @@ class Channel:
                         self.long_name_addr,
                     ) = CHANNEL_LONGNAME_uf(stream, address)
 
-                    parsed_strings = kwargs['parsed_strings']
+                    parsed_strings = kwargs["parsed_strings"]
 
                     if parsed_strings is None:
 
@@ -246,7 +248,9 @@ class Channel:
                                 address=addr, stream=stream, mapped=mapped
                             )
                         else:
-                            self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+                            self.name = self.short_name.decode("latin-1").strip(
+                                " \t\n\r\0"
+                            )
 
                     else:
                         self.name, self.display_name = parsed_strings
@@ -362,7 +366,7 @@ class Channel:
                         self.additional_byte_offset,
                     ) = CHANNEL_DISPLAYNAME_u(block)
 
-                    parsed_strings = kwargs['parsed_strings']
+                    parsed_strings = kwargs["parsed_strings"]
 
                     if parsed_strings is None:
 
@@ -372,7 +376,9 @@ class Channel:
                                 address=addr, stream=stream, mapped=mapped
                             )
                         else:
-                            self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+                            self.name = self.short_name.decode("latin-1").strip(
+                                " \t\n\r\0"
+                            )
 
                         addr = self.display_name_addr
                         if addr:
@@ -405,7 +411,7 @@ class Channel:
                         self.long_name_addr,
                     ) = CHANNEL_LONGNAME_u(block)
 
-                    parsed_strings = kwargs['parsed_strings']
+                    parsed_strings = kwargs["parsed_strings"]
 
                     if parsed_strings is None:
 
@@ -415,7 +421,9 @@ class Channel:
                                 address=addr, stream=stream, mapped=mapped
                             )
                         else:
-                            self.name = self.short_name.decode("latin-1").strip(" \t\n\r\0")
+                            self.name = self.short_name.decode("latin-1").strip(
+                                " \t\n\r\0"
+                            )
 
                     else:
                         self.name, self.display_name = parsed_strings

@@ -273,15 +273,11 @@ def sanitize_xml(text):
 
 def extract_display_name(comment):
     try:
-        display_name = ET.fromstring(sanitize_xml(comment)).find(
-            ".//names/display"
-        )
+        display_name = ET.fromstring(sanitize_xml(comment)).find(".//names/display")
         if display_name is not None:
             display_name = display_name.text or ""
         else:
-            display_name = ET.fromstring(sanitize_xml(comment)).find(
-                ".//names/name"
-            )
+            display_name = ET.fromstring(sanitize_xml(comment)).find(".//names/name")
             if display_name is not None:
                 display_name = display_name.text or ""
             else:

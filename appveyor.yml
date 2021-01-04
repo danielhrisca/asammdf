@@ -1,118 +1,107 @@
-
 environment:
   EXE_BRANCH: "master"
 
   matrix:
-    
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       WINDOWS_DRY: true
-        
+
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
       WINDOWS_DRY: false
-    
+
     - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
-      
+
     - APPVEYOR_BUILD_WORKER_IMAGE: macos
 
-for: 
-
-  -
-    matrix:
+for:
+  - matrix:
       only:
         - WINDOWS_DRY: false
-        
+
     install:
-
       - ps: >-
-            $Env:LLVM_DIR="C:\Program Files\LLVM\bin"
-            
-            $PYVERSION = @("C:\\Python36","C:\\Python36-x64","C:\\Python37","C:\\Python37-x64","C:\\Python38","C:\\Python38-x64")
-            
-            foreach ($PY in $PYVERSION)
-            {
-                echo "====================================================================="
-                echo "Python version $PY"
-                echo "====================================================================="
-                
-                & "$PY\\python.exe" -m pip install --upgrade pip --no-warn-script-location
-                & "$PY\\python.exe" -m pip install --upgrade setuptools --no-warn-script-location
-                & "$PY\\python.exe" -m pip install wheel --no-warn-script-location
-                & "$PY\\python.exe" -m pip install numpy --no-warn-script-location
-                
-                & "$PY\\python.exe" -m pip install -r pip_requirements_tests.txt --no-warn-script-location
-                
-                if (($Env:APPVEYOR_REPO_BRANCH -eq $Env:EXE_BRANCH) -and ($PY -eq "C:\\Python37-x64")) {
-                    & "$PY\\python.exe" -m pip install h5py --no-warn-script-location
-                    & "$PY\\python.exe" -m pip install pylzma PyQt5 xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet psutil pyinstaller pyqtgraph --no-warn-script-location
-                    & "$PY\\python.exe" -m pip install . --no-warn-script-location
-                      
-                    & "$PY\\Scripts\\pyinstaller" asammdf_noconsole.spec
-                    $src = "dist\\asammdfgui.exe"
-                    $dst = "dist\\asammdfgui_noconsole.exe"
-                    Move-Item -Path $src -Destination $dst
+          $Env:LLVM_DIR="C:\Program Files\LLVM\bin"
+
+          $PYVERSION = @("C:\\Python36","C:\\Python36-x64","C:\\Python37","C:\\Python37-x64","C:\\Python38","C:\\Python38-x64")
+
+          foreach ($PY in $PYVERSION)
+          {
+              echo "====================================================================="
+              echo "Python version $PY"
+              echo "====================================================================="
+              
+              & "$PY\\python.exe" -m pip install --upgrade pip --no-warn-script-location
+              & "$PY\\python.exe" -m pip install --upgrade setuptools --no-warn-script-location
+              & "$PY\\python.exe" -m pip install wheel --no-warn-script-location
+              & "$PY\\python.exe" -m pip install numpy --no-warn-script-location
+              & "$PY\\python.exe" -m pip install . --no-warn-script-location
+              
+              & "$PY\\python.exe" -m pip install -r test/requirements.txt pytest --no-warn-script-location
+              
+              if (($Env:APPVEYOR_REPO_BRANCH -eq $Env:EXE_BRANCH) -and ($PY -eq "C:\\Python37-x64")) {
+                  & "$PY\\python.exe" -m pip install h5py --no-warn-script-location
+                  & "$PY\\python.exe" -m pip install pylzma PyQt5 xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet psutil pyinstaller pyqtgraph --no-warn-script-location
                     
-                    & "$PY\\Scripts\\pyinstaller" asammdf.spec
-                }
-            }   
-      
-    build : off
-    
+                  & "$PY\\Scripts\\pyinstaller" asammdf_noconsole.spec
+                  $src = "dist\\asammdfgui.exe"
+                  $dst = "dist\\asammdfgui_noconsole.exe"
+                  Move-Item -Path $src -Destination $dst
+                  
+                  & "$PY\\Scripts\\pyinstaller" asammdf.spec
+              }
+          }
+
+    build: off
+
     test_script:
-    
       - ps: >-
-            $PYVERSION = @("C:\\Python36","C:\\Python36-x64","C:\\Python37","C:\\Python37-x64","C:\\Python38","C:\\Python38-x64")
-            
-            foreach ($PY in $PYVERSION)
-            {
-                & "$PY\\Scripts\\pytest" test --disable-pytest-warnings -vv -x
-            }
-      
+          $PYVERSION = @("C:\\Python36","C:\\Python36-x64","C:\\Python37","C:\\Python37-x64","C:\\Python38","C:\\Python38-x64")
+
+          foreach ($PY in $PYVERSION)
+          {
+              & "$PY\\Scripts\\pytest" test --color=yes --disable-pytest-warnings -vv -x
+          }
+
     after_test:
-
       - ps: >-
-            $PYVERSION = @("C:\\Python36","C:\\Python36-x64","C:\\Python37","C:\\Python37-x64","C:\\Python38","C:\\Python38-x64")
-            
-            foreach ($PY in $PYVERSION)
-            {
-                & "$PY\\python.exe" -Wignore setup.py bdist_wheel
-            }
-      
-    artifacts:
+          $PYVERSION = @("C:\\Python36","C:\\Python36-x64","C:\\Python37","C:\\Python37-x64","C:\\Python38","C:\\Python38-x64")
 
+          foreach ($PY in $PYVERSION)
+          {
+              & "$PY\\python.exe" -Wignore setup.py bdist_wheel
+          }
+
+    artifacts:
       - path: dist\*
-      
-  -
-    matrix:
+
+  - matrix:
       only:
         - WINDOWS_DRY: true
-        
-    install:
 
+    install:
       - ps: >-
-            
-            $PYVERSION = @("C:\\Python36","C:\\Python36-x64","C:\\Python37","C:\\Python37-x64","C:\\Python38","C:\\Python38-x64")
-            
-            foreach ($PY in $PYVERSION)
-            {
-                echo "====================================================================="
-                echo "Python version $PY"
-                echo "====================================================================="
-                
-                & "$PY\\python.exe" -m pip install --upgrade pip --no-warn-script-location
-                & "$PY\\python.exe" -m pip install --upgrade setuptools --no-warn-script-location
-                & "$PY\\python.exe" -m pip install wheel --no-warn-script-location
-                & "$PY\\python.exe" -m pip install . --no-warn-script-location
-            }   
-      
-    build : off
-      
-  -
-    matrix:
+
+          $PYVERSION = @("C:\\Python36","C:\\Python36-x64","C:\\Python37","C:\\Python37-x64","C:\\Python38","C:\\Python38-x64")
+
+          foreach ($PY in $PYVERSION)
+          {
+              echo "====================================================================="
+              echo "Python version $PY"
+              echo "====================================================================="
+              
+              & "$PY\\python.exe" -m pip install --upgrade pip --no-warn-script-location
+              & "$PY\\python.exe" -m pip install --upgrade setuptools --no-warn-script-location
+              & "$PY\\python.exe" -m pip install wheel --no-warn-script-location
+              & "$PY\\python.exe" -m pip install . --no-warn-script-location
+          }
+
+    build: off
+
+  - matrix:
       only:
         - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
-        
-    build : off
-        
+
+    build: off
+
     install:
       - sh: >-
           for PY in venv3.6 venv3.7 venv3.8
@@ -127,10 +116,10 @@ for:
                   pip3 install --upgrade setuptools
                   pip3 install wheel
                   pip3 install numpy
-                  pip3 install -r pip_requirements_tests.txt
+                  pip3 install .
+                  pip3 install -r test/requirements.txt pytest
                   if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH && $PY == "venv3.7" ]] ; then
                       pip3 install pylzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet psutil pyinstaller pyqtgraph
-                      pip3 install .
                       pyinstaller asammdf_noconsole.spec
                   fi
                   
@@ -138,17 +127,15 @@ for:
               done
 
     test_script:
-
       - sh: >-
           for PY in venv3.6 venv3.7 venv3.8
               do
                   source $HOME/$PY/bin/activate
-                  pytest test --disable-pytest-warnings -vv -x
+                  pytest test --color=yes --disable-pytest-warnings -vv -x
                   deactivate
               done
-      
-    after_test:
 
+    after_test:
       - sh: >-
           for PY in venv3.6 venv3.7 venv3.8
               do
@@ -156,20 +143,17 @@ for:
                   python3 setup.py bdist_wheel
                   deactivate
               done
-      
+
     artifacts:
-    
       - path: dist\*
-      
-  -
-    matrix:
+
+  - matrix:
       only:
         - APPVEYOR_BUILD_WORKER_IMAGE: macos
-        
-    build : off
+
+    build: off
 
     install:
-
       - sh: >-
           for PY in venv3.6 venv3.7 venv3.8
               do
@@ -183,28 +167,26 @@ for:
                   pip3 install --upgrade setuptools
                   pip3 install wheel
                   pip3 install numpy
-                  pip3 install -r pip_requirements_tests.txt
+                  pip3 install .
+                  pip3 install -r test/requirements.txt pytest
                   if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH && $PY == "venv3.7" ]] ; then
                       pip3 install pylzma PyQt5 h5py xlrd xlwt pyaml xlsxwriter scipy hdf5storage fastparquet psutil pyinstaller pyqtgraph
-                      pip3 install .
                       pyinstaller asammdf_noconsole.spec
                   fi
                   
                   deactivate
               done
-      
-    test_script:
 
+    test_script:
       - sh: >-
           for PY in venv3.6 venv3.7 venv3.8
               do
                   source ~/$PY/bin/activate
-                  pytest test --disable-pytest-warnings -vv -x
+                  pytest test --color=yes --disable-pytest-warnings -vv -x
                   deactivate
               done
-      
-    after_test:
 
+    after_test:
       - sh: >-
           for PY in venv3.6 venv3.7 venv3.8
               do
@@ -212,7 +194,6 @@ for:
                   python3 setup.py bdist_wheel
                   deactivate
               done
-      
+
     artifacts:
-    
       - path: dist\*
