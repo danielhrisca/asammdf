@@ -29,7 +29,7 @@ for:
               & "$PY\\python.exe" -m pip install --upgrade setuptools --no-warn-script-location
               & "$PY\\python.exe" -m pip install wheel --no-warn-script-location
               & "$PY\\python.exe" -m pip install numpy --no-warn-script-location
-              & "$PY\\python.exe" -m pip install -e . --no-warn-script-location
+              & "$PY\\python.exe" -m pip install . --no-warn-script-location
               
               & "$PY\\python.exe" -m pip install -r test/requirements.txt --no-warn-script-location
               
@@ -78,12 +78,12 @@ for:
               & "$PY\\python.exe" -m pip install --upgrade setuptools --no-warn-script-location
               & "$PY\\python.exe" -m pip install wheel --no-warn-script-location
               & "$PY\\python.exe" -m pip install numpy --no-warn-script-location
-              & "$PY\\python.exe" -m pip install -e . --no-warn-script-location
-              
+  
               & "$PY\\python.exe" -m pip install -r test/requirements.txt --no-warn-script-location
               
               if (($Env:APPVEYOR_REPO_BRANCH -eq $Env:EXE_BRANCH) -and ($PY -eq "C:\\Python37-x64")) {
-                  & "$PY\\python.exe" -m pip install -e .[decode,gui] --no-warn-script-location
+                  & "$PY\\python.exe" -m pip install lxml natsort psutil PyQt5>=5.13.1 pyqtgraph>=0.11.0 h5py fastparquet scipy hdf5storage snappy cChardet==2.1.5 chardet --no-warn-script-location
+                  & "$PY\\python.exe" -m pip install . --no-warn-script-location
                   & "$PY\\python.exe" -m pip install pyinstaller --no-warn-script-location
                   & "$PY\\Scripts\\pyinstaller" asammdf_noconsole.spec
                   $src = "dist\\asammdfgui.exe"
@@ -91,6 +91,8 @@ for:
                   Move-Item -Path $src -Destination $dst
                   
                   & "$PY\\Scripts\\pyinstaller" asammdf.spec
+              } else {
+                  & "$PY\\python.exe" -m pip install . --no-warn-script-location
               }
           }
 
@@ -140,10 +142,14 @@ for:
                   pip3 install -e .
                   pip3 install -r test/requirements.txt 
                   
-                  if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH && $PY == "venv3.7" ]] ; then
-                      pip3 install -e .[decode,gui]
+                  if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH && $PY == "venv3.7" ]]
+                  then
+                      pip install lxml natsort psutil PyQt5>=5.13.1 pyqtgraph>=0.11.0 h5py fastparquet scipy hdf5storage snappy cChardet==2.1.5 chardet --no-warn-script-location
+                      pip3 install .
                       pip3 install pyinstaller
                       pyinstaller asammdf_noconsole.spec
+                  else
+                      pip3 install .
                   fi
                   
                   deactivate
@@ -190,7 +196,7 @@ for:
                   pip3 install --upgrade setuptools
                   pip3 install wheel
                   pip3 install numpy
-                  pip3 install -e .
+                  pip3 install .
                   pip3 install -r test/requirements.txt
                   
               done
@@ -236,13 +242,16 @@ for:
                   pip3 install --upgrade setuptools
                   pip3 install wheel
                   pip3 install numpy
-                  pip3 install -e .
                   pip3 install -r test/requirements.txt
                   
-                  if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH && $PY == "venv3.7" ]] ; then
-                      pip3 install -e .[decode,gui]
+                  if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH && $PY == "venv3.7" ]]
+                  then
+                      pip3 install lxml natsort psutil PyQt5>=5.13.1 pyqtgraph>=0.11.0 h5py fastparquet scipy hdf5storage snappy cChardet==2.1.5 chardet --no-warn-script-location
+                      pip3 install .
                       pip3 install pyinstaller
                       pyinstaller asammdf_noconsole.spec
+                  else
+                      pip3 install .
                   fi
                   
                   deactivate
