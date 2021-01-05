@@ -82,7 +82,7 @@ for:
               & "$PY\\python.exe" -m pip install -r test/requirements.txt --no-warn-script-location
               
               if (($Env:APPVEYOR_REPO_BRANCH -eq $Env:EXE_BRANCH) -and ($PY -eq "C:\\Python37-x64")) {
-                  & "$PY\\python.exe" -m pip install lxml natsort psutil PyQt5>=5.13.1 pyqtgraph>=0.11.0 h5py fastparquet scipy hdf5storage snappy cChardet==2.1.5 chardet --no-warn-script-location
+                  & "$PY\\python.exe" -m pip install lxml natsort psutil PyQt5>=5.13.1 pyqtgraph==0.11.0 h5py fastparquet scipy hdf5storage snappy cChardet==2.1.5 chardet --no-warn-script-location
                   & "$PY\\python.exe" -m pip install . --no-warn-script-location
                   & "$PY\\python.exe" -m pip install pyinstaller --no-warn-script-location
                   & "$PY\\Scripts\\pyinstaller" asammdf_noconsole.spec
@@ -144,7 +144,7 @@ for:
                   
                   if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH && $PY == "venv3.7" ]]
                   then
-                      pip install lxml natsort psutil PyQt5>=5.13.1 pyqtgraph>=0.11.0 h5py fastparquet scipy hdf5storage snappy cChardet==2.1.5 chardet --no-warn-script-location
+                      pip install lxml natsort psutil PyQt5>=5.13.1 pyqtgraph==0.11.0 h5py fastparquet scipy hdf5storage snappy cChardet==2.1.5 chardet --no-warn-script-location
                       pip3 install .
                       pip3 install pyinstaller
                       pyinstaller asammdf_noconsole.spec
@@ -246,7 +246,7 @@ for:
                   
                   if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH && $PY == "venv3.7" ]]
                   then
-                      pip3 install lxml natsort psutil PyQt5>=5.13.1 pyqtgraph>=0.11.0 h5py fastparquet scipy hdf5storage snappy cChardet==2.1.5 chardet --no-warn-script-location
+                      pip3 install lxml natsort psutil PyQt5>=5.13.1 pyqtgraph==0.11.0 h5py fastparquet scipy hdf5storage snappy cChardet==2.1.5 chardet --no-warn-script-location
                       pip3 install .
                       pip3 install pyinstaller
                       pyinstaller asammdf_noconsole.spec

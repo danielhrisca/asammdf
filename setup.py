@@ -103,7 +103,7 @@ setup(
             "natsort",
             "psutil",
             "PyQt5>=5.13.1",
-            "pyqtgraph>=0.11.0",
+            "pyqtgraph==0.11.0",
             "h5py",
             "fastparquet",
             "scipy",
