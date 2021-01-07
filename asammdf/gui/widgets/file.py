@@ -1463,6 +1463,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             # then save it
             progress.setLabelText(f'Saving file to "{file_name}"')
 
+            mdf.configure(integer_interpolation=self.mdf._integer_interpolation)
+
             target = mdf.export
             kwargs = {
                 "fmt": "csv",
@@ -1904,6 +1906,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         mdf = None
         progress = None
+        integer_interpolation = self.mdf._integer_interpolation
 
         if needs_filter:
 
@@ -1936,7 +1939,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             else:
                 mdf = result
 
-            mdf.configure(read_fragment_size=split_size, write_fragment_size=split_size)
+            mdf.configure(
+                read_fragment_size=split_size,
+                write_fragment_size=split_size,
+                integer_interpolation=integer_interpolation,
+            )
 
         if opts.needs_cut:
 
@@ -1987,7 +1994,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     mdf.close()
                     mdf = result
 
-            mdf.configure(read_fragment_size=split_size, write_fragment_size=split_size)
+            mdf.configure(
+                read_fragment_size=split_size,
+                write_fragment_size=split_size,
+                integer_interpolation=integer_interpolation,
+            )
 
         if opts.needs_resample:
 
@@ -2041,7 +2052,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     mdf.close()
                     mdf = result
 
-            mdf.configure(read_fragment_size=split_size, write_fragment_size=split_size)
+            mdf.configure(
+                read_fragment_size=split_size,
+                write_fragment_size=split_size,
+                integer_interpolation=integer_interpolation,
+            )
 
         if output_format == "MDF":
             if mdf is None:
@@ -2084,7 +2099,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 else:
                     mdf = result
 
-            mdf.configure(read_fragment_size=split_size, write_fragment_size=split_size)
+            mdf.configure(
+                read_fragment_size=split_size,
+                write_fragment_size=split_size,
+                integer_interpolation=integer_interpolation,
+            )
 
             # then save it
             progress.setLabelText(f'Saving output file "{file_name}"')

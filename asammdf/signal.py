@@ -788,6 +788,12 @@ class Signal(object):
 
                 * 0 - repeat previous samples
                 * 1 - linear interpolation
+                * 2 - hybrid interpolation: channels with integer data type (raw values) that have a
+                  conversion that outputs float values will use linear interpolation, otherwise
+                  the previous sample is used
+
+                .. versionchanged:: 6.2.0
+                    added hybrid mode interpolation
 
         Returns
         -------
@@ -843,7 +849,7 @@ class Signal(object):
                     else:
                         invalidation_bits = None
                 elif kind in "ui":
-                    if interpolation_mode == 0:
+                    if interpolation_mode == 2:
                         if self.raw and self.conversion:
                             kind = self.conversion.convert(self.samples[:1]).dtype.kind
                             if kind == "f":
@@ -862,7 +868,7 @@ class Signal(object):
                             invalidation_bits = self.invalidation_bits[idx]
                         else:
                             invalidation_bits = None
-                    else:
+                    elif interpolation_mode == 0:
                         idx = np.searchsorted(
                             self.timestamps, new_timestamps, side="right"
                         )

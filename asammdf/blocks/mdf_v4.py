@@ -2378,6 +2378,13 @@ class MDF4(MDF_Common):
 
                 * 0 - repeat previous sample
                 * 1 - use linear interpolation
+                * 2 - hybrid interpolation: channels with integer data type (raw values) that have a
+                  conversion that outputs float values will use linear interpolation, otherwise
+                  the previous sample is used
+
+                .. versionchanged:: 6.2.0
+                    added hybrid mode interpolation
+
         copy_on_get : bool
             copy arrays in the get method
 
@@ -2395,7 +2402,7 @@ class MDF4(MDF_Common):
         if single_bit_uint_as_bool is not None:
             self._single_bit_uint_as_bool = bool(single_bit_uint_as_bool)
 
-        if integer_interpolation in (0, 1):
+        if integer_interpolation in (0, 1, 2):
             self._integer_interpolation = int(integer_interpolation)
 
         if copy_on_get is not None:

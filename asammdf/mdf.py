@@ -453,6 +453,9 @@ class MDF:
 
         out = MDF(version=version, **self._kwargs)
 
+        interpolation_mode = self._integer_interpolation
+        out.configure(integer_interpolation=interpolation_mode)
+
         out.header.start_time = self.header.start_time
 
         groups_nr = len(self.virtual_groups)
@@ -524,6 +527,7 @@ class MDF:
 
             * 0 : absolute
             * 1 : relative to first timestamp
+
         version : str
             new mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10',
             '3.20', '3.30', '4.00', '4.10', '4.11', 4.20'); default *None* and in this
@@ -548,6 +552,10 @@ class MDF:
             version = validate_version_argument(version)
 
         out = MDF(version=version, **self._kwargs)
+
+        interpolation_mode = self._integer_interpolation
+        out.configure(integer_interpolation=interpolation_mode)
+
         self.configure(copy_on_get=False)
 
         if whence == 1:
@@ -579,8 +587,6 @@ class MDF:
 
         if self._callback:
             self._callback(0, groups_nr)
-
-        interpolation_mode = self._integer_interpolation
 
         # walk through all groups and get all channels
         for i, (group_index, virtual_group) in enumerate(self.virtual_groups.items()):
@@ -688,6 +694,7 @@ class MDF:
                         )
                         for sig in signals
                     ]
+
                 else:
                     for sig in signals:
                         native = sig.samples.dtype.newbyteorder("=")
@@ -1467,6 +1474,8 @@ class MDF:
 
         mdf = MDF(version=version, **self._kwargs)
 
+        interpolation_mode = self._integer_interpolation
+        mdf.configure(integer_interpolation=interpolation_mode)
         mdf.header.start_time = self.header.start_time
 
         if self.name:
@@ -1713,6 +1722,9 @@ class MDF:
                 kwargs.pop("callback", None)
 
                 merged = MDF(version=version, callback=callback, **kwargs)
+
+                interpolation_mode = mdf._integer_interpolation
+                merged.configure(integer_interpolation=interpolation_mode)
 
                 merged.header.start_time = oldest
 
@@ -1971,6 +1983,9 @@ class MDF:
                 kwargs.pop("callback", None)
 
                 stacked = MDF(version=version, callback=callback, **kwargs)
+
+                interpolation_mode = mdf._integer_interpolation
+                stacked.configure(integer_interpolation=interpolation_mode)
 
                 if sync:
                     stacked.header.start_time = oldest
@@ -2314,9 +2329,10 @@ class MDF:
         else:
             version = validate_version_argument(version)
 
-        interpolation_mode = self._integer_interpolation
-
         mdf = MDF(version=version, **self._kwargs)
+
+        interpolation_mode = self._integer_interpolation
+        mdf.configure(integer_interpolation=interpolation_mode)
 
         mdf.header.start_time = self.header.start_time
 

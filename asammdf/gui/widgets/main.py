@@ -31,7 +31,13 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             "ignore_value2text_conversions", False, type=bool
         )
 
-        self.batch = BatchWidget(self.ignore_value2text_conversions)
+        self.integer_interpolation = int(
+            self._settings.value(
+                "integer_interpolation", "2 - hybrid interpolation"
+            )[0]
+        )
+
+        self.batch = BatchWidget(self.ignore_value2text_conversions, self.integer_interpolation)
         self.stackedWidget.addWidget(self.batch)
 
         widget = QtWidgets.QWidget()
@@ -195,7 +201,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         submenu.addActions(plot_xaxis_option.actions())
         menu.addMenu(submenu)
 
-        # search mode menu
+        # theme menu
         theme_option = QtWidgets.QActionGroup(self)
 
         for option in ("Dark", "Light"):
@@ -211,6 +217,34 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         submenu = QtWidgets.QMenu("Theme", self.menubar)
         submenu.addActions(theme_option.actions())
+        menu.addMenu(submenu)
+
+        # integer interpolation menu
+        theme_option = QtWidgets.QActionGroup(self)
+
+        for option, tooltip in zip(
+            ("0 - repeat previous sample", "1 - linear interpolation", "2 - hybrid interpolation"),
+            ("", "",
+             "channels with integer data type (raw values) that have a conversion that outputs float "
+             "values will use linear interpolation, otherwise the previous sample is used"
+             )
+        ):
+
+            action = QtWidgets.QAction(option, menu)
+            action.setCheckable(True)
+            if tooltip:
+                print(tooltip)
+                action.setToolTip(tooltip)
+            theme_option.addAction(action)
+            action.triggered.connect(partial(self.set_integer_interpolation, option))
+
+            if option == self._settings.value("integer_interpolation", "2 - hybrid interpolation"):
+                action.setChecked(True)
+                action.triggered.emit()
+
+        submenu = QtWidgets.QMenu("Integer interpolation", self.menubar)
+        submenu.addActions(theme_option.actions())
+        submenu.setToolTipsVisible(True)
         menu.addMenu(submenu)
 
         # plot option menu
@@ -622,6 +656,19 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             pg.setConfigOption("background", "w")
             pg.setConfigOption("foreground", "k")
 
+    def set_integer_interpolation(self, option):
+        self._settings.setValue("integer_interpolation", option)
+
+        option = int(option[0])
+        self.integer_interpolation = option
+
+        count = self.files.count()
+
+        for i in range(count):
+            self.files.widget(i).mdf.configure(integer_interpolation=option)
+
+        self.batch.integer_interpolation = option
+
     def set_plot_xaxis(self, option):
         self._settings.setValue("plot_xaxis", option)
         if option == "seconds":
@@ -867,6 +914,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         except:
             raise
         else:
+            widget.mdf.configure(integer_interpolation=self.integer_interpolation)
             self.files.addTab(widget, file_name.name)
             self.files.setTabToolTip(index, str(file_name))
             self.files.setCurrentIndex(index)

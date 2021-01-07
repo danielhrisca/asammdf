@@ -23,7 +23,7 @@ from .tree_item import TreeItem
 
 
 class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
-    def __init__(self, ignore_value2text_conversions=False, *args, **kwargs):
+    def __init__(self, ignore_value2text_conversions=False, integer_interpolation=2, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
         self.setupUi(self)
@@ -31,6 +31,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self._settings = QtCore.QSettings()
 
         self.ignore_value2text_conversions = ignore_value2text_conversions
+        self.integer_interpolation = integer_interpolation
 
         self.progress = None
         self.files_list = MinimalListWidget()
@@ -449,6 +450,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             progress.setLabelText(
                 f'Saving extracted Bus logging file {i+1} to "{file_name}"'
             )
+
+            mdf_.configure(integer_interpolation=self.integer_interpolation)
 
             target = mdf_.export
             kwargs = {
@@ -1183,7 +1186,10 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         split_size = opts.mdf_split_size if output_format == "MDF" else 0
 
         for i, (mdf_file, source_file) in enumerate(zip(files, source_files)):
-            mdf_file.configure(read_fragment_size=split_size)
+            mdf_file.configure(
+                read_fragment_size=split_size,
+                integer_interpolation=self.integer_interpolation,
+            )
 
             mdf = None
             progress = None
@@ -1220,7 +1226,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     mdf = result
 
                 mdf.configure(
-                    read_fragment_size=split_size, write_fragment_size=split_size
+                    read_fragment_size=split_size,
+                    write_fragment_size=split_size,
+                    integer_interpolation=self.integer_interpolation,
                 )
 
             if opts.needs_cut:
@@ -1273,7 +1281,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                         mdf = result
 
                 mdf.configure(
-                    read_fragment_size=split_size, write_fragment_size=split_size
+                    read_fragment_size=split_size,
+                    write_fragment_size=split_size,
+                    integer_interpolation=self.integer_interpolation,
                 )
 
             if opts.needs_resample:
@@ -1331,7 +1341,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                         mdf = result
 
                 mdf.configure(
-                    read_fragment_size=split_size, write_fragment_size=split_size
+                    read_fragment_size=split_size,
+                    write_fragment_size=split_size,
+                    integer_interpolation=self.integer_interpolation,
                 )
 
             if output_format == "MDF":
@@ -1381,7 +1393,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     suffix = ".mdf"
 
                 mdf.configure(
-                    read_fragment_size=split_size, write_fragment_size=split_size
+                    read_fragment_size=split_size,
+                    write_fragment_size=split_size,
+                    integer_interpolation=self.integer_interpolation,
                 )
 
                 if output_folder is not None:
