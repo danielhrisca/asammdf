@@ -8,3 +8,8 @@ PyYAML
 xlrd
 XlsxWriter
 xlwt
+canmatrix
+pandas
+numexpr
+lz4
+numpy
