@@ -31,6 +31,7 @@ from ..utils import (
 from .attachment import Attachment
 from .mdi_area import MdiAreaWidget, WithMDIArea
 from .numeric import Numeric
+from .tabular import Tabular, CANBusTrace
 from .plot import Plot
 from .tree_item import TreeItem
 
@@ -835,8 +836,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 window_config["type"] = "Numeric"
             elif isinstance(wid, Plot):
                 window_config["type"] = "Plot"
-            else:
+            elif type(wid) == Tabular:
                 window_config["type"] = "Tabular"
+            elif type(wid) == CANBusTrace:
+                continue
+
             windows.append(window_config)
 
         config["windows"] = windows
@@ -1182,46 +1186,50 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self,
             "Select window type",
             "Type:",
-            ["Plot", "Numeric", "Tabular"],
+            ["Plot", "Numeric", "Tabular", "CANBusTrace"],
             0,
             False,
         )
         if ok:
 
-            try:
-                iter(event)
-                signals = event
-            except:
-
-                iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
-
+            if ret == "CANBusTrace":
                 signals = []
+            else:
 
-                if self.channel_view.currentIndex() == 1:
-                    while iterator.value():
-                        item = iterator.value()
-                        if item.parent() is None:
+                try:
+                    iter(event)
+                    signals = event
+                except:
+
+                    iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
+
+                    signals = []
+
+                    if self.channel_view.currentIndex() == 1:
+                        while iterator.value():
+                            item = iterator.value()
+                            if item.parent() is None:
+                                iterator += 1
+                                continue
+
+                            if item.checkState(0) == QtCore.Qt.Checked:
+                                group, index = item.entry
+                                ch = self.mdf.groups[group].channels[index]
+                                if not ch.component_addr:
+                                    signals.append((None, group, index, self.uuid))
+
                             iterator += 1
-                            continue
+                    else:
+                        while iterator.value():
+                            item = iterator.value()
 
-                        if item.checkState(0) == QtCore.Qt.Checked:
-                            group, index = item.entry
-                            ch = self.mdf.groups[group].channels[index]
-                            if not ch.component_addr:
-                                signals.append((None, group, index, self.uuid))
+                            if item.checkState(0) == QtCore.Qt.Checked:
+                                group, index = item.entry
+                                ch = self.mdf.groups[group].channels[index]
+                                if not ch.component_addr:
+                                    signals.append((None, group, index, self.uuid))
 
-                        iterator += 1
-                else:
-                    while iterator.value():
-                        item = iterator.value()
-
-                        if item.checkState(0) == QtCore.Qt.Checked:
-                            group, index = item.entry
-                            ch = self.mdf.groups[group].channels[index]
-                            if not ch.component_addr:
-                                signals.append((None, group, index, self.uuid))
-
-                        iterator += 1
+                            iterator += 1
 
             self.add_window((ret, signals))
 

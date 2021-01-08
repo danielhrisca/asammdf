@@ -76,20 +76,40 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
             for name_ in signals.columns:
                 col = signals[name_]
                 if col.dtype.kind == "O":
-                    if (
-                        name_.endswith(".DataBytes")
-                        and name_.replace(".DataBytes", ".DataLength") in signals
-                    ):
+                    if name_.endswith("DataBytes"):
+                        try:
+                            sizes = signals[name_.replace("DataBytes", "DataLength")]
+                        except:
+                            sizes = None
                         dropped[name_] = pd.Series(
                             csv_bytearray2hex(
-                                col, signals[name_.replace(".DataBytes", ".DataLength")]
+                                col,
+                                sizes,
                             ),
                             index=signals.index,
                         )
-                    else:
+
+                    elif name_.endswith("Data Bytes"):
+                        try:
+                            sizes = signals[name_.replace("Data Bytes", "Data Length")]
+                        except:
+                            sizes = None
                         dropped[name_] = pd.Series(
-                            csv_bytearray2hex(col), index=signals.index
+                            csv_bytearray2hex(
+                                col,
+                                sizes,
+                            ),
+                            index=signals.index,
                         )
+
+                    elif col.dtype.name != 'category':
+                        try:
+                            dropped[name_] = pd.Series(
+                                csv_bytearray2hex(col), index=signals.index
+                            )
+                        except:
+                            pass
+
                     self.signals_descr[name_] = 0
 
                 elif col.dtype.kind == "S":
@@ -631,3 +651,8 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         self.build(self.signals)
         if self.query.toPlainText():
             self.apply_filters()
+
+
+class CANBusTrace(Tabular):
+    def __init__(self, signals=None, start=0, format="phys", *args, **kwargs):
+        super().__init__(signals, start, format, *args, **kwargs)

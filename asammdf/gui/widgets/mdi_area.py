@@ -18,7 +18,7 @@ from ..dialogs.channel_info import ChannelInfoDialog
 from ..utils import compute_signal, extract_mime_names, get_required_signals
 from .numeric import Numeric
 from .plot import Plot
-from .tabular import Tabular
+from .tabular import Tabular, CANBusTrace
 
 
 class MdiAreaWidget(QtWidgets.QMdiArea):
@@ -249,8 +249,104 @@ class WithMDIArea:
         except MdfException:
             print(format_exc())
 
+    def _add_can_bus_trace_window(self):
+        dfs = []
+        groups_count = len(self.mdf.groups)
+        for index in range(groups_count):
+            group = self.mdf.groups[index]
+            if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
+                source = group.channel_group.acq_source
+
+                names = [ch.name for ch in group.channels]
+
+                if source and source.bus_type == v4c.BUS_TYPE_CAN:
+                    if "CAN_DataFrame" in names:
+                        data = self.mdf.get("CAN_DataFrame", index)
+
+                        df_index = pd.Series(data.timestamps)
+
+                        columns = {
+                            "Chn": pd.Series([f'CAN {b}' for b in data.samples["CAN_DataFrame.BusChannel"].astype('u1')], dtype='category', index=df_index),
+                            "ID": pd.Series(data.samples["CAN_DataFrame.ID"].astype("u4") & 0x1FFFFFFF, dtype='u4', index=df_index),
+                            "Event Type": pd.Series(["CAN Frame" for _ in range(len(df_index))], dtype='category', index=df_index),
+                            "DLC": pd.Series(data.samples["CAN_DataFrame.DLC"].astype('u1'), dtype='u1', index=df_index),
+                            "Data Length": pd.Series(data.samples["CAN_DataFrame.DataLength"].astype('u2'), dtype='u2', index=df_index),
+                            "Data Bytes": pd.Series(list(data.samples["CAN_DataFrame.DataBytes"]), index=df_index),
+                        }
+
+                        dfs.append(pd.DataFrame.from_dict(columns))
+
+                    elif "CAN_RemoteFrame" in names:
+                        data = self.mdf.get("CAN_RemoteFrame", index)
+
+                        df_index = pd.Series(data.timestamps)
+
+                        columns = {
+                            "Chn": pd.Series([f'CAN {b}' for b in data.samples["CAN_RemoteFrame.BusChannel"].astype('u1')], dtype='category', index=df_index),
+                            "ID": pd.Series(data.samples["CAN_RemoteFrame.ID"].astype("u4") & 0x1FFFFFFF, dtype='u4', index=df_index),
+                            "Event Type": pd.Series(["Remote Frame" for _ in range(len(df_index))], dtype='category', index=df_index),
+                            "DLC": pd.Series(data.samples["CAN_RemoteFrame.DLC"].astype('u1'), dtype='u1', index=df_index),
+                            "Data Length": pd.Series(data.samples["CAN_RemoteFrame.DataLength"].astype('u2'), dtype='u2', index=df_index),
+                            "Data Bytes": pd.Series([np.array([])]*len(df_index), index=df_index),
+                        }
+
+                        dfs.append(pd.DataFrame.from_dict(columns))
+
+        if dfs:
+            signals = dfs[0]
+            for other in dfs[1:]:
+                signals = signals.combine_first(other, fill=0)
+
+            signals['Chn'] = signals['Chn'].astype('category')
+            signals['ID'] = signals['ID'].astype('u4')
+            signals['Event Type'] = signals['Event Type'].astype('category')
+            signals['DLC'] = signals['DLC'].astype('u1')
+            signals['Data Length'] = signals['Data Length'].astype('u2')
+
+            numeric = CANBusTrace(signals, start=self.mdf.header.start_time.timestamp())
+
+            if not self.subplots:
+                for mdi in self.mdi_area.subWindowList():
+                    mdi.close()
+                w = self.mdi_area.addSubWindow(numeric)
+
+                w.showMaximized()
+            else:
+                w = self.mdi_area.addSubWindow(numeric)
+
+                if len(self.mdi_area.subWindowList()) == 1:
+                    w.showMaximized()
+                else:
+                    w.show()
+                    self.mdi_area.tileSubWindows()
+
+            menu = w.systemMenu()
+            if self._frameless_windows:
+                w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+
+            w.layout().setSpacing(1)
+
+            def set_title(mdi):
+                name, ok = QtWidgets.QInputDialog.getText(
+                    None, "Set sub-plot title", "Title:"
+                )
+                if ok and name:
+                    mdi.setWindowTitle(name)
+
+            action = QtWidgets.QAction("Set title", menu)
+            action.triggered.connect(partial(set_title, w))
+            before = menu.actions()[0]
+            menu.insertAction(before, action)
+            w.setSystemMenu(menu)
+
+            w.setWindowTitle(f"CANBusTrace {self._window_counter}")
+            self._window_counter += 1
+
     def add_window(self, args):
         window_type, names = args
+
+        if window_type == "CANBusTrace":
+            return self._add_can_bus_trace_window()
 
         if names and isinstance(names[0], str):
             signals_ = [
