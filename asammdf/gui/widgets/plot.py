@@ -1683,29 +1683,20 @@ class _Plot(pg.PlotWidget):
                     style = QtCore.Qt.SolidLine
 
                 if not force:
-                    try:
-                        curve = self.curvetype(
-                            t,
-                            sig.plot_samples,
-                            pen={"color": color, "style": style},
-                            symbolBrush=color,
-                            symbolPen=color,
-                            symbol="o",
-                            symbolSize=4,
-                            clickable=True,
-                            mouseWidth=30,
-                        )
+                    curve = self.curvetype(
+                        t,
+                        sig.plot_samples,
+                        pen={"color": color, "style": style},
+                        symbolBrush=color,
+                        symbolPen=color,
+                        symbol="o",
+                        symbolSize=4,
+                        clickable=True,
+                        mouseWidth=30,
+                    )
 
-                        curve.sigClicked.connect(partial(self.curve_clicked.emit, i))
-                    except:
-                        message = (
-                            "Can't show dots due to old pyqtgraph package: "
-                            "Please install the latest pyqtgraph from the "
-                            "github develop branch\n"
-                            "pip install -I --no-deps "
-                            "https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip"
-                        )
-                        logger.warning(message)
+                    curve.sigClicked.connect(partial(self.curve_clicked.emit, i))
+
                     self.view_boxes[i].removeItem(self.curves[i])
 
                     self.curves[i] = curve
