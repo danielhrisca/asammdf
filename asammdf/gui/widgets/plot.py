@@ -12,6 +12,7 @@ import pyqtgraph as pg
 
 from ...mdf import MDF
 from ...signal import Signal
+from ...blocks import v4_constants as v4c
 from ..dialogs.define_channel import DefineChannel
 from ..ui import resource_rc as resource_rc
 from ..utils import COLORS, extract_mime_names
@@ -1266,7 +1267,7 @@ class Plot(QtWidgets.QWidget):
         name, unit = sig.name, sig.unit
         item = ListItem((-1, -1), name, sig.computation, self.channel_selection)
         tooltip = getattr(sig, "tooltip", "")
-        it = ChannelDisplay(sig.uuid, unit, sig.samples.dtype.kind, 3, tooltip, self)
+        it = ChannelDisplay(sig.uuid, unit, sig.samples.dtype.kind, 3, tooltip, "", self)
         it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
         font = QtGui.QFont()
@@ -1370,12 +1371,22 @@ class Plot(QtWidgets.QWidget):
                 sig.mdf_uuid,
             )
             item.setData(QtCore.Qt.UserRole, sig.name)
-            tooltip = getattr(sig, "tooltip", "")
+            tooltip = getattr(sig, "tooltip", "") or sig.comment
+            if sig.source:
+                src = sig.source
+                source_type = v4c.SOURCE_TYPE_TO_STRING[src.source_type]
+                bus_type = v4c.BUS_TYPE_TO_STRING[src.bus_type]
+                details = f'     {source_type} source on bus {bus_type}: name=[{src.name}] path=[{src.path}]'
+            else:
+                details = ""
+
             if len(sig.samples) and sig.conversion:
                 kind = sig.conversion.convert(sig.samples[:1]).dtype.kind
             else:
                 kind = sig.samples.dtype.kind
-            it = ChannelDisplay(sig.uuid, sig.unit, kind, 3, tooltip, self)
+            it = ChannelDisplay(sig.uuid, sig.unit, kind, 3, tooltip, details, self)
+            if self.channel_selection.details_enabled:
+                it.details.setVisible(True)
             it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
             if sig.computed:

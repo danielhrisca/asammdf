@@ -21,6 +21,8 @@ class ListWidget(QtWidgets.QListWidget):
 
         super().__init__(*args, **kwargs)
 
+        self.details_enabled = False
+
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -193,6 +195,7 @@ class ListWidget(QtWidgets.QListWidget):
         menu.addSeparator()
         menu.addAction(self.tr("Delete (Del)"))
         menu.addSeparator()
+        menu.addAction(self.tr("Toggle details"))
         menu.addAction(self.tr("File/Computation properties"))
 
         action = menu.exec_(self.viewport().mapToGlobal(position))
@@ -324,6 +327,14 @@ class ListWidget(QtWidgets.QListWidget):
                 QtCore.QEvent.KeyPress, QtCore.Qt.Key_Delete, QtCore.Qt.NoModifier
             )
             self.keyPressEvent(event)
+
+        elif action.text() == "Toggle details":
+            self.details_enabled = not self.details_enabled
+            for i in range(self.count()):
+                item = self.item(i)
+                widget = self.itemWidget(item)
+                widget.details.setVisible(self.details_enabled)
+                item.setSizeHint(widget.sizeHint())
 
         elif action.text() == "File/Computation properties":
             selected_items = self.selectedItems()
