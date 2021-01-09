@@ -47,7 +47,7 @@ class TabularTreeItem(QtWidgets.QTreeWidgetItem):
             return self.text(column) < other.text(column)
 
 
-class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
+class CANBusTrace(Ui_TabularDisplay, QtWidgets.QWidget):
     add_channels_request = QtCore.pyqtSignal(list)
 
     def __init__(self, signals=None, start=0, format="phys", *args, **kwargs):
@@ -57,7 +57,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         self.tree.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.tree.customContextMenuRequested.connect(self.open_menu)
 
-        self.signals_descr = {}
+        self.signals_descr = {name: 0 for name in signals.columns}
         self.start = start
         self.pattern = {}
         self.format = format
@@ -66,80 +66,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         if signals is None:
             self.signals = pd.DataFrame()
         else:
-            index = pd.Series(np.arange(len(signals), dtype="u8"), index=signals.index)
-            signals["Index"] = index
-
-            signals["timestamps"] = signals.index
-            signals.set_index(index, inplace=True)
-            dropped = {}
-
-            for name_ in signals.columns:
-                col = signals[name_]
-                if col.dtype.kind == "O":
-                    if name_.endswith("DataBytes"):
-                        try:
-                            sizes = signals[name_.replace("DataBytes", "DataLength")]
-                        except:
-                            sizes = None
-                        dropped[name_] = pd.Series(
-                            csv_bytearray2hex(
-                                col,
-                                sizes,
-                            ),
-                            index=signals.index,
-                        )
-
-                    elif name_.endswith("Data Bytes"):
-                        try:
-                            sizes = signals[name_.replace("Data Bytes", "Data Length")]
-                        except:
-                            sizes = None
-                        dropped[name_] = pd.Series(
-                            csv_bytearray2hex(
-                                col,
-                                sizes,
-                            ),
-                            index=signals.index,
-                        )
-
-                    elif col.dtype.name != 'category':
-                        try:
-                            dropped[name_] = pd.Series(
-                                csv_bytearray2hex(col), index=signals.index
-                            )
-                        except:
-                            pass
-
-                    self.signals_descr[name_] = 0
-
-                elif col.dtype.kind == "S":
-                    try:
-                        dropped[name_] = pd.Series(
-                            npchar.decode(col, "utf-8"), index=signals.index
-                        )
-                    except:
-                        dropped[name_] = pd.Series(
-                            npchar.decode(col, "latin-1"), index=signals.index
-                        )
-                    self.signals_descr[name_] = 0
-                else:
-                    self.signals_descr[name_] = 0
-
-            signals = signals.drop(columns=["Index", *list(dropped)])
-            for name, s in dropped.items():
-                signals[name] = s
-
-            names = list(signals.columns)
-            names = [
-                "timestamps",
-                *[name for name in names if name.endswith((".ID", ".DataBytes"))],
-                *[
-                    name
-                    for name in names
-                    if name != "timestamps" and not name.endswith((".ID", ".DataBytes"))
-                ],
-            ]
-            self.signals = signals[names]
+            self.signals = signals
 
         self.as_hex = [
             name.endswith(
@@ -486,10 +413,7 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         self.tree.setSortingEnabled(self.sort.checkState() == QtCore.Qt.Checked)
 
     def add_new_channels(self, channels):
-        for sig in channels:
-            if sig:
-                self.signals[sig.name] = sig
-        self.build(self.signals, reset_header_names=True)
+        pass
 
     def to_config(self):
 
@@ -651,3 +575,4 @@ class Tabular(Ui_TabularDisplay, QtWidgets.QWidget):
         self.build(self.signals)
         if self.query.toPlainText():
             self.apply_filters()
+

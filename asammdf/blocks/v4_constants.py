@@ -794,3 +794,12 @@ CANOPEN_DATE_FIELDS = (
     "summer_time",
     "day_of_week",
 )
+
+CAN_ERROR_TYPES = {
+    0: "Other/unknown error ",
+    1: "Bit Error",
+    2: "Form Error",
+    3: "Bit Stuffing Error",
+    4: "CRC Error",
+    5: "Acknowledgment Error",
+}

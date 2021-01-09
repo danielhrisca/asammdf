@@ -31,7 +31,8 @@ from ..utils import (
 from .attachment import Attachment
 from .mdi_area import MdiAreaWidget, WithMDIArea
 from .numeric import Numeric
-from .tabular import Tabular, CANBusTrace
+from .tabular import Tabular
+from .can_bus_trace import CANBusTrace
 from .plot import Plot
 from .tree_item import TreeItem
 
@@ -836,9 +837,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 window_config["type"] = "Numeric"
             elif isinstance(wid, Plot):
                 window_config["type"] = "Plot"
-            elif type(wid) == Tabular:
+            elif isinstance(wid, Tabular):
                 window_config["type"] = "Tabular"
-            elif type(wid) == CANBusTrace:
+            elif isinstance(wid, CANBusTrace):
                 continue
 
             windows.append(window_config)

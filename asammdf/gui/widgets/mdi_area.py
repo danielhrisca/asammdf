@@ -4,6 +4,7 @@ import json
 import os
 import re
 from traceback import format_exc
+import sys
 
 from natsort import natsorted
 import numpy as np
@@ -18,7 +19,8 @@ from ..dialogs.channel_info import ChannelInfoDialog
 from ..utils import compute_signal, extract_mime_names, get_required_signals
 from .numeric import Numeric
 from .plot import Plot
-from .tabular import Tabular, CANBusTrace
+from .tabular import Tabular
+from .can_bus_trace import CANBusTrace
 
 
 class MdiAreaWidget(QtWidgets.QMdiArea):
@@ -249,9 +251,165 @@ class WithMDIArea:
         except MdfException:
             print(format_exc())
 
+    def _i(self):
+        if source and source.bus_type == v4c.BUS_TYPE_CAN:
+            if "CAN_DataFrame" in names:
+                data = self.mdf.get("CAN_DataFrame", index)
+
+                df_index = pd.Series(data.timestamps)
+                count = len(df_index)
+
+                columns = {
+                    "Chn": pd.Series([f'CAN {b}' for b in data.samples["CAN_DataFrame.BusChannel"].astype('u1')],
+                                     dtype='category', index=df_index),
+                    "ID": pd.Series(data.samples["CAN_DataFrame.ID"].astype("u4") & 0x1FFFFFFF, dtype='u4',
+                                    index=df_index),
+                    "Event Type": pd.Series(["CAN Frame" for _ in range(len(df_index))], dtype='category',
+                                            index=df_index),
+                    "Details": pd.Series(["" for _ in range(count)], dtype='category', index=df_index),
+                    "DLC": pd.Series(data.samples["CAN_DataFrame.DLC"].astype('u1'), dtype='u1', index=df_index),
+                    "Data Length": pd.Series(data.samples["CAN_DataFrame.DataLength"].astype('u2'), dtype='u2',
+                                             index=df_index),
+                    "Data Bytes": pd.Series(list(data.samples["CAN_DataFrame.DataBytes"]), index=df_index),
+                }
+
+                dfs.append(pd.DataFrame.from_dict(columns))
+
+            elif "CAN_RemoteFrame" in names:
+                data = self.mdf.get("CAN_RemoteFrame", index)
+
+                df_index = pd.Series(data.timestamps)
+                count = len(df_index)
+
+                columns = {
+                    "Chn": pd.Series([f'CAN {b}' for b in data.samples["CAN_RemoteFrame.BusChannel"].astype('u1')],
+                                     dtype='category', index=df_index),
+                    "ID": pd.Series(data.samples["CAN_RemoteFrame.ID"].astype("u4") & 0x1FFFFFFF, dtype='u4',
+                                    index=df_index),
+                    "Event Type": pd.Series(["Remote Frame" for _ in range(count)], dtype='category', index=df_index),
+                    "Details": pd.Series(["" for _ in range(count)], dtype='category', index=df_index),
+                    "DLC": pd.Series(data.samples["CAN_RemoteFrame.DLC"].astype('u1'), dtype='u1', index=df_index),
+                    "Data Length": pd.Series(data.samples["CAN_RemoteFrame.DataLength"].astype('u2'), dtype='u2',
+                                             index=df_index),
+                    "Data Bytes": pd.Series([np.array([])] * count, index=df_index),
+                }
+
+                dfs.append(pd.DataFrame.from_dict(columns))
+
+            elif "CAN_ErrorFrame" in names:
+                data = self.mdf.get("CAN_ErrorFrame", index)
+
+                df_index = pd.Series(data.timestamps)
+                count = len(df_index)
+
+                columns = {}
+                try:
+                    columns["Chn"] = pd.Series(
+                        [f'CAN {b}' for b in data.samples["CAN_ErrorFrame.BusChannel"].astype('u1')],
+                        dtype='category',
+                        index=df_index
+                    )
+                except:
+                    columns["Chn"] = pd.Series(
+                        [f'Unknown' for _ in range(count)],
+                        dtype='category',
+                        index=df_index
+                    )
+
+                try:
+                    columns["ID"] = pd.Series(
+                        data.samples["CAN_ErrorFrame.ID"].astype("u4") & 0x1FFFFFFF,
+                        dtype='u4',
+                        index=df_index
+                    )
+                except:
+                    columns["ID"] = pd.Series(
+                        np.full(count, 0xFFFFFFFF, dtype='u4'),
+                        index=df_index,
+                    )
+
+                columns["Event Type"] = pd.Series(
+                    ["Error Frame" for _ in range(count)],
+                    dtype='category',
+                    index=df_index
+                )
+
+                try:
+                    error_type = data.samples["CAN_ErrorFrame.ErrorType"].astype("u1").tolist()
+                    error_type = [
+                        v4c.CAN_ERROR_TYPES.get(err, "Other error")
+                        for err in error_type
+                    ]
+
+                    columns["Details"] = pd.Series(
+                        error_type,
+                        dtype='category',
+                        index=df_index,
+                    )
+                except:
+                    columns["Details"] = pd.Series(
+                        ["" for _ in range(count)],
+                        dtype='category',
+                        index=df_index,
+                    )
+
+                try:
+                    columns["DLC"] = pd.Series(
+                        data.samples["CAN_ErrorFrame.DLC"].astype("u1"),
+                        dtype='u1',
+                        index=df_index,
+                    )
+                except:
+                    columns["DLC"] = pd.Series(
+                        np.zeros(count, dtype='u1'),
+                        index=df_index,
+                    )
+
+                try:
+                    columns["Data Length"] = pd.Series(
+                        data.samples["CAN_ErrorFrame.DataLength"].astype("u2"),
+                        dtype='u1',
+                        index=df_index,
+                    )
+                except:
+                    columns["Data Length"] = pd.Series(
+                        np.zeros(count, dtype='u2'),
+                        index=df_index,
+                    )
+
+                columns["Data Bytes"] = pd.Series([np.array([])] * count, index=df_index)
+
+                try:
+                    columns["Data Length"] = pd.Series(
+                        data.samples["CAN_ErrorFrame.DataLength"].astype("u2"),
+                        dtype='u1',
+                        index=df_index,
+                    )
+                except:
+                    columns["Data Length"] = pd.Series(
+                        np.zeros(count, dtype='u2'),
+                        index=df_index,
+                    )
+
+                try:
+                    columns["Data Length"] = pd.Series(
+                        data.samples["CAN_ErrorFrame.DataLength"].astype("u2"),
+                        dtype='u1',
+                        index=df_index,
+                    )
+                except:
+                    columns["Data Length"] = pd.Series(
+                        np.zeros(count, dtype='u2'),
+                        index=df_index,
+                    )
+
+                dfs.append(pd.DataFrame.from_dict(columns))
+
     def _add_can_bus_trace_window(self):
-        dfs = []
+        items = []
         groups_count = len(self.mdf.groups)
+        import time
+        st = time.perf_counter()
         for index in range(groups_count):
             group = self.mdf.groups[index]
             if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
@@ -262,46 +420,126 @@ class WithMDIArea:
                 if source and source.bus_type == v4c.BUS_TYPE_CAN:
                     if "CAN_DataFrame" in names:
                         data = self.mdf.get("CAN_DataFrame", index)
-
-                        df_index = pd.Series(data.timestamps)
-
-                        columns = {
-                            "Chn": pd.Series([f'CAN {b}' for b in data.samples["CAN_DataFrame.BusChannel"].astype('u1')], dtype='category', index=df_index),
-                            "ID": pd.Series(data.samples["CAN_DataFrame.ID"].astype("u4") & 0x1FFFFFFF, dtype='u4', index=df_index),
-                            "Event Type": pd.Series(["CAN Frame" for _ in range(len(df_index))], dtype='category', index=df_index),
-                            "DLC": pd.Series(data.samples["CAN_DataFrame.DLC"].astype('u1'), dtype='u1', index=df_index),
-                            "Data Length": pd.Series(data.samples["CAN_DataFrame.DataLength"].astype('u2'), dtype='u2', index=df_index),
-                            "Data Bytes": pd.Series(list(data.samples["CAN_DataFrame.DataBytes"]), index=df_index),
-                        }
-
-                        dfs.append(pd.DataFrame.from_dict(columns))
+                        items.append(data)
 
                     elif "CAN_RemoteFrame" in names:
                         data = self.mdf.get("CAN_RemoteFrame", index)
+                        items.append(data)
 
-                        df_index = pd.Series(data.timestamps)
+                    elif "CAN_ErrorFrame" in names:
+                        data = self.mdf.get("CAN_ErrorFrame", index)
+                        items.append(data)
 
-                        columns = {
-                            "Chn": pd.Series([f'CAN {b}' for b in data.samples["CAN_RemoteFrame.BusChannel"].astype('u1')], dtype='category', index=df_index),
-                            "ID": pd.Series(data.samples["CAN_RemoteFrame.ID"].astype("u4") & 0x1FFFFFFF, dtype='u4', index=df_index),
-                            "Event Type": pd.Series(["Remote Frame" for _ in range(len(df_index))], dtype='category', index=df_index),
-                            "DLC": pd.Series(data.samples["CAN_RemoteFrame.DLC"].astype('u1'), dtype='u1', index=df_index),
-                            "Data Length": pd.Series(data.samples["CAN_RemoteFrame.DataLength"].astype('u2'), dtype='u2', index=df_index),
-                            "Data Bytes": pd.Series([np.array([])]*len(df_index), index=df_index),
-                        }
+        if len(items):
 
-                        dfs.append(pd.DataFrame.from_dict(columns))
+            df_index = np.sort(np.concatenate([item.timestamps for item in items]))
+            count = len(df_index)
 
-        if dfs:
-            signals = dfs[0]
-            for other in dfs[1:]:
-                signals = signals.combine_first(other, fill=0)
+            columns = {
+                "timestamps": df_index,
+                "Chn": np.full(count, "Unknown", dtype='O'),
+                "ID": np.full(count, 0xFFFFFFFF, dtype='u4'),
+                "Event Type": np.full(count, "CAN Frame", dtype='O'),
+                "Details": np.full(count, "", dtype='O'),
+                "DLC": np.zeros(count, dtype='u1'),
+                "Data Length": np.zeros(count, dtype='u1'),
+                "Data Bytes": np.full(count, "", dtype='O'),
+            }
 
-            signals['Chn'] = signals['Chn'].astype('category')
-            signals['ID'] = signals['ID'].astype('u4')
-            signals['Event Type'] = signals['Event Type'].astype('category')
-            signals['DLC'] = signals['DLC'].astype('u1')
-            signals['Data Length'] = signals['Data Length'].astype('u2')
+            sys.intern("CAN Frame")
+            sys.intern("Error Frame")
+            sys.intern("Remote Frame")
+            sys.intern("Unknown")
+
+            count = len(items)
+
+            for string in v4c.CAN_ERROR_TYPES.values():
+                sys.intern(string)
+
+            for _ in range(count):
+                item = items.pop()
+                if item.name == "CAN_DataFrame":
+
+                    index = np.searchsorted(df_index, item.timestamps)
+
+                    vals = item["CAN_DataFrame.BusChannel"].astype('u1')
+                    unique = np.unique(vals).tolist()
+                    for chn in unique:
+                        sys.intern(f"CAN {chn}")
+                    vals = [f"CAN {chn}" for chn in vals.tolist()]
+                    columns["Chn"][index] = vals
+
+                    columns["ID"][index] = item["CAN_DataFrame.ID"].astype('u4') & 0x1FFFFFFF
+                    columns["DLC"][index] = item["CAN_DataFrame.DLC"].astype('u1')
+                    data_length = item["CAN_DataFrame.DataLength"].astype('u2').tolist()
+                    columns["Data Length"][index] = data_length
+
+                    vals = csv_bytearray2hex(
+                        pd.Series(list(item["CAN_DataFrame.DataBytes"])),
+                        data_length,
+                    )
+                    columns["Data Bytes"][index] = vals
+
+                    del vals
+                    del data_length
+
+                elif item.name == "CAN_RemoteFrame":
+
+                    index = np.searchsorted(df_index, item.timestamps)
+
+                    vals = item["CAN_RemoteFrame.BusChannel"].astype('u1')
+                    unique = np.unique(vals).tolist()
+                    for chn in unique:
+                        sys.intern(f"CAN {chn}")
+                    vals = [f"CAN {chn}" for chn in vals.tolist()]
+                    columns["Chn"][index] = vals
+
+                    columns["ID"][index] = item["CAN_RemoteFrame.ID"].astype('u4') & 0x1FFFFFFF
+                    columns["DLC"][index] = item["CAN_RemoteFrame.DLC"].astype('u1')
+                    data_length = item["CAN_RemoteFrame.DataLength"].astype('u2').tolist()
+                    columns["Data Length"][index] = data_length
+                    columns["Event Type"][index] = "Remote Frame"
+
+                    del vals
+                    del data_length
+
+                elif item.name == "CAN_ErrorFrame":
+
+                    index = np.searchsorted(df_index, item.timestamps)
+
+                    names = set(item.samples.dtype.names)
+
+                    if "CAN_ErrorFrame.BusChannel" in names:
+                        vals = item["CAN_ErrorFrame.BusChannel"].astype('u1')
+                        unique = np.unique(vals).tolist()
+                        for chn in unique:
+                            sys.intern(f"CAN {chn}")
+                        vals = [f"CAN {chn}" for chn in vals.tolist()]
+                        columns["Chn"][index] = vals
+
+                    if "CAN_ErrorFrame.ID" in names:
+                        columns["ID"][index] = item["CAN_ErrorFrame.ID"].astype('u4') & 0x1FFFFFFF
+
+                    if "CAN_ErrorFrame.DLC" in names:
+                        columns["DLC"][index] = item["CAN_ErrorFrame.DLC"].astype('u1')
+
+                    if "CAN_ErrorFrame.DataLength" in names:
+                        columns["Data Length"][index] = item["CAN_ErrorFrame.DataLength"].astype('u2').tolist()
+
+                    columns["Event Type"][index] = "Error Frame"
+
+                    if "CAN_ErrorFrame.ErrorType" in names:
+                        vals = item["CAN_ErrorFrame.ErrorType"].astype("u1").tolist()
+                        vals = [
+                            v4c.CAN_ERROR_TYPES.get(err, "Other error")
+                            for err in vals
+                        ]
+
+                        columns["Details"][index] = vals
+
+                    del vals
+                    
+            signals = pd.DataFrame(columns)
 
             numeric = CANBusTrace(signals, start=self.mdf.header.start_time.timestamp())
 
