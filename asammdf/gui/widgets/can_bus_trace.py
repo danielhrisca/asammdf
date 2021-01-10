@@ -82,11 +82,14 @@ class CANBusTrace(TabularBase):
     def _display(self, position):
         super()._display(position)
         iterator = QtWidgets.QTreeWidgetItemIterator(self.tree)
+        columns = self.tree.columnCount()
 
         while iterator.value():
             item = iterator.value()
             if item.text(4) == 'Error Frame':
-                item.setForeground(4, QtGui.QBrush(QtCore.Qt.darkRed))
+                for col in range(columns):
+                    item.setForeground(col, QtGui.QBrush(QtCore.Qt.darkRed))
             elif item.text(4) == 'Remote Frame':
-                item.setForeground(4, QtGui.QBrush(QtCore.Qt.darkGreen))
+                for col in range(columns):
+                    item.setForeground(col, QtGui.QBrush(QtCore.Qt.darkGreen))
             iterator += 1
