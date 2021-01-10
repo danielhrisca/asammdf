@@ -233,7 +233,6 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             action = QtWidgets.QAction(option, menu)
             action.setCheckable(True)
             if tooltip:
-                print(tooltip)
                 action.setToolTip(tooltip)
             theme_option.addAction(action)
             action.triggered.connect(partial(self.set_integer_interpolation, option))

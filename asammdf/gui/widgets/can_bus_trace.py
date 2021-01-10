@@ -40,20 +40,6 @@ class CANBusTrace(TabularBase):
         else:
             self.signals = signals
 
-        self.as_hex = [
-            name.endswith(
-                (
-                    "CAN_DataFrame.ID",
-                    "FLX_Frame.ID",
-                    "FLX_DataFrame.ID",
-                    "LIN_Frame.ID",
-                    "MOST_DataFrame.ID",
-                    "ETH_Frame.ID",
-                )
-            )
-            for name in self.signals.columns
-        ]
-
         self._original_timestamps = signals["timestamps"]
 
         self.build(self.signals, True)
@@ -84,12 +70,17 @@ class CANBusTrace(TabularBase):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.tree)
         columns = self.tree.columnCount()
 
+        try:
+            event_index = self.signals.columns.get_loc('Event Type') + 1
+        except:
+            event_index = self.signals.columns.get_loc('Event_Type') + 1
+
         while iterator.value():
             item = iterator.value()
-            if item.text(4) == 'Error Frame':
+            if item.text(event_index) == 'Error Frame':
                 for col in range(columns):
                     item.setForeground(col, QtGui.QBrush(QtCore.Qt.darkRed))
-            elif item.text(4) == 'Remote Frame':
+            elif item.text(event_index) == 'Remote Frame':
                 for col in range(columns):
                     item.setForeground(col, QtGui.QBrush(QtCore.Qt.darkGreen))
             iterator += 1

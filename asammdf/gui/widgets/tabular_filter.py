@@ -8,7 +8,7 @@ from ..ui.tabular_filter import Ui_TabularFilter
 
 
 class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
-    def __init__(self, signals, *args, **kwargs):
+    def __init__(self, signals, int_format, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
@@ -20,7 +20,7 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
 
         self.is_bytearray = [item[2] for item in signals]
 
-        self.as_hex = [item[3] for item in signals]
+        self.int_format = int_format
 
         self.relation.addItems(["AND", "OR"])
         self.column.addItems(self.names)
@@ -51,8 +51,18 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
                             "Wrong target value",
                             f"{column_name} requires an integer target value",
                         )
+
+                elif target.startswith("0b"):
+                    try:
+                        self._target = int(target, 2)
+                    except:
+                        QtWidgets.QMessageBox.warning(
+                            None,
+                            "Wrong target value",
+                            f"{column_name} requires an integer target value",
+                        )
                 else:
-                    if self.as_hex[idx]:
+                    if self.int_format == "hex":
                         try:
                             self._target = int(target, 16)
                             self.target.setText(f"0x{self._target:X}")
@@ -60,7 +70,17 @@ class TabularFilter(Ui_TabularFilter, QtWidgets.QWidget):
                             QtWidgets.QMessageBox.warning(
                                 None,
                                 "Wrong target value",
-                                f"{column_name} requires an integer target value",
+                                f"{column_name} requires a hex-format integer target value",
+                            )
+                    elif self.int_format == "bin":
+                        try:
+                            self._target = int(target, 2)
+                            self.target.setText(f"0b{self._target:b}")
+                        except:
+                            QtWidgets.QMessageBox.warning(
+                                None,
+                                "Wrong target value",
+                                f"{column_name} requires a bin-format integer target value",
                             )
                     else:
 

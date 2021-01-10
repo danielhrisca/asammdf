@@ -113,20 +113,6 @@ class Tabular(TabularBase):
             ]
             self.signals = signals[names]
 
-        self.as_hex = [
-            name.endswith(
-                (
-                    "CAN_DataFrame.ID",
-                    "FLX_Frame.ID",
-                    "FLX_DataFrame.ID",
-                    "LIN_Frame.ID",
-                    "MOST_DataFrame.ID",
-                    "ETH_Frame.ID",
-                )
-            )
-            for name in self.signals.columns
-        ]
-
         self._original_timestamps = signals["timestamps"]
 
         self.build(self.signals, True)

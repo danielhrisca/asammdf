@@ -24,9 +24,9 @@ LOCAL_TIMEZONE = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinf
 
 
 class TabularTreeItem(QtWidgets.QTreeWidgetItem):
-    def __init__(self, column_types, as_hex, *args, **kwargs):
+    def __init__(self, column_types, int_format, *args, **kwargs):
         self.column_types = column_types
-        self.as_hex = as_hex
+        self.int_format = int_format
         super().__init__(*args, **kwargs)
 
     def __lt__(self, other):
@@ -35,8 +35,10 @@ class TabularTreeItem(QtWidgets.QTreeWidgetItem):
         dtype = self.column_types[column]
 
         if dtype in "ui":
-            if self.as_hex[column]:
+            if self.int_format == "hex":
                 return int(self.text(column), 16) < int(other.text(column), 16)
+            elif self.int_format == "bin":
+                return int(self.text(column), 2) < int(other.text(column), 2)
             else:
                 return int(self.text(column)) < int(other.text(column))
 
@@ -151,10 +153,10 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
                     name,
                     self.signals[name].values.dtype.kind,
                     self.signals_descr[name],
-                    as_hex,
                 )
-                for name, as_hex in zip(self.signals.columns, self.as_hex)
-            ]
+                for name in self.signals.columns
+            ],
+            self.format_selection.currentText(),
         )
 
         item = QtWidgets.QListWidgetItem(self.filters)
@@ -353,10 +355,9 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             )
 
         column_types = ["u", *[df[name].dtype.kind for name in df.columns]]
+        int_format = self.format_selection.currentText()
 
-        as_hex = [False] + self.as_hex
-
-        items = [TabularTreeItem(column_types, as_hex, row) for row in zip(*items)]
+        items = [TabularTreeItem(column_types, int_format, row) for row in zip(*items)]
 
         self.tree.addTopLevelItems(items)
 
@@ -526,5 +527,11 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         self.format = fmt
         self._settings.setValue("tabular_format", fmt)
         self.build(self.signals)
+
+        for row in range(self.filters.count()):
+            filter = self.filters.itemWidget(self.filters.item(row))
+            filter.int_format = fmt
+            filter.validate_target()
+
         if self.query.toPlainText():
             self.apply_filters()
