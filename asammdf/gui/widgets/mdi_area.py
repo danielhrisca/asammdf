@@ -16,6 +16,7 @@ from ...blocks.utils import csv_bytearray2hex, extract_cncomment_xml, MdfExcepti
 from ...mdf import MDF
 from ...signal import Signal
 from ..dialogs.channel_info import ChannelInfoDialog
+from ..dialogs.window_selection_dialog import WindowSelectionDialog
 from ..utils import compute_signal, extract_mime_names, get_required_signals
 from .numeric import Numeric
 from .plot import Plot
@@ -45,15 +46,14 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
             data = e.mimeData()
             if data.hasFormat("application/octet-stream-asammdf"):
                 names = extract_mime_names(data)
-                window_type, ok = QtWidgets.QInputDialog.getItem(
-                    None,
-                    "Select window type",
-                    "Type:",
-                    ["Plot", "Numeric", "Tabular"],
-                    0,
-                    False,
-                )
-                if ok:
+
+                dialog = WindowSelectionDialog(parent=self)
+                dialog.setModal(True)
+                dialog.exec_()
+
+                if dialog.result():
+                    window_type = dialog.selected_type()
+
                     if window_type == "Plot" and len(names) > 200:
                         ret = QtWidgets.QMessageBox.question(
                             self,
@@ -422,13 +422,13 @@ class WithMDIArea:
             menu.insertAction(before, action)
             w.setSystemMenu(menu)
 
-            w.setWindowTitle(f"CANBusTrace {self._window_counter}")
+            w.setWindowTitle(f"CAN Bus Trace {self._window_counter}")
             self._window_counter += 1
 
     def add_window(self, args):
         window_type, names = args
 
-        if window_type == "CANBusTrace":
+        if window_type == "CAN Bus Trace":
             return self._add_can_bus_trace_window()
 
         if names and isinstance(names[0], str):

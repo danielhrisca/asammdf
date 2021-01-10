@@ -17,6 +17,7 @@ from ...mdf import MDF, SUPPORTED_VERSIONS
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_group_info import ChannelGroupInfoDialog
 from ..dialogs.channel_info import ChannelInfoDialog
+from ..dialogs.window_selection_dialog import WindowSelectionDialog
 from ..ui import resource_rc as resource_rc
 from ..ui.file_widget import Ui_file_widget
 from ..utils import (
@@ -655,13 +656,15 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     "New pattern based numeric window",
                     "New pattern based tabular window",
                 ]
-                ret, ok = QtWidgets.QInputDialog.getItem(
-                    None, "Select pattern based window type", "Type:", options, 0, False
-                )
-                if ok:
-                    index = options.index(ret)
 
-                    if index == 0:
+                dialog = WindowSelectionDialog(options=options, parent=self)
+                dialog.setModal(True)
+                dialog.exec_()
+
+                if dialog.result():
+                    window_type = dialog.selected_type()
+
+                    if window_type == "New pattern based plot window":
                         self.load_window(
                             {
                                 "type": "Plot",
@@ -669,7 +672,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                 "configuration": {"channels": [], "pattern": result},
                             }
                         )
-                    elif index == 1:
+                    elif window_type == "New pattern based numeric window":
                         self.load_window(
                             {
                                 "type": "Numeric",
@@ -677,7 +680,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                 "configuration": {"channels": [], "pattern": result},
                             }
                         )
-                    elif index == 2:
+                    elif window_type == "New pattern based tabular window":
                         self.load_window(
                             {
                                 "type": "Tabular",
@@ -764,29 +767,30 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         "New numeric window",
                         "New tabular window",
                     ] + [mdi.windowTitle() for mdi in self.mdi_area.subWindowList()]
-                    ret, ok = QtWidgets.QInputDialog.getItem(
-                        None, "Select window type", "Type:", options, 0, False
-                    )
-                    if ok:
-                        index = options.index(ret)
+
+                    dialog = WindowSelectionDialog(options=options, parent=self)
+                    dialog.setModal(True)
+                    dialog.exec_()
+
+                    if dialog.result():
+                        window_type = dialog.selected_type()
+
                         signals = [
                             (None, *self.mdf.whereis(name)[0], self.uuid)
                             for name in names
                         ]
 
-                        if index == 0:
+                        if window_type == "New plot window":
                             self.add_window(["Plot", signals])
-                        elif index == 1:
+                        elif "New plot window" == "New numeric window":
                             self.add_window(["Numeric", signals])
-                        elif index == 2:
+                        elif "New plot window" == "New tabular window":
                             self.add_window(["Tabular", signals])
                         else:
-                            widgets = [
-                                mdi.widget() for mdi in self.mdi_area.subWindowList()
-                            ]
-                            widget = widgets[index - 3]
-
-                            self.add_new_channels(signals, widget)
+                            for mdi in self.mdi_area.subWindowList():
+                                if mdi.windowTitle() == window_type:
+                                    self.add_new_channels(signals, widget)
+                                    break
 
         if toggle_frames:
             self.toggle_frames()
@@ -1183,17 +1187,17 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
     def _create_window(self, event):
 
-        ret, ok = QtWidgets.QInputDialog.getItem(
-            self,
-            "Select window type",
-            "Type:",
-            ["Plot", "Numeric", "Tabular", "CANBusTrace"],
-            0,
-            False,
+        dialog = WindowSelectionDialog(
+            options=("Plot", "Numeric", "Tabuler", "CAN Bus Trace"),
+            parent=self,
         )
-        if ok:
+        dialog.setModal(True)
+        dialog.exec_()
 
-            if ret == "CANBusTrace":
+        if dialog.result():
+            window_type = dialog.selected_type()
+
+            if window_type == "CAN Bus Trace":
                 signals = []
             else:
 
@@ -1232,7 +1236,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                             iterator += 1
 
-            self.add_window((ret, signals))
+            self.add_window((window_type, signals))
 
     def scramble(self, event):
 
