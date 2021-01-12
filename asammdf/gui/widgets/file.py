@@ -93,7 +93,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             extension = file_name.suffix.lower().strip(".")
             progress.setLabelText(f"Converting from {extension} to mdf")
 
-            from mfile import BSIG, ERG
+            try:
+                from mfile import BSIG, ERG
+            except ImportError:
+                from cmerg import BSIG, ERG
 
             if file_name.suffix.lower() == ".erg":
                 cls = ERG
