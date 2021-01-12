@@ -1,5 +1,5 @@
 environment:
-  EXE_BRANCH: "development"
+  EXE_BRANCH: "master"
 
   matrix:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017

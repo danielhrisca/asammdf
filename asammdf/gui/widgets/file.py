@@ -769,7 +769,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         "New plot window",
                         "New numeric window",
                         "New tabular window",
-                    ] + [mdi.windowTitle() for mdi in self.mdi_area.subWindowList()]
+                    ] + [
+                        mdi.windowTitle()
+                        for mdi in self.mdi_area.subWindowList()
+                        if not isinstance(mdi.widget(), CANBusTrace)
+                    ]
 
                     dialog = WindowSelectionDialog(options=options, parent=self)
                     dialog.setModal(True)
