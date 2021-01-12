@@ -68,7 +68,7 @@ for:
 
           $PYVERSION = @("C:\\Python36","C:\\Python36-x64","C:\\Python37","C:\\Python37-x64","C:\\Python38","C:\\Python38-x64")
           
-          $PYVERSION = @("C:\\Python37-x64",)
+          $PYVERSION = @("C:\\Python37-x64")
 
           foreach ($PY in $PYVERSION)
           {
@@ -104,7 +104,7 @@ for:
       - ps: >-
           $PYVERSION = @("C:\\Python36","C:\\Python36-x64","C:\\Python37","C:\\Python37-x64","C:\\Python38","C:\\Python38-x64")
           
-          $PYVERSION = @("C:\\Python37-x64",)
+          $PYVERSION = @("C:\\Python37-x64")
 
           foreach ($PY in $PYVERSION)
           {
@@ -115,7 +115,7 @@ for:
       - ps: >-
           $PYVERSION = @("C:\\Python36","C:\\Python36-x64","C:\\Python37","C:\\Python37-x64","C:\\Python38","C:\\Python38-x64")
           
-          $PYVERSION = @("C:\\Python37-x64",)
+          $PYVERSION = @("C:\\Python37-x64")
 
           foreach ($PY in $PYVERSION)
           {
