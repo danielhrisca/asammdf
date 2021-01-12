@@ -67,8 +67,6 @@ for:
           $Env:LLVM_DIR="C:\Program Files\LLVM\bin"
 
           $PYVERSION = @("C:\\Python36","C:\\Python36-x64","C:\\Python37","C:\\Python37-x64","C:\\Python38","C:\\Python38-x64")
-          
-          $PYVERSION = @("C:\\Python37-x64")
 
           foreach ($PY in $PYVERSION)
           {
@@ -87,10 +85,12 @@ for:
                   & "$PY\\python.exe" -m pip install pywin32 lxml natsort psutil PyQt5>=5.13.1 pyqtgraph==0.11.0 h5py fastparquet scipy hdf5storage snappy cChardet==2.1.5 chardet --no-warn-script-location
                   & "$PY\\python.exe" -m pip install . --no-warn-script-location
                   & "$PY\\python.exe" -m pip install pyinstaller --no-warn-script-location
+                  & "$PY\\Scripts\\pyinstaller" asammdf_noconsole.spec
+                  $src = "dist\\asammdfgui.exe"
+                  $dst = "dist\\asammdfgui_noconsole.exe"
+                  Move-Item -Path $src -Destination $dst
                   
                   & "$PY\\Scripts\\pyinstaller" asammdf.spec
-                  
-                  echo "GUI exe build OK"
               } else {
                   & "$PY\\python.exe" -m pip install . --no-warn-script-location
               }
@@ -101,8 +101,6 @@ for:
     test_script:
       - ps: >-
           $PYVERSION = @("C:\\Python36","C:\\Python36-x64","C:\\Python37","C:\\Python37-x64","C:\\Python38","C:\\Python38-x64")
-          
-          $PYVERSION = @("C:\\Python37-x64")
 
           foreach ($PY in $PYVERSION)
           {
@@ -112,8 +110,6 @@ for:
     after_test:
       - ps: >-
           $PYVERSION = @("C:\\Python36","C:\\Python36-x64","C:\\Python37","C:\\Python37-x64","C:\\Python38","C:\\Python38-x64")
-          
-          $PYVERSION = @("C:\\Python37-x64")
 
           foreach ($PY in $PYVERSION)
           {

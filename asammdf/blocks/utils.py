@@ -4,6 +4,7 @@ asammdf utility functions and classes
 """
 
 from functools import lru_cache
+from io import BytesIO
 import logging
 from pathlib import Path
 from random import randint
@@ -34,7 +35,9 @@ except:
             return {"encoding": encoding}
 
 
-import canmatrix.formats
+from canmatrix.formats.arxml import load as arxml_load
+from canmatrix.formats.dbc import load as dbc_load
+
 import numpy as np
 from numpy import arange, interp, where
 from pandas import Series
@@ -1502,30 +1505,40 @@ def pandas_query_compatible(name):
 
 def load_can_database(path, contents=None, **kwargs):
     contents = path.read_bytes() if contents is None else contents
+    contents = BytesIO(contents)
     import_type = path.suffix.lstrip(".").lower()
+    
+    loads = dbc_load if import_type == "dbc" else arxml_load
 
     try:
-        dbs = canmatrix.formats.loads(
+        dbs = loads(
             contents, import_type=import_type, key="db", **kwargs
         )
     except UnicodeDecodeError:
         encoding = detect(contents)["encoding"]
         decoded_contents = contents.decode(encoding)
-        dbs = canmatrix.formats.loads(
-            decoded_contents,
-            import_type=import_type,
-            key="db",
-            encoding=encoding,
-            **kwargs,
-        )
+        try:
+            dbs = loads(
+                decoded_contents,
+                import_type=import_type,
+                key="db",
+                encoding=encoding,
+                **kwargs,
+            )
+        except:
+            logger.warning(message)
+            dbs = None
+    except:
+        logger.warning(message)
+        dbs = None
 
-    if dbs:
+    if import_type == "arxml" and dbs:
         first_bus = list(dbs)[0]
-        can_matrix = dbs[first_bus]
-    else:
-        can_matrix = None
+        dbs = dbs[first_bus]
+        
+    matrix = dbs or None
 
-    return can_matrix
+    return matrix
 
 
 def all_blocks_addresses(obj):
