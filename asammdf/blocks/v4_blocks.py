@@ -3861,12 +3861,13 @@ class DataBlock:
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(
                     stream, address
                 )
-                address += COMMON_SIZE
+
                 if self.id not in (b"##DT", b"##RD", b"##SD", b"##DV", b"##DI"):
                     message = f'Expected "##DT", "##DV", "##DI", "##RD" or "##SD" block @{hex(address)} but found "{self.id}"'
                     logger.exception(message)
                     raise MdfException(message)
-                self.data = stream[address : address + self.block_len]
+
+                self.data = stream[address + COMMON_SIZE: address + self.block_len]
             else:
 
                 stream.seek(address)

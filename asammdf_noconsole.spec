@@ -23,7 +23,10 @@ a = Analysis([asammdf_path],
     binaries=[],
     datas=added_files,
     hiddenimports=[
-        'numpy.core._dtype_ctypes'
+        'numpy.core._dtype_ctypes',
+        'canmatrix.formats',
+        'canmatrix.formats.dbc',
+        'canmatrix.formats.arxml',
     ],
     hookspath=[],
     runtime_hooks=[],
