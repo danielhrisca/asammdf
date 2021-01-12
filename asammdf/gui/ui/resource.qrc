@@ -39,5 +39,10 @@
     <file alias="comments.png">images/comments.png</file>
 	<file alias="attach.png">images/attach.png</file>
 	<file alias="window.png">images/window.png</file>
+    <file alias="bus_can.png">images/bus_can.png</file>
+    <file alias="bus_flx.png">images/bus_flx.png</file>
+    <file alias="bus_eth.png">images/bus_eth.png</file>
+    <file alias="bus_usb.png">images/bus_usb.png</file>
+    <file alias="bus_lin.png">images/bus_lin.png</file>
 </qresource>
 </RCC>

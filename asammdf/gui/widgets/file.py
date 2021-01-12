@@ -12,7 +12,15 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
 
 from ...blocks.utils import extract_cncomment_xml
-from ...blocks.v4_constants import FLAG_AT_TO_STRING, FLAG_CG_BUS_EVENT
+from ...blocks.v4_constants import (
+    BUS_TYPE_CAN,
+    BUS_TYPE_LIN,
+    BUS_TYPE_FLEXRAY,
+    BUS_TYPE_ETHERNET,
+    BUS_TYPE_USB,
+    FLAG_AT_TO_STRING,
+    FLAG_CG_BUS_EVENT,
+)
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_group_info import ChannelGroupInfoDialog
@@ -322,6 +330,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 name = f"Channel group {i}"
 
             cycles = channel_group.cycles_nr
+
+            channel_group_item = QtWidgets.QTreeWidgetItem()
+            channel_group_item.setText(0, name)
+
             if self.mdf.version < "4.00":
                 size = channel_group.samples_byte_nr * cycles
             else:
@@ -335,29 +347,48 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         + channel_group.invalidation_bytes_nr
                     ) * cycles
 
-            channel_group = QtWidgets.QTreeWidgetItem()
-            channel_group.setText(0, name)
+                if group.channel_group.acq_source:
+                    source = group.channel_group.acq_source
+                    if source.bus_type == BUS_TYPE_CAN:
+                        ico = ":/bus_can.png"
+                    elif source.bus_type == BUS_TYPE_LIN:
+                        ico = ":/bus_lin.png"
+                    elif source.bus_type == BUS_TYPE_ETHERNET:
+                        ico = ":/bus_eth.png"
+                    elif source.bus_type == BUS_TYPE_USB:
+                        ico = ":/bus_usb.png"
+                    elif source.bus_type == BUS_TYPE_FLEXRAY:
+                        ico = ":/bus_flx.png"
+                    else:
+                        ico = None
+
+                    if ico is not None:
+                        icon = QtGui.QIcon()
+                        icon.addPixmap(
+                            QtGui.QPixmap(ico), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                        )
+                        channel_group_item.setIcon(0, icon)
 
             item = QtWidgets.QTreeWidgetItem()
             item.setText(0, "Channels")
             item.setText(1, f"{len(group.channels)}")
-            channel_group.addChild(item)
+            channel_group_item.addChild(item)
 
             item = QtWidgets.QTreeWidgetItem()
             item.setText(0, "Cycles")
             item.setText(1, str(cycles))
             if cycles:
                 item.setForeground(1, QtGui.QBrush(QtCore.Qt.darkGreen))
-            channel_group.addChild(item)
+            channel_group_item.addChild(item)
 
             item = QtWidgets.QTreeWidgetItem()
             item.setText(0, "Raw size")
             item.setText(1, f"{size / 1024 / 1024:.1f} MB")
             if cycles:
                 item.setForeground(1, QtGui.QBrush(QtCore.Qt.darkGreen))
-            channel_group.addChild(item)
+            channel_group_item.addChild(item)
 
-            channel_groups_children.append(channel_group)
+            channel_groups_children.append(channel_group_item)
 
         channel_groups.addChildren(channel_groups_children)
 
@@ -561,6 +592,28 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 channel_group = TreeItem(entry, mdf_uuid=self.uuid)
                 comment = group.channel_group.comment
                 comment = extract_cncomment_xml(comment)
+
+                if self.mdf.version >= '4.00' and group.channel_group.acq_source:
+                    source = group.channel_group.acq_source
+                    if source.bus_type == BUS_TYPE_CAN:
+                        ico = ":/bus_can.png"
+                    elif source.bus_type == BUS_TYPE_LIN:
+                        ico = ":/bus_lin.png"
+                    elif source.bus_type == BUS_TYPE_ETHERNET:
+                        ico = ":/bus_eth.png"
+                    elif source.bus_type == BUS_TYPE_USB:
+                        ico = ":/bus_usb.png"
+                    elif source.bus_type == BUS_TYPE_FLEXRAY:
+                        ico = ":/bus_flx.png"
+                    else:
+                        ico = None
+
+                    if ico is not None:
+                        icon = QtGui.QIcon()
+                        icon.addPixmap(
+                            QtGui.QPixmap(ico), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                        )
+                        channel_group.setIcon(0, icon)
 
                 if comment:
                     channel_group.setText(0, f"Channel group {i} ({comment})")
