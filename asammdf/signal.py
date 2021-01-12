@@ -855,6 +855,9 @@ class Signal(object):
                             if kind == "f":
                                 interpolation_mode = 1
 
+                    if interpolation_mode == 2:
+                        interpolation_mode = 0
+
                     if interpolation_mode == 1:
                         s = np.interp(
                             new_timestamps, self.timestamps, self.samples
