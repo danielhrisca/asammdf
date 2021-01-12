@@ -87,10 +87,6 @@ for:
                   & "$PY\\python.exe" -m pip install lxml natsort psutil PyQt5>=5.13.1 pyqtgraph==0.11.0 h5py fastparquet scipy hdf5storage snappy cChardet==2.1.5 chardet --no-warn-script-location
                   & "$PY\\python.exe" -m pip install . --no-warn-script-location
                   & "$PY\\python.exe" -m pip install pyinstaller==3.6 --no-warn-script-location
-                  & "$PY\\Scripts\\pyinstaller" asammdf_noconsole.spec
-                  $src = "dist\\asammdfgui.exe"
-                  $dst = "dist\\asammdfgui_noconsole.exe"
-                  Move-Item -Path $src -Destination $dst
                   
                   & "$PY\\Scripts\\pyinstaller" asammdf.spec
               } else {
