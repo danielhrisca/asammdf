@@ -8,7 +8,7 @@ PyYAML
 xlrd
 XlsxWriter
 xlwt
-canmatrix==0.8
+canmatrix>=0.9
 pandas
 numexpr
 lz4
