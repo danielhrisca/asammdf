@@ -86,7 +86,7 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
-        "canmatrix[arxml, dbc]>=0.8",
+        "canmatrix[arxml, dbc]==0.8",
         "lz4",
         "numexpr",
         "numpy>=1.16.1",
