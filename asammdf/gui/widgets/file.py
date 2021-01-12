@@ -792,7 +792,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         else:
                             for mdi in self.mdi_area.subWindowList():
                                 if mdi.windowTitle() == window_type:
-                                    self.add_new_channels(signals, widget)
+                                    self.add_new_channels(signals, mdi.widget())
                                     break
 
         if toggle_frames:
