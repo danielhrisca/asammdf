@@ -1248,7 +1248,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
     def _create_window(self, event):
 
         dialog = WindowSelectionDialog(
-            options=("Plot", "Numeric", "Tabuler", "CAN Bus Trace"),
+            options=("Plot", "Numeric", "Tabuler", "CAN Bus Trace", "LIN Bus Trace"),
             parent=self,
         )
         dialog.setModal(True)
@@ -1257,7 +1257,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         if dialog.result():
             window_type = dialog.selected_type()
 
-            if window_type == "CAN Bus Trace":
+            if window_type in ("CAN Bus Trace", "LIN Bus Trace"):
                 signals = []
             else:
 

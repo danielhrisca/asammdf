@@ -22,6 +22,7 @@ from .numeric import Numeric
 from .plot import Plot
 from .tabular import Tabular
 from .can_bus_trace import CANBusTrace
+from .lin_bus_trace import LINBusTrace
 
 
 class MdiAreaWidget(QtWidgets.QMdiArea):
@@ -282,7 +283,7 @@ class WithMDIArea:
 
             columns = {
                 "timestamps": df_index,
-                "Chn": np.full(count, "Unknown", dtype='O'),
+                "Bus": np.full(count, "Unknown", dtype='O'),
                 "ID": np.full(count, 0xFFFFFFFF, dtype='u4'),
                 "Event Type": np.full(count, "CAN Frame", dtype='O'),
                 "Details": np.full(count, "", dtype='O'),
@@ -290,11 +291,6 @@ class WithMDIArea:
                 "Data Length": np.zeros(count, dtype='u1'),
                 "Data Bytes": np.full(count, "", dtype='O'),
             }
-
-            sys.intern("CAN Frame")
-            sys.intern("Error Frame")
-            sys.intern("Remote Frame")
-            sys.intern("Unknown")
 
             count = len(items)
 
@@ -308,11 +304,8 @@ class WithMDIArea:
                     index = np.searchsorted(df_index, item.timestamps)
 
                     vals = item["CAN_DataFrame.BusChannel"].astype('u1')
-                    unique = np.unique(vals).tolist()
-                    for chn in unique:
-                        sys.intern(f"CAN {chn}")
                     vals = [f"CAN {chn}" for chn in vals.tolist()]
-                    columns["Chn"][index] = vals
+                    columns["Bus"][index] = vals
 
                     columns["ID"][index] = item["CAN_DataFrame.ID"].astype('u4') & 0x1FFFFFFF
                     columns["DLC"][index] = item["CAN_DataFrame.DLC"].astype('u1')
@@ -325,19 +318,16 @@ class WithMDIArea:
                     )
                     columns["Data Bytes"][index] = vals
 
-                    del vals
-                    del data_length
+                    vals = None
+                    data_length = None
 
                 elif item.name == "CAN_RemoteFrame":
 
                     index = np.searchsorted(df_index, item.timestamps)
 
                     vals = item["CAN_RemoteFrame.BusChannel"].astype('u1')
-                    unique = np.unique(vals).tolist()
-                    for chn in unique:
-                        sys.intern(f"CAN {chn}")
                     vals = [f"CAN {chn}" for chn in vals.tolist()]
-                    columns["Chn"][index] = vals
+                    columns["Bus"][index] = vals
 
                     columns["ID"][index] = item["CAN_RemoteFrame.ID"].astype('u4') & 0x1FFFFFFF
                     columns["DLC"][index] = item["CAN_RemoteFrame.DLC"].astype('u1')
@@ -345,8 +335,8 @@ class WithMDIArea:
                     columns["Data Length"][index] = data_length
                     columns["Event Type"][index] = "Remote Frame"
 
-                    del vals
-                    del data_length
+                    vals = None
+                    data_length = None
 
                 elif item.name == "CAN_ErrorFrame":
 
@@ -356,11 +346,8 @@ class WithMDIArea:
 
                     if "CAN_ErrorFrame.BusChannel" in names:
                         vals = item["CAN_ErrorFrame.BusChannel"].astype('u1')
-                        unique = np.unique(vals).tolist()
-                        for chn in unique:
-                            sys.intern(f"CAN {chn}")
                         vals = [f"CAN {chn}" for chn in vals.tolist()]
-                        columns["Chn"][index] = vals
+                        columns["Bus"][index] = vals
 
                     if "CAN_ErrorFrame.ID" in names:
                         columns["ID"][index] = item["CAN_ErrorFrame.ID"].astype('u4') & 0x1FFFFFFF
@@ -382,7 +369,7 @@ class WithMDIArea:
 
                         columns["Details"][index] = vals
 
-                    del vals
+                    vals
 
             signals = pd.DataFrame(columns)
 
@@ -425,11 +412,228 @@ class WithMDIArea:
             w.setWindowTitle(f"CAN Bus Trace {self._window_counter}")
             self._window_counter += 1
 
+    def _add_lin_bus_trace_window(self):
+        items = []
+        groups_count = len(self.mdf.groups)
+
+        for index in range(groups_count):
+            group = self.mdf.groups[index]
+            if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
+                source = group.channel_group.acq_source
+
+                names = [ch.name for ch in group.channels]
+
+                if source and source.bus_type == v4c.BUS_TYPE_LIN:
+                    if "LIN_Frame" in names:
+                        data = self.mdf.get("LIN_Frame", index)
+                        items.append(data)
+
+                    elif "LIN_SyncError" in names:
+                        data = self.mdf.get("LIN_SyncError", index)
+                        items.append(data)
+
+                    elif "LIN_TransmissionError" in names:
+                        data = self.mdf.get("LIN_TransmissionError", index)
+                        items.append(data)
+
+                    elif "LIN_ChecksumError" in names:
+                        data = self.mdf.get("LIN_ChecksumError", index)
+                        items.append(data)
+
+                    elif "LIN_ReceiveError" in names:
+                        data = self.mdf.get("LIN_ReceiveError", index)
+                        items.append(data)
+
+        if len(items):
+
+            df_index = np.sort(np.concatenate([item.timestamps for item in items]))
+            count = len(df_index)
+
+            columns = {
+                "timestamps": df_index,
+                "Bus": np.full(count, "Unknown", dtype='O'),
+                "ID": np.full(count, 0xFFFFFFFF, dtype='u4'),
+                "Event Type": np.full(count, "LIN Frame", dtype='O'),
+                "Details": np.full(count, "", dtype='O'),
+                "Received Byte Count": np.zeros(count, dtype='u1'),
+                "Data Length": np.zeros(count, dtype='u1'),
+                "Data Bytes": np.full(count, "", dtype='O'),
+            }
+
+            count = len(items)
+
+            for _ in range(count):
+                item = items.pop()
+                if item.name == "LIN_Frame":
+
+                    index = np.searchsorted(df_index, item.timestamps)
+
+                    vals = item["LIN_Frame.BusChannel"].astype('u1')
+                    vals = [f"LIN {chn}" for chn in vals.tolist()]
+                    columns["Bus"][index] = vals
+
+                    columns["ID"][index] = item["LIN_Frame.ID"].astype('u1') & 0x3F
+                    columns["Received Byte Count"][index] = item["LIN_Frame.ReceivedDataByteCount"].astype('u1')
+                    data_length = item["LIN_Frame.DataLength"].astype('u1').tolist()
+                    columns["Data Length"][index] = data_length
+
+                    vals = csv_bytearray2hex(
+                        pd.Series(list(item["LIN_Frame.DataBytes"])),
+                        data_length,
+                    )
+                    columns["Data Bytes"][index] = vals
+
+                    vals = None
+                    data_length = None
+
+                elif item.name == "LIN_SyncError":
+
+                    index = np.searchsorted(df_index, item.timestamps)
+                    names = set(item.samples.dtype.names)
+
+                    if "LIN_SyncError.BusChannel" in names:
+                        vals = item["LIN_SyncError.BusChannel"].astype('u1')
+                        vals = [f"LIN {chn}" for chn in vals.tolist()]
+                        columns["Bus"][index] = vals
+
+                    if "LIN_SyncError.BaudRate" in names:
+                        vals = item["LIN_SyncError.BaudRate"]
+                        unique = np.unique(vals).tolist()
+                        for val in unique:
+                            sys.intern((f"Baudrate {val}"))
+                        vals = [f"Baudrate {val}" for val in vals.tolist()]
+                        columns["Details"][index] = vals
+
+                    columns["Event Type"][index] = "Sync Error Frame"
+
+                    vals = None
+                    data_length = None
+
+                elif item.name == "LIN_TransmissionError":
+
+                    index = np.searchsorted(df_index, item.timestamps)
+
+                    names = set(item.samples.dtype.names)
+
+                    if "LIN_TransmissionError.BusChannel" in names:
+                        vals = item["LIN_TransmissionError.BusChannel"].astype('u1')
+                        vals = [f"LIN {chn}" for chn in vals.tolist()]
+                        columns["Bus"][index] = vals
+
+                    if "LIN_TransmissionError.BaudRate" in names:
+                        vals = item["LIN_TransmissionError.BaudRate"]
+                        unique = np.unique(vals).tolist()
+                        for val in unique:
+                            sys.intern((f"Baudrate {val}"))
+                        vals = [f"Baudrate {val}" for val in vals.tolist()]
+                        columns["Details"][index] = vals
+
+                    columns["ID"][index] = item["LIN_TransmissionError.ID"].astype('u1') & 0x3F
+
+                    columns["Event Type"][index] = "Transmission Error Frame"
+
+                    vals = None
+
+                elif item.name == "LIN_ReceiveError":
+
+                    index = np.searchsorted(df_index, item.timestamps)
+
+                    names = set(item.samples.dtype.names)
+
+                    if "LIN_ReceiveError.BusChannel" in names:
+                        vals = item["LIN_ReceiveError.BusChannel"].astype('u1')
+                        vals = [f"LIN {chn}" for chn in vals.tolist()]
+                        columns["Bus"][index] = vals
+
+                    if "LIN_ReceiveError.BaudRate" in names:
+                        vals = item["LIN_ReceiveError.BaudRate"]
+                        unique = np.unique(vals).tolist()
+                        for val in unique:
+                            sys.intern((f"Baudrate {val}"))
+                        vals = [f"Baudrate {val}" for val in vals.tolist()]
+                        columns["Details"][index] = vals
+
+                    if "LIN_ReceiveError.ID" in names:
+                        columns["ID"][index] = item["LIN_ReceiveError.ID"].astype('u1') & 0x3F
+
+                    columns["Event Type"][index] = "Receive Error Frame"
+
+                    vals = None
+
+                elif item.name == "LIN_ChecksumError":
+
+                    index = np.searchsorted(df_index, item.timestamps)
+
+                    names = set(item.samples.dtype.names)
+
+                    if "LIN_ChecksumError.BusChannel" in names:
+                        vals = item["LIN_ChecksumError.BusChannel"].astype('u1')
+                        vals = [f"LIN {chn}" for chn in vals.tolist()]
+                        columns["Bus"][index] = vals
+
+                    if "LIN_ChecksumError.Checksum" in names:
+                        vals = item["LIN_ChecksumError.Checksum"]
+                        unique = np.unique(vals).tolist()
+                        for val in unique:
+                            sys.intern((f"Baudrate {val}"))
+                        vals = [f"Checksum 0x{val:02X}" for val in vals.tolist()]
+                        columns["Details"][index] = vals
+
+                    if "LIN_ChecksumError.ID" in names:
+                        columns["ID"][index] = item["LIN_ChecksumError.ID"].astype('u1') & 0x3F
+
+                    columns["Event Type"][index] = "Checksum Error Frame"
+
+                    vals = None
+
+            signals = pd.DataFrame(columns)
+
+            numeric = LINBusTrace(signals, start=self.mdf.header.start_time.timestamp())
+
+            if not self.subplots:
+                for mdi in self.mdi_area.subWindowList():
+                    mdi.close()
+                w = self.mdi_area.addSubWindow(numeric)
+
+                w.showMaximized()
+            else:
+                w = self.mdi_area.addSubWindow(numeric)
+
+                if len(self.mdi_area.subWindowList()) == 1:
+                    w.showMaximized()
+                else:
+                    w.show()
+                    self.mdi_area.tileSubWindows()
+
+            menu = w.systemMenu()
+            if self._frameless_windows:
+                w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+
+            w.layout().setSpacing(1)
+
+            def set_title(mdi):
+                name, ok = QtWidgets.QInputDialog.getText(
+                    None, "Set sub-plot title", "Title:"
+                )
+                if ok and name:
+                    mdi.setWindowTitle(name)
+
+            action = QtWidgets.QAction("Set title", menu)
+            action.triggered.connect(partial(set_title, w))
+            before = menu.actions()[0]
+            menu.insertAction(before, action)
+            w.setSystemMenu(menu)
+
+            w.setWindowTitle(f"LIN Bus Trace {self._window_counter}")
+            self._window_counter += 1
+
     def add_window(self, args):
         window_type, names = args
 
         if window_type == "CAN Bus Trace":
             return self._add_can_bus_trace_window()
+        elif window_type == "LIN Bus Trace":
+            return self._add_lin_bus_trace_window()
 
         if names and isinstance(names[0], str):
             signals_ = [

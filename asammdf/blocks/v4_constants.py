@@ -2,6 +2,7 @@
 """ MDF v4 constants """
 import re
 import struct
+import sys
 
 MAX_UINT64 = (1 << 64) - 1
 
@@ -803,3 +804,30 @@ CAN_ERROR_TYPES = {
     4: "CRC Error",
     5: "Acknowledgment Error",
 }
+
+for string in (
+    "CAN Frame",
+    "Error Frame",
+    "Remote Frame",
+    "Unknown",
+    "LIN Frame",
+    "Checksum Error Frame",
+    "Receive Error Frame",
+    "Sync Error Frame",
+    "Transmission Error Frame",
+    "A",
+    "B",
+    "AB",
+):
+    sys.intern(string)
+
+for string in CAN_ERROR_TYPES.values():
+    sys.intern(string)
+
+for chn in range(20):
+    sys.intern(f"CAN {chn}")
+    sys.intern(f"LIN {chn}")
+    sys.intern(f"FLX {chn}")
+
+for chk in range(256):
+    sys.intern(f"Checksum 0x{chk:02X}")
