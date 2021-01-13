@@ -267,6 +267,8 @@ class MDF4(MDF_Common):
         use slower method to save the exact sample size for VLSD channels
     column_storage (True) : bool
         use column storage for MDF version >= 4.20
+    encryption_key : bytes
+        use this key to decode encrypted attachments
 
     Attributes
     ----------
@@ -344,6 +346,7 @@ class MDF4(MDF_Common):
         self._remove_source_from_channel_names = kwargs.get(
             "remove_source_from_channel_names", False
         )
+        self._encryption_key = kwargs.get("encryption_key", None)
         self.copy_on_get = kwargs.get("copy_on_get", True)
         self.compact_vlsd = kwargs.get("compact_vlsd", False)
         self._single_bit_uint_as_bool = False
@@ -5697,6 +5700,8 @@ class MDF4(MDF_Common):
         compression=True,
         mime=r"application/octet-stream",
         embedded=True,
+        encrypt=None,
+        key=None,
     ):
         """attach embedded attachment as application/octet-stream
 
@@ -5716,6 +5721,15 @@ class MDF4(MDF_Common):
             mime type string
         embedded : bool
             attachment is embedded in the file
+        encrypt : bool, default None
+            encrypt data using the key; only valid for embedded attachments
+
+            .. versionadded:: 6.2.0
+
+        key : bytes, default None
+            key used for encryption; only valid for embedded attachments
+
+            .. versionadded:: 6.2.0
 
         Returns
         -------
@@ -5747,6 +5761,16 @@ class MDF4(MDF_Common):
 
             file_name = file_name or "bin.bin"
 
+            encrypted = False
+            if encrypt is True and key:
+                try:
+                    from cryptography.fernet import Fernet
+                    fernet = Fernet(key)
+                    data = fernet.encrypt(data)
+                    encrypted = True
+                except:
+                    pass
+
             at_block = AttachmentBlock(
                 data=data,
                 compression=compression,
@@ -5754,6 +5778,8 @@ class MDF4(MDF_Common):
                 file_name=file_name,
             )
             at_block["creator_index"] = creator_index
+            if encrypted:
+                at_block.flags |= v4c.FLAG_AT_ENCRYPTED
 
             self.attachments.append(at_block)
 
@@ -5809,7 +5835,7 @@ class MDF4(MDF_Common):
         self.virtual_groups.clear()
 
     @lru_cache(maxsize=128)
-    def extract_attachment(self, index=None):
+    def extract_attachment(self, index=None, encryption_key=None):
         """extract attachment data by index. If it is an embedded attachment,
         then this method creates the new file according to the attachment file
         name information
@@ -5818,6 +5844,13 @@ class MDF4(MDF_Common):
         ----------
         index : int
             attachment index; default *None*
+
+        encryption_key : bytes
+            password used to encrypt data; only for
+            embedded attachments
+
+
+            .. versionadded:: 6.2.0
 
         Returns
         -------
@@ -5843,6 +5876,18 @@ class MDF4(MDF_Common):
                 md5_worker = md5()
                 md5_worker.update(data)
                 md5_sum = md5_worker.digest()
+
+                if (
+                    attachment.flags & v4c.FLAG_AT_ENCRYPTED
+                    and encryption_key is not None
+                ):
+                    try:
+                        from cryptography.fernet import Fernet
+                        fernet = Fernet(encryption_key)
+                        data = fernet.decrypt(data)
+                    except:
+                        pass
+
             else:
 
                 # for external attachments read the file and return the content
@@ -6123,7 +6168,10 @@ class MDF4(MDF_Common):
                     source = None
 
             if channel.attachment is not None:
-                attachment = self.extract_attachment(channel.attachment)
+                attachment = self.extract_attachment(
+                    channel.attachment,
+                    encryption_key=self._encryption_key,
+                )
             else:
                 attachment = None
 
@@ -9856,7 +9904,8 @@ class MDF4(MDF_Common):
                     if attachment_addr not in self._dbc_cache:
 
                         attachment, at_name, md5_sum = self.extract_attachment(
-                            index=attachment_addr
+                            index=attachment_addr,
+                            encryption_key=self._encryption_key,
                         )
                         if at_name.suffix.lower() not in (".arxml", ".dbc"):
                             message = f'Expected .dbc or .arxml file as CAN channel attachment but got "{at_name}"'
@@ -10086,7 +10135,8 @@ class MDF4(MDF_Common):
                     if attachment_addr not in self._dbc_cache:
 
                         attachment, at_name, md5_sum = self.extract_attachment(
-                            index=attachment_addr
+                            index=attachment_addr,
+                            encryption_key=self._encryption_key,
                         )
                         if at_name.suffix.lower() not in (".arxml", ".dbc"):
                             message = f'Expected .dbc or .arxml file as LIN channel attachment but got "{at_name}"'
