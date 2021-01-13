@@ -1,23 +1,11 @@
 # -*- coding: utf-8 -*-
 import datetime
 import logging
-from traceback import format_exc
 
-import numpy as np
-import numpy.core.defchararray as npchar
 import pandas as pd
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from ...blocks.utils import (
-    csv_bytearray2hex,
-    csv_int2bin,
-    csv_int2hex,
-    pandas_query_compatible,
-)
-from ..ui import resource_rc as resource_rc
-from ..utils import run_thread_with_progress
-from .tabular_base import TabularTreeItem, TabularBase
-from .tabular_filter import TabularFilter
+from .tabular_base import TabularBase
 
 logger = logging.getLogger("asammdf.gui")
 LOCAL_TIMEZONE = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
