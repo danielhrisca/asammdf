@@ -195,6 +195,8 @@ other optional dependencies
 * matplotlib : as fallback for Signal plotting
 * cChardet : to detect non-standard unicode encodings
 * chardet : to detect non-standard unicode encodings 
+* cryptography : for encrypted embbeded attachments (custom functionality
+  supported only by this library; not specified in the MDF format spec)
 
 # Benchmarks
 
