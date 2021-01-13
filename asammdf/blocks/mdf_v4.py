@@ -5879,11 +5879,11 @@ class MDF4(MDF_Common):
 
                 if (
                     attachment.flags & v4c.FLAG_AT_ENCRYPTED
-                    and encryption_key is not None
+                    and (encryption_key is not None or self._encryption_key is not None)
                 ):
                     try:
                         from cryptography.fernet import Fernet
-                        fernet = Fernet(encryption_key)
+                        fernet = Fernet(encryption_key or self._encryption_key)
                         data = fernet.decrypt(data)
                     except:
                         pass
