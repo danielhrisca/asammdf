@@ -635,6 +635,8 @@ class WithMDIArea:
         elif window_type == "LIN Bus Trace":
             return self._add_lin_bus_trace_window()
 
+        print('add', args)
+
         if names and isinstance(names[0], str):
             signals_ = [
                 (None, *self.mdf.whereis(name)[0]) for name in names if name in self.mdf

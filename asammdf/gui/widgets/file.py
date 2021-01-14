@@ -843,9 +843,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         if window_type == "New plot window":
                             self.add_window(["Plot", signals])
-                        elif "New plot window" == "New numeric window":
+                        elif window_type == "New numeric window":
                             self.add_window(["Numeric", signals])
-                        elif "New plot window" == "New tabular window":
+                        elif window_type == "New tabular window":
                             self.add_window(["Tabular", signals])
                         else:
                             for mdi in self.mdi_area.subWindowList():
@@ -1249,7 +1249,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
     def _create_window(self, event):
 
         dialog = WindowSelectionDialog(
-            options=("Plot", "Numeric", "Tabuler", "CAN Bus Trace", "LIN Bus Trace"),
+            options=("Plot", "Numeric", "Tabular", "CAN Bus Trace", "LIN Bus Trace"),
             parent=self,
         )
         dialog.setModal(True)

@@ -3699,8 +3699,12 @@ class MDF:
 
                     if reduce_memory_usage and sig.samples.dtype.kind not in "SU":
                         sig.samples = downcast(sig.samples)
+                        fastpath = True
+                    else:
+                        fastpath = False
+
                     df[channel_name] = pd.Series(
-                        sig.samples, index=sig_index, fastpath=True
+                        sig.samples, index=sig_index, fastpath=fastpath
                     )
 
             if self._callback:
@@ -3717,6 +3721,8 @@ class MDF:
             df.set_index(new_index, inplace=True)
         elif time_from_zero and len(master):
             df.set_index(df.index - df.index[0], inplace=True)
+
+        print(df.dtypes)
 
         return df
 
