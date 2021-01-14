@@ -908,6 +908,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 self.subplots,
                 self.subplots_link,
                 self.ignore_value2text_conversions,
+                None,
                 self,
             )
         except:

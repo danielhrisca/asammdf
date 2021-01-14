@@ -58,6 +58,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         subplots=False,
         subplots_link=False,
         ignore_value2text_conversions=False,
+        encryption_key=None,
         *args,
         **kwargs,
     ):
@@ -156,7 +157,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 file_name = mdf_name
 
             target = MDF
-            kwargs = {"name": file_name, "callback": self.update_progress}
+            kwargs = {"name": file_name, "callback": self.update_progress, "encryption_key": encryption_key}
 
             self.mdf = run_thread_with_progress(
                 self,
@@ -442,7 +443,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if self.mdf.version >= "4.00" and self.mdf.attachments:
             for i, attachment in enumerate(self.mdf.attachments, 1):
-                att = Attachment(attachment)
+                att = Attachment(attachment, self.mdf._encryption_key)
                 att.number.setText(f"{i}.")
 
                 fields = []
