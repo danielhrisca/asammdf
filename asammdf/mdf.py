@@ -3699,18 +3699,27 @@ class MDF:
 
                     if reduce_memory_usage and sig.samples.dtype.kind not in "SU":
                         sig.samples = downcast(sig.samples)
-                        fastpath = True
-                    else:
-                        fastpath = False
 
                     df[channel_name] = pd.Series(
-                        sig.samples, index=sig_index, fastpath=fastpath
+                        sig.samples, index=sig_index, fastpath=True
                     )
 
             if self._callback:
                 self._callback(group_index + 1, groups_nr)
 
-        df = pd.DataFrame.from_dict(df)
+        strings, nonstrings = {}, {}
+
+        for col, series in df.items():
+            if series.dtype.kind == "S":
+                strings[col] = series
+            else:
+                nonstrings[col] = series
+
+        df = pd.DataFrame.from_dict(nonstrings)
+
+        for col, series in strings.items():
+            df[col] = series
+
         df.set_index(master, inplace=True)
         df.index.name = "timestamps"
 
@@ -3721,8 +3730,6 @@ class MDF:
             df.set_index(new_index, inplace=True)
         elif time_from_zero and len(master):
             df.set_index(df.index - df.index[0], inplace=True)
-
-        print(df.dtypes)
 
         return df
 
