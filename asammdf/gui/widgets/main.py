@@ -557,6 +557,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         open_group = QtWidgets.QActionGroup(self)
         action = QtWidgets.QAction("Online documentation", menu)
         action.triggered.connect(self.help)
+        action.setShortcut(QtGui.QKeySequence("F1"))
         open_group.addAction(action)
         menu.addActions(open_group.actions())
 
@@ -1069,6 +1070,16 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         elif key == QtCore.Qt.Key_F8:
             self.toggle_fullscreen()
+
+        elif key in (QtCore.Qt.Key_F2, QtCore.Qt.Key_F3, QtCore.Qt.Key_F4):
+            if self.files.count() and self.stackedWidget.currentIndex() == 0:
+                if key == QtCore.Qt.Key_F2:
+                    window_type = "Plot"
+                elif key == QtCore.Qt.Key_F3:
+                    window_type = "Numeric"
+                elif key == QtCore.Qt.Key_F4:
+                    window_type = "Tabular"
+                self.files.currentWidget()._create_window(None, window_type)
 
         else:
             super().keyPressEvent(event)

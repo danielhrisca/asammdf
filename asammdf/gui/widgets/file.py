@@ -1246,58 +1246,63 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         self.mdf = None
 
-    def _create_window(self, event):
+    def _create_window(self, event, window_type=None):
 
-        dialog = WindowSelectionDialog(
-            options=("Plot", "Numeric", "Tabular", "CAN Bus Trace", "LIN Bus Trace"),
-            parent=self,
-        )
-        dialog.setModal(True)
-        dialog.exec_()
+        if window_type is None:
+            dialog = WindowSelectionDialog(
+                options=("Plot", "Numeric", "Tabular", "CAN Bus Trace", "LIN Bus Trace"),
+                parent=self,
+            )
+            dialog.setModal(True)
+            dialog.exec_()
 
-        if dialog.result():
-            window_type = dialog.selected_type()
-
-            if window_type in ("CAN Bus Trace", "LIN Bus Trace"):
-                signals = []
+            if dialog.result():
+                window_type = dialog.selected_type()
             else:
+                window_type = None
 
-                try:
-                    iter(event)
-                    signals = event
-                except:
+        if window_type is None:
+            return
+        elif window_type in ("CAN Bus Trace", "LIN Bus Trace"):
+            signals = []
+        else:
 
-                    iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
+            try:
+                iter(event)
+                signals = event
+            except:
 
-                    signals = []
+                iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
-                    if self.channel_view.currentIndex() == 1:
-                        while iterator.value():
-                            item = iterator.value()
-                            if item.parent() is None:
-                                iterator += 1
-                                continue
+                signals = []
 
-                            if item.checkState(0) == QtCore.Qt.Checked:
-                                group, index = item.entry
-                                ch = self.mdf.groups[group].channels[index]
-                                if not ch.component_addr:
-                                    signals.append((None, group, index, self.uuid))
-
+                if self.channel_view.currentIndex() == 1:
+                    while iterator.value():
+                        item = iterator.value()
+                        if item.parent() is None:
                             iterator += 1
-                    else:
-                        while iterator.value():
-                            item = iterator.value()
+                            continue
 
-                            if item.checkState(0) == QtCore.Qt.Checked:
-                                group, index = item.entry
-                                ch = self.mdf.groups[group].channels[index]
-                                if not ch.component_addr:
-                                    signals.append((None, group, index, self.uuid))
+                        if item.checkState(0) == QtCore.Qt.Checked:
+                            group, index = item.entry
+                            ch = self.mdf.groups[group].channels[index]
+                            if not ch.component_addr:
+                                signals.append((None, group, index, self.uuid))
 
-                            iterator += 1
+                        iterator += 1
+                else:
+                    while iterator.value():
+                        item = iterator.value()
 
-            self.add_window((window_type, signals))
+                        if item.checkState(0) == QtCore.Qt.Checked:
+                            group, index = item.entry
+                            ch = self.mdf.groups[group].channels[index]
+                            if not ch.component_addr:
+                                signals.append((None, group, index, self.uuid))
+
+                        iterator += 1
+
+        self.add_window((window_type, signals))
 
     def scramble(self, event):
 

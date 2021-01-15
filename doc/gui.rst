@@ -37,6 +37,21 @@ The following dependencies are required by the GUI
 * pyqtgraph
 
 
+General shortcuts
+=================
+
+============ ====================== ================================================================================================================
+Shortcut     Action                 Description
+============ ====================== ================================================================================================================
+F1           Help                   Opens this online help page
+F2           Create plot            Create a new Plot window using the checked channels from the selection tree
+F3           Create numeric         Create a new Numeric window using the checked channels from the selection tree
+F4           Create tabular         Create a new Tabular window using the checked channels from the selection tree
+F8           Toggle fullscreen      In the single files mode will display the current opened file in full screen
+Ctrl+O       Open file(s)
+============ ====================== ================================================================================================================
+
+
 Menu
 ====
 
@@ -96,6 +111,12 @@ The following settings are available
 
       * ``Dark``
       * ``Light``
+      
+* **Integer interpolation**: selects the way integer channels are interpolated
+
+      * ``0 - repeat previous sample``
+      * ``1 - linear interpolation``
+      * ``2 - hybrid interpolation``
       
 The seetings are saved and restored each time the GUI is started.
 
