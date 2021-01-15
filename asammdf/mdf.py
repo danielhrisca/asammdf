@@ -3021,8 +3021,8 @@ class MDF:
             channels=channels,
             raster=raster,
             time_from_zero=time_from_zero,
-            empty_channels="skip",
-            keep_arrays=False,
+            empty_channels=empty_channels,
+            keep_arrays=keep_arrays,
             use_display_names=use_display_names,
             time_as_date=time_as_date,
             reduce_memory_usage=reduce_memory_usage,
@@ -3385,8 +3385,19 @@ class MDF:
                 if self._callback:
                     self._callback(group_index + 1, groups_nr)
 
-            df = pd.DataFrame.from_dict(df)
-            df.set_index(master, inplace=True)
+            strings, nonstrings = {}, {}
+
+            for col, series in df.items():
+                if series.dtype.kind == "S":
+                    strings[col] = series
+                else:
+                    nonstrings[col] = series
+
+            df = pd.DataFrame(nonstrings, index=master)
+
+            for col, series in strings.items():
+                df[col] = series
+
             df.index.name = "timestamps"
 
             if time_as_date:
