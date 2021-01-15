@@ -3715,12 +3715,11 @@ class MDF:
             else:
                 nonstrings[col] = series
 
-        df = pd.DataFrame.from_dict(nonstrings)
+        df = pd.DataFrame(nonstrings, index=master)
 
         for col, series in strings.items():
             df[col] = series
 
-        df.set_index(master, inplace=True)
         df.index.name = "timestamps"
 
         if time_as_date:
