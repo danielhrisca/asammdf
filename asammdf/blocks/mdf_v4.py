@@ -346,7 +346,8 @@ class MDF4(MDF_Common):
         self._remove_source_from_channel_names = kwargs.get(
             "remove_source_from_channel_names", False
         )
-        self._encryption_key = kwargs.get("encryption_key", None)
+        self._encryption_function = kwargs.get("encryption_function", None)
+        self._decryption_function = kwargs.get("decryption_function", None)
         self.copy_on_get = kwargs.get("copy_on_get", True)
         self.compact_vlsd = kwargs.get("compact_vlsd", False)
         self._single_bit_uint_as_bool = False
@@ -5700,10 +5701,9 @@ class MDF4(MDF_Common):
         compression=True,
         mime=r"application/octet-stream",
         embedded=True,
-        encrypt=None,
-        key=None,
+        encryption_function=None,
     ):
-        """attach embedded attachment as application/octet-stream
+        """attach embedded attachment as application/octet-stream.
 
         Parameters
         ----------
@@ -5721,13 +5721,9 @@ class MDF4(MDF_Common):
             mime type string
         embedded : bool
             attachment is embedded in the file
-        encrypt : bool, default None
-            encrypt data using the key; only valid for embedded attachments
-
-            .. versionadded:: 6.2.0
-
-        key : bytes, default None
-            key used for encryption; only valid for embedded attachments
+        encryption_function : bool, default None
+            function used to encrypt the data. The function should only take a single bytes object as
+            argument and return the encrypted bytes object. This is only valid for embedded attachments
 
             .. versionadded:: 6.2.0
 
@@ -5742,6 +5738,7 @@ class MDF4(MDF_Common):
             worker = md5()
             worker.update(data)
             hash_sum = worker.hexdigest()
+        hash_sum_encrypted = hash_sum
 
         if hash_sum in self._attachments_cache:
             return self._attachments_cache[hash_sum]
@@ -5762,11 +5759,18 @@ class MDF4(MDF_Common):
             file_name = file_name or "bin.bin"
 
             encrypted = False
-            if encrypt is True and key:
+            encryption_function = encryption_function or self._encryption_function
+            if encryption_function is not None:
                 try:
-                    from cryptography.fernet import Fernet
-                    fernet = Fernet(key)
-                    data = fernet.encrypt(data)
+                    data = encryption_function(data)
+
+                    worker = md5()
+                    worker.update(data)
+                    hash_sum_encrypted = worker.hexdigest()
+
+                    if hash_sum_encrypted in self._attachments_cache:
+                        return self._attachments_cache[hash_sum_encrypted]
+
                     encrypted = True
                 except:
                     pass
@@ -5794,6 +5798,7 @@ class MDF4(MDF_Common):
 
             index = len(self.attachments) - 1
             self._attachments_cache[hash_sum] = index
+            self._attachments_cache[hash_sum_encrypted] = index
 
             return index
 
@@ -5835,7 +5840,7 @@ class MDF4(MDF_Common):
         self.virtual_groups.clear()
 
     @lru_cache(maxsize=128)
-    def extract_attachment(self, index=None, encryption_key=None):
+    def extract_attachment(self, index=None, decryption_function=None):
         """extract attachment data by index. If it is an embedded attachment,
         then this method creates the new file according to the attachment file
         name information
@@ -5845,10 +5850,9 @@ class MDF4(MDF_Common):
         index : int
             attachment index; default *None*
 
-        encryption_key : bytes
-            password used to encrypt data; only for
-            embedded attachments
-
+        decryption_function : bool, default None
+            function used to decrypt the data. The function should only take a single bytes object as
+            argument and return the decrypted bytes object. This is only valid for embedded attachments
 
             .. versionadded:: 6.2.0
 
@@ -5879,12 +5883,11 @@ class MDF4(MDF_Common):
 
                 if (
                     attachment.flags & v4c.FLAG_AT_ENCRYPTED
-                    and (encryption_key is not None or self._encryption_key is not None)
+                    and (decryption_function is not None or self._decryption_function is not None)
                 ):
                     try:
-                        from cryptography.fernet import Fernet
-                        fernet = Fernet(encryption_key or self._encryption_key)
-                        data = fernet.decrypt(data)
+                        decryption_function = decryption_function or self._decryption_function
+                        data = decryption_function(data)
                     except:
                         pass
 
@@ -6170,7 +6173,7 @@ class MDF4(MDF_Common):
             if channel.attachment is not None:
                 attachment = self.extract_attachment(
                     channel.attachment,
-                    encryption_key=self._encryption_key,
+                    decryption_function=self._decryption_function,
                 )
             else:
                 attachment = None
@@ -9905,7 +9908,7 @@ class MDF4(MDF_Common):
 
                         attachment, at_name, md5_sum = self.extract_attachment(
                             index=attachment_addr,
-                            encryption_key=self._encryption_key,
+                            decryption_function=self._decryption_function,
                         )
                         if at_name.suffix.lower() not in (".arxml", ".dbc"):
                             message = f'Expected .dbc or .arxml file as CAN channel attachment but got "{at_name}"'
@@ -10136,7 +10139,7 @@ class MDF4(MDF_Common):
 
                         attachment, at_name, md5_sum = self.extract_attachment(
                             index=attachment_addr,
-                            encryption_key=self._encryption_key,
+                            decryption_function=self._decryption_function,
                         )
                         if at_name.suffix.lower() not in (".arxml", ".dbc"):
                             message = f'Expected .dbc or .arxml file as LIN channel attachment but got "{at_name}"'

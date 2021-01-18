@@ -91,6 +91,8 @@ The main goals for this library are:
       that return new *MDF* objects) but no new events can be created
     * channels with default X axis: the defaukt X axis is ignored and the channel group's master channel
       is used
+    * attachment encryption/decryption using user provided encryption/decryption functions; this is not 
+      part of the MDF v4 spec and is only supported by this library
 
 # Usage
 
@@ -195,8 +197,6 @@ other optional dependencies
 * matplotlib : as fallback for Signal plotting
 * cChardet : to detect non-standard unicode encodings
 * chardet : to detect non-standard unicode encodings 
-* cryptography : for encrypted embbeded attachments (custom functionality
-  supported only by this library; not specified in the MDF format spec)
 
 # Benchmarks
 

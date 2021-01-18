@@ -451,7 +451,12 @@ class MDF:
         """
         version = validate_version_argument(version)
 
-        out = MDF(version=version, **self._kwargs)
+        out = MDF(
+            version=version,
+            encryption_function=self._encryption_function,
+            decryption_function=self._decryption_function,
+            **self._kwargs
+        )
 
         interpolation_mode = self._integer_interpolation
         out.configure(integer_interpolation=interpolation_mode)
@@ -551,7 +556,12 @@ class MDF:
         else:
             version = validate_version_argument(version)
 
-        out = MDF(version=version, **self._kwargs)
+        out = MDF(
+            version=version,
+            encryption_function=self._encryption_function,
+            decryption_function=self._decryption_function,
+            **self._kwargs,
+        )
 
         interpolation_mode = self._integer_interpolation
         out.configure(integer_interpolation=interpolation_mode)
@@ -1472,7 +1482,12 @@ class MDF:
 
         self.configure(copy_on_get=False)
 
-        mdf = MDF(version=version, **self._kwargs)
+        mdf = MDF(
+            version=version,
+            encryption_function=self._encryption_function,
+            decryption_function=self._decryption_function,
+            **self._kwargs,
+        )
 
         interpolation_mode = self._integer_interpolation
         mdf.configure(integer_interpolation=interpolation_mode)
@@ -1713,7 +1728,10 @@ class MDF:
 
         for mdf_index, (offset, mdf) in enumerate(zip(offsets, files)):
             if not isinstance(mdf, MDF):
-                mdf = MDF(mdf, use_display_names=use_display_names)
+                mdf = MDF(
+                    mdf,
+                    use_display_names=use_display_names,
+                )
 
             if mdf_index == 0:
                 version = validate_version_argument(version)
@@ -1721,7 +1739,13 @@ class MDF:
                 kwargs = dict(mdf._kwargs)
                 kwargs.pop("callback", None)
 
-                merged = MDF(version=version, callback=callback, **kwargs)
+                merged = MDF(
+                    version=version,
+                    callback=callback,
+                    encryption_function=mdf._encryption_function,
+                    decryption_function=mdf._decryption_function,
+                    **kwargs,
+                )
 
                 interpolation_mode = mdf._integer_interpolation
                 merged.configure(integer_interpolation=interpolation_mode)
@@ -1982,7 +2006,12 @@ class MDF:
                 kwargs = dict(mdf._kwargs)
                 kwargs.pop("callback", None)
 
-                stacked = MDF(version=version, callback=callback, **kwargs)
+                stacked = MDF(
+                    version=version,
+                    encryption_function=mdf._encryption_function,
+                    decryption_function=mdf._decryption_function,
+                    callback=callback, **kwargs,
+                )
 
                 interpolation_mode = mdf._integer_interpolation
                 stacked.configure(integer_interpolation=interpolation_mode)
@@ -2329,7 +2358,12 @@ class MDF:
         else:
             version = validate_version_argument(version)
 
-        mdf = MDF(version=version, **self._kwargs)
+        mdf = MDF(
+            version=version,
+            encryption_function=self._encryption_function,
+            decryption_function=self._decryption_function,
+            **self._kwargs,
+        )
 
         interpolation_mode = self._integer_interpolation
         mdf.configure(integer_interpolation=interpolation_mode)
@@ -3811,7 +3845,12 @@ class MDF:
         else:
             version = validate_version_argument(version)
 
-        out = MDF(version=version, callback=self._callback)
+        out = MDF(
+            version=version,
+            encryption_function=self._encryption_function,
+            decryption_function=self._decryption_function,
+            callback=self._callback,
+        )
         out.header.start_time = self.header.start_time
 
         if self._callback:

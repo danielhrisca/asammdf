@@ -58,7 +58,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         subplots=False,
         subplots_link=False,
         ignore_value2text_conversions=False,
-        encryption_key=None,
+        encryption_function=None,
+        decryption_function=None,
         *args,
         **kwargs,
     ):
@@ -443,7 +444,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if self.mdf.version >= "4.00" and self.mdf.attachments:
             for i, attachment in enumerate(self.mdf.attachments, 1):
-                att = Attachment(attachment, self.mdf._encryption_key)
+                att = Attachment(attachment, self.mdf._decryption_function)
                 att.number.setText(f"{i}.")
 
                 fields = []

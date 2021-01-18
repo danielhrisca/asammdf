@@ -10,13 +10,13 @@ from ..ui.attachment import Ui_Attachment
 
 
 class Attachment(Ui_Attachment, QtWidgets.QWidget):
-    def __init__(self, attachment, encryption_key, *args, **kwargs):
+    def __init__(self, attachment, decryption_function, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
         self.extract_btn.clicked.connect(self.extract)
         self.attachment = attachment
-        self.encryption_key = encryption_key
+        self.decryption_function = decryption_function
 
     def extract(self, event=None):
         flags = self.attachment.flags
@@ -24,11 +24,9 @@ class Attachment(Ui_Attachment, QtWidgets.QWidget):
 
         if flags & v4c.FLAG_AT_EMBEDDED:
             data = self.attachment.extract()
-            if flags & v4c.FLAG_AT_ENCRYPTED and self.encryption_key is not None:
+            if flags & v4c.FLAG_AT_ENCRYPTED and self.decryption_function is not None:
                 try:
-                    from cryptography.fernet import Fernet
-                    fernet = Fernet(self.encryption_key)
-                    data = fernet.decrypt(data)
+                    data = self.decryption_function(data)
                 except:
                     pass
         else:
