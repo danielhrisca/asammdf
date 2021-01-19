@@ -1688,6 +1688,20 @@ class MDF:
 
             use_display_names (False) : bool
 
+        Examples
+        --------
+        >>> conc = MDF.concatenate(
+            [
+                'path/to/file.mf4',
+                MDF(BytesIO(data)),
+                MDF(zipfile.ZipFile('data.zip')),
+                MDF(bz2.BZ2File('path/to/data.bz2', 'rb')),
+                MDF(gzip.GzipFile('path/to/data.gzip', 'rb')),
+            ],
+            version='4.00',
+            sync=False,
+        )
+
         Returns
         -------
         concatenate : MDF
@@ -1988,6 +2002,20 @@ class MDF:
         kwargs :
 
             use_display_names (False) : bool
+
+        Examples
+        --------
+        >>> stacked = MDF.stack(
+            [
+                'path/to/file.mf4',
+                MDF(BytesIO(data)),
+                MDF(zipfile.ZipFile('data.zip')),
+                MDF(bz2.BZ2File('path/to/data.bz2', 'rb')),
+                MDF(gzip.GzipFile('path/to/data.gzip', 'rb')),
+            ],
+            version='4.00',
+            sync=False,
+        )
 
         Returns
         -------
