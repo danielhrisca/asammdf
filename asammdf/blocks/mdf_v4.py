@@ -5810,7 +5810,7 @@ class MDF4(MDF_Common):
         self._parent = None
         if self._tempfile is not None:
             self._tempfile.close()
-        if self._file is not None:
+        if not self._from_filelike and self._file is not None:
             self._file.close()
 
         for gp in self.groups:
