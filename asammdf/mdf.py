@@ -453,8 +453,6 @@ class MDF:
 
         out = MDF(
             version=version,
-            encryption_function=self._encryption_function,
-            decryption_function=self._decryption_function,
             **self._kwargs
         )
 
@@ -558,8 +556,6 @@ class MDF:
 
         out = MDF(
             version=version,
-            encryption_function=self._encryption_function,
-            decryption_function=self._decryption_function,
             **self._kwargs,
         )
 
@@ -1484,8 +1480,6 @@ class MDF:
 
         mdf = MDF(
             version=version,
-            encryption_function=self._encryption_function,
-            decryption_function=self._decryption_function,
             **self._kwargs,
         )
 
@@ -1742,8 +1736,6 @@ class MDF:
                 merged = MDF(
                     version=version,
                     callback=callback,
-                    encryption_function=mdf._encryption_function,
-                    decryption_function=mdf._decryption_function,
                     **kwargs,
                 )
 
@@ -2008,8 +2000,6 @@ class MDF:
 
                 stacked = MDF(
                     version=version,
-                    encryption_function=mdf._encryption_function,
-                    decryption_function=mdf._decryption_function,
                     callback=callback, **kwargs,
                 )
 
@@ -2360,8 +2350,6 @@ class MDF:
 
         mdf = MDF(
             version=version,
-            encryption_function=self._encryption_function,
-            decryption_function=self._decryption_function,
             **self._kwargs,
         )
 

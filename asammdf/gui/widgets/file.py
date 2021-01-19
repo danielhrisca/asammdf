@@ -158,7 +158,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 file_name = mdf_name
 
             target = MDF
-            kwargs = {"name": file_name, "callback": self.update_progress, "encryption_key": encryption_key}
+            kwargs = {
+                "name": file_name,
+                "callback": self.update_progress,
+                "encryption_function": encryption_function,
+                "decryption_function": decryption_function,
+            }
 
             self.mdf = run_thread_with_progress(
                 self,

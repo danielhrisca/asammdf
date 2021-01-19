@@ -413,7 +413,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
                     filter.validate_target()
 
             timestamps = pd.to_datetime(
-                self.signals["timestamps"] + self.start, unit="s"
+                self.signals["timestamps"] + self.start, unit="s",
             )
 
             self.signals["timestamps"] = timestamps

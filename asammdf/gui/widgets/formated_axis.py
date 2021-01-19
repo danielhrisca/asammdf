@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone
+LOCAL_TIMEZONE = datetime.now(timezone.utc).astimezone().tzinfo
 
 import numpy as np
+import pandas as pd
 import pyqtgraph as pg
 
 
@@ -70,7 +72,12 @@ class FormatedAxis(pg.AxisItem):
             elif self.format == "time":
                 strns = [str(timedelta(seconds=val)) for val in values]
             elif self.format == "date":
-                strns = [str(self.origin + timedelta(seconds=val)) for val in values]
+                strns = (
+                    pd.to_datetime(np.array(values) + self.origin.timestamp(), unit='s')
+                    .tz_localize("UTC")
+                    .tz_convert(LOCAL_TIMEZONE)
+                    .astype(str)
+                )
 
         return strns
 
