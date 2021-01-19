@@ -6,11 +6,13 @@ from copy import deepcopy
 import csv
 from datetime import datetime, timezone
 from functools import reduce
+from io import BytesIO
 import logging
 from pathlib import Path
 import re
 from shutil import copy
 from struct import unpack
+import zipfile, gzip, bz2
 from traceback import format_exc
 import xml.etree.ElementTree as ET
 
@@ -89,9 +91,13 @@ class MDF:
 
     Parameters
     ----------
-    name : string | BytesIO
-        mdf file name (if provided it must be a real file name) or
-        file-like object
+    name : string | BytesIO | zipfile.ZipFile | bz2.BZ2File | gzip.GzipFile
+        mdf file name (if provided it must be a real file name), file-like object or
+        compressed file opened as Python object
+
+        .. versionchanged:: 6.2.0
+
+            added support for zipfile.ZipFile, bz2.BZ2File and gzip.GzipFile
 
     version : string
         mdf file version from ('2.00', '2.10', '2.14', '3.00', '3.10', '3.20',
@@ -119,6 +125,19 @@ class MDF:
         remove source from channel names ("Speed\XCP3" -> "Speed")
     copy_on_get (\*\*kwargs) : bool
         copy arrays in the get method; default *True*
+    expand_zippedfile (\*\*kwargs) : bool
+        only for bz2.BZ2File and gzip.GzipFile, load the file content into a
+        BytesIO before parsing (avoids the huge performance penalty of doing
+        random reads from the zipped file); default *True*
+
+    Examples
+    --------
+    >>> mdf = MDF(version='3.30') # new MDF object with version 3.30
+    >>> mdf = MDF('path/to/file.mf4') # MDF loaded from file
+    >>> mdf = MDF(BytesIO(data)) # MDF from file contents
+    >>> mdf = MDF(zipfile.ZipFile('data.zip')) # MDF creating using the first valid MDF from archive
+    >>> mdf = MDF(bz2.BZ2File('path/to/data.bz2', 'rb')) # MDF from bz2 object
+    >>> mdf = MDF(gzip.GzipFile('path/to/data.gzip', 'rb')) # MDF from gzip object
 
     """
 
@@ -126,10 +145,32 @@ class MDF:
 
     def __init__(self, name=None, version="4.10", channels=(), **kwargs):
         self._mdf = None
+
+        expand_zippedfile = kwargs.pop("expand_zippedfile", True)
+
         if name:
             if is_file_like(name):
                 file_stream = name
                 do_close = False
+
+                if expand_zippedfile and isinstance(file_stream, (bz2.BZ2File, gzip.GzipFile)):
+                    if isinstance(file_stream, (bz2.BZ2File, gzip.GzipFile)):
+                        file_stream.seek(0)
+                        file_stream = BytesIO(file_stream.read())
+
+                    name = file_stream
+
+            elif isinstance(name, zipfile.ZipFile):
+                do_close = False
+                file_stream = name
+
+                for fn in file_stream.namelist():
+                    if fn.lower().endswith(('mdf', 'dat', 'mf4')):
+                        break
+                else:
+                    raise Exception
+                file_stream = name = BytesIO(file_stream.read(fn))
+
             else:
                 name = Path(name)
                 if name.is_file():
@@ -1623,7 +1664,13 @@ class MDF:
         Parameters
         ----------
         files : list | tuple
-            list of *MDF* file names or *MDF* instances
+            list of *MDF* file names or *MDF*, zipfile.ZipFile, bz2.BZ2File or gzip.GzipFile
+            instances
+
+            ..versionchanged:: 6.2.0
+
+                added support for zipfile.ZipFile, bz2.BZ2File and gzip.GzipFile
+
         version : str
             merged file version
         sync : bool
@@ -1927,7 +1974,12 @@ class MDF:
         Parameters
         ----------
         files : list | tuple
-            list of *MDF* file names or *MDF* instances
+            list of *MDF* file names or *MDF*, zipfile.ZipFile, bz2.BZ2File or gzip.GzipFile
+            instances
+
+            ..versionchanged:: 6.2.0
+
+                added support for zipfile.ZipFile, bz2.BZ2File and gzip.GzipFile
         version : str
             merged file version
         sync : bool
