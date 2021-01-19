@@ -63,6 +63,25 @@ LOCAL_TIMEZONE = datetime.now(timezone.utc).astimezone().tzinfo
 __all__ = ["MDF", "SUPPORTED_VERSIONS"]
 
 
+def get_measurement_timestamp_and_version(mdf, file):
+    mdf.seek(64)
+    blk_id = mdf.read(2)
+    if blk_id == b"HD":
+        header = HeaderV3
+        version = "3.00"
+    else:
+        version = "4.00"
+        blk_id += mdf.read(2)
+        if blk_id == b"##HD":
+            header = HeaderV4
+        else:
+            raise MdfException(f'"{file}" is not a valid MDF file')
+
+    header = header(address=64, stream=mdf)
+
+    return header.start_time, version
+
+
 class MDF:
     """Unified access to MDF v3 and v4 files. Underlying _mdf's attributes and
     methods are linked to the `MDF` object via *setattr*. This is done to expose
@@ -1632,6 +1651,8 @@ class MDF:
         MdfException : if there are inconsistencies between the files
 
         """
+
+
         if not files:
             raise MdfException("No files given for merge")
 
@@ -1652,23 +1673,15 @@ class MDF:
                     timestamps.append(file.header.start_time)
                     versions.append(file.version)
                 else:
-                    with open(file, "rb") as mdf:
-                        mdf.seek(64)
-                        blk_id = mdf.read(2)
-                        if blk_id == b"HD":
-                            header = HeaderV3
-                            versions.append("3.00")
-                        else:
-                            versions.append("4.00")
-                            blk_id += mdf.read(2)
-                            if blk_id == b"##HD":
-                                header = HeaderV4
-                            else:
-                                raise MdfException(f'"{file}" is not a valid MDF file')
-
-                        header = header(address=64, stream=mdf)
-
-                        timestamps.append(header.start_time)
+                    if is_file_like(file):
+                        ts, version = get_measurement_timestamp_and_version(file, "io")
+                        timestamps.append(ts)
+                        versions.append(version)
+                    else:
+                        with open(file, "rb") as mdf:
+                            ts, version = get_measurement_timestamp_and_version(mdf, file)
+                            timestamps.append(ts)
+                            versions.append(version)
 
             try:
                 oldest = min(timestamps)
@@ -1687,23 +1700,15 @@ class MDF:
                 oldest = file.header.start_time
                 versions.append(file.version)
             else:
-                with open(file, "rb") as mdf:
-                    mdf.seek(64)
-                    blk_id = mdf.read(2)
-                    if blk_id == b"HD":
-                        versions.append("3.00")
-                        header = HeaderV3
-                    else:
-                        versions.append("4.00")
-                        blk_id += mdf.read(2)
-                        if blk_id == b"##HD":
-                            header = HeaderV4
-                        else:
-                            raise MdfException(f'"{file}" is not a valid MDF file')
+                if is_file_like(file):
+                    ts, version = get_measurement_timestamp_and_version(file, "io")
+                    versions.append(version)
+                else:
+                    with open(file, "rb") as mdf:
+                        ts, version = get_measurement_timestamp_and_version(mdf, file)
+                        versions.append(version)
 
-                    header = header(address=64, stream=mdf)
-
-                    oldest = header.start_time
+                oldest = ts
 
             offsets = [0 for _ in files]
 
@@ -1959,21 +1964,13 @@ class MDF:
                 if isinstance(file, MDF):
                     timestamps.append(file.header.start_time)
                 else:
-                    with open(file, "rb") as mdf:
-                        mdf.seek(64)
-                        blk_id = mdf.read(2)
-                        if blk_id == b"HD":
-                            header = HeaderV3
-                        else:
-                            blk_id += mdf.read(2)
-                            if blk_id == b"##HD":
-                                header = HeaderV4
-                            else:
-                                raise MdfException(f'"{file}" is not a valid MDF file')
-
-                        header = header(address=64, stream=mdf)
-
-                        timestamps.append(header.start_time)
+                    if is_file_like(file):
+                        ts, version = get_measurement_timestamp_and_version(file, "io")
+                        timestamps.append(ts)
+                    else:
+                        with open(file, "rb") as mdf:
+                            ts, version = get_measurement_timestamp_and_version(mdf, file)
+                            timestamps.append(ts)
 
             try:
                 oldest = min(timestamps)
