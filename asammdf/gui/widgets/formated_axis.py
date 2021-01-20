@@ -77,6 +77,7 @@ class FormatedAxis(pg.AxisItem):
                     .tz_localize("UTC")
                     .tz_convert(LOCAL_TIMEZONE)
                     .astype(str)
+                    .to_list()
                 )
 
         return strns
