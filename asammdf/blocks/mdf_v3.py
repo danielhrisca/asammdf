@@ -441,7 +441,7 @@ class MDF3(MDF_Common):
                 bit_count = new_ch.bit_count
                 name = new_ch.name
 
-                # handle multiple occurance of same channel name
+                # handle multiple occurence of same channel name
                 name = group_channels.get_unique_name(name)
 
                 if start_offset >= next_byte_aligned_position:
@@ -2499,10 +2499,10 @@ class MDF3(MDF_Common):
 
         * using the first positional argument *name*
 
-            * if there are multiple occurances for this channel then the
+            * if there are multiple occurences for this channel then the
               *group* and *index* arguments can be used to select a specific
               group.
-            * if there are multiple occurances for this channel and either the
+            * if there are multiple occurences for this channel and either the
               *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
@@ -2551,10 +2551,10 @@ class MDF3(MDF_Common):
 
         * using the first positional argument *name*
 
-            * if there are multiple occurances for this channel then the
+            * if there are multiple occurences for this channel then the
               *group* and *index* arguments can be used to select a specific
               group.
-            * if there are multiple occurances for this channel and either the
+            * if there are multiple occurences for this channel and either the
               *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
@@ -2610,10 +2610,10 @@ class MDF3(MDF_Common):
 
         * using the first positional argument *name*
 
-            * if there are multiple occurances for this channel then the
+            * if there are multiple occurences for this channel then the
               *group* and *index* arguments can be used to select a specific
               group.
-            * if there are multiple occurances for this channel and either the
+            * if there are multiple occurences for this channel and either the
               *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
@@ -2684,7 +2684,7 @@ class MDF3(MDF_Common):
         >>> # first group and channel index of the specified channel name
         ...
         >>> mdf.get('Sig')
-        UserWarning: Multiple occurances for channel "Sig". Using first occurance from data group 4. Provide both "group" and "index" arguments to select another data group
+        UserWarning: Multiple occurences for channel "Sig". Using first occurence from data group 4. Provide both "group" and "index" arguments to select another data group
         <Signal Sig:
                 samples=[ 1.  1.  1.  1.  1.]
                 timestamps=[0 1 2 3 4]

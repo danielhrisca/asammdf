@@ -123,7 +123,7 @@ class MDF_Common:
                     entries = self.channels_db[name]
                     if len(entries) > 1:
                         message = (
-                            f'Multiple occurances for channel "{name}": {entries}. '
+                            f'Multiple occurences for channel "{name}": {entries}. '
                             'Provide both "group" and "index" arguments'
                             " to select another data group"
                         )
@@ -154,7 +154,7 @@ class MDF_Common:
 
                             else:
                                 message = (
-                                    f'Multiple occurances for channel "{name}" in group {group}. '
+                                    f'Multiple occurences for channel "{name}" in group {group}. '
                                     'Provide also the "index" argument'
                                     " to select the desired channel"
                                 )
