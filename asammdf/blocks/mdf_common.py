@@ -30,10 +30,10 @@ class MDF_Common:
         )
         return cn_source_path, cg_source_path
 
-    def _filter_occurences(self, occurences, source_name=None, source_path=None):
-        occurences = (
+    def _filter_occurrences(self, occurrences, source_name=None, source_path=None):
+        occurrences = (
             (gp_idx, cn_idx)
-            for gp_idx, cn_idx in occurences
+            for gp_idx, cn_idx in occurrences
             if (
                 source_name is None
                 or source_name in self._get_source_names(gp_idx, cn_idx)
@@ -43,7 +43,7 @@ class MDF_Common:
                 or source_path in self._get_source_paths(gp_idx, cn_idx)
             )
         )
-        return occurences
+        return occurrences
 
     def _set_temporary_master(self, master):
         self._master = master
@@ -77,7 +77,7 @@ class MDF_Common:
         index : int
             0-based channel index
         source : str
-            can be used for multiple occurence of the same channel name to
+            can be used for multiple occurrence of the same channel name to
             filter the target channel
 
         Returns
@@ -123,7 +123,7 @@ class MDF_Common:
                     entries = self.channels_db[name]
                     if len(entries) > 1:
                         message = (
-                            f'Multiple occurances for channel "{name}": {entries}. '
+                            f'Multiple occurrences for channel "{name}": {entries}. '
                             'Provide both "group" and "index" arguments'
                             " to select another data group"
                         )
@@ -154,7 +154,7 @@ class MDF_Common:
 
                             else:
                                 message = (
-                                    f'Multiple occurances for channel "{name}" in group {group}. '
+                                    f'Multiple occurrences for channel "{name}" in group {group}. '
                                     'Provide also the "index" argument'
                                     " to select the desired channel"
                                 )
