@@ -4,6 +4,32 @@ from .conversion_utils import from_dict
 from .utils import as_non_byte_sized_signed_int, MdfException
 
 
+def apply_conversion(vals, signal, ignore_value2text_conversion):
+    a, b = float(signal.factor), float(signal.offset)
+
+    if signal.values and not ignore_value2text_conversion:
+
+        conv = {}
+        for i, (val, text) in enumerate(signal.values.items()):
+            conv[f"upper_{i}"] = val
+            conv[f"lower_{i}"] = val
+            conv[f"text_{i}"] = text
+
+        conv["default"] = from_dict({"a": a, "b": b})
+
+        conv = from_dict(conv)
+        vals = conv.convert(vals)
+
+    else:
+
+        if (a, b) != (1, 0):
+            vals = vals * a
+            if b:
+                vals += b
+
+    return vals
+
+
 def extract_signal(signal, payload, raw=False, ignore_value2text_conversion=True):
     vals = payload
 
@@ -176,27 +202,7 @@ def extract_signal(signal, payload, raw=False, ignore_value2text_conversion=True
         vals = as_non_byte_sized_signed_int(vals, bit_count)
 
     if not raw:
-        a, b = float(signal.factor), float(signal.offset)
-
-        if signal.values and not ignore_value2text_conversion:
-
-            conv = {}
-            for i, (val, text) in enumerate(signal.values.items()):
-                conv[f"upper_{i}"] = val
-                conv[f"lower_{i}"] = val
-                conv[f"text_{i}"] = text
-
-            conv["default"] = from_dict({"a": a, "b": b})
-
-            conv = from_dict(conv)
-            vals = conv.convert(vals)
-
-        else:
-
-            if (a, b) != (1, 0):
-                vals = vals * a
-                if b:
-                    vals += b
+        vals = apply_conversion(vals, signal, ignore_value2text_conversion)
 
     return vals
 
@@ -301,7 +307,12 @@ def extract_mux(
             payload_ = payload
 
         for sig in pair_signals:
-            samples = extract_signal(sig, payload_, raw, ignore_value2text_conversion)
+            samples = extract_signal(
+                sig,
+                payload_,
+                ignore_value2text_conversion=ignore_value2text_conversion,
+                raw=True,
+            )
             if len(samples) == 0 and len(t_):
                 continue
 
@@ -317,7 +328,7 @@ def extract_mux(
                     "name": sig_name,
                     "comment": sig.comment or "",
                     "unit": sig.unit or "",
-                    "samples": samples,
+                    "samples": samples if raw else apply_conversion(samples, signal, ignore_value2text_conversion),
                     "t": t_,
                     "invalidation_bits": (
                         np.isclose(samples, max_val)
@@ -325,6 +336,7 @@ def extract_mux(
                         else np.zeros(len(samples), dtype=bool)
                     ),
                 }
+
             except:
                 print(message, sig)
                 print(samples, set(samples), samples.dtype, samples.shape)
@@ -343,6 +355,7 @@ def extract_mux(
                         muxer_values=samples,
                         original_message_id=original_message_id,
                         ignore_value2text_conversion=ignore_value2text_conversion,
+                        raw=raw,
                     )
                 )
 

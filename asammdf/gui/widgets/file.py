@@ -646,6 +646,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     signals,
                     entries=None,
                     mdf_uuid=self.uuid,
+                    version=self.mdf.version,
                 )
         else:
             items = []
@@ -1749,6 +1750,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             group.channel_dependencies,
                             set(),
                             entries=None,
+                            version=self.mdf.version,
                         )
 
     def toggle_frames(self, event=None):

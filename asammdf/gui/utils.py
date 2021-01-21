@@ -433,7 +433,8 @@ def compute_signal(description, measured_signals, all_timebase):
 
 
 def add_children(
-    widget, channels, channel_dependencies, signals, entries=None, mdf_uuid=None
+    widget, channels, channel_dependencies, signals, entries=None, mdf_uuid=None,
+    version="4.11",
 ):
     children = []
     if entries is not None:
@@ -451,14 +452,16 @@ def add_children(
         child.setText(0, ch.name)
 
         dep = channel_dependencies[entry[1]]
-        if dep and isinstance(dep[0], tuple):
-            child.setFlags(
-                child.flags() | QtCore.Qt.ItemIsTristate | QtCore.Qt.ItemIsUserCheckable
-            )
+        if version >= "4.00":
+            if dep and isinstance(dep[0], tuple):
+                child.setFlags(
+                    child.flags() | QtCore.Qt.ItemIsTristate | QtCore.Qt.ItemIsUserCheckable
+                )
 
-            add_children(
-                child, channels, channel_dependencies, signals, dep, mdf_uuid=mdf_uuid
-            )
+                add_children(
+                    child, channels, channel_dependencies, signals, dep, mdf_uuid=mdf_uuid
+                )
+
 
         if entry in signals:
             child.setCheckState(0, QtCore.Qt.Checked)

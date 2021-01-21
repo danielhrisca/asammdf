@@ -152,7 +152,7 @@ class MDF3(MDF_Common):
         self.groups = []
         self.header = None
         self.identification = None
-        self.channels_db = ChannelsDB(version=3)
+        self.channels_db = ChannelsDB()
         self.masters_db = {}
         self.version = version
 

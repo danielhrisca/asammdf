@@ -843,7 +843,7 @@ def validate_version_argument(version, hint=4):
 
 
 class ChannelsDB(dict):
-    def __init__(self, version=4):
+    def __init__(self):
         super().__init__()
 
     def add(self, channel_name, entry):
@@ -869,7 +869,7 @@ class ChannelsDB(dict):
 
                 if channel_name not in self:
                     self[channel_name] = (entry,)
-                else:
+                elif entry not in self[channel_name]:
                     self[channel_name] += (entry,)
 
 
