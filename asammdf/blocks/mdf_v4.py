@@ -1605,7 +1605,7 @@ class MDF4(MDF_Common):
                 dependency_list = group.channel_dependencies[original_index]
                 name = new_ch.name
 
-                # handle multiple occurence of same channel name
+                # handle multiple occurrence of same channel name
                 name = group_channels.get_unique_name(name)
 
                 if start_offset >= next_byte_aligned_position:
@@ -5957,10 +5957,10 @@ class MDF4(MDF_Common):
 
         * using the first positional argument *name*
 
-            * if there are multiple occurences for this channel then the
+            * if there are multiple occurrences for this channel then the
               *group* and *index* arguments can be used to select a specific
               group.
-            * if there are multiple occurences for this channel and either the
+            * if there are multiple occurrences for this channel and either the
               *group* or *index* arguments is None then a warning is issued
 
         * using the group number (keyword argument *group*) and the channel
@@ -6036,7 +6036,7 @@ class MDF4(MDF_Common):
         >>> # first group and channel index of the specified channel name
         ...
         >>> mdf.get('Sig')
-        UserWarning: Multiple occurences for channel "Sig". Using first occurence from data group 4. Provide both "group" and "index" arguments to select another data group
+        UserWarning: Multiple occurrences for channel "Sig". Using first occurrence from data group 4. Provide both "group" and "index" arguments to select another data group
         <Signal Sig:
                 samples=[ 1.  1.  1.  1.  1.]
                 timestamps=[0 1 2 3 4]
@@ -8030,17 +8030,17 @@ class MDF4(MDF_Common):
           starts from 1 and the `MESSAGE_ID` is the decimal message ID as found
           in the database. Example: CAN1.CAN_DataFrame_218.FL_WheelSpeed
 
-        * ``<MESSAGE_NAME>.<SIGNAL_NAME>`` - in this case the first occurence of
+        * ``<MESSAGE_NAME>.<SIGNAL_NAME>`` - in this case the first occurrence of
           the message name and signal are returned (the same message could be
           found on muplit CAN buses; for example on CAN1 and CAN3)
           Example: Wheels.FL_WheelSpeed
 
         * ``CAN_DataFrame_<MESSAGE_ID>.<SIGNAL_NAME>`` - in this case the first
-          occurence of the message name and signal are returned (the same
+          occurrence of the message name and signal are returned (the same
           message could be found on muplit CAN buses; for example on CAN1 and
           CAN3). Example: CAN_DataFrame_218.FL_WheelSpeed
 
-        * ``<SIGNAL_NAME>`` - in this case the first occurence of the signal
+        * ``<SIGNAL_NAME>`` - in this case the first occurrence of the signal
           name is returned ( the same signal anme coudl be found in multiple
           messages and on multiple CAN buses). Example: FL_WheelSpeed
 
