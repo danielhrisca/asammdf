@@ -2194,7 +2194,7 @@ class MDF:
         only_basenames=False,
     ):
         """generator that yields channel groups as pandas DataFrames. If there
-        are multiple occurences for the same channel name inside a channel
+        are multiple occurrences for the same channel name inside a channel
         group, then a counter will be used to make the names unique
         (<original_name>_<counter>)
 
@@ -3048,7 +3048,7 @@ class MDF:
         only_basenames=False,
     ):
         """get channel group as pandas DataFrames. If there are multiple
-        occurences for the same channel name, then a counter will be used to
+        occurrences for the same channel name, then a counter will be used to
         make the names unique (<original_name>_<counter>)
 
         Parameters
@@ -4612,9 +4612,9 @@ class MDF:
         channel : str
             channel name string
         source_name (None) : str
-            filter occurences using source name
+            filter occurrences using source name
         source_path (None) : str
-            filter occurences using source path
+            filter occurrences using source path
 
             .. versionadded:: 6.0.0
 
@@ -4632,10 +4632,10 @@ class MDF:
         ()
 
         """
-        occurences = self._filter_occurences(
+        occurrences = self._filter_occurrences(
             self.channels_db[channel], source_name=source_name, source_path=source_path
         )
-        return tuple(occurences)
+        return tuple(occurrences)
 
 
 if __name__ == "__main__":

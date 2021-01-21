@@ -168,7 +168,7 @@ def matlab_compatible(name):
         compatible_name = "M_" + compatible_name
 
     # max variable name is 63 and 3 chars are reserved
-    # for get_unique_name in case of multiple channel name occurence
+    # for get_unique_name in case of multiple channel name occurrence
     return compatible_name[:60]
 
 
