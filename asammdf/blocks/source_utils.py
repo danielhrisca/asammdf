@@ -2,6 +2,7 @@
 """
 asammdf utility functions for source information
 """
+from functools import lru_cache
 
 from . import v2_v3_blocks as v3b
 from . import v2_v3_constants as v3c
@@ -58,6 +59,7 @@ class Source:
         )
 
     @classmethod
+    @lru_cache(128)
     def from_source(cls, source):
         if isinstance(source, v3b.ChannelExtension):
             if source.type == v3c.SOURCE_ECU:

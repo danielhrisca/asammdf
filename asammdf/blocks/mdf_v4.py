@@ -2743,7 +2743,8 @@ class MDF4(MDF_Common):
                         ch.source = si_map[source]
                     else:
                         new_source = SourceInformation(
-                            source_type=source.source_type, bus_type=source.bus_type
+                            source_type=source.source_type,
+                            bus_type=source.bus_type
                         )
                         new_source.name = source.name
                         new_source.path = source.path

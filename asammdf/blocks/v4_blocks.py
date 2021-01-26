@@ -13,6 +13,7 @@ import time
 from traceback import format_exc
 import xml.etree.ElementTree as ET
 from zlib import compress, decompress
+from functools import lru_cache
 
 from numexpr import evaluate
 import numpy as np
@@ -329,6 +330,7 @@ class AttachmentBlock:
         result = pack(fmt, *[self[key] for key in v4c.KEYS_AT_BLOCK])
         return result
 
+CN = b"##CN"
 
 class Channel:
     """If the `load_metadata` keyword argument is not provided or is False,
@@ -855,46 +857,78 @@ class Channel:
                 else:
                     self.source = None
         else:
+
             self.address = 0
             self.name = self.comment = self.display_name = self.unit = ""
             self.conversion = self.source = self.attachment = self.dtype_fmt = None
 
-            self.id = b"##CN"
-            self.reserved0 = 0
-            self.block_len = v4c.CN_BLOCK_SIZE
-            self.links_nr = 8
-            self.next_ch_addr = 0
-            self.component_addr = 0
-            self.name_addr = 0
-            self.source_addr = 0
-            self.conversion_addr = 0
-            self.data_block_addr = 0
-            self.unit_addr = 0
-            self.comment_addr = 0
-            try:
+            (
+                self.id,
+                self.reserved0,
+                self.block_len,
+                self.links_nr,
+                self.next_ch_addr,
+                self.component_addr,
+                self.name_addr,
+                self.source_addr,
+                self.conversion_addr,
+                self.data_block_addr,
+                self.unit_addr,
+                self.comment_addr,
+                self.channel_type,
+                self.sync_type,
+                self.data_type,
+                self.bit_offset,
+                self.byte_offset,
+                self.bit_count,
+                self.flags,
+                self.pos_invalidation_bit,
+                self.precision,
+                self.reserved1,
+                self.attachment_nr,
+                self.min_raw_value,
+                self.max_raw_value,
+                self.lower_limit,
+                self.upper_limit,
+                self.lower_ext_limit,
+                self.upper_ext_limit
+            ) = (
+                b"##CN",
+                0,
+                v4c.CN_BLOCK_SIZE,
+                8,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                kwargs["channel_type"],
+                kwargs.get("sync_type", 0),
+                kwargs["data_type"],
+                kwargs["bit_offset"],
+                kwargs["byte_offset"],
+                kwargs["bit_count"],
+                kwargs.get("flags", 0),
+                kwargs.get("pos_invalidation_bit", 0),
+                kwargs.get("precision", 3),
+                0,
+                0,
+                kwargs.get("min_raw_value", 0),
+                kwargs.get("max_raw_value", 0),
+                kwargs.get("lower_limit", 0),
+                kwargs.get("upper_limit", 0),
+                kwargs.get("lower_ext_limit", 0),
+                kwargs.get("upper_ext_limit", 0),
+            )
+
+            if 'attachment_addr' in kwargs:
                 self.attachment_addr = kwargs["attachment_addr"]
                 self.block_len += 8
                 self.links_nr += 1
-                attachments = 1
-            except KeyError:
-                attachments = 0
-            self.channel_type = kwargs["channel_type"]
-            self.sync_type = kwargs.get("sync_type", 0)
-            self.data_type = kwargs["data_type"]
-            self.bit_offset = kwargs["bit_offset"]
-            self.byte_offset = kwargs["byte_offset"]
-            self.bit_count = kwargs["bit_count"]
-            self.flags = kwargs.get("flags", 0)
-            self.pos_invalidation_bit = kwargs.get("pos_invalidation_bit", 0)
-            self.precision = kwargs.get("precision", 3)
-            self.reserved1 = 0
-            self.attachment_nr = attachments
-            self.min_raw_value = kwargs.get("min_raw_value", 0)
-            self.max_raw_value = kwargs.get("max_raw_value", 0)
-            self.lower_limit = kwargs.get("lower_limit", 0)
-            self.upper_limit = kwargs.get("upper_limit", 0)
-            self.lower_ext_limit = kwargs.get("lower_ext_limit", 0)
-            self.upper_ext_limit = kwargs.get("upper_ext_limit", 0)
+                self.attachments = 1
 
         # ignore MLSD signal data
         if self.channel_type == v4c.CHANNEL_TYPE_MLSD:
