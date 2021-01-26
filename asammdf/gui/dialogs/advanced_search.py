@@ -15,7 +15,10 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         channels_db,
         return_names=False,
         show_add_window=False,
+        show_apply=False,
         show_pattern=True,
+        apply_text="Apply",
+        add_window_text="Add window",
         *args,
         **kwargs,
     ):
@@ -46,8 +49,14 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
         self.pattern_window = False
 
+        self.apply_btn.setText(apply_text)
+        self.add_window_btn.setText(add_window_text)
+
         if not show_add_window:
             self.add_window_btn.hide()
+
+        if not show_apply:
+            self.apply_btn.hide()
 
         if not show_pattern:
             self.tabs.removeTab(1)

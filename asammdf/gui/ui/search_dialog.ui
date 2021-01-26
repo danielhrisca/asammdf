@@ -118,9 +118,9 @@
           </spacer>
          </item>
          <item>
-          <widget class="QPushButton" name="add_window_btn">
+          <widget class="QPushButton" name="apply_btn">
            <property name="text">
-            <string>Add window</string>
+            <string>Apply</string>
            </property>
           </widget>
          </item>
@@ -138,9 +138,9 @@
           </spacer>
          </item>
          <item>
-          <widget class="QPushButton" name="apply_btn">
+          <widget class="QPushButton" name="add_window_btn">
            <property name="text">
-            <string>Apply</string>
+            <string>Add window</string>
            </property>
           </widget>
          </item>
@@ -321,8 +321,6 @@
   <tabstop>matches</tabstop>
   <tabstop>add_btn</tabstop>
   <tabstop>selection</tabstop>
-  <tabstop>add_window_btn</tabstop>
-  <tabstop>apply_btn</tabstop>
   <tabstop>cancel_btn</tabstop>
   <tabstop>match_kind</tabstop>
  </tabstops>

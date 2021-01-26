@@ -696,6 +696,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         toggle_frames = False
         if self.aspects.tabText(self.aspects.currentIndex()) == "Channels":
             show_add_window = True
+            show_apply = True
+            apply_text = "Check channels"
             widget = self.channels_tree
             view = self.channel_view
 
@@ -704,10 +706,16 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 self.toggle_frames()
         else:
             show_add_window = False
+            show_apply = True
+            apply_text = "Check channels"
             widget = self.filter_tree
             view = self.filter_view
         dlg = AdvancedSearch(
-            self.mdf.channels_db, show_add_window=show_add_window, parent=self
+            self.mdf.channels_db,
+            show_add_window=show_add_window,
+            show_apply=show_apply,
+            apply_text=apply_text,
+            parent=self,
         )
         dlg.setModal(True)
         dlg.exec_()
@@ -2263,7 +2271,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
     def raster_search(self, event):
         dlg = AdvancedSearch(
-            self.mdf.channels_db, show_add_window=False, show_pattern=False, parent=self
+            self.mdf.channels_db,
+            show_add_window=False,
+            show_apply=True,
+            apply_text="Set raster channel",
+            show_pattern=False,
+            parent=self,
         )
         dlg.setModal(True)
         dlg.exec_()
