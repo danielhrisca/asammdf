@@ -197,14 +197,16 @@ def get_text_v3(address, stream, mapped=False, decode=True):
         if block_id != b"TX":
             return "" if decode else b""
         (size,) = UINT16_uf(stream, address + 2)
-        text_bytes = stream[address + 4 : address + size].strip(b" \r\t\n\0")
+        text_bytes = (
+            stream[address + 4 : address + size].split(b"\0")[0].rstrip(b" \r\t\n\0")
+        )
     else:
         stream.seek(address)
         block_id = stream.read(2)
         if block_id != b"TX":
             return "" if decode else b""
         size = UINT16_u(stream.read(2))[0] - 4
-        text_bytes = stream.read(size).strip(b" \r\t\n\0")
+        text_bytes = stream.read(size).split(b"\0")[0].rstrip(b" \r\t\n\0")
     if decode:
         try:
             text = text_bytes.decode("latin-1")
@@ -244,13 +246,15 @@ def get_text_v4(address, stream, mapped=False, decode=True):
         block_id, size = BLK_COMMON_uf(stream, address)
         if block_id not in (b"##TX", b"##MD"):
             return "" if decode else b""
-        text_bytes = stream[address + 24 : address + size].strip(b" \r\t\n\0").split(b"\0")[0]
+        text_bytes = (
+            stream[address + 24 : address + size].split(b"\0")[0].rstrip(b" \r\t\n\0")
+        )
     else:
         stream.seek(address)
         block_id, size = BLK_COMMON_u(stream.read(24))
         if block_id not in (b"##TX", b"##MD"):
             return "" if decode else b""
-        text_bytes = stream.read(size - 24).strip(b" \r\t\n\0").split(b"\0")[0]
+        text_bytes = stream.read(size - 24).split(b"\0")[0].rstrip(b" \r\t\n\0")
 
     if decode:
         try:
