@@ -7,15 +7,18 @@ from .utils import as_non_byte_sized_signed_int, MdfException
 def apply_conversion(vals, signal, ignore_value2text_conversion):
     a, b = float(signal.factor), float(signal.offset)
 
-    if signal.values and not ignore_value2text_conversion:
+    if signal.values:
+        if ignore_value2text_conversion:
+            conv = {"a": a, "b": b}
+        else:
 
-        conv = {}
-        for i, (val, text) in enumerate(signal.values.items()):
-            conv[f"upper_{i}"] = val
-            conv[f"lower_{i}"] = val
-            conv[f"text_{i}"] = text
+            conv = {}
+            for i, (val, text) in enumerate(signal.values.items()):
+                conv[f"upper_{i}"] = val
+                conv[f"lower_{i}"] = val
+                conv[f"text_{i}"] = text
 
-        conv["default"] = from_dict({"a": a, "b": b})
+            conv["default"] = from_dict({"a": a, "b": b})
 
         conv = from_dict(conv)
         vals = conv.convert(vals)
@@ -331,7 +334,7 @@ def extract_mux(
                     "samples": samples if raw else apply_conversion(samples, sig, ignore_value2text_conversion),
                     "t": t_,
                     "invalidation_bits": (
-                        np.isclose(samples, max_val)
+                        np.isclose(apply_conversion(samples, sig, ignore_value2text_conversion=True), max_val)
                         if len(samples.shape) == 1
                         else np.zeros(len(samples), dtype=bool)
                     ),
