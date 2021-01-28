@@ -9,7 +9,10 @@ def apply_conversion(vals, signal, ignore_value2text_conversion):
 
     if signal.values:
         if ignore_value2text_conversion:
-            conv = {"a": a, "b": b}
+            if (a, b) != (1, 0):
+                vals = vals * a
+                if b:
+                    vals += b
         else:
 
             conv = {}
@@ -20,8 +23,8 @@ def apply_conversion(vals, signal, ignore_value2text_conversion):
 
             conv["default"] = from_dict({"a": a, "b": b})
 
-        conv = from_dict(conv)
-        vals = conv.convert(vals)
+            conv = from_dict(conv)
+            vals = conv.convert(vals)
 
     else:
 
