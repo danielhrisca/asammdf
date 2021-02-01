@@ -959,6 +959,16 @@ class MDF3(MDF_Common):
     ):
         """configure MDF parameters
 
+        The default values for the options are the follwing:
+        * read_fragment_size = 0
+        * write_fragment_size = 4MB
+        * use_display_names = False
+        * single_bit_uint_as_bool = False
+        * integer_interpolation = 0 (ffill - use previous sample)
+        * float_interpolation = 1 (linear interpolation)
+        * copy_on_get = False
+        * raise_on_multiple_occurrences = True
+
         Parameters
         ----------
         read_fragment_size : int

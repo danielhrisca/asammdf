@@ -3214,7 +3214,13 @@ class MDF:
         Parameters
         ----------
         channels : list
-            filter a subset of channels; default *None*
+            list of items to be filtered (default None); each item can be :
+
+                * a channel name string
+                * (channel name, group index, channel index) list or tuple
+                * (channel name, group index) list or tuple
+                * (None, group index, channel index) list or tuple
+
         raster : float | np.array | str
             new raster that can be
 
@@ -3589,7 +3595,13 @@ class MDF:
         Parameters
         ----------
         channels : list
-            filter a subset of channels; default *None*
+            list of items to be filtered (default None); each item can be :
+
+                * a channel name string
+                * (channel name, group index, channel index) list or tuple
+                * (channel name, group index) list or tuple
+                * (None, group index, channel index) list or tuple
+
         raster : float | np.array | str
             new raster that can be
 
