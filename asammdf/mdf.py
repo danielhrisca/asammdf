@@ -518,10 +518,7 @@ class MDF:
 
         integer_interpolation_mode = self._integer_interpolation
         float_interpolation_mode = self._float_interpolation
-        out.configure(
-            integer_interpolation_mode=integer_interpolation_mode,
-            float_interpolation_mode=float_interpolation_mode,
-        )
+        out.configure(from_other=self)
 
         out.header.start_time = self.header.start_time
 
@@ -625,10 +622,7 @@ class MDF:
 
         integer_interpolation_mode = self._integer_interpolation
         float_interpolation_mode = self._float_interpolation
-        out.configure(
-            integer_interpolation_mode=integer_interpolation_mode,
-            float_interpolation_mode=float_interpolation_mode,
-        )
+        out.configure(from_other=self)
 
         self.configure(copy_on_get=False)
 
@@ -1592,8 +1586,6 @@ class MDF:
         # group channels by group index
         gps = self.included_channels(channels=channels)
 
-        self.configure(copy_on_get=False)
-
         mdf = MDF(
             version=version,
             **self._kwargs,
@@ -1601,11 +1593,10 @@ class MDF:
 
         integer_interpolation_mode = self._integer_interpolation
         float_interpolation_mode = self._float_interpolation
-        mdf.configure(
-            integer_interpolation_mode=integer_interpolation_mode,
-            float_interpolation_mode=float_interpolation_mode,
-        )
+        mdf.configure(from_other=self)
         mdf.header.start_time = self.header.start_time
+
+        self.configure(copy_on_get=False)
 
         if self.name:
             origin = self.name.name
@@ -1867,10 +1858,7 @@ class MDF:
 
                 integer_interpolation_mode = mdf._integer_interpolation
                 float_interpolation_mode = mdf._float_interpolation
-                merged.configure(
-                    integer_interpolation_mode=integer_interpolation_mode,
-                    float_interpolation_mode=float_interpolation_mode,
-                )
+                merged.configure(from_other=mdf)
 
                 merged.header.start_time = oldest
 
@@ -2146,10 +2134,7 @@ class MDF:
 
                 integer_interpolation_mode = mdf._integer_interpolation
                 float_interpolation_mode = mdf._float_interpolation
-                stacked.configure(
-                    integer_interpolation_mode=integer_interpolation_mode,
-                    float_interpolation_mode=float_interpolation_mode,
-                )
+                stacked.configure(from_other=mdf)
 
 
                 if sync:
@@ -2501,10 +2486,7 @@ class MDF:
 
         integer_interpolation_mode = self._integer_interpolation
         float_interpolation_mode = self._float_interpolation
-        mdf.configure(
-            integer_interpolation_mode=integer_interpolation_mode,
-            float_interpolation_mode=float_interpolation_mode,
-        )
+        mdf.configure(from_other=self)
 
         mdf.header.start_time = self.header.start_time
 
