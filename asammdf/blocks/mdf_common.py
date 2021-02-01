@@ -122,13 +122,22 @@ class MDF_Common:
 
                     entries = self.channels_db[name]
                     if len(entries) > 1:
-                        message = (
-                            f'Multiple occurrences for channel "{name}": {entries}. '
-                            'Provide both "group" and "index" arguments'
-                            " to select another data group"
-                        )
-                        logger.exception(message)
-                        raise MdfException(message)
+                        if self._raise_on_mutiple_occurences:
+                            message = (
+                                f'Multiple occurrences for channel "{name}": {entries}. '
+                                'Provide both "group" and "index" arguments'
+                                " to select another data group"
+                            )
+                            logger.exception(message)
+                            raise MdfException(message)
+                        else:
+                            message = (
+                                f'Multiple occurrences for channel "{name}": {entries}. '
+                                'Returning the first occurence since the MDF obejct was '
+                                'configured to not raise an exception in this case.'
+                            )
+                            logger.warning(message)
+                            gp_nr, ch_nr = entries[0]
                     else:
                         gp_nr, ch_nr = entries[0]
 
@@ -153,12 +162,22 @@ class MDF_Common:
                                 raise MdfException(message)
 
                             else:
-                                message = (
-                                    f'Multiple occurrences for channel "{name}" in group {group}. '
-                                    'Provide also the "index" argument'
-                                    " to select the desired channel"
-                                )
-                                raise MdfException(message)
+                                if self._raise_on_mutiple_occurences:
+                                    message = (
+                                        f'Multiple occurrences for channel "{name}": {entries}. '
+                                        'Provide both "group" and "index" arguments'
+                                        " to select another data group"
+                                    )
+                                    logger.exception(message)
+                                    raise MdfException(message)
+                                else:
+                                    message = (
+                                        f'Multiple occurrences for channel "{name}": {entries}. '
+                                        'Returning the first occurence since the MDF obejct was '
+                                        'configured to not raise an exception in this case.'
+                                    )
+                                    logger.warning(message)
+                                    gp_nr, ch_nr = entries[0]
                         else:
                             if (group, index) in self.channels_db[name]:
                                 ch_nr = index
