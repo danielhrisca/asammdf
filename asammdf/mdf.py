@@ -516,8 +516,12 @@ class MDF:
             **self._kwargs
         )
 
-        interpolation_mode = self._integer_interpolation
-        out.configure(integer_interpolation=interpolation_mode)
+        integer_interpolation_mode = self._integer_interpolation
+        float_interpolation_mode = self._float_interpolation
+        out.configure(
+            integer_interpolation_mode=integer_interpolation_mode,
+            float_interpolation_mode=float_interpolation_mode,
+        )
 
         out.header.start_time = self.header.start_time
 
@@ -619,8 +623,12 @@ class MDF:
             **self._kwargs,
         )
 
-        interpolation_mode = self._integer_interpolation
-        out.configure(integer_interpolation=interpolation_mode)
+        integer_interpolation_mode = self._integer_interpolation
+        float_interpolation_mode = self._float_interpolation
+        out.configure(
+            integer_interpolation_mode=integer_interpolation_mode,
+            float_interpolation_mode=float_interpolation_mode,
+        )
 
         self.configure(copy_on_get=False)
 
@@ -743,7 +751,8 @@ class MDF:
                             fragment_start,
                             fragment_stop,
                             include_ends,
-                            interpolation_mode=interpolation_mode,
+                            integer_interpolation_mode=integer_interpolation_mode,
+                            float_interpolation_mode=float_interpolation_mode,
                         )
                         .timestamps
                     )
@@ -756,7 +765,8 @@ class MDF:
                             master[0],
                             master[-1],
                             include_ends=include_ends,
-                            interpolation_mode=interpolation_mode,
+                            integer_interpolation_mode=integer_interpolation_mode,
+                            float_interpolation_mode=float_interpolation_mode,
                         )
                         for sig in signals
                     ]
@@ -911,6 +921,37 @@ class MDF:
               export all channels using the raw values
 
               .. versionadded:: 6.0.0
+
+            * delimiter (',') : str
+              only valid for CSV: see cpython documentation for csv.Dialect.delimiter
+
+              .. versionadded:: 6.2.0
+
+            * doublequote (True) : bool
+              only valid for CSV: see cpython documentation for csv.Dialect.doublequote
+
+              .. versionadded:: 6.2.0
+
+            * escapechar (None) : str
+              only valid for CSV: see cpython documentation for csv.Dialect.escapechar
+
+              .. versionadded:: 6.2.0
+
+            * lineterminator ('\r\n') : str
+              only valid for CSV: see cpython documentation for csv.Dialect.lineterminator
+
+              .. versionadded:: 6.2.0
+
+            * quotechar ('"') : str
+              only valid for CSV: see cpython documentation for csv.Dialect.quotechar
+
+              .. versionadded:: 6.2.0
+
+            * quoting ("MINIMAL") : str
+              only valid for CSV: see cpython documentation for csv.Dialect.quoting. Use the
+              last part of the quoting constant name
+
+              .. versionadded:: 6.2.0
 
 
         """
@@ -1174,6 +1215,24 @@ class MDF:
                             self._callback(i + 1, groups_nr)
 
         elif fmt == "csv":
+            fmtparams = {
+                "delimiter": kwargs.get("delimiter", ",")[0],
+                "doublequote": kwargs.get("doublequote", True),
+                "lineterminator": kwargs.get("lineterminator", '\r\n'),
+                "quotechar": kwargs.get("quotechar", '"')[0],
+            }
+
+            quoting = kwargs.get("quoting", "MINIMAL").upper()
+            quoting = getattr(csv, f"QUOTE_{quoting}")
+
+            fmtparams["quoting"] = quoting
+
+            escapechar = kwargs.get("escapechar", None)
+            if escapechar is not None:
+                escapechar = escapechar[0]
+
+            fmtparams["escapechar"] = escapechar
+
             if single_time_base:
                 filename = filename.with_suffix(".csv")
                 message = f'Writing csv export to file "{filename}"'
@@ -1213,7 +1272,7 @@ class MDF:
 
                 with open(filename, "w", newline="") as csvfile:
 
-                    writer = csv.writer(csvfile)
+                    writer = csv.writer(csvfile, **fmtparams)
 
                     names_row = [df.index.name, *df.columns]
                     writer.writerow(names_row)
@@ -1293,7 +1352,7 @@ class MDF:
                         df.index.name = "timestamps"
 
                     with open(group_csv_name, "w", newline="") as csvfile:
-                        writer = csv.writer(csvfile)
+                        writer = csv.writer(csvfile, **fmtparams)
 
                         if hasattr(self, "can_logging_db") and self.can_logging_db:
 
@@ -1325,9 +1384,6 @@ class MDF:
                                 df.index.to_list(),
                                 *(df[name].to_list() for name in df),
                             ]
-                        count = len(df.index)
-
-                        count = len(df.index)
 
                         for i, row in enumerate(zip(*vals)):
                             writer.writerow(row)
@@ -1543,8 +1599,12 @@ class MDF:
             **self._kwargs,
         )
 
-        interpolation_mode = self._integer_interpolation
-        mdf.configure(integer_interpolation=interpolation_mode)
+        integer_interpolation_mode = self._integer_interpolation
+        float_interpolation_mode = self._float_interpolation
+        mdf.configure(
+            integer_interpolation_mode=integer_interpolation_mode,
+            float_interpolation_mode=float_interpolation_mode,
+        )
         mdf.header.start_time = self.header.start_time
 
         if self.name:
@@ -1805,8 +1865,12 @@ class MDF:
                     **kwargs,
                 )
 
-                interpolation_mode = mdf._integer_interpolation
-                merged.configure(integer_interpolation=interpolation_mode)
+                integer_interpolation_mode = mdf._integer_interpolation
+                float_interpolation_mode = mdf._float_interpolation
+                merged.configure(
+                    integer_interpolation_mode=integer_interpolation_mode,
+                    float_interpolation_mode=float_interpolation_mode,
+                )
 
                 merged.header.start_time = oldest
 
@@ -2080,8 +2144,13 @@ class MDF:
                     callback=callback, **kwargs,
                 )
 
-                interpolation_mode = mdf._integer_interpolation
-                stacked.configure(integer_interpolation=interpolation_mode)
+                integer_interpolation_mode = mdf._integer_interpolation
+                float_interpolation_mode = mdf._float_interpolation
+                stacked.configure(
+                    integer_interpolation_mode=integer_interpolation_mode,
+                    float_interpolation_mode=float_interpolation_mode,
+                )
+
 
                 if sync:
                     stacked.header.start_time = oldest
@@ -2430,8 +2499,12 @@ class MDF:
             **self._kwargs,
         )
 
-        interpolation_mode = self._integer_interpolation
-        mdf.configure(integer_interpolation=interpolation_mode)
+        integer_interpolation_mode = self._integer_interpolation
+        float_interpolation_mode = self._float_interpolation
+        mdf.configure(
+            integer_interpolation_mode=integer_interpolation_mode,
+            float_interpolation_mode=float_interpolation_mode,
+        )
 
         mdf.header.start_time = self.header.start_time
 
@@ -2472,7 +2545,11 @@ class MDF:
             sigs = self.select(channels, raw=True)
 
             sigs = [
-                sig.interp(raster, interpolation_mode=interpolation_mode)
+                sig.interp(
+                    raster,
+                    integer_interpolation_mode=integer_interpolation_mode,
+                    float_interpolation_mode=float_interpolation_mode,
+                )
                 for sig in sigs
             ]
 

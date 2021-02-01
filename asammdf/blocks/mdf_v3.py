@@ -170,6 +170,7 @@ class MDF3(MDF_Common):
         self._write_fragment_size = 4 * 2 ** 20
         self._single_bit_uint_as_bool = False
         self._integer_interpolation = 0
+        self._float_interpolation = 1
 
         self._si_map = {}
         self._cc_map = {}
@@ -948,6 +949,7 @@ class MDF3(MDF_Common):
         single_bit_uint_as_bool=None,
         integer_interpolation=None,
         copy_on_get=None,
+        float_interpolation=None,
     ):
         """configure MDF parameters
 
@@ -981,6 +983,14 @@ class MDF3(MDF_Common):
         copy_on_get : bool
             copy arrays in the get method
 
+        float_interpolation : int
+            interpolation mode for float channels:
+
+                * 0 - repeat previous sample
+                * 1 - use linear interpolation
+
+                .. versionadded:: 6.2.0
+
         """
 
         if read_fragment_size is not None:
@@ -1000,6 +1010,9 @@ class MDF3(MDF_Common):
 
         if copy_on_get is not None:
             self.copy_on_get = copy_on_get
+
+        if float_interpolation in (0, 1):
+            self._float_interpolation = int(float_interpolation)
 
     def add_trigger(self, group, timestamp, pre_time=0, post_time=0, comment=""):
         """add trigger to data group
@@ -1147,7 +1160,8 @@ class MDF3(MDF_Common):
             return
 
         version = self.version
-        interp_mode = self._integer_interpolation
+        integer_interp_mode = self._integer_interpolation
+        float_interp_mode = self._float_interpolation
 
         # check if the signals have a common timebase
         # if not interpolate the signals using the union of all timbases
@@ -1165,7 +1179,11 @@ class MDF3(MDF_Common):
                     times = [s.timestamps for s in signals]
                     timestamps = unique(concatenate(times)).astype(float64)
                     signals = [
-                        s.interp(timestamps, interpolation_mode=interp_mode)
+                        s.interp(
+                            timestamps,
+                            integer_interpolation_mode=integer_interp_mode,
+                            float_interpolation_mode=float_interp_mode,
+                        )
                         for s in signals
                     ]
                     times = None
@@ -2829,7 +2847,11 @@ class MDF3(MDF_Common):
 
                     vals = (
                         Signal(vals, timestamps, name="_")
-                        .interp(t, interpolation_mode=self._integer_interpolation)
+                        .interp(
+                            t,
+                            integer_interpolation_mode=self._integer_interpolation,
+                            float_interpolation_mode=self._float_interpolation
+                        )
                         .samples
                     )
 
@@ -2964,7 +2986,11 @@ class MDF3(MDF_Common):
 
                     vals = (
                         Signal(vals, timestamps, name="_")
-                        .interp(t, interpolation_mode=self._integer_interpolation)
+                        .interp(
+                            t,
+                            integer_interpolation_mode=self._integer_interpolation,
+                            float_interpolation_mode=self._float_interpolation,
+                        )
                         .samples
                     )
 

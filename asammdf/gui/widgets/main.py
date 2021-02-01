@@ -37,7 +37,17 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             )[0]
         )
 
-        self.batch = BatchWidget(self.ignore_value2text_conversions, self.integer_interpolation)
+        self.float_interpolation = int(
+            self._settings.value(
+                "float_interpolation", "1 - linear interpolation"
+            )[0]
+        )
+
+        self.batch = BatchWidget(
+            self.ignore_value2text_conversions,
+            self.integer_interpolation,
+            self.float_interpolation,
+        )
         self.stackedWidget.addWidget(self.batch)
 
         widget = QtWidgets.QWidget()
@@ -242,6 +252,25 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 action.triggered.emit()
 
         submenu = QtWidgets.QMenu("Integer interpolation", self.menubar)
+        submenu.addActions(theme_option.actions())
+        submenu.setToolTipsVisible(True)
+        menu.addMenu(submenu)
+
+        # float interpolation menu
+        theme_option = QtWidgets.QActionGroup(self)
+
+        for option in ("0 - repeat previous sample", "1 - linear interpolation"):
+
+            action = QtWidgets.QAction(option, menu)
+            action.setCheckable(True)
+            theme_option.addAction(action)
+            action.triggered.connect(partial(self.set_float_interpolation, option))
+
+            if option == self._settings.value("float_interpolation", "1 - linear interpolation"):
+                action.setChecked(True)
+                action.triggered.emit()
+
+        submenu = QtWidgets.QMenu("Float interpolation", self.menubar)
         submenu.addActions(theme_option.actions())
         submenu.setToolTipsVisible(True)
         menu.addMenu(submenu)
@@ -668,6 +697,19 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             self.files.widget(i).mdf.configure(integer_interpolation=option)
 
         self.batch.integer_interpolation = option
+
+    def set_float_interpolation(self, option):
+        self._settings.setValue("float_interpolation", option)
+
+        option = int(option[0])
+        self.float_interpolation = option
+
+        count = self.files.count()
+
+        for i in range(count):
+            self.files.widget(i).mdf.configure(float_interpolation=option)
+
+        self.batch.float_interpolation = option
 
     def set_plot_xaxis(self, option):
         self._settings.setValue("plot_xaxis", option)

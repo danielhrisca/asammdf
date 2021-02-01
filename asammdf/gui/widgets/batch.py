@@ -23,7 +23,7 @@ from .tree_item import TreeItem
 
 
 class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
-    def __init__(self, ignore_value2text_conversions=False, integer_interpolation=2, *args, **kwargs):
+    def __init__(self, ignore_value2text_conversions=False, integer_interpolation=2, float_interpolation=1, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
         self.setupUi(self)
@@ -32,6 +32,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         self.ignore_value2text_conversions = ignore_value2text_conversions
         self.integer_interpolation = integer_interpolation
+        self.float_interpolation = float_interpolation
 
         self.progress = None
         self.files_list = MinimalListWidget()
@@ -346,6 +347,12 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         empty_channels = self.empty_channels_bus.currentText()
         raster = self.export_raster_bus.value() or None
         time_as_date = self.bus_time_as_date.checkState() == QtCore.Qt.Checked
+        delimiter = self.delimiter_bus.text() or ','
+        doublequote = self.doublequote_bus.checkState() == QtCore.Qt.Checked
+        escapechar = self.escapechar_bus.text() or None
+        lineterminator = self.lineterminator_bus.text().replace("\\r", "\r").replace("\\n", "\n")
+        quotechar = self.quotechar_bus.text() or '"'
+        quoting = self.quoting_bus.currentText()
 
         count = self.files_list.count()
 
@@ -451,7 +458,10 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 f'Saving extracted Bus logging file {i+1} to "{file_name}"'
             )
 
-            mdf_.configure(integer_interpolation=self.integer_interpolation)
+            mdf_.configure(
+                integer_interpolation=self.integer_interpolation,
+                float_interpolation=self.float_interpolation,
+            )
 
             target = mdf_.export
             kwargs = {
@@ -463,6 +473,12 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 "raster": raster or None,
                 "time_as_date": time_as_date,
                 "ignore_value2text_conversions": self.ignore_value2text_conversions,
+                "delimiter": delimiter,
+                "doublequote": doublequote,
+                "escapechar": escapechar,
+                "lineterminator": lineterminator,
+                "quotechar": quotechar,
+                "quoting": quoting,
             }
 
             run_thread_with_progress(
@@ -1062,6 +1078,30 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 "raw": self.raw_mat.checkState() == QtCore.Qt.Checked,
             }
 
+        elif output_format == "CSV":
+
+            new = {
+                "single_time_base": self.single_time_base_csv.checkState()
+                == QtCore.Qt.Checked,
+                "time_from_zero": self.time_from_zero_csv.checkState()
+                == QtCore.Qt.Checked,
+                "time_as_date": self.time_as_date_csv.checkState() == QtCore.Qt.Checked,
+                "use_display_names": self.use_display_names_csv.checkState()
+                == QtCore.Qt.Checked,
+                "reduce_memory_usage": False,
+                "compression": False,
+                "empty_channels": self.empty_channels_csv.currentText(),
+                "raw": self.raw_csv.checkState() == QtCore.Qt.Checked,
+                "delimiter": self.delimiter.text() or ',',
+                "doublequote": self.doublequote.checkState() == QtCore.Qt.Checked,
+                "escapechar": self.escapechar.text() or None,
+                "lineterminator": self.lineterminator.text().replace("\\r", "\r").replace("\\n", "\n"),
+                "quotechar": self.quotechar.text() or '"',
+                'quoting': self.quoting.currentText(),
+                "mat_format": None,
+                "oned_as": None,
+            }
+
         else:
 
             new = {
@@ -1189,6 +1229,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             mdf_file.configure(
                 read_fragment_size=split_size,
                 integer_interpolation=self.integer_interpolation,
+                float_interpolation=self.float_interpolation,
             )
 
             mdf = None
@@ -1229,6 +1270,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     read_fragment_size=split_size,
                     write_fragment_size=split_size,
                     integer_interpolation=self.integer_interpolation,
+                    float_interpolation=self.float_interpolation,
                 )
 
             if opts.needs_cut:
@@ -1284,6 +1326,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     read_fragment_size=split_size,
                     write_fragment_size=split_size,
                     integer_interpolation=self.integer_interpolation,
+                    float_interpolation=self.float_interpolation,
                 )
 
             if opts.needs_resample:
@@ -1344,6 +1387,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     read_fragment_size=split_size,
                     write_fragment_size=split_size,
                     integer_interpolation=self.integer_interpolation,
+                    float_interpolation=self.float_interpolation,
                 )
 
             if output_format == "MDF":
@@ -1396,6 +1440,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     read_fragment_size=split_size,
                     write_fragment_size=split_size,
                     integer_interpolation=self.integer_interpolation,
+                    float_interpolation=self.float_interpolation,
                 )
 
                 if output_folder is not None:

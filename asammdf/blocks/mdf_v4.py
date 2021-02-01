@@ -352,6 +352,7 @@ class MDF4(MDF_Common):
         self.compact_vlsd = kwargs.get("compact_vlsd", False)
         self._single_bit_uint_as_bool = False
         self._integer_interpolation = 0
+        self._float_interpolation = 1
         self.virtual_groups = {}  # master group 2 referencing groups
         self.virtual_groups_map = {}  # group index 2 master group
 
@@ -2359,6 +2360,7 @@ class MDF4(MDF_Common):
         single_bit_uint_as_bool=None,
         integer_interpolation=None,
         copy_on_get=None,
+        float_interpolation=None,
     ):
         """configure MDF parameters
 
@@ -2392,6 +2394,14 @@ class MDF4(MDF_Common):
         copy_on_get : bool
             copy arrays in the get method
 
+        float_interpolation : int
+            interpolation mode for float channels:
+
+                * 0 - repeat previous sample
+                * 1 - use linear interpolation
+
+                .. versionadded:: 6.2.0
+
         """
 
         if read_fragment_size is not None:
@@ -2411,6 +2421,9 @@ class MDF4(MDF_Common):
 
         if copy_on_get is not None:
             self.copy_on_get = copy_on_get
+
+        if float_interpolation in (0, 1):
+            self._float_interpolation = int(float_interpolation)
 
     def append(
         self,
@@ -2497,6 +2510,7 @@ class MDF4(MDF_Common):
             return
 
         interp_mode = self._integer_interpolation
+        float_interpolation_m
 
         prepare_record = True
 
@@ -2516,7 +2530,12 @@ class MDF4(MDF_Common):
                     times = [s.timestamps for s in signals]
                     t = unique(concatenate(times)).astype(float64)
                     signals = [
-                        s.interp(t, interpolation_mode=interp_mode) for s in signals
+                        s.interp(
+                            t,
+                            integer_interpolation_mode=self._integer_interpolation,
+                            float_interpolation_mode=self._float_interpolation,
+                        )
+                        for s in signals
                     ]
                     times = None
                 else:
@@ -6368,7 +6387,11 @@ class MDF4(MDF_Common):
 
             vals = Signal(
                 vals, timestamps, name="_", invalidation_bits=invalidation_bits
-            ).interp(t, interpolation_mode=self._integer_interpolation)
+            ).interp(
+                t,
+                integer_interpolation_mode=self._integer_interpolation,
+                float_interpolation_mode=self._float_interpolation,
+            )
 
             vals, timestamps, invalidation_bits = (
                 vals.samples,
@@ -6669,7 +6692,11 @@ class MDF4(MDF_Common):
 
             vals = Signal(
                 vals, timestamps, name="_", invalidation_bits=invalidation_bits
-            ).interp(t, interpolation_mode=self._integer_interpolation)
+            ).interp(
+                t,
+                integer_interpolation_mode=self._integer_interpolation,
+                float_interpolation_mode=self._float_interpolation,
+            )
 
             vals, timestamps, invalidation_bits = (
                 vals.samples,
@@ -6811,7 +6838,11 @@ class MDF4(MDF_Common):
 
                 vals = Signal(
                     vals, timestamps, name="_", invalidation_bits=invalidation_bits
-                ).interp(t, interpolation_mode=self._integer_interpolation)
+                ).interp(
+                    t,
+                    integer_interpolation_mode=self._integer_interpolation,
+                    float_interpolation_mode=self._float_interpolation,
+                )
 
                 vals, timestamps, invalidation_bits = (
                     vals.samples,
@@ -7098,7 +7129,11 @@ class MDF4(MDF_Common):
 
                 vals = Signal(
                     vals, timestamps, name="_", invalidation_bits=invalidation_bits
-                ).interp(t, interpolation_mode=self._integer_interpolation)
+                ).interp(
+                    t,
+                    integer_interpolation_mode=self._integer_interpolation,
+                    float_interpolation_mode=self._float_interpolation,
+                )
 
                 vals, timestamps, invalidation_bits = (
                     vals.samples,
