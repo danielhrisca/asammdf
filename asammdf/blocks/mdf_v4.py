@@ -2509,9 +2509,6 @@ class MDF4(MDF_Common):
         if not signals:
             return
 
-        interp_mode = self._integer_interpolation
-        float_interpolation_m
-
         prepare_record = True
 
         # check if the signals have a common timebase
