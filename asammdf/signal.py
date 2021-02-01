@@ -935,7 +935,7 @@ class Signal(object):
                 kind = self.samples.dtype.kind
 
                 if kind == "f":
-                    if interpolation_mode == 0:
+                    if float_interpolation_mode == 0:
                         idx = np.searchsorted(
                             self.timestamps, new_timestamps, side="right"
                         )
@@ -960,17 +960,18 @@ class Signal(object):
                             invalidation_bits = self.invalidation_bits[idx]
                         else:
                             invalidation_bits = None
+
                 elif kind in "ui":
-                    if interpolation_mode == 2:
+                    if integer_interpolation_mode == 2:
                         if self.raw and self.conversion:
                             kind = self.conversion.convert(self.samples[:1]).dtype.kind
                             if kind == "f":
-                                interpolation_mode = 1
+                                integer_interpolation_mode = 1
 
-                    if interpolation_mode == 2:
-                        interpolation_mode = 0
+                    if integer_interpolation_mode == 2:
+                        integer_interpolation_mode = 0
 
-                    if interpolation_mode == 1:
+                    if integer_interpolation_mode == 1:
                         s = np.interp(
                             new_timestamps, self.timestamps, self.samples
                         ).astype(self.samples.dtype)
@@ -983,7 +984,7 @@ class Signal(object):
                             invalidation_bits = self.invalidation_bits[idx]
                         else:
                             invalidation_bits = None
-                    elif interpolation_mode == 0:
+                    elif integer_interpolation_mode == 0:
                         idx = np.searchsorted(
                             self.timestamps, new_timestamps, side="right"
                         )
