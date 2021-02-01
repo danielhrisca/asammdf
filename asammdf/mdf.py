@@ -4709,9 +4709,12 @@ class MDF:
         ()
 
         """
-        occurrences = self._filter_occurrences(
-            self.channels_db[channel], source_name=source_name, source_path=source_path
-        )
+        try:
+            occurrences = self._filter_occurrences(
+                self.channels_db[channel], source_name=source_name, source_path=source_path
+            )
+        except:
+            occurrences = tuple()
         return tuple(occurrences)
 
 
