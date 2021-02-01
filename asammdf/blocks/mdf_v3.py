@@ -173,6 +173,7 @@ class MDF3(MDF_Common):
         self._float_interpolation = 1
         self._raise_on_multiple_occurrences = True
         self._use_display_names = False
+        self.copy_on_get = False
 
         self._si_map = {}
         self._cc_map = {}
