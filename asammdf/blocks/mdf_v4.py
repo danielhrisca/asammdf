@@ -2368,7 +2368,7 @@ class MDF4(MDF_Common):
     ):
         """configure MDF parameters.
 
-        The default values for the options are the follwing:
+        The default values for the options are the following:
         * read_fragment_size = 0
         * write_fragment_size = 4MB
         * use_display_names = False

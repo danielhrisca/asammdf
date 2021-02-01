@@ -840,7 +840,7 @@ class MDF:
         return out
 
     def export(self, fmt, filename=None, **kwargs):
-        """export *MDF* to other formats. The *MDF* file name is used is
+        r"""export *MDF* to other formats. The *MDF* file name is used is
         available, else the *filename* argument must be provided.
 
         The *pandas* export option was removed. you should use the method
@@ -870,7 +870,7 @@ class MDF:
         filename : string | pathlib.Path
             export file name
 
-        **kwargs
+        \*\*kwargs
 
             * `single_time_base`: resample all channels to common time base,
               default *False*
@@ -888,23 +888,23 @@ class MDF:
               component channels. If *True* this can be very slow. If *False*
               only the component channels are saved, and their names will be
               prefixed with the parent channel.
-            * reduce_memory_usage : bool
+            * `reduce_memory_usage` : bool
               reduce memory usage by converting all float columns to float32 and
               searching for minimum dtype that can reprezent the values found
               in integer columns; default *False*
-            * compression : str
+            * `compression` : str
               compression to be used
 
               * for ``parquet`` : "GZIP" or "SANPPY"
               * for ``hfd5`` : "gzip", "lzf" or "szip"
               * for ``mat`` : bool
 
-            * time_as_date (False) : bool
+            * `time_as_date` (False) : bool
               export time as local timezone datetimee; only valid for CSV export
 
               .. versionadded:: 5.8.0
 
-            * ignore_value2text_conversions (False) : bool
+            * `ignore_value2text_conversions` (False) : bool
               valid only for the channels that have value to text conversions and
               if *raw=False*. If this is True then the raw numeric values will be
               used, and the conversion will not be applied.
@@ -931,7 +931,7 @@ class MDF:
 
               .. versionadded:: 6.2.0
 
-            * lineterminator ('\r\n') : str
+            * lineterminator ("\\r\\n") : str
               only valid for CSV: see cpython documentation for csv.Dialect.lineterminator
 
               .. versionadded:: 6.2.0
@@ -2306,7 +2306,7 @@ class MDF:
             * a channel name who's timestamps will be used as raster (starting with asammdf 5.5.0)
             * an array (starting with asammdf 5.5.0)
 
-            see `resample` for examples of urisng this argument
+            see `resample` for examples of using this argument
 
             .. versionadded:: 5.21.0
 
@@ -3159,7 +3159,7 @@ class MDF:
             * a channel name who's timestamps will be used as raster (starting with asammdf 5.5.0)
             * an array (starting with asammdf 5.5.0)
 
-            see `resample` for examples of urisng this argument
+            see `resample` for examples of using this argument
 
         Returns
         -------
@@ -3228,7 +3228,7 @@ class MDF:
             * a channel name who's timestamps will be used as raster (starting with asammdf 5.5.0)
             * an array (starting with asammdf 5.5.0)
 
-            see `resample` for examples of urisng this argument
+            see `resample` for examples of using this argument
 
         time_from_zero : bool
             adjust time channel to start from 0; default *True*
@@ -3609,7 +3609,7 @@ class MDF:
             * a channel name who's timestamps will be used as raster (starting with asammdf 5.5.0)
             * an array (starting with asammdf 5.5.0)
 
-            see `resample` for examples of urisng this argument
+            see `resample` for examples of using this argument
 
         time_from_zero : bool
             adjust time channel to start from 0; default *True*
