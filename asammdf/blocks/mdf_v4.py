@@ -351,6 +351,7 @@ class MDF4(MDF_Common):
         self._decryption_function = kwargs.get("decryption_function", None)
         self.copy_on_get = kwargs.get("copy_on_get", True)
         self.compact_vlsd = kwargs.get("compact_vlsd", False)
+        self.raise_on_multiple_occurrences = True
         self._single_bit_uint_as_bool = False
         self._integer_interpolation = 0
         self._float_interpolation = 1
