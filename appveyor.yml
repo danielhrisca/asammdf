@@ -1,5 +1,6 @@
 environment:
   EXE_BRANCH: "master"
+  EXE_BRANCH_MACOS: "development"
 
   matrix:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
@@ -246,7 +247,7 @@ for:
                   pip3 install numpy
                   pip3 install -r test/requirements.txt
                   
-                  if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH && $PY == "venv3.7" ]]
+                  if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH_MACOS && $PY == "venv3.7" ]]
                   then
                       pip3 install lxml natsort psutil PyQt5>=5.13.1 pyqtgraph==0.11.0 h5py fastparquet scipy hdf5storage snappy cChardet==2.1.5 chardet --no-warn-script-location
                       pip3 install .
