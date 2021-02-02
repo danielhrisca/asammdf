@@ -172,6 +172,7 @@ static PyObject* extract(PyObject* self, PyObject* args)
 
         while (pos < PyBytes_GET_SIZE(signal_data))
         {
+            
             size = (buf[pos+3] << 24) + (buf[pos+2] << 16) +(buf[pos+1] << 8) + buf[pos];
             if (max < size)
                 max = size;
@@ -188,16 +189,13 @@ static PyObject* extract(PyObject* self, PyObject* args)
             
             vals = (PyArrayObject *) PyArray_ZEROS(2, dims, NPY_UBYTE, 0);
 
-            addr = PyArray_GETPTR2(vals, 0, 0);
-            addr2 = (unsigned char *) addr;
-
             for (i=0; i<count; i++)
             {
+                addr2 = (unsigned char *) PyArray_GETPTR2(vals, i, 0);
                 size = (buf[3] << 24) + (buf[2] << 16) +(buf[1] << 8) +buf[0];
                 buf += 4; 
                 memcpy(addr2, buf, size);
                 buf += size;
-                addr2 += max;
             }
         }
         else
@@ -211,17 +209,13 @@ static PyObject* extract(PyObject* self, PyObject* args)
 
             vals = (PyArrayObject *) PyArray_Zeros(1, dims, descr, 0);
 
-            addr = PyArray_GETPTR1(vals, 0);
-
-            addr2 = (unsigned char *) addr;
-
             for (i=0; i<count; i++)
             {
+                addr2 = (unsigned char *) PyArray_GETPTR1(vals, i);
                 size = (buf[3] << 24) + (buf[2] << 16) +(buf[1] << 8) +buf[0];
                 buf += 4; 
                 memcpy(addr2, buf, size);
                 buf += size;
-                addr2 += max;
             }
         }
     }
