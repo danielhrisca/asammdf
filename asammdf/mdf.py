@@ -516,8 +516,9 @@ class MDF:
             **self._kwargs
         )
 
-        interpolation_mode = self._integer_interpolation
-        out.configure(integer_interpolation=interpolation_mode)
+        integer_interpolation_mode = self._integer_interpolation
+        float_interpolation_mode = self._float_interpolation
+        out.configure(from_other=self)
 
         out.header.start_time = self.header.start_time
 
@@ -619,8 +620,9 @@ class MDF:
             **self._kwargs,
         )
 
-        interpolation_mode = self._integer_interpolation
-        out.configure(integer_interpolation=interpolation_mode)
+        integer_interpolation_mode = self._integer_interpolation
+        float_interpolation_mode = self._float_interpolation
+        out.configure(from_other=self)
 
         self.configure(copy_on_get=False)
 
@@ -743,7 +745,8 @@ class MDF:
                             fragment_start,
                             fragment_stop,
                             include_ends,
-                            interpolation_mode=interpolation_mode,
+                            integer_interpolation_mode=integer_interpolation_mode,
+                            float_interpolation_mode=float_interpolation_mode,
                         )
                         .timestamps
                     )
@@ -756,7 +759,8 @@ class MDF:
                             master[0],
                             master[-1],
                             include_ends=include_ends,
-                            interpolation_mode=interpolation_mode,
+                            integer_interpolation_mode=integer_interpolation_mode,
+                            float_interpolation_mode=float_interpolation_mode,
                         )
                         for sig in signals
                     ]
@@ -836,7 +840,7 @@ class MDF:
         return out
 
     def export(self, fmt, filename=None, **kwargs):
-        """export *MDF* to other formats. The *MDF* file name is used is
+        r"""export *MDF* to other formats. The *MDF* file name is used is
         available, else the *filename* argument must be provided.
 
         The *pandas* export option was removed. you should use the method
@@ -866,7 +870,7 @@ class MDF:
         filename : string | pathlib.Path
             export file name
 
-        **kwargs
+        \*\*kwargs
 
             * `single_time_base`: resample all channels to common time base,
               default *False*
@@ -884,23 +888,23 @@ class MDF:
               component channels. If *True* this can be very slow. If *False*
               only the component channels are saved, and their names will be
               prefixed with the parent channel.
-            * reduce_memory_usage : bool
+            * `reduce_memory_usage` : bool
               reduce memory usage by converting all float columns to float32 and
               searching for minimum dtype that can reprezent the values found
               in integer columns; default *False*
-            * compression : str
+            * `compression` : str
               compression to be used
 
               * for ``parquet`` : "GZIP" or "SANPPY"
               * for ``hfd5`` : "gzip", "lzf" or "szip"
               * for ``mat`` : bool
 
-            * time_as_date (False) : bool
+            * `time_as_date` (False) : bool
               export time as local timezone datetimee; only valid for CSV export
 
               .. versionadded:: 5.8.0
 
-            * ignore_value2text_conversions (False) : bool
+            * `ignore_value2text_conversions` (False) : bool
               valid only for the channels that have value to text conversions and
               if *raw=False*. If this is True then the raw numeric values will be
               used, and the conversion will not be applied.
@@ -911,6 +915,37 @@ class MDF:
               export all channels using the raw values
 
               .. versionadded:: 6.0.0
+
+            * delimiter (',') : str
+              only valid for CSV: see cpython documentation for csv.Dialect.delimiter
+
+              .. versionadded:: 6.2.0
+
+            * doublequote (True) : bool
+              only valid for CSV: see cpython documentation for csv.Dialect.doublequote
+
+              .. versionadded:: 6.2.0
+
+            * escapechar (None) : str
+              only valid for CSV: see cpython documentation for csv.Dialect.escapechar
+
+              .. versionadded:: 6.2.0
+
+            * lineterminator ("\\r\\n") : str
+              only valid for CSV: see cpython documentation for csv.Dialect.lineterminator
+
+              .. versionadded:: 6.2.0
+
+            * quotechar ('"') : str
+              only valid for CSV: see cpython documentation for csv.Dialect.quotechar
+
+              .. versionadded:: 6.2.0
+
+            * quoting ("MINIMAL") : str
+              only valid for CSV: see cpython documentation for csv.Dialect.quoting. Use the
+              last part of the quoting constant name
+
+              .. versionadded:: 6.2.0
 
 
         """
@@ -1174,6 +1209,24 @@ class MDF:
                             self._callback(i + 1, groups_nr)
 
         elif fmt == "csv":
+            fmtparams = {
+                "delimiter": kwargs.get("delimiter", ",")[0],
+                "doublequote": kwargs.get("doublequote", True),
+                "lineterminator": kwargs.get("lineterminator", '\r\n'),
+                "quotechar": kwargs.get("quotechar", '"')[0],
+            }
+
+            quoting = kwargs.get("quoting", "MINIMAL").upper()
+            quoting = getattr(csv, f"QUOTE_{quoting}")
+
+            fmtparams["quoting"] = quoting
+
+            escapechar = kwargs.get("escapechar", None)
+            if escapechar is not None:
+                escapechar = escapechar[0]
+
+            fmtparams["escapechar"] = escapechar
+
             if single_time_base:
                 filename = filename.with_suffix(".csv")
                 message = f'Writing csv export to file "{filename}"'
@@ -1213,7 +1266,7 @@ class MDF:
 
                 with open(filename, "w", newline="") as csvfile:
 
-                    writer = csv.writer(csvfile)
+                    writer = csv.writer(csvfile, **fmtparams)
 
                     names_row = [df.index.name, *df.columns]
                     writer.writerow(names_row)
@@ -1293,7 +1346,7 @@ class MDF:
                         df.index.name = "timestamps"
 
                     with open(group_csv_name, "w", newline="") as csvfile:
-                        writer = csv.writer(csvfile)
+                        writer = csv.writer(csvfile, **fmtparams)
 
                         if hasattr(self, "can_logging_db") and self.can_logging_db:
 
@@ -1325,9 +1378,6 @@ class MDF:
                                 df.index.to_list(),
                                 *(df[name].to_list() for name in df),
                             ]
-                        count = len(df.index)
-
-                        count = len(df.index)
 
                         for i, row in enumerate(zip(*vals)):
                             writer.writerow(row)
@@ -1536,16 +1586,17 @@ class MDF:
         # group channels by group index
         gps = self.included_channels(channels=channels)
 
-        self.configure(copy_on_get=False)
-
         mdf = MDF(
             version=version,
             **self._kwargs,
         )
 
-        interpolation_mode = self._integer_interpolation
-        mdf.configure(integer_interpolation=interpolation_mode)
+        integer_interpolation_mode = self._integer_interpolation
+        float_interpolation_mode = self._float_interpolation
+        mdf.configure(from_other=self)
         mdf.header.start_time = self.header.start_time
+
+        self.configure(copy_on_get=False)
 
         if self.name:
             origin = self.name.name
@@ -1805,8 +1856,9 @@ class MDF:
                     **kwargs,
                 )
 
-                interpolation_mode = mdf._integer_interpolation
-                merged.configure(integer_interpolation=interpolation_mode)
+                integer_interpolation_mode = mdf._integer_interpolation
+                float_interpolation_mode = mdf._float_interpolation
+                merged.configure(from_other=mdf)
 
                 merged.header.start_time = oldest
 
@@ -2080,8 +2132,10 @@ class MDF:
                     callback=callback, **kwargs,
                 )
 
-                interpolation_mode = mdf._integer_interpolation
-                stacked.configure(integer_interpolation=interpolation_mode)
+                integer_interpolation_mode = mdf._integer_interpolation
+                float_interpolation_mode = mdf._float_interpolation
+                stacked.configure(from_other=mdf)
+
 
                 if sync:
                     stacked.header.start_time = oldest
@@ -2252,7 +2306,7 @@ class MDF:
             * a channel name who's timestamps will be used as raster (starting with asammdf 5.5.0)
             * an array (starting with asammdf 5.5.0)
 
-            see `resample` for examples of urisng this argument
+            see `resample` for examples of using this argument
 
             .. versionadded:: 5.21.0
 
@@ -2430,8 +2484,9 @@ class MDF:
             **self._kwargs,
         )
 
-        interpolation_mode = self._integer_interpolation
-        mdf.configure(integer_interpolation=interpolation_mode)
+        integer_interpolation_mode = self._integer_interpolation
+        float_interpolation_mode = self._float_interpolation
+        mdf.configure(from_other=self)
 
         mdf.header.start_time = self.header.start_time
 
@@ -2472,7 +2527,11 @@ class MDF:
             sigs = self.select(channels, raw=True)
 
             sigs = [
-                sig.interp(raster, interpolation_mode=interpolation_mode)
+                sig.interp(
+                    raster,
+                    integer_interpolation_mode=integer_interpolation_mode,
+                    float_interpolation_mode=float_interpolation_mode,
+                )
                 for sig in sigs
             ]
 
@@ -3100,7 +3159,7 @@ class MDF:
             * a channel name who's timestamps will be used as raster (starting with asammdf 5.5.0)
             * an array (starting with asammdf 5.5.0)
 
-            see `resample` for examples of urisng this argument
+            see `resample` for examples of using this argument
 
         Returns
         -------
@@ -3155,7 +3214,13 @@ class MDF:
         Parameters
         ----------
         channels : list
-            filter a subset of channels; default *None*
+            list of items to be filtered (default None); each item can be :
+
+                * a channel name string
+                * (channel name, group index, channel index) list or tuple
+                * (channel name, group index) list or tuple
+                * (None, group index, channel index) list or tuple
+
         raster : float | np.array | str
             new raster that can be
 
@@ -3163,7 +3228,7 @@ class MDF:
             * a channel name who's timestamps will be used as raster (starting with asammdf 5.5.0)
             * an array (starting with asammdf 5.5.0)
 
-            see `resample` for examples of urisng this argument
+            see `resample` for examples of using this argument
 
         time_from_zero : bool
             adjust time channel to start from 0; default *True*
@@ -3530,7 +3595,13 @@ class MDF:
         Parameters
         ----------
         channels : list
-            filter a subset of channels; default *None*
+            list of items to be filtered (default None); each item can be :
+
+                * a channel name string
+                * (channel name, group index, channel index) list or tuple
+                * (channel name, group index) list or tuple
+                * (None, group index, channel index) list or tuple
+
         raster : float | np.array | str
             new raster that can be
 
@@ -3538,7 +3609,7 @@ class MDF:
             * a channel name who's timestamps will be used as raster (starting with asammdf 5.5.0)
             * an array (starting with asammdf 5.5.0)
 
-            see `resample` for examples of urisng this argument
+            see `resample` for examples of using this argument
 
         time_from_zero : bool
             adjust time channel to start from 0; default *True*
@@ -4632,9 +4703,12 @@ class MDF:
         ()
 
         """
-        occurrences = self._filter_occurrences(
-            self.channels_db[channel], source_name=source_name, source_path=source_path
-        )
+        try:
+            occurrences = self._filter_occurrences(
+                self.channels_db[channel], source_name=source_name, source_path=source_path
+            )
+        except:
+            occurrences = tuple()
         return tuple(occurrences)
 
 

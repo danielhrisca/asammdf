@@ -223,6 +223,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         progress.setValue(90)
 
+        self.output_options.setCurrentIndex(0)
+
         self.mdf_version.insertItems(0, SUPPORTED_VERSIONS)
         self.mdf_compression.insertItems(
             0, ("no compression", "deflate", "transposed deflate")
@@ -246,6 +248,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.empty_channels.insertItems(0, ("skip", "zeros"))
         self.empty_channels_bus.insertItems(0, ("skip", "zeros"))
         self.empty_channels_mat.insertItems(0, ("skip", "zeros"))
+        self.empty_channels_csv.insertItems(0, ("skip", "zeros"))
         self.mat_format.insertItems(0, ("4", "5", "7.3"))
         self.oned_as.insertItems(0, ("row", "column"))
 
@@ -676,6 +679,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.export_compression_mat.clear()
             self.export_compression_mat.addItems(["enabled", "disabled"])
             self.export_compression_mat.setCurrentIndex(0)
+        elif name == "CSV":
+            self.output_options.setCurrentIndex(3)
+
         else:
             self.output_options.setCurrentIndex(1)
             if name == "Parquet":
@@ -1515,6 +1521,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         empty_channels = self.empty_channels_bus.currentText()
         raster = self.export_raster_bus.value()
         time_as_date = self.bus_time_as_date.checkState() == QtCore.Qt.Checked
+        delimiter = self.delimiter_bus.text() or ','
+        doublequote = self.doublequote_bus.checkState() == QtCore.Qt.Checked
+        escapechar = self.escapechar_bus.text() or None
+        lineterminator = self.lineterminator_bus.text().replace("\\r", "\r").replace("\\n", "\n")
+        quotechar = self.quotechar_bus.text() or '"'
+        quoting = self.quoting_bus.currentText()
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,
@@ -1557,7 +1569,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             # then save it
             progress.setLabelText(f'Saving file to "{file_name}"')
 
-            mdf.configure(integer_interpolation=self.mdf._integer_interpolation)
+            mdf.configure(
+                integer_interpolation=self.mdf._integer_interpolation,
+                float_interpolation=self.mdf._float_interpolation,
+            )
 
             target = mdf.export
             kwargs = {
@@ -1569,6 +1584,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "raster": raster or None,
                 "time_as_date": time_as_date,
                 "ignore_value2text_conversions": self.ignore_value2text_conversions,
+                "delimiter": delimiter,
+                "doublequote": doublequote,
+                "escapechar": escapechar,
+                "lineterminator": lineterminator,
+                "quotechar": quotechar,
+                "quoting": quoting,
             }
 
             run_thread_with_progress(
@@ -1831,6 +1852,30 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "raw": self.raw_mat.checkState() == QtCore.Qt.Checked,
             }
 
+        elif output_format == "CSV":
+
+            new = {
+                "single_time_base": self.single_time_base_csv.checkState()
+                == QtCore.Qt.Checked,
+                "time_from_zero": self.time_from_zero_csv.checkState()
+                == QtCore.Qt.Checked,
+                "time_as_date": self.time_as_date_csv.checkState() == QtCore.Qt.Checked,
+                "use_display_names": self.use_display_names_csv.checkState()
+                == QtCore.Qt.Checked,
+                "reduce_memory_usage": False,
+                "compression": False,
+                "empty_channels": self.empty_channels_csv.currentText(),
+                "raw": self.raw_csv.checkState() == QtCore.Qt.Checked,
+                "delimiter": self.delimiter.text() or ',',
+                "doublequote": self.doublequote.checkState() == QtCore.Qt.Checked,
+                "escapechar": self.escapechar.text() or None,
+                "lineterminator": self.lineterminator.text().replace("\\r", "\r").replace("\\n", "\n"),
+                "quotechar": self.quotechar.text() or '"',
+                'quoting': self.quoting.currentText(),
+                "mat_format": None,
+                "oned_as": None,
+            }
+
         else:
 
             new = {
@@ -2002,6 +2047,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         mdf = None
         progress = None
         integer_interpolation = self.mdf._integer_interpolation
+        float_interpolation = self.mdf._float_interpolation
 
         if needs_filter:
 
@@ -2038,6 +2084,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 read_fragment_size=split_size,
                 write_fragment_size=split_size,
                 integer_interpolation=integer_interpolation,
+                float_interpolation=float_interpolation,
             )
 
         if opts.needs_cut:
@@ -2093,6 +2140,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 read_fragment_size=split_size,
                 write_fragment_size=split_size,
                 integer_interpolation=integer_interpolation,
+                float_interpolation=float_interpolation,
             )
 
         if opts.needs_resample:
@@ -2151,6 +2199,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 read_fragment_size=split_size,
                 write_fragment_size=split_size,
                 integer_interpolation=integer_interpolation,
+                float_interpolation=float_interpolation,
             )
 
         if output_format == "MDF":
@@ -2198,6 +2247,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 read_fragment_size=split_size,
                 write_fragment_size=split_size,
                 integer_interpolation=integer_interpolation,
+                float_interpolation=float_interpolation,
             )
 
             # then save it

@@ -149,17 +149,16 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
 static PyObject* extract(PyObject* self, PyObject* args)
 {
     int i=0, count, max=0;
-	bool is_byte_array;
     int pos=0;
     int size;
-    PyObject *signal_data;
+    PyObject *signal_data, *is_byte_array;
     unsigned char *buf;
     PyArrayObject *vals;
     PyArray_Descr *descr;
     void *addr;
     unsigned char * addr2;
 
-    if(!PyArg_ParseTuple(args, "Op", &signal_data, &is_byte_array))
+    if(!PyArg_ParseTuple(args, "OO", &signal_data, &is_byte_array))
     {
         snprintf(err_string, 1024, "extract was called with wrong parameters");
         PyErr_SetString(PyExc_ValueError, err_string);
@@ -180,7 +179,7 @@ static PyObject* extract(PyObject* self, PyObject* args)
             count++;
         }
 
-        if (is_byte_array)
+        if (PyObject_IsTrue(is_byte_array))
         {
 
             npy_intp dims[2];
