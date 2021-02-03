@@ -162,7 +162,7 @@ class MDF_Common:
                                 raise MdfException(message)
 
                             else:
-                                if self._raise_on_mutiple_occurences:
+                                if self._raise_on_multiple_occurences:
                                     message = (
                                         f'Multiple occurrences for channel "{name}": {entries}. '
                                         'Provide both "group" and "index" arguments'
