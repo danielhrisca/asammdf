@@ -122,7 +122,7 @@ class MDF_Common:
 
                     entries = self.channels_db[name]
                     if len(entries) > 1:
-                        if self._raise_on_mutiple_occurences:
+                        if self._raise_on_multiple_occurrences:
                             message = (
                                 f'Multiple occurrences for channel "{name}": {entries}. '
                                 'Provide both "group" and "index" arguments'
@@ -162,7 +162,7 @@ class MDF_Common:
                                 raise MdfException(message)
 
                             else:
-                                if self._raise_on_multiple_occurences:
+                                if self._raise_on_multiple_occurrences:
                                     message = (
                                         f'Multiple occurrences for channel "{name}": {entries}. '
                                         'Provide both "group" and "index" arguments'
