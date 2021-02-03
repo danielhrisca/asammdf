@@ -128,6 +128,7 @@ class PlotSignal(Signal):
                 self._max = ""
                 self._avg = ""
                 self._rms = ""
+                self._std = ""
             else:
                 self.is_string = False
                 samples = self.phys_samples[np.isfinite(self.phys_samples)]
@@ -136,17 +137,20 @@ class PlotSignal(Signal):
                     self._max = np.nanmax(samples)
                     self._avg = np.mean(samples)
                     self._rms = np.sqrt(np.mean(np.square(samples)))
+                    self._std = np.std(samples)
                 else:
                     self._min = "n.a."
                     self._max = "n.a."
                     self._avg = "n.a."
                     self._rms = "n.a."
+                    self._std = "n.a."
 
             if self.raw_samples.dtype.kind in "SUV":
                 self._min_raw = ""
                 self._max_raw = ""
                 self._avg_raw = ""
                 self._rms_raw = ""
+                self._std_raw = ""
             else:
 
                 samples = self.raw_samples[np.isfinite(self.raw_samples)]
@@ -155,11 +159,13 @@ class PlotSignal(Signal):
                     self._max_raw = np.nanmax(samples)
                     self._avg_raw = np.mean(samples)
                     self._rms_raw = np.sqrt(np.mean(np.square(samples)))
+                    self._std_raw = np.std(samples)
                 else:
                     self._min_raw = "n.a."
                     self._max_raw = "n.a."
                     self._avg_raw = "n.a."
                     self._rms_raw = "n.a."
+                    self._std_raw = "n.a."
 
             self.empty = False
 
@@ -171,20 +177,24 @@ class PlotSignal(Signal):
                 self._max = ""
                 self._rms = ""
                 self._avg = ""
+                self._std = ""
                 self._min_raw = ""
                 self._max_raw = ""
                 self._avg_raw = ""
                 self._rms_raw = ""
+                self._std_raw = ""
             else:
                 self.is_string = False
                 self._min = "n.a."
                 self._max = "n.a."
                 self._rms = "n.a."
                 self._avg = "n.a."
+                self._std = "n.a."
                 self._min_raw = "n.a."
                 self._max_raw = "n.a."
                 self._avg_raw = "n.a."
                 self._rms_raw = "n.a."
+                self._std_raw = "n.a."
 
         self.mode = "phys"
         if not fast:
@@ -221,6 +231,14 @@ class PlotSignal(Signal):
     @rms.setter
     def rms(self, rms):
         self._rms = rms
+
+    @property
+    def std(self):
+        return self._std if self.mode == "phys" else self._std_raw
+
+    @std.setter
+    def std(self, std):
+        self._std = std
 
     def cut(self, start=None, stop=None, include_ends=True, interpolation_mode=0):
         cut_sig = super().cut(start, stop, include_ends, interpolation_mode)
@@ -268,6 +286,7 @@ class PlotSignal(Signal):
                 stats["overall_max"] = ""
                 stats["overall_average"] = ""
                 stats["overall_rms"] = ""
+                stats["overall_std"] = ""
                 stats["overall_start"] = x[0]
                 stats["overall_stop"] = x[-1]
                 stats["unit"] = ""
@@ -307,12 +326,14 @@ class PlotSignal(Signal):
                 stats["selected_max"] = ""
                 stats["selected_average"] = ""
                 stats["selected_rms"] = ""
+                stats["selected_std"] = ""
                 stats["selected_delta"] = ""
                 stats["visible_min"] = ""
                 stats["visible_max"] = ""
                 stats["visible_average"] = ""
                 stats["visible_rms"] = ""
                 stats["visible_delta"] = ""
+                stats["visible_std"] = ""
             else:
                 if isinstance(sig.min, str):
                     kind = "S"
@@ -336,6 +357,7 @@ class PlotSignal(Signal):
                 stats["overall_max"] = fmt.format(sig.max)
                 stats["overall_average"] = sig.avg
                 stats["overall_rms"] = sig.rms
+                stats["overall_std"] = sig.std
                 stats["overall_start"] = sig.timestamps[0]
                 stats["overall_stop"] = sig.timestamps[-1]
                 stats["unit"] = sig.unit
@@ -405,6 +427,7 @@ class PlotSignal(Signal):
                         new_stats["selected_min"] = fmt.format(np.nanmin(samples))
                         new_stats["selected_max"] = fmt.format(np.nanmax(samples))
                         new_stats["selected_average"] = np.mean(samples)
+                        new_stats["selected_std"] = np.std(samples)
                         new_stats["selected_rms"] = np.sqrt(np.mean(np.square(samples)))
                         if kind in "ui":
                             new_stats["selected_delta"] = fmt.format(
@@ -420,6 +443,7 @@ class PlotSignal(Signal):
                         new_stats["selected_max"] = "n.a."
                         new_stats["selected_average"] = "n.a."
                         new_stats["selected_rms"] = "n.a."
+                        new_stats["selected_std"] = "n.a."
                         new_stats["selected_delta"] = "n.a."
 
                     sig._stats["range"] = (start, stop)
@@ -435,6 +459,7 @@ class PlotSignal(Signal):
                     stats["selected_max"] = ""
                     stats["selected_average"] = ""
                     stats["selected_rms"] = ""
+                    stats["selected_std"] = ""
                     stats["selected_delta"] = ""
 
                 start, stop = view_region
@@ -473,6 +498,7 @@ class PlotSignal(Signal):
                     new_stats["visible_min"] = fmt.format(np.nanmin(samples))
                     new_stats["visible_max"] = fmt.format(np.nanmax(samples))
                     new_stats["visible_average"] = np.mean(samples)
+                    new_stats["visible_std"] = np.std(samples)
                     new_stats["visible_rms"] = np.sqrt(np.mean(np.square(samples)))
                     if kind in "ui":
                         new_stats["visible_delta"] = int(cut.samples[-1]) - int(
@@ -488,6 +514,7 @@ class PlotSignal(Signal):
                     new_stats["visible_max"] = "n.a."
                     new_stats["visible_average"] = "n.a."
                     new_stats["visible_rms"] = "n.a."
+                    new_stats["visible_std"] = "n.a."
                     new_stats["visible_delta"] = "n.a."
 
                 sig._stats["visible"] = (start, stop)
@@ -500,6 +527,7 @@ class PlotSignal(Signal):
             stats["overall_max"] = "n.a."
             stats["overall_average"] = "n.a."
             stats["overall_rms"] = "n.a."
+            stats["overall_std"] = "n.a."
             stats["overall_start"] = "n.a."
             stats["overall_stop"] = "n.a."
             stats["unit"] = sig.unit
@@ -527,6 +555,7 @@ class PlotSignal(Signal):
                 stats["selected_max"] = "n.a."
                 stats["selected_average"] = "n.a."
                 stats["selected_rms"] = "n.a."
+                stats["selected_std"] = "n.a."
                 stats["selected_delta"] = "n.a."
 
             else:
@@ -537,6 +566,7 @@ class PlotSignal(Signal):
                 stats["selected_max"] = ""
                 stats["selected_average"] = "n.a."
                 stats["selected_rms"] = "n.a."
+                stats["selected_std"] = "n.a."
                 stats["selected_delta"] = ""
 
             start, stop = view_region
@@ -549,6 +579,7 @@ class PlotSignal(Signal):
             stats["visible_max"] = "n.a."
             stats["visible_average"] = "n.a."
             stats["visible_rms"] = "n.a."
+            stats["visible_std"] = "n.a."
             stats["visible_delta"] = "n.a."
 
         #        sig._stats["fmt"] = fmt

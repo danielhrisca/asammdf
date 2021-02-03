@@ -47,7 +47,7 @@ class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
                 #                        value = value
 
                 if name == "unit":
-                    for i in range(1, 16):
+                    for i in range(1, 19):
                         label = self.findChild(QtWidgets.QLabel, f"unit{i}")
                         label.setText(f" {value}")
                 elif name == "name":
