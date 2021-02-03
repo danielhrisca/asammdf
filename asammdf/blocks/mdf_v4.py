@@ -8965,17 +8965,6 @@ class MDF4(MDF_Common):
 
             blocks = []
 
-            # attachments
-            at_map = {}
-            if self.attachments:
-                for at_block in self.attachments:
-                    address = at_block.to_blocks(address, blocks, defined_texts)
-
-                for i in range(len(self.attachments) - 1):
-                    at_block = self.attachments[i]
-                    at_block.next_at_addr = self.attachments[i + 1].address
-                self.attachments[-1].next_at_addr = 0
-
             # file history blocks
             for fh in self.file_history:
                 address = fh.to_blocks(address, blocks, defined_texts)
@@ -9286,10 +9275,6 @@ class MDF4(MDF_Common):
                             event[f"scope_{i}_addr"] = self.groups[
                                 dg_cntr
                             ].channel_group.address
-                    for i in range(event.attachment_nr):
-                        key = f"attachment_{i}_addr"
-                        addr = event[key]
-                        event[key] = at_map[addr]
 
                     blocks.append(event)
                     ev_map.append(address)
@@ -9330,6 +9315,50 @@ class MDF4(MDF_Common):
                 dst_.close()
                 self.close()
                 return
+
+            # attachments
+            at_map = {}
+            if self.attachments:
+
+                # put the attachment texts before the attachments
+                for at_block in self.attachments:
+                    for text in (at_block.file_name, at_block.mime, at_block.comment):
+                        if text not in defined_texts:
+                            tx_block = TextBlock(text=str(text))
+                            defined_texts[text] = address
+                            tx_block.address = address
+                            address += tx_block.block_len
+                            blocks.append(tx_block)
+
+                for at_block in self.attachments:
+                    address = at_block.to_blocks(address, blocks, defined_texts)
+
+                for i in range(len(self.attachments) - 1):
+                    at_block = self.attachments[i]
+                    at_block.next_at_addr = self.attachments[i + 1].address
+                self.attachments[-1].next_at_addr = 0
+
+                if self.events:
+                    for event in self.events:
+                        for i in range(event.attachment_nr):
+                            key = f"attachment_{i}_addr"
+                            addr = event[key]
+                            event[key] = at_map[addr]
+
+                for i, gp in enumerate(self.groups):
+
+                    for j, channel in enumerate(gp.channels):
+                        if channel.attachment is not None:
+                            channel.attachment_addr = self.attachments[
+                                channel.attachment
+                            ].address
+                        elif channel.attachment_nr:
+                            channel.attachment_addr = 0
+
+                        if channel.channel_type == v4c.CHANNEL_TYPE_SYNC and channel.attachment is not None:
+                            channel.data_block_addr = self.attachments[
+                                channel.attachment
+                            ].address
 
             if self._callback:
                 blocks_nr = len(blocks)

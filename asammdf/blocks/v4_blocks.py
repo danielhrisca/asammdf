@@ -42,6 +42,7 @@ COMMON_uf = v4c.COMMON_uf
 CN_BLOCK_SIZE = v4c.CN_BLOCK_SIZE
 SIMPLE_CHANNEL_PARAMS_uf = v4c.SIMPLE_CHANNEL_PARAMS_uf
 
+EIGHT_BYTES = bytes(8)
 
 logger = logging.getLogger("asammdf")
 
@@ -313,7 +314,7 @@ class AttachmentBlock:
         address += self.block_len
 
         align = address % 8
-        if align % 8:
+        if align:
             blocks.append(b"\0" * (8 - align))
             address += 8 - align
 
@@ -928,7 +929,7 @@ class Channel:
                 self.attachment_addr = kwargs["attachment_addr"]
                 self.block_len += 8
                 self.links_nr += 1
-                self.attachments = 1
+                self.attachment_nr = 1
 
         # ignore MLSD signal data
         if self.channel_type == v4c.CHANNEL_TYPE_MLSD:
@@ -1034,8 +1035,10 @@ class Channel:
             self.source_addr = 0
 
         blocks.append(self)
+        # keep extra space for an eventual attachment address
+        blocks.append(EIGHT_BYTES)
         self.address = address
-        address += self.block_len
+        address += self.block_len + 8
 
         return address
 
