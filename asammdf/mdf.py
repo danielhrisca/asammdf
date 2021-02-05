@@ -809,7 +809,7 @@ class MDF:
                     sig.samples = sig.samples[:0]
                     sig.timestamps = sig.timestamps[:0]
                     if sig.invalidation_bits is not None:
-                        sig.invaldiation_bits = sig.invalidation_bits[:0]
+                        sig.invalidation_bits = sig.invalidation_bits[:0]
 
                 if start:
                     start_ = f"{start}s"

@@ -456,6 +456,7 @@ class Signal(object):
         0.98, 10.48
 
         """
+
         if integer_interpolation_mode is None:
             if interpolation_mode is not None:
                 integer_interpolation_mode = interpolation_mode
@@ -471,6 +472,7 @@ class Signal(object):
             raise MdfException("Float interpolation mode should be one of (0, 1)")
 
         ends = (start, stop)
+
         if len(self) == 0:
             result = Signal(
                 np.array([], dtype=self.samples.dtype),

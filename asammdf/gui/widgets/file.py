@@ -120,7 +120,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             )
             self.mdf = MDF(mdf_path)
 
-        elif file_name.suffix.lower() == ".zip":
+        elif file_name.suffix.lower() in (".zip", ".mf4z"):
             progress.setLabelText("Opening zipped MF4 file")
             from mfile import ZIP
 
