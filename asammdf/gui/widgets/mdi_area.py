@@ -265,15 +265,15 @@ class WithMDIArea:
 
                 if source and source.bus_type == v4c.BUS_TYPE_CAN:
                     if "CAN_DataFrame" in names:
-                        data = self.mdf.get("CAN_DataFrame", index)
+                        data = self.mdf.get("CAN_DataFrame", index, raw=True)
                         items.append(data)
 
                     elif "CAN_RemoteFrame" in names:
-                        data = self.mdf.get("CAN_RemoteFrame", index)
+                        data = self.mdf.get("CAN_RemoteFrame", index, raw=True)
                         items.append(data)
 
                     elif "CAN_ErrorFrame" in names:
-                        data = self.mdf.get("CAN_ErrorFrame", index)
+                        data = self.mdf.get("CAN_ErrorFrame", index, raw=True)
                         items.append(data)
 
         if len(items):
@@ -425,23 +425,23 @@ class WithMDIArea:
 
                 if source and source.bus_type == v4c.BUS_TYPE_LIN:
                     if "LIN_Frame" in names:
-                        data = self.mdf.get("LIN_Frame", index)
+                        data = self.mdf.get("LIN_Frame", index, raw=True)
                         items.append(data)
 
                     elif "LIN_SyncError" in names:
-                        data = self.mdf.get("LIN_SyncError", index)
+                        data = self.mdf.get("LIN_SyncError", index, raw=True)
                         items.append(data)
 
                     elif "LIN_TransmissionError" in names:
-                        data = self.mdf.get("LIN_TransmissionError", index)
+                        data = self.mdf.get("LIN_TransmissionError", index, raw=True)
                         items.append(data)
 
                     elif "LIN_ChecksumError" in names:
-                        data = self.mdf.get("LIN_ChecksumError", index)
+                        data = self.mdf.get("LIN_ChecksumError", index, raw=True)
                         items.append(data)
 
                     elif "LIN_ReceiveError" in names:
-                        data = self.mdf.get("LIN_ReceiveError", index)
+                        data = self.mdf.get("LIN_ReceiveError", index, raw=True)
                         items.append(data)
 
         if len(items):

@@ -6354,6 +6354,7 @@ class MDF4(MDF_Common):
                         ignore_invalidation_bits=ignore_invalidation_bits,
                         record_offset=record_offset,
                         record_count=record_count,
+                        raw=True,
                     )[0]
                     channel_values[i].append(vals)
                 if master_is_required:
@@ -6577,6 +6578,7 @@ class MDF4(MDF_Common):
                                         ignore_invalidation_bits=ignore_invalidation_bits,
                                         record_offset=record_offset,
                                         record_count=cycles,
+                                        raw=True,
                                     )[0]
                                 else:
                                     channel_group = grp.channel_group
@@ -6591,6 +6593,7 @@ class MDF4(MDF_Common):
                                         ignore_invalidation_bits=ignore_invalidation_bits,
                                         record_offset=record_offset,
                                         record_count=cycles,
+                                        raw=True,
                                     )[0]
                                     axis_values = ref[start:end].copy()
 
@@ -6651,6 +6654,7 @@ class MDF4(MDF_Common):
                                     ignore_invalidation_bits=ignore_invalidation_bits,
                                     record_offset=record_offset,
                                     record_count=cycles,
+                                    raw=True,
                                 )[0]
                             else:
                                 channel_group = grp.channel_group
@@ -6665,6 +6669,7 @@ class MDF4(MDF_Common):
                                     ignore_invalidation_bits=ignore_invalidation_bits,
                                     record_offset=record_offset,
                                     record_count=cycles,
+                                    raw=True,
                                 )[0]
                                 axis_values = ref[start:end].copy()
                             axis_values = axis_values[axisname]
