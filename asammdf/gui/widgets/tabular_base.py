@@ -360,6 +360,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         items = [TabularTreeItem(column_types, int_format, row) for row in zip(*items)]
 
         self.tree.addTopLevelItems(items)
+        self.update_header()
 
         self.tree.setSortingEnabled(self.sort.checkState() == QtCore.Qt.Checked)
 
@@ -434,19 +435,11 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             self.build(self.signals)
 
     def remove_prefix_changed(self, state):
-
         if state == QtCore.Qt.Checked:
             self.prefix.setEnabled(True)
-            prefix = self.prefix.currentText()
-            dim = len(prefix)
-            names = [
-                name[dim:] if name.startswith(prefix) else name
-                for name in self.header_names
-            ]
-            self.tree.setHeaderLabels(names)
         else:
             self.prefix.setEnabled(False)
-            self.tree.setHeaderLabels(self.header_names)
+        self.update_header()
 
     def prefix_changed(self, index):
         self.remove_prefix_changed(QtCore.Qt.Checked)
@@ -535,3 +528,29 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
 
         if self.query.toPlainText():
             self.apply_filters()
+
+    def update_header(self):
+        names = ["Index"]
+        df = self.df
+
+        state = self.remove_prefix.checkState()
+        prefix = self.prefix.currentText()
+        dim = len(prefix)
+
+        for name, column_dtype in zip(self.header_names[1:], df.dtypes):
+
+            if state == QtCore.Qt.Checked:
+                name = name[dim:] if name.startswith(prefix) else name
+
+            if column_dtype.kind in "ui":
+                if self.format == "hex":
+                    names.append(f'{name} [Hex]')
+                elif self.format == "bin":
+                    names.append(f'{name} [Bin]')
+                else:
+                    names.append(name)
+
+            else:
+                names.append(name)
+
+        self.tree.setHeaderLabels(names)

@@ -12,7 +12,7 @@ import pandas as pd
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ...blocks import v4_constants as v4c
-from ...blocks.utils import csv_bytearray2hex, extract_cncomment_xml, MdfException
+from ...blocks.utils import csv_bytearray2hex, extract_cncomment_xml, MdfException, load_can_database
 from ...mdf import MDF
 from ...signal import Signal
 from ..dialogs.channel_info import ChannelInfoDialog
@@ -285,6 +285,7 @@ class WithMDIArea:
                 "timestamps": df_index,
                 "Bus": np.full(count, "Unknown", dtype='O'),
                 "ID": np.full(count, 0xFFFFFFFF, dtype='u4'),
+                "Name": np.full(count, "", dtype='O'),
                 "Event Type": np.full(count, "CAN Frame", dtype='O'),
                 "Details": np.full(count, "", dtype='O'),
                 "DLC": np.zeros(count, dtype='u1'),
@@ -299,15 +300,33 @@ class WithMDIArea:
 
             for _ in range(count):
                 item = items.pop()
+
+                frame_map = None
+                if item.attachment and item.attachment[0]:
+                    dbc = load_can_database(item.attachment[1], item.attachment[0])
+                    if dbc:
+                        frame_map = {
+                            frame.arbitration_id.id: frame.name
+                            for frame in dbc
+                        }
+
+                        for name in frame_map.values():
+                            sys.intern(name)
+
                 if item.name == "CAN_DataFrame":
 
                     index = np.searchsorted(df_index, item.timestamps)
 
                     vals = item["CAN_DataFrame.BusChannel"].astype('u1')
+
                     vals = [f"CAN {chn}" for chn in vals.tolist()]
                     columns["Bus"][index] = vals
 
-                    columns["ID"][index] = item["CAN_DataFrame.ID"].astype('u4') & 0x1FFFFFFF
+                    vals = item["CAN_DataFrame.ID"].astype('u4') & 0x1FFFFFFF
+                    columns["ID"][index] = vals
+                    if frame_map:
+                        columns["Name"][index] = [frame_map[_id] for _id in vals]
+
                     columns["DLC"][index] = item["CAN_DataFrame.DLC"].astype('u1')
                     data_length = item["CAN_DataFrame.DataLength"].astype('u2').tolist()
                     columns["Data Length"][index] = data_length
@@ -329,7 +348,11 @@ class WithMDIArea:
                     vals = [f"CAN {chn}" for chn in vals.tolist()]
                     columns["Bus"][index] = vals
 
-                    columns["ID"][index] = item["CAN_RemoteFrame.ID"].astype('u4') & 0x1FFFFFFF
+                    vals = item["CAN_RemoteFrame.ID"].astype('u4') & 0x1FFFFFFF
+                    columns["ID"][index] = vals
+                    if frame_map:
+                        columns["Name"][index] = [frame_map[_id] for _id in vals]
+
                     columns["DLC"][index] = item["CAN_RemoteFrame.DLC"].astype('u1')
                     data_length = item["CAN_RemoteFrame.DataLength"].astype('u2').tolist()
                     columns["Data Length"][index] = data_length
@@ -350,7 +373,10 @@ class WithMDIArea:
                         columns["Bus"][index] = vals
 
                     if "CAN_ErrorFrame.ID" in names:
-                        columns["ID"][index] = item["CAN_ErrorFrame.ID"].astype('u4') & 0x1FFFFFFF
+                        vals = item["CAN_ErrorFrame.ID"].astype('u4') & 0x1FFFFFFF
+                        columns["ID"][index] = vals
+                        if frame_map:
+                            columns["Name"][index] = [frame_map[_id] for _id in vals]
 
                     if "CAN_ErrorFrame.DLC" in names:
                         columns["DLC"][index] = item["CAN_ErrorFrame.DLC"].astype('u1')
@@ -368,8 +394,6 @@ class WithMDIArea:
                         ]
 
                         columns["Details"][index] = vals
-
-                    vals
 
             signals = pd.DataFrame(columns)
 
@@ -453,6 +477,7 @@ class WithMDIArea:
                 "timestamps": df_index,
                 "Bus": np.full(count, "Unknown", dtype='O'),
                 "ID": np.full(count, 0xFFFFFFFF, dtype='u4'),
+                "Name": np.full(count, "", dtype='O'),
                 "Event Type": np.full(count, "LIN Frame", dtype='O'),
                 "Details": np.full(count, "", dtype='O'),
                 "Received Byte Count": np.zeros(count, dtype='u1'),
@@ -464,6 +489,19 @@ class WithMDIArea:
 
             for _ in range(count):
                 item = items.pop()
+
+                frame_map = None
+                if item.attachment and item.attachment[0]:
+                    dbc = load_can_database(item.attachment[1], item.attachment[0])
+                    if dbc:
+                        frame_map = {
+                            frame.arbitration_id.id: frame.name
+                            for frame in dbc
+                        }
+
+                        for name in frame_map.values():
+                            sys.intern(name)
+
                 if item.name == "LIN_Frame":
 
                     index = np.searchsorted(df_index, item.timestamps)
@@ -472,7 +510,11 @@ class WithMDIArea:
                     vals = [f"LIN {chn}" for chn in vals.tolist()]
                     columns["Bus"][index] = vals
 
-                    columns["ID"][index] = item["LIN_Frame.ID"].astype('u1') & 0x3F
+                    vals = item["LIN_Frame.ID"].astype('u1') & 0x3F
+                    columns["ID"][index] = vals
+                    if frame_map:
+                        columns["Name"][index] = [frame_map[_id] for _id in vals]
+
                     columns["Received Byte Count"][index] = item["LIN_Frame.ReceivedDataByteCount"].astype('u1')
                     data_length = item["LIN_Frame.DataLength"].astype('u1').tolist()
                     columns["Data Length"][index] = data_length
@@ -528,7 +570,10 @@ class WithMDIArea:
                         vals = [f"Baudrate {val}" for val in vals.tolist()]
                         columns["Details"][index] = vals
 
-                    columns["ID"][index] = item["LIN_TransmissionError.ID"].astype('u1') & 0x3F
+                    vals = item["LIN_TransmissionError.ID"].astype('u1') & 0x3F
+                    columns["ID"][index] = vals
+                    if frame_map:
+                        columns["Name"][index] = [frame_map[_id] for _id in vals]
 
                     columns["Event Type"][index] = "Transmission Error Frame"
 
@@ -554,7 +599,10 @@ class WithMDIArea:
                         columns["Details"][index] = vals
 
                     if "LIN_ReceiveError.ID" in names:
-                        columns["ID"][index] = item["LIN_ReceiveError.ID"].astype('u1') & 0x3F
+                        vals = item["LIN_ReceiveError.ID"].astype('u1') & 0x3F
+                        columns["ID"][index] = vals
+                        if frame_map:
+                            columns["Name"][index] = [frame_map[_id] for _id in vals]
 
                     columns["Event Type"][index] = "Receive Error Frame"
 
@@ -580,7 +628,10 @@ class WithMDIArea:
                         columns["Details"][index] = vals
 
                     if "LIN_ChecksumError.ID" in names:
-                        columns["ID"][index] = item["LIN_ChecksumError.ID"].astype('u1') & 0x3F
+                        vals = item["LIN_ChecksumError.ID"].astype('u1') & 0x3F
+                        columns["ID"][index] = vals
+                        if frame_map:
+                            columns["Name"][index] = [frame_map[_id] for _id in vals]
 
                     columns["Event Type"][index] = "Checksum Error Frame"
 

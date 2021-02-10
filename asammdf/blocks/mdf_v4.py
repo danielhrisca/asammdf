@@ -6890,6 +6890,9 @@ class MDF4(MDF_Common):
                     vals.invalidation_bits,
                 )
 
+            if channel.conversion:
+                vals = channel.conversion.convert(vals)
+
         else:
             record_size = grp.channel_group.samples_byte_nr
 
