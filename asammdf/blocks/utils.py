@@ -1505,18 +1505,27 @@ def pandas_query_compatible(name):
 
 
 def load_can_database(path, contents=None, **kwargs):
-    contents = path.read_bytes() if contents is None else contents
+    path = Path(path)
     import_type = path.suffix.lstrip(".").lower()
+    if contents is None:
+        func = canmatrix.formats.loadp
+        arg = path
+    else:
+        func = canmatrix.formats.loads
+        arg = contents
 
     try:
-        dbs = canmatrix.formats.loads(
-            contents, import_type=import_type, key="db", **kwargs
+        dbs = func(
+            arg, import_type=import_type, key="db", **kwargs
         )
     except UnicodeDecodeError:
+        if contents is None:
+            contents = path.read_bytes()
+
         encoding = detect(contents)["encoding"]
-        decoded_contents = contents.decode(encoding)
-        dbs = canmatrix.formats.loads(
-            decoded_contents,
+
+        dbs = func(
+            arg,
             import_type=import_type,
             key="db",
             encoding=encoding,

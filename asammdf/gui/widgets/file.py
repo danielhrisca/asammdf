@@ -1660,8 +1660,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self,
             "Select LIN database file",
             "",
-            "ARXML or DBC (*.dbc *.arxml)",
-            "ARXML or DBC (*.dbc *.arxml)",
+            "ARXML or DBC database (*.dbc *.arxml);;LDF database (*.ldf);;All supported formats (*.dbc *.arxml *ldf)",
+            "All supported formats (*.dbc *.arxml *ldf)",
         )
 
         if file_names:

@@ -8391,7 +8391,8 @@ class MDF4(MDF_Common):
         name : str
             signal name
         database : str
-            path of external LIN database file (.dbc or .arxml) or canmatrix.CanMatrix; default *None*
+            path of external LIN database file (.dbc, .arxml or .ldf) or canmatrix.CanMatrix;
+            default *None*
 
         ignore_invalidation_bits : bool
             option to ignore invalidation bits
@@ -8399,7 +8400,7 @@ class MDF4(MDF_Common):
             return channel samples without appling the conversion rule; default
             `False`
         ignore_value2text_conversion : bool
-            return channel samples without values that have a description in .dbc or .arxml file
+            return channel samples without values that have a description in .dbc, .arxml or .ldf file
             `True`
 
         Returns
@@ -8414,8 +8415,8 @@ class MDF4(MDF_Common):
 
         if isinstance(database, (str, Path)):
             database_path = Path(database)
-            if database_path.suffix.lower() not in (".arxml", ".dbc"):
-                message = f'Expected .dbc or .arxml file as LIN channel attachment but got "{database_path}"'
+            if database_path.suffix.lower() not in (".arxml", ".dbc", ".ldf"):
+                message = f'Expected .dbc, .arxml or .ldf file as LIN channel attachment but got "{database_path}"'
                 logger.exception(message)
                 raise MdfException(message)
             else:
@@ -8425,7 +8426,8 @@ class MDF4(MDF_Common):
                 if md5_sum in self._external_dbc_cache:
                     db = self._external_dbc_cache[md5_sum]
                 else:
-                    db = load_can_database(database_path, contents=db_string)
+                    contents = None if database_path.suffix.lower() == '.ldf' else db_string
+                    db = load_can_database(database_path, contents=contents)
                     if db is None:
                         raise MdfException("failed to load database")
         else:
@@ -10243,14 +10245,15 @@ class MDF4(MDF_Common):
                             index=attachment_addr,
                             decryption_function=self._decryption_function,
                         )
-                        if at_name.suffix.lower() not in (".arxml", ".dbc"):
-                            message = f'Expected .dbc or .arxml file as LIN channel attachment but got "{at_name}"'
+                        if at_name.suffix.lower() not in (".arxml", ".dbc", ".ldf"):
+                            message = f'Expected .dbc, .arxml or .ldf file as LIN channel attachment but got "{at_name}"'
                             logger.warning(message)
                         elif not attachment:
                             message = f'Attachment "{at_name}" not found'
                             logger.warning(message)
                         else:
-                            dbc = load_can_database(at_name, contents=attachment)
+                            contents = None if at_name.suffix.lower() == '.ldf' else attachment
+                            dbc = load_can_database(at_name, contents=contents)
                             if dbc:
                                 self._dbc_cache[attachment_addr] = dbc
                     else:
