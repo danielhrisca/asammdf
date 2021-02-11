@@ -431,7 +431,6 @@ class WithMDIArea:
             action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
-            w.setSystemMenu(menu)
 
             w.setWindowTitle(f"CAN Bus Trace {self._window_counter}")
             self._window_counter += 1
@@ -673,7 +672,6 @@ class WithMDIArea:
             action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
-            w.setSystemMenu(menu)
 
             w.setWindowTitle(f"LIN Bus Trace {self._window_counter}")
             self._window_counter += 1
@@ -857,7 +855,6 @@ class WithMDIArea:
             action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
-            w.setSystemMenu(menu)
 
             w.setWindowTitle(f"Numeric {self._window_counter}")
             self._window_counter += 1
@@ -1014,7 +1011,6 @@ class WithMDIArea:
             action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
-            w.setSystemMenu(menu)
 
             w.setWindowTitle(f"Plot {self._window_counter}")
             self._window_counter += 1
@@ -1075,7 +1071,6 @@ class WithMDIArea:
             action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
-            w.setSystemMenu(menu)
 
             w.setWindowTitle(f"Tabular {self._window_counter}")
             self._window_counter += 1
@@ -1259,7 +1254,6 @@ class WithMDIArea:
             action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
-            w.setSystemMenu(menu)
 
             numeric.add_channels_request.connect(
                 partial(self.add_new_channels, widget=numeric)
@@ -1558,7 +1552,6 @@ class WithMDIArea:
             action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
-            w.setSystemMenu(menu)
 
             if window_info["title"]:
                 w.setWindowTitle(window_info["title"])
@@ -1786,7 +1779,6 @@ class WithMDIArea:
             action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
-            w.setSystemMenu(menu)
 
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
