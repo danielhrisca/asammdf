@@ -65,7 +65,7 @@ LOCAL_TIMEZONE = datetime.now(timezone.utc).astimezone().tzinfo
 __all__ = ["MDF", "SUPPORTED_VERSIONS"]
 
 
-def get_measurement_timestamp_and_version(mdf, file):
+def get_measurement_timestamp_and_version(mdf):
     id_block = FileIdentificationBlock(address=0, stream=mdf)
 
     version = id_block.mdf_version
@@ -187,10 +187,7 @@ class MDF:
             file_stream.seek(8)
             version = file_stream.read(4).decode("ascii").strip(" \0")
             if not version:
-                file_stream.read(16)
-                version = unpack("<H", file_stream.read(2))[0]
-                version = str(version)
-                version = f"{version[0]}.{version[1:]}"
+                _, version = get_measurement_timestamp_and_version(file_stream)
 
             if do_close:
                 file_stream.close()
@@ -1783,12 +1780,12 @@ class MDF:
                     versions.append(file.version)
                 else:
                     if is_file_like(file):
-                        ts, version = get_measurement_timestamp_and_version(file, "io")
+                        ts, version = get_measurement_timestamp_and_version(file)
                         timestamps.append(ts)
                         versions.append(version)
                     else:
                         with open(file, "rb") as mdf:
-                            ts, version = get_measurement_timestamp_and_version(mdf, file)
+                            ts, version = get_measurement_timestamp_and_version(mdf)
                             timestamps.append(ts)
                             versions.append(version)
 
@@ -1810,11 +1807,11 @@ class MDF:
                 versions.append(file.version)
             else:
                 if is_file_like(file):
-                    ts, version = get_measurement_timestamp_and_version(file, "io")
+                    ts, version = get_measurement_timestamp_and_version(file)
                     versions.append(version)
                 else:
                     with open(file, "rb") as mdf:
-                        ts, version = get_measurement_timestamp_and_version(mdf, file)
+                        ts, version = get_measurement_timestamp_and_version(mdf)
                         versions.append(version)
 
                 oldest = ts
@@ -2095,11 +2092,11 @@ class MDF:
                     timestamps.append(file.header.start_time)
                 else:
                     if is_file_like(file):
-                        ts, version = get_measurement_timestamp_and_version(file, "io")
+                        ts, version = get_measurement_timestamp_and_version(file)
                         timestamps.append(ts)
                     else:
                         with open(file, "rb") as mdf:
-                            ts, version = get_measurement_timestamp_and_version(mdf, file)
+                            ts, version = get_measurement_timestamp_and_version(mdf)
                             timestamps.append(ts)
 
             try:
