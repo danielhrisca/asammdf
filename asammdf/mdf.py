@@ -52,7 +52,7 @@ from .blocks.v2_v3_blocks import ChannelConversion as ChannelConversionV3
 from .blocks.v2_v3_blocks import ChannelExtension
 from .blocks.v2_v3_blocks import HeaderBlock as HeaderV3
 from .blocks.v4_blocks import ChannelConversion as ChannelConversionV4
-from .blocks.v4_blocks import EventBlock, FileHistory
+from .blocks.v4_blocks import EventBlock, FileHistory, FileIdentificationBlock
 from .blocks.v4_blocks import HeaderBlock as HeaderV4
 from .blocks.v4_blocks import SourceInformation
 from .signal import Signal
@@ -66,20 +66,17 @@ __all__ = ["MDF", "SUPPORTED_VERSIONS"]
 
 
 def get_measurement_timestamp_and_version(mdf, file):
-    mdf.seek(64)
-    blk_id = mdf.read(2)
-    if blk_id == b"HD":
-        header = HeaderV3
-        version = "3.00"
+    id_block = FileIdentificationBlock(address=0, stream=mdf)
+
+    version = id_block.mdf_version
+    if version >= 400:
+        header = HeaderV4
     else:
-        version = "4.00"
-        blk_id += mdf.read(2)
-        if blk_id == b"##HD":
-            header = HeaderV4
-        else:
-            raise MdfException(f'"{file}" is not a valid MDF file')
+        header = HeaderV3
 
     header = header(address=64, stream=mdf)
+    main_version, revision = divmod(version, 100)
+    version = f"{main_version}.{revision}"
 
     return header.start_time, version
 
@@ -1849,6 +1846,7 @@ class MDF:
 
                 kwargs = dict(mdf._kwargs)
                 kwargs.pop("callback", None)
+
 
                 merged = MDF(
                     version=version,
