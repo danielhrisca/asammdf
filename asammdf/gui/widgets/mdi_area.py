@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from functools import partial
+import itertools
 import json
 import os
 import re
@@ -690,9 +691,9 @@ class WithMDIArea:
             ]
             computed = []
         else:
-            signals_ = [name for name in names if name[1:] != (-1, -1)]
+            signals_ = [(None, *name[1:]) for name in names if name[1:3] != (-1, -1)]
 
-            computed = [json.loads(name[0]) for name in names if name[1:] == (-1, -1)]
+            computed = [json.loads(name[0]) for name in names if name[1:3] == (-1, -1)]
 
         if not signals_:
             return
@@ -786,6 +787,15 @@ class WithMDIArea:
                 signals.extend(selected_signals)
 
             if window_type == "Plot":
+                nd = [
+                    sig
+                    for sig in signals
+                    if sig.samples.dtype.kind not in "SU"
+                    and (sig.samples.dtype.names
+                        or len(sig.samples.shape) > 1
+                    )
+                ]
+
                 signals = [
                     sig
                     for sig in signals
@@ -793,6 +803,74 @@ class WithMDIArea:
                     and not sig.samples.dtype.names
                     and not len(sig.samples.shape) > 1
                 ]
+
+                for sig in nd:
+                    if sig.samples.dtype.names is None:
+                        shape = sig.samples.shape[1:]
+
+                        matrix_dims = [
+                            list(range(dim))
+                            for dim in shape
+                        ]
+
+                        matrix_name = sig.name
+
+                        for indexes in itertools.product(*matrix_dims):
+                            indexes_string = ''.join(
+                                f"[{_index}]"
+                                for _index in indexes
+                            )
+
+                            samples = sig.samples
+                            for idx in indexes:
+                                samples = samples[:, idx]
+                            sig_name = f"{matrix_name}{indexes_string}"
+
+                            new_sig = sig.copy()
+                            new_sig.name = sig_name
+                            new_sig.samples = samples
+                            new_sig.group_index = sig.group_index
+                            new_sig.channel_index = sig.channel_index
+                            new_sig.computed = False
+                            new_sig.computation = {}
+                            new_sig.mdf_uuid = sig.mdf_uuid
+
+                            signals.append(new_sig)
+                    else:
+                        name = sig.samples.dtype.names[0]
+                        if name == sig.name:
+                            array_samples = sig.samples[name]
+
+                            shape = array_samples.shape[1:]
+
+                            matrix_dims = [
+                                list(range(dim))
+                                for dim in shape
+                            ]
+
+                            matrix_name = sig.name
+
+                            for indexes in itertools.product(*matrix_dims):
+                                indexes_string = ''.join(
+                                    f"[{_index}]"
+                                    for _index in indexes
+                                )
+
+                                samples = array_samples
+                                for idx in indexes:
+                                    samples = samples[:, idx]
+                                sig_name = f"{matrix_name}{indexes_string}"
+
+                                new_sig = sig.copy()
+                                new_sig.name = sig_name
+                                new_sig.samples = samples
+                                new_sig.group_index = sig.group_index
+                                new_sig.channel_index = sig.channel_index
+                                new_sig.computed = False
+                                new_sig.computation = {}
+                                new_sig.mdf_uuid = sig.mdf_uuid
+
+                                signals.append(new_sig)
 
             for signal in signals:
                 if len(signal.samples.shape) > 1:

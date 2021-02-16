@@ -1016,7 +1016,7 @@ class MDF4(MDF_Common):
                 else:
                     # only channel arrays with storage=CN_TEMPLATE are
                     # supported so far
-                    ca_block = ChannelArrayBlock(
+                    first_dep = ca_block = ChannelArrayBlock(
                         address=component_addr, stream=stream, mapped=mapped
                     )
                     if ca_block.storage != v4c.CA_STORAGE_TYPE_CN_TEMPLATE:
@@ -1030,6 +1030,8 @@ class MDF4(MDF_Common):
                         )
                         ca_list.append(ca_block)
                     dependencies.append(ca_list)
+
+
 
                     channel.dtype_fmt = dtype(
                         get_fmt_v4(
@@ -1671,73 +1673,42 @@ class MDF4(MDF_Common):
 
                             current_parent = name
                         else:
-                            if isinstance(dependency_list[0], ChannelArrayBlock):
-                                ca_block = dependency_list[0]
-
-                                # check if there are byte gaps in the record
-                                gap = start_offset - next_byte_aligned_position
-                                if gap:
-                                    dtype_pair = "", f"V{gap}"
-                                    types.append(dtype_pair)
-
-                                size = bit_count // 8 or 1
-                                shape = tuple(
-                                    ca_block[f"dim_size_{i}"]
-                                    for i in range(ca_block.dims)
-                                )
-
-                                if (
-                                    ca_block.byte_offset_base // size > 1
-                                    and len(shape) == 1
-                                ):
-                                    shape += (ca_block.byte_offset_base // size,)
-                                dim = 1
-                                for d in shape:
-                                    dim *= d
-
-                                if not new_ch.dtype_fmt:
-                                    new_ch.dtype_fmt = get_fmt_v4(data_type, bit_count)
-                                dtype_pair = (name, new_ch.dtype_fmt, shape)
-                                types.append(dtype_pair)
-
-                                current_parent = name
-                                next_byte_aligned_position = start_offset + size * dim
-                                parents[original_index] = name, 0
-
-                            else:
-                                parents[original_index] = no_parent
+                            parents[original_index] = no_parent
 
                     # virtual channels do not have bytes in the record
                     else:
                         parents[original_index] = no_parent
 
                 else:
-                    size = bit_offset + bit_count
-                    byte_size, rem = size // 8, size % 8
-                    if rem:
-                        byte_size += 1
+                    if not dependency_list:
+                        size = bit_offset + bit_count
+                        byte_size, rem = size // 8, size % 8
+                        if rem:
+                            byte_size += 1
 
-                    max_overlapping_size = (
-                        next_byte_aligned_position - start_offset
-                    ) * 8
-                    needed_size = bit_offset + bit_count
+                        max_overlapping_size = (
+                            next_byte_aligned_position - start_offset
+                        ) * 8
+                        needed_size = bit_offset + bit_count
 
-                    if max_overlapping_size >= needed_size:
-                        if data_type in (
-                            v4c.DATA_TYPE_SIGNED_MOTOROLA,
-                            v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
-                        ):
-                            parents[original_index] = (
-                                current_parent,
-                                (next_byte_aligned_position - start_offset - byte_size)
-                                * 8
-                                + bit_offset,
-                            )
-                        else:
-                            parents[original_index] = (
-                                current_parent,
-                                ((start_offset - parent_start_offset) * 8) + bit_offset,
-                            )
+                        if max_overlapping_size >= needed_size:
+                            if data_type in (
+                                v4c.DATA_TYPE_SIGNED_MOTOROLA,
+                                v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                            ):
+                                parents[original_index] = (
+                                    current_parent,
+                                    (next_byte_aligned_position - start_offset - byte_size)
+                                    * 8
+                                    + bit_offset,
+                                )
+                            else:
+                                parents[original_index] = (
+                                    current_parent,
+                                    ((start_offset - parent_start_offset) * 8) + bit_offset,
+                                )
+                    else:
+                        parents[original_index] = no_parent
                 if next_byte_aligned_position > record_size:
                     break
 
@@ -6451,6 +6422,7 @@ class MDF4(MDF_Common):
         record_count,
         master_is_required,
     ):
+
         grp = group
         gp_nr = group_index
         ch_nr = channel_index
@@ -6467,6 +6439,42 @@ class MDF4(MDF_Common):
         else:
             data = (data,)
 
+        dep = ca_block = dependency_list[0]
+        shape = tuple(ca_block[f"dim_size_{i}"] for i in range(ca_block.dims))
+        shape = tuple(dim for dim in shape if dim > 1)
+        shape = shape or (1,)
+
+        dim = 1
+        for d in shape:
+            dim *= d
+
+        item_size = (channel.bit_count // 8)
+        size = item_size * dim
+
+        if group.uses_ld:
+            record_size = group.channel_group.samples_byte_nr
+        else:
+            record_size = (
+                    group.channel_group.samples_byte_nr
+                    + group.channel_group.invalidation_bytes_nr
+            )
+
+        channel_dtype = get_fmt_v4(
+            channel.data_type,
+            channel.bit_count,
+            channel.channel_type,
+        )
+
+        byte_offset = channel.byte_offset
+
+        types = [
+            ("", f"a{byte_offset}"),
+            ("vals", channel_dtype, shape),
+            ("", f"a{record_size - size - byte_offset}"),
+        ]
+
+        dtype_fmt = dtype(types)
+
         channel_invalidation_present = channel.flags & (
             v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT
         )
@@ -6480,35 +6488,16 @@ class MDF4(MDF_Common):
         timestamps = []
         invalidation_bits = []
         count = 0
+        arrays = []
+        types = []
         for fragment in data:
 
             data_bytes, offset, _count, invalidation_bytes = fragment
 
             cycles = len(data_bytes) // samples_size
 
-            arrays = []
-            types = []
-            try:
-                parent, bit_offset = parents[ch_nr]
-            except KeyError:
-                parent, bit_offset = None, None
+            vals = frombuffer(data_bytes, dtype=dtype_fmt)['vals']
 
-            if parent is not None:
-                if grp.record is None:
-                    dtypes = grp.types
-                    if dtypes.itemsize:
-                        record = fromstring(data_bytes, dtype=dtypes)
-                    else:
-                        record = None
-
-                else:
-                    record = grp.record
-
-                vals = record[parent].copy()
-            else:
-                vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
-
-            dep = dependency_list[0]
             if dep.flags & v4c.FLAG_CA_INVERSE_LAYOUT:
                 shape = vals.shape
                 shape = (shape[0],) + shape[1:][::-1]
@@ -7400,8 +7389,10 @@ class MDF4(MDF_Common):
 
         if byte_size in {1, 2, 4, 8}:
             extra_bytes = 0
-        else:
+        elif byte_size < 8:
             extra_bytes = 4 - (byte_size % 4)
+        else:
+            extra_bytes = 0
 
         std_size = byte_size + extra_bytes
 
