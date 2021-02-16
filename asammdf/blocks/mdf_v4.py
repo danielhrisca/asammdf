@@ -6488,9 +6488,11 @@ class MDF4(MDF_Common):
         timestamps = []
         invalidation_bits = []
         count = 0
-        arrays = []
-        types = []
+
         for fragment in data:
+
+            arrays = []
+            types = []
 
             data_bytes, offset, _count, invalidation_bytes = fragment
 
