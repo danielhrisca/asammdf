@@ -179,8 +179,11 @@ class WithMDIArea:
             ignore_value2text_conversions = self.ignore_value2text_conversions
 
         try:
-
-            signals_ = [name for name in names if name[1:] != (-1, -1)]
+            names = list(names)
+            if names and isinstance(names[0], str):
+                signals_ = names
+            else:
+                signals_ = [name for name in names if name[1:] != (-1, -1)]
 
             computed = [json.loads(name[0]) for name in names if name[1:] == (-1, -1)]
 

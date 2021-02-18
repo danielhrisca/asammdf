@@ -3100,7 +3100,7 @@ class ChannelConversion(_ChannelConversionBase):
 
         elif conversion_type == v4c.CONVERSION_TYPE_ALG:
             X = values
-            values = evaluate(self.formula)
+            values = evaluate(self.formula.replace("X1", "X"))
 
         elif conversion_type in (v4c.CONVERSION_TYPE_TABI, v4c.CONVERSION_TYPE_TAB):
             nr = self.val_param_nr // 2
