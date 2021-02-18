@@ -2971,7 +2971,7 @@ class MDF4(MDF_Common):
                     # add channel dependency block for composed parent channel
                     kwargs = {
                         "dims": 1,
-                        "ca_type": v4c.CA_TYPE_SCALE_AXIS,
+                        "ca_type": v4c.CA_TYPE_ARRAY,
                         "flags": 0,
                         "byte_offset_base": samples.dtype.itemsize,
                         "dim_size_0": shape[0],
