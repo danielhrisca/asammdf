@@ -6,6 +6,7 @@ import os
 import re
 from traceback import format_exc
 import sys
+from copy import deepcopy
 
 from natsort import natsorted
 import numpy as np
@@ -24,6 +25,52 @@ from .plot import Plot
 from .tabular import Tabular
 from .can_bus_trace import CANBusTrace
 from .lin_bus_trace import LINBusTrace
+
+COMPONENT = re.compile(r'\[(?P<index>\d+)\]$')
+
+
+def generate_window_title(mdi, window_name="", title=""):
+    used_names = {
+        window.windowTitle()
+        for window in mdi.mdiArea().subWindowList()
+        if window is not mdi
+    }
+
+    if not title or title in used_names:
+        window_name = title or window_name or "Subwindow"
+
+        i = 0
+        while True:
+            name = f"{window_name} {i}"
+            if name in used_names:
+                i += 1
+            else:
+                break
+    else:
+        name = title
+
+    return name
+
+
+def set_title(mdi):
+    name, ok = QtWidgets.QInputDialog.getText(
+        None, "Set sub-plot title", "Title:",
+    )
+    if ok and name:
+        mdi.setWindowTitle(generate_window_title(mdi, title=name))
+
+
+def parse_matrix_component(name):
+    indexes = []
+    while True:
+        match = COMPONENT.search(name)
+        if match:
+            name = name[:match.start()]
+            indexes.insert(0, int(match.group('index')))
+        else:
+            break
+
+    return name, tuple(indexes)
 
 
 class MdiAreaWidget(QtWidgets.QMdiArea):
@@ -921,21 +968,12 @@ class WithMDIArea:
 
             menu = w.systemMenu()
 
-            def set_title(mdi):
-                name, ok = QtWidgets.QInputDialog.getText(
-                    None, "Set sub-plot title", "Title:"
-                )
-                if ok and name:
-                    widget = mdi.widget()
-                    mdi.setWindowTitle(name)
-
             action = QtWidgets.QAction("Set title", menu)
             action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
 
-            w.setWindowTitle(f"Numeric {self._window_counter}")
-            self._window_counter += 1
+            w.setWindowTitle(generate_window_title(w, window_type))
 
             numeric.add_channels_request.connect(
                 partial(self.add_new_channels, widget=numeric)
@@ -1078,20 +1116,12 @@ class WithMDIArea:
 
             menu = w.systemMenu()
 
-            def set_title(mdi):
-                name, ok = QtWidgets.QInputDialog.getText(
-                    None, "Set sub-plot title", "Title:"
-                )
-                if ok and name:
-                    mdi.setWindowTitle(name)
-
             action = QtWidgets.QAction("Set title", menu)
             action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
 
-            w.setWindowTitle(f"Plot {self._window_counter}")
-            self._window_counter += 1
+            w.setWindowTitle(generate_window_title(w, window_type))
 
             if self.subplots_link:
 
@@ -1138,20 +1168,12 @@ class WithMDIArea:
 
             w.layout().setSpacing(1)
 
-            def set_title(mdi):
-                name, ok = QtWidgets.QInputDialog.getText(
-                    None, "Set sub-plot title", "Title:"
-                )
-                if ok and name:
-                    mdi.setWindowTitle(name)
-
             action = QtWidgets.QAction("Set title", menu)
             action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
 
-            w.setWindowTitle(f"Tabular {self._window_counter}")
-            self._window_counter += 1
+            w.setWindowTitle(generate_window_title(w, window_type))
 
     def get_current_widget(self):
         mdi = self.mdi_area.activeSubWindow()
@@ -1310,23 +1332,12 @@ class WithMDIArea:
                 else:
                     self.mdi_area.tileSubWindows()
 
-            if window_info["title"]:
-                w.setWindowTitle(window_info["title"])
-            else:
-                w.setWindowTitle(f"Numeric {self._window_counter}")
-                self._window_counter += 1
+            w.setWindowTitle(generate_window_title(w, window_info["type"], window_info["title"]))
 
             numeric.format = fmt
             numeric._update_values()
 
             menu = w.systemMenu()
-
-            def set_title(mdi):
-                name, ok = QtWidgets.QInputDialog.getText(
-                    None, "Set sub-plot title", "Title:"
-                )
-                if ok and name:
-                    mdi.setWindowTitle(name)
 
             action = QtWidgets.QAction("Set title", menu)
             action.triggered.connect(partial(set_title, w))
@@ -1447,6 +1458,61 @@ class WithMDIArea:
                     signal.group_index = entry_info[1]
                     signal.channel_index = entry_info[2]
                     signal.mdf_uuid = uuid
+
+                not_found = [
+                    channel["name"]
+                    for channel in window_info["configuration"]["channels"]
+                    if not channel["computed"] and channel["name"] not in self.mdf
+                ]
+
+                matrix_components = []
+                for name in not_found:
+                    name, indexes = parse_matrix_component(name)
+                    if indexes and name in self.mdf:
+                        matrix_components.append((name, indexes))
+
+                matrix_signals = {
+                    str(matrix_element): sig
+                    for sig, matrix_element in zip(
+                        self.mdf.select(
+                            [el[0] for el in matrix_components],
+                            ignore_value2text_conversions=self.ignore_value2text_conversions,
+                            copy_master=False,
+                        ),
+                        matrix_components,
+                    )
+                }
+
+                new_matrix_signals = {}
+                for signal_mat, (_n, indexes) in zip(matrix_signals.values(), matrix_components):
+                    signal = deepcopy(signal_mat)
+                    signal.computed = False
+                    signal.computation = {}
+                    signal.group_index, signal.channel_index = self.mdf.whereis(signal.name)[0]
+
+                    indexes_string = ''.join(
+                        f"[{_index}]"
+                        for _index in indexes
+                    )
+
+                    samples = signal.samples
+                    if samples.dtype.names:
+                        samples = samples[signal.name]
+
+                    for idx in indexes:
+                        samples = samples[:, idx]
+                    sig_name = f"{signal.name}{indexes_string}"
+                    signal.name = sig_name
+                    signal.samples = samples
+
+                    new_matrix_signals[signal.name] = signal
+
+                measured_signals.update(
+                    {
+                        name: sig
+                        for name, sig in new_matrix_signals.items()
+                    }
+                )
 
                 if measured_signals:
                     all_timebase = np.unique(
@@ -1619,23 +1685,12 @@ class WithMDIArea:
 
             menu = w.systemMenu()
 
-            def set_title(mdi):
-                name, ok = QtWidgets.QInputDialog.getText(
-                    None, "Set sub-plot title", "Title:"
-                )
-                if ok and name:
-                    mdi.setWindowTitle(name)
-
             action = QtWidgets.QAction("Set title", menu)
             action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
 
-            if window_info["title"]:
-                w.setWindowTitle(window_info["title"])
-            else:
-                w.setWindowTitle(f"Plot {self._window_counter}")
-                self._window_counter += 1
+            w.setWindowTitle(generate_window_title(w, window_info["type"], window_info["title"]))
 
             plot.add_channels_request.connect(
                 partial(self.add_new_channels, widget=plot)
@@ -1799,11 +1854,7 @@ class WithMDIArea:
                 else:
                     self.mdi_area.tileSubWindows()
 
-            if window_info["title"]:
-                w.setWindowTitle(window_info["title"])
-            else:
-                w.setWindowTitle(f"Tabular {self._window_counter}")
-                self._window_counter += 1
+            w.setWindowTitle(generate_window_title(w, window_info["type"], window_info["title"]))
 
             filter_count = 0
             available_columns = [signals.index.name] + list(signals.columns)
@@ -1842,16 +1893,6 @@ class WithMDIArea:
             )
 
             menu = w.systemMenu()
-
-            def set_title(mdi):
-                name, ok = QtWidgets.QInputDialog.getText(
-                    None, "Set sub-plot title", "Title:"
-                )
-                if ok and name:
-                    mdi.setWindowTitle(name)
-
-            def set_pattern(mdi):
-                pass
 
             action = QtWidgets.QAction("Set title", menu)
             action.triggered.connect(partial(set_title, w))
