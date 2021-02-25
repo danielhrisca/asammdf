@@ -1713,6 +1713,11 @@ class WithMDIArea:
                 description = descriptions.get(name, None)
                 if description is not None:
 
+                    _, _idx = plot.plot.signal_by_uuid(wid.uuid)
+
+                    if "y_range" in description:
+                        plot.plot.view_boxes[_idx].setYRange(*description["y_range"], padding=0)
+
                     wid.set_fmt(description["fmt"])
                     wid.set_precision(description["precision"])
                     wid.ranges = {
