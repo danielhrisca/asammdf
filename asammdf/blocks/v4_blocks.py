@@ -3111,11 +3111,7 @@ class ChannelConversion(_ChannelConversionBase):
                         if text in defined_texts:
                             self[key] = defined_texts[text]
                         else:
-                            block = TextBlock(
-                                text=text.encode('utf-8', 'replace'),
-                                meta=False,
-                                safe=True,
-                            )
+                            block = TextBlock(text=text)
                             defined_texts[text] = address
                             blocks.append(block)
                             self[key] = address
