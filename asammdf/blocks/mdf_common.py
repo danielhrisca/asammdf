@@ -2,6 +2,7 @@
 ASAM MDF version 4 file format module
 """
 
+from abc import ABC, abstractmethod
 import logging
 
 from .utils import MdfException
@@ -11,74 +12,14 @@ logger = logging.getLogger("asammdf")
 __all__ = ["MDF_Common"]
 
 
-class MDF_Common:
+class MDF_Common(ABC):
     """common methods for MDF objects"""
 
+    @abstractmethod
     def _filter_occurrences(
         self, occurrences, source_name=None, source_path=None, acq_name=None
     ):
-        if source_name is not None:
-            if self.version >= "4.00":
-                occurrences = (
-                    (gp_idx, cn_idx)
-                    for gp_idx, cn_idx in occurrences
-                    if (
-                        self.groups[gp_idx].channels[cn_idx].source is not None
-                        and self.groups[gp_idx].channels[cn_idx].source.name
-                        == source_name
-                    )
-                    or (
-                        self.groups[gp_idx].channel_group.acq_source is not None
-                        and self.groups[gp_idx].channel_group.acq_source.name
-                        == source_name
-                    )
-                )
-            else:
-                occurrences = (
-                    (gp_idx, cn_idx)
-                    for gp_idx, cn_idx in occurrences
-                    if (
-                        self.groups[gp_idx].channels[cn_idx].source is not None
-                        and self.groups[gp_idx].channels[cn_idx].source.name
-                        == source_name
-                    )
-                )
-
-        if source_path is not None:
-            if self.version >= "4.00":
-                occurrences = (
-                    (gp_idx, cn_idx)
-                    for gp_idx, cn_idx in occurrences
-                    if (
-                        self.groups[gp_idx].channels[cn_idx].source is not None
-                        and self.groups[gp_idx].channels[cn_idx].source.path
-                        == source_path
-                    )
-                    or (
-                        self.groups[gp_idx].channel_group.acq_source is not None
-                        and self.groups[gp_idx].channel_group.acq_source.path
-                        == source_path
-                    )
-                )
-            else:
-                occurrences = (
-                    (gp_idx, cn_idx)
-                    for gp_idx, cn_idx in occurrences
-                    if (
-                        self.groups[gp_idx].channels[cn_idx].source is not None
-                        and self.groups[gp_idx].channels[cn_idx].source.path
-                        == source_path
-                    )
-                )
-
-        if acq_name is not None and self.version >= "4.00":
-            occurrences = (
-                (gp_idx, cn_idx)
-                for gp_idx, cn_idx in occurrences
-                if self.groups[gp_idx].channel_group.acq_name == acq_name
-            )
-
-        return occurrences
+        pass
 
     def _set_temporary_master(self, master):
         self._master = master
