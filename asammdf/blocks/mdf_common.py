@@ -2,7 +2,6 @@
 ASAM MDF version 4 file format module
 """
 
-from abc import ABC, abstractmethod
 import logging
 
 from .utils import MdfException
@@ -12,14 +11,8 @@ logger = logging.getLogger("asammdf")
 __all__ = ["MDF_Common"]
 
 
-class MDF_Common(ABC):
+class MDF_Common:
     """common methods for MDF objects"""
-
-    @abstractmethod
-    def _filter_occurrences(
-        self, occurrences, source_name=None, source_path=None, acq_name=None
-    ):
-        pass
 
     def _set_temporary_master(self, master):
         self._master = master
