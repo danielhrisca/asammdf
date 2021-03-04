@@ -14,44 +14,77 @@ __all__ = ["MDF_Common"]
 class MDF_Common:
     """common methods for MDF objects"""
 
-    def _get_source_names(self, gp_idx, cn_idx):
-        group = self.groups[gp_idx]
-        cn_source_name = group.channels[cn_idx].source.name
-        cg_source_name = (
-            group.channel_group.acq_source.name if self.version >= "4.00" else None
-        )
-        return cn_source_name, cg_source_name
+    def _filter_occurrences(
+        self, occurrences, source_name=None, source_path=None, acq_name=None
+    ):
+        if source_name is not None:
+            if self.version >= "4.00":
+                occurrences = (
+                    (gp_idx, cn_idx)
+                    for gp_idx, cn_idx in occurrences
+                    if (
+                        self.groups[gp_idx].channels[cn_idx].source is not None
+                        and self.groups[gp_idx].channels[cn_idx].source.name
+                        == source_name
+                    )
+                    or (
+                        self.groups[gp_idx].channel_group.acq_source is not None
+                        and self.groups[gp_idx].channel_group.acq_source.name
+                        == source_name
+                    )
+                )
+            else:
+                occurrences = (
+                    (gp_idx, cn_idx)
+                    for gp_idx, cn_idx in occurrences
+                    if (
+                        self.groups[gp_idx].channels[cn_idx].source is not None
+                        and self.groups[gp_idx].channels[cn_idx].source.name
+                        == source_name
+                    )
+                )
 
-    def _get_source_paths(self, gp_idx, cn_idx):
-        group = self.groups[gp_idx]
-        cn_source_path = group.channels[cn_idx].source.path
-        cg_source_path = (
-            group.channel_group.acq_source.path if self.version >= "4.00" else None
-        )
-        return cn_source_path, cg_source_path
+        if source_path is not None:
+            if self.version >= "4.00":
+                occurrences = (
+                    (gp_idx, cn_idx)
+                    for gp_idx, cn_idx in occurrences
+                    if (
+                        self.groups[gp_idx].channels[cn_idx].source is not None
+                        and self.groups[gp_idx].channels[cn_idx].source.path
+                        == source_path
+                    )
+                    or (
+                        self.groups[gp_idx].channel_group.acq_source is not None
+                        and self.groups[gp_idx].channel_group.acq_source.path
+                        == source_path
+                    )
+                )
+            else:
+                occurrences = (
+                    (gp_idx, cn_idx)
+                    for gp_idx, cn_idx in occurrences
+                    if (
+                        self.groups[gp_idx].channels[cn_idx].source is not None
+                        and self.groups[gp_idx].channels[cn_idx].source.path
+                        == source_path
+                    )
+                )
 
-    def _filter_occurrences(self, occurrences, source_name=None, source_path=None):
-        occurrences = (
-            (gp_idx, cn_idx)
-            for gp_idx, cn_idx in occurrences
-            if (
-                source_name is None
-                or source_name in self._get_source_names(gp_idx, cn_idx)
+        if acq_name is not None and self.version >= "4.00":
+            occurrences = (
+                (gp_idx, cn_idx)
+                for gp_idx, cn_idx in occurrences
+                if self.groups[gp_idx].channel_group.acq_name == acq_name
             )
-            and (
-                source_path is None
-                or source_path in self._get_source_paths(gp_idx, cn_idx)
-            )
-        )
+
         return occurrences
 
     def _set_temporary_master(self, master):
         self._master = master
 
     # @lru_cache(maxsize=1024)
-    def _validate_channel_selection(
-        self, name=None, group=None, index=None, source=None
-    ):
+    def _validate_channel_selection(self, name=None, group=None, index=None):
         """Gets channel comment.
         Channel can be specified in two ways:
 
@@ -76,9 +109,6 @@ class MDF_Common:
             0-based group index
         index : int
             0-based channel index
-        source : str
-            can be used for multiple occurrence of the same channel name to
-            filter the target channel
 
         Returns
         -------
@@ -112,13 +142,7 @@ class MDF_Common:
             if name not in self.channels_db:
                 raise MdfException(f'Channel "{name}" not found')
             else:
-                if source is not None:
-                    for gp_nr, ch_nr in self.channels_db[name]:
-                        if source in self._get_source_names(gp_nr, ch_nr):
-                            break
-                    else:
-                        raise MdfException(f"{name} with source {source} not found")
-                elif group is None:
+                if group is None:
 
                     entries = self.channels_db[name]
                     if len(entries) > 1:
@@ -133,8 +157,8 @@ class MDF_Common:
                         else:
                             message = (
                                 f'Multiple occurrences for channel "{name}": {entries}. '
-                                'Returning the first occurence since the MDF obejct was '
-                                'configured to not raise an exception in this case.'
+                                "Returning the first occurrence since the MDF object was "
+                                "configured to not raise an exception in this case."
                             )
                             logger.warning(message)
                             gp_nr, ch_nr = entries[0]
@@ -173,8 +197,8 @@ class MDF_Common:
                                 else:
                                     message = (
                                         f'Multiple occurrences for channel "{name}": {entries}. '
-                                        'Returning the first occurence since the MDF obejct was '
-                                        'configured to not raise an exception in this case.'
+                                        "Returning the first occurrence since the MDF object was "
+                                        "configured to not raise an exception in this case."
                                     )
                                     logger.warning(message)
                                     gp_nr, ch_nr = entries[0]
