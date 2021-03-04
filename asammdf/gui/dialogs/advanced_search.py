@@ -37,6 +37,8 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
         self.search_box.editingFinished.connect(self.search_text_changed)
         self.match_kind.currentTextChanged.connect(self.search_box.textChanged.emit)
+        self.matches.itemDoubleClicked.connect(self._match_double_clicked)
+        self.selection.itemDoubleClicked.connect(self._selection_double_clicked)
 
         self.apply_pattern_btn.clicked.connect(self._apply_pattern)
         self.cancel_pattern_btn.clicked.connect(self._cancel_pattern)
@@ -149,3 +151,25 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         dlg.exec_()
         if dlg.pressed_button == "apply":
             self.ranges = dlg.result
+
+    def _match_double_clicked(self, item):
+        count = self.selection.count()
+        names = set(self.selection.item(i).text() for i in range(count))
+
+        new_name = item.text()
+
+        if new_name not in names:
+            names.add(new_name)
+
+        self.selection.clear()
+        self.selection.addItems(sorted(names))
+
+    def _selection_double_clicked(self, item):
+        count = self.selection.count()
+        names = set(self.selection.item(i).text() for i in range(count))
+
+        name = item.text()
+        names.remove(name)
+
+        self.selection.clear()
+        self.selection.addItems(sorted(names))
