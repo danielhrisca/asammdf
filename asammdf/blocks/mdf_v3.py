@@ -944,6 +944,31 @@ class MDF3(MDF_Common):
                         channel = ch_map[ref_channel_addr]
                         dep.referenced_channels.append(channel)
 
+    def _filter_occurrences(
+        self, occurrences, source_name=None, source_path=None, acq_name=None
+    ):
+        if source_name is not None:
+            occurrences = (
+                (gp_idx, cn_idx)
+                for gp_idx, cn_idx in occurrences
+                if (
+                    self.groups[gp_idx].channels[cn_idx].source is not None
+                    and self.groups[gp_idx].channels[cn_idx].source.name == source_name
+                )
+            )
+
+        if source_path is not None:
+            occurrences = (
+                (gp_idx, cn_idx)
+                for gp_idx, cn_idx in occurrences
+                if (
+                    self.groups[gp_idx].channels[cn_idx].source is not None
+                    and self.groups[gp_idx].channels[cn_idx].source.path == source_path
+                )
+            )
+
+        return occurrences
+
     def configure(
         self,
         *,
@@ -1028,7 +1053,9 @@ class MDF3(MDF_Common):
             self._integer_interpolation = from_other._integer_interpolation
             self.copy_on_get = from_other.copy_on_get
             self._float_interpolation = from_other._float_interpolation
-            self._raise_on_multiple_occurrences = from_other._raise_on_multiple_occurrences
+            self._raise_on_multiple_occurrences = (
+                from_other._raise_on_multiple_occurrences
+            )
 
         if read_fragment_size is not None:
             self._read_fragment_size = int(read_fragment_size)
@@ -2890,7 +2917,7 @@ class MDF3(MDF_Common):
                         .interp(
                             t,
                             integer_interpolation_mode=self._integer_interpolation,
-                            float_interpolation_mode=self._float_interpolation
+                            float_interpolation_mode=self._float_interpolation,
                         )
                         .samples
                     )
