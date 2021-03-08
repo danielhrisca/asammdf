@@ -10057,6 +10057,7 @@ class MDF4(MDF_Common):
         for i, channel in enumerate(channels):
             if channel.name == "CAN_DataFrame":
                 attachment_addr = channel.attachment
+
                 if attachment_addr is not None:
                     if attachment_addr not in self._dbc_cache:
 

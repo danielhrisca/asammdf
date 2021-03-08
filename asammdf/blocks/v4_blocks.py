@@ -551,6 +551,9 @@ class Channel:
                         self.upper_ext_limit,
                     ) = SINGLE_ATTACHMENT_CHANNEL_PARAMS_uf(stream, address + COMMON_SIZE)
 
+                    at_map = kwargs.get("at_map", {})
+                    self.attachment = at_map.get(self.attachment_addr, 0)
+
                 else:
 
                     stream.seek(address + COMMON_SIZE)
@@ -775,6 +778,8 @@ class Channel:
                         self.lower_ext_limit,
                         self.upper_ext_limit,
                     ) = SINGLE_ATTACHMENT_CHANNEL_PARAMS_uf(block, COMMON_SIZE)
+                    at_map = kwargs.get("at_map", {})
+                    self.attachment = at_map.get(self.attachment_addr, 0)
 
                 else:
 
