@@ -1473,7 +1473,7 @@ class Plot(QtWidgets.QWidget):
                 channel["computation"] = sig.computation
 
             view = self.plot.view_boxes[idx]
-            channel["y_range"] = view.viewRange()[1]
+            channel["y_range"] = [float(e) for e in view.viewRange()[1]]
             channel["mdf_uuid"] = str(sig.mdf_uuid)
 
             channels.append(channel)
