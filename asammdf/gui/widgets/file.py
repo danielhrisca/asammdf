@@ -163,6 +163,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "callback": self.update_progress,
                 "encryption_function": encryption_function,
                 "decryption_function": decryption_function,
+                "use_display_names": True,
             }
 
             self.mdf = run_thread_with_progress(
