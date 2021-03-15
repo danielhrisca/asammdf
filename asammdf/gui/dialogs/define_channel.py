@@ -493,23 +493,25 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         elif self.tabs.currentIndex() == 1:
             self.apply_function()
         else:
-            self.apply_equation()
+            self.apply_expression()
         self.close()
 
-    def apply_equation(self):
-        equation = self.equation.text().strip()
+    def apply_expression(self):
+        expression_string = self.expression.toPlainText().strip()
+        expression_string = ''.join(expression_string.splitlines())
         names = [
             match.group('name')
-            for match in SIG_RE.finditer(equation)
+            for match in SIG_RE.finditer(expression_string)
         ]
         positions = [
             (i, match.start(), match.end())
-            for i, match in enumerate(SIG_RE.finditer(equation))
+            for i, match in enumerate(SIG_RE.finditer(expression_string))
         ]
         positions.reverse()
 
+        expression = expression_string
         for idx, start, end in positions:
-            equation = equation[:start] + f"X_{idx}" + equation[end:]
+            expression = expression[:start] + f"X_{idx}" + expression[end:]
 
         if names:
             try:
@@ -525,19 +527,19 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                     for i, sig in enumerate(signals)
                 }
 
-                samples = evaluate(equation, local_dict=signals)
+                samples = evaluate(expression, local_dict=signals)
 
                 self.result = AsamSignal(
-                    name=self.equation_name.text() or "Equation",
-                    unit=self.equation_unit.text().strip(),
+                    name=self.expression_name.text() or "expression",
+                    unit=self.expression_unit.text().strip(),
                     samples=samples,
                     timestamps=common_timebase,
                 )
                 self.result.enabled = True
                 self.result.computed = True
                 self.result.computation = {
-                    "type": "equation",
-                    "equation": self.equation.text().strip(),
+                    "type": "expression",
+                    "expression": expression_string,
                 }
 
             except:
