@@ -180,6 +180,20 @@ class MDF:
                 else:
                     raise MdfException(f'File "{name}" does not exist')
 
+                magic_header = file_stream.read(8)
+                if magic_header.strip().startswith(b'PK') and Path(name).suffix.lower() == '.mf4z':
+                    file_stream.close()
+                    do_close = False
+                    with zipfile.ZipFile(name, allowZip64=True) as file_stream:
+                        for fn in file_stream.namelist():
+                            if fn.lower().endswith((".mdf", ".dat", ".mf4")):
+                                break
+                        else:
+                            raise Exception
+                        name = BytesIO(file_stream.read(fn))
+                    file_stream = name
+                    name.seek(0)
+
             file_stream.seek(0)
             magic_header = file_stream.read(8)
 

@@ -120,7 +120,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             )
             self.mdf = MDF(mdf_path)
 
-        elif file_name.suffix.lower() in (".zip", ".mf4z"):
+        elif file_name.suffix.lower() in (".zip",):
             progress.setLabelText("Opening zipped MF4 file")
             from mfile import ZIP
 
@@ -256,7 +256,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.output_format.currentTextChanged.connect(self.output_format_changed)
 
         # info tab
-        file_stats = os.stat(self.mdf.name)
+        try:
+            file_stats = os.stat(self.mdf.name)
+        except:
+            file_stats = None
         file_info = QtWidgets.QTreeWidgetItem()
         file_info.setText(0, "File information")
 
@@ -271,16 +274,25 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         item = QtWidgets.QTreeWidgetItem()
         item.setText(0, "Size")
-        item.setText(1, f"{file_stats.st_size / 1024 / 1024:.1f} MB")
+        if file_stats is not None:
+            item.setText(1, f"{file_stats.st_size / 1024 / 1024:.1f} MB")
+        else:
+            item.setText(1, f"{self.mdf.file_limit / 1024 / 1024:.1f} MB")
         children.append(item)
 
-        date_ = datetime.fromtimestamp(file_stats.st_ctime)
+        if file_stats is not None:
+            date_ = datetime.fromtimestamp(file_stats.st_ctime)
+        else:
+            date_ = datetime.now()
         item = QtWidgets.QTreeWidgetItem()
         item.setText(0, "Created")
         item.setText(1, date_.strftime("%d-%b-%Y %H-%M-%S"))
         children.append(item)
 
-        date_ = datetime.fromtimestamp(file_stats.st_mtime)
+        if file_stats is not None:
+            date_ = datetime.fromtimestamp(file_stats.st_mtime)
+        else:
+            date_ = datetime.now()
         item = QtWidgets.QTreeWidgetItem()
         item.setText(0, "Last modified")
         item.setText(1, date_.strftime("%d-%b-%Y %H:%M:%S"))

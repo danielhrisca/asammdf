@@ -705,7 +705,7 @@ class Channel:
             else:
                 stream.seek(address)
 
-                block = stream.read(CN_BLOCK_SIZE)
+                block = stream.read(CN_SINGLE_ATTACHMENT_BLOCK_SIZE)
 
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(
                     block

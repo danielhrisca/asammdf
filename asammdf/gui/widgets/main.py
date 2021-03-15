@@ -970,8 +970,8 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             self,
             "Select measurement file",
             self._settings.value("last_opened_path", "", str),
-            "MDF v3 (*.dat *.mdf);;MDF v4(*.mf4);;DL3/ERG files (*.dl3 *.erg);;All files (*.dat *.mdf *.mf4 *.dl3 *.erg)",
-            "All files (*.dat *.mdf *.mf4 *.dl3 *.erg)",
+            "MDF v3 (*.dat *.mdf);;MDF v4(*.mf4 *.mf4z);;DL3/ERG files (*.dl3 *.erg);;All files (*.dat *.mdf *.mf4 *.mf4z *.dl3 *.erg)",
+            "All files (*.dat *.mdf *.mf4 *.mf4z *.dl3 *.erg)",
         )
 
         if file_names:
@@ -998,7 +998,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         if self.stackedWidget.currentIndex() == 0:
             for root, dirs, files in os.walk(folder):
                 for file in natsorted(files):
-                    if file.lower().endswith((".erg", ".dl3", ".dat", ".mdf", ".mf4")):
+                    if file.lower().endswith((".erg", ".dl3", ".dat", ".mdf", ".mf4", ".mf4z")):
                         self._open_file(os.path.join(root, file))
         else:
             icon = QtGui.QIcon()
@@ -1008,7 +1008,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
             for root, dirs, files in os.walk(folder):
                 for file in natsorted(files):
-                    if file.lower().endswith((".erg", ".dl3", ".dat", ".mdf", ".mf4")):
+                    if file.lower().endswith((".erg", ".dl3", ".dat", ".mdf", ".mf4", ".mf4z")):
 
                         row = self.batch.files_list.count()
                         self.batch.files_list.addItem(os.path.join(root, file))
@@ -1038,7 +1038,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             if self.stackedWidget.currentIndex() == 0:
                 for path in e.mimeData().text().splitlines():
                     path = Path(path.replace(r"file:///", ""))
-                    if path.suffix.lower() in (".dat", ".mdf", ".mf4"):
+                    if path.suffix.lower() in (".dat", ".mdf", ".mf4", ".mf4z"):
 
                         self._open_file(path)
             else:
@@ -1049,7 +1049,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
                 for path in e.mimeData().text().splitlines():
                     path = Path(path.replace(r"file:///", ""))
-                    if path.suffix.lower() in (".dat", ".mdf", ".mf4"):
+                    if path.suffix.lower() in (".dat", ".mdf", ".mf4", ".mf4z"):
 
                         row = self.batch.files_list.count()
                         self.batch.files_list.addItem(str(path))
