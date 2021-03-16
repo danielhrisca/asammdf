@@ -258,7 +258,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 operand2 = float(self.op2_value.value())
             operand2_str = str(operand2)
         else:
-            operand2_sig = self.channels[operand1]
+            operand2_sig = self.channels[operand2]
             operand2 = operand2_sig.physical()
             operand2.computed = operand2_sig.computed
             operand2.computation = operand2_sig.computation

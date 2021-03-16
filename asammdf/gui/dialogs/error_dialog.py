@@ -23,7 +23,8 @@ class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
         self.setupUi(self)
 
         self.trace = QtWidgets.QTextEdit()
-        self.layout.insertWidget(0, self.trace)
+        self.layout.insertWidget(2, self.trace)
+        self.trace.hide()
         self.trace.setText(trace)
         self.trace.setReadOnly(True)
 
@@ -39,10 +40,11 @@ class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
         self.error_message.setText(message)
 
         self.copy_to_clipboard_btn.clicked.connect(self.copy_to_clipboard)
+        self.show_trace_btn.clicked.connect(self.show_trace)
 
-        self.layout.setStretch(0, 1)
+        self.layout.setStretch(0, 0)
         self.layout.setStretch(1, 0)
-        self.layout.setStretch(2, 0)
+        self.layout.setStretch(2, 1)
 
         if remote:
             self._timeout = timeout
@@ -63,3 +65,12 @@ class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
             sleep(1)
             self._timeout -= 1
             self.status.setText(f"This window will close in {self._timeout:02}s")
+
+    def show_trace(self, event):
+        if self.trace.isHidden():
+            self.trace.show()
+            self.show_trace_btn.setText('Hide error trace')
+        else:
+            self.trace.hide()
+            self.show_trace_btn.setText('Show error trace')
+
