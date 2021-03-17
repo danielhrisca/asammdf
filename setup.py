@@ -107,7 +107,7 @@ setup(
             "h5py",
             "fastparquet",
             "scipy",
-            "hdf5storage",
+            "hdf5storage>=0.1.17",
             "snappy",
         ],
         "encryption": "cryptography",

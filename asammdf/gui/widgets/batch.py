@@ -86,6 +86,12 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.load_lin_database_btn.clicked.connect(self.load_lin_database)
 
         self.empty_channels_bus.insertItems(0, ("skip", "zeros"))
+        self.empty_channels.insertItems(0, ("skip", "zeros"))
+        self.empty_channels_bus.insertItems(0, ("skip", "zeros"))
+        self.empty_channels_mat.insertItems(0, ("skip", "zeros"))
+        self.empty_channels_csv.insertItems(0, ("skip", "zeros"))
+        self.mat_format.insertItems(0, ("4", "5", "7.3"))
+        self.oned_as.insertItems(0, ("row", "column"))
 
         self.aspects.setCurrentIndex(0)
         self.setAcceptDrops(True)
@@ -1564,6 +1570,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             self.export_compression_mat.clear()
             self.export_compression_mat.addItems(["enabled", "disabled"])
             self.export_compression_mat.setCurrentIndex(0)
+        elif name == "CSV":
+            self.output_options.setCurrentIndex(3)
         else:
             self.output_options.setCurrentIndex(1)
             if name == "Parquet":
