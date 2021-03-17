@@ -3313,6 +3313,8 @@ class MDF:
         df = {}
         self._set_temporary_master(None)
 
+        masters = {index: self.get_master(index) for index in self.virtual_groups}
+
         if raster is not None:
             try:
                 raster = float(raster)
@@ -3328,7 +3330,6 @@ class MDF:
                 raster = master_using_raster(self, raster)
             master = raster
         else:
-            masters = {index: self.get_master(index) for index in self.virtual_groups}
 
             if masters:
                 master = reduce(np.union1d, masters.values())
