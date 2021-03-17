@@ -121,7 +121,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             self.name.setText(
                 self.fm.elidedText(self._name, QtCore.Qt.ElideMiddle, width)
             )
-        self.set_value(self._value)
+        self.set_value(self._value, update=True)
 
     def set_value(self, value, update=False):
         if self._value == value and update is False:

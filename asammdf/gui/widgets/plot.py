@@ -733,11 +733,12 @@ class Plot(QtWidgets.QWidget):
     show_properties = QtCore.pyqtSignal(list)
     splitter_moved = QtCore.pyqtSignal(object, int)
 
-    def __init__(self, signals, with_dots=False, origin=None, *args, **kwargs):
+    def __init__(self, signals, with_dots=False, origin=None, mdf=None, *args, **kwargs):
         events = kwargs.pop("events", None)
         super().__init__(*args, **kwargs)
         self.setContentsMargins(0, 0, 0, 0)
         self.pattern = {}
+        self.mdf = mdf
 
         self.info_uuid = None
 
@@ -773,7 +774,8 @@ class Plot(QtWidgets.QWidget):
         self.splitter.setOpaqueResize(False)
 
         self.plot = _Plot(
-            with_dots=with_dots, parent=self, events=events, origin=origin
+            with_dots=with_dots, parent=self, events=events, origin=origin,
+            mdf=self.mdf,
         )
 
         self.plot.range_modified.connect(self.range_modified)
@@ -1473,7 +1475,7 @@ class Plot(QtWidgets.QWidget):
                 channel["computation"] = sig.computation
 
             view = self.plot.view_boxes[idx]
-            channel["y_range"] = view.viewRange()[1]
+            channel["y_range"] = [float(e) for e in view.viewRange()[1]]
             channel["mdf_uuid"] = str(sig.mdf_uuid)
 
             channels.append(channel)
@@ -1540,12 +1542,13 @@ class _Plot(pg.PlotWidget):
 
     add_channels_request = QtCore.pyqtSignal(list)
 
-    def __init__(self, signals=None, with_dots=False, origin=None, *args, **kwargs):
+    def __init__(self, signals=None, with_dots=False, origin=None, mdf=None, *args, **kwargs):
         events = kwargs.pop("events", [])
         super().__init__()
 
         self._last_update = perf_counter()
         self._can_trim = True
+        self.mdf = mdf
 
         self.setAcceptDrops(True)
 
@@ -2595,7 +2598,7 @@ class _Plot(pg.PlotWidget):
         self.xrange_changed_handle()
 
     def insert_computation(self, name=""):
-        dlg = DefineChannel(self.signals, self.all_timebase, name, self)
+        dlg = DefineChannel(self.signals, self.all_timebase, name, self.mdf, self)
         dlg.setModal(True)
         dlg.exec_()
         sig = dlg.result

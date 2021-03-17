@@ -1035,7 +1035,11 @@ class WithMDIArea:
                 events = []
                 origin = self.files.widget(0).mdf.start_time
 
-            plot = Plot([], events=events, with_dots=self.with_dots, origin=origin)
+            if hasattr(self, "mdf"):
+                mdf = self.mdf
+            else:
+                mdf = None
+            plot = Plot([], events=events, with_dots=self.with_dots, origin=origin, mdf=mdf)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
@@ -1649,7 +1653,11 @@ class WithMDIArea:
 
             signals.extend(not_found)
 
-            plot = Plot([], with_dots=self.with_dots, events=events, origin=origin)
+            if hasattr(self, "mdf"):
+                mdf = self.mdf
+            else:
+                mdf = None
+            plot = Plot([], with_dots=self.with_dots, events=events, origin=origin, mdf=mdf)
             plot.pattern = pattern_info
 
             if not self.subplots:

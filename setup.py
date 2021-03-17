@@ -89,7 +89,7 @@ setup(
         "canmatrix[arxml,dbc]>=0.8",
         "lz4",
         "numexpr",
-        "numpy>=1.16.1",
+        "numpy>=1.17.5",
         "pandas",
     ],
     # List additional groups of dependencies here (e.g. development

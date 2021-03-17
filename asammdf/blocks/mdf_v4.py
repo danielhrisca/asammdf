@@ -1031,8 +1031,6 @@ class MDF4(MDF_Common):
                         ca_list.append(ca_block)
                     dependencies.append(ca_list)
 
-
-
                     channel.dtype_fmt = dtype(
                         get_fmt_v4(
                             channel.data_type,
@@ -1698,14 +1696,19 @@ class MDF4(MDF_Common):
                             ):
                                 parents[original_index] = (
                                     current_parent,
-                                    (next_byte_aligned_position - start_offset - byte_size)
+                                    (
+                                        next_byte_aligned_position
+                                        - start_offset
+                                        - byte_size
+                                    )
                                     * 8
                                     + bit_offset,
                                 )
                             else:
                                 parents[original_index] = (
                                     current_parent,
-                                    ((start_offset - parent_start_offset) * 8) + bit_offset,
+                                    ((start_offset - parent_start_offset) * 8)
+                                    + bit_offset,
                                 )
                     else:
                         parents[original_index] = no_parent
@@ -2273,6 +2276,46 @@ class MDF4(MDF_Common):
 
         return info, uses_ld
 
+    def _filter_occurrences(
+        self, occurrences, source_name=None, source_path=None, acq_name=None
+    ):
+        if source_name is not None:
+            occurrences = (
+                (gp_idx, cn_idx)
+                for gp_idx, cn_idx in occurrences
+                if (
+                    self.groups[gp_idx].channels[cn_idx].source is not None
+                    and self.groups[gp_idx].channels[cn_idx].source.name == source_name
+                )
+                or (
+                    self.groups[gp_idx].channel_group.acq_source is not None
+                    and self.groups[gp_idx].channel_group.acq_source.name == source_name
+                )
+            )
+
+        if source_path is not None:
+            occurrences = (
+                (gp_idx, cn_idx)
+                for gp_idx, cn_idx in occurrences
+                if (
+                    self.groups[gp_idx].channels[cn_idx].source is not None
+                    and self.groups[gp_idx].channels[cn_idx].source.path == source_path
+                )
+                or (
+                    self.groups[gp_idx].channel_group.acq_source is not None
+                    and self.groups[gp_idx].channel_group.acq_source.path == source_path
+                )
+            )
+
+        if acq_name is not None:
+            occurrences = (
+                (gp_idx, cn_idx)
+                for gp_idx, cn_idx in occurrences
+                if self.groups[gp_idx].channel_group.acq_name == acq_name
+            )
+
+        return occurrences
+
     def get_invalidation_bits(self, group_index, channel, fragment):
         """get invalidation indexes for the channel
 
@@ -2408,7 +2451,9 @@ class MDF4(MDF_Common):
             self._integer_interpolation = from_other._integer_interpolation
             self.copy_on_get = from_other.copy_on_get
             self._float_interpolation = from_other._float_interpolation
-            self.raise_on_multiple_occurrences = from_other.raise_on_multiple_occurrences
+            self.raise_on_multiple_occurrences = (
+                from_other.raise_on_multiple_occurrences
+            )
 
         if read_fragment_size is not None:
             self._read_fragment_size = int(read_fragment_size)
@@ -2767,8 +2812,7 @@ class MDF4(MDF_Common):
                         ch.source = si_map[source]
                     else:
                         new_source = SourceInformation(
-                            source_type=source.source_type,
-                            bus_type=source.bus_type
+                            source_type=source.source_type, bus_type=source.bus_type
                         )
                         new_source.name = source.name
                         new_source.path = source.path
@@ -6448,15 +6492,15 @@ class MDF4(MDF_Common):
         for d in shape:
             dim *= d
 
-        item_size = (channel.bit_count // 8)
+        item_size = channel.bit_count // 8
         size = item_size * dim
 
         if group.uses_ld:
             record_size = group.channel_group.samples_byte_nr
         else:
             record_size = (
-                    group.channel_group.samples_byte_nr
-                    + group.channel_group.invalidation_bytes_nr
+                group.channel_group.samples_byte_nr
+                + group.channel_group.invalidation_bytes_nr
             )
 
         channel_dtype = get_fmt_v4(
@@ -6498,7 +6542,7 @@ class MDF4(MDF_Common):
 
             cycles = len(data_bytes) // samples_size
 
-            vals = frombuffer(data_bytes, dtype=dtype_fmt)['vals']
+            vals = frombuffer(data_bytes, dtype=dtype_fmt)["vals"]
 
             if dep.flags & v4c.FLAG_CA_INVERSE_LAYOUT:
                 shape = vals.shape
@@ -8427,7 +8471,9 @@ class MDF4(MDF_Common):
                 if md5_sum in self._external_dbc_cache:
                     db = self._external_dbc_cache[md5_sum]
                 else:
-                    contents = None if database_path.suffix.lower() == '.ldf' else db_string
+                    contents = (
+                        None if database_path.suffix.lower() == ".ldf" else db_string
+                    )
                     db = load_can_database(database_path, contents=contents)
                     if db is None:
                         raise MdfException("failed to load database")
@@ -9358,7 +9404,10 @@ class MDF4(MDF_Common):
                         elif channel.attachment_nr:
                             channel.attachment_addr = 0
 
-                        if channel.channel_type == v4c.CHANNEL_TYPE_SYNC and channel.attachment is not None:
+                        if (
+                            channel.channel_type == v4c.CHANNEL_TYPE_SYNC
+                            and channel.attachment is not None
+                        ):
                             channel.data_block_addr = self.attachments[
                                 channel.attachment
                             ].address
@@ -9779,6 +9828,8 @@ class MDF4(MDF_Common):
                     info.param,
                 )
 
+                seek(dtblock_address)
+
                 if block_type != v4c.DT_BLOCK:
                     partial_records = {id_: [] for _, id_ in groups}
                     new_data = read(dtblock_size)
@@ -10008,6 +10059,7 @@ class MDF4(MDF_Common):
         for i, channel in enumerate(channels):
             if channel.name == "CAN_DataFrame":
                 attachment_addr = channel.attachment
+
                 if attachment_addr is not None:
                     if attachment_addr not in self._dbc_cache:
 
@@ -10253,7 +10305,9 @@ class MDF4(MDF_Common):
                             message = f'Attachment "{at_name}" not found'
                             logger.warning(message)
                         else:
-                            contents = None if at_name.suffix.lower() == '.ldf' else attachment
+                            contents = (
+                                None if at_name.suffix.lower() == ".ldf" else attachment
+                            )
                             dbc = load_can_database(at_name, contents=contents)
                             if dbc:
                                 self._dbc_cache[attachment_addr] = dbc

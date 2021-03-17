@@ -1,20 +1,22 @@
 # -*- coding: utf-8 -*-
 """ common MDF file format module """
 
+import bz2
 from collections import defaultdict, OrderedDict
 from copy import deepcopy
 import csv
 from datetime import datetime, timezone
 from functools import reduce
+import gzip
 from io import BytesIO
 import logging
 from pathlib import Path
 import re
 from shutil import copy
 from struct import unpack
-import zipfile, gzip, bz2
 from traceback import format_exc
 import xml.etree.ElementTree as ET
+import zipfile
 
 from canmatrix import CanMatrix
 import numpy as np
@@ -150,7 +152,9 @@ class MDF:
                 file_stream = name
                 do_close = False
 
-                if expand_zippedfile and isinstance(file_stream, (bz2.BZ2File, gzip.GzipFile)):
+                if expand_zippedfile and isinstance(
+                    file_stream, (bz2.BZ2File, gzip.GzipFile)
+                ):
                     if isinstance(file_stream, (bz2.BZ2File, gzip.GzipFile)):
                         file_stream.seek(0)
                         file_stream = BytesIO(file_stream.read())
@@ -162,7 +166,7 @@ class MDF:
                 file_stream = name
 
                 for fn in file_stream.namelist():
-                    if fn.lower().endswith(('mdf', 'dat', 'mf4')):
+                    if fn.lower().endswith(("mdf", "dat", "mf4")):
                         break
                 else:
                     raise Exception
@@ -175,6 +179,20 @@ class MDF:
                     file_stream = open(name, "rb")
                 else:
                     raise MdfException(f'File "{name}" does not exist')
+
+                magic_header = file_stream.read(8)
+                if magic_header.strip().startswith(b'PK') and Path(name).suffix.lower() == '.mf4z':
+                    file_stream.close()
+                    do_close = False
+                    with zipfile.ZipFile(name, allowZip64=True) as file_stream:
+                        for fn in file_stream.namelist():
+                            if fn.lower().endswith((".mdf", ".dat", ".mf4")):
+                                break
+                        else:
+                            raise Exception
+                        name = BytesIO(file_stream.read(fn))
+                    file_stream = name
+                    name.seek(0)
 
             file_stream.seek(0)
             magic_header = file_stream.read(8)
@@ -505,10 +523,7 @@ class MDF:
         """
         version = validate_version_argument(version)
 
-        out = MDF(
-            version=version,
-            **self._kwargs
-        )
+        out = MDF(version=version, **self._kwargs)
 
         integer_interpolation_mode = self._integer_interpolation
         float_interpolation_mode = self._float_interpolation
@@ -1206,7 +1221,7 @@ class MDF:
             fmtparams = {
                 "delimiter": kwargs.get("delimiter", ",")[0],
                 "doublequote": kwargs.get("doublequote", True),
-                "lineterminator": kwargs.get("lineterminator", '\r\n'),
+                "lineterminator": kwargs.get("lineterminator", "\r\n"),
                 "quotechar": kwargs.get("quotechar", '"')[0],
             }
 
@@ -1758,7 +1773,6 @@ class MDF:
 
         """
 
-
         if not files:
             raise MdfException("No files given for merge")
 
@@ -1843,7 +1857,6 @@ class MDF:
 
                 kwargs = dict(mdf._kwargs)
                 kwargs.pop("callback", None)
-
 
                 merged = MDF(
                     version=version,
@@ -2124,13 +2137,13 @@ class MDF:
 
                 stacked = MDF(
                     version=version,
-                    callback=callback, **kwargs,
+                    callback=callback,
+                    **kwargs,
                 )
 
                 integer_interpolation_mode = mdf._integer_interpolation
                 float_interpolation_mode = mdf._float_interpolation
                 stacked.configure(from_other=mdf)
-
 
                 if sync:
                     stacked.header.start_time = oldest
@@ -3300,6 +3313,8 @@ class MDF:
         df = {}
         self._set_temporary_master(None)
 
+        masters = {index: self.get_master(index) for index in self.virtual_groups}
+
         if raster is not None:
             try:
                 raster = float(raster)
@@ -3315,7 +3330,6 @@ class MDF:
                 raster = master_using_raster(self, raster)
             master = raster
         else:
-            masters = {index: self.get_master(index) for index in self.virtual_groups}
 
             if masters:
                 master = reduce(np.union1d, masters.values())
@@ -4670,23 +4684,25 @@ class MDF:
             out._callback = out._mdf._callback = self._callback
         return out
 
-    def whereis(self, channel, source_name=None, source_path=None):
-        """get ocurrences of channel name in the file
+    def whereis(self, channel, source_name=None, source_path=None, acq_name=None):
+        """get occurrences of channel name in the file
 
         Parameters
         ----------
         channel : str
             channel name string
         source_name (None) : str
-            filter occurrences using source name
+            filter occurrences on source name
         source_path (None) : str
-            filter occurrences using source path
+            filter occurrences on source path
+        acq_name (None) : str
+            filter occurrences on channel group acquisition name
 
             .. versionadded:: 6.0.0
 
         Returns
         -------
-        ocurrences : tuple
+        occurrences : tuple
 
 
         Examples
@@ -4699,12 +4715,19 @@ class MDF:
 
         """
         try:
-            occurrences = self._filter_occurrences(
-                self.channels_db[channel], source_name=source_name, source_path=source_path
+            occurrences = self.channels_db[channel]
+        except KeyError:
+            occurrences = ()
+        else:
+            occurrences = tuple(
+                self._filter_occurrences(
+                    occurrences,
+                    source_name=source_name,
+                    source_path=source_path,
+                    acq_name=acq_name,
+                )
             )
-        except:
-            occurrences = tuple()
-        return tuple(occurrences)
+        return occurrences
 
 
 if __name__ == "__main__":
