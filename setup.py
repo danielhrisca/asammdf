@@ -98,7 +98,20 @@ setup(
     # $ pip install -e .[dev,test]
     extras_require={
         "decode": ["cChardet==2.1.5", "chardet"],
-        "gui": ["lxml", "natsort", "psutil", "PyQt5>=5.13.1", "pyqtgraph==0.11.0"],
+        "export": [
+            "fastparquet",
+            "h5py",
+            "hdf5storage>=0.1.17",
+            "scipy",
+            "snappy",
+        ],
+        "gui": [
+            "lxml",
+            "natsort",
+            "psutil",
+            "PyQt5>=5.13.1",
+            "pyqtgraph==0.11.0",
+        ],
         "encryption": "cryptography",
     },
     # If there are data files included in your packages that need to be
