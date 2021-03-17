@@ -9828,6 +9828,8 @@ class MDF4(MDF_Common):
                     info.param,
                 )
 
+                seek(dtblock_address)
+
                 if block_type != v4c.DT_BLOCK:
                     partial_records = {id_: [] for _, id_ in groups}
                     new_data = read(dtblock_size)
