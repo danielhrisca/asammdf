@@ -1004,7 +1004,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 channels = info.get("selected_channels", [])
 
             if channels:
-
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
                 if self.channel_view.currentText() == "Internal file structure":

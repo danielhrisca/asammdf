@@ -14,6 +14,7 @@ import pandas as pd
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ...blocks import v4_constants as v4c
+from ...blocks.conversion_utils import from_dict
 from ...blocks.utils import csv_bytearray2hex, extract_cncomment_xml, MdfException, load_can_database
 from ...mdf import MDF
 from ...signal import Signal
@@ -293,6 +294,10 @@ class WithMDIArea:
                         signal.unit = channel["unit"]
                         signal.group_index = -1
                         signal.channel_index = -1
+
+                        if "conversion" in channel:
+                            signal.conversion = from_dict(channel["conversion"])
+                            signal.name = channel["user_defined_name"]
 
                         computed_signals[signal.name] = signal
                     except:
@@ -1575,6 +1580,10 @@ class WithMDIArea:
                         signal.group_index = -1
                         signal.channel_index = -1
                         signal.mdf_uuid = uuid
+
+                        if "conversion" in channel:
+                            signal.conversion = from_dict(channel["conversion"])
+                            signal.name = channel["user_defined_name"]
 
                         computed_signals[signal.name] = signal
                     except:
