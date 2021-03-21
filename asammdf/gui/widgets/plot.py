@@ -588,7 +588,7 @@ class PlotSignal(Signal):
     def trim(self, start=None, stop=None, width=1900):
         trim_info = (start, stop, width)
         if self.trim_info == trim_info:
-            return
+            return None
 
         self.trim_info = trim_info
         sig = self
@@ -613,6 +613,7 @@ class PlotSignal(Signal):
             if start > stop_t or stop < start_t:
                 sig.plot_samples = signal_samples[:0]
                 sig.plot_timestamps = sig.timestamps[:0]
+                pos = []
             else:
                 start_t = max(start, start_t)
                 stop_t = min(stop, stop_t)
@@ -663,27 +664,39 @@ class PlotSignal(Signal):
                         pos_max = np.nanargmax(samples_)
                         pos_min = np.nanargmin(samples_)
 
-                        pos = (
+                        pos2 = (
                             [pos_min, pos_max]
                             if pos_min < pos_max
                             else [pos_max, pos_min]
                         )
 
-                        samples_ = signal_samples[stop_2:stop_][pos]
-                        timestamps_ = sig.timestamps[stop_2:stop_][pos]
+                        samples_ = signal_samples[stop_2:stop_][pos2]
+                        timestamps_ = sig.timestamps[stop_2:stop_][pos2]
 
                         samples = np.concatenate((samples, samples_))
                         timestamps = np.concatenate((timestamps, timestamps_))
+
+                        pos2 = [min(e + stop_2, dim-1) for e in pos2]
+
+                        np.concatenate([pos, pos2])
 
                     sig.plot_samples = samples
                     sig.plot_timestamps = timestamps
 
                 else:
-                    start_ = max(0, start_ - 2)
-                    stop_ += 2
+                    start_ = min(max(0, start_ - 2), dim -1)
+                    stop_ = min(stop_ + 2, dim -1)
 
                     sig.plot_samples = signal_samples[start_:stop_]
                     sig.plot_timestamps = sig.timestamps[start_:stop_]
+
+
+                    pos = np.arange(start_, stop_)
+
+        else:
+            pos = None
+
+        return pos
 
     def value_at_timestamp(self, stamp):
         cut = self.cut(stamp, stamp)
