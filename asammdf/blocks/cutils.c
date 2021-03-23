@@ -145,14 +145,20 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
     }
 }
 
+static Py_ssize_t calc_size(char* buf)
+{
+    return (unsigned char) buf[3] << 24 |
+           (unsigned char) buf[2] << 16 |
+           (unsigned char) buf[1] << 8 |
+           (unsigned char) buf[0];
+}
 
 static PyObject* extract(PyObject* self, PyObject* args)
 {
     int i=0, count, max=0;
-    int pos=0;
-    int size;
+    Py_ssize_t pos=0, size=0;
     PyObject *signal_data, *is_byte_array;
-    unsigned char *buf;
+    char *buf;
     PyArrayObject *vals;
     PyArray_Descr *descr;
     void *addr;
@@ -166,14 +172,16 @@ static PyObject* extract(PyObject* self, PyObject* args)
     }
     else
     {
-        buf = PyBytes_AS_STRING(signal_data);
+        Py_ssize_t max_size = 0;
+        int retval = PyBytes_AsStringAndSize(signal_data, &buf, &max_size);
 
         count = 0;
+        pos = 0;
 
-        while (pos < PyBytes_GET_SIZE(signal_data))
+        while ((pos + 4) < max_size)
         {
-            
-            size = (buf[pos+3] << 24) + (buf[pos+2] << 16) +(buf[pos+1] << 8) + buf[pos];
+            size = calc_size(&buf[pos]);
+
             if (max < size)
                 max = size;
             pos += 4 + size;
@@ -189,13 +197,14 @@ static PyObject* extract(PyObject* self, PyObject* args)
             
             vals = (PyArrayObject *) PyArray_ZEROS(2, dims, NPY_UBYTE, 0);
 
+            pos = 0;
             for (i=0; i<count; i++)
             {
                 addr2 = (unsigned char *) PyArray_GETPTR2(vals, i, 0);
-                size = (buf[3] << 24) + (buf[2] << 16) +(buf[1] << 8) +buf[0];
-                buf += 4; 
-                memcpy(addr2, buf, size);
-                buf += size;
+                size = calc_size(&buf[pos]);
+                pos += 4;
+                memcpy(addr2, &buf[pos], size);
+                pos += size;
             }
         }
         else
@@ -209,13 +218,14 @@ static PyObject* extract(PyObject* self, PyObject* args)
 
             vals = (PyArrayObject *) PyArray_Zeros(1, dims, descr, 0);
 
+            pos = 0;
             for (i=0; i<count; i++)
             {
                 addr2 = (unsigned char *) PyArray_GETPTR1(vals, i);
-                size = (buf[3] << 24) + (buf[2] << 16) +(buf[1] << 8) +buf[0];
-                buf += 4; 
-                memcpy(addr2, buf, size);
-                buf += size;
+                size = calc_size(&buf[pos]);
+                pos += 4;
+                memcpy(addr2, &buf[pos], size);
+                pos += size;
             }
         }
     }
