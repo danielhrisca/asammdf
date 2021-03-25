@@ -1530,13 +1530,13 @@ class Plot(QtWidgets.QWidget):
                     channel["conversion"][f"text_{i}"] = sig.conversion.referenced_blocks[f"text_{i}"].decode("utf-8")
                     channel["conversion"][f"val_{i}"] = sig.conversion[f"val_{i}"]
 
-            channel["splitter"] = [int(e) for e in self.splitter.sizes()[:2]] + [0,]
-
             channels.append(channel)
 
         config = {
             "channels": channels if not self.pattern else [],
             "pattern": self.pattern,
+            "splitter": [int(e) for e in self.splitter.sizes()[:2]] + [0, ],
+            "x_range": [float(e) for e in self.plot.viewbox.viewRange()[0]],
         }
 
         return config

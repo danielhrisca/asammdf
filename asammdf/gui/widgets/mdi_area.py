@@ -1759,6 +1759,12 @@ class WithMDIArea:
 
             self.set_subplots_link(self.subplots_link)
 
+            if "x_range" in window_info:
+                plot.plot.viewbox.setXRange(*window_info["x_range"], padding=0)
+
+            if "splitter" in window_info:
+                plot.splitter.setSizes(window_info["splitter"])
+
             plot.splitter.setContentsMargins(1, 1, 1, 1)
             plot.setContentsMargins(1, 1, 1, 1)
 
