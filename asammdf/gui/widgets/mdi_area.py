@@ -1360,6 +1360,9 @@ class WithMDIArea:
                 partial(self.add_new_channels, widget=numeric)
             )
 
+            if self.subplots_link:
+                numeric.timestamp_changed_signal.connect(self.set_cursor)
+
         elif window_info["type"] == "Plot":
             # patterns
             pattern_info = window_info["configuration"].get("pattern", {})

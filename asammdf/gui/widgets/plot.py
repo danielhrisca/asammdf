@@ -41,7 +41,7 @@ if not hasattr(pg.InfiniteLine, "addMarker"):
 
 
 class PlotSignal(Signal):
-    def __init__(self, signal, index=0, fast=False, trim_info=None):
+    def __init__(self, signal, index=0, fast=False, trim_info=None, duplication=1):
         super().__init__(
             signal.samples,
             signal.timestamps,
@@ -60,6 +60,7 @@ class PlotSignal(Signal):
             encoding=signal.encoding,
         )
 
+        self.duplication = duplication
         self.uuid = getattr(signal, "uuid", os.urandom(6).hex())
         self.mdf_uuid = getattr(signal, "mdf_uuid", os.urandom(6).hex())
 
@@ -251,7 +252,7 @@ class PlotSignal(Signal):
         cut_sig.precision = self.precision
         cut_sig.mdf_uuif = self.mdf_uuid
 
-        return PlotSignal(cut_sig)
+        return PlotSignal(cut_sig, duplication=self.duplication)
 
     @property
     def mode(self):
@@ -606,51 +607,62 @@ class PlotSignal(Signal):
             else:
                 signal_samples = self.phys_samples
 
-            start_t, stop_t = (
+            start_t_sig, stop_t_sig = (
                 sig.timestamps[0],
                 sig.timestamps[-1],
             )
-            if start > stop_t or stop < start_t:
+            if start > stop_t_sig or stop < start_t_sig:
                 sig.plot_samples = signal_samples[:0]
                 sig.plot_timestamps = sig.timestamps[:0]
                 pos = []
             else:
-                start_t = max(start, start_t)
-                stop_t = min(stop, stop_t)
+                start_t = max(start, start_t_sig)
+                stop_t = min(stop, stop_t_sig)
 
-                start_ = np.searchsorted(sig.timestamps, start_t, side="right")
-                stop_ = np.searchsorted(sig.timestamps, stop_t, side="right")
+                if start_t == start_t_sig:
+                    start_ = 0
+                else:
+                    start_ = np.searchsorted(sig.timestamps, start_t, side="right")
+                if stop_t == stop_t_sig:
+                    stop_ = dim
+                else:
+                    stop_ = np.searchsorted(sig.timestamps, stop_t, side="right")
 
                 try:
                     visible = abs(int((stop_t - start_t) / (stop - start) * width))
 
                     if visible:
-                        raster = abs((stop_ - start_)) // visible
+                        visible_duplication = abs((stop_ - start_)) // visible
                     else:
-                        raster = 0
+                        visible_duplication = 0
                 except:
-                    raster = 0
+                    visible_duplication = 0
 
-                while raster > 1:
-                    rows = (stop_ - start_) // raster
-                    stop_2 = start_ + rows * raster
+                while visible_duplication > self.duplication:
+                    rows = (stop_ - start_) // visible_duplication
+                    stop_2 = start_ + rows * visible_duplication
 
-                    samples = signal_samples[start_:stop_2].reshape(rows, raster)
+                    samples = signal_samples[start_:stop_2].reshape(rows, visible_duplication)
 
                     try:
-                        pos_max = np.nanargmax(samples, axis=1)
-                        pos_min = np.nanargmin(samples, axis=1)
+                        pos_max = samples.argmax(axis=1)
+                        pos_min = samples.argmin(axis=1)
                         break
-                    except ValueError:
-                        raster -= 1
+                    except:
+                        try:
+                            pos_max = np.nanargmax(samples, axis=1)
+                            pos_min = np.nanargmin(samples, axis=1)
+                            break
+                        except ValueError:
+                            visible_duplication -= 1
 
-                if raster > 1:
+                if visible_duplication > self.duplication:
 
                     pos = np.dstack([pos_min, pos_max])[0]
-                    # pos.sort()
-                    pos = np.sort(pos)
+                    pos.sort()
+                    #pos = np.sort(pos)
 
-                    offsets = np.arange(rows) * raster
+                    offsets = np.arange(rows) * visible_duplication
 
                     pos = (pos.T + offsets).T.ravel()
 
@@ -661,8 +673,12 @@ class PlotSignal(Signal):
                     if stop_2 != stop_:
                         samples_ = signal_samples[stop_2:stop_]
 
-                        pos_max = np.nanargmax(samples_)
-                        pos_min = np.nanargmin(samples_)
+                        try:
+                            pos_max = samples_.argmax()
+                            pos_min = samples_.argmin()
+                        except:
+                            pos_max = np.nanargmax(samples_)
+                            pos_min = np.nanargmin(samples_)
 
                         pos2 = (
                             [pos_min, pos_max]
@@ -670,28 +686,42 @@ class PlotSignal(Signal):
                             else [pos_max, pos_min]
                         )
 
+                        _size = len(pos)
+
                         samples_ = signal_samples[stop_2:stop_][pos2]
                         timestamps_ = sig.timestamps[stop_2:stop_][pos2]
 
                         samples = np.concatenate((samples, samples_))
                         timestamps = np.concatenate((timestamps, timestamps_))
 
-                        pos2 = [min(e + stop_2, dim-1) for e in pos2]
+                        pos2 = p1, p2 = [min(e + stop_2, dim-1) for e in pos2]
 
-                        np.concatenate([pos, pos2])
+                       # pos = np.concatenate([pos, pos2])
+
+                        new_pos = np.empty(_size+2, dtype=pos.dtype)
+                        new_pos[:_size] = pos
+                        new_pos[_size] = p1
+                        new_pos[_size+1] = p2
+                        pos = new_pos
 
                     sig.plot_samples = samples
                     sig.plot_timestamps = timestamps
 
                 else:
                     start_ = min(max(0, start_ - 2), dim -1)
-                    stop_ = min(stop_ + 2, dim -1)
+                    stop_ = min(stop_ + 2, dim)
 
-                    sig.plot_samples = signal_samples[start_:stop_]
-                    sig.plot_timestamps = sig.timestamps[start_:stop_]
+                    if start_ == 0 and stop_ == dim:
+                        sig.plot_samples = signal_samples
+                        sig.plot_timestamps = sig.timestamps
 
+                        pos = None
+                    else:
 
-                    pos = np.arange(start_, stop_)
+                        sig.plot_samples = signal_samples[start_:stop_]
+                        sig.plot_timestamps = sig.timestamps[start_:stop_]
+
+                        pos = np.arange(start_, stop_)
 
         else:
             pos = None
@@ -1499,6 +1529,8 @@ class Plot(QtWidgets.QWidget):
                 for i in range(sig.conversion.val_param_nr):
                     channel["conversion"][f"text_{i}"] = sig.conversion.referenced_blocks[f"text_{i}"].decode("utf-8")
                     channel["conversion"][f"val_{i}"] = sig.conversion[f"val_{i}"]
+
+            channel["splitter"] = [int(e) for e in self.splitter.sizes()[:2]] + [0,]
 
             channels.append(channel)
 
@@ -2534,6 +2566,7 @@ class _Plot(pg.PlotWidget):
 
         for i, uuid in indexes:
             item = self.curves.pop(i)
+            item.sigClicked.disconnect()
             item.hide()
             item.setParent(None)
             self.view_boxes[i].removeItem(item)

@@ -255,3 +255,9 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self.color_btn.setIcon(icon)
         self.color_btn.setFlat(True)
         self.color_btn.clicked.disconnect()
+
+    def disconnect_slots(self):
+        self.color_changed.disconnect()
+        self.enable_changed.disconnect()
+        self.ylink_changed.disconnect()
+        self.individual_axis_changed.disconnect()
