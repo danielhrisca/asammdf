@@ -4342,7 +4342,11 @@ class MDF4(MDF_Common):
             if sig_type == v4c.SIGNAL_TYPE_SCALAR:
 
                 # compute additional byte offset for large records size
-                s_type, s_size = fmt_to_datatype_v4(sig.dtype, sig.shape)
+                try:
+                    s_type, s_size = fmt_to_datatype_v4(sig.dtype, sig.shape)
+                except:
+                    gp_sig_types.pop(-1)
+                    continue
 
                 byte_size = s_size // 8 or 1
 

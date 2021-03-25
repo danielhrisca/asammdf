@@ -976,7 +976,18 @@ class ChannelConversion(_ChannelConversionBase):
             if conv_type == v23c.CONVERSION_TYPE_LINEAR:
                 (self.b, self.a) = unpack_from("<2d", block, v23c.CC_COMMON_SHORT_SIZE)
                 if not size == v23c.CC_LIN_BLOCK_SIZE:
-                    self.CANapeHiddenExtra = block[v23c.CC_LIN_BLOCK_SIZE - 4 :]
+                    self.CANapeHiddenExtra = block[v23c.CC_LIN_BLOCK_SIZE - 4:]
+                    size = len(self.CANapeHiddenExtra)
+                    nr = size // 40
+                    values = unpack_from(
+                        "<" + "d32s" * nr, block, v23c.CC_COMMON_SHORT_SIZE
+                    )
+
+                    for i in range(nr):
+                        (self[f"param_val_{i}"], self[f"text_{i}"]) = (
+                            values[i * 2],
+                            values[2 * i + 1],
+                        )
 
             elif conv_type == v23c.CONVERSION_TYPE_NONE:
                 pass
@@ -1321,6 +1332,14 @@ class ChannelConversion(_ChannelConversionBase):
             keys = v23c.KEYS_CONVERSION_LINEAR
             if not self.block_len == v23c.CC_LIN_BLOCK_SIZE:
                 keys += ("CANapeHiddenExtra",)
+
+                nr = self.ref_param_nr
+                new_keys = []
+                for i in range(nr):
+                    new_keys.append(f"param_val_{i}")
+                    new_keys.append(f"text_{i}")
+                keys += tuple(new_keys)
+
         elif conv in (v23c.CONVERSION_TYPE_POLY, v23c.CONVERSION_TYPE_RAT):
             keys = v23c.KEYS_CONVERSION_POLY_RAT
         elif conv in (v23c.CONVERSION_TYPE_EXPO, v23c.CONVERSION_TYPE_LOGH):

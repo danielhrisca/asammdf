@@ -5,11 +5,13 @@ import json
 import os
 from pathlib import Path
 from tempfile import gettempdir
+from traceback import format_exc
 
 from natsort import natsorted
 import psutil
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
+import pandas as pd
 
 from ...blocks.utils import extract_cncomment_xml
 from ...blocks.v4_constants import (
@@ -120,11 +122,37 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             )
             self.mdf = MDF(mdf_path)
 
-        elif file_name.suffix.lower() in (".zip",):
+        elif file_name.suffix.lower() in (".zip", ".mf4z"):
             progress.setLabelText("Opening zipped MF4 file")
             from mfile import ZIP
 
             self.mdf = ZIP(file_name)
+
+        elif file_name.suffix.lower() == ".csv":
+            try:
+                with open(file_name) as csv:
+                    names = [n.strip() for n in csv.readline().split(',')]
+                    units = [n.strip() for n in csv.readline().split(',')]
+
+                    if not all(isinstance(e, str) for e in units):
+                        csv.seek(0)
+                        csv.readline()
+                        units = None
+                    else:
+                        units = {
+                            name: unit
+                            for name, unit in zip(names, units)
+                        }
+                    df = pd.read_csv(csv, header=None, names=names)
+                    df.set_index(df[names[0]], inplace=True)
+                    self.mdf = MDF()
+                    self.mdf.append(df, units=units)
+            except:
+                progress.cancel()
+                raise Exception(
+                    "Could not load CSV. The first line must contain the channel names. The seconds line "
+                    "can optionally contain the channel units. The first column must be the time"
+                )
 
         else:
 
@@ -277,7 +305,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         if file_stats is not None:
             item.setText(1, f"{file_stats.st_size / 1024 / 1024:.1f} MB")
         else:
-            item.setText(1, f"{self.mdf.file_limit / 1024 / 1024:.1f} MB")
+            try:
+                item.setText(1, f"{self.mdf.file_limit / 1024 / 1024:.1f} MB")
+            except:
+                item.setText(1, f"Unknown size")
         children.append(item)
 
         if file_stats is not None:

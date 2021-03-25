@@ -1066,6 +1066,7 @@ class WithMDIArea:
 
             w.layout().setSpacing(1)
 
+            plot.show()
             plot.hide()
 
             plot.add_new_channels(signals)
