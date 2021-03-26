@@ -10,6 +10,7 @@ from textwrap import wrap
 from traceback import format_exc
 
 from numexpr import evaluate
+from numexpr3 import evaluate as evaluate3
 import numpy as np
 
 from . import v2_v3_constants as v23c
@@ -1622,7 +1623,10 @@ address: {hex(self.address)}
             # pylint: disable=unused-variable,C0103
 
             X1 = values
-            values = evaluate(self.formula)
+            try:
+                values = evaluate(self.formula)
+            except:
+                values = evaluate3(self.formula)
 
         return values
 

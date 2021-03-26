@@ -11,5 +11,6 @@ xlwt
 canmatrix
 pandas
 numexpr
+numexpr3
 lz4
 numpy

@@ -1,4 +1,5 @@
 numexpr
+numexpr3
 numpy>=1.16.1
 pandas
 pytest

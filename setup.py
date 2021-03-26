@@ -89,6 +89,7 @@ setup(
         "canmatrix[arxml,dbc]>=0.8",
         "lz4",
         "numexpr",
+        "numexpr3",
         "numpy>=1.17.5",
         "pandas",
     ],

@@ -16,6 +16,7 @@ from zlib import compress, decompress
 from functools import lru_cache
 
 from numexpr import evaluate
+from numexpr3 import evaluate as evaluate3
 import numpy as np
 
 from . import v4_constants as v4c
@@ -3231,7 +3232,10 @@ class ChannelConversion(_ChannelConversionBase):
 
         elif conversion_type == v4c.CONVERSION_TYPE_ALG:
             X = values
-            values = evaluate(self.formula.replace("X1", "X"))
+            try:
+                values = evaluate(self.formula.replace("X1", "X"))
+            except:
+                values = evaluate3(self.formula.replace("X1", "X"))
 
         elif conversion_type in (v4c.CONVERSION_TYPE_TABI, v4c.CONVERSION_TYPE_TAB):
             nr = self.val_param_nr // 2
