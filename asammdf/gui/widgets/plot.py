@@ -2465,7 +2465,8 @@ class _Plot(pg.PlotWidget):
             self.layout.addItem(axis, 2, self._axes_layout_pos)
             self._axes_layout_pos += 1
 
-            self.scene_.addItem(view_box)
+            self.layout.addItem(view_box, 2, 1)
+            # self.scene_.addItem(view_box)
 
             t = sig.plot_timestamps
 
@@ -2572,18 +2573,15 @@ class _Plot(pg.PlotWidget):
             self.view_boxes[i].removeItem(item)
 
             item = self.axes.pop(i)
-            item.unlinkFromView()
             self.layout.removeItem(item)
-            item.hide()
-            item.setParent(None)
+            item.scene().removeItem(item)
+            item.unlinkFromView()
 
             item = self.view_boxes.pop(i)
-            self.layout.removeItem(item)
-            self.scene_.removeItem(item)
-            item.hide()
-            item.setParent(None)
             item.setXLink(None)
             item.setYLink(None)
+            self.plotItem.scene().removeItem(item)
+            self.layout.removeItem(item)
 
             sig = self.signals.pop(i)
 
