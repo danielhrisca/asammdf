@@ -256,12 +256,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.output_options.setCurrentIndex(0)
 
         self.mdf_version.insertItems(0, SUPPORTED_VERSIONS)
+        self.mdf_version.setCurrentText("4.10")
         self.mdf_compression.insertItems(
             0, ("no compression", "deflate", "transposed deflate")
         )
         self.mdf_split_size.setValue(4)
 
         self.extract_bus_format.insertItems(0, SUPPORTED_VERSIONS)
+        self.extract_bus_format.setCurrentText("4.10")
         index = self.extract_bus_format.findText(self.mdf.version)
         if index >= 0:
             self.extract_bus_format.setCurrentIndex(index)

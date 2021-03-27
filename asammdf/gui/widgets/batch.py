@@ -37,6 +37,13 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.progress = None
         self.files_list = MinimalListWidget()
         self.splitter.addWidget(self.files_list)
+        self.show()
+
+        sizes = sum(self.splitter.sizes())
+        if sizes >= 700:
+            self.splitter.setSizes([700, sizes - 700])
+        self.splitter.setStretchFactor(0, 0)
+        self.splitter.setStretchFactor(1, 1)
 
         self.raster_type_channel.toggled.connect(self.set_raster_type)
 
@@ -47,6 +54,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             self.mdf_version,
         ):
             widget.insertItems(0, SUPPORTED_VERSIONS)
+            widget.setCurrentText("4.10")
 
         for widget in (
             self.concatenate_split_size,

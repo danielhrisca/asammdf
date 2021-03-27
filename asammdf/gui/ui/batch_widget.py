@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_batch_widget(object):
     def setupUi(self, batch_widget):
         batch_widget.setObjectName("batch_widget")
-        batch_widget.resize(979, 840)
+        batch_widget.resize(713, 671)
         self.gridLayout_9 = QtWidgets.QGridLayout(batch_widget)
         self.gridLayout_9.setObjectName("gridLayout_9")
         self.splitter = QtWidgets.QSplitter(batch_widget)
@@ -708,7 +708,7 @@ class Ui_batch_widget(object):
         self.gridLayout_9.addWidget(self.splitter, 1, 0, 1, 1)
 
         self.retranslateUi(batch_widget)
-        self.aspects.setCurrentIndex(1)
+        self.aspects.setCurrentIndex(0)
         self.output_options.setCurrentIndex(0)
         self.quoting.setCurrentIndex(1)
         self.quoting_bus.setCurrentIndex(1)
