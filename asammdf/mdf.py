@@ -235,6 +235,7 @@ class MDF:
                 raise MdfException(message)
 
         else:
+            kwargs["original_name"] = None
             version = validate_version_argument(version)
             if version in MDF2_VERSIONS:
                 self._mdf = MDF3(version=version, **kwargs)
