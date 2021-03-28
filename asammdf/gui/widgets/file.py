@@ -122,12 +122,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             )
             self.mdf = MDF(mdf_path)
 
-        elif file_name.suffix.lower() in (".zip", ".mf4z"):
-            progress.setLabelText("Opening zipped MF4 file")
-            from mfile import ZIP
-
-            self.mdf = ZIP(file_name)
-
         elif file_name.suffix.lower() == ".csv":
             try:
                 with open(file_name) as csv:
@@ -2013,15 +2007,20 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             if version < "4.00":
                 filter = "MDF version 3 files (*.dat *.mdf)"
+                default = filter
             else:
-                filter = "MDF version 4 files (*.mf4)"
+                filter = "MDF version 4 files (*.mf4);;Zipped MDF version 4 files (*.mf4z)"
+                if Path(self.mdf.original_name).suffix.lower() == ".mf4z":
+                    default = "Zipped MDF version 4 files (*.mf4z)"
+                else:
+                    default = "MDF version 4 files (*.mf4)"
 
             file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
                 self,
                 "Select output measurement file",
                 "",
                 f"{filter};;All files (*.*)",
-                filter,
+                default,
             )
 
         else:

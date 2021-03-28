@@ -16,6 +16,7 @@ import sys
 from tempfile import gettempdir, TemporaryFile
 from traceback import format_exc
 from zlib import decompress
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import canmatrix
 from lz4.frame import compress as lz_compress
@@ -309,6 +310,7 @@ class MDF4(MDF_Common):
     def __init__(self, name=None, version="4.10", channels=(), **kwargs):
 
         self._kwargs = kwargs
+        self.original_name = kwargs["original_name"]
         self.groups = []
         self.header = None
         self.identification = None
@@ -370,7 +372,7 @@ class MDF4(MDF_Common):
         if name:
             if is_file_like(name):
                 self._file = name
-                self.name = Path("From_FileLike.mf4")
+                self.name = self.original_name = Path("From_FileLike.mf4")
                 self._from_filelike = True
                 self._read(mapped=False)
             else:
@@ -5886,6 +5888,13 @@ class MDF4(MDF_Common):
         if not self._from_filelike and self._file is not None:
             self._file.close()
 
+        if self.original_name is not None:
+            if self.original_name.suffix.lower() in ('.bz2', '.gzip', '.mf4z', '.zip'):
+                try:
+                    os.remove(self.name)
+                except:
+                    pass
+
         for gp in self.groups:
             gp.clear()
         self.groups.clear()
@@ -8649,6 +8658,8 @@ class MDF4(MDF_Common):
 
         """
 
+        suffix = Path(dst).suffix.lower()
+
         if is_file_like(dst):
             dst_ = dst
             file_like = True
@@ -8659,6 +8670,7 @@ class MDF4(MDF_Common):
             dst_.seek(0)
         else:
             file_like = False
+
             dst = Path(dst).with_suffix(".mf4")
 
             destination_dir = dst.parent
@@ -9466,6 +9478,21 @@ class MDF4(MDF_Common):
         else:
             if not file_like:
                 dst_.close()
+
+        if suffix in (".zip", ".mf4z"):
+            output_fname = dst.with_suffix(suffix)
+            try:
+                zipped_mf4 = ZipFile(output_fname, "w", compression=ZIP_DEFLATED)
+                zipped_mf4.write(
+                    str(dst),
+                    dst.name,
+                    compresslevel=1,
+                )
+                zipped_mf4.close()
+                os.remove(destination)
+                dst = output_fname
+            except:
+                pass
 
         if dst == self.name:
             self.close()

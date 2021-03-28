@@ -12,9 +12,10 @@ from io import BytesIO
 import logging
 from pathlib import Path
 import re
-from shutil import copy
+from shutil import copy, move
 from struct import unpack
 from traceback import format_exc
+from tempfile import gettempdir, mkdtemp
 import xml.etree.ElementTree as ET
 import zipfile
 
@@ -83,6 +84,20 @@ def get_measurement_timestamp_and_version(mdf):
     return header.start_time, version
 
 
+def get_temporary_filename(name="temporary.mf4"):
+    folder = gettempdir()
+    mf4_name = Path(name).with_suffix(".mf4")
+    idx = 0
+    while True:
+        tmp_name = (Path(folder) / mf4_name.name).with_suffix(f".{idx}.mf4")
+        if not tmp_name.exists():
+            break
+        else:
+            idx += 1
+
+    return tmp_name
+
+
 class MDF:
     """Unified access to MDF v3 and v4 files. Underlying _mdf's attributes and
     methods are linked to the `MDF` object via *setattr*. This is done to expose
@@ -145,54 +160,51 @@ class MDF:
     def __init__(self, name=None, version="4.10", channels=(), **kwargs):
         self._mdf = None
 
-        expand_zippedfile = kwargs.pop("expand_zippedfile", True)
-
         if name:
             if is_file_like(name):
-                file_stream = name
-                do_close = False
 
-                if expand_zippedfile and isinstance(
-                    file_stream, (bz2.BZ2File, gzip.GzipFile)
-                ):
-                    if isinstance(file_stream, (bz2.BZ2File, gzip.GzipFile)):
-                        file_stream.seek(0)
-                        file_stream = BytesIO(file_stream.read())
+                if isinstance(name, BytesIO):
+                    original_name = None
+                    file_stream = name
+                    do_close = False
 
-                    name = file_stream
+                elif isinstance(name, bz2.BZ2File):
+                    original_name = Path(name._fp.name)
+                    name = get_temporary_filename(original_name)
+                    name.write_bytes(name.read())
+                    file_stream = open(name, 'rb')
+                    do_close = False
+                elif isinstance(name, gzip.GzipFile):
 
-            elif isinstance(name, zipfile.ZipFile):
-                do_close = False
-                file_stream = name
-
-                for fn in file_stream.namelist():
-                    if fn.lower().endswith(("mdf", "dat", "mf4")):
-                        break
-                else:
-                    raise Exception
-                file_stream = name = BytesIO(file_stream.read(fn))
+                    original_name = Path(name.name)
+                    name = get_temporary_filename(original_name)
+                    name.write_bytes(name.read())
+                    file_stream = open(name, 'rb')
+                    do_close = False
 
             else:
-                name = Path(name)
-                if name.is_file():
-                    do_close = True
-                    file_stream = open(name, "rb")
-                else:
+                name = original_name = Path(name)
+                if not name.is_file() or not name.exists():
                     raise MdfException(f'File "{name}" does not exist')
 
-                magic_header = file_stream.read(8)
-                if magic_header.strip().startswith(b'PK') and Path(name).suffix.lower() == '.mf4z':
-                    file_stream.close()
-                    do_close = False
-                    with zipfile.ZipFile(name, allowZip64=True) as file_stream:
-                        for fn in file_stream.namelist():
-                            if fn.lower().endswith((".mdf", ".dat", ".mf4")):
-                                break
-                        else:
-                            raise Exception
-                        name = BytesIO(file_stream.read(fn))
-                    file_stream = name
-                    name.seek(0)
+                if original_name.suffix.lower() in ('.mf4z', '.zip'):
+                    name = get_temporary_filename(original_name)
+                    with zipfile.ZipFile(original_name, allowZip64=True) as archive:
+                        files = archive.namelist()
+                        if len(files) != 1:
+                            raise Exception("invalid zipped MF4: must contain a single file")
+                        fname = files[0]
+
+                        if Path(fname).suffix.lower() not in (".mdf", ".dat", ".mf4"):
+                            raise Exception("invalid zipped MF4: must contain a single MDF file")
+
+                        tmpdir = mkdtemp()
+                        output = archive.extract(fname, tmpdir)
+
+                        move(output, name)
+
+                file_stream = open(name, 'rb')
+                do_close = False
 
             file_stream.seek(0)
             magic_header = file_stream.read(8)
@@ -209,6 +221,8 @@ class MDF:
 
             if do_close:
                 file_stream.close()
+
+            kwargs["original_name"] = original_name
 
             if version in MDF3_VERSIONS:
                 self._mdf = MDF3(name, channels=channels, **kwargs)

@@ -7,6 +7,7 @@ from itertools import product
 import logging
 from math import ceil
 import mmap
+import os
 from pathlib import Path
 import sys
 from tempfile import TemporaryFile
@@ -147,6 +148,7 @@ class MDF3(MDF_Common):
 
     def __init__(self, name=None, version="3.30", channels=(), **kwargs):
         self._kwargs = kwargs
+        self.original_name = kwargs['original_name']
         self.load_filter = set(channels)
 
         self.groups = []
@@ -190,7 +192,7 @@ class MDF3(MDF_Common):
         if name:
             if is_file_like(name):
                 self._file = name
-                self.name = Path("From_FileLike.mdf")
+                self.name = self.original_name = Path("From_FileLike.mdf")
                 self._from_filelike = True
                 self._read(mapped=False)
             else:
@@ -2334,6 +2336,13 @@ class MDF3(MDF_Common):
             self._tempfile.close()
         if self._file is not None and not self._from_filelike:
             self._file.close()
+
+        if self.original_name is not None:
+            if self.original_name.suffix.lower() in ('.bz2', '.gzip', '.mf4z', '.zip'):
+                try:
+                    os.remove(self.name)
+                except:
+                    pass
 
         self._call_back = None
         self.groups.clear()
