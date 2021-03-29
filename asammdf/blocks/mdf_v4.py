@@ -8658,7 +8658,7 @@ class MDF4(MDF_Common):
 
         """
 
-        suffix = Path(dst).suffix.lower()
+
 
         if is_file_like(dst):
             dst_ = dst
@@ -8668,8 +8668,10 @@ class MDF4(MDF_Common):
             else:
                 dst = Path("__file_like.mf4")
             dst_.seek(0)
+            suffix = ".mf4"
         else:
             file_like = False
+            suffix = Path(dst).suffix.lower()
 
             dst = Path(dst).with_suffix(".mf4")
 
