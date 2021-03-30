@@ -32,7 +32,19 @@ class ListWidget(QtWidgets.QListWidget):
 
         self.can_delete_items = True
         self.setAcceptDrops(True)
+
+        self.itemSelectionChanged.connect(self.item_selection_changed)
+
         self.show()
+
+    def item_selection_changed(self, item=None):
+        selection = list(self.selectedItems())
+        for row in range(self.count()):
+            item = self.item(row)
+            if item in selection:
+                self.itemWidget(item).set_selected(True)
+            else:
+                self.itemWidget(item).set_selected(False)
 
     def keyPressEvent(self, event):
         key = event.key()
@@ -373,7 +385,21 @@ class MinimalListWidget(QtWidgets.QListWidget):
         self.setAcceptDrops(True)
         self.show()
 
+        self.itemSelectionChanged.connect(self.item_selection_changed)
+
         self.minimal_menu = False
+
+    def item_selection_changed(self, item=None):
+        try:
+            selection = list(self.selectedItems())
+            for row in range(self.count()):
+                item = self.item(row)
+                if item in selection:
+                    self.itemWidget(item).set_selected(True)
+                else:
+                    self.itemWidget(item).set_selected(False)
+        except:
+            pass
 
     def keyPressEvent(self, event):
         key = event.key()

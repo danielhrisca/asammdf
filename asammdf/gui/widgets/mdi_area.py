@@ -21,6 +21,7 @@ from ...signal import Signal
 from ..dialogs.channel_info import ChannelInfoDialog
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
 from ..utils import compute_signal, extract_mime_names, get_required_signals
+from .bar import Bar
 from .numeric import Numeric
 from .plot import Plot
 from .tabular import Tabular
@@ -988,6 +989,44 @@ class WithMDIArea:
             )
             if self.subplots_link:
                 numeric.timestamp_changed_signal.connect(self.set_cursor)
+
+        elif window_type == "Bar":
+            bar = Bar(signals)
+
+            if not self.subplots:
+                for mdi in self.mdi_area.subWindowList():
+                    mdi.close()
+                w = self.mdi_area.addSubWindow(bar)
+
+                w.showMaximized()
+            else:
+                w = self.mdi_area.addSubWindow(bar)
+
+                if len(self.mdi_area.subWindowList()) == 1:
+                    w.showMaximized()
+                else:
+                    w.show()
+                    self.mdi_area.tileSubWindows()
+
+            if self._frameless_windows:
+                w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+
+            w.layout().setSpacing(1)
+
+            menu = w.systemMenu()
+
+            action = QtWidgets.QAction("Set title", menu)
+            action.triggered.connect(partial(set_title, w))
+            before = menu.actions()[0]
+            menu.insertAction(before, action)
+
+            w.setWindowTitle(generate_window_title(w, window_type))
+
+            bar.add_channels_request.connect(
+                partial(self.add_new_channels, widget=bar)
+            )
+            if self.subplots_link:
+                bar.timestamp_changed_signal.connect(self.set_cursor)
 
         elif window_type == "Plot":
             if hasattr(self, "mdf"):
