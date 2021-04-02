@@ -42,9 +42,13 @@ class ListWidget(QtWidgets.QListWidget):
         for row in range(self.count()):
             item = self.item(row)
             if item in selection:
-                self.itemWidget(item).set_selected(True)
+                widget = self.itemWidget(item)
+                if widget is not None:
+                    widget.set_selected(True)
             else:
-                self.itemWidget(item).set_selected(False)
+                widget = self.itemWidget(item)
+                if widget is not None:
+                    widget.set_selected(False)
 
     def keyPressEvent(self, event):
         key = event.key()

@@ -104,7 +104,7 @@ setup(
             "h5py",
             "hdf5storage>=0.1.17",
             "scipy",
-            "snappy",
+            "python-snappy",
         ],
         "gui": [
             "lxml",

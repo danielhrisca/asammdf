@@ -201,6 +201,8 @@ class PlotSignal(Signal):
         if not fast:
             self.trim(*(trim_info or (None, None, 1900)))
 
+        self.size = len(self.samples)
+
     @property
     def min(self):
         return self._min if self.mode == "phys" else self._min_raw

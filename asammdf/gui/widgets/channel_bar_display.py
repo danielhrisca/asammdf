@@ -24,7 +24,7 @@ class BarWidget(QtWidgets.QWidget):
     def resizeEvent(self, event):
 
         width = self.size().width()
-        parts = 10
+        parts = 6
         while True:
             px = width / parts
             if px >= 50:
@@ -97,36 +97,47 @@ class BarWidget(QtWidgets.QWidget):
 
             val_pos = int(val / self.range[1] * w)
 
+            val = str(val) if isinstance(val, int) else f"{val:.3f}"
+
             qp.drawLine(val_pos, 0, val_pos, 5)
-            metrics = qp.fontMetrics().boundingRect(str(val) if isinstance(val, int) else f"{val:.3f}")
+            metrics = qp.fontMetrics().boundingRect(val)
             fw = metrics.width()
             fh = metrics.height()
 
             x, y = int(val_pos - fw/2), 7 + fh
             x = max(2, x)
             x = min(x, w-fw-2)
-            qp.drawText(x, y, str(val))
+            qp.drawText(x, y, val)
 
 
 class ChannelBarDisplay(Ui_ChannelBarDisplay, QtWidgets.QWidget):
 
     def __init__(
-        self, uuid, value, unit="", precision=3, tooltip="", *args, **kwargs
+        self, uuid, value, range, over, color, unit="", precision=3, tooltip="", *args, **kwargs
     ):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
-        self.color = "#ff0000"
+        self.color = color
         self._value_prefix = ""
         self._value = value
         self._name = ""
 
-        self.bar = BarWidget(color=self.color)
-
+        self.bar = BarWidget(range, over, color=self.color)
         self.layout.addWidget(self.bar)
+
+        self.instant_value = QtWidgets.QLabel("")
+        self.instant_value.setMinimumWidth(150)
+        font = self.instant_value.font()
+        font.setBold(True)
+        font.setPointSize(16)
+        self.instant_value.setFont(font)
+        self.layout.addWidget(self.instant_value)
+
         self.layout.setStretch(0, 0)
         self.layout.setStretch(1, 0)
         self.layout.setStretch(2, 1)
+        self.layout.setStretch(3, 0)
 
         self.uuid = uuid
         self.ranges = {}
@@ -209,6 +220,7 @@ class ChannelBarDisplay(Ui_ChannelBarDisplay, QtWidgets.QWidget):
         palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Text, brush)
 
         self.name.setPalette(palette)
+        self.instant_value.setPalette(palette)
 
     def set_name(self, text=""):
         self.setToolTip(self._tooltip or text)
@@ -236,8 +248,7 @@ class ChannelBarDisplay(Ui_ChannelBarDisplay, QtWidgets.QWidget):
             return
 
         self.bar.setValue(value)
-
-        self.value = value
+        self.instant_value.setText(self.fmt.format(value))
 
     def keyPressEvent(self, event):
         key = event.key()

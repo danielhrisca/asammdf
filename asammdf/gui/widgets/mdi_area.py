@@ -2061,7 +2061,7 @@ class WithMDIArea:
                         )
                         wid.plot.keyPressEvent(event)
                     wid.plot.cursor1.setPos(pos)
-                elif isinstance(wid, Numeric) and wid is not widget:
+                elif isinstance(wid, (Numeric, Bar)) and wid is not widget:
                     wid.timestamp.setValue(pos)
             self._cursor_source = None
 

@@ -10,6 +10,7 @@ from ..ui import resource_rc as resource_rc
 from ..ui.bar import Ui_BarDisplay
 from .channel_bar_display import ChannelBarDisplay
 from .list_item import ListItem
+from .plot import PlotSignal
 from ..utils import COLORS
 
 OPS = {
@@ -82,7 +83,7 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
             uuid = widget.uuid
             sig = self.signals[uuid]
 
-            if sig.size:
+            if len(sig):
                 if (sig.group_index, sig.mdf_uuid) in idx_cache:
                     idx = idx_cache[(sig.group_index, sig.mdf_uuid)]
                 else:
@@ -152,7 +153,8 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
         channels = valid
 
         for sig in channels:
-            if sig.size:
+            sig = PlotSignal(sig)
+            if len(sig):
                 self._min = min(self._min, sig.timestamps[0])
                 self._max = max(self._max, sig.timestamps[-1])
 
@@ -166,7 +168,7 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
             item.setData(QtCore.Qt.UserRole, sig.name)
             tooltip = getattr(sig, "tooltip", "") or sig.comment
 
-            it = ChannelBarDisplay(sig.uuid, 0, sig.unit, 3, tooltip, self)
+            it = ChannelBarDisplay(sig.uuid, 0, (sig.min, sig.max), sig.max + 1, sig.color, sig.unit, 3, tooltip, self)
             it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
             if sig.computed:
