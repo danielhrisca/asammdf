@@ -917,7 +917,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             self,
             "Select measurement file",
             "",
-            "CSV (*.csv);;MDF v3 (*.dat *.mdf);;MDF v4(*.mf4);;DL3/ERG files (*.dl3 *.erg);;All files (*csv *.dat *.mdf *.mf4 *.dl3 *.erg)",
+            "CSV (*.csv);;MDF v3 (*.dat *.mdf);;MDF v4(*.mf4);;DL3/ERG files (*.dl3 *.erg);;All files (*.csv *.dat *.mdf *.mf4 *.dl3 *.erg)",
             "All files (*.csv *.dat *.mdf *.mf4 *.dl3 *.erg)",
         )
 
