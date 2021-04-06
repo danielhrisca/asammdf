@@ -1378,6 +1378,7 @@ class Plot(QtWidgets.QWidget):
 
         invalid = []
 
+        can_trim = True
         for channel in channels:
             diff = np.diff(channel.timestamps)
             invalid_indexes = np.argwhere(diff <= 0).ravel()
@@ -1388,6 +1389,8 @@ class Plot(QtWidgets.QWidget):
                 invalid.append(
                     f"{channel.name} @ index {invalid_indexes[:10] - 1} with first time stamp error: {ts}"
                 )
+                if len(np.argwhere(diff < 0).ravel()):
+                    can_trim = False
 
         if invalid:
             errors = "\n".join(invalid)
@@ -1396,7 +1399,7 @@ class Plot(QtWidgets.QWidget):
                 "The following channels do not have monotonous increasing time stamps:",
                 f"The following channels do not have monotonous increasing time stamps:\n{errors}",
             )
-            self.plot._can_trim = False
+            self.plot._can_trim = can_trim
 
         valid = []
         invalid = []
