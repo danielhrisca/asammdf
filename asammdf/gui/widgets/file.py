@@ -128,15 +128,18 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     names = [n.strip() for n in csv.readline().split(',')]
                     units = [n.strip() for n in csv.readline().split(',')]
 
-                    if not all(isinstance(e, str) for e in units):
-                        csv.seek(0)
-                        csv.readline()
-                        units = None
-                    else:
+                    try:
+                        float(units[0])
+                    except:
                         units = {
                             name: unit
                             for name, unit in zip(names, units)
                         }
+                    else:
+                        csv.seek(0)
+                        csv.readline()
+                        units = None
+
                     df = pd.read_csv(csv, header=None, names=names)
                     df.set_index(df[names[0]], inplace=True)
                     self.mdf = MDF()
