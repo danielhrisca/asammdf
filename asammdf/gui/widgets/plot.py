@@ -1362,6 +1362,7 @@ class Plot(QtWidgets.QWidget):
         it.color_changed.connect(self.plot.set_color)
         it.enable_changed.connect(self.plot.set_signal_enable)
         it.ylink_changed.connect(self.plot.set_common_axis)
+        it.individual_axis_changed.connect(self.plot.set_individual_axis)
 
         it.enable_changed.emit(sig.uuid, 1)
         it.enable_changed.emit(sig.uuid, 0)

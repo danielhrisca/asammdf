@@ -172,7 +172,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     else:
                         break
 
-                datalyser = win32com.client.Dispatch("Datalyser3.Datalyser3_COM")
+                try:
+                    datalyser = win32com.client.Dispatch("Datalyser3.Datalyser3_COM")
+                except:
+                    raise Exception(
+                        "Datalyser must be installed if you wasnt to open DL3 files"
+                    )
                 if not datalyser_active:
                     try:
                         datalyser.DCOM_set_datalyser_visibility(False)
