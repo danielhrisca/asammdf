@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
 from textwrap import wrap
+from traceback import format_exc
 
 from natsort import natsorted
 from PyQt5 import QtCore, QtWidgets
@@ -63,7 +64,7 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
             except Exception as err:
                 self.status.setText(str(err))
             else:
-                if match_results:
+                if results:
                     self.status.setText("")
                     self.matches.addItems(results)
                 else:
