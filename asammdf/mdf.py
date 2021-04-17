@@ -4132,9 +4132,10 @@ class MDF:
                     original_ids = msg_ids.samples.copy()
 
                     if is_j1939:
-                        ps = (msg_ids.samples >> 8) & 0xFF
+                        tmp_pgn = msg_ids.samples >> 8
+                        ps = tmp_pgn & 0xFF
                         pf = (msg_ids.samples >> 16) & 0xFF
-                        _pgn = pf << 8
+                        _pgn = tmp_pgn & 0x3FF00
                         msg_ids.samples = np.where(pf >= 240, _pgn + ps, _pgn)
 
                     data_bytes = self.get(
