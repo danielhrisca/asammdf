@@ -3944,6 +3944,7 @@ class MDF:
         ignore_invalid_signals=False,
         consolidated_j1939=True,
         ignore_value2text_conversion=True,
+        prefix="",
     ):
         """extract all possible CAN signal using the provided databases.
 
@@ -3974,6 +3975,12 @@ class MDF:
             ignore value to text conversions
 
             .. versionadded:: 5.23.0
+
+        prefix ("") : str
+            prefix that will added to the channel group names and signal names in
+            the output file
+
+            .. versionadded:: 6.3.0
 
 
         Returns
@@ -4025,6 +4032,7 @@ class MDF:
                 ignore_invalid_signals,
                 consolidated_j1939,
                 ignore_value2text_conversion,
+                prefix,
             )
 
         if database_files.get("LIN", None):
@@ -4033,6 +4041,7 @@ class MDF:
                 database_files["LIN"],
                 ignore_invalid_signals,
                 ignore_value2text_conversion,
+                prefix,
             )
 
         return out
@@ -4044,6 +4053,7 @@ class MDF:
         ignore_invalid_signals=False,
         consolidated_j1939=True,
         ignore_value2text_conversion=True,
+        prefix="",
     ):
 
         out = output_file
@@ -4215,10 +4225,11 @@ class MDF:
                                     msg_map[entry] = index
 
                                     for name_, signal in signals.items():
+                                        signal_name = f"{prefix}{signal['name']}"
                                         sig = Signal(
                                             samples=signal["samples"],
                                             timestamps=signal["t"],
-                                            name=signal["name"],
+                                            name=signal_name,
                                             comment=signal["comment"],
                                             unit=signal["unit"],
                                             invalidation_bits=signal[
@@ -4233,15 +4244,20 @@ class MDF:
 <TX>{sig.comment}</TX>
 <names>
     <display>
-        CAN{bus}.{message.name}.{signal['name']}
+        CAN{bus}.{message.name}.{signal_name}
     </display>
 </names>
 </CNcomment>"""
                                         sigs.append(sig)
 
+                                    if prefix:
+                                        acq_name = f"{prefix}: from CAN{bus} message ID=0x{msg_id:X}"
+                                    else:
+                                        acq_name = f"from CAN{bus} message ID=0x{msg_id:X}"
+
                                     cg_nr = out.append(
                                         sigs,
-                                        acq_name=f"from CAN{bus} message ID=0x{msg_id:X}",
+                                        acq_name=acq_name,
                                         comment=f"{message} 0x{msg_id:X}",
                                         common_timebase=True,
                                     )
@@ -4331,6 +4347,7 @@ class MDF:
         dbc_files,
         ignore_invalid_signals=False,
         ignore_value2text_conversion=True,
+        prefix="",
     ):
 
         out = output_file
@@ -4465,10 +4482,11 @@ class MDF:
                                 msg_map[entry] = index
 
                                 for name_, signal in signals.items():
+                                    signal_name = f"{prefix}{signal['name']}"
                                     sig = Signal(
                                         samples=signal["samples"],
                                         timestamps=signal["t"],
-                                        name=signal["name"],
+                                        name=signal_name,
                                         comment=signal["comment"],
                                         unit=signal["unit"],
                                         invalidation_bits=signal["invalidation_bits"]
@@ -4481,15 +4499,20 @@ class MDF:
 <TX>{sig.comment}</TX>
 <names>
 <display>
-    LIN.{message.name}.{signal['name']}
+    LIN.{message.name}.{signal_name}
 </display>
 </names>
 </CNcomment>"""
                                     sigs.append(sig)
 
+                                if prefix:
+                                    acq_name = f"{prefix}: from LIN message ID=0x{msg_id:X}"
+                                else:
+                                    acq_name = f"from LIN message ID=0x{msg_id:X}"
+
                                 cg_nr = out.append(
                                     sigs,
-                                    acq_name=f"from LIN message ID=0x{msg_id:X}",
+                                    acq_name=acq_name,
                                     comment=f"{message} 0x{msg_id:X}",
                                     common_timebase=True,
                                 )

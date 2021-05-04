@@ -256,6 +256,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 "database_files": database_files,
                 "version": version,
                 "ignore_invalid_signals": ignore_invalid_signals,
+                "prefix": self.prefix.text().strip(),
             }
 
             mdf_ = run_thread_with_progress(
@@ -415,6 +416,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 "database_files": database_files,
                 "version": version,
                 "ignore_invalid_signals": ignore_invalid_signals,
+                "prefix": self.prefix.text().strip(),
             }
 
             mdf_ = run_thread_with_progress(

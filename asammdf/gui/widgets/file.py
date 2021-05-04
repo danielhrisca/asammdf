@@ -1462,6 +1462,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "database_files": database_files,
                 "version": version,
                 "ignore_invalid_signals": ignore_invalid_signals,
+                "prefix": self.prefix.text().strip(),
             }
 
             mdf = run_thread_with_progress(
@@ -1599,6 +1600,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "database_files": database_files,
                 "version": version,
                 "ignore_invalid_signals": ignore_invalid_signals,
+                "prefix": self.prefix.text().strip(),
             }
 
             mdf = run_thread_with_progress(
