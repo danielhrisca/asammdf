@@ -222,7 +222,8 @@ class AttachmentBlock:
 
             else:
                 self.file_name = str(file_name)
-                file_name.write_bytes(data)
+                if len(data) > 0:
+                    file_name.write_bytes(data)
                 embedded_size = 0
                 data = b""
 
