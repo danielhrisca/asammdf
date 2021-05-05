@@ -18,6 +18,7 @@ from ..utils import (
     setup_progress,
     TERMINATED,
 )
+from .database_item import DatabaseItem
 from .list import MinimalListWidget
 from .tree_item import TreeItem
 
@@ -518,14 +519,20 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
     def load_can_database(self, event):
         file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
             self,
-            "Select Bus database file",
+            "Select CAN database file",
             "",
-            "ARXML or DBC (*.dbc *.axml)",
-            "ARXML or DBC (*.dbc *.axml)",
+            "ARXML or DBC (*.dbc *.arxml)",
+            "ARXML or DBC (*.dbc *.arxml)",
         )
 
         if file_names:
-            self.can_database_list.addItems(file_names)
+            for database in file_names:
+                item = QtWidgets.QListWidgetItem()
+                widget = DatabaseItem(database, bus_type="CAN")
+
+                self.can_database_list.addItem(item)
+                self.can_database_list.setItemWidget(item, widget)
+                item.setSizeHint(widget.sizeHint())
 
     def load_lin_database(self, event):
         file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
@@ -537,7 +544,13 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         )
 
         if file_names:
-            self.lin_database_list.addItems(file_names)
+            for database in file_names:
+                item = QtWidgets.QListWidgetItem()
+                widget = DatabaseItem(database, bus_type="LIN")
+
+                self.lin_database_list.addItem(item)
+                self.lin_database_list.setItemWidget(item, widget)
+                item.setSizeHint(widget.sizeHint())
 
     def concatenate(self, event):
         count = self.files_list.count()
