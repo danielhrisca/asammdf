@@ -195,14 +195,16 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             database_files["CAN"] = []
             for i in range(count):
                 item = self.can_database_list.item(i)
-                database_files["CAN"].append(item.text())
+                widget = self.can_database_list.itemWidget(item)
+                database_files["CAN"].append((widget.database.text(), widget.bus.currentIndex()))
 
         count = self.lin_database_list.count()
         if count:
             database_files["LIN"] = []
             for i in range(count):
                 item = self.lin_database_list.item(i)
-                database_files["LIN"].append(item.text())
+                widget = self.can_database_list.itemWidget(item)
+                database_files["LIN"].append((widget.database.text(), widget.bus.currentIndex()))
 
         compression = self.extract_bus_compression.currentIndex()
         ignore_invalid_signals = (
@@ -345,14 +347,16 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             database_files["CAN"] = []
             for i in range(count):
                 item = self.can_database_list.item(i)
-                database_files["CAN"].append(item.text())
+                widget = self.can_database_list.itemWidget(item)
+                database_files["CAN"].append((widget.database.text(), widget.bus.currentIndex()))
 
         count = self.lin_database_list.count()
         if count:
             database_files["LIN"] = []
             for i in range(count):
                 item = self.lin_database_list.item(i)
-                database_files["LIN"].append(item.text())
+                widget = self.can_database_list.itemWidget(item)
+                database_files["LIN"].append((widget.database.text(), widget.bus.currentIndex()))
 
         ignore_invalid_signals = (
             self.ignore_invalid_signals_csv.checkState() == QtCore.Qt.Checked

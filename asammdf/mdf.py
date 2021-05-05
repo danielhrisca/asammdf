@@ -3955,9 +3955,13 @@ class MDF:
         database_files : dict
             each key will contain an iterable of database files for that bus type. The
             supported bus types are "CAN", "LIN". The iterables will contain the
-            databases as str, pathlib.Path or canamtrix.CanMatrix objects
+            (databases, valid bus) pairs. The database can be a  str, pathlib.Path or canamtrix.CanMatrix object.
+            The valid bus is an integer specifying for which bus channel the database
+            can be applied; 0 means any bus channel.
 
             .. versionchanged:: 6.0.0 added canmatrix.CanMatrix type
+
+            .. versionchanged:: 6.3.0 added bus channel fileter
 
         version (None) : str
             output file version
@@ -3993,15 +3997,15 @@ class MDF:
         >>> "extrac CAN and LIN bus logging"
         >>> mdf = asammdf.MDF(r'bus_logging.mf4')
         >>> databases = {
-        ...     "CAN": ["file1.dbc", "file2.arxml"],
-        ...     "LIN": ["file3.dbc"],
+        ...     "CAN": [("file1.dbc", 0), ("file2.arxml", 2)],
+        ...     "LIN": [("file3.dbc", 0)],
         ... }
         >>> extracted = mdf.extract_bus_logging(database_files=database_files)
         >>> ...
         >>> "extrac just LIN bus logging"
         >>> mdf = asammdf.MDF(r'bus_logging.mf4')
         >>> databases = {
-        ...     "LIN": ["file3.dbc"],
+        ...     "LIN": [("file3.dbc", 0)],
         ... }
         >>> extracted = mdf.extract_bus_logging(database_files=database_files)
 
@@ -4062,17 +4066,17 @@ class MDF:
 
         valid_dbc_files = []
         unique_name = UniqueDB()
-        for dbc_name in dbc_files:
+        for (dbc_name, bus_channel) in dbc_files:
             if isinstance(dbc_name, CanMatrix):
                 valid_dbc_files.append(
-                    (dbc_name, unique_name.get_unique_name("UserProvidedCanMatrix"))
+                    (dbc_name, unique_name.get_unique_name("UserProvidedCanMatrix"), bus_channel)
                 )
             else:
                 dbc = load_can_database(Path(dbc_name))
                 if dbc is None:
                     continue
                 else:
-                    valid_dbc_files.append((dbc, dbc_name))
+                    valid_dbc_files.append((dbc, dbc_name, bus_channel))
 
         count = sum(
             1
@@ -4089,7 +4093,7 @@ class MDF:
         not_found_ids = defaultdict(list)
         unknown_ids = defaultdict(list)
 
-        for dbc, dbc_name in valid_dbc_files:
+        for dbc, dbc_name, bus_channel in valid_dbc_files:
             is_j1939 = dbc.contains_j1939
             if is_j1939:
                 messages = {message.arbitration_id.pgn: message for message in dbc}
@@ -4158,6 +4162,8 @@ class MDF:
                     buses = np.unique(bus_ids)
 
                     for bus in buses:
+                        if bus_channel and bus != bus_channel:
+                            continue
                         idx = np.argwhere(bus_ids == bus).ravel()
                         bus_t = msg_ids.timestamps[idx]
                         bus_msg_ids = msg_ids.samples[idx]
@@ -4356,17 +4362,17 @@ class MDF:
 
         valid_dbc_files = []
         unique_name = UniqueDB()
-        for dbc_name in dbc_files:
+        for (dbc_name, bus_channel) in dbc_files:
             if isinstance(dbc_name, CanMatrix):
                 valid_dbc_files.append(
-                    (dbc_name, unique_name.get_unique_name("UserProvidedCanMatrix"))
+                    (dbc_name, unique_name.get_unique_name("UserProvidedCanMatrix"), bus_channel)
                 )
             else:
                 dbc = load_can_database(Path(dbc_name))
                 if dbc is None:
                     continue
                 else:
-                    valid_dbc_files.append((dbc, dbc_name))
+                    valid_dbc_files.append((dbc, dbc_name, bus_channel))
 
         count = sum(
             1
@@ -4383,7 +4389,7 @@ class MDF:
         not_found_ids = defaultdict(list)
         unknown_ids = defaultdict(list)
 
-        for dbc, dbc_name in valid_dbc_files:
+        for dbc, dbc_name, bus_channel in valid_dbc_files:
             messages = {message.arbitration_id.id: message for message in dbc}
 
             current_not_found_ids = {
@@ -4429,6 +4435,16 @@ class MDF:
                         samples_only=True,
                     )[0]
 
+                    try:
+                        bus_ids = self.get(
+                            "LIN_Frame.BusChannel",
+                            group=i,
+                            data=fragment,
+                            samples_only=True,
+                        )[0].astype("<u1")
+                    except:
+                        bus_ids = np.ones(len(original_ids), dtype='u1')
+
                     bus_t = msg_ids.timestamps
                     bus_msg_ids = msg_ids.samples
                     bus_data_bytes = data_bytes
@@ -4442,59 +4458,65 @@ class MDF:
                         tuple(int(e) for e in f) for f in unique_ids
                     )
 
-                    for msg_id_record in unique_ids:
-                        msg_id = int(msg_id_record[0])
-                        original_msg_id = int(msg_id_record[1])
-                        message = messages.get(msg_id, None)
-                        if message is None:
-                            unknown_ids[msg_id].append(True)
+                    buses = np.unique(bus_ids)
+
+                    for bus in buses:
+                        if bus_channel and bus != bus_channel:
                             continue
 
-                        found_ids[dbc_name].add((msg_id, message.name))
-                        try:
-                            current_not_found_ids.remove((msg_id, message.name))
-                        except KeyError:
-                            pass
-
-                        unknown_ids[msg_id].append(False)
-
-                        idx = np.argwhere(bus_msg_ids == msg_id).ravel()
-                        payload = bus_data_bytes[idx]
-                        t = bus_t[idx]
-
-                        extracted_signals = extract_mux(
-                            payload,
-                            message,
-                            msg_id,
-                            0,
-                            t,
-                            original_message_id=None,
-                            ignore_value2text_conversion=ignore_value2text_conversion,
-                        )
-
-                        for entry, signals in extracted_signals.items():
-                            if len(next(iter(signals.values()))["samples"]) == 0:
+                        for msg_id_record in unique_ids:
+                            msg_id = int(msg_id_record[0])
+                            original_msg_id = int(msg_id_record[1])
+                            message = messages.get(msg_id, None)
+                            if message is None:
+                                unknown_ids[msg_id].append(True)
                                 continue
-                            if entry not in msg_map:
-                                sigs = []
 
-                                index = len(out.groups)
-                                msg_map[entry] = index
+                            found_ids[dbc_name].add((msg_id, message.name))
+                            try:
+                                current_not_found_ids.remove((msg_id, message.name))
+                            except KeyError:
+                                pass
 
-                                for name_, signal in signals.items():
-                                    signal_name = f"{prefix}{signal['name']}"
-                                    sig = Signal(
-                                        samples=signal["samples"],
-                                        timestamps=signal["t"],
-                                        name=signal_name,
-                                        comment=signal["comment"],
-                                        unit=signal["unit"],
-                                        invalidation_bits=signal["invalidation_bits"]
-                                        if ignore_invalid_signals
-                                        else None,
-                                    )
+                            unknown_ids[msg_id].append(False)
 
-                                    sig.comment = f"""\
+                            idx = np.argwhere(bus_msg_ids == msg_id).ravel()
+                            payload = bus_data_bytes[idx]
+                            t = bus_t[idx]
+
+                            extracted_signals = extract_mux(
+                                payload,
+                                message,
+                                msg_id,
+                                bus,
+                                t,
+                                original_message_id=None,
+                                ignore_value2text_conversion=ignore_value2text_conversion,
+                            )
+
+                            for entry, signals in extracted_signals.items():
+                                if len(next(iter(signals.values()))["samples"]) == 0:
+                                    continue
+                                if entry not in msg_map:
+                                    sigs = []
+
+                                    index = len(out.groups)
+                                    msg_map[entry] = index
+
+                                    for name_, signal in signals.items():
+                                        signal_name = f"{prefix}{signal['name']}"
+                                        sig = Signal(
+                                            samples=signal["samples"],
+                                            timestamps=signal["t"],
+                                            name=signal_name,
+                                            comment=signal["comment"],
+                                            unit=signal["unit"],
+                                            invalidation_bits=signal["invalidation_bits"]
+                                            if ignore_invalid_signals
+                                            else None,
+                                        )
+
+                                        sig.comment = f"""\
 <CNcomment>
 <TX>{sig.comment}</TX>
 <names>
@@ -4503,54 +4525,54 @@ class MDF:
 </display>
 </names>
 </CNcomment>"""
-                                    sigs.append(sig)
+                                        sigs.append(sig)
 
-                                if prefix:
-                                    acq_name = f"{prefix}: from LIN message ID=0x{msg_id:X}"
-                                else:
-                                    acq_name = f"from LIN message ID=0x{msg_id:X}"
+                                    if prefix:
+                                        acq_name = f"{prefix}: from LIN message ID=0x{msg_id:X}"
+                                    else:
+                                        acq_name = f"from LIN message ID=0x{msg_id:X}"
 
-                                cg_nr = out.append(
-                                    sigs,
-                                    acq_name=acq_name,
-                                    comment=f"{message} 0x{msg_id:X}",
-                                    common_timebase=True,
-                                )
-
-                                if ignore_invalid_signals:
-                                    max_flags.append([False])
-                                    for ch_index, sig in enumerate(sigs, 1):
-                                        max_flags[cg_nr].append(
-                                            np.all(sig.invalidation_bits)
-                                        )
-
-                            else:
-
-                                index = msg_map[entry]
-
-                                sigs = []
-
-                                for name_, signal in signals.items():
-                                    sigs.append(
-                                        (
-                                            signal["samples"],
-                                            signal["invalidation_bits"]
-                                            if ignore_invalid_signals
-                                            else None,
-                                        )
+                                    cg_nr = out.append(
+                                        sigs,
+                                        acq_name=acq_name,
+                                        comment=f"{message} 0x{msg_id:X}",
+                                        common_timebase=True,
                                     )
 
-                                    t = signal["t"]
+                                    if ignore_invalid_signals:
+                                        max_flags.append([False])
+                                        for ch_index, sig in enumerate(sigs, 1):
+                                            max_flags[cg_nr].append(
+                                                np.all(sig.invalidation_bits)
+                                            )
 
-                                if ignore_invalid_signals:
-                                    for ch_index, sig in enumerate(sigs, 1):
-                                        max_flags[index][ch_index] = max_flags[index][
-                                            ch_index
-                                        ] or np.all(sig[1])
+                                else:
 
-                                sigs.insert(0, (t, None))
+                                    index = msg_map[entry]
 
-                                out.extend(index, sigs)
+                                    sigs = []
+
+                                    for name_, signal in signals.items():
+                                        sigs.append(
+                                            (
+                                                signal["samples"],
+                                                signal["invalidation_bits"]
+                                                if ignore_invalid_signals
+                                                else None,
+                                            )
+                                        )
+
+                                        t = signal["t"]
+
+                                    if ignore_invalid_signals:
+                                        for ch_index, sig in enumerate(sigs, 1):
+                                            max_flags[index][ch_index] = max_flags[index][
+                                                ch_index
+                                            ] or np.all(sig[1])
+
+                                    sigs.insert(0, (t, None))
+
+                                    out.extend(index, sigs)
                     self._set_temporary_master(None)
                     group.record = None
                 cntr += 1

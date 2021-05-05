@@ -40,6 +40,7 @@ from ..utils import (
     TERMINATED,
 )
 from .attachment import Attachment
+from .database_item import DatabaseItem
 from .mdi_area import MdiAreaWidget, WithMDIArea
 from .numeric import Numeric
 from .tabular import Tabular
@@ -1413,14 +1414,16 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             database_files["CAN"] = []
             for i in range(count):
                 item = self.can_database_list.item(i)
-                database_files["CAN"].append(item.text())
+                widget = self.can_database_list.itemWidget(item)
+                database_files["CAN"].append((widget.database.text(), widget.bus.currentIndex()))
 
         count = self.lin_database_list.count()
         if count:
             database_files["LIN"] = []
             for i in range(count):
                 item = self.lin_database_list.item(i)
-                database_files["LIN"].append(item.text())
+                widget = self.can_database_list.itemWidget(item)
+                database_files["LIN"].append((widget.database.text(), widget.bus.currentIndex()))
 
         compression = self.extract_bus_compression.currentIndex()
         ignore_invalid_signals = (
@@ -1553,14 +1556,16 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             database_files["CAN"] = []
             for i in range(count):
                 item = self.can_database_list.item(i)
-                database_files["CAN"].append(item.text())
+                widget = self.can_database_list.itemWidget(item)
+                database_files["CAN"].append((widget.database.text(), widget.bus.currentIndex()))
 
         count = self.lin_database_list.count()
         if count:
             database_files["LIN"] = []
             for i in range(count):
                 item = self.lin_database_list.item(i)
-                database_files["LIN"].append(item.text())
+                widget = self.can_database_list.itemWidget(item)
+                database_files["LIN"].append((widget.database.text(), widget.bus.currentIndex()))
 
         ignore_invalid_signals = (
             self.ignore_invalid_signals_csv.checkState() == QtCore.Qt.Checked
@@ -1703,7 +1708,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         )
 
         if file_names:
-            self.can_database_list.addItems(file_names)
+            for database in file_names:
+                item = QtWidgets.QListWidgetItem()
+                widget = DatabaseItem(database, bus_type="CAN")
+
+                self.can_database_list.addItem(item)
+                self.can_database_list.setItemWidget(item, widget)
+                item.setSizeHint(widget.sizeHint())
 
     def load_lin_database(self, event):
         file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
@@ -1715,7 +1726,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         )
 
         if file_names:
-            self.lin_database_list.addItems(file_names)
+            for database in file_names:
+                item = QtWidgets.QListWidgetItem()
+                widget = DatabaseItem(database, bus_type="LIN")
+
+                self.lin_database_list.addItem(item)
+                self.lin_database_list.setItemWidget(item, widget)
+                item.setSizeHint(widget.sizeHint())
 
     def keyPressEvent(self, event):
         key = event.key()
