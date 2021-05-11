@@ -3777,7 +3777,7 @@ class MDF3(MDF_Common):
                                 except KeyError:
                                     pass
 
-                gp_master = self.masters_db[group_index]
+                gp_master = self.masters_db.get(group_index, None)
                 if skip_master and gp_master is not None and gp_master in channels:
                     channels.remove(gp_master)
 
