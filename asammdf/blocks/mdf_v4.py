@@ -185,7 +185,11 @@ except:
             (rec_id,) = _unpack_stuct(signal_data, i)
             # skip record id
             i += record_id_nr
-            rec_size = cg_size[rec_id]
+            try:
+                rec_size = cg_size[rec_id]
+            except:
+                return b''
+
             if rec_size:
                 if rec_size + i > size:
                     rem = signal_data[pos:]

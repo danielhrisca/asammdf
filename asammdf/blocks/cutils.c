@@ -82,9 +82,8 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
             }
             
             if (!mlist) {
-                snprintf(err_string, 1024, "Unknown record id %uld ", rec_id);
-                PyErr_SetString(PyExc_ValueError, err_string);
-                return 0;
+                rem = PyBytes_FromStringAndSize(NULL, 0);
+                return rem;
             }
             
             if (rec_size)
