@@ -7,24 +7,38 @@
     <x>0</x>
     <y>0</y>
     <width>674</width>
-    <height>154</height>
+    <height>130</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout" rowstretch="1,0,0,0,0,0">
-   <item row="1" column="0">
-    <widget class="QPushButton" name="load">
-     <property name="text">
-      <string>Latitude</string>
-     </property>
-    </widget>
+  <layout class="QVBoxLayout" name="map_layout">
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>Time</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QDoubleSpinBox" name="timestamp">
+       <property name="suffix">
+        <string>s</string>
+       </property>
+       <property name="decimals">
+        <number>9</number>
+       </property>
+       <property name="singleStep">
+        <double>0.001000000000000</double>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
-   <item row="2" column="1">
-    <widget class="QLineEdit" name="longitude_channel"/>
-   </item>
-   <item row="4" column="0" colspan="2">
+   <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
       <widget class="QLabel" name="min_t">
@@ -55,17 +69,7 @@
      </item>
     </layout>
    </item>
-   <item row="1" column="1">
-    <widget class="QLineEdit" name="latitude_channel"/>
-   </item>
-   <item row="2" column="0">
-    <widget class="QPushButton" name="pushButton">
-     <property name="text">
-      <string>Longitude</string>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="0" colspan="2">
+   <item>
     <widget class="QSlider" name="timestamp_slider">
      <property name="maximum">
       <number>9999</number>
@@ -86,33 +90,6 @@
       <number>1</number>
      </property>
     </widget>
-   </item>
-   <item row="3" column="0" colspan="2">
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
-      <widget class="QLabel" name="label">
-       <property name="text">
-        <string>Time</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QDoubleSpinBox" name="timestamp">
-       <property name="suffix">
-        <string>s</string>
-       </property>
-       <property name="decimals">
-        <number>9</number>
-       </property>
-       <property name="singleStep">
-        <double>0.001000000000000</double>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item row="0" column="0" colspan="2">
-    <layout class="QVBoxLayout" name="map_layout"/>
    </item>
   </layout>
  </widget>

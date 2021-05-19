@@ -11,7 +11,7 @@ from ..ui.gps import Ui_GPSDisplay
 class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
     timestamp_changed_signal = QtCore.pyqtSignal(object, float)
 
-    def __init__(self, latitude_channel, longitude_channel, zoom=10, *args, **kwargs):
+    def __init__(self, latitude_channel, longitude_channel, zoom=5, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
@@ -47,11 +47,12 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
         self.max_t.setText(f"{self._max:.3f}s")
 
         self.mapWidget = MapWidget()
-        self.map_layout.addWidget(self.mapWidget)
+        self.map_layout.insertWidget(0, self.mapWidget)
+        self.map_layout.setStretch(0, 1)
         self.map = L.map(self.mapWidget)
         self.map.setView([50.1364092, 8.5991296], zoom)
 
-        L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png').addTo(self.map)
+        L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png').addTo(self.map)
 
         if len(timebase):
             line = L.polyline(
@@ -113,8 +114,8 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
     def to_config(self):
 
         config = {
-            "latitude_channel": self.latitude_channel.text().strip(),
-            "longitude_channel": self.longitude_channel.text().strip(),
+            "latitude_channel": self.latitude_signal.name,
+            "longitude_channel": self.longitude_signal.name,
             "zoom": self.map.getZoom(),
         }
 
