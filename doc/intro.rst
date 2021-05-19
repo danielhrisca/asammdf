@@ -97,6 +97,7 @@ other optional dependencies
 * matplotlib : as fallback for Signal plotting
 * cChardet : to detect non-standard unicode encodings
 * chardet : to detect non-standard unicode encodings 
+* pyqtlet : for GPS window
 
 
 Installation

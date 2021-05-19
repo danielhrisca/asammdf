@@ -27,6 +27,7 @@ from .plot import Plot
 from .tabular import Tabular
 from .can_bus_trace import CANBusTrace
 from .lin_bus_trace import LINBusTrace
+from .gps import GPS
 
 COMPONENT = re.compile(r'\[(?P<index>\d+)\]$')
 
@@ -733,6 +734,43 @@ class WithMDIArea:
             w.setWindowTitle(f"LIN Bus Trace {self._window_counter}")
             self._window_counter += 1
 
+    def _add_gps_window(self, signals):
+
+        latitude_channel, longitude_channel = self.mdf.select(signals)
+
+        gps = GPS(latitude_channel, longitude_channel)
+        w = self.mdi_area.addSubWindow(gps)
+
+        if len(self.mdi_area.subWindowList()) == 1:
+            w.showMaximized()
+        else:
+            w.show()
+            self.mdi_area.tileSubWindows()
+
+        menu = w.systemMenu()
+        if self._frameless_windows:
+            w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+
+        w.layout().setSpacing(1)
+
+        def set_title(mdi):
+            name, ok = QtWidgets.QInputDialog.getText(
+                None, "Set sub-plot title", "Title:"
+            )
+            if ok and name:
+                mdi.setWindowTitle(name)
+
+        action = QtWidgets.QAction("Set title", menu)
+        action.triggered.connect(partial(set_title, w))
+        before = menu.actions()[0]
+        menu.insertAction(before, action)
+
+        w.setWindowTitle(f"GPS {self._window_counter}")
+        self._window_counter += 1
+
+        if self.subplots_link:
+            gps.timestamp_changed_signal.connect(self.set_cursor)
+
     def add_window(self, args):
         window_type, names = args
 
@@ -740,6 +778,8 @@ class WithMDIArea:
             return self._add_can_bus_trace_window()
         elif window_type == "LIN Bus Trace":
             return self._add_lin_bus_trace_window()
+        elif window_type == "GPS":
+            return self._add_gps_window(names)
 
         if names and isinstance(names[0], str):
             signals_ = [
@@ -1403,6 +1443,54 @@ class WithMDIArea:
             if self.subplots_link:
                 numeric.timestamp_changed_signal.connect(self.set_cursor)
 
+        elif window_info["type"] == "GPS":
+            signals_ = [
+                (None, *self.mdf.whereis(name)[0])
+                for name in (window_info["configuration"]["latitude_channel"], window_info["configuration"]["longitude_channel"])
+                if name in self.mdf
+            ]
+
+            if len(signals_) != 2:
+                return
+
+            latitude, longitude = self.mdf.select(
+                signals_,
+                copy_master=False,
+                validate=True,
+                raw=False,
+            )
+
+            gps = GPS(latitude, longitude, window_info["configuration"]["zoom"])
+
+            if not self.subplots:
+                for mdi in self.mdi_area.subWindowList():
+                    mdi.close()
+                w = self.mdi_area.addSubWindow(gps)
+
+                w.showMaximized()
+            else:
+                w = self.mdi_area.addSubWindow(gps)
+                w.show()
+
+                if geometry:
+                    w.setGeometry(*geometry)
+                else:
+                    self.mdi_area.tileSubWindows()
+
+            w.setWindowTitle(generate_window_title(w, window_info["type"], window_info["title"]))
+
+            gps._update_values()
+
+            menu = w.systemMenu()
+
+            action = QtWidgets.QAction("Set title", menu)
+            action.triggered.connect(partial(set_title, w))
+            before = menu.actions()[0]
+            menu.insertAction(before, action)
+
+            if self.subplots_link:
+                gps.timestamp_changed_signal.connect(self.set_cursor)
+
         elif window_info["type"] == "Plot":
             # patterns
             pattern_info = window_info["configuration"].get("pattern", {})
@@ -2061,7 +2149,7 @@ class WithMDIArea:
                         )
                         wid.plot.keyPressEvent(event)
                     wid.plot.cursor1.setPos(pos)
-                elif isinstance(wid, (Numeric, Bar)) and wid is not widget:
+                elif isinstance(wid, (Numeric, Bar, GPS)) and wid is not widget:
                     wid.timestamp.setValue(pos)
             self._cursor_source = None
 

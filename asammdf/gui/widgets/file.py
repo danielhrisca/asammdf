@@ -41,6 +41,7 @@ from ..utils import (
 )
 from .attachment import Attachment
 from .database_item import DatabaseItem
+from .gps import GPS
 from .mdi_area import MdiAreaWidget, WithMDIArea
 from .numeric import Numeric
 from .tabular import Tabular
@@ -975,6 +976,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 window_config["type"] = "Plot"
             elif isinstance(wid, Tabular):
                 window_config["type"] = "Tabular"
+            elif isinstance(wid, GPS):
+                window_config["type"] = "GPS"
             elif isinstance(wid, CANBusTrace):
                 continue
 
@@ -1320,7 +1323,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if window_type is None:
             dialog = WindowSelectionDialog(
-                options=("Plot", "Numeric", "Tabular", "CAN Bus Trace", "LIN Bus Trace"),
+                options=("Plot", "Numeric", "Tabular", "GPS", "CAN Bus Trace", "LIN Bus Trace"),
                 parent=self,
             )
             dialog.setModal(True)
@@ -1335,6 +1338,31 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             return
         elif window_type in ("CAN Bus Trace", "LIN Bus Trace"):
             signals = []
+        elif window_type == "GPS":
+            names = sorted(self.mdf.channels_db)
+            latitude, ok = QtWidgets.QInputDialog.getItem(
+                self,
+                "Select the Latitude signals",
+                "Latitude signal name:",
+                names,
+                editable=False,
+            )
+            if not ok:
+                return
+
+            longitude, ok = QtWidgets.QInputDialog.getItem(
+                self,
+                "Select the Longitude signals",
+                "Longitude signal name:",
+                names,
+                editable=False,
+            )
+            if not ok:
+                return
+
+            signals = [
+                (None, *self.mdf.whereis(name)[0]) for name in [latitude, longitude]
+            ]
         else:
 
             try:

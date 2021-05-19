@@ -121,32 +121,37 @@ def load_dsp(file):
             )
 
         for item in display.findall("CHANNEL_PATTERN"):
-            info = {
-                "pattern": item.get("name_pattern"),
-                "match_type": "Wildcard",
-                "filter_type": item.get("filter_type"),
-                "filter_value": float(item.get("filter_value")),
-                "raw": bool(int(item.get("filter_use_raw"))),
-            }
 
-            multi_color = item.find("MULTI_COLOR")
+            try:
+                info = {
+                    "pattern": item.get("name_pattern"),
+                    "match_type": "Wildcard",
+                    "filter_type": item.get("filter_type"),
+                    "filter_value": float(item.get("filter_value")),
+                    "raw": bool(int(item.get("filter_use_raw"))),
+                }
 
-            ranges = {}
+                multi_color = item.find("MULTI_COLOR")
 
-            for color in multi_color.findall("color"):
-                min_ = float(color.find("min").get("data"))
-                max_ = float(color.find("max").get("data"))
-                color_ = int(color.find("color").get("data"))
-                c = 0
-                for i in range(3):
-                    c = c << 8
-                    c += color_ & 0xFF
-                    color_ = color_ >> 8
-                ranges[(min_, max_)] = f"#{c:06X}"
+                ranges = {}
 
-            info["ranges"] = ranges
+                if multi_color is not None:
+                    for color in multi_color.findall("color"):
+                        min_ = float(color.find("min").get("data"))
+                        max_ = float(color.find("max").get("data"))
+                        color_ = int(color.find("color").get("data"))
+                        c = 0
+                        for i in range(3):
+                            c = c << 8
+                            c += color_ & 0xFF
+                            color_ = color_ >> 8
+                        ranges[(min_, max_)] = f"#{c:06X}"
 
-            patterns[info["pattern"]] = info
+                info["ranges"] = ranges
+
+                patterns[info["pattern"]] = info
+            except:
+                continue
 
         return channels, groups, all_channels, patterns
 
