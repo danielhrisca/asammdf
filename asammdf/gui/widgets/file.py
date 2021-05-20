@@ -1494,7 +1494,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "version": version,
                 "ignore_invalid_signals": ignore_invalid_signals,
                 "prefix": self.prefix.text().strip(),
-                "consolidate_j1939": self.consolidate_j1939.checkState() == QtCore.Qt.Checked,
+                "consolidated_j1939": self.consolidated_j1939.checkState() == QtCore.Qt.Checked,
             }
 
             mdf = run_thread_with_progress(
@@ -1635,7 +1635,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "version": version,
                 "ignore_invalid_signals": ignore_invalid_signals,
                 "prefix": self.prefix.text().strip(),
-                "consolidate_j1939": self.consolidate_j1939.checkState() == QtCore.Qt.Checked,
+                "consolidated_j1939": self.consolidated_j1939.checkState() == QtCore.Qt.Checked,
             }
 
             mdf = run_thread_with_progress(
