@@ -15,6 +15,7 @@ import sys
 from tempfile import TemporaryDirectory
 import xml.etree.ElementTree as ET
 
+
 try:
     from cchardet import detect
 except:
@@ -276,12 +277,16 @@ def sanitize_xml(text):
 
 
 def extract_display_name(comment):
+    if not comment.startswith('<CNcomment'):
+        return ""
+    
     try:
-        display_name = ET.fromstring(sanitize_xml(comment)).find(".//names/display")
+        comment = ET.fromstring(sanitize_xml(comment))
+        display_name = comment.find(".//names/display")
         if display_name is not None:
             display_name = display_name.text or ""
         else:
-            display_name = ET.fromstring(sanitize_xml(comment)).find(".//names/name")
+            display_name = comment.find(".//names/name")
             if display_name is not None:
                 display_name = display_name.text or ""
             else:

@@ -4264,7 +4264,7 @@ class MDF:
                                     cg_nr = out.append(
                                         sigs,
                                         acq_name=acq_name,
-                                        comment=f"{message} 0x{msg_id:X}",
+                                        comment=f'CAN{bus} - message "{message}" 0x{msg_id:X}',
                                         common_timebase=True,
                                     )
 
@@ -4528,14 +4528,14 @@ class MDF:
                                         sigs.append(sig)
 
                                     if prefix:
-                                        acq_name = f"{prefix}: from LIN message ID=0x{msg_id:X}"
+                                        acq_name = f"{prefix}: from LIN{bus} message ID=0x{msg_id:X}"
                                     else:
-                                        acq_name = f"from LIN message ID=0x{msg_id:X}"
+                                        acq_name = f"from LIN{bus} message ID=0x{msg_id:X}"
 
                                     cg_nr = out.append(
                                         sigs,
                                         acq_name=acq_name,
-                                        comment=f"{message} 0x{msg_id:X}",
+                                        comment=f'from LIN{bus} - message "{message}" 0x{msg_id:X}',
                                         common_timebase=True,
                                     )
 
