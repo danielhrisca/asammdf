@@ -4172,7 +4172,7 @@ class MDF:
 
                         if is_j1939 and not consolidated_j1939:
                             unique_ids = np.unique(
-                                np.core.records.fromarrays([bus_msg_ids, original_ids])
+                                np.core.records.fromarrays([bus_msg_ids, original_msg_ids])
                             )
                         else:
                             unique_ids = np.unique(
@@ -4257,14 +4257,14 @@ class MDF:
                                         sigs.append(sig)
 
                                     if prefix:
-                                        acq_name = f"{prefix}: from CAN{bus} message ID=0x{msg_id:X}"
+                                        acq_name = f"{prefix}: CAN{bus} message ID=0x{msg_id:X} from 0x{original_msg_id:X}"
                                     else:
-                                        acq_name = f"from CAN{bus} message ID=0x{msg_id:X}"
+                                        acq_name = f"CAN{bus} message ID=0x{msg_id:X} from 0x{original_msg_id:X}"
 
                                     cg_nr = out.append(
                                         sigs,
                                         acq_name=acq_name,
-                                        comment=f'CAN{bus} - message "{message}" 0x{msg_id:X}',
+                                        comment=f'CAN{bus} - message "{message}" 0x{msg_id:X} from 0x{original_msg_id:X}',
                                         common_timebase=True,
                                     )
 
