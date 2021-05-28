@@ -328,7 +328,7 @@ class ListWidget(QtWidgets.QListWidget):
                     absolute = False
                 else:
                     offset, ok = QtWidgets.QInputDialog.getDouble(
-                        self, "Absolute time start offset [s]", "Offset [s]:"
+                        self, "Absolute time start offset [s]", "Offset [s]:", decimals=6
                     )
                     absolute = True
                 if ok:

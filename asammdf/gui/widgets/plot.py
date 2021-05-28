@@ -9,6 +9,7 @@ from time import perf_counter
 import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
+pg.graphicsItems.ScatterPlotItem._USE_QRECT = False
 
 from ...mdf import MDF
 from ...signal import Signal
@@ -1796,6 +1797,7 @@ class _Plot(pg.PlotWidget):
                         symbolSize=4,
                         clickable=True,
                         mouseWidth=30,
+                        dynamicRangeLimit=None,
                     )
 
                     curve.sigClicked.connect(partial(self.curve_clicked.emit, i))
@@ -2486,6 +2488,7 @@ class _Plot(pg.PlotWidget):
                 symbolSize=4,
                 clickable=True,
                 mouseWidth=30,
+                dynamicRangeLimit=None,
                 #                connect='finite',
             )
             curve.hide()
