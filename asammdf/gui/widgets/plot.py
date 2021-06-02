@@ -779,9 +779,10 @@ class Plot(QtWidgets.QWidget):
     show_properties = QtCore.pyqtSignal(list)
     splitter_moved = QtCore.pyqtSignal(object, int)
 
-    def __init__(self, signals, with_dots=False, origin=None, mdf=None, *args, **kwargs):
+    def __init__(self, signals, with_dots=False, origin=None, mdf=None, line_interconnect="line", *args, **kwargs):
         events = kwargs.pop("events", None)
         super().__init__(*args, **kwargs)
+        self.line_interconnect = line_interconnect
         self.setContentsMargins(0, 0, 0, 0)
         self.pattern = {}
         self.mdf = mdf
@@ -820,7 +821,9 @@ class Plot(QtWidgets.QWidget):
         self.splitter.setOpaqueResize(False)
 
         self.plot = _Plot(
-            with_dots=with_dots, parent=self, events=events, origin=origin,
+            with_dots=with_dots,
+            line_interconnect=self.line_interconnect,
+            parent=self, events=events, origin=origin,
             mdf=self.mdf,
         )
 
@@ -1603,9 +1606,11 @@ class _Plot(pg.PlotWidget):
 
     add_channels_request = QtCore.pyqtSignal(list)
 
-    def __init__(self, signals=None, with_dots=False, origin=None, mdf=None, *args, **kwargs):
+    def __init__(self, signals=None, with_dots=False, origin=None, mdf=None, line_interconnect="line", *args, **kwargs):
         events = kwargs.pop("events", [])
         super().__init__()
+
+        self.line_interconnect = line_interconnect if line_interconnect != "line" else ""
 
         self._last_update = perf_counter()
         self._can_trim = True
@@ -1767,7 +1772,7 @@ class _Plot(pg.PlotWidget):
         if signals:
             self.update_views()
 
-    def update_lines(self, with_dots=None, force=False):
+    def update_lines(self, with_dots=None, force=False, line_interconnect=False):
         with_dots_changed = False
 
         if with_dots is not None and with_dots != self.with_dots:
@@ -1775,7 +1780,7 @@ class _Plot(pg.PlotWidget):
             self.curvetype = pg.PlotDataItem if with_dots else pg.PlotCurveItem
             with_dots_changed = True
 
-        if self.curves and (with_dots_changed or force):
+        if self.curves and (with_dots_changed or force or line_interconnect):
             for sig in self.signals:
                 _, i = self.signal_by_uuid(sig.uuid)
                 color = sig.color
@@ -1798,6 +1803,7 @@ class _Plot(pg.PlotWidget):
                         clickable=True,
                         mouseWidth=30,
                         dynamicRangeLimit=None,
+                        stepMode=self.line_interconnect,
                     )
 
                     curve.sigClicked.connect(partial(self.curve_clicked.emit, i))
@@ -1812,11 +1818,11 @@ class _Plot(pg.PlotWidget):
 
                     if len(t):
 
-                        if self.with_dots:
+                        if self.with_dots or line_interconnect:
                             #                            curve.setPen({'color': color, 'style': style})
                             pen = pg.fn.mkPen(color=color, style=style)
                             curve.opts["pen"] = pen
-                            curve.setData(x=t, y=sig.plot_samples)
+                            curve.setData(x=t, y=sig.plot_samples, stepMode=self.line_interconnect)
                             curve.update()
                         else:
                             curve.invalidateBounds()
@@ -2489,6 +2495,7 @@ class _Plot(pg.PlotWidget):
                 clickable=True,
                 mouseWidth=30,
                 dynamicRangeLimit=None,
+                stepMode=self.line_interconnect,
                 #                connect='finite',
             )
             curve.hide()

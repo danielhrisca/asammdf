@@ -1123,7 +1123,7 @@ class WithMDIArea:
                 mdf = self.mdf
             else:
                 mdf = None
-            plot = Plot([], events=events, with_dots=self.with_dots, origin=origin, mdf=mdf)
+            plot = Plot([], events=events, with_dots=self.with_dots, line_interconnect=self.line_interconnect, origin=origin, mdf=mdf)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
@@ -1797,7 +1797,7 @@ class WithMDIArea:
                 mdf = self.mdf
             else:
                 mdf = None
-            plot = Plot([], with_dots=self.with_dots, events=events, origin=origin, mdf=mdf)
+            plot = Plot([], with_dots=self.with_dots, line_interconnect=self.line_interconnect, events=events, origin=origin, mdf=mdf)
             plot.pattern = pattern_info
 
             if not self.subplots:
@@ -2082,6 +2082,19 @@ class WithMDIArea:
         current_plot = self.get_current_widget()
         if current_plot and isinstance(current_plot, Plot):
             current_plot.plot.update_lines(with_dots=with_dots)
+
+    def set_line_interconnect(self, line_interconnect):
+
+        if line_interconnect == "line":
+            line_interconnect = ""
+
+        self.line_interconnect = line_interconnect
+        for i, mdi in enumerate(self.mdi_area.subWindowList()):
+            widget = mdi.widget()
+            if isinstance(widget, Plot):
+                widget.line_interconnect = line_interconnect
+                widget.plot.line_interconnect = line_interconnect
+                widget.plot.update_lines(line_interconnect=True)
 
     def set_subplots(self, option):
         self.subplots = option

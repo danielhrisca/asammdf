@@ -62,6 +62,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         subplots=False,
         subplots_link=False,
         ignore_value2text_conversions=False,
+        line_interconnect="line",
         encryption_function=None,
         decryption_function=None,
         *args,
@@ -88,6 +89,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.with_dots = with_dots
 
         self._show_filter_tree = False
+        self.line_interconnect = line_interconnect
 
         progress = QtWidgets.QProgressDialog(
             f'Opening "{self.file_name}"', "", 0, 100, self.parent()

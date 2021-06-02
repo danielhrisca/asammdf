@@ -229,6 +229,25 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         submenu.addActions(theme_option.actions())
         menu.addMenu(submenu)
 
+        # step line connect menu
+        step_option = QtWidgets.QActionGroup(self)
+
+        for option in ("line", "left", "right"):
+            icon = QtGui.QIcon()
+            icon.addPixmap(QtGui.QPixmap(f":/{option}_interconnect.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            action = QtWidgets.QAction(icon, option, menu)
+            action.setCheckable(True)
+            step_option.addAction(action)
+            action.triggered.connect(partial(self.set_line_interconnect, option))
+
+            if option == self._settings.value("line_interconnect", "line"):
+                action.setChecked(True)
+                action.triggered.emit()
+
+        submenu = QtWidgets.QMenu("Step mode", self.menubar)
+        submenu.addActions(step_option.actions())
+        menu.addMenu(submenu)
+
         # integer interpolation menu
         theme_option = QtWidgets.QActionGroup(self)
 
@@ -888,6 +907,16 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Highlight, brush)
             app.setPalette(palette)
 
+    def set_line_interconnect(self, option):
+        self._settings.setValue("line_interconnect", option)
+
+        self.line_interconnect = option
+
+        count = self.files.count()
+
+        for i in range(count):
+            self.files.widget(i).set_line_interconnect(option)
+
     def set_subplot_link_option(self, state):
         if isinstance(state, str):
             state = True if state == "true" else False
@@ -951,6 +980,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 self.subplots,
                 self.subplots_link,
                 self.ignore_value2text_conversions,
+                self.line_interconnect,
                 None,
                 None,
                 self,
