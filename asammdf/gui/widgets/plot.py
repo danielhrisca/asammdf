@@ -2535,10 +2535,13 @@ class _Plot(pg.PlotWidget):
                 for sig in self.signals
                 if id(sig.timestamps) in self._timebase_db
             ]
-            try:
-                new_timebase = np.unique(np.concatenate(timebases))
-            except MemoryError:
-                new_timebase = reduce(np.union1d, timebases)
+            if timebases:
+                try:
+                    new_timebase = np.unique(np.concatenate(timebases))
+                except MemoryError:
+                    new_timebase = reduce(np.union1d, timebases)
+            else:
+                new_timebase = np.array([])
             self.all_timebase = self.timebase = new_timebase
         else:
             self.all_timebase = self.timebase = []
@@ -2605,11 +2608,14 @@ class _Plot(pg.PlotWidget):
                 self.common_axis_items.remove(uuid)
 
             if sig.enable:
-                self._timebase_db[id(sig.timestamps)].remove(sig.uuid)
+                try:
+                    self._timebase_db[id(sig.timestamps)].remove(sig.uuid)
 
-                if len(self._timebase_db[id(sig.timestamps)]) == 0:
-                    del self._timebase_db[id(sig.timestamps)]
-                    needs_timebase_compute = True
+                    if len(self._timebase_db[id(sig.timestamps)]) == 0:
+                        del self._timebase_db[id(sig.timestamps)]
+                        needs_timebase_compute = True
+                except KeyError:
+                    pass
 
         uuids = [sig.uuid for sig in self.signals]
 
