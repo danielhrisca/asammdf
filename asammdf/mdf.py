@@ -567,6 +567,7 @@ class MDF:
                         cg_nr = out.append(
                             sigs,
                             common_timebase=True,
+                            comment=cg.comment,
                         )
                         MDF._transfer_channel_group_data(
                             out.groups[cg_nr].channel_group, cg
@@ -814,6 +815,7 @@ class MDF:
                     cg_nr = out.append(
                         signals,
                         common_timebase=True,
+                        comment=cg.comment,
                     )
                     MDF._transfer_channel_group_data(
                         out.groups[cg_nr].channel_group, cg
@@ -1649,6 +1651,7 @@ class MDF:
                         cg_nr = mdf.append(
                             sigs,
                             common_timebase=True,
+                            comment=cg.comment,
                         )
                         MDF._transfer_channel_group_data(
                             mdf.groups[cg_nr].channel_group, cg
@@ -2567,6 +2570,7 @@ class MDF:
             dg_cntr = mdf.append(
                 sigs,
                 common_timebase=True,
+                comment=cg.comment,
             )
             MDF._transfer_channel_group_data(mdf.groups[dg_cntr].channel_group, cg)
 

@@ -3480,7 +3480,7 @@ class MDF4(MDF_Common):
 
         # channel group
         kwargs = {"cycles_nr": cycles_nr, "samples_byte_nr": 0}
-        gp.channel_group = ChannelGroup(**kwargs)
+        gp.channel_group = remote_master_channel_group = ChannelGroup(**kwargs)
         gp.channel_group.acq_name = acq_name
         gp.channel_group.acq_source = acq_source
         gp.channel_group.comment = comment
@@ -3630,7 +3630,7 @@ class MDF4(MDF_Common):
             gp.channel_group = ChannelGroup(**kwargs)
             gp.channel_group.acq_name = acq_name
             gp.channel_group.acq_source = acq_source
-            gp.channel_group.comment = comment
+            gp.channel_group.comment = remote_master_channel_group.comment
             gp.channel_group.cg_master_index = cg_master_index
 
             self.groups.append(gp)
@@ -8790,13 +8790,19 @@ class MDF4(MDF_Common):
                         data_, _1, _2, inval_ = next(data)
                         if self.version >= "4.20" and gp.uses_ld:
                             if compression:
-                                if compression == 1:
-                                    param = 0
+                                if gp.channel_group.samples_byte_nr > 1:
+                                    current_zip_type = zip_type
+                                    if compression == 1:
+                                        param = 0
+                                    else:
+                                        param = gp.channel_group.samples_byte_nr
                                 else:
-                                    param = gp.channel_group.samples_byte_nr
+                                    current_zip_type = v4c.FLAG_DZ_DEFLATE
+                                    param = 0
+
                                 kwargs = {
                                     "data": data_,
-                                    "zip_type": zip_type,
+                                    "zip_type": current_zip_type,
                                     "param": param,
                                     "original_type": b"DV",
                                 }
