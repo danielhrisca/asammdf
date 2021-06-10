@@ -311,7 +311,7 @@ class MDF4(MDF_Common):
 
     _terminate = False
 
-    def __init__(self, name=None, version="4.10", channels=(), **kwargs):
+    def __init__(self, name=None, version="4.10", channels=None, **kwargs):
 
         self._kwargs = kwargs
         self.original_name = kwargs["original_name"]
@@ -341,7 +341,12 @@ class MDF4(MDF_Common):
         self._dbc_cache = {}
         self._interned_strings = {}
 
-        self.load_filter = set(channels)
+        if channels is None:
+            self.load_filter = set()
+            self.use_load_filter = False
+        else:
+            self.load_filter = set(channels)
+            self.use_load_filter = True
 
         self._tempfile = TemporaryFile()
         self._file = None
@@ -848,7 +853,7 @@ class MDF4(MDF_Common):
         mapped=False,
     ):
 
-        filter_channels = len(self.load_filter) > 0
+        filter_channels = self.use_load_filter
         use_display_names = self._use_display_names
 
         channels = grp.channels

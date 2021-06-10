@@ -119,11 +119,13 @@ class MDF:
         only used for MDF objects created from scratch; for MDF objects created
         from a file the version is set to file version
 
-    channels : iterable
+    channels (None) : iterable
         channel names that will used for selective loading. This can dramatically
-        improve the file loading time.
+        improve the file loading time. Default None -> load all channels
 
         .. versionadded:: 6.1.0
+
+        .. versionchanged:: 6.3.0 make the default None
 
 
     callback (\*\*kwargs) : function
@@ -157,7 +159,7 @@ class MDF:
 
     _terminate = False
 
-    def __init__(self, name=None, version="4.10", channels=(), **kwargs):
+    def __init__(self, name=None, version="4.10", channels=None, **kwargs):
         self._mdf = None
 
         if name:

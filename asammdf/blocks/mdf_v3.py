@@ -146,10 +146,15 @@ class MDF3(MDF_Common):
 
     _terminate = False
 
-    def __init__(self, name=None, version="3.30", channels=(), **kwargs):
+    def __init__(self, name=None, version="3.30", channels=None, **kwargs):
         self._kwargs = kwargs
         self.original_name = kwargs['original_name']
-        self.load_filter = set(channels)
+        if channels is None:
+            self.load_filter = set()
+            self.use_load_filter = False
+        else:
+            self.load_filter = set(channels)
+            self.use_load_filter = True
 
         self.groups = []
         self.header = None
@@ -673,7 +678,7 @@ class MDF3(MDF_Common):
 
     def _read(self, mapped=False):
         stream = self._file
-        filter_channels = len(self.load_filter) > 0
+        filter_channels = self.use_load_filter
 
         cg_count, _ = count_channel_groups(stream)
         if self._callback:
