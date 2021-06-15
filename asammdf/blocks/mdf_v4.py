@@ -8372,6 +8372,7 @@ class MDF4(MDF_Common):
             data=data,
         )
         can_ids.samples = can_ids.samples.astype("<u4") & 0x1FFFFFFF
+
         payload = self.get(
             "CAN_DataFrame.DataBytes",
             group=index,
@@ -8387,7 +8388,7 @@ class MDF4(MDF_Common):
             _pgn = tmp_pgn & 0x3FF00
             can_ids.samples = where(pf >= 240, _pgn + ps, _pgn)
 
-            idx = argwhere(_pgn == message.arbitration_id.pgn).ravel()
+            idx = argwhere(can_ids.samples == message.arbitration_id.pgn).ravel()
         else:
             idx = argwhere(can_ids.samples == message.arbitration_id.id).ravel()
 
