@@ -59,7 +59,7 @@ class TestCANBusLogging(unittest.TestCase):
             if input_file.suffix == ".npy"
         ]
 
-        out = mdf.extract_bus_logging({"CAN": [dbc]})
+        out = mdf.extract_bus_logging({"CAN": [(dbc, 0)]})
 
         for signal in signals:
             name = signal.stem
@@ -94,7 +94,7 @@ class TestCANBusLogging(unittest.TestCase):
             if input_file.suffix == ".npy"
         ]
 
-        out = mdf.extract_bus_logging({"CAN": [dbc]})
+        out = mdf.extract_bus_logging({"CAN": [(dbc, 0)]})
 
         for signal in signals:
             name = signal.stem
