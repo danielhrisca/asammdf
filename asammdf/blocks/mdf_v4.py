@@ -7034,7 +7034,10 @@ class MDF4(MDF_Common):
                                 )
                             else:
                                 if kind_ in "ui":
-                                    vals = vals.view(channel_dtype)
+                                    try:
+                                        vals = vals.view(channel_dtype)
+                                    except ValueError:
+                                        vals = vals.copy().view(channel_dtype)
 
                 else:
                     vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
@@ -7043,7 +7046,10 @@ class MDF4(MDF_Common):
                     vals = array(vals, dtype=bool)
                 else:
                     if vals.dtype != channel_dtype:
-                        vals = vals.astype(channel_dtype)
+                        try:
+                            vals = vals.astype(channel_dtype)
+                        except ValueError:
+                            vals = vals.copy().view(channel_dtype)
 
                 if master_is_required:
                     timestamps = self.get_master(gp_nr, fragment, one_piece=True)
