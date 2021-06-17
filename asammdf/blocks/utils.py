@@ -1253,8 +1253,8 @@ class DataBlockInfo:
     __slots__ = (
         "address",
         "block_type",
-        "raw_size",
-        "size",
+        "original_size",
+        "compressed_size",
         "param",
         "invalidation_block",
         "block_limit",
@@ -1264,16 +1264,16 @@ class DataBlockInfo:
         self,
         address,
         block_type,
-        raw_size,
-        size,
+        original_size,
+        compressed_size,
         param,
         invalidation_block=None,
         block_limit=None,
     ):
         self.address = address
         self.block_type = block_type
-        self.raw_size = raw_size
-        self.size = size
+        self.original_size = original_size
+        self.compressed_size = compressed_size
         self.param = param
         self.invalidation_block = invalidation_block
         self.block_limit = block_limit
@@ -1282,8 +1282,8 @@ class DataBlockInfo:
         return (
             f"DataBlockInfo(address=0x{self.address:X}, "
             f"block_type={self.block_type}, "
-            f"raw_size={self.raw_size}, "
-            f"size={self.size}, "
+            f"original_size={self.original_size}, "
+            f"compressed_size={self.compressed_size}, "
             f"param={self.param}, "
             f"invalidation_block={self.invalidation_block}, "
             f"block_limit={self.block_limit})"
@@ -1298,21 +1298,21 @@ class InvalidationBlockInfo(DataBlockInfo):
         self,
         address,
         block_type,
-        raw_size,
-        size,
+        original_size,
+        compressed_size,
         param,
         all_valid=False,
         block_limit=None,
     ):
-        super().__init__(address, block_type, raw_size, size, param, block_limit)
+        super().__init__(address, block_type, original_size, compressed_size, param, block_limit)
         self.all_valid = all_valid
 
     def __repr__(self):
         return (
             f"InvalidationBlockInfo(address=0x{self.address:X}, "
             f"block_type={self.block_type}, "
-            f"raw_size={self.raw_size}, "
-            f"size={self.size}, "
+            f"original_size={self.original_size}, "
+            f"compressed_size={self.compressed_size}, "
             f"param={self.param}, "
             f"all_valid={self.all_valid}, "
             f"block_limit={self.block_limit})"
@@ -1323,31 +1323,25 @@ class SignalDataBlockInfo:
 
     __slots__ = (
         "address",
-        "raw_size",
+        "original_size",
         "size",
         "param",
-        "count",
-        "offsets",
         "block_type",
         "location",
     )
 
-    def __init__(self, address, size, count, offsets=None, block_type=v4c.DT_BLOCK, param=0, raw_size=None, location=v4c.LOCATION_ORIGINAL_FILE):
+    def __init__(self, address, original_size, block_type=v4c.DT_BLOCK, param=0, compressed_size=None, location=v4c.LOCATION_ORIGINAL_FILE):
         self.address = address
-        self.count = count
-        self.size = size
-        self.offsets = offsets
+        self.compressed_size = compressed_size or original_size
         self.block_type = block_type
-        self.raw_size = raw_size or size
+        self.original_size = original_size
         self.param = param
         self.location = location
 
     def __repr__(self):
         return (
             f"SignalDataBlockInfo(address=0x{self.address:X}, "
-            f"size={self.size}, "
-            f"count={self.count}, "
-            f"offsets={self.offsets}, "
+            f"original_size={self.original_size}, "
             f"block_type={self.block_type})"
         )
 

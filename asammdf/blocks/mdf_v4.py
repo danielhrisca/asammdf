@@ -1113,15 +1113,15 @@ class MDF4(MDF_Common):
 
                 if start_offset is None and end_offset is None:
                     for info in info_blocks:
-                        address, raw_size, size, block_type, param = (
+                        address, original_size, compressed_size, block_type, param = (
                             info.address,
-                            info.raw_size,
-                            info.size,
+                            info.original_size,
+                            info.compressed_size,
                             info.block_type,
                             info.param,
                         )
 
-                        if not info.raw_size:
+                        if not info.original_size:
                             continue
                         if info.location == v4c.LOCATION_TEMPORARY_FILE:
                             stream = self._tempfile
@@ -1129,13 +1129,13 @@ class MDF4(MDF_Common):
                             stream = self._file
 
                         stream.seek(address)
-                        new_data = stream.read(raw_size)
+                        new_data = stream.read(compressed_size)
                         if block_type == v4c.DZ_BLOCK_DEFLATE:
-                            new_data = decompress(new_data, 0, size)
+                            new_data = decompress(new_data, 0, original_size)
                         elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
-                            new_data = decompress(new_data, 0, size)
+                            new_data = decompress(new_data, 0, original_size)
                             cols = param
-                            lines = size // cols
+                            lines = original_size // cols
 
                             nd = frombuffer(new_data[: lines * cols], dtype=uint8)
                             nd = nd.reshape((cols, lines))
@@ -1152,33 +1152,33 @@ class MDF4(MDF_Common):
                     current_offset = 0
 
                     for info in info_blocks:
-                        address, raw_size, size, block_type, param = (
+                        address, original_size, compressed_size, block_type, param = (
                             info.address,
-                            info.raw_size,
-                            info.size,
+                            info.original_size,
+                            info.compressed_size,
                             info.block_type,
                             info.param,
                         )
 
-                        if not info.raw_size:
+                        if not info.original_size:
                             continue
                         if info.location == v4c.LOCATION_TEMPORARY_FILE:
                             stream = self._tempfile
                         else:
                             stream = self._file
 
-                        if current_offset + size < start_offset:
-                            current_offset += size
+                        if current_offset + original_size < start_offset:
+                            current_offset += original_size
                             continue
 
                         stream.seek(address)
-                        new_data = stream.read(raw_size)
+                        new_data = stream.read(compressed_size)
                         if block_type == v4c.DZ_BLOCK_DEFLATE:
-                            new_data = decompress(new_data, 0, size)
+                            new_data = decompress(new_data, 0, original_size)
                         elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
-                            new_data = decompress(new_data, 0, size)
+                            new_data = decompress(new_data, 0, original_size)
                             cols = param
-                            lines = size // cols
+                            lines = original_size // cols
 
                             nd = frombuffer(new_data[: lines * cols], dtype=uint8)
                             nd = nd.reshape((cols, lines))
@@ -1186,7 +1186,7 @@ class MDF4(MDF_Common):
                         elif block_type == v4c.DZ_BLOCK_LZ:
                             new_data = lz_decompress(new_data)
 
-                        if current_offset + size > end_offset:
+                        if current_offset + original_size > end_offset:
                             start_index = max(0, start_offset - current_offset)
                             last_sample_size, = UINT32_uf(new_data, end_offset-current_offset)
                             data.append(new_data[start_index: end_offset - current_offset + last_sample_size + 4])
@@ -1198,7 +1198,7 @@ class MDF4(MDF_Common):
                             else:
                                 data.append(new_data)
 
-                            current_offset += size
+                            current_offset += original_size
 
                 data = b"".join(data)
             else:
@@ -1298,10 +1298,10 @@ class MDF4(MDF_Common):
                 while True:
                     try:
                         info = next(blocks)
-                        address, size, block_size, block_type, param, block_limit = (
+                        address, original_size, compressed_size, block_type, param, block_limit = (
                             info.address,
-                            info.raw_size,
-                            info.size,
+                            info.original_size,
+                            info.compressed_size,
                             info.block_type,
                             info.param,
                             info.block_limit,
@@ -1314,24 +1314,24 @@ class MDF4(MDF_Common):
                     except StopIteration:
                         break
 
-                    if offset + size < record_offset + 1:
-                        offset += size
+                    if offset + original_size < record_offset + 1:
+                        offset += original_size
                         if rm and invalidation_size:
                             if invalidation_info.all_valid:
-                                count = size // samples_size
+                                count = original_size // samples_size
                                 invalidation_offset += count * invalidation_size
                             else:
-                                invalidation_offset += invalidation_info.raw_size
+                                invalidation_offset += invalidation_info.original_size
                         continue
 
                     seek(address)
-                    new_data = read(block_size)
+                    new_data = read(compressed_size)
                     if block_type == v4c.DZ_BLOCK_DEFLATE:
-                        new_data = decompress(new_data, 0, size)
+                        new_data = decompress(new_data, 0, original_size)
                     elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
-                        new_data = decompress(new_data, 0, size)
+                        new_data = decompress(new_data, 0, original_size)
                         cols = param
-                        lines = size // cols
+                        lines = original_size // cols
 
                         nd = frombuffer(new_data[: lines * cols], dtype=uint8)
                         nd = nd.reshape((cols, lines))
@@ -1348,7 +1348,7 @@ class MDF4(MDF_Common):
                     if rm and invalidation_size:
 
                         if invalidation_info.all_valid:
-                            count = size // samples_size
+                            count = original_size // samples_size
                             new_invalidation_data = bytes(count * invalidation_size)
 
                         else:
@@ -1358,7 +1358,7 @@ class MDF4(MDF_Common):
                                 new_invalidation_data = decompress(
                                     new_invalidation_data,
                                     0,
-                                    invalidation_info.raw_size,
+                                    invalidation_info.original_size,
                                 )
                             elif (
                                 invalidation_info.block_type == v4c.DZ_BLOCK_TRANSPOSED
@@ -1366,10 +1366,10 @@ class MDF4(MDF_Common):
                                 new_invalidation_data = decompress(
                                     new_invalidation_data,
                                     0,
-                                    invalidation_info.raw_size,
+                                    invalidation_info.original_size,
                                 )
                                 cols = invalidation_info.param
-                                lines = invalidation_info.raw_size // cols
+                                lines = invalidation_info.original_size // cols
 
                                 nd = frombuffer(
                                     new_invalidation_data[: lines * cols], dtype=uint8
@@ -1389,7 +1389,7 @@ class MDF4(MDF_Common):
                     if offset < record_offset:
                         delta = record_offset - offset
                         new_data = new_data[delta:]
-                        size -= delta
+                        original_size -= delta
                         offset = record_offset
 
                         if rm and invalidation_size:
@@ -1398,7 +1398,7 @@ class MDF4(MDF_Common):
                             inv_size -= delta
                             invalidation_offset = invalidation_record_offset
 
-                    while size >= split_size - cur_size:
+                    while original_size >= split_size - cur_size:
                         if data:
                             data.append(new_data[: split_size - cur_size])
                             new_data = new_data[split_size - cur_size :]
@@ -1484,7 +1484,7 @@ class MDF4(MDF_Common):
                                 has_yielded = True
 
                         offset += split_size
-                        size -= split_size - cur_size
+                        original_size -= split_size - cur_size
                         data = []
                         cur_size = 0
 
@@ -1500,10 +1500,10 @@ class MDF4(MDF_Common):
                             invalidation_data = []
                         break
 
-                    if size:
+                    if original_size:
                         data.append(new_data)
-                        cur_size += size
-                        size = 0
+                        cur_size += original_size
+                        original_size = 0
 
                         if rm and invalidation_size:
                             invalidation_data.append(new_invalidation_data)
@@ -1742,8 +1742,8 @@ class MDF4(MDF_Common):
                             DataBlockInfo(
                                 address=address + COMMON_SIZE,
                                 block_type=v4c.DT_BLOCK,
-                                raw_size=size,
-                                size=size,
+                                original_size=size,
+                                compressed_size=size,
                                 param=0,
                                 block_limit=block_limit,
                             )
@@ -1773,8 +1773,8 @@ class MDF4(MDF_Common):
                             DataBlockInfo(
                                 address=address + v4c.DZ_COMMON_SIZE,
                                 block_type=block_type_,
-                                raw_size=original_size,
-                                size=zip_size,
+                                original_size=original_size,
+                                compressed_size=zip_size,
                                 param=param,
                                 block_limit=block_limit,
                             )
@@ -1801,8 +1801,8 @@ class MDF4(MDF_Common):
                                         DataBlockInfo(
                                             address=addr + COMMON_SIZE,
                                             block_type=v4c.DT_BLOCK,
-                                            raw_size=size,
-                                            size=size,
+                                            original_size=size,
+                                            compressed_size=size,
                                             param=0,
                                             block_limit=block_limit,
                                         )
@@ -1832,8 +1832,8 @@ class MDF4(MDF_Common):
                                         DataBlockInfo(
                                             address=addr + v4c.DZ_COMMON_SIZE,
                                             block_type=block_type_,
-                                            raw_size=original_size,
-                                            size=zip_size,
+                                            original_size=original_size,
+                                            compressed_size=zip_size,
                                             param=param,
                                             block_limit=block_limit,
                                         )
@@ -1863,8 +1863,8 @@ class MDF4(MDF_Common):
                                         DataBlockInfo(
                                             address=addr + COMMON_SIZE,
                                             block_type=v4c.DT_BLOCK,
-                                            raw_size=size,
-                                            size=size,
+                                            original_size=size,
+                                            compressed_size=size,
                                             param=0,
                                             block_limit=block_limit,
                                         )
@@ -1894,8 +1894,8 @@ class MDF4(MDF_Common):
                                         DataBlockInfo(
                                             address=addr + v4c.DZ_COMMON_SIZE,
                                             block_type=block_type_,
-                                            raw_size=original_size,
-                                            size=zip_size,
+                                            original_size=original_size,
+                                            compressed_size=zip_size,
                                             param=param,
                                             block_limit=block_limit,
                                         )
@@ -1920,8 +1920,8 @@ class MDF4(MDF_Common):
                                             ].invalidation_block = InvalidationBlockInfo(
                                                 address=inval_addr + COMMON_SIZE,
                                                 block_type=v4c.DT_BLOCK,
-                                                raw_size=size,
-                                                size=size,
+                                                original_size=size,
+                                                compressed_size=size,
                                                 param=0,
                                                 block_limit=block_limit,
                                             )
@@ -1950,8 +1950,8 @@ class MDF4(MDF_Common):
                                             ].invalidation_block = InvalidationBlockInfo(
                                                 address=inval_addr + v4c.DZ_COMMON_SIZE,
                                                 block_type=block_type_,
-                                                raw_size=original_size,
-                                                size=zip_size,
+                                                original_size=original_size,
+                                                compressed_size=zip_size,
                                                 param=param,
                                                 block_limit=block_limit,
                                             )
@@ -1959,8 +1959,8 @@ class MDF4(MDF_Common):
                                     info[-1].invalidation_block = InvalidationBlockInfo(
                                         address=0,
                                         block_type=v4c.DT_BLOCK,
-                                        raw_size=None,
-                                        size=None,
+                                        original_size=None,
+                                        compressed_size=None,
                                         param=None,
                                         all_valid=True,
                                     )
@@ -1999,8 +1999,8 @@ class MDF4(MDF_Common):
                             DataBlockInfo(
                                 address=address + COMMON_SIZE,
                                 block_type=v4c.DT_BLOCK,
-                                raw_size=size,
-                                size=size,
+                                original_size=size,
+                                compressed_size=size,
                                 param=0,
                                 block_limit=block_limit,
                             )
@@ -2031,8 +2031,8 @@ class MDF4(MDF_Common):
                             DataBlockInfo(
                                 address=address + v4c.DZ_COMMON_SIZE,
                                 block_type=block_type_,
-                                raw_size=original_size,
-                                size=zip_size,
+                                original_size=original_size,
+                                compressed_size=zip_size,
                                 param=param,
                                 block_limit=block_limit,
                             )
@@ -2064,8 +2064,8 @@ class MDF4(MDF_Common):
                                         DataBlockInfo(
                                             address=addr + COMMON_SIZE,
                                             block_type=v4c.DT_BLOCK,
-                                            raw_size=size,
-                                            size=size,
+                                            original_size=size,
+                                            compressed_size=size,
                                             param=0,
                                             block_limit=block_limit,
                                         )
@@ -2098,8 +2098,8 @@ class MDF4(MDF_Common):
                                         DataBlockInfo(
                                             address=addr + v4c.DZ_COMMON_SIZE,
                                             block_type=block_type_,
-                                            raw_size=original_size,
-                                            size=zip_size,
+                                            original_size=original_size,
+                                            compressed_size=zip_size,
                                             param=param,
                                             block_limit=block_limit,
                                         )
@@ -2132,8 +2132,8 @@ class MDF4(MDF_Common):
                                         DataBlockInfo(
                                             address=addr + COMMON_SIZE,
                                             block_type=v4c.DT_BLOCK,
-                                            raw_size=size,
-                                            size=size,
+                                            original_size=size,
+                                            compressed_size=size,
                                             param=0,
                                             block_limit=block_limit,
                                         )
@@ -2166,8 +2166,8 @@ class MDF4(MDF_Common):
                                         DataBlockInfo(
                                             address=addr + v4c.DZ_COMMON_SIZE,
                                             block_type=block_type_,
-                                            raw_size=original_size,
-                                            size=zip_size,
+                                            original_size=original_size,
+                                            compressed_size=zip_size,
                                             param=param,
                                             block_limit=block_limit,
                                         )
@@ -2193,8 +2193,8 @@ class MDF4(MDF_Common):
                                             ].invalidation_block = InvalidationBlockInfo(
                                                 address=inval_addr + COMMON_SIZE,
                                                 block_type=v4c.DT_BLOCK,
-                                                raw_size=size,
-                                                size=size,
+                                                original_size=size,
+                                                compressed_size=size,
                                                 param=0,
                                                 block_limit=block_limit,
                                             )
@@ -2225,8 +2225,8 @@ class MDF4(MDF_Common):
                                             ].invalidation_block = InvalidationBlockInfo(
                                                 address=inval_addr + v4c.DZ_COMMON_SIZE,
                                                 block_type=block_type_,
-                                                raw_size=original_size,
-                                                size=zip_size,
+                                                original_size=original_size,
+                                                compressed_size=zip_size,
                                                 param=param,
                                                 block_limit=block_limit,
                                             )
@@ -2234,8 +2234,8 @@ class MDF4(MDF_Common):
                                     info[-1].invalidation_block = InvalidationBlockInfo(
                                         address=0,
                                         block_type=v4c.DT_BLOCK,
-                                        raw_size=0,
-                                        size=0,
+                                        original_size=0,
+                                        compressed_size=0,
                                         param=0,
                                         all_valid=True,
                                     )
@@ -2275,9 +2275,8 @@ class MDF4(MDF_Common):
                     info.append(
                         SignalDataBlockInfo(
                             address=address + COMMON_SIZE,
-                            size=size,
-                            offsets=None,
-                            count=None,
+                            compressed_size=size,
+                            original_size=size,
                             block_type=v4c.DT_BLOCK,
                         )
                     )
@@ -2304,10 +2303,9 @@ class MDF4(MDF_Common):
                         SignalDataBlockInfo(
                             address=address + v4c.DZ_COMMON_SIZE,
                             block_type=block_type_,
-                            raw_size=zip_size,
-                            size=original_size,
+                            original_size=original_size,
+                            compressed_size=zip_size,
                             param=param,
-                            count=None,
                         )
                     )
 
@@ -2331,9 +2329,8 @@ class MDF4(MDF_Common):
                                 info.append(
                                     SignalDataBlockInfo(
                                         address=addr + COMMON_SIZE,
-                                        size=size,
-                                        offsets=None,
-                                        count=None,
+                                        compressed_size=size,
+                                        original_size=size,
                                         block_type=v4c.DT_BLOCK,
                                     )
                                 )
@@ -2360,10 +2357,9 @@ class MDF4(MDF_Common):
                                     SignalDataBlockInfo(
                                         address=addr + v4c.DZ_COMMON_SIZE,
                                         block_type=block_type_,
-                                        raw_size=zip_size,
-                                        size=original_size,
+                                        original_size=original_size,
+                                        compressed_size=zip_size,
                                         param=param,
-                                        count=None,
                                     )
                                 )
                     address = dl.next_dl_addr
@@ -3297,9 +3293,8 @@ class MDF4(MDF_Common):
                         data_addr = tell()
                         info = SignalDataBlockInfo(
                             address=data_addr,
-                            size=data_size,
-                            count=len(samples),
-                            offsets=offsets,
+                            compressed_size=data_size,
+                            original_size=data_size,
                             location=v4c.LOCATION_TEMPORARY_FILE,
                         )
                         gp_sdata.append([info])
@@ -3328,9 +3323,8 @@ class MDF4(MDF_Common):
                         data_addr = tell()
                         info = SignalDataBlockInfo(
                             address=data_addr,
-                            size=data_size,
-                            count=len(data),
-                            offsets=offsets,
+                            compressed_size=data_size,
+                            original_size=data_size,
                             location=v4c.LOCATION_TEMPORARY_FILE,
                         )
                         gp_sdata.append([info])
@@ -3484,8 +3478,8 @@ class MDF4(MDF_Common):
                         DataBlockInfo(
                             address=data_address,
                             block_type=v4c.DZ_BLOCK_LZ,
-                            raw_size=raw_size,
-                            size=size,
+                            original_size=raw_size,
+                            compressed_size=size,
                             param=0,
                         )
                     )
@@ -3507,8 +3501,8 @@ class MDF4(MDF_Common):
                     DataBlockInfo(
                         address=data_address,
                         block_type=v4c.DZ_BLOCK_LZ,
-                        raw_size=raw_size,
-                        size=size,
+                        original_size=raw_size,
+                        compressed_size=size,
                         param=0,
                     )
                 )
@@ -3525,8 +3519,8 @@ class MDF4(MDF_Common):
                         InvalidationBlockInfo(
                             address=addr,
                             block_type=v4c.DZ_BLOCK_LZ,
-                            raw_size=raw_size,
-                            size=size,
+                            original_size=raw_size,
+                            compressed_size=size,
                             param=None,
                         )
                     )
@@ -3677,8 +3671,8 @@ class MDF4(MDF_Common):
                         DataBlockInfo(
                             address=data_address,
                             block_type=v4c.DT_BLOCK,
-                            raw_size=chunk,
-                            size=chunk,
+                            original_size=chunk,
+                            compressed_size=chunk,
                             param=0,
                         )
                     )
@@ -3689,8 +3683,8 @@ class MDF4(MDF_Common):
                         DataBlockInfo(
                             address=data_address,
                             block_type=v4c.DT_BLOCK,
-                            raw_size=size,
-                            size=size,
+                            original_size=size,
+                            compressed_size=size,
                             param=0,
                         )
                     )
@@ -4182,9 +4176,8 @@ class MDF4(MDF_Common):
                     data_addr = tell()
                     info = SignalDataBlockInfo(
                         address=data_addr,
-                        size=data_size,
-                        count=len(data),
-                        offsets=offsets,
+                        compressed_size=data_size,
+                        original_size=data_size,
                         location=v4c.LOCATION_TEMPORARY_FILE,
                     )
                     gp_sdata.append([info])
@@ -4288,8 +4281,8 @@ class MDF4(MDF_Common):
                     DataBlockInfo(
                         address=data_address,
                         block_type=v4c.DZ_BLOCK_LZ,
-                        raw_size=raw_size,
-                        size=size,
+                        original_size=raw_size,
+                        compressed_size=size,
                         param=0,
                     )
                 )
@@ -4306,8 +4299,8 @@ class MDF4(MDF_Common):
                         InvalidationBlockInfo(
                             address=addr,
                             block_type=v4c.DZ_BLOCK_LZ,
-                            raw_size=raw_size,
-                            size=size,
+                            original_size=raw_size,
+                            compressed_size=size,
                             param=None,
                         )
                     )
@@ -4490,9 +4483,8 @@ class MDF4(MDF_Common):
                     data_addr = tell()
                     info = SignalDataBlockInfo(
                         address=data_addr,
-                        size=data_size,
-                        count=len(data),
-                        offsets=offsets,
+                        compressed_size=data_size,
+                        original_size=data_size,
                         location=v4c.LOCATION_TEMPORARY_FILE,
                     )
                     gp_sdata.append([info])
@@ -4574,8 +4566,8 @@ class MDF4(MDF_Common):
                 DataBlockInfo(
                     address=data_address,
                     block_type=v4c.DT_BLOCK,
-                    raw_size=size,
-                    size=size,
+                    original_size=size,
+                    compressed_size=size,
                     param=0,
                 )
             )
@@ -5566,9 +5558,8 @@ class MDF4(MDF_Common):
                     if data_size:
                         info = SignalDataBlockInfo(
                             address=addr,
-                            size=data_size,
-                            count=len(signal),
-                            offsets=offsets,
+                            compressed_size=data_size,
+                            original_size=data_size,
                             location=v4c.LOCATION_TEMPORARY_FILE,
                         )
                         gp.signal_data[i].append(info)
@@ -5595,9 +5586,8 @@ class MDF4(MDF_Common):
                     if block_size:
                         info = SignalDataBlockInfo(
                             address=addr,
-                            size=block_size,
-                            count=len(values),
-                            offsets=offsets,
+                            compressed_size=block_size,
+                            original_size=block_size,
                             location=v4c.LOCATION_TEMPORARY_FILE,
                         )
                         gp.signal_data[i].append(info)
@@ -5656,8 +5646,8 @@ class MDF4(MDF_Common):
                     DataBlockInfo(
                         address=addr,
                         block_type=v4c.DZ_BLOCK_LZ,
-                        raw_size=raw_size,
-                        size=size,
+                        original_size=raw_size,
+                        compressed_size=size,
                         param=0,
                     )
                 )
@@ -5676,8 +5666,8 @@ class MDF4(MDF_Common):
                     DataBlockInfo(
                         address=addr,
                         block_type=v4c.DT_BLOCK_LZ,
-                        raw_size=raw_size,
-                        size=size,
+                        original_size=raw_size,
+                        compressed_size=size,
                         param=0,
                     )
                 )
@@ -5698,8 +5688,8 @@ class MDF4(MDF_Common):
                         InvalidationBlockInfo(
                             address=addr,
                             block_type=v4c.DT_BLOCK_LZ,
-                            raw_size=raw_size,
-                            size=size,
+                            original_size=raw_size,
+                            compressed_size=size,
                             param=None,
                         )
                     )
@@ -5797,9 +5787,8 @@ class MDF4(MDF_Common):
                 if block_size:
                     info = SignalDataBlockInfo(
                         address=addr,
-                        size=block_size,
-                        count=len(values),
-                        offsets=offsets,
+                        compressed_size=block_size,
+                        original_size=block_size,
                         location=v4c.LOCATION_TEMPORARY_FILE,
                     )
                     gp.signal_data[i].append(info)
@@ -5823,8 +5812,8 @@ class MDF4(MDF_Common):
                     DataBlockInfo(
                         address=addr,
                         block_type=v4c.DZ_BLOCK_LZ,
-                        raw_size=raw_size,
-                        size=size,
+                        original_size=raw_size,
+                        compressed_size=size,
                         param=0,
                     )
                 )
@@ -5843,8 +5832,8 @@ class MDF4(MDF_Common):
                         InvalidationBlockInfo(
                             address=addr,
                             block_type=v4c.DZ_BLOCK_LZ,
-                            raw_size=raw_size,
-                            size=size,
+                            original_size=raw_size,
+                            compressed_size=size,
                             param=None,
                         )
                     )
@@ -9951,8 +9940,8 @@ class MDF4(MDF_Common):
             for info in group.data_blocks:
                 dtblock_address, dtblock_raw_size, dtblock_size, block_type, param = (
                     info.address,
-                    info.raw_size,
-                    info.size,
+                    info.original_size,
+                    info.compressed_size,
                     info.block_type,
                     info.param,
                 )
@@ -10000,35 +9989,39 @@ class MDF4(MDF_Common):
                         if new_data:
 
                             tempfile_address = tell()
+                            
+                            new_data = b"".join(new_data)
+                            size = len(new_data)
+                            if size:
+                                new_data = lz_compress(new_data)
+                                raw_size = len(new_data)
 
-                            dtblock_temp_size = write(b"".join(new_data))
+                                write(new_data)
 
-                            if dg_cntr is not None:
-                                offsets, size = get_vlsd_offsets(new_data)
+                                if dg_cntr is not None:
 
-                                if dtblock_temp_size:
                                     info = SignalDataBlockInfo(
                                         address=tempfile_address,
-                                        size=dtblock_temp_size,
-                                        count=len(offsets),
-                                        offsets=offsets,
+                                        compressed_size=size,
+                                        original_size=raw_size,
+                                        block_type=v4c.DZ_BLOCK_LZ,
                                         location=v4c.LOCATION_TEMPORARY_FILE,
                                     )
                                     self.groups[dg_cntr].signal_data[ch_cntr].append(
                                         info
                                     )
 
-                            else:
-                                if dtblock_temp_size:
+                                else:
+
                                     block_info = DataBlockInfo(
                                         address=tempfile_address,
-                                        block_type=v4c.DT_BLOCK,
-                                        raw_size=dtblock_temp_size,
-                                        size=dtblock_temp_size,
+                                        block_type=v4c.DZ_BLOCK_LZ,
+                                        compressed_size=raw_size,
+                                        original_size=size,
                                         param=0,
                                     )
                                     final_records[rec_id].append(block_info)
-                                    dtblock_temp_size = 0
+
                 else:  # DTBLOCK
 
                     seek(dtblock_address)
@@ -10064,45 +10057,39 @@ class MDF4(MDF_Common):
 
                             if new_data:
 
+                                tempfile_address = tell()
+                                new_data = b''.join(new_data)
+
+                                size = len(new_data)
+                                new_data = lz_compress(new_data)
+                                raw_size = len(new_data)
+
+                                write(new_data)
+
                                 if dg_cntr is not None:
                                     tempfile_address = tell()
-                                    size = write(b"".join(new_data))
 
-                                    offsets, size = get_vlsd_offsets(new_data)
-
-                                    if size:
-                                        info = SignalDataBlockInfo(
-                                            address=tempfile_address,
-                                            size=size,
-                                            count=len(offsets),
-                                            offsets=offsets,
-                                            location=v4c.LOCATION_TEMPORARY_FILE,
-                                        )
-                                        self.groups[dg_cntr].signal_data[
-                                            ch_cntr
-                                        ].append(info)
+                                    info = SignalDataBlockInfo(
+                                        address=tempfile_address,
+                                        compressed_size=size,
+                                        original_size=raw_size,
+                                        block_type=v4c.DZ_BLOCK_LZ,
+                                        location=v4c.LOCATION_TEMPORARY_FILE,
+                                    )
+                                    self.groups[dg_cntr].signal_data[
+                                        ch_cntr
+                                    ].append(info)
 
                                 else:
-                                    if dtblock_raw_size:
+                                    block_info = DataBlockInfo(
+                                        address=tempfile_address,
+                                        block_type=v4c.DZ_BLOCK_LZ,
+                                        compressed_size=raw_size,
+                                        original_size=size,
+                                        param=None,
+                                    )
 
-                                        tempfile_address = tell()
-
-                                        new_data = b"".join(new_data)
-
-                                        raw_size = len(new_data)
-                                        new_data = lz_compress(new_data)
-                                        compressed_size = write(new_data)
-
-                                        block_info = DataBlockInfo(
-                                            address=tempfile_address,
-                                            block_type=v4c.DZ_BLOCK_LZ,
-                                            raw_size=raw_size,
-                                            size=compressed_size,
-                                            param=None,
-                                        )
-
-                                        final_records[rec_id].append(block_info)
-                                        raw_size = 0
+                                    final_records[rec_id].append(block_info)
 
             # after we read all DTBLOCKs in the original file,
             # we assign freshly created blocks from temporary file to
