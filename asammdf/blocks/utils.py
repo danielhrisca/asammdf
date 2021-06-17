@@ -1324,7 +1324,7 @@ class SignalDataBlockInfo:
     __slots__ = (
         "address",
         "original_size",
-        "size",
+        "compressed_size",
         "param",
         "block_type",
         "location",
