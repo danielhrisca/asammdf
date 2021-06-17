@@ -1190,6 +1190,7 @@ class MDF4(MDF_Common):
                             start_index = max(0, start_offset - current_offset)
                             last_sample_size, = UINT32_uf(new_data, end_offset-current_offset)
                             data.append(new_data[start_index: end_offset - current_offset + last_sample_size + 4])
+                            break
 
                         else:
                             if start_offset > current_offset:
