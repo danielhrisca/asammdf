@@ -9991,10 +9991,10 @@ class MDF4(MDF_Common):
                             tempfile_address = tell()
                             
                             new_data = b"".join(new_data)
-                            size = len(new_data)
-                            if size:
+                            original_size = len(new_data)
+                            if original_size:
                                 new_data = lz_compress(new_data)
-                                raw_size = len(new_data)
+                                compressed_size = len(new_data)
 
                                 write(new_data)
 
@@ -10002,8 +10002,8 @@ class MDF4(MDF_Common):
 
                                     info = SignalDataBlockInfo(
                                         address=tempfile_address,
-                                        compressed_size=size,
-                                        original_size=raw_size,
+                                        compressed_size=compressed_size,
+                                        original_size=original_size,
                                         block_type=v4c.DZ_BLOCK_LZ,
                                         location=v4c.LOCATION_TEMPORARY_FILE,
                                     )
@@ -10016,8 +10016,8 @@ class MDF4(MDF_Common):
                                     block_info = DataBlockInfo(
                                         address=tempfile_address,
                                         block_type=v4c.DZ_BLOCK_LZ,
-                                        compressed_size=raw_size,
-                                        original_size=size,
+                                        compressed_size=compressed_size,
+                                        original_size=original_size,
                                         param=0,
                                     )
                                     final_records[rec_id].append(block_info)
@@ -10060,36 +10060,36 @@ class MDF4(MDF_Common):
                                 tempfile_address = tell()
                                 new_data = b''.join(new_data)
 
-                                size = len(new_data)
-                                new_data = lz_compress(new_data)
-                                raw_size = len(new_data)
+                                original_size = len(new_data)
+                                if original_size:
+                                    new_data = lz_compress(new_data)
+                                    compressed_size = len(new_data)
 
-                                write(new_data)
+                                    write(new_data)
 
-                                if dg_cntr is not None:
-                                    tempfile_address = tell()
+                                    if dg_cntr is not None:
 
-                                    info = SignalDataBlockInfo(
-                                        address=tempfile_address,
-                                        compressed_size=size,
-                                        original_size=raw_size,
-                                        block_type=v4c.DZ_BLOCK_LZ,
-                                        location=v4c.LOCATION_TEMPORARY_FILE,
-                                    )
-                                    self.groups[dg_cntr].signal_data[
-                                        ch_cntr
-                                    ].append(info)
+                                        info = SignalDataBlockInfo(
+                                            address=tempfile_address,
+                                            compressed_size=compressed_size,
+                                            original_size=original_size,
+                                            block_type=v4c.DZ_BLOCK_LZ,
+                                            location=v4c.LOCATION_TEMPORARY_FILE,
+                                        )
+                                        self.groups[dg_cntr].signal_data[
+                                            ch_cntr
+                                        ].append(info)
 
-                                else:
-                                    block_info = DataBlockInfo(
-                                        address=tempfile_address,
-                                        block_type=v4c.DZ_BLOCK_LZ,
-                                        compressed_size=raw_size,
-                                        original_size=size,
-                                        param=None,
-                                    )
+                                    else:
+                                        block_info = DataBlockInfo(
+                                            address=tempfile_address,
+                                            block_type=v4c.DZ_BLOCK_LZ,
+                                            compressed_size=compressed_size,
+                                            original_size=original_size,
+                                            param=None,
+                                        )
 
-                                    final_records[rec_id].append(block_info)
+                                        final_records[rec_id].append(block_info)
 
             # after we read all DTBLOCKs in the original file,
             # we assign freshly created blocks from temporary file to
