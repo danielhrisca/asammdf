@@ -833,6 +833,11 @@ class MDF4(MDF_Common):
                 else:
                     event.parent = None
 
+        for i, gp in enumerate(self.groups):
+            for j, ch in enumerate(gp.channels):
+                if isinstance(gp.signal_data[j], int):
+                    gp.signal_data[j] = self._get_signal_data_blocks_info(gp.signal_data[j], stream)
+
         self._si_map.clear()
         self._ch_map.clear()
         self._cc_map.clear()
@@ -1080,7 +1085,7 @@ class MDF4(MDF_Common):
         return ch_cntr, composition, composition_dtype
 
     def _load_signal_data(
-        self, address=None, stream=None, group=None, index=None, offset=0, count=None
+        self, group=None, index=None, start_offset=None, end_offset=None
     ):
         """this method is used to get the channel signal data, usually for
         VLSD channels
@@ -1099,144 +1104,108 @@ class MDF4(MDF_Common):
 
         """
 
-        with_bounds = False
+        data = []
 
-        if address == 0:
-            data = b""
+        if group is not None and index is not None:
+            info_blocks = group.signal_data[index]
 
-        elif address is not None and stream is not None:
-            stream.seek(address)
-            blk_id = stream.read(4)
-            if blk_id == b"##SD":
-                data = DataBlock(address=address, stream=stream)
-                data = data.data
-            elif blk_id == b"##DZ":
-                data = DataZippedBlock(address=address, stream=stream)
-                data = data.data
-            elif blk_id == b"##CG":
-                group = self.groups[self._cg_map[address]]
-                data = b"".join(fragment[0] for fragment in self._load_data(group))
-            elif blk_id == b"##DL":
-                data = []
-                while address:
-                    # the data list will contain only links to SDBLOCK's
-                    data_list = DataList(address=address, stream=stream)
-                    nr = data_list.links_nr
-                    # aggregate data from all SDBLOCK
-                    for i in range(nr - 1):
-                        addr = data_list[f"data_block_addr{i}"]
-                        stream.seek(addr)
-                        blk_id = stream.read(4)
-                        if blk_id == b"##SD":
-                            block = DataBlock(address=addr, stream=stream)
-                            data.append(block.data)
-                        elif blk_id == b"##DZ":
-                            block = DataZippedBlock(address=addr, stream=stream)
-                            data.append(block.data)
+            if info_blocks is not None:
+
+                if start_offset is None and end_offset is None:
+                    for info in info_blocks:
+                        address, raw_size, size, block_type, param = (
+                            info.address,
+                            info.raw_size,
+                            info.size,
+                            info.block_type,
+                            info.param,
+                        )
+
+                        if not info.raw_size:
+                            continue
+                        if info.location == v4c.LOCATION_TEMPORARY_FILE:
+                            stream = self._tempfile
                         else:
-                            message = f'Expected SD, DZ or DL block at {hex(address)} but found id="{blk_id}"'
-                            logger.warning(message)
-                            return b"", with_bounds
-                    address = data_list.next_dl_addr
-                data = b"".join(data)
-            elif blk_id == b"##CN":
-                data = b""
-            elif blk_id == b"##HL":
-                hl = HeaderList(address=address, stream=stream)
+                            stream = self._file
 
-                data, with_bounds = self._load_signal_data(
-                    address=hl.first_dl_addr, stream=stream, group=group, index=index
-                )
-            elif blk_id == b"##AT":
-                data = b""
-            else:
-                message = f'Expected AT, CG, SD, DL, DZ or CN block at {hex(address)} but found id="{blk_id}"'
-                logger.warning(message)
-                data = b""
+                        stream.seek(address)
+                        new_data = stream.read(raw_size)
+                        if block_type == v4c.DZ_BLOCK_DEFLATE:
+                            new_data = decompress(new_data, 0, size)
+                        elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
+                            new_data = decompress(new_data, 0, size)
+                            cols = param
+                            lines = size // cols
 
-        elif group is not None and index is not None:
-            if group.data_location == v4c.LOCATION_ORIGINAL_FILE:
-                data, with_bounds = self._load_signal_data(
-                    address=group.signal_data[index], stream=self._file
-                )
-            elif group.data_location == v4c.LOCATION_MEMORY:
-                data = group.signal_data[index]
-            else:
-                data = []
-                stream = self._tempfile
-                address = group.signal_data[index]
-                if address:
-                    if isinstance(address, int):
+                            nd = frombuffer(new_data[: lines * cols], dtype=uint8)
+                            nd = nd.reshape((cols, lines))
+                            new_data = nd.T.tobytes() + new_data[lines * cols:]
+                        elif block_type == v4c.DZ_BLOCK_LZ:
+                            new_data = lz_decompress(new_data)
 
-                        if address in self._cg_map:
-                            group = self.groups[self._cg_map[address]]
-                            data.append(b"".join(e[0] for e in self._load_data(group)))
+                        data.append(new_data)
 
-                    else:
-                        if isinstance(address[0], SignalDataBlockInfo):
+                else:
+                    start_offset = int(start_offset)
+                    end_offset = int(end_offset)
 
-                            if address[0].offsets is not None:
+                    current_offset = 0
 
-                                with_bounds = True
+                    for info in info_blocks:
+                        address, raw_size, size, block_type, param = (
+                            info.address,
+                            info.raw_size,
+                            info.size,
+                            info.block_type,
+                            info.param,
+                        )
 
-                                current_offset = 0
-                                if count is not None:
-                                    end = offset + count
-                                else:
-                                    end = None
+                        if not info.raw_size:
+                            continue
+                        if info.location == v4c.LOCATION_TEMPORARY_FILE:
+                            stream = self._tempfile
+                        else:
+                            stream = self._file
 
-                                for info in address:
+                        if current_offset + size < start_offset:
+                            current_offset += size
+                            continue
 
-                                    current_count = info.count
+                        stream.seek(address)
+                        new_data = stream.read(raw_size)
+                        if block_type == v4c.DZ_BLOCK_DEFLATE:
+                            new_data = decompress(new_data, 0, size)
+                        elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
+                            new_data = decompress(new_data, 0, size)
+                            cols = param
+                            lines = size // cols
 
-                                    if current_offset + current_count < offset:
-                                        current_offset += current_count
-                                        continue
+                            nd = frombuffer(new_data[: lines * cols], dtype=uint8)
+                            nd = nd.reshape((cols, lines))
+                            new_data = nd.T.tobytes() + new_data[lines * cols:]
+                        elif block_type == v4c.DZ_BLOCK_LZ:
+                            new_data = lz_decompress(new_data)
 
-                                    if current_offset < offset:
-                                        start_addr = (
-                                            info.address
-                                            + info.offsets[offset - current_offset]
-                                        )
-                                    else:
-                                        start_addr = info.address
+                        if current_offset + size > end_offset:
+                            start_index = max(0, start_offset - current_offset)
+                            last_sample_size, = UINT32_uf(new_data, end_offset-current_offset)
+                            data.append(new_data[start_index: end_offset - current_offset + last_sample_size + 4])
 
-                                    if end is not None:
-                                        if end <= current_offset:
-                                            break
-                                        elif end >= current_offset + current_count:
-                                            end_addr = info.address + info.size
-                                        else:
-                                            end_addr = (
-                                                info.address
-                                                + info.offsets[end - current_offset]
-                                            )
-                                    else:
-                                        end_addr = info.address + info.size
-
-                                    size = int(end_addr - start_addr)
-                                    start_addr = int(start_addr)
-
-                                    stream.seek(start_addr)
-                                    data.append(stream.read(size))
-                                    current_offset += current_count
-
+                        else:
+                            if start_offset > current_offset:
+                                data.append(new_data[start_offset - current_offset: ])
                             else:
-                                for info in address:
-                                    if not info.size:
-                                        continue
-                                    stream.seek(info.address)
-                                    data.append(stream.read(info.size))
+                                data.append(new_data)
 
-                        elif address[0] in self._cg_map:
-                            group = self.groups[self._cg_map[address[0]]]
-                            data.append(b"".join(e[0] for e in self._load_data(group)))
+                            current_offset += size
 
                 data = b"".join(data)
+            else:
+                data = b''
         else:
             data = b""
 
-        return data, with_bounds
+        return data
 
     def _load_data(
         self, group, record_offset=0, record_count=None, optimize_read=False
@@ -2287,6 +2256,129 @@ class MDF4(MDF_Common):
 
         return info, uses_ld
 
+    def _get_signal_data_blocks_info(
+        self,
+        address,
+        stream,
+    ):
+        info = []
+
+        if address:
+            stream.seek(address)
+            id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
+
+            # can be a DataBlock
+            if id_string == b'##SD':
+                size = block_len - 24
+                if size:
+                    info.append(
+                        SignalDataBlockInfo(
+                            address=address + COMMON_SIZE,
+                            size=size,
+                            offsets=None,
+                            count=None,
+                            block_type=v4c.DT_BLOCK,
+                        )
+                    )
+
+            # or a DataZippedBlock
+            elif id_string == b"##DZ":
+                stream.seek(address)
+                (
+                    original_type,
+                    zip_type,
+                    param,
+                    original_size,
+                    zip_size,
+                ) = v4c.DZ_COMMON_INFO_u(stream.read(v4c.DZ_COMMON_SIZE))
+
+                if original_size:
+                    if zip_type == v4c.FLAG_DZ_DEFLATE:
+                        block_type_ = v4c.DZ_BLOCK_DEFLATE
+                        param = 0
+                    else:
+                        block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+
+                    info.append(
+                        SignalDataBlockInfo(
+                            address=address + v4c.DZ_COMMON_SIZE,
+                            block_type=block_type_,
+                            raw_size=zip_size,
+                            size=original_size,
+                            param=param,
+                            count=None,
+                        )
+                    )
+
+            # or a DataList
+            elif id_string == b"##DL":
+                while address:
+                    dl = DataList(address=address, stream=stream)
+                    for i in range(dl.data_block_nr):
+
+                        addr = dl[f"data_block_addr{i}"]
+
+                        stream.seek(addr)
+                        id_string, block_len = COMMON_SHORT_u(
+                            stream.read(COMMON_SHORT_SIZE)
+                        )
+
+                        # can be a DataBlock
+                        if id_string == b'##SD':
+                            size = block_len - 24
+                            if size:
+                                info.append(
+                                    SignalDataBlockInfo(
+                                        address=addr + COMMON_SIZE,
+                                        size=size,
+                                        offsets=None,
+                                        count=None,
+                                        block_type=v4c.DT_BLOCK,
+                                    )
+                                )
+                        # or a DataZippedBlock
+                        elif id_string == b"##DZ":
+                            stream.seek(addr)
+                            (
+                                original_type,
+                                zip_type,
+                                param,
+                                original_size,
+                                zip_size,
+                            ) = v4c.DZ_COMMON_INFO_u(
+                                stream.read(v4c.DZ_COMMON_SIZE)
+                            )
+
+                            if original_size:
+                                if zip_type == v4c.FLAG_DZ_DEFLATE:
+                                    block_type_ = v4c.DZ_BLOCK_DEFLATE
+                                    param = 0
+                                else:
+                                    block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                                info.append(
+                                    SignalDataBlockInfo(
+                                        address=addr + v4c.DZ_COMMON_SIZE,
+                                        block_type=block_type_,
+                                        raw_size=zip_size,
+                                        size=original_size,
+                                        param=param,
+                                        count=None,
+                                    )
+                                )
+                    address = dl.next_dl_addr
+
+            # or a header list
+            elif id_string == b"##HL":
+                hl = HeaderList(address=address, stream=stream)
+                address = hl.first_dl_addr
+
+                info = self._get_signal_data_blocks_info(
+                    address,
+                    stream,
+                )
+
+        return info or None
+
     def _filter_occurrences(
         self, occurrences, source_name=None, source_path=None, acq_name=None
     ):
@@ -2615,7 +2707,6 @@ class MDF4(MDF_Common):
 
         gp = Group(None)
         gp.signal_data = gp_sdata = []
-        gp.signal_data_size = gp_sdata_size = []
         gp.channels = gp_channels = []
         gp.channel_dependencies = gp_dep = []
         gp.signal_types = gp_sig_types = []
@@ -2703,7 +2794,6 @@ class MDF4(MDF_Common):
             gp_channels.append(ch)
 
             gp_sdata.append(None)
-            gp_sdata_size.append(0)
             self.channels_db.add(name, (dg_cntr, ch_cntr))
             self.masters_db[dg_cntr] = 0
             # data group record parents
@@ -2838,7 +2928,6 @@ class MDF4(MDF_Common):
                 offset += byte_size
 
                 gp_sdata.append(None)
-                gp_sdata_size.append(0)
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
                 if ch.display_name:
@@ -2950,7 +3039,6 @@ class MDF4(MDF_Common):
                 parents[ch_cntr] = field_name, 0
 
                 gp_sdata.append(0)
-                gp_sdata_size.append(0)
 
                 ch_cntr += 1
 
@@ -3092,7 +3180,6 @@ class MDF4(MDF_Common):
                 offset += size
 
                 gp_sdata.append(None)
-                gp_sdata_size.append(0)
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
                 if ch.display_name:
@@ -3157,7 +3244,6 @@ class MDF4(MDF_Common):
                     offset += byte_size
 
                     gp_sdata.append(None)
-                    gp_sdata_size.append(0)
                     self.channels_db.add(name, entry)
 
                     # update the parents as well
@@ -3213,15 +3299,14 @@ class MDF4(MDF_Common):
                             size=data_size,
                             count=len(samples),
                             offsets=offsets,
+                            location=v4c.LOCATION_TEMPORARY_FILE,
                         )
                         gp_sdata.append([info])
-                        gp_sdata_size.append(data_size)
                         file.seek(0, 2)
                         file.write(b"".join(data))
                     else:
                         data_addr = 0
                         gp_sdata.append([])
-                        gp_sdata_size.append(0)
                 else:
 
                     offsets = arange(len(samples), dtype=uint64) * (
@@ -3245,14 +3330,13 @@ class MDF4(MDF_Common):
                             size=data_size,
                             count=len(data),
                             offsets=offsets,
+                            location=v4c.LOCATION_TEMPORARY_FILE,
                         )
                         gp_sdata.append([info])
-                        gp_sdata_size.append(data_size)
                         data.tofile(file)
                     else:
                         data_addr = 0
                         gp_sdata.append([])
-                        gp_sdata_size.append(0)
 
                 # compute additional byte offset for large records size
                 byte_size = 8
@@ -3471,7 +3555,6 @@ class MDF4(MDF_Common):
 
         gp = Group(None)
         gp.signal_data = gp_sdata = []
-        gp.signal_data_size = gp_sdata_size = []
         gp.channels = gp_channels = []
         gp.channel_dependencies = gp_dep = []
         gp.signal_types = gp_sig_types = []
@@ -3538,7 +3621,6 @@ class MDF4(MDF_Common):
         gp_channels.append(ch)
 
         gp_sdata.append(None)
-        gp_sdata_size.append(0)
         self.channels_db.add(name, (dg_cntr, ch_cntr))
         self.masters_db[dg_cntr] = 0
         # data group record parents
@@ -3618,7 +3700,6 @@ class MDF4(MDF_Common):
         for signal in signals:
             gp = Group(None)
             gp.signal_data = gp_sdata = []
-            gp.signal_data_size = gp_sdata_size = []
             gp.channels = gp_channels = []
             gp.channel_dependencies = gp_dep = []
             gp.signal_types = gp_sig_types = []
@@ -3745,7 +3826,6 @@ class MDF4(MDF_Common):
                 offset = byte_size
 
                 gp_sdata.append(None)
-                gp_sdata_size.append(0)
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
                 if ch.display_name:
@@ -3850,7 +3930,6 @@ class MDF4(MDF_Common):
                 parents[ch_cntr] = name, 0
 
                 gp_sdata.append(0)
-                gp_sdata_size.append(0)
 
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
                 (
@@ -4059,7 +4138,6 @@ class MDF4(MDF_Common):
                     offset += byte_size
 
                     gp_sdata.append(None)
-                    gp_sdata_size.append(0)
                     self.channels_db.add(name, entry)
 
                     # update the parents as well
@@ -4106,6 +4184,7 @@ class MDF4(MDF_Common):
                         size=data_size,
                         count=len(data),
                         offsets=offsets,
+                        location=v4c.LOCATION_TEMPORARY_FILE,
                     )
                     gp_sdata.append([info])
                     data.tofile(file)
@@ -4258,7 +4337,6 @@ class MDF4(MDF_Common):
 
         gp = Group(None)
         gp.signal_data = gp_sdata = []
-        gp.signal_data_size = gp_sdata_size = []
         gp.channels = gp_channels = []
         gp.channel_dependencies = gp_dep = []
         gp.signal_types = gp_sig_types = []
@@ -4318,7 +4396,6 @@ class MDF4(MDF_Common):
         gp_channels.append(ch)
 
         gp_sdata.append(None)
-        gp_sdata_size.append(0)
         self.channels_db.add(name, (dg_cntr, ch_cntr))
         self.masters_db[dg_cntr] = 0
         # data group record parents
@@ -4384,7 +4461,6 @@ class MDF4(MDF_Common):
                 offset += byte_size
 
                 gp_sdata.append(None)
-                gp_sdata_size.append(0)
                 self.channels_db.add(name, (dg_cntr, ch_cntr))
 
                 # update the parents as well
@@ -4416,6 +4492,7 @@ class MDF4(MDF_Common):
                         size=data_size,
                         count=len(data),
                         offsets=offsets,
+                        location=v4c.LOCATION_TEMPORARY_FILE,
                     )
                     gp_sdata.append([info])
                     data.tofile(file)
@@ -4529,7 +4606,6 @@ class MDF4(MDF_Common):
 
         gp = grp
         gp_sdata = gp.signal_data
-        gp_sdata_size = gp.signal_data_size
         gp_channels = gp.channels
         gp_dep = gp.channel_dependencies
 
@@ -4642,7 +4718,6 @@ class MDF4(MDF_Common):
         struct_self = entry
 
         gp_sdata.append(None)
-        gp_sdata_size.append(0)
         self.channels_db.add(name, entry)
         if ch.display_name:
             self.channels_db.add(ch.display_name, entry)
@@ -4710,7 +4785,6 @@ class MDF4(MDF_Common):
                 offset += byte_size
 
                 gp_sdata.append(None)
-                gp_sdata_size.append(0)
                 self.channels_db.add(name, entry)
 
                 # update the parents as well
@@ -4898,7 +4972,6 @@ class MDF4(MDF_Common):
                     offset += byte_size
 
                     gp_sdata.append(None)
-                    gp_sdata_size.append(0)
                     self.channels_db.add(name, entry)
 
                     # update the parents as well
@@ -4962,7 +5035,6 @@ class MDF4(MDF_Common):
 
         gp = grp
         gp_sdata = gp.signal_data
-        gp_sdata_size = gp.signal_data_size
         gp_channels = gp.channels
         gp_dep = gp.channel_dependencies
 
@@ -5058,7 +5130,6 @@ class MDF4(MDF_Common):
         struct_self = entry
 
         gp_sdata.append(None)
-        gp_sdata_size.append(0)
         self.channels_db.add(name, entry)
         if ch.display_name:
             self.channels_db.add(ch.display_name, entry)
@@ -5124,7 +5195,6 @@ class MDF4(MDF_Common):
                 offset += byte_size
 
                 gp_sdata.append(None)
-                gp_sdata_size.append(0)
                 self.channels_db.add(name, entry)
 
                 # update the parents as well
@@ -5306,7 +5376,6 @@ class MDF4(MDF_Common):
                     offset += byte_size
 
                     gp_sdata.append(None)
-                    gp_sdata_size.append(0)
                     self.channels_db.add(name, entry)
 
                     # update the parents as well
@@ -5499,6 +5568,7 @@ class MDF4(MDF_Common):
                             size=data_size,
                             count=len(signal),
                             offsets=offsets,
+                            location=v4c.LOCATION_TEMPORARY_FILE,
                         )
                         gp.signal_data[i].append(info)
                         stream.write(b"".join(data))
@@ -5527,6 +5597,7 @@ class MDF4(MDF_Common):
                             size=block_size,
                             count=len(values),
                             offsets=offsets,
+                            location=v4c.LOCATION_TEMPORARY_FILE,
                         )
                         gp.signal_data[i].append(info)
                         values.tofile(stream)
@@ -5728,6 +5799,7 @@ class MDF4(MDF_Common):
                         size=block_size,
                         count=len(values),
                         offsets=offsets,
+                        location=v4c.LOCATION_TEMPORARY_FILE,
                     )
                     gp.signal_data[i].append(info)
                     write(values.tobytes())
@@ -7249,9 +7321,12 @@ class MDF4(MDF_Common):
         if channel_type == v4c.CHANNEL_TYPE_VLSD:
             count_ = len(vals)
 
-            signal_data, with_bounds = self._load_signal_data(
-                group=grp, index=ch_nr, offset=record_start, count=count_
-            )
+            if count_:
+                signal_data = self._load_signal_data(
+                    group=grp, index=ch_nr, start_offset=vals[0], end_offset=vals[-1]
+                )
+            else:
+                signal_data = b''
 
             if signal_data:
                 if data_type in (
@@ -7262,9 +7337,6 @@ class MDF4(MDF_Common):
                     vals = extract(signal_data, 1)
                 else:
                     vals = extract(signal_data, 0)
-
-                if not with_bounds:
-                    vals = vals[record_start : record_start + count_]
 
                 if data_type not in (
                     v4c.DATA_TYPE_BYTEARRAY,
@@ -9103,7 +9175,8 @@ class MDF4(MDF_Common):
                                 channel.attachment
                             ].address
                     else:
-                        sdata, with_bounds = self._load_signal_data(group=gp, index=j)
+
+                        sdata = self._load_signal_data(group=gp, index=j)
                         if sdata:
                             split_size = self._write_fragment_size
                             if self._write_fragment_size:
@@ -9938,6 +10011,7 @@ class MDF4(MDF_Common):
                                         size=dtblock_temp_size,
                                         count=len(offsets),
                                         offsets=offsets,
+                                        location=v4c.LOCATION_TEMPORARY_FILE,
                                     )
                                     self.groups[dg_cntr].signal_data[ch_cntr].append(
                                         info
@@ -10001,6 +10075,7 @@ class MDF4(MDF_Common):
                                             size=size,
                                             count=len(offsets),
                                             offsets=offsets,
+                                            location=v4c.LOCATION_TEMPORARY_FILE,
                                         )
                                         self.groups[dg_cntr].signal_data[
                                             ch_cntr

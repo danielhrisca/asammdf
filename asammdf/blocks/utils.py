@@ -1045,7 +1045,6 @@ class Group:
     __slots__ = (
         "channels",
         "channel_dependencies",
-        "signal_data_size",
         "signal_data",
         "channel_group",
         "record_size",
@@ -1070,7 +1069,6 @@ class Group:
         self.channels = []
         self.channel_dependencies = []
         self.signal_data = []
-        self.signal_data_size = []
         self.parents = None
         self.types = None
         self.record = None
@@ -1098,7 +1096,6 @@ class Group:
         self.channels.clear()
         self.channel_dependencies.clear()
         self.signal_data.clear()
-        self.signal_data_size.clear()
 
 
 class VirtualChannelGroup:
@@ -1326,23 +1323,32 @@ class SignalDataBlockInfo:
 
     __slots__ = (
         "address",
+        "raw_size",
         "size",
+        "param",
         "count",
         "offsets",
+        "block_type",
+        "location",
     )
 
-    def __init__(self, address, size, count, offsets=None):
+    def __init__(self, address, size, count, offsets=None, block_type=v4c.DT_BLOCK, param=0, raw_size=None, location=v4c.LOCATION_ORIGINAL_FILE):
         self.address = address
         self.count = count
         self.size = size
         self.offsets = offsets
+        self.block_type = block_type
+        self.raw_size = raw_size or size
+        self.param = param
+        self.location = location
 
     def __repr__(self):
         return (
             f"SignalDataBlockInfo(address=0x{self.address:X}, "
             f"size={self.size}, "
             f"count={self.count}, "
-            f"offsets={self.offsets})"
+            f"offsets={self.offsets}, "
+            f"block_type={self.block_type})"
         )
 
 
