@@ -7,7 +7,7 @@ from ..ui.windows_selection_dialog import Ui_WindowSelectionDialog
 
 
 class WindowSelectionDialog(Ui_WindowSelectionDialog, QtWidgets.QDialog):
-    def __init__(self, options=("Plot", "Numeric", "Tabular", "Bar"), *args, **kwargs):
+    def __init__(self, options=("Plot", "Numeric", "Tabular"), *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
