@@ -58,6 +58,7 @@ from ..signal import Signal
 from ..version import __version__
 from .bus_logging_utils import extract_mux
 from .conversion_utils import conversion_transfer
+from . import encryption
 from .mdf_common import MDF_Common
 from .source_utils import Source
 from .utils import (
@@ -788,6 +789,11 @@ class MDF4(MDF_Common):
 
         self._sort()
 
+        for i, gp in enumerate(self.groups):
+            for j, ch in enumerate(gp.channels):
+                if isinstance(gp.signal_data[j], int):
+                    gp.signal_data[j] = self._get_signal_data_blocks_info(gp.signal_data[j], stream)
+
         for grp in self.groups:
             channels = grp.channels
             if (
@@ -832,11 +838,6 @@ class MDF4(MDF_Common):
                     event.parent = range_start_ev_addr
                 else:
                     event.parent = None
-
-        for i, gp in enumerate(self.groups):
-            for j, ch in enumerate(gp.channels):
-                if isinstance(gp.signal_data[j], int):
-                    gp.signal_data[j] = self._get_signal_data_blocks_info(gp.signal_data[j], stream)
 
         self._si_map.clear()
         self._ch_map.clear()
@@ -5847,6 +5848,7 @@ class MDF4(MDF_Common):
         compression=True,
         mime=r"application/octet-stream",
         embedded=True,
+        encrypted=False,
         encryption_function=None,
     ):
         """attach embedded attachment as application/octet-stream.
@@ -5886,6 +5888,8 @@ class MDF4(MDF_Common):
             hash_sum = worker.hexdigest()
         hash_sum_encrypted = hash_sum
 
+        encryption_function = encryption_function or self._encryption_function or encryption.encrypt
+
         if hash_sum in self._attachments_cache:
             return self._attachments_cache[hash_sum]
         else:
@@ -5905,8 +5909,7 @@ class MDF4(MDF_Common):
             file_name = file_name or "bin.bin"
 
             encrypted = False
-            encryption_function = encryption_function or self._encryption_function
-            if encryption_function is not None:
+            if encrypted and encryption_function is not None:
                 try:
                     data = encryption_function(data)
 
@@ -5919,7 +5922,9 @@ class MDF4(MDF_Common):
 
                     encrypted = True
                 except:
-                    pass
+                    encrypted = False
+            else:
+                encrypted = False
 
             at_block = AttachmentBlock(
                 data=data,
@@ -6022,6 +6027,7 @@ class MDF4(MDF_Common):
 
         current_path = Path.cwd()
         file_path = Path(attachment.file_name or "embedded")
+        decryption_function = decryption_function or self._decryption_function or encryption.decrypt
         try:
             os.chdir(self.name.resolve().parent)
 
@@ -6034,14 +6040,8 @@ class MDF4(MDF_Common):
                 md5_worker.update(data)
                 md5_sum = md5_worker.digest()
 
-                if attachment.flags & v4c.FLAG_AT_ENCRYPTED and (
-                    decryption_function is not None
-                    or self._decryption_function is not None
-                ):
+                if attachment.flags & v4c.FLAG_AT_ENCRYPTED and decryption_function is not None:
                     try:
-                        decryption_function = (
-                            decryption_function or self._decryption_function
-                        )
                         data = decryption_function(data)
                     except:
                         pass
@@ -6077,6 +6077,12 @@ class MDF4(MDF_Common):
                         md5_worker = md5()
                         md5_worker.update(data)
                         md5_sum = md5_worker.digest()
+
+                if attachment.flags & v4c.FLAG_AT_ENCRYPTED and decryption_function is not None:
+                    try:
+                        data = decryption_function(data)
+                    except:
+                        pass
 
         except Exception as err:
             os.chdir(current_path)
