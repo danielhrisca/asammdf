@@ -9,7 +9,7 @@ encrypt = decrypt = None
 def load_user_encryption_module(path):
     """
     loads a user defined module that must contain an `encrypt` and
-    a `decrypt` function
+    a `decrypt` function. Those functions take a bytes object as input and return a bytes object.
     """
     global encrypt
     global decrypt

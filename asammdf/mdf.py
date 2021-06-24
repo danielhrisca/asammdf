@@ -3864,6 +3864,8 @@ class MDF:
                     for sig in signals:
                         sig.samples = sig.samples[idx]
                         sig.timestamps = sig.timestamps[idx]
+            else:
+                index = pd.Index(group_master, tupleize_cols=False)
 
             size = len(index)
             for k, sig in enumerate(signals):

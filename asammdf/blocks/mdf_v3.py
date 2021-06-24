@@ -294,7 +294,7 @@ class MDF3(MDF_Common):
                 while True:
                     try:
                         info = next(blocks)
-                        address, size = info.address, info.size
+                        address, size = info.address, info.original_size
                         current_address = address
                     except StopIteration:
                         break
@@ -356,7 +356,7 @@ class MDF3(MDF_Common):
             blocks = group.data_blocks
 
             for info in blocks:
-                address, size = info.address, info.size
+                address, size = info.address, info.original_size
                 stream.seek(address)
                 data = stream.read(size)
 
@@ -931,8 +931,8 @@ class MDF3(MDF_Common):
                         DataBlockInfo(
                             address=data_group.data_block_addr,
                             block_type=0,
-                            raw_size=total_size,
-                            size=total_size,
+                            original_size=total_size,
+                            compressed_size=total_size,
                             param=0,
                         )
                     )
@@ -1684,8 +1684,8 @@ class MDF3(MDF_Common):
                     new_gp.data_blocks.append(
                         DataBlockInfo(
                             address=data_address,
-                            raw_size=size,
-                            size=size,
+                            original_size=size,
+                            compressed_size=size,
                             block_type=0,
                             param=0,
                         )
@@ -2067,8 +2067,8 @@ class MDF3(MDF_Common):
                 DataBlockInfo(
                     address=data_address,
                     block_type=0,
-                    raw_size=size,
-                    size=size,
+                    original_size=size,
+                    compressed_size=size,
                     param=0,
                 )
             )
@@ -2309,8 +2309,8 @@ class MDF3(MDF_Common):
                 DataBlockInfo(
                     address=data_address,
                     block_type=0,
-                    raw_size=size,
-                    size=size,
+                    original_size=size,
+                    compressed_size=size,
                     param=0,
                 )
             )
@@ -2484,8 +2484,8 @@ class MDF3(MDF_Common):
                     new_gp.data_blocks.append(
                         DataBlockInfo(
                             address=data_address,
-                            raw_size=extended_size,
-                            size=extended_size,
+                            original_size=extended_size,
+                            compressed_size=extended_size,
                             block_type=0,
                             param=0,
                         )
@@ -2539,8 +2539,8 @@ class MDF3(MDF_Common):
                 DataBlockInfo(
                     address=data_address,
                     block_type=0,
-                    raw_size=extended_size,
-                    size=extended_size,
+                    original_size=extended_size,
+                    compressed_size=extended_size,
                     param=0,
                 )
             )
@@ -3701,8 +3701,8 @@ class MDF3(MDF_Common):
                     block_info = DataBlockInfo(
                         address=address,
                         block_type=0,
-                        raw_size=size,
-                        size=size,
+                        original_size=size,
+                        compressed_size=size,
                         param=0,
                     )
                     partial_records[rec_id] = [block_info]
