@@ -1,0 +1,37 @@
+name: asammdf package
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6, 3.9]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r test/requirements.txt 
+          pip install -r doc/requirements.txt pytest pytest-cov coveralls
+          
+      - name: Running tests
+        run: |
+          set -e
+          python --version
+          python -m pytest -vv --color=yes --disable-pytest-warnings --cov-config=.coveragerc --cov-report xml:coverage.xml --cov=asammdf/ test/
+          python -m sphinx -nW -b html doc doc/_build/html
+          
+      - name: Coveralls
+        uses: coverallsapp/github-action@master
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path-to-lcov: coverage.xml
