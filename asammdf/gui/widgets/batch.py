@@ -1550,6 +1550,13 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 if not file_name.parent.exists():
                     os.makedirs(file_name.parent, exist_ok=True)
 
+                delimiter = self.delimiter.text() or ','
+                doublequote = self.doublequote.checkState() == QtCore.Qt.Checked
+                escapechar = self.escapechar.text() or None
+                lineterminator = self.lineterminator.text().replace("\\r", "\r").replace("\\n", "\n")
+                quotechar = self.quotechar.text() or '"'
+                quoting = self.quoting.currentText()
+
                 target = mdf_file.export if mdf is None else mdf.export
                 kwargs = {
                     "fmt": opts.output_format.lower(),
@@ -1566,6 +1573,12 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     "time_as_date": opts.time_as_date,
                     "ignore_value2text_conversions": self.ignore_value2text_conversions,
                     "raw": opts.raw,
+                    "delimiter": delimiter,
+                    "doublequote": doublequote,
+                    "escapechar": escapechar,
+                    "lineterminator": lineterminator,
+                    "quotechar": quotechar,
+                    "quoting": quoting,
                 }
 
                 result = run_thread_with_progress(

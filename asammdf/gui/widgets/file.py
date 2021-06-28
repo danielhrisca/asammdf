@@ -2393,6 +2393,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 progress.setWindowTitle("Export measurement")
                 progress.setLabelText(f"Exporting to {output_format}")
 
+            delimiter = self.delimiter.text() or ','
+            doublequote = self.doublequote.checkState() == QtCore.Qt.Checked
+            escapechar = self.escapechar.text() or None
+            lineterminator = self.lineterminator.text().replace("\\r", "\r").replace("\\n", "\n")
+            quotechar = self.quotechar.text() or '"'
+            quoting = self.quoting.currentText()
+
             target = self.mdf.export if mdf is None else mdf.export
             kwargs = {
                 "fmt": opts.output_format.lower(),
@@ -2409,6 +2416,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "time_as_date": opts.time_as_date,
                 "ignore_value2text_conversions": self.ignore_value2text_conversions,
                 "raw": opts.raw,
+                "delimiter": delimiter,
+                "doublequote": doublequote,
+                "escapechar": escapechar,
+                "lineterminator": lineterminator,
+                "quotechar": quotechar,
+                "quoting": quoting,
             }
 
             result = run_thread_with_progress(
