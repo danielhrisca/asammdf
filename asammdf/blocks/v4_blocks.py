@@ -16,7 +16,10 @@ from zlib import compress, decompress
 from functools import lru_cache
 
 from numexpr import evaluate
-from numexpr3 import evaluate as evaluate3
+try:
+    from numexpr3 import evaluate as evaluate3
+except:
+    evaluate3 = evaluate
 import numpy as np
 
 from . import v4_constants as v4c
@@ -4207,14 +4210,14 @@ class DataZippedBlock(object):
                         data = (
                             np.frombuffer(data[: lines * cols], dtype="B")
                             .reshape((lines, cols))
-                            .T.tostring()
+                            .T.tobytes()
                         ) + data[lines * cols :]
 
                     else:
                         data = (
                             np.frombuffer(data, dtype=np.uint8)
                             .reshape((lines, cols))
-                            .T.tostring()
+                            .T.tobytes()
                         )
                 data = compress(data, 1)
 
@@ -4242,13 +4245,13 @@ class DataZippedBlock(object):
                         data = (
                             np.frombuffer(data[: lines * cols], dtype=np.uint8)
                             .reshape((cols, lines))
-                            .T.tostring()
+                            .T.tobytes()
                         ) + data[lines * cols :]
                     else:
                         data = (
                             np.frombuffer(data, dtype=np.uint8)
                             .reshape((cols, lines))
-                            .T.tostring()
+                            .T.tobytes()
                         )
             else:
                 data = DataZippedBlock.__dict__[item].__get__(self)

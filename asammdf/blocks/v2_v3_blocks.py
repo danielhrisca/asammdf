@@ -10,7 +10,10 @@ from textwrap import wrap
 from traceback import format_exc
 
 from numexpr import evaluate
-from numexpr3 import evaluate as evaluate3
+try:
+    from numexpr3 import evaluate as evaluate3
+except:
+    evaluate3 = evaluate
 import numpy as np
 
 from . import v2_v3_constants as v23c

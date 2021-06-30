@@ -89,7 +89,6 @@ setup(
         "canmatrix[arxml,dbc]>=0.8",
         "lz4",
         "numexpr",
-        "numexpr3",
         "numpy>=1.17.5",
         "pandas",
     ],
@@ -116,6 +115,7 @@ setup(
             "PyQtWebEngine",
         ],
         "encryption": "cryptography",
+        "symbolic_math": "numexpr3",
     },
     # If there are data files included in your packages that need to be
     # installed, specify them here.  If using Python 2.6 or less, then these
