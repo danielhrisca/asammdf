@@ -10130,7 +10130,7 @@ class MDF4(MDF_Common):
                         + channel_group.invalidation_bytes_nr
                     )
 
-                total_size = sum(blk.raw_size for blk in group.data_blocks)
+                total_size = sum(blk.original_size for blk in group.data_blocks)
 
                 cycles_nr = total_size // samples_size
                 virtual_channel_group = self.virtual_groups[index]

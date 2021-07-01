@@ -3669,8 +3669,8 @@ class MDF3(MDF_Common):
             for info in group.data_blocks:
                 address, size, block_size, block_type, param = (
                     info.address,
-                    info.raw_size,
-                    info.size,
+                    info.original_size,
+                    info.compressed_size,
                     info.block_type,
                     info.param,
                 )
