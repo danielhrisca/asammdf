@@ -185,8 +185,8 @@ def get_text_v3(address, stream, mapped=False, decode=True):
 
     Returns
     -------
-    text : str
-        unicode string
+    text : str | bytes
+        unicode string or bytes object depending on the ``decode`` argument
 
     """
 
@@ -199,7 +199,7 @@ def get_text_v3(address, stream, mapped=False, decode=True):
             return "" if decode else b""
         (size,) = UINT16_uf(stream, address + 2)
         text_bytes = (
-            stream[address + 4 : address + size].split(b"\0")[0].rstrip(b" \r\t\n\0")
+            stream[address + 4 : address + size].split(b"\0", 1)[0].strip(b" \r\t\n")
         )
     else:
         stream.seek(address)
@@ -207,7 +207,7 @@ def get_text_v3(address, stream, mapped=False, decode=True):
         if block_id != b"TX":
             return "" if decode else b""
         size = UINT16_u(stream.read(2))[0] - 4
-        text_bytes = stream.read(size).split(b"\0")[0].rstrip(b" \r\t\n\0")
+        text_bytes = stream.read(size).split(b"\0", 1)[0].strip(b" \r\t\n")
     if decode:
         try:
             text = text_bytes.decode("latin-1")
@@ -235,8 +235,8 @@ def get_text_v4(address, stream, mapped=False, decode=True):
 
     Returns
     -------
-    text : str
-        unicode string
+    text : str | bytes
+        unicode string or bytes object depending on the ``decode`` argument
 
     """
 
@@ -249,8 +249,8 @@ def get_text_v4(address, stream, mapped=False, decode=True):
             return "" if decode else b""
         text_bytes = (
             stream[address + 24 : address + size]
-            .split(b"\0")[0]
-            .strip(b" \r\t\n\0")
+            .split(b"\0", 1)[0]
+            .strip(b" \r\t\n")
         )
     else:
         stream.seek(address)
@@ -259,8 +259,8 @@ def get_text_v4(address, stream, mapped=False, decode=True):
             return "" if decode else b""
         text_bytes = (
             stream.read(size - 24)
-            .split(b"\0")[0]
-            .strip(b" \r\t\n\0")
+            .split(b"\0", 1)[0]
+            .strip(b" \r\t\n")
         )
 
     if decode:
