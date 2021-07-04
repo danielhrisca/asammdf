@@ -133,7 +133,7 @@ class MDF_Common:
                         else:
                             message = (
                                 f'Multiple occurrences for channel "{name}": {entries}. '
-                                'Returning the first occurence since the MDF obejct was '
+                                'Returning the first occurence since the MDF object was '
                                 'configured to not raise an exception in this case.'
                             )
                             logger.warning(message)
@@ -173,7 +173,7 @@ class MDF_Common:
                                 else:
                                     message = (
                                         f'Multiple occurrences for channel "{name}": {entries}. '
-                                        'Returning the first occurence since the MDF obejct was '
+                                        'Returning the first occurence since the MDF object was '
                                         'configured to not raise an exception in this case.'
                                     )
                                     logger.warning(message)
