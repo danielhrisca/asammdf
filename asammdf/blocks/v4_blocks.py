@@ -92,7 +92,7 @@ class AttachmentBlock:
     * ``md5_sum`` - bytes : attachment file md5 sum
     * ``original_size`` - int : original uncompress file size in bytes
     * ``embedded_size`` - int : embedded compressed file size in bytes
-    * ``embedded_data`` - bytes : embedded atatchment bytes
+    * ``embedded_data`` - bytes : embedded attachment bytes
 
     Other attributes
 
@@ -381,7 +381,7 @@ class Channel:
     * ``flags`` - int : CNBLOCK flags
     * ``pos_invalidation_bit`` - int : invalidation bit position for the current
       channel if there are invalidation bytes in the data record
-    * ``precision`` - int : integer code for teh precision
+    * ``precision`` - int : integer code for the precision
     * ``reserved1`` - int : reserved bytes
     * ``min_raw_value`` - int : min raw value of all samples
     * ``max_raw_value`` - int : max raw value of all samples
@@ -394,7 +394,7 @@ class Channel:
 
     * ``address`` - int : channel address
     * ``attachments`` - list : list of referenced attachment blocks indexes;
-      the index referece to the attachment block index
+      the index reference to the attachment block index
     * ``comment`` - str : channel comment
     * ``conversion`` - ChannelConversion : channel conversion; *None* if the
       channel has no conversion
@@ -1682,13 +1682,13 @@ class ChannelGroup:
     * ``first_ch_addr`` - int : address of first channel of this channel group
     * ``acq_name_addr`` - int : address of TextBLock that contains the channel
       group acquisition name
-    * ``acq_source_addr`` - int : addres of SourceInformation that contains the
+    * ``acq_source_addr`` - int : address of SourceInformation that contains the
       channel group source
     * ``first_sample_reduction_addr`` - int : address of first SRBLOCK; this is
       considered 0 since sample reduction is not yet supported
     * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK that contains the
       channel group comment
-    * ``record_id`` - int : record ID for thei channel group
+    * ``record_id`` - int : record ID for the channel group
     * ``cycles_nr`` - int : number of cycles for this channel group
     * ``flags`` - int : channel group flags
     * ``path_separator`` - int : ordinal for character used as path separator
@@ -1697,7 +1697,7 @@ class ChannelGroup:
       the record for this channel group; this does not contain the invalidation
       bytes
     * ``invalidation_bytes_nr`` - int : number of bytes used for invalidation
-      bits by this channl group
+      bits by this channel group
 
     Other attributes
 
@@ -2116,7 +2116,7 @@ class ChannelConversion(_ChannelConversionBase):
       conversion unit
     * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK that contains the
       conversion comment
-    * ``inv_conv_addr`` int : address of invers conversion
+    * ``inv_conv_addr`` int : address of inverse conversion
     * ``conversion_type`` int : integer code for conversion type
     * ``precision`` - int : integer code for precision
     * ``flags`` - int : conversion block flags
@@ -2139,10 +2139,10 @@ class ChannelConversion(_ChannelConversionBase):
 
     * algebraic conversion
 
-        * ``formula_addr`` - address of TXBLOCK that contains the
+        * ``formula_addr`` - address of TXBLOCK that contains
           the algebraic conversion formula
 
-    * tabluar conversion with or without interpolation
+    * tabular conversion with or without interpolation
 
         * ``raw_<N>`` - float : N-th raw value
         * ``phys_<N>`` - float : N-th physical value
@@ -2177,7 +2177,7 @@ class ChannelConversion(_ChannelConversionBase):
           contains the raw value
         * ``val_default`` - float : default physical value
 
-    * text tranfosrmation (translation) conversion
+    * text transformation (translation) conversion
 
         * ``input_<N>_addr`` - int : address of N-th TXBLOCK that
           contains the raw value
@@ -2191,9 +2191,9 @@ class ChannelConversion(_ChannelConversionBase):
     * ``address`` - int : channel conversion address
     * ``comment`` - str : channel conversion comment
     * ``formula`` - str : algebraic conversion formula; default ''
-    * ``referenced_blocks`` - dict : dict of refenced blocks; can be TextBlock
+    * ``referenced_blocks`` - dict : dict of referenced blocks; can be TextBlock
       objects for value to text, and text to text conversions; for partial
-      conversions the referenced blocks can be ChannelConversion obejct as well
+      conversions the referenced blocks can be ChannelConversion object as well
     * ``name`` - str : channel conversion name
     * ``unit`` - str : channel conversion unit
 
@@ -2908,7 +2908,7 @@ class ChannelConversion(_ChannelConversionBase):
                     self[f"mask_{i}"] = kwargs[f"mask_{i}"]
 
             else:
-                message = "Conversion {} dynamic creation not implementated"
+                message = "Conversion {} dynamic creation not implemented"
                 message = message.format(kwargs["conversion_type"])
                 logger.exception(message)
                 raise MdfException(message)
@@ -4164,7 +4164,7 @@ class DataGroup:
       group
     * ``data_block_addr`` - int : address of DTBLOCK, DZBLOCK, DLBLOCK or
       HLBLOCK that contains the raw samples for this data group
-    * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK tha contains the
+    * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK that contains the
       data group comment
     * ``record_id_len`` - int : size of record ID used in case of unsorted
       data groups; can be 1, 2, 4 or 8
@@ -4172,7 +4172,7 @@ class DataGroup:
 
     Other attributes
 
-    * ``address`` - int : dat group address
+    * ``address`` - int : data group address
     * ``comment`` - str : data group comment
 
     """
@@ -4350,12 +4350,12 @@ class DataList(_DataListBase):
 
     DLBLOCK specific fields
 
-    * for equall lenght blocks
+    * for equal length blocks
 
-        * ``data_block_len`` - int : equall uncompressed size in bytes for all
+        * ``data_block_len`` - int : equal uncompressed size in bytes for all
           referenced data blocks; last block can be smaller
 
-    * for variable lenght blocks
+    * for variable length blocks
 
         * ``offset_<N>`` - int : byte offset of N-th data block
 
@@ -5395,12 +5395,12 @@ class ListData(_ListDataBase):
 
         * ``invalidation_bits_addr_<N>`` - int : address of N-th invalidation
 
-    * for equall lenght blocks
+    * for equal length blocks
 
-        * ``data_block_len`` - int : equall uncompressed size in bytes for all
+        * ``data_block_len`` - int : equal uncompressed size in bytes for all
           referenced data blocks; last block can be smaller
 
-    * for variable lenght blocks
+    * for variable length blocks
 
         * ``offset_<N>`` - int : byte offset of N-th data block
 
@@ -5640,7 +5640,7 @@ class SourceInformation:
     * ``links_nr`` - int : number of links
     * ``name_addr`` - int : address of TXBLOCK that contains the source name
     * ``path_addr`` - int : address of TXBLOCK that contains the source path
-    * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK tha contains the
+    * ``comment_addr`` - int : address of TXBLOCK/MDBLOCK that contains the
       source comment
     * ``source_type`` - int : integer code for source type
     * ``bus_type`` - int : integer code for source bus type
