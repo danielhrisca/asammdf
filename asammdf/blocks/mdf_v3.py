@@ -416,9 +416,9 @@ class MDF3(MDF_Common):
 
             # the channels are first sorted ascending (see __lt__ method of Channel
             # class): a channel with lower start offset is smaller, when two
-            # channels havethe same start offset the one with higer bit size is
+            # channels have the same start offset the one with higher bit size is
             # considered smaller. The reason is that when the numpy record is built
-            # and there are overlapping channels, the parent fields mustbe bigger
+            # and there are overlapping channels, the parent fields must be bigger
             # (bit size) than the embedded channels. For each channel the parent
             # dict will have a (parent name, bit offset) pair: the channel value is
             # computed using the values from the parent field, and the bit offset,
@@ -696,7 +696,7 @@ class MDF3(MDF_Common):
         # the file is loaded
         ch_map = {}
 
-        # go to first date group
+        # go to first data group
         dg_addr = self.header.first_dg_addr
         # read each data group sequentially
         while dg_addr:
@@ -935,7 +935,7 @@ class MDF3(MDF_Common):
             # go to next data group
             dg_addr = data_group.next_dg_addr
 
-        # finally update the channel depency references
+        # finally update the channel dependency references
         for grp in self.groups:
             for dep in grp.channel_dependencies:
                 if dep:
@@ -964,7 +964,7 @@ class MDF3(MDF_Common):
         * write_fragment_size = 4MB
         * use_display_names = False
         * single_bit_uint_as_bool = False
-        * integer_interpolation = 0 (ffill - use previous sample)
+        * integer_interpolation = 0 (fill - use previous sample)
         * float_interpolation = 1 (linear interpolation)
         * copy_on_get = False
         * raise_on_multiple_occurrences = True
@@ -1009,7 +1009,7 @@ class MDF3(MDF_Common):
 
         raise_on_multiple_occurrences : bool
             raise exception when there are multiple channel occurrences in the file and
-            the `get` call is ambiguos; default True
+            the `get` call is ambiguous; default True
 
             .. versionadded:: 6.2.0
 
@@ -1162,7 +1162,7 @@ class MDF3(MDF_Common):
             if you know for sure that all appended channels share the same
             time base
         units : dict
-            will contain the signal units mapped to the singal names when
+            will contain the signal units mapped to the signal names when
             appending a pandas DataFrame
 
 
@@ -1204,7 +1204,7 @@ class MDF3(MDF_Common):
         float_interp_mode = self._float_interpolation
 
         # check if the signals have a common timebase
-        # if not interpolate the signals using the union of all timbases
+        # if not interpolate the signals using the union of all timebases
         if signals:
             timestamps = signals[0].timestamps
             if not common_timebase:
@@ -2698,7 +2698,7 @@ class MDF3(MDF_Common):
         data : bytes
             prevent redundant data read by providing the raw data group samples
         raw : bool
-            return channel samples without appling the conversion rule; default
+            return channel samples without applying the conversion rule; default
             `False`
         ignore_invalidation_bits : bool
             only defined to have the same API with the MDF v4
@@ -3124,7 +3124,7 @@ class MDF3(MDF_Common):
 
         if raster is not None:
             PendingDeprecationWarning(
-                "the argument raster is depreacted since version 5.13.0 "
+                "the argument raster is deprecated since version 5.13.0 "
                 "and will be removed in a future release"
             )
 
@@ -3515,7 +3515,7 @@ class MDF3(MDF_Common):
                     self.close()
                     return
 
-            # update referenced channels addresses in the channel dependecies
+            # update referenced channels addresses in the channel dependencies
             for gp in self.groups:
                 for dep in gp.channel_dependencies:
                     if not dep:
@@ -3703,7 +3703,7 @@ class MDF3(MDF_Common):
                     if len(item) not in (2, 3):
                         raise MdfException(
                             "The items used for filtering must be strings, "
-                            "or they must match the first 3 argumens of the get "
+                            "or they must match the first 3 arguments of the get "
                             "method"
                         )
                     else:
