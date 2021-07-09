@@ -112,7 +112,7 @@ class MdfException(Exception):
 def extract_cncomment_xml(comment):
     """extract *TX* tag or otherwise the *common_properties* from a xml comment
 
-    Paremeters
+    Parameters
     ----------
     comment : str
         xml string comment
@@ -1150,7 +1150,7 @@ def components(
     master : np.array
         optional index for the Series
     only_basenames (False) : bool
-        use jsut the field names, without prefix, for structures and channel
+        use just the field names, without prefix, for structures and channel
         arrays
 
         .. versionadded:: 5.13.0
@@ -1583,7 +1583,7 @@ def plausible_timestamps(t, minimum, maximum, exp_min=-15, exp_max=15):
     -------
     all_ok, idx : (bool, np.array)
         the *all_ok* flag to indicate if all the time stamps are ok; this can be checked
-        before aopplying the indexing array.
+        before applying the indexing array.
     """
 
     exps = np.log10(t)

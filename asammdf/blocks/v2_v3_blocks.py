@@ -90,7 +90,7 @@ class Channel:
     * ``display_name_addr`` - int : address of TXBLOCK that contains the
       channel's display name
     * ``aditional_byte_offset`` - int : additional Byte offset of the channel
-      in the data recor
+      in the data record
 
     Other attributes
 
@@ -871,7 +871,7 @@ class ChannelConversion(_ChannelConversionBase):
 
     * algebraic conversion
 
-        * ``formula`` - bytes : ecuation as string
+        * ``formula`` - bytes : equation as string
 
     * polynomial or rational conversion
 
@@ -1690,7 +1690,7 @@ address: {hex(self.address)}
                 fields.append(f"{attr}:{getattr(self, attr)}")
             except AttributeError:
                 continue
-        return f"ChannelConversion (referneced blocks: {self.referenced_blocks}, address: {hex(self.address)}, fields: {fields})"
+        return f"ChannelConversion (referenced blocks: {self.referenced_blocks}, address: {hex(self.address)}, fields: {fields})"
 
 
 class ChannelDependency:
@@ -2127,7 +2127,7 @@ class ChannelGroup:
       record ID
     * ``cycles_nr`` - int : number of cycles (records) of this type in the data
       block
-    * ``sample_reduction_addr`` - int : addresss to first sample reduction
+    * ``sample_reduction_addr`` - int : address to first sample reduction
       block
 
     Other attributes
@@ -2398,7 +2398,7 @@ class DataGroup:
     * ``next_dg_addr`` - int : next DGBLOCK address
     * ``first_cg_addr`` - int : address of first channel group block (CGBLOCK)
     * ``trigger_addr`` - int : address of trigger block (TRBLOCK)
-    * ``data_block_addr`` - addrfss of data block
+    * ``data_block_addr`` - address of data block
     * ``cg_nr`` - int : number of channel groups
     * ``record_id_len`` - int : number of record IDs in the data block
     * ``reserved0`` - bytes : reserved bytes
@@ -2521,7 +2521,7 @@ class FileIdentificationBlock:
     * ``file_identification`` -  bytes : file identifier
     * ``version_str`` - bytes : format identifier
     * ``program_identification`` - bytes : creator program identifier
-    * ``byte_order`` - int : integer code for byte order (endiannes)
+    * ``byte_order`` - int : integer code for byte order (endianness)
     * ``float_format`` - int : integer code for floating-point format
     * ``mdf_version`` - int : version number of MDF format
     * ``code_page`` - int : unicode code page number
@@ -2620,7 +2620,7 @@ class HeaderBlock:
     * ``id`` - bytes : block ID; always b'HD'
     * ``block_len`` - int : block bytes size
     * ``first_dg_addr`` - int : address of first data group block (DGBLOCK)
-    * ``comment_addr`` - int : address of TXBLOCK taht contains the
+    * ``comment_addr`` - int : address of TXBLOCK that contains the
       measurement file comment
     * ``program_addr`` - int : address of program block (PRBLOCK)
     * ``dg_nr`` - int : number of data groups
@@ -2643,7 +2643,7 @@ class HeaderBlock:
 
     Other attributes
 
-    * ``address`` - int : block address inside mdf file; should be 64 always
+    * ``address`` - int : block address inside mdf file; should always be 64
     * ``comment`` - int : file comment
     * ``program`` - ProgramBlock : program block
     * ``author`` - str : measurement author
@@ -2864,7 +2864,7 @@ class ProgramBlock:
 
     * ``id`` - bytes : block ID; always b'PR'
     * ``block_len`` - int : block bytes size
-    * ``data`` - btyes : creator program free format data
+    * ``data`` - bytes : creator program free format data
 
     Other attributes
     * ``address`` - int : block address inside mdf file
