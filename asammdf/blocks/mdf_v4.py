@@ -5965,6 +5965,9 @@ class MDF4(MDF_Common):
         if not self._from_filelike and self._file is not None:
             self._file.close()
 
+            if Path(self.name).parent == Path(gettempdir()):
+                Path(self.name).unlink(missing_ok=True)
+
         if self.original_name is not None:
             if self.original_name.suffix.lower() in ('.bz2', '.gzip', '.mf4z', '.zip'):
                 try:
