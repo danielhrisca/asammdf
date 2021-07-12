@@ -913,7 +913,7 @@ class MDF4(MDF_Common):
                         name_addr,
                         comment_addr,
                     ) = v4c.CHANNEL_FILTER_u(stream.read(v4c.CHANNEL_FILTER_SIZE))
-                    stream.seek(v4c.COMMON_SIZE + links_nr * 8)
+                    stream.seek(ch_addr + v4c.COMMON_SIZE + links_nr * 8)
                     channel_type = stream.read(1)[0]
                     name = get_text_v4(name_addr, stream, mapped=mapped)
 
@@ -948,6 +948,7 @@ class MDF4(MDF_Common):
                         file_limit=self.file_limit,
                         parsed_strings=(name, display_name, comment),
                     )
+
                 else:
                     ch_addr = next_ch_addr
                     continue
@@ -9787,7 +9788,7 @@ class MDF4(MDF_Common):
                     }
                     kwargs["links_nr"] = valid_count + 1
                     kwargs["flags"] = dl.flags
-                    if self.flags & v4c.FLAG_DL_EQUAL_LENGHT:
+                    if dl.flags & v4c.FLAG_DL_EQUAL_LENGHT:
                         kwargs["data_block_len"] = dl.data_block_len
                     else:
                         for i in enumerate(valid_count):
@@ -9820,7 +9821,7 @@ class MDF4(MDF_Common):
                     }
                     kwargs["links_nr"] = valid_count + 1
                     kwargs["flags"] = dl.flags
-                    if self.flags & v4c.FLAG_DL_EQUAL_LENGHT:
+                    if dl.flags & v4c.FLAG_DL_EQUAL_LENGHT:
                         kwargs["data_block_len"] = dl.data_block_len
                     else:
                         for i in enumerate(valid_count):
