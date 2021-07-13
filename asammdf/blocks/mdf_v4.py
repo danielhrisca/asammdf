@@ -382,8 +382,14 @@ class MDF4(MDF_Common):
                     flags = identification["unfinalized_standard_flags"]
 
                 if version >= "4.10" and flags:
-                    tmpdir = Path(gettempdir())
-                    self.name = tmpdir / Path(name).name
+                    from tempfile import NamedTemporaryFile
+                    tmp_file = NamedTemporaryFile(
+                        suffix='.mf4',
+                        prefix='__asammdf_tmp__',
+                        delete=False
+                    )
+                    self.name = Path(tmp_file.name)
+                    tmp_file.close()
                     shutil.copy(name, self.name)
                     self._file = open(self.name, "rb+")
                     self._from_filelike = False
@@ -5867,6 +5873,13 @@ class MDF4(MDF_Common):
             self._tempfile.close()
         if not self._from_filelike and self._file is not None:
             self._file.close()
+
+        # delete temporary copy of the file (created when reading unfinalized files)
+        if Path(self.name).parent == Path(gettempdir()) and Path(self.name).name.startswith('__asammdf_tmp__'):
+            try:
+                Path(self.name).unlink()  # param missing_ok would require py 3.8
+            except FileNotFoundError:
+                pass  # file already gone
 
         for gp in self.groups:
             gp.clear()
