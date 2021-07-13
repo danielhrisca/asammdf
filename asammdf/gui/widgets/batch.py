@@ -18,6 +18,7 @@ from ..utils import (
     setup_progress,
     TERMINATED,
 )
+from .database_item import DatabaseItem
 from .list import MinimalListWidget
 from .tree_item import TreeItem
 
@@ -37,6 +38,13 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.progress = None
         self.files_list = MinimalListWidget()
         self.splitter.addWidget(self.files_list)
+        self.show()
+
+        sizes = sum(self.splitter.sizes())
+        if sizes >= 700:
+            self.splitter.setSizes([700, sizes - 700])
+        self.splitter.setStretchFactor(0, 0)
+        self.splitter.setStretchFactor(1, 1)
 
         self.raster_type_channel.toggled.connect(self.set_raster_type)
 
@@ -47,6 +55,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             self.mdf_version,
         ):
             widget.insertItems(0, SUPPORTED_VERSIONS)
+            widget.setCurrentText("4.10")
 
         for widget in (
             self.concatenate_split_size,
@@ -86,6 +95,12 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.load_lin_database_btn.clicked.connect(self.load_lin_database)
 
         self.empty_channels_bus.insertItems(0, ("skip", "zeros"))
+        self.empty_channels.insertItems(0, ("skip", "zeros"))
+        self.empty_channels_bus.insertItems(0, ("skip", "zeros"))
+        self.empty_channels_mat.insertItems(0, ("skip", "zeros"))
+        self.empty_channels_csv.insertItems(0, ("skip", "zeros"))
+        self.mat_format.insertItems(0, ("4", "5", "7.3"))
+        self.oned_as.insertItems(0, ("row", "column"))
 
         self.aspects.setCurrentIndex(0)
         self.setAcceptDrops(True)
@@ -181,14 +196,16 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             database_files["CAN"] = []
             for i in range(count):
                 item = self.can_database_list.item(i)
-                database_files["CAN"].append(item.text())
+                widget = self.can_database_list.itemWidget(item)
+                database_files["CAN"].append((widget.database.text(), widget.bus.currentIndex()))
 
         count = self.lin_database_list.count()
         if count:
             database_files["LIN"] = []
             for i in range(count):
                 item = self.lin_database_list.item(i)
-                database_files["LIN"].append(item.text())
+                widget = self.can_database_list.itemWidget(item)
+                database_files["LIN"].append((widget.database.text(), widget.bus.currentIndex()))
 
         compression = self.extract_bus_compression.currentIndex()
         ignore_invalid_signals = (
@@ -242,6 +259,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 "database_files": database_files,
                 "version": version,
                 "ignore_invalid_signals": ignore_invalid_signals,
+                "prefix": self.prefix.text().strip(),
             }
 
             mdf_ = run_thread_with_progress(
@@ -330,14 +348,16 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             database_files["CAN"] = []
             for i in range(count):
                 item = self.can_database_list.item(i)
-                database_files["CAN"].append(item.text())
+                widget = self.can_database_list.itemWidget(item)
+                database_files["CAN"].append((widget.database.text(), widget.bus.currentIndex()))
 
         count = self.lin_database_list.count()
         if count:
             database_files["LIN"] = []
             for i in range(count):
                 item = self.lin_database_list.item(i)
-                database_files["LIN"].append(item.text())
+                widget = self.can_database_list.itemWidget(item)
+                database_files["LIN"].append((widget.database.text(), widget.bus.currentIndex()))
 
         ignore_invalid_signals = (
             self.ignore_invalid_signals_csv.checkState() == QtCore.Qt.Checked
@@ -401,6 +421,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 "database_files": database_files,
                 "version": version,
                 "ignore_invalid_signals": ignore_invalid_signals,
+                "prefix": self.prefix.text().strip(),
             }
 
             mdf_ = run_thread_with_progress(
@@ -498,26 +519,38 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
     def load_can_database(self, event):
         file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
             self,
-            "Select Bus database file",
+            "Select CAN database file",
             "",
-            "ARXML or DBC (*.dbc *.axml)",
-            "ARXML or DBC (*.dbc *.axml)",
+            "ARXML or DBC (*.dbc *.arxml)",
+            "ARXML or DBC (*.dbc *.arxml)",
         )
 
         if file_names:
-            self.can_database_list.addItems(file_names)
+            for database in file_names:
+                item = QtWidgets.QListWidgetItem()
+                widget = DatabaseItem(database, bus_type="CAN")
+
+                self.can_database_list.addItem(item)
+                self.can_database_list.setItemWidget(item, widget)
+                item.setSizeHint(widget.sizeHint())
 
     def load_lin_database(self, event):
         file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
             self,
             "Select LIN database file",
             "",
-            "ARXML or DBC (*.dbc *.arxml)",
-            "ARXML or DBC (*.dbc *.arxml)",
+            "ARXML or DBC database (*.dbc *.arxml);;LDF database (*.ldf);;All supported formats (*.dbc *.arxml *ldf)",
+            "All supported formats (*.dbc *.arxml *ldf)",
         )
 
         if file_names:
-            self.lin_database_list.addItems(file_names)
+            for database in file_names:
+                item = QtWidgets.QListWidgetItem()
+                widget = DatabaseItem(database, bus_type="LIN")
+
+                self.lin_database_list.addItem(item)
+                self.lin_database_list.setItemWidget(item, widget)
+                item.setSizeHint(widget.sizeHint())
 
     def concatenate(self, event):
         count = self.files_list.count()
@@ -1517,6 +1550,13 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 if not file_name.parent.exists():
                     os.makedirs(file_name.parent, exist_ok=True)
 
+                delimiter = self.delimiter.text() or ','
+                doublequote = self.doublequote.checkState() == QtCore.Qt.Checked
+                escapechar = self.escapechar.text() or None
+                lineterminator = self.lineterminator.text().replace("\\r", "\r").replace("\\n", "\n")
+                quotechar = self.quotechar.text() or '"'
+                quoting = self.quoting.currentText()
+
                 target = mdf_file.export if mdf is None else mdf.export
                 kwargs = {
                     "fmt": opts.output_format.lower(),
@@ -1533,6 +1573,12 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     "time_as_date": opts.time_as_date,
                     "ignore_value2text_conversions": self.ignore_value2text_conversions,
                     "raw": opts.raw,
+                    "delimiter": delimiter,
+                    "doublequote": doublequote,
+                    "escapechar": escapechar,
+                    "lineterminator": lineterminator,
+                    "quotechar": quotechar,
+                    "quoting": quoting,
                 }
 
                 result = run_thread_with_progress(
@@ -1564,6 +1610,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             self.export_compression_mat.clear()
             self.export_compression_mat.addItems(["enabled", "disabled"])
             self.export_compression_mat.setCurrentIndex(0)
+        elif name == "CSV":
+            self.output_options.setCurrentIndex(3)
         else:
             self.output_options.setCurrentIndex(1)
             if name == "Parquet":

@@ -185,7 +185,7 @@ def conversion_transfer(conversion, version=3):
                 )
 
             elif conversion_type == v3c.CONVERSION_TYPE_FORMULA:
-                formula = conversion.formula.replace("X1", "X")
+                formula = conversion.formula
                 conversion = v4b.ChannelConversion(
                     conversion_type=v4c.CONVERSION_TYPE_ALG, formula=formula
                 )
@@ -256,7 +256,7 @@ def from_dict(conversion):
         conversion = v4b.ChannelConversion(**conversion)
 
     elif "formula" in conversion:
-        conversion["formula"] = conversion["formula"].replace("X1", "X")
+        conversion["formula"] = conversion["formula"]
         conversion["conversion_type"] = v4c.CONVERSION_TYPE_ALG
         conversion = v4b.ChannelConversion(**conversion)
 

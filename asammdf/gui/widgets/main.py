@@ -229,6 +229,25 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         submenu.addActions(theme_option.actions())
         menu.addMenu(submenu)
 
+        # step line connect menu
+        step_option = QtWidgets.QActionGroup(self)
+
+        for option in ("line", "left", "right"):
+            icon = QtGui.QIcon()
+            icon.addPixmap(QtGui.QPixmap(f":/{option}_interconnect.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            action = QtWidgets.QAction(icon, option, menu)
+            action.setCheckable(True)
+            step_option.addAction(action)
+            action.triggered.connect(partial(self.set_line_interconnect, option))
+
+            if option == self._settings.value("line_interconnect", "line"):
+                action.setChecked(True)
+                action.triggered.emit()
+
+        submenu = QtWidgets.QMenu("Step mode", self.menubar)
+        submenu.addActions(step_option.actions())
+        menu.addMenu(submenu)
+
         # integer interpolation menu
         theme_option = QtWidgets.QActionGroup(self)
 
@@ -888,6 +907,16 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             palette.setBrush(QtGui.QPalette.Inactive, QtGui.QPalette.Highlight, brush)
             app.setPalette(palette)
 
+    def set_line_interconnect(self, option):
+        self._settings.setValue("line_interconnect", option)
+
+        self.line_interconnect = option
+
+        count = self.files.count()
+
+        for i in range(count):
+            self.files.widget(i).set_line_interconnect(option)
+
     def set_subplot_link_option(self, state):
         if isinstance(state, str):
             state = True if state == "true" else False
@@ -917,8 +946,8 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             self,
             "Select measurement file",
             "",
-            "MDF v3 (*.dat *.mdf);;MDF v4(*.mf4);;DL3/ERG files (*.dl3 *.erg);;All files (*.dat *.mdf *.mf4 *.dl3 *.erg)",
-            "All files (*.dat *.mdf *.mf4 *.dl3 *.erg)",
+            "CSV (*.csv);;MDF v3 (*.dat *.mdf);;MDF v4(*.mf4);;DL3/ERG files (*.dl3 *.erg);;All files (*.csv *.dat *.mdf *.mf4 *.dl3 *.erg)",
+            "All files (*.csv *.dat *.mdf *.mf4 *.dl3 *.erg)",
         )
 
         if file_names:
@@ -951,6 +980,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 self.subplots,
                 self.subplots_link,
                 self.ignore_value2text_conversions,
+                self.line_interconnect,
                 None,
                 None,
                 self,
@@ -970,8 +1000,8 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             self,
             "Select measurement file",
             self._settings.value("last_opened_path", "", str),
-            "MDF v3 (*.dat *.mdf);;MDF v4(*.mf4);;DL3/ERG files (*.dl3 *.erg);;All files (*.dat *.mdf *.mf4 *.dl3 *.erg)",
-            "All files (*.dat *.mdf *.mf4 *.dl3 *.erg)",
+            "CSV (*.csv);;MDF v3 (*.dat *.mdf);;MDF v4(*.mf4 *.mf4z);;DL3/ERG files (*.dl3 *.erg);;All files (*.csv *.dat *.mdf *.mf4 *.mf4z *.dl3 *.erg)",
+            "All files (*.csv *.dat *.mdf *.mf4 *.mf4z *.dl3 *.erg)",
         )
 
         if file_names:
@@ -998,7 +1028,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         if self.stackedWidget.currentIndex() == 0:
             for root, dirs, files in os.walk(folder):
                 for file in natsorted(files):
-                    if file.lower().endswith((".erg", ".dl3", ".dat", ".mdf", ".mf4")):
+                    if file.lower().endswith((".csv", ".erg", ".dl3", ".dat", ".mdf", ".mf4", ".mf4z")):
                         self._open_file(os.path.join(root, file))
         else:
             icon = QtGui.QIcon()
@@ -1008,7 +1038,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
             for root, dirs, files in os.walk(folder):
                 for file in natsorted(files):
-                    if file.lower().endswith((".erg", ".dl3", ".dat", ".mdf", ".mf4")):
+                    if file.lower().endswith((".csv", ".erg", ".dl3", ".dat", ".mdf", ".mf4", ".mf4z")):
 
                         row = self.batch.files_list.count()
                         self.batch.files_list.addItem(os.path.join(root, file))
@@ -1038,7 +1068,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             if self.stackedWidget.currentIndex() == 0:
                 for path in e.mimeData().text().splitlines():
                     path = Path(path.replace(r"file:///", ""))
-                    if path.suffix.lower() in (".dat", ".mdf", ".mf4"):
+                    if path.suffix.lower() in (".csv", ".zip", ".erg", ".dat", ".mdf", ".mf4", ".mf4z"):
 
                         self._open_file(path)
             else:
@@ -1049,7 +1079,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
                 for path in e.mimeData().text().splitlines():
                     path = Path(path.replace(r"file:///", ""))
-                    if path.suffix.lower() in (".dat", ".mdf", ".mf4"):
+                    if path.suffix.lower() in (".csv", ".zip", ".erg", ".dat", ".mdf", ".mf4", ".mf4z"):
 
                         row = self.batch.files_list.count()
                         self.batch.files_list.addItem(str(path))

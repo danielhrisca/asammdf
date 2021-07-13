@@ -86,8 +86,8 @@ class Signal(object):
         if samples is None or timestamps is None or not name:
             message = (
                 '"samples", "timestamps" and "name" are mandatory '
-                "for Signal class __init__: samples={samples}\n"
-                "timestamps={timestamps}\nname={name}"
+                f"for Signal class __init__: samples={samples}\n"
+                f"timestamps={timestamps}\nname={name}"
             )
             raise MdfException(message)
         else:
@@ -456,6 +456,7 @@ class Signal(object):
         0.98, 10.48
 
         """
+
         if integer_interpolation_mode is None:
             if interpolation_mode is not None:
                 integer_interpolation_mode = interpolation_mode
@@ -471,6 +472,7 @@ class Signal(object):
             raise MdfException("Float interpolation mode should be one of (0, 1)")
 
         ends = (start, stop)
+
         if len(self) == 0:
             result = Signal(
                 np.array([], dtype=self.samples.dtype),
@@ -920,51 +922,41 @@ class Signal(object):
             )
         else:
 
-            if len(self.samples.shape) > 1:
-                idx = np.searchsorted(self.timestamps, new_timestamps, side="right")
+            # we need to validate first otherwise we can get false invalid data
+            # if the new timebase and the invaldiation bits are alligned in an
+            # infavorable way
+
+            if self.invalidation_bits is not None:
+                signal = self.validate()
+            else:
+                signal = self
+
+            if len(signal.samples.shape) > 1:
+                idx = np.searchsorted(signal.timestamps, new_timestamps, side="right")
                 idx -= 1
                 idx = np.clip(idx, 0, idx[-1])
-                s = self.samples[idx]
-
-                if self.invalidation_bits is not None:
-                    invalidation_bits = self.invalidation_bits[idx]
-                else:
-                    invalidation_bits = None
+                s = signal.samples[idx]
             else:
 
-                kind = self.samples.dtype.kind
+                kind =signal.samples.dtype.kind
 
                 if kind == "f":
+
                     if float_interpolation_mode == 0:
                         idx = np.searchsorted(
-                            self.timestamps, new_timestamps, side="right"
+                            signal.timestamps, new_timestamps, side="right"
                         )
                         idx -= 1
                         idx = np.clip(idx, 0, idx[-1])
-                        s = self.samples[idx]
-
-                        if self.invalidation_bits is not None:
-                            invalidation_bits = self.invalidation_bits[idx]
-                        else:
-                            invalidation_bits = None
+                        s = signal.samples[idx]
 
                     else:
-                        s = np.interp(new_timestamps, self.timestamps, self.samples)
-
-                        if self.invalidation_bits is not None:
-                            idx = np.searchsorted(
-                                self.timestamps, new_timestamps, side="right"
-                            )
-                            idx -= 1
-                            idx = np.clip(idx, 0, idx[-1])
-                            invalidation_bits = self.invalidation_bits[idx]
-                        else:
-                            invalidation_bits = None
+                        s = np.interp(new_timestamps, signal.timestamps, signal.samples)
 
                 elif kind in "ui":
                     if integer_interpolation_mode == 2:
-                        if self.raw and self.conversion:
-                            kind = self.conversion.convert(self.samples[:1]).dtype.kind
+                        if signal.raw and signal.conversion:
+                            kind = signal.conversion.convert(signal.samples[:1]).dtype.kind
                             if kind == "f":
                                 integer_interpolation_mode = 1
 
@@ -973,39 +965,22 @@ class Signal(object):
 
                     if integer_interpolation_mode == 1:
                         s = np.interp(
-                            new_timestamps, self.timestamps, self.samples
-                        ).astype(self.samples.dtype)
-                        if self.invalidation_bits is not None:
-                            idx = np.searchsorted(
-                                self.timestamps, new_timestamps, side="right"
-                            )
-                            idx -= 1
-                            idx = np.clip(idx, 0, idx[-1])
-                            invalidation_bits = self.invalidation_bits[idx]
-                        else:
-                            invalidation_bits = None
+                            new_timestamps, signal.timestamps, signal.samples
+                        ).astype(signal.samples.dtype)
+
                     elif integer_interpolation_mode == 0:
                         idx = np.searchsorted(
-                            self.timestamps, new_timestamps, side="right"
+                            signal.timestamps, new_timestamps, side="right"
                         )
                         idx -= 1
                         idx = np.clip(idx, 0, idx[-1])
-                        s = self.samples[idx]
+                        s = signal.samples[idx]
 
-                        if self.invalidation_bits is not None:
-                            invalidation_bits = self.invalidation_bits[idx]
-                        else:
-                            invalidation_bits = None
                 else:
-                    idx = np.searchsorted(self.timestamps, new_timestamps, side="right")
+                    idx = np.searchsorted(signal.timestamps, new_timestamps, side="right")
                     idx -= 1
                     idx = np.clip(idx, 0, idx[-1])
-                    s = self.samples[idx]
-
-                    if self.invalidation_bits is not None:
-                        invalidation_bits = self.invalidation_bits[idx]
-                    else:
-                        invalidation_bits = None
+                    s = signal.samples[idx]
 
             return Signal(
                 s,
@@ -1020,7 +995,7 @@ class Signal(object):
                 display_name=self.display_name,
                 attachment=self.attachment,
                 stream_sync=self.stream_sync,
-                invalidation_bits=invalidation_bits,
+                invalidation_bits=None,
                 encoding=self.encoding,
                 group_index=self.group_index,
                 channel_index=self.channel_index,
