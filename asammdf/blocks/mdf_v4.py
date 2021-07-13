@@ -5966,7 +5966,10 @@ class MDF4(MDF_Common):
             self._file.close()
 
             if Path(self.name).parent == Path(gettempdir()):
-                Path(self.name).unlink(missing_ok=True)
+                try:
+                    Path(self.name).unlink()
+                except:
+                    pass
 
         if self.original_name is not None:
             if self.original_name.suffix.lower() in ('.bz2', '.gzip', '.mf4z', '.zip'):
