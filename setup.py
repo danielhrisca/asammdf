@@ -86,10 +86,10 @@ setup(
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
     install_requires=[
-        "canmatrix[arxml, dbc]>=0.8",
+        "canmatrix[arxml,dbc]>=0.8",
         "lz4",
         "numexpr",
-        "numpy>=1.16.1",
+        "numpy>=1.17.5",
         "pandas",
     ],
     # List additional groups of dependencies here (e.g. development
@@ -98,19 +98,24 @@ setup(
     # $ pip install -e .[dev,test]
     extras_require={
         "decode": ["cChardet==2.1.5", "chardet"],
+        "export": [
+            "fastparquet",
+            "h5py",
+            "hdf5storage>=0.1.17",
+            "scipy",
+            "python-snappy",
+        ],
         "gui": [
             "lxml",
             "natsort",
             "psutil",
             "PyQt5>=5.13.1",
-            "pyqtgraph==0.11.0",
-            "h5py",
-            "fastparquet",
-            "scipy",
-            "hdf5storage",
-            "snappy",
+            "pyqtgraph>=0.11.0",
+            "pyqtlet",
+            "PyQtWebEngine",
         ],
         "encryption": "cryptography",
+        "symbolic_math": "numexpr3",
     },
     # If there are data files included in your packages that need to be
     # installed, specify them here.  If using Python 2.6 or less, then these
@@ -125,6 +130,6 @@ setup(
     # To provide executable scripts, use entry points in preference to the
     # "scripts" keyword. Entry points provide cross-platform support and allow
     # pip to create the appropriate form of executable for the target platform.
-    entry_points={"console_scripts": ["asammdf=asammdf.gui.asammdfgui:main"]},
+    entry_points={"console_scripts": ["asammdf = asammdf.gui.asammdfgui:main [gui,export,decode]"]},
     ext_modules=_get_ext_modules(),
 )

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from datetime import timedelta, datetime, timezone
+from textwrap import wrap
 LOCAL_TIMEZONE = datetime.now(timezone.utc).astimezone().tzinfo
 
 import numpy as np
@@ -80,7 +81,7 @@ class FormatedAxis(pg.AxisItem):
                     .to_list()
                 )
 
-        return strns
+        return [val[:80] for val in strns]
 
     def setLabel(self, text=None, units=None, unitPrefix=None, **args):
         """overwrites pyqtgraph setLabel"""

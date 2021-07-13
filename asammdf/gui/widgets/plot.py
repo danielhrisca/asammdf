@@ -9,6 +9,7 @@ from time import perf_counter
 import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
+pg.graphicsItems.ScatterPlotItem._USE_QRECT = False
 
 from ...mdf import MDF
 from ...signal import Signal
@@ -41,7 +42,7 @@ if not hasattr(pg.InfiniteLine, "addMarker"):
 
 
 class PlotSignal(Signal):
-    def __init__(self, signal, index=0, fast=False, trim_info=None):
+    def __init__(self, signal, index=0, fast=False, trim_info=None, duplication=1):
         super().__init__(
             signal.samples,
             signal.timestamps,
@@ -60,6 +61,7 @@ class PlotSignal(Signal):
             encoding=signal.encoding,
         )
 
+        self.duplication = duplication
         self.uuid = getattr(signal, "uuid", os.urandom(6).hex())
         self.mdf_uuid = getattr(signal, "mdf_uuid", os.urandom(6).hex())
 
@@ -200,6 +202,8 @@ class PlotSignal(Signal):
         if not fast:
             self.trim(*(trim_info or (None, None, 1900)))
 
+        self.size = len(self.samples)
+
     @property
     def min(self):
         return self._min if self.mode == "phys" else self._min_raw
@@ -251,7 +255,7 @@ class PlotSignal(Signal):
         cut_sig.precision = self.precision
         cut_sig.mdf_uuif = self.mdf_uuid
 
-        return PlotSignal(cut_sig)
+        return PlotSignal(cut_sig, duplication=self.duplication)
 
     @property
     def mode(self):
@@ -588,7 +592,7 @@ class PlotSignal(Signal):
     def trim(self, start=None, stop=None, width=1900):
         trim_info = (start, stop, width)
         if self.trim_info == trim_info:
-            return
+            return None
 
         self.trim_info = trim_info
         sig = self
@@ -606,50 +610,62 @@ class PlotSignal(Signal):
             else:
                 signal_samples = self.phys_samples
 
-            start_t, stop_t = (
+            start_t_sig, stop_t_sig = (
                 sig.timestamps[0],
                 sig.timestamps[-1],
             )
-            if start > stop_t or stop < start_t:
+            if start > stop_t_sig or stop < start_t_sig:
                 sig.plot_samples = signal_samples[:0]
                 sig.plot_timestamps = sig.timestamps[:0]
+                pos = []
             else:
-                start_t = max(start, start_t)
-                stop_t = min(stop, stop_t)
+                start_t = max(start, start_t_sig)
+                stop_t = min(stop, stop_t_sig)
 
-                start_ = np.searchsorted(sig.timestamps, start_t, side="right")
-                stop_ = np.searchsorted(sig.timestamps, stop_t, side="right")
+                if start_t == start_t_sig:
+                    start_ = 0
+                else:
+                    start_ = np.searchsorted(sig.timestamps, start_t, side="right")
+                if stop_t == stop_t_sig:
+                    stop_ = dim
+                else:
+                    stop_ = np.searchsorted(sig.timestamps, stop_t, side="right")
 
                 try:
                     visible = abs(int((stop_t - start_t) / (stop - start) * width))
 
                     if visible:
-                        raster = abs((stop_ - start_)) // visible
+                        visible_duplication = abs((stop_ - start_)) // visible
                     else:
-                        raster = 0
+                        visible_duplication = 0
                 except:
-                    raster = 0
+                    visible_duplication = 0
 
-                while raster > 1:
-                    rows = (stop_ - start_) // raster
-                    stop_2 = start_ + rows * raster
+                while visible_duplication > self.duplication:
+                    rows = (stop_ - start_) // visible_duplication
+                    stop_2 = start_ + rows * visible_duplication
 
-                    samples = signal_samples[start_:stop_2].reshape(rows, raster)
+                    samples = signal_samples[start_:stop_2].reshape(rows, visible_duplication)
 
                     try:
-                        pos_max = np.nanargmax(samples, axis=1)
-                        pos_min = np.nanargmin(samples, axis=1)
+                        pos_max = samples.argmax(axis=1)
+                        pos_min = samples.argmin(axis=1)
                         break
-                    except ValueError:
-                        raster -= 1
+                    except:
+                        try:
+                            pos_max = np.nanargmax(samples, axis=1)
+                            pos_min = np.nanargmin(samples, axis=1)
+                            break
+                        except ValueError:
+                            visible_duplication -= 1
 
-                if raster > 1:
+                if visible_duplication > self.duplication:
 
                     pos = np.dstack([pos_min, pos_max])[0]
-                    # pos.sort()
-                    pos = np.sort(pos)
+                    pos.sort()
+                    #pos = np.sort(pos)
 
-                    offsets = np.arange(rows) * raster
+                    offsets = np.arange(rows) * visible_duplication
 
                     pos = (pos.T + offsets).T.ravel()
 
@@ -660,30 +676,60 @@ class PlotSignal(Signal):
                     if stop_2 != stop_:
                         samples_ = signal_samples[stop_2:stop_]
 
-                        pos_max = np.nanargmax(samples_)
-                        pos_min = np.nanargmin(samples_)
+                        try:
+                            pos_max = samples_.argmax()
+                            pos_min = samples_.argmin()
+                        except:
+                            pos_max = np.nanargmax(samples_)
+                            pos_min = np.nanargmin(samples_)
 
-                        pos = (
+                        pos2 = (
                             [pos_min, pos_max]
                             if pos_min < pos_max
                             else [pos_max, pos_min]
                         )
 
-                        samples_ = signal_samples[stop_2:stop_][pos]
-                        timestamps_ = sig.timestamps[stop_2:stop_][pos]
+                        _size = len(pos)
+
+                        samples_ = signal_samples[stop_2:stop_][pos2]
+                        timestamps_ = sig.timestamps[stop_2:stop_][pos2]
 
                         samples = np.concatenate((samples, samples_))
                         timestamps = np.concatenate((timestamps, timestamps_))
+
+                        pos2 = p1, p2 = [min(e + stop_2, dim-1) for e in pos2]
+
+                       # pos = np.concatenate([pos, pos2])
+
+                        new_pos = np.empty(_size+2, dtype=pos.dtype)
+                        new_pos[:_size] = pos
+                        new_pos[_size] = p1
+                        new_pos[_size+1] = p2
+                        pos = new_pos
 
                     sig.plot_samples = samples
                     sig.plot_timestamps = timestamps
 
                 else:
-                    start_ = max(0, start_ - 2)
-                    stop_ += 2
+                    start_ = min(max(0, start_ - 2), dim -1)
+                    stop_ = min(stop_ + 2, dim)
 
-                    sig.plot_samples = signal_samples[start_:stop_]
-                    sig.plot_timestamps = sig.timestamps[start_:stop_]
+                    if start_ == 0 and stop_ == dim:
+                        sig.plot_samples = signal_samples
+                        sig.plot_timestamps = sig.timestamps
+
+                        pos = None
+                    else:
+
+                        sig.plot_samples = signal_samples[start_:stop_]
+                        sig.plot_timestamps = sig.timestamps[start_:stop_]
+
+                        pos = np.arange(start_, stop_)
+
+        else:
+            pos = None
+
+        return pos
 
     def value_at_timestamp(self, stamp):
         cut = self.cut(stamp, stamp)
@@ -733,11 +779,13 @@ class Plot(QtWidgets.QWidget):
     show_properties = QtCore.pyqtSignal(list)
     splitter_moved = QtCore.pyqtSignal(object, int)
 
-    def __init__(self, signals, with_dots=False, origin=None, *args, **kwargs):
+    def __init__(self, signals, with_dots=False, origin=None, mdf=None, line_interconnect="line", *args, **kwargs):
         events = kwargs.pop("events", None)
         super().__init__(*args, **kwargs)
+        self.line_interconnect = line_interconnect
         self.setContentsMargins(0, 0, 0, 0)
         self.pattern = {}
+        self.mdf = mdf
 
         self.info_uuid = None
 
@@ -773,7 +821,10 @@ class Plot(QtWidgets.QWidget):
         self.splitter.setOpaqueResize(False)
 
         self.plot = _Plot(
-            with_dots=with_dots, parent=self, events=events, origin=origin
+            with_dots=with_dots,
+            line_interconnect=self.line_interconnect,
+            parent=self, events=events, origin=origin,
+            mdf=self.mdf,
         )
 
         self.plot.range_modified.connect(self.range_modified)
@@ -1315,6 +1366,7 @@ class Plot(QtWidgets.QWidget):
         it.color_changed.connect(self.plot.set_color)
         it.enable_changed.connect(self.plot.set_signal_enable)
         it.ylink_changed.connect(self.plot.set_common_axis)
+        it.individual_axis_changed.connect(self.plot.set_individual_axis)
 
         it.enable_changed.emit(sig.uuid, 1)
         it.enable_changed.emit(sig.uuid, 0)
@@ -1331,6 +1383,7 @@ class Plot(QtWidgets.QWidget):
 
         invalid = []
 
+        can_trim = True
         for channel in channels:
             diff = np.diff(channel.timestamps)
             invalid_indexes = np.argwhere(diff <= 0).ravel()
@@ -1341,6 +1394,8 @@ class Plot(QtWidgets.QWidget):
                 invalid.append(
                     f"{channel.name} @ index {invalid_indexes[:10] - 1} with first time stamp error: {ts}"
                 )
+                if len(np.argwhere(diff < 0).ravel()):
+                    can_trim = False
 
         if invalid:
             errors = "\n".join(invalid)
@@ -1349,7 +1404,7 @@ class Plot(QtWidgets.QWidget):
                 "The following channels do not have monotonous increasing time stamps:",
                 f"The following channels do not have monotonous increasing time stamps:\n{errors}",
             )
-            self.plot._can_trim = False
+            self.plot._can_trim = can_trim
 
         valid = []
         invalid = []
@@ -1473,16 +1528,25 @@ class Plot(QtWidgets.QWidget):
                 channel["computation"] = sig.computation
 
             view = self.plot.view_boxes[idx]
-            channel["view_box"] = [
-                [float(e) for e in axis] for axis in view.viewRange()
-            ]
+            channel["y_range"] = [float(e) for e in view.viewRange()[1]]
             channel["mdf_uuid"] = str(sig.mdf_uuid)
+
+            if sig.computed and sig.conversion:
+                channel["user_defined_name"] = sig.name
+                channel["name"] = sig.computation["expression"].strip('}{')
+
+                channel["conversion"] = {}
+                for i in range(sig.conversion.val_param_nr):
+                    channel["conversion"][f"text_{i}"] = sig.conversion.referenced_blocks[f"text_{i}"].decode("utf-8")
+                    channel["conversion"][f"val_{i}"] = sig.conversion[f"val_{i}"]
 
             channels.append(channel)
 
         config = {
             "channels": channels if not self.pattern else [],
             "pattern": self.pattern,
+            "splitter": [int(e) for e in self.splitter.sizes()[:2]] + [0, ],
+            "x_range": [float(e) for e in self.plot.viewbox.viewRange()[0]],
         }
 
         return config
@@ -1542,12 +1606,15 @@ class _Plot(pg.PlotWidget):
 
     add_channels_request = QtCore.pyqtSignal(list)
 
-    def __init__(self, signals=None, with_dots=False, origin=None, *args, **kwargs):
+    def __init__(self, signals=None, with_dots=False, origin=None, mdf=None, line_interconnect="line", *args, **kwargs):
         events = kwargs.pop("events", [])
         super().__init__()
 
+        self.line_interconnect = line_interconnect if line_interconnect != "line" else ""
+
         self._last_update = perf_counter()
         self._can_trim = True
+        self.mdf = mdf
 
         self.setAcceptDrops(True)
 
@@ -1705,7 +1772,7 @@ class _Plot(pg.PlotWidget):
         if signals:
             self.update_views()
 
-    def update_lines(self, with_dots=None, force=False):
+    def update_lines(self, with_dots=None, force=False, line_interconnect=False):
         with_dots_changed = False
 
         if with_dots is not None and with_dots != self.with_dots:
@@ -1713,7 +1780,7 @@ class _Plot(pg.PlotWidget):
             self.curvetype = pg.PlotDataItem if with_dots else pg.PlotCurveItem
             with_dots_changed = True
 
-        if self.curves and (with_dots_changed or force):
+        if self.curves and (with_dots_changed or force or line_interconnect):
             for sig in self.signals:
                 _, i = self.signal_by_uuid(sig.uuid)
                 color = sig.color
@@ -1735,6 +1802,8 @@ class _Plot(pg.PlotWidget):
                         symbolSize=4,
                         clickable=True,
                         mouseWidth=30,
+                        dynamicRangeLimit=None,
+                        stepMode=self.line_interconnect,
                     )
 
                     curve.sigClicked.connect(partial(self.curve_clicked.emit, i))
@@ -1749,11 +1818,11 @@ class _Plot(pg.PlotWidget):
 
                     if len(t):
 
-                        if self.with_dots:
+                        if self.with_dots or line_interconnect:
                             #                            curve.setPen({'color': color, 'style': style})
                             pen = pg.fn.mkPen(color=color, style=style)
                             curve.opts["pen"] = pen
-                            curve.setData(x=t, y=sig.plot_samples)
+                            curve.setData(x=t, y=sig.plot_samples, stepMode=self.line_interconnect)
                             curve.update()
                         else:
                             curve.invalidateBounds()
@@ -2410,7 +2479,8 @@ class _Plot(pg.PlotWidget):
             self.layout.addItem(axis, 2, self._axes_layout_pos)
             self._axes_layout_pos += 1
 
-            self.scene_.addItem(view_box)
+            self.layout.addItem(view_box, 2, 1)
+            # self.scene_.addItem(view_box)
 
             t = sig.plot_timestamps
 
@@ -2424,6 +2494,8 @@ class _Plot(pg.PlotWidget):
                 symbolSize=4,
                 clickable=True,
                 mouseWidth=30,
+                dynamicRangeLimit=None,
+                stepMode=self.line_interconnect,
                 #                connect='finite',
             )
             curve.hide()
@@ -2463,10 +2535,13 @@ class _Plot(pg.PlotWidget):
                 for sig in self.signals
                 if id(sig.timestamps) in self._timebase_db
             ]
-            try:
-                new_timebase = np.unique(np.concatenate(timebases))
-            except MemoryError:
-                new_timebase = reduce(np.union1d, timebases)
+            if timebases:
+                try:
+                    new_timebase = np.unique(np.concatenate(timebases))
+                except MemoryError:
+                    new_timebase = reduce(np.union1d, timebases)
+            else:
+                new_timebase = np.array([])
             self.all_timebase = self.timebase = new_timebase
         else:
             self.all_timebase = self.timebase = []
@@ -2511,23 +2586,21 @@ class _Plot(pg.PlotWidget):
 
         for i, uuid in indexes:
             item = self.curves.pop(i)
+            item.sigClicked.disconnect()
             item.hide()
             item.setParent(None)
             self.view_boxes[i].removeItem(item)
 
             item = self.axes.pop(i)
-            item.unlinkFromView()
             self.layout.removeItem(item)
-            item.hide()
-            item.setParent(None)
+            item.scene().removeItem(item)
+            item.unlinkFromView()
 
             item = self.view_boxes.pop(i)
-            self.layout.removeItem(item)
-            self.scene_.removeItem(item)
-            item.hide()
-            item.setParent(None)
             item.setXLink(None)
             item.setYLink(None)
+            self.plotItem.scene().removeItem(item)
+            self.layout.removeItem(item)
 
             sig = self.signals.pop(i)
 
@@ -2535,11 +2608,14 @@ class _Plot(pg.PlotWidget):
                 self.common_axis_items.remove(uuid)
 
             if sig.enable:
-                self._timebase_db[id(sig.timestamps)].remove(sig.uuid)
+                try:
+                    self._timebase_db[id(sig.timestamps)].remove(sig.uuid)
 
-                if len(self._timebase_db[id(sig.timestamps)]) == 0:
-                    del self._timebase_db[id(sig.timestamps)]
-                    needs_timebase_compute = True
+                    if len(self._timebase_db[id(sig.timestamps)]) == 0:
+                        del self._timebase_db[id(sig.timestamps)]
+                        needs_timebase_compute = True
+                except KeyError:
+                    pass
 
         uuids = [sig.uuid for sig in self.signals]
 
@@ -2597,7 +2673,7 @@ class _Plot(pg.PlotWidget):
         self.xrange_changed_handle()
 
     def insert_computation(self, name=""):
-        dlg = DefineChannel(self.signals, self.all_timebase, name, self)
+        dlg = DefineChannel(self.signals, self.all_timebase, name, self.mdf, self)
         dlg.setModal(True)
         dlg.exec_()
         sig = dlg.result

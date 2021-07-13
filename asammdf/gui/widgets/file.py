@@ -5,11 +5,13 @@ import json
 import os
 from pathlib import Path
 from tempfile import gettempdir
+from traceback import format_exc
 
 from natsort import natsorted
 import psutil
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
+import pandas as pd
 
 from ...blocks.utils import extract_cncomment_xml
 from ...blocks.v4_constants import (
@@ -38,6 +40,8 @@ from ..utils import (
     TERMINATED,
 )
 from .attachment import Attachment
+from .database_item import DatabaseItem
+from .gps import GPS
 from .mdi_area import MdiAreaWidget, WithMDIArea
 from .numeric import Numeric
 from .tabular import Tabular
@@ -58,6 +62,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         subplots=False,
         subplots_link=False,
         ignore_value2text_conversions=False,
+        line_interconnect="line",
         encryption_function=None,
         decryption_function=None,
         *args,
@@ -84,6 +89,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.with_dots = with_dots
 
         self._show_filter_tree = False
+        self.line_interconnect = line_interconnect
 
         progress = QtWidgets.QProgressDialog(
             f'Opening "{self.file_name}"', "", 0, 100, self.parent()
@@ -120,11 +126,35 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             )
             self.mdf = MDF(mdf_path)
 
-        elif file_name.suffix.lower() == ".zip":
-            progress.setLabelText("Opening zipped MF4 file")
-            from mfile import ZIP
+        elif file_name.suffix.lower() == ".csv":
+            try:
+                with open(file_name) as csv:
+                    names = [n.strip() for n in csv.readline().split(',')]
+                    units = [n.strip() for n in csv.readline().split(',')]
 
-            self.mdf = ZIP(file_name)
+                    try:
+                        float(units[0])
+                    except:
+                        units = {
+                            name: unit
+                            for name, unit in zip(names, units)
+                        }
+                    else:
+                        csv.seek(0)
+                        csv.readline()
+                        units = None
+
+                    df = pd.read_csv(csv, header=None, names=names)
+                    df.set_index(df[names[0]], inplace=True)
+                    self.mdf = MDF()
+                    self.mdf.append(df, units=units)
+            except:
+                progress.cancel()
+                print(format_exc())
+                raise Exception(
+                    "Could not load CSV. The first line must contain the channel names. The seconds line "
+                    "can optionally contain the channel units. The first column must be the time"
+                )
 
         else:
 
@@ -146,7 +176,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     else:
                         break
 
-                datalyser = win32com.client.Dispatch("Datalyser3.Datalyser3_COM")
+                try:
+                    datalyser = win32com.client.Dispatch("Datalyser3.Datalyser3_COM")
+                except:
+                    raise Exception(
+                        "Datalyser must be installed if you wasnt to open DL3 files"
+                    )
                 if not datalyser_active:
                     try:
                         datalyser.DCOM_set_datalyser_visibility(False)
@@ -163,6 +198,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "callback": self.update_progress,
                 "encryption_function": encryption_function,
                 "decryption_function": decryption_function,
+                "use_display_names": True,
             }
 
             self.mdf = run_thread_with_progress(
@@ -226,12 +262,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.output_options.setCurrentIndex(0)
 
         self.mdf_version.insertItems(0, SUPPORTED_VERSIONS)
+        self.mdf_version.setCurrentText("4.10")
         self.mdf_compression.insertItems(
             0, ("no compression", "deflate", "transposed deflate")
         )
         self.mdf_split_size.setValue(4)
 
         self.extract_bus_format.insertItems(0, SUPPORTED_VERSIONS)
+        self.extract_bus_format.setCurrentText("4.10")
         index = self.extract_bus_format.findText(self.mdf.version)
         if index >= 0:
             self.extract_bus_format.setCurrentIndex(index)
@@ -255,7 +293,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.output_format.currentTextChanged.connect(self.output_format_changed)
 
         # info tab
-        file_stats = os.stat(self.mdf.name)
+        try:
+            file_stats = os.stat(self.mdf.name)
+        except:
+            file_stats = None
         file_info = QtWidgets.QTreeWidgetItem()
         file_info.setText(0, "File information")
 
@@ -270,16 +311,28 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         item = QtWidgets.QTreeWidgetItem()
         item.setText(0, "Size")
-        item.setText(1, f"{file_stats.st_size / 1024 / 1024:.1f} MB")
+        if file_stats is not None:
+            item.setText(1, f"{file_stats.st_size / 1024 / 1024:.1f} MB")
+        else:
+            try:
+                item.setText(1, f"{self.mdf.file_limit / 1024 / 1024:.1f} MB")
+            except:
+                item.setText(1, f"Unknown size")
         children.append(item)
 
-        date_ = datetime.fromtimestamp(file_stats.st_ctime)
+        if file_stats is not None:
+            date_ = datetime.fromtimestamp(file_stats.st_ctime)
+        else:
+            date_ = datetime.now()
         item = QtWidgets.QTreeWidgetItem()
         item.setText(0, "Created")
         item.setText(1, date_.strftime("%d-%b-%Y %H-%M-%S"))
         children.append(item)
 
-        date_ = datetime.fromtimestamp(file_stats.st_mtime)
+        if file_stats is not None:
+            date_ = datetime.fromtimestamp(file_stats.st_mtime)
+        else:
+            date_ = datetime.now()
         item = QtWidgets.QTreeWidgetItem()
         item.setText(0, "Last modified")
         item.setText(1, date_.strftime("%d-%b-%Y %H:%M:%S"))
@@ -925,6 +978,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 window_config["type"] = "Plot"
             elif isinstance(wid, Tabular):
                 window_config["type"] = "Tabular"
+            elif isinstance(wid, GPS):
+                window_config["type"] = "GPS"
             elif isinstance(wid, CANBusTrace):
                 continue
 
@@ -991,7 +1046,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 channels = info.get("selected_channels", [])
 
             if channels:
-
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
                 if self.channel_view.currentText() == "Internal file structure":
@@ -1271,7 +1325,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if window_type is None:
             dialog = WindowSelectionDialog(
-                options=("Plot", "Numeric", "Tabular", "CAN Bus Trace", "LIN Bus Trace"),
+                options=("Plot", "Numeric", "Tabular", "GPS", "CAN Bus Trace", "LIN Bus Trace"),
                 parent=self,
             )
             dialog.setModal(True)
@@ -1286,6 +1340,31 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             return
         elif window_type in ("CAN Bus Trace", "LIN Bus Trace"):
             signals = []
+        elif window_type == "GPS":
+            names = sorted(self.mdf.channels_db)
+            latitude, ok = QtWidgets.QInputDialog.getItem(
+                self,
+                "Select the Latitude signals",
+                "Latitude signal name:",
+                names,
+                editable=False,
+            )
+            if not ok:
+                return
+
+            longitude, ok = QtWidgets.QInputDialog.getItem(
+                self,
+                "Select the Longitude signals",
+                "Longitude signal name:",
+                names,
+                editable=False,
+            )
+            if not ok:
+                return
+
+            signals = [
+                (None, *self.mdf.whereis(name)[0]) for name in [latitude, longitude]
+            ]
         else:
 
             try:
@@ -1365,14 +1444,16 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             database_files["CAN"] = []
             for i in range(count):
                 item = self.can_database_list.item(i)
-                database_files["CAN"].append(item.text())
+                widget = self.can_database_list.itemWidget(item)
+                database_files["CAN"].append((widget.database.text(), widget.bus.currentIndex()))
 
         count = self.lin_database_list.count()
         if count:
             database_files["LIN"] = []
             for i in range(count):
                 item = self.lin_database_list.item(i)
-                database_files["LIN"].append(item.text())
+                widget = self.can_database_list.itemWidget(item)
+                database_files["LIN"].append((widget.database.text(), widget.bus.currentIndex()))
 
         compression = self.extract_bus_compression.currentIndex()
         ignore_invalid_signals = (
@@ -1414,6 +1495,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "database_files": database_files,
                 "version": version,
                 "ignore_invalid_signals": ignore_invalid_signals,
+                "prefix": self.prefix.text().strip(),
+                "consolidated_j1939": self.consolidated_j1939.checkState() == QtCore.Qt.Checked,
             }
 
             mdf = run_thread_with_progress(
@@ -1504,14 +1587,16 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             database_files["CAN"] = []
             for i in range(count):
                 item = self.can_database_list.item(i)
-                database_files["CAN"].append(item.text())
+                widget = self.can_database_list.itemWidget(item)
+                database_files["CAN"].append((widget.database.text(), widget.bus.currentIndex()))
 
         count = self.lin_database_list.count()
         if count:
             database_files["LIN"] = []
             for i in range(count):
                 item = self.lin_database_list.item(i)
-                database_files["LIN"].append(item.text())
+                widget = self.can_database_list.itemWidget(item)
+                database_files["LIN"].append((widget.database.text(), widget.bus.currentIndex()))
 
         ignore_invalid_signals = (
             self.ignore_invalid_signals_csv.checkState() == QtCore.Qt.Checked
@@ -1551,6 +1636,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "database_files": database_files,
                 "version": version,
                 "ignore_invalid_signals": ignore_invalid_signals,
+                "prefix": self.prefix.text().strip(),
+                "consolidated_j1939": self.consolidated_j1939.checkState() == QtCore.Qt.Checked,
             }
 
             mdf = run_thread_with_progress(
@@ -1653,19 +1740,31 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         )
 
         if file_names:
-            self.can_database_list.addItems(file_names)
+            for database in file_names:
+                item = QtWidgets.QListWidgetItem()
+                widget = DatabaseItem(database, bus_type="CAN")
+
+                self.can_database_list.addItem(item)
+                self.can_database_list.setItemWidget(item, widget)
+                item.setSizeHint(widget.sizeHint())
 
     def load_lin_database(self, event):
         file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
             self,
             "Select LIN database file",
             "",
-            "ARXML or DBC (*.dbc *.arxml)",
-            "ARXML or DBC (*.dbc *.arxml)",
+            "ARXML or DBC database (*.dbc *.arxml);;LDF database (*.ldf);;All supported formats (*.dbc *.arxml *ldf)",
+            "All supported formats (*.dbc *.arxml *ldf)",
         )
 
         if file_names:
-            self.lin_database_list.addItems(file_names)
+            for database in file_names:
+                item = QtWidgets.QListWidgetItem()
+                widget = DatabaseItem(database, bus_type="LIN")
+
+                self.lin_database_list.addItem(item)
+                self.lin_database_list.setItemWidget(item, widget)
+                item.setSizeHint(widget.sizeHint())
 
     def keyPressEvent(self, event):
         key = event.key()
@@ -1967,15 +2066,20 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             if version < "4.00":
                 filter = "MDF version 3 files (*.dat *.mdf)"
+                default = filter
             else:
-                filter = "MDF version 4 files (*.mf4)"
+                filter = "MDF version 4 files (*.mf4);;Zipped MDF version 4 files (*.mf4z)"
+                if Path(self.mdf.original_name).suffix.lower() == ".mf4z":
+                    default = "Zipped MDF version 4 files (*.mf4z)"
+                else:
+                    default = "MDF version 4 files (*.mf4)"
 
             file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
                 self,
                 "Select output measurement file",
                 "",
                 f"{filter};;All files (*.*)",
-                filter,
+                default,
             )
 
         else:
@@ -2289,6 +2393,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 progress.setWindowTitle("Export measurement")
                 progress.setLabelText(f"Exporting to {output_format}")
 
+            delimiter = self.delimiter.text() or ','
+            doublequote = self.doublequote.checkState() == QtCore.Qt.Checked
+            escapechar = self.escapechar.text() or None
+            lineterminator = self.lineterminator.text().replace("\\r", "\r").replace("\\n", "\n")
+            quotechar = self.quotechar.text() or '"'
+            quoting = self.quoting.currentText()
+
             target = self.mdf.export if mdf is None else mdf.export
             kwargs = {
                 "fmt": opts.output_format.lower(),
@@ -2305,6 +2416,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "time_as_date": opts.time_as_date,
                 "ignore_value2text_conversions": self.ignore_value2text_conversions,
                 "raw": opts.raw,
+                "delimiter": delimiter,
+                "doublequote": doublequote,
+                "escapechar": escapechar,
+                "lineterminator": lineterminator,
+                "quotechar": quotechar,
+                "quoting": quoting,
             }
 
             result = run_thread_with_progress(

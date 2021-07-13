@@ -15,6 +15,7 @@ import sys
 from tempfile import TemporaryDirectory
 import xml.etree.ElementTree as ET
 
+
 try:
     from cchardet import detect
 except:
@@ -184,8 +185,8 @@ def get_text_v3(address, stream, mapped=False, decode=True):
 
     Returns
     -------
-    text : str
-        unicode string
+    text : str | bytes
+        unicode string or bytes object depending on the ``decode`` argument
 
     """
 
@@ -198,7 +199,7 @@ def get_text_v3(address, stream, mapped=False, decode=True):
             return "" if decode else b""
         (size,) = UINT16_uf(stream, address + 2)
         text_bytes = (
-            stream[address + 4 : address + size].split(b"\0")[0].rstrip(b" \r\t\n\0")
+            stream[address + 4 : address + size].split(b"\0", 1)[0].strip(b" \r\t\n")
         )
     else:
         stream.seek(address)
@@ -206,7 +207,7 @@ def get_text_v3(address, stream, mapped=False, decode=True):
         if block_id != b"TX":
             return "" if decode else b""
         size = UINT16_u(stream.read(2))[0] - 4
-        text_bytes = stream.read(size).split(b"\0")[0].rstrip(b" \r\t\n\0")
+        text_bytes = stream.read(size).split(b"\0", 1)[0].strip(b" \r\t\n")
     if decode:
         try:
             text = text_bytes.decode("latin-1")
@@ -234,8 +235,8 @@ def get_text_v4(address, stream, mapped=False, decode=True):
 
     Returns
     -------
-    text : str
-        unicode string
+    text : str | bytes
+        unicode string or bytes object depending on the ``decode`` argument
 
     """
 
@@ -247,14 +248,20 @@ def get_text_v4(address, stream, mapped=False, decode=True):
         if block_id not in (b"##TX", b"##MD"):
             return "" if decode else b""
         text_bytes = (
-            stream[address + 24 : address + size].split(b"\0")[0].rstrip(b" \r\t\n\0")
+            stream[address + 24 : address + size]
+            .split(b"\0", 1)[0]
+            .strip(b" \r\t\n")
         )
     else:
         stream.seek(address)
         block_id, size = BLK_COMMON_u(stream.read(24))
         if block_id not in (b"##TX", b"##MD"):
             return "" if decode else b""
-        text_bytes = stream.read(size - 24).split(b"\0")[0].rstrip(b" \r\t\n\0")
+        text_bytes = (
+            stream.read(size - 24)
+            .split(b"\0", 1)[0]
+            .strip(b" \r\t\n")
+        )
 
     if decode:
         try:
@@ -276,12 +283,16 @@ def sanitize_xml(text):
 
 
 def extract_display_name(comment):
+    if not comment.startswith('<CNcomment'):
+        return ""
+    
     try:
-        display_name = ET.fromstring(sanitize_xml(comment)).find(".//names/display")
+        comment = ET.fromstring(sanitize_xml(comment))
+        display_name = comment.find(".//names/display")
         if display_name is not None:
             display_name = display_name.text or ""
         else:
-            display_name = ET.fromstring(sanitize_xml(comment)).find(".//names/name")
+            display_name = comment.find(".//names/name")
             if display_name is not None:
                 display_name = display_name.text or ""
             else:
@@ -1040,7 +1051,6 @@ class Group:
     __slots__ = (
         "channels",
         "channel_dependencies",
-        "signal_data_size",
         "signal_data",
         "channel_group",
         "record_size",
@@ -1065,7 +1075,6 @@ class Group:
         self.channels = []
         self.channel_dependencies = []
         self.signal_data = []
-        self.signal_data_size = []
         self.parents = None
         self.types = None
         self.record = None
@@ -1093,7 +1102,6 @@ class Group:
         self.channels.clear()
         self.channel_dependencies.clear()
         self.signal_data.clear()
-        self.signal_data_size.clear()
 
 
 class VirtualChannelGroup:
@@ -1251,8 +1259,8 @@ class DataBlockInfo:
     __slots__ = (
         "address",
         "block_type",
-        "raw_size",
-        "size",
+        "original_size",
+        "compressed_size",
         "param",
         "invalidation_block",
         "block_limit",
@@ -1262,16 +1270,16 @@ class DataBlockInfo:
         self,
         address,
         block_type,
-        raw_size,
-        size,
+        original_size,
+        compressed_size,
         param,
         invalidation_block=None,
         block_limit=None,
     ):
         self.address = address
         self.block_type = block_type
-        self.raw_size = raw_size
-        self.size = size
+        self.original_size = original_size
+        self.compressed_size = compressed_size
         self.param = param
         self.invalidation_block = invalidation_block
         self.block_limit = block_limit
@@ -1280,8 +1288,8 @@ class DataBlockInfo:
         return (
             f"DataBlockInfo(address=0x{self.address:X}, "
             f"block_type={self.block_type}, "
-            f"raw_size={self.raw_size}, "
-            f"size={self.size}, "
+            f"original_size={self.original_size}, "
+            f"compressed_size={self.compressed_size}, "
             f"param={self.param}, "
             f"invalidation_block={self.invalidation_block}, "
             f"block_limit={self.block_limit})"
@@ -1296,21 +1304,21 @@ class InvalidationBlockInfo(DataBlockInfo):
         self,
         address,
         block_type,
-        raw_size,
-        size,
+        original_size,
+        compressed_size,
         param,
         all_valid=False,
         block_limit=None,
     ):
-        super().__init__(address, block_type, raw_size, size, param, block_limit)
+        super().__init__(address, block_type, original_size, compressed_size, param, block_limit)
         self.all_valid = all_valid
 
     def __repr__(self):
         return (
             f"InvalidationBlockInfo(address=0x{self.address:X}, "
             f"block_type={self.block_type}, "
-            f"raw_size={self.raw_size}, "
-            f"size={self.size}, "
+            f"original_size={self.original_size}, "
+            f"compressed_size={self.compressed_size}, "
             f"param={self.param}, "
             f"all_valid={self.all_valid}, "
             f"block_limit={self.block_limit})"
@@ -1321,23 +1329,26 @@ class SignalDataBlockInfo:
 
     __slots__ = (
         "address",
-        "size",
-        "count",
-        "offsets",
+        "original_size",
+        "compressed_size",
+        "param",
+        "block_type",
+        "location",
     )
 
-    def __init__(self, address, size, count, offsets=None):
+    def __init__(self, address, original_size, block_type=v4c.DT_BLOCK, param=0, compressed_size=None, location=v4c.LOCATION_ORIGINAL_FILE):
         self.address = address
-        self.count = count
-        self.size = size
-        self.offsets = offsets
+        self.compressed_size = compressed_size or original_size
+        self.block_type = block_type
+        self.original_size = original_size
+        self.param = param
+        self.location = location
 
     def __repr__(self):
         return (
             f"SignalDataBlockInfo(address=0x{self.address:X}, "
-            f"size={self.size}, "
-            f"count={self.count}, "
-            f"offsets={self.offsets})"
+            f"original_size={self.original_size}, "
+            f"block_type={self.block_type})"
         )
 
 
@@ -1505,18 +1516,27 @@ def pandas_query_compatible(name):
 
 
 def load_can_database(path, contents=None, **kwargs):
-    contents = path.read_bytes() if contents is None else contents
+    path = Path(path)
     import_type = path.suffix.lstrip(".").lower()
+    if contents is None:
+        func = canmatrix.formats.loadp
+        arg = path
+    else:
+        func = canmatrix.formats.loads
+        arg = contents
 
     try:
-        dbs = canmatrix.formats.loads(
-            contents, import_type=import_type, key="db", **kwargs
+        dbs = func(
+            arg, import_type=import_type, key="db", **kwargs
         )
     except UnicodeDecodeError:
+        if contents is None:
+            contents = path.read_bytes()
+
         encoding = detect(contents)["encoding"]
-        decoded_contents = contents.decode(encoding)
-        dbs = canmatrix.formats.loads(
-            decoded_contents,
+
+        dbs = func(
+            arg,
             import_type=import_type,
             key="db",
             encoding=encoding,

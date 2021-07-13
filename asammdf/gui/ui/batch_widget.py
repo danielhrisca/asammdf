@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'batch_widget.UI'
+# Form implementation generated from reading ui file 'batch_widget.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.1
 #
@@ -704,11 +704,24 @@ class Ui_batch_widget(object):
         self.verticalLayout_2.addWidget(self.lin_database_list)
         self.tabWidget.addTab(self.tab_2, "")
         self.gridLayout_11.addWidget(self.tabWidget, 0, 0, 1, 2)
+        self.horizontalLayout = QtWidgets.QHBoxLayout()
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.label = QtWidgets.QLabel(self.extract_bus_tab)
+        self.label.setObjectName("label")
+        self.horizontalLayout.addWidget(self.label)
+        self.prefix = QtWidgets.QLineEdit(self.extract_bus_tab)
+        self.prefix.setMinimumSize(QtCore.QSize(215, 0))
+        self.prefix.setObjectName("prefix")
+        self.horizontalLayout.addWidget(self.prefix)
+        spacerItem9 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.horizontalLayout.addItem(spacerItem9)
+        self.horizontalLayout.setStretch(2, 1)
+        self.gridLayout_11.addLayout(self.horizontalLayout, 1, 0, 1, 2)
         self.aspects.addTab(self.extract_bus_tab, icon10, "")
         self.gridLayout_9.addWidget(self.splitter, 1, 0, 1, 1)
 
         self.retranslateUi(batch_widget)
-        self.aspects.setCurrentIndex(1)
+        self.aspects.setCurrentIndex(3)
         self.output_options.setCurrentIndex(0)
         self.quoting.setCurrentIndex(1)
         self.quoting_bus.setCurrentIndex(1)
@@ -851,6 +864,7 @@ class Ui_batch_widget(object):
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("batch_widget", "CAN"))
         self.load_lin_database_btn.setText(_translate("batch_widget", "Load LIN database"))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("batch_widget", "LIN"))
+        self.label.setText(_translate("batch_widget", "Prefix"))
         self.aspects.setTabText(self.aspects.indexOf(self.extract_bus_tab), _translate("batch_widget", "Bus logging"))
 from asammdf.gui.widgets.list import MinimalListWidget
 from asammdf.gui.widgets.tree import TreeWidget

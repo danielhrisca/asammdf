@@ -9,6 +9,8 @@ elif sys.platform.startswith('win'):
     asammdf_path = Path(site.getsitepackages()[1]) / 'asammdf' / 'gui' / 'asammdfgui.py'
 else:
     asammdf_path = Path('/Users/appveyor/venv3.7/lib/python3.7/site-packages/asammdf/gui/asammdfgui.py')
+    
+numexpr3 = os.path.join(site.getsitepackages()[1], 'numexpr3')
 
 block_cipher = None
 added_files = []
@@ -49,6 +51,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     Tree(asammdf_path.parent),
+    Tree(numexpr3, prefix='numexpr3\\', excludes=excludes),
     name='asammdfgui',
     debug=False,
     strip=False,

@@ -32,7 +32,23 @@ class ListWidget(QtWidgets.QListWidget):
 
         self.can_delete_items = True
         self.setAcceptDrops(True)
+
+        self.itemSelectionChanged.connect(self.item_selection_changed)
+
         self.show()
+
+    def item_selection_changed(self, item=None):
+        selection = list(self.selectedItems())
+        for row in range(self.count()):
+            item = self.item(row)
+            if item in selection:
+                widget = self.itemWidget(item)
+                if widget is not None:
+                    widget.set_selected(True)
+            else:
+                widget = self.itemWidget(item)
+                if widget is not None:
+                    widget.set_selected(False)
 
     def keyPressEvent(self, event):
         key = event.key()
@@ -45,6 +61,8 @@ class ListWidget(QtWidgets.QListWidget):
                 row = self.row(item)
                 item_widget = self.itemWidget(item)
                 deleted.append(getattr(item_widget, "uuid", None))
+                if hasattr(item_widget, "disconnect_slots"):
+                    item_widget.disconnect_slots()
                 self.takeItem(row)
             if deleted:
                 self.itemsDeleted.emit(deleted)
@@ -174,6 +192,8 @@ class ListWidget(QtWidgets.QListWidget):
             return
 
         menu = QtWidgets.QMenu()
+        menu.addAction(self.tr(f"{self.count()} items in the list"))
+        menu.addSeparator()
         menu.addAction(self.tr("Copy name (Ctrl+C)"))
         menu.addAction(self.tr("Copy display properties (Ctrl+Shift+C)"))
         menu.addAction(self.tr("Paste display properties (Ctrl+Shift+P)"))
@@ -308,7 +328,7 @@ class ListWidget(QtWidgets.QListWidget):
                     absolute = False
                 else:
                     offset, ok = QtWidgets.QInputDialog.getDouble(
-                        self, "Absolute time start offset [s]", "Offset [s]:"
+                        self, "Absolute time start offset [s]", "Offset [s]:", decimals=6
                     )
                     absolute = True
                 if ok:
@@ -369,7 +389,21 @@ class MinimalListWidget(QtWidgets.QListWidget):
         self.setAcceptDrops(True)
         self.show()
 
+        self.itemSelectionChanged.connect(self.item_selection_changed)
+
         self.minimal_menu = False
+
+    def item_selection_changed(self, item=None):
+        try:
+            selection = list(self.selectedItems())
+            for row in range(self.count()):
+                item = self.item(row)
+                if item in selection:
+                    self.itemWidget(item).set_selected(True)
+                else:
+                    self.itemWidget(item).set_selected(False)
+        except:
+            pass
 
     def keyPressEvent(self, event):
         key = event.key()
@@ -380,6 +414,9 @@ class MinimalListWidget(QtWidgets.QListWidget):
             for item in selected_items:
                 row = self.row(item)
                 deleted.append(row)
+                item_widget = self.itemWidget(item)
+                if hasattr(item_widget, "disconnect_slots"):
+                    item_widget.disconnect_slots()
                 self.takeItem(row)
             if deleted:
                 self.itemsDeleted.emit(deleted)
@@ -406,14 +443,19 @@ class MinimalListWidget(QtWidgets.QListWidget):
 
         if self.minimal_menu:
             if self.count() > 0:
+                menu.addAction(self.tr(f"{self.count()} items in the list"))
+                menu.addSeparator()
                 menu.addAction(self.tr("Delete (Del)"))
             else:
                 return
         else:
             if self.count() == 0:
+                menu.addAction(self.tr(f"{self.count()} items in the list"))
+                menu.addSeparator()
                 menu.addAction(self.tr("Paste names (Ctrl+V)"))
             else:
-                menu = QtWidgets.QMenu()
+                menu.addAction(self.tr(f"{self.count()} items in the list"))
+                menu.addSeparator()
                 menu.addAction(self.tr("Copy names (Ctrl+C)"))
                 menu.addAction(self.tr("Paste names (Ctrl+V)"))
                 menu.addSeparator()
