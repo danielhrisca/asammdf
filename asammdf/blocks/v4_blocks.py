@@ -4266,6 +4266,9 @@ class DataZippedBlock(object):
     def __getitem__(self, item):
         return self.__getattribute__(item)
 
+    def __str__(self):
+        return f"""<DZBLOCK (address: {hex(self.address)}, original_size: {self.original_size}, zipped_size: {self.zip_size})>"""
+
     def __bytes__(self):
         self.return_unzipped = False
         data = (
@@ -4603,7 +4606,7 @@ class DataList(_DataListBase):
 
             self.flags = kwargs.get("flags", 1)
             self.reserved1 = kwargs.get("reserved1", b"\0\0\0")
-            self.data_block_nr = kwargs.get("data_block_nr", 1)
+            self.data_block_nr = kwargs.get("data_block_nr", self.links_nr - 1)
             if self.flags & v4c.FLAG_DL_EQUAL_LENGHT:
                 self.data_block_len = kwargs["data_block_len"]
             else:

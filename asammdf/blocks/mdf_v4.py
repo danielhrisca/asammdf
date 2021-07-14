@@ -1328,6 +1328,7 @@ class MDF4(MDF_Common):
 
                     seek(address)
                     new_data = read(compressed_size)
+
                     if block_type == v4c.DZ_BLOCK_DEFLATE:
                         new_data = decompress(new_data, 0, original_size)
                     elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
@@ -9756,14 +9757,14 @@ class MDF4(MDF_Common):
         flags = self.identification.unfinalized_standard_flags
 
         stream = self._file
-        blocks, addresses = all_blocks_addresses(stream)
+        blocks, block_groups, addresses = all_blocks_addresses(stream)
 
         stream.seek(0, 2)
         limit = stream.tell()
         mapped = self._mapped
 
         if flags & v4c.FLAG_UNFIN_UPDATE_LAST_DL:
-            for dg_addr in blocks[b"##DG"]:
+            for dg_addr in block_groups[b"##DG"]:
                 group = DataGroup(address=dg_addr, stream=stream, mapped=mapped)
                 data_addr = group.data_block_addr
                 if not data_addr:
@@ -9773,11 +9774,18 @@ class MDF4(MDF_Common):
                 blk_id = stream.read(4)
                 if blk_id == b"##DT":
                     continue
-                elif blk_id == b"##DL":
+                elif blk_id in (b"##DL", b"##HL"):
+
+                    if blk_id == b"##HL":
+                        hl = HeaderList(address=data_addr, stream=stream, mapped=mapped)
+                        data_addr = hl.first_dl_addr
+
                     while True:
                         dl = DataList(address=data_addr, stream=stream, mapped=mapped)
                         if not dl.next_dl_addr:
                             break
+
+                    kwargs = {}
 
                     count = dl.links_nr - 1
                     valid_count = 0
@@ -9785,13 +9793,56 @@ class MDF4(MDF_Common):
                         dt_addr = dl[f"data_block_addr{i}"]
                         if dt_addr:
                             valid_count += 1
+                            kwargs[f"data_block_addr{i}"] = dt_addr
                         else:
                             break
 
-                    kwargs = {
-                        f"data_block_addr{i}": dl[f"data_block_addr{i}"]
-                        for i in range(valid_count)
-                    }
+                    starting_address = dl.address
+                    next_block_position = bisect.bisect_right(addresses, starting_address)
+                    # search for data blocks after the DLBLOCK
+                    for j in range(i, count):
+
+                        if next_block_position >= len(addresses):
+                            break
+
+                        next_block_address = addresses[next_block_position]
+                        next_block_type = blocks[next_block_address]
+
+                        if next_block_type not in {b'##DZ', b'##DT', b'##DV', b'##DI'}:
+                            break
+                        else:
+
+                            stream.seek(next_block_address)
+
+                            if next_block_type == b"##DZ":
+                                (
+                                    original_type,
+                                    zip_type,
+                                    param,
+                                    original_size,
+                                    zip_size,
+                                ) = v4c.DZ_COMMON_INFO_uf(stream.read(v4c.DZ_COMMON_SIZE))
+
+                                exceeded = limit - (next_block_address + v4c.DZ_COMMON_SIZE + zip_size) < 0
+
+                            else:
+                                id_string, block_len = COMMON_SHORT_uf(stream.read(v4c.COMMON_SIZE))
+                                original_size = block_len - 24
+
+                                exceeded = limit - (next_block_address + block_len) < 0
+
+                            # update the data block size in case all links were NULL before
+                            if i == 0 and (dl.flags & v4c.FLAG_DL_EQUAL_LENGHT):
+                                kwargs['data_block_len'] = original_size
+
+                            # check if the file limit is exceeded
+                            if exceeded:
+                                break
+                            else:
+                                next_block_position += 1
+                                valid_count += 1
+                                kwargs[f"data_block_addr{j}"] = next_block_address
+
                     kwargs["links_nr"] = valid_count + 1
                     kwargs["flags"] = dl.flags
                     if dl.flags & v4c.FLAG_DL_EQUAL_LENGHT:
@@ -9802,46 +9853,14 @@ class MDF4(MDF_Common):
 
                     stream.seek(data_addr)
                     stream.write(bytes(DataList(**kwargs)))
-                elif blk_id == b"##HL":
 
-                    hl = HeaderList(address=data_addr, stream=stream, mapped=mapped)
-
-                    data_addr = hl.first_dl_addr
-                    while True:
-                        dl = DataList(address=data_addr, stream=stream, mapped=mapped)
-                        if not dl.next_dl_addr:
-                            break
-
-                    count = dl.links_nr - 1
-                    valid_count = 0
-                    for i in range(count):
-                        dt_addr = dl[f"data_block_addr{i}"]
-                        if dt_addr:
-                            valid_count += 1
-                        else:
-                            break
-
-                    kwargs = {
-                        f"data_block_addr{i}": dl[f"data_block_addr{i}"]
-                        for i in range(valid_count)
-                    }
-                    kwargs["links_nr"] = valid_count + 1
-                    kwargs["flags"] = dl.flags
-                    if dl.flags & v4c.FLAG_DL_EQUAL_LENGHT:
-                        kwargs["data_block_len"] = dl.data_block_len
-                    else:
-                        for i in enumerate(valid_count):
-                            kwargs[f"offset_{i}"] = dl[f"offset_{i}"]
-
-                    stream.seek(data_addr)
-                    stream.write(bytes(DataList(**kwargs)))
             self.identification[
                 "unfinalized_standard_flags"
             ] -= v4c.FLAG_UNFIN_UPDATE_LAST_DL
 
         if flags & v4c.FLAG_UNFIN_UPDATE_LAST_DT_LENGTH:
             try:
-                for dg_addr in blocks[b"##DG"]:
+                for dg_addr in block_groups[b"##DG"]:
                     group = DataGroup(address=dg_addr, stream=stream, mapped=mapped)
                     data_addr = group.data_block_addr
                     if not data_addr:

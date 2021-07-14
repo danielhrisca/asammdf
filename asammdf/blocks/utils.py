@@ -1570,17 +1570,19 @@ def all_blocks_addresses(obj):
         source = obj.read()
 
     addresses = []
+    block_groups = {}
     blocks = {}
 
     for match in re.finditer(pattern, source):
         btype = match.group("block")
         start = match.start()
 
-        btype_addresses = blocks.setdefault(btype, [])
+        btype_addresses = block_groups.setdefault(btype, [])
         btype_addresses.append(start)
         addresses.append(start)
+        blocks[start] = btype
 
-    return blocks, addresses
+    return blocks, block_groups, addresses
 
 
 def plausible_timestamps(t, minimum, maximum, exp_min=-15, exp_max=15):
