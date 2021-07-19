@@ -5529,7 +5529,7 @@ class MDF4(MDF_Common):
 
             else:
                 if self.compact_vlsd:
-                    cur_offset = sum(blk.size for blk in gp.signal_data[i])
+                    cur_offset = sum(blk.original_size for blk in gp.signal_data[i])
 
                     data = []
                     offsets = []
@@ -5573,7 +5573,7 @@ class MDF4(MDF_Common):
                     types.append(("", uint64))
 
                 else:
-                    cur_offset = sum(blk.size for blk in gp.signal_data[i])
+                    cur_offset = sum(blk.original_size for blk in gp.signal_data[i])
 
                     offsets = arange(len(signal), dtype=uint64) * (signal.itemsize + 4)
 
@@ -5775,7 +5775,7 @@ class MDF4(MDF_Common):
                 samples = signal
 
             else:
-                cur_offset = sum(blk.size for blk in gp.signal_data[0])
+                cur_offset = sum(blk.original_size for blk in gp.signal_data[0])
 
                 offsets = arange(len(signal), dtype=uint64) * (signal.itemsize + 4)
 
