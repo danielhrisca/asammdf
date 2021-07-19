@@ -3088,8 +3088,8 @@ class MDF3(MDF_Common):
         if samples_only:
             res = vals, None
         else:
-            if conversion:
-                unit = conversion.unit
+            if channel.conversion:
+                unit = channel.conversion.unit
             else:
                 unit = ""
 

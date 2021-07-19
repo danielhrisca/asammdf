@@ -5311,7 +5311,6 @@ class HeaderBlock:
             timestamp = datetime.fromtimestamp(timestamp)
         else:
             timestamp = datetime.fromtimestamp(timestamp, timezone.utc)
-
         return timestamp
 
     @start_time.setter
