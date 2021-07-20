@@ -30,7 +30,8 @@ for:
               & "$PY\\python.exe" -m pip install --upgrade setuptools --no-warn-script-location
               & "$PY\\python.exe" -m pip install wheel --no-warn-script-location
               & "$PY\\python.exe" -m pip install numpy --no-warn-script-location
-              & "$PY\\python.exe" -m pip install . --no-warn-script-location
+              & "$PY\\python.exe" setup.py sdist
+              & "$PY\\python.exe" -m pip install asammdf --no-index --find-links dist
               
               & "$PY\\python.exe" -m pip install -r test/requirements.txt --no-warn-script-location
               
@@ -84,7 +85,8 @@ for:
               
               if (($Env:APPVEYOR_REPO_BRANCH -eq $Env:EXE_BRANCH) -and ($PY -eq "C:\\Python37-x64")) {
                   & "$PY\\python.exe" -m pip install pywin32 lxml natsort psutil PyQt5>=5.13.1 pyqtgraph==0.11.0 pyqtlet h5py fastparquet scipy hdf5storage snappy cChardet==2.1.5 chardet --no-warn-script-location
-                  & "$PY\\python.exe" -m pip install . --no-warn-script-location
+                  & "$PY\\python.exe" setup.py sdist
+                  & "$PY\\python.exe" -m pip install asammdf --no-index --find-links dist
                   & "$PY\\python.exe" -m pip install cmerg cryptography --no-warn-script-location
                   & "$PY\\python.exe" -m pip install pyinstaller --no-warn-script-location
                   & "$PY\\Scripts\\pyinstaller" asammdf.spec --clean -y --onefile --log-level WARN
