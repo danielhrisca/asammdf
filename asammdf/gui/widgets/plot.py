@@ -2416,7 +2416,7 @@ class _Plot(pg.PlotWidget):
         axis.setWidth()
 
     def _clicked(self, event):
-        modifiers = QtGui.QApplication.keyboardModifiers()
+        modifiers = QtWidgets.QApplication.keyboardModifiers()
 
         if QtCore.Qt.Key_C not in self.disabled_keys:
 
