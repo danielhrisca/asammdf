@@ -99,7 +99,7 @@ else:
         debug=False,
         strip=False,
         console=args.console,
-        icon='asammdfgui.ico',
+        icon='asammdf.ico',
     )
     
     coll = COLLECT(
