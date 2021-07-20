@@ -69,7 +69,7 @@ for:
       - ps: >-
           $Env:LLVM_DIR="C:\Program Files\LLVM\bin"
 
-          $PYVERSION = @("C:\\Python37-x64",)
+          $PYVERSION = @("C:\\Python37-x64")
 
           foreach ($PY in $PYVERSION)
           {
