@@ -99,7 +99,8 @@ for:
                   
                   & "$PY\\Scripts\\pyinstaller" asammdf.spec
               } else {
-                  & "$PY\\python.exe" -m pip install . --no-warn-script-location
+                  & "$PY\\python.exe" setup.py sdist
+                  & "$PY\\python.exe" -m pip install asammdf --no-index --find-links dist
               }
           }
 
