@@ -110,5 +110,5 @@ else:
         Tree(asammdf_path.parent),
         upx=False,
         upx_exclude=[],
-        name='DAXil'
+        name='asammdfgui'
     )
