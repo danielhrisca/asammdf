@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-import re
 import os
+import re
+
 from natsort import natsorted
 import numpy as np
 from numpy import searchsorted
@@ -8,10 +9,10 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ..ui import resource_rc as resource_rc
 from ..ui.bar import Ui_BarDisplay
+from ..utils import COLORS
 from .channel_bar_display import ChannelBarDisplay
 from .list_item import ListItem
 from .plot import PlotSignal
-from ..utils import COLORS
 
 OPS = {
     "!=": "__ne__",
@@ -111,7 +112,7 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
             if len(invalid_indexes):
                 invalid_indexes = invalid_indexes[:10] + 1
                 idx = invalid_indexes[0]
-                ts = channel.timestamps[idx - 1: idx + 2]
+                ts = channel.timestamps[idx - 1 : idx + 2]
                 invalid.append(
                     f"{channel.name} @ index {invalid_indexes[:10] - 1} with first time stamp error: {ts}"
                 )
@@ -168,7 +169,17 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
             item.setData(QtCore.Qt.UserRole, sig.name)
             tooltip = getattr(sig, "tooltip", "") or sig.comment
 
-            it = ChannelBarDisplay(sig.uuid, 0, (sig.min, sig.max), sig.max + 1, sig.color, sig.unit, 3, tooltip, self)
+            it = ChannelBarDisplay(
+                sig.uuid,
+                0,
+                (sig.min, sig.max),
+                sig.max + 1,
+                sig.color,
+                sig.unit,
+                3,
+                tooltip,
+                self,
+            )
             it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
             if sig.computed:

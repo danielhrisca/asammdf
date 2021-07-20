@@ -16,7 +16,15 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
     individual_axis_changed = QtCore.pyqtSignal(object, int)
 
     def __init__(
-        self, uuid, unit="", kind="f", precision=3, tooltip="", details="", *args, **kwargs
+        self,
+        uuid,
+        unit="",
+        kind="f",
+        precision=3,
+        tooltip="",
+        details="",
+        *args,
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.setupUi(self)

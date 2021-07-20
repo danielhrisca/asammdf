@@ -8,17 +8,17 @@ from tempfile import gettempdir
 from traceback import format_exc
 
 from natsort import natsorted
+import pandas as pd
 import psutil
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
-import pandas as pd
 
 from ...blocks.utils import extract_cncomment_xml
 from ...blocks.v4_constants import (
     BUS_TYPE_CAN,
-    BUS_TYPE_LIN,
-    BUS_TYPE_FLEXRAY,
     BUS_TYPE_ETHERNET,
+    BUS_TYPE_FLEXRAY,
+    BUS_TYPE_LIN,
     BUS_TYPE_USB,
     FLAG_AT_TO_STRING,
     FLAG_CG_BUS_EVENT,
@@ -40,13 +40,13 @@ from ..utils import (
     TERMINATED,
 )
 from .attachment import Attachment
+from .can_bus_trace import CANBusTrace
 from .database_item import DatabaseItem
 from .gps import GPS
 from .mdi_area import MdiAreaWidget, WithMDIArea
 from .numeric import Numeric
-from .tabular import Tabular
-from .can_bus_trace import CANBusTrace
 from .plot import Plot
+from .tabular import Tabular
 from .tree_item import TreeItem
 
 
@@ -129,16 +129,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         elif file_name.suffix.lower() == ".csv":
             try:
                 with open(file_name) as csv:
-                    names = [n.strip() for n in csv.readline().split(',')]
-                    units = [n.strip() for n in csv.readline().split(',')]
+                    names = [n.strip() for n in csv.readline().split(",")]
+                    units = [n.strip() for n in csv.readline().split(",")]
 
                     try:
                         float(units[0])
                     except:
-                        units = {
-                            name: unit
-                            for name, unit in zip(names, units)
-                        }
+                        units = {name: unit for name, unit in zip(names, units)}
                     else:
                         csv.seek(0)
                         csv.readline()
@@ -656,7 +653,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 comment = group.channel_group.comment
                 comment = extract_cncomment_xml(comment)
 
-                if self.mdf.version >= '4.00' and group.channel_group.acq_source:
+                if self.mdf.version >= "4.00" and group.channel_group.acq_source:
                     source = group.channel_group.acq_source
                     if source.bus_type == BUS_TYPE_CAN:
                         ico = ":/bus_can.png"
@@ -1325,7 +1322,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if window_type is None:
             dialog = WindowSelectionDialog(
-                options=("Plot", "Numeric", "Tabular", "CAN Bus Trace", "LIN Bus Trace"),
+                options=(
+                    "Plot",
+                    "Numeric",
+                    "Tabular",
+                    "CAN Bus Trace",
+                    "LIN Bus Trace",
+                ),
                 parent=self,
             )
             dialog.setModal(True)
@@ -1445,7 +1448,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             for i in range(count):
                 item = self.can_database_list.item(i)
                 widget = self.can_database_list.itemWidget(item)
-                database_files["CAN"].append((widget.database.text(), widget.bus.currentIndex()))
+                database_files["CAN"].append(
+                    (widget.database.text(), widget.bus.currentIndex())
+                )
 
         count = self.lin_database_list.count()
         if count:
@@ -1453,7 +1458,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             for i in range(count):
                 item = self.lin_database_list.item(i)
                 widget = self.can_database_list.itemWidget(item)
-                database_files["LIN"].append((widget.database.text(), widget.bus.currentIndex()))
+                database_files["LIN"].append(
+                    (widget.database.text(), widget.bus.currentIndex())
+                )
 
         compression = self.extract_bus_compression.currentIndex()
         ignore_invalid_signals = (
@@ -1496,7 +1503,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "version": version,
                 "ignore_invalid_signals": ignore_invalid_signals,
                 "prefix": self.prefix.text().strip(),
-                "consolidated_j1939": self.consolidated_j1939.checkState() == QtCore.Qt.Checked,
+                "consolidated_j1939": self.consolidated_j1939.checkState()
+                == QtCore.Qt.Checked,
             }
 
             mdf = run_thread_with_progress(
@@ -1588,7 +1596,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             for i in range(count):
                 item = self.can_database_list.item(i)
                 widget = self.can_database_list.itemWidget(item)
-                database_files["CAN"].append((widget.database.text(), widget.bus.currentIndex()))
+                database_files["CAN"].append(
+                    (widget.database.text(), widget.bus.currentIndex())
+                )
 
         count = self.lin_database_list.count()
         if count:
@@ -1596,7 +1606,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             for i in range(count):
                 item = self.lin_database_list.item(i)
                 widget = self.can_database_list.itemWidget(item)
-                database_files["LIN"].append((widget.database.text(), widget.bus.currentIndex()))
+                database_files["LIN"].append(
+                    (widget.database.text(), widget.bus.currentIndex())
+                )
 
         ignore_invalid_signals = (
             self.ignore_invalid_signals_csv.checkState() == QtCore.Qt.Checked
@@ -1606,10 +1618,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         empty_channels = self.empty_channels_bus.currentText()
         raster = self.export_raster_bus.value()
         time_as_date = self.bus_time_as_date.checkState() == QtCore.Qt.Checked
-        delimiter = self.delimiter_bus.text() or ','
+        delimiter = self.delimiter_bus.text() or ","
         doublequote = self.doublequote_bus.checkState() == QtCore.Qt.Checked
         escapechar = self.escapechar_bus.text() or None
-        lineterminator = self.lineterminator_bus.text().replace("\\r", "\r").replace("\\n", "\n")
+        lineterminator = (
+            self.lineterminator_bus.text().replace("\\r", "\r").replace("\\n", "\n")
+        )
         quotechar = self.quotechar_bus.text() or '"'
         quoting = self.quoting_bus.currentText()
 
@@ -1637,7 +1651,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "version": version,
                 "ignore_invalid_signals": ignore_invalid_signals,
                 "prefix": self.prefix.text().strip(),
-                "consolidated_j1939": self.consolidated_j1939.checkState() == QtCore.Qt.Checked,
+                "consolidated_j1939": self.consolidated_j1939.checkState()
+                == QtCore.Qt.Checked,
             }
 
             mdf = run_thread_with_progress(
@@ -1965,12 +1980,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "compression": False,
                 "empty_channels": self.empty_channels_csv.currentText(),
                 "raw": self.raw_csv.checkState() == QtCore.Qt.Checked,
-                "delimiter": self.delimiter.text() or ',',
+                "delimiter": self.delimiter.text() or ",",
                 "doublequote": self.doublequote.checkState() == QtCore.Qt.Checked,
                 "escapechar": self.escapechar.text() or None,
-                "lineterminator": self.lineterminator.text().replace("\\r", "\r").replace("\\n", "\n"),
+                "lineterminator": self.lineterminator.text()
+                .replace("\\r", "\r")
+                .replace("\\n", "\n"),
                 "quotechar": self.quotechar.text() or '"',
-                'quoting': self.quoting.currentText(),
+                "quoting": self.quoting.currentText(),
                 "mat_format": None,
                 "oned_as": None,
             }
@@ -2068,7 +2085,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 filter = "MDF version 3 files (*.dat *.mdf)"
                 default = filter
             else:
-                filter = "MDF version 4 files (*.mf4);;Zipped MDF version 4 files (*.mf4z)"
+                filter = (
+                    "MDF version 4 files (*.mf4);;Zipped MDF version 4 files (*.mf4z)"
+                )
                 if Path(self.mdf.original_name).suffix.lower() == ".mf4z":
                     default = "Zipped MDF version 4 files (*.mf4z)"
                 else:
@@ -2393,10 +2412,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 progress.setWindowTitle("Export measurement")
                 progress.setLabelText(f"Exporting to {output_format}")
 
-            delimiter = self.delimiter.text() or ','
+            delimiter = self.delimiter.text() or ","
             doublequote = self.doublequote.checkState() == QtCore.Qt.Checked
             escapechar = self.escapechar.text() or None
-            lineterminator = self.lineterminator.text().replace("\\r", "\r").replace("\\n", "\n")
+            lineterminator = (
+                self.lineterminator.text().replace("\\r", "\r").replace("\\n", "\n")
+            )
             quotechar = self.quotechar.text() or '"'
             quoting = self.quoting.currentText()
 

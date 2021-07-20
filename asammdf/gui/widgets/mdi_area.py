@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
+from copy import deepcopy
 from functools import partial
 import itertools
 import json
 import os
 import re
-from traceback import format_exc
 import sys
-from copy import deepcopy
+from traceback import format_exc
 
 from natsort import natsorted
 import numpy as np
@@ -15,21 +15,26 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ...blocks import v4_constants as v4c
 from ...blocks.conversion_utils import from_dict
-from ...blocks.utils import csv_bytearray2hex, extract_cncomment_xml, MdfException, load_can_database
+from ...blocks.utils import (
+    csv_bytearray2hex,
+    extract_cncomment_xml,
+    load_can_database,
+    MdfException,
+)
 from ...mdf import MDF
 from ...signal import Signal
 from ..dialogs.channel_info import ChannelInfoDialog
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
 from ..utils import compute_signal, extract_mime_names, get_required_signals
 from .bar import Bar
+from .can_bus_trace import CANBusTrace
+from .gps import GPS
+from .lin_bus_trace import LINBusTrace
 from .numeric import Numeric
 from .plot import Plot
 from .tabular import Tabular
-from .can_bus_trace import CANBusTrace
-from .lin_bus_trace import LINBusTrace
-from .gps import GPS
 
-COMPONENT = re.compile(r'\[(?P<index>\d+)\]$')
+COMPONENT = re.compile(r"\[(?P<index>\d+)\]$")
 
 
 def generate_window_title(mdi, window_name="", title=""):
@@ -57,7 +62,9 @@ def generate_window_title(mdi, window_name="", title=""):
 
 def set_title(mdi):
     name, ok = QtWidgets.QInputDialog.getText(
-        None, "Set sub-plot title", "Title:",
+        None,
+        "Set sub-plot title",
+        "Title:",
     )
     if ok and name:
         mdi.setWindowTitle(generate_window_title(mdi, title=name))
@@ -68,8 +75,8 @@ def parse_matrix_component(name):
     while True:
         match = COMPONENT.search(name)
         if match:
-            name = name[:match.start()]
-            indexes.insert(0, int(match.group('index')))
+            name = name[: match.start()]
+            indexes.insert(0, int(match.group("index")))
         else:
             break
 
@@ -341,14 +348,14 @@ class WithMDIArea:
 
             columns = {
                 "timestamps": df_index,
-                "Bus": np.full(count, "Unknown", dtype='O'),
-                "ID": np.full(count, 0xFFFFFFFF, dtype='u4'),
-                "Name": np.full(count, "", dtype='O'),
-                "Event Type": np.full(count, "CAN Frame", dtype='O'),
-                "Details": np.full(count, "", dtype='O'),
-                "DLC": np.zeros(count, dtype='u1'),
-                "Data Length": np.zeros(count, dtype='u1'),
-                "Data Bytes": np.full(count, "", dtype='O'),
+                "Bus": np.full(count, "Unknown", dtype="O"),
+                "ID": np.full(count, 0xFFFFFFFF, dtype="u4"),
+                "Name": np.full(count, "", dtype="O"),
+                "Event Type": np.full(count, "CAN Frame", dtype="O"),
+                "Details": np.full(count, "", dtype="O"),
+                "DLC": np.zeros(count, dtype="u1"),
+                "Data Length": np.zeros(count, dtype="u1"),
+                "Data Bytes": np.full(count, "", dtype="O"),
             }
 
             count = len(items)
@@ -364,8 +371,7 @@ class WithMDIArea:
                     dbc = load_can_database(item.attachment[1], item.attachment[0])
                     if dbc:
                         frame_map = {
-                            frame.arbitration_id.id: frame.name
-                            for frame in dbc
+                            frame.arbitration_id.id: frame.name for frame in dbc
                         }
 
                         for name in frame_map.values():
@@ -375,18 +381,18 @@ class WithMDIArea:
 
                     index = np.searchsorted(df_index, item.timestamps)
 
-                    vals = item["CAN_DataFrame.BusChannel"].astype('u1')
+                    vals = item["CAN_DataFrame.BusChannel"].astype("u1")
 
                     vals = [f"CAN {chn}" for chn in vals.tolist()]
                     columns["Bus"][index] = vals
 
-                    vals = item["CAN_DataFrame.ID"].astype('u4') & 0x1FFFFFFF
+                    vals = item["CAN_DataFrame.ID"].astype("u4") & 0x1FFFFFFF
                     columns["ID"][index] = vals
                     if frame_map:
                         columns["Name"][index] = [frame_map[_id] for _id in vals]
 
-                    columns["DLC"][index] = item["CAN_DataFrame.DLC"].astype('u1')
-                    data_length = item["CAN_DataFrame.DataLength"].astype('u2').tolist()
+                    columns["DLC"][index] = item["CAN_DataFrame.DLC"].astype("u1")
+                    data_length = item["CAN_DataFrame.DataLength"].astype("u2").tolist()
                     columns["Data Length"][index] = data_length
 
                     vals = csv_bytearray2hex(
@@ -402,17 +408,19 @@ class WithMDIArea:
 
                     index = np.searchsorted(df_index, item.timestamps)
 
-                    vals = item["CAN_RemoteFrame.BusChannel"].astype('u1')
+                    vals = item["CAN_RemoteFrame.BusChannel"].astype("u1")
                     vals = [f"CAN {chn}" for chn in vals.tolist()]
                     columns["Bus"][index] = vals
 
-                    vals = item["CAN_RemoteFrame.ID"].astype('u4') & 0x1FFFFFFF
+                    vals = item["CAN_RemoteFrame.ID"].astype("u4") & 0x1FFFFFFF
                     columns["ID"][index] = vals
                     if frame_map:
                         columns["Name"][index] = [frame_map[_id] for _id in vals]
 
-                    columns["DLC"][index] = item["CAN_RemoteFrame.DLC"].astype('u1')
-                    data_length = item["CAN_RemoteFrame.DataLength"].astype('u2').tolist()
+                    columns["DLC"][index] = item["CAN_RemoteFrame.DLC"].astype("u1")
+                    data_length = (
+                        item["CAN_RemoteFrame.DataLength"].astype("u2").tolist()
+                    )
                     columns["Data Length"][index] = data_length
                     columns["Event Type"][index] = "Remote Frame"
 
@@ -426,29 +434,30 @@ class WithMDIArea:
                     names = set(item.samples.dtype.names)
 
                     if "CAN_ErrorFrame.BusChannel" in names:
-                        vals = item["CAN_ErrorFrame.BusChannel"].astype('u1')
+                        vals = item["CAN_ErrorFrame.BusChannel"].astype("u1")
                         vals = [f"CAN {chn}" for chn in vals.tolist()]
                         columns["Bus"][index] = vals
 
                     if "CAN_ErrorFrame.ID" in names:
-                        vals = item["CAN_ErrorFrame.ID"].astype('u4') & 0x1FFFFFFF
+                        vals = item["CAN_ErrorFrame.ID"].astype("u4") & 0x1FFFFFFF
                         columns["ID"][index] = vals
                         if frame_map:
                             columns["Name"][index] = [frame_map[_id] for _id in vals]
 
                     if "CAN_ErrorFrame.DLC" in names:
-                        columns["DLC"][index] = item["CAN_ErrorFrame.DLC"].astype('u1')
+                        columns["DLC"][index] = item["CAN_ErrorFrame.DLC"].astype("u1")
 
                     if "CAN_ErrorFrame.DataLength" in names:
-                        columns["Data Length"][index] = item["CAN_ErrorFrame.DataLength"].astype('u2').tolist()
+                        columns["Data Length"][index] = (
+                            item["CAN_ErrorFrame.DataLength"].astype("u2").tolist()
+                        )
 
                     columns["Event Type"][index] = "Error Frame"
 
                     if "CAN_ErrorFrame.ErrorType" in names:
                         vals = item["CAN_ErrorFrame.ErrorType"].astype("u1").tolist()
                         vals = [
-                            v4c.CAN_ERROR_TYPES.get(err, "Other error")
-                            for err in vals
+                            v4c.CAN_ERROR_TYPES.get(err, "Other error") for err in vals
                         ]
 
                         columns["Details"][index] = vals
@@ -532,14 +541,14 @@ class WithMDIArea:
 
             columns = {
                 "timestamps": df_index,
-                "Bus": np.full(count, "Unknown", dtype='O'),
-                "ID": np.full(count, 0xFFFFFFFF, dtype='u4'),
-                "Name": np.full(count, "", dtype='O'),
-                "Event Type": np.full(count, "LIN Frame", dtype='O'),
-                "Details": np.full(count, "", dtype='O'),
-                "Received Byte Count": np.zeros(count, dtype='u1'),
-                "Data Length": np.zeros(count, dtype='u1'),
-                "Data Bytes": np.full(count, "", dtype='O'),
+                "Bus": np.full(count, "Unknown", dtype="O"),
+                "ID": np.full(count, 0xFFFFFFFF, dtype="u4"),
+                "Name": np.full(count, "", dtype="O"),
+                "Event Type": np.full(count, "LIN Frame", dtype="O"),
+                "Details": np.full(count, "", dtype="O"),
+                "Received Byte Count": np.zeros(count, dtype="u1"),
+                "Data Length": np.zeros(count, dtype="u1"),
+                "Data Bytes": np.full(count, "", dtype="O"),
             }
 
             count = len(items)
@@ -552,8 +561,7 @@ class WithMDIArea:
                     dbc = load_can_database(item.attachment[1], item.attachment[0])
                     if dbc:
                         frame_map = {
-                            frame.arbitration_id.id: frame.name
-                            for frame in dbc
+                            frame.arbitration_id.id: frame.name for frame in dbc
                         }
 
                         for name in frame_map.values():
@@ -563,17 +571,19 @@ class WithMDIArea:
 
                     index = np.searchsorted(df_index, item.timestamps)
 
-                    vals = item["LIN_Frame.BusChannel"].astype('u1')
+                    vals = item["LIN_Frame.BusChannel"].astype("u1")
                     vals = [f"LIN {chn}" for chn in vals.tolist()]
                     columns["Bus"][index] = vals
 
-                    vals = item["LIN_Frame.ID"].astype('u1') & 0x3F
+                    vals = item["LIN_Frame.ID"].astype("u1") & 0x3F
                     columns["ID"][index] = vals
                     if frame_map:
                         columns["Name"][index] = [frame_map[_id] for _id in vals]
 
-                    columns["Received Byte Count"][index] = item["LIN_Frame.ReceivedDataByteCount"].astype('u1')
-                    data_length = item["LIN_Frame.DataLength"].astype('u1').tolist()
+                    columns["Received Byte Count"][index] = item[
+                        "LIN_Frame.ReceivedDataByteCount"
+                    ].astype("u1")
+                    data_length = item["LIN_Frame.DataLength"].astype("u1").tolist()
                     columns["Data Length"][index] = data_length
 
                     vals = csv_bytearray2hex(
@@ -591,7 +601,7 @@ class WithMDIArea:
                     names = set(item.samples.dtype.names)
 
                     if "LIN_SyncError.BusChannel" in names:
-                        vals = item["LIN_SyncError.BusChannel"].astype('u1')
+                        vals = item["LIN_SyncError.BusChannel"].astype("u1")
                         vals = [f"LIN {chn}" for chn in vals.tolist()]
                         columns["Bus"][index] = vals
 
@@ -615,7 +625,7 @@ class WithMDIArea:
                     names = set(item.samples.dtype.names)
 
                     if "LIN_TransmissionError.BusChannel" in names:
-                        vals = item["LIN_TransmissionError.BusChannel"].astype('u1')
+                        vals = item["LIN_TransmissionError.BusChannel"].astype("u1")
                         vals = [f"LIN {chn}" for chn in vals.tolist()]
                         columns["Bus"][index] = vals
 
@@ -627,7 +637,7 @@ class WithMDIArea:
                         vals = [f"Baudrate {val}" for val in vals.tolist()]
                         columns["Details"][index] = vals
 
-                    vals = item["LIN_TransmissionError.ID"].astype('u1') & 0x3F
+                    vals = item["LIN_TransmissionError.ID"].astype("u1") & 0x3F
                     columns["ID"][index] = vals
                     if frame_map:
                         columns["Name"][index] = [frame_map[_id] for _id in vals]
@@ -643,7 +653,7 @@ class WithMDIArea:
                     names = set(item.samples.dtype.names)
 
                     if "LIN_ReceiveError.BusChannel" in names:
-                        vals = item["LIN_ReceiveError.BusChannel"].astype('u1')
+                        vals = item["LIN_ReceiveError.BusChannel"].astype("u1")
                         vals = [f"LIN {chn}" for chn in vals.tolist()]
                         columns["Bus"][index] = vals
 
@@ -656,7 +666,7 @@ class WithMDIArea:
                         columns["Details"][index] = vals
 
                     if "LIN_ReceiveError.ID" in names:
-                        vals = item["LIN_ReceiveError.ID"].astype('u1') & 0x3F
+                        vals = item["LIN_ReceiveError.ID"].astype("u1") & 0x3F
                         columns["ID"][index] = vals
                         if frame_map:
                             columns["Name"][index] = [frame_map[_id] for _id in vals]
@@ -672,7 +682,7 @@ class WithMDIArea:
                     names = set(item.samples.dtype.names)
 
                     if "LIN_ChecksumError.BusChannel" in names:
-                        vals = item["LIN_ChecksumError.BusChannel"].astype('u1')
+                        vals = item["LIN_ChecksumError.BusChannel"].astype("u1")
                         vals = [f"LIN {chn}" for chn in vals.tolist()]
                         columns["Bus"][index] = vals
 
@@ -685,7 +695,7 @@ class WithMDIArea:
                         columns["Details"][index] = vals
 
                     if "LIN_ChecksumError.ID" in names:
-                        vals = item["LIN_ChecksumError.ID"].astype('u1') & 0x3F
+                        vals = item["LIN_ChecksumError.ID"].astype("u1") & 0x3F
                         columns["ID"][index] = vals
                         if frame_map:
                             columns["Name"][index] = [frame_map[_id] for _id in vals]
@@ -887,9 +897,7 @@ class WithMDIArea:
                     sig
                     for sig in signals
                     if sig.samples.dtype.kind not in "SU"
-                    and (sig.samples.dtype.names
-                        or len(sig.samples.shape) > 1
-                    )
+                    and (sig.samples.dtype.names or len(sig.samples.shape) > 1)
                 ]
 
                 signals = [
@@ -904,17 +912,13 @@ class WithMDIArea:
                     if sig.samples.dtype.names is None:
                         shape = sig.samples.shape[1:]
 
-                        matrix_dims = [
-                            list(range(dim))
-                            for dim in shape
-                        ]
+                        matrix_dims = [list(range(dim)) for dim in shape]
 
                         matrix_name = sig.name
 
                         for indexes in itertools.product(*matrix_dims):
-                            indexes_string = ''.join(
-                                f"[{_index}]"
-                                for _index in indexes
+                            indexes_string = "".join(
+                                f"[{_index}]" for _index in indexes
                             )
 
                             samples = sig.samples
@@ -939,17 +943,13 @@ class WithMDIArea:
 
                             shape = array_samples.shape[1:]
 
-                            matrix_dims = [
-                                list(range(dim))
-                                for dim in shape
-                            ]
+                            matrix_dims = [list(range(dim)) for dim in shape]
 
                             matrix_name = sig.name
 
                             for indexes in itertools.product(*matrix_dims):
-                                indexes_string = ''.join(
-                                    f"[{_index}]"
-                                    for _index in indexes
+                                indexes_string = "".join(
+                                    f"[{_index}]" for _index in indexes
                                 )
 
                                 samples = array_samples
@@ -1062,9 +1062,7 @@ class WithMDIArea:
 
             w.setWindowTitle(generate_window_title(w, window_type))
 
-            bar.add_channels_request.connect(
-                partial(self.add_new_channels, widget=bar)
-            )
+            bar.add_channels_request.connect(partial(self.add_new_channels, widget=bar))
             if self.subplots_link:
                 bar.timestamp_changed_signal.connect(self.set_cursor)
 
@@ -1123,7 +1121,14 @@ class WithMDIArea:
                 mdf = self.mdf
             else:
                 mdf = None
-            plot = Plot([], events=events, with_dots=self.with_dots, line_interconnect=self.line_interconnect, origin=origin, mdf=mdf)
+            plot = Plot(
+                [],
+                events=events,
+                with_dots=self.with_dots,
+                line_interconnect=self.line_interconnect,
+                origin=origin,
+                mdf=mdf,
+            )
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
@@ -1424,7 +1429,9 @@ class WithMDIArea:
                 else:
                     self.mdi_area.tileSubWindows()
 
-            w.setWindowTitle(generate_window_title(w, window_info["type"], window_info["title"]))
+            w.setWindowTitle(
+                generate_window_title(w, window_info["type"], window_info["title"])
+            )
 
             numeric.format = fmt
             numeric._update_values()
@@ -1446,7 +1453,10 @@ class WithMDIArea:
         elif window_info["type"] == "GPS":
             signals_ = [
                 (None, *self.mdf.whereis(name)[0])
-                for name in (window_info["configuration"]["latitude_channel"], window_info["configuration"]["longitude_channel"])
+                for name in (
+                    window_info["configuration"]["latitude_channel"],
+                    window_info["configuration"]["longitude_channel"],
+                )
                 if name in self.mdf
             ]
 
@@ -1477,7 +1487,9 @@ class WithMDIArea:
                 else:
                     self.mdi_area.tileSubWindows()
 
-            w.setWindowTitle(generate_window_title(w, window_info["type"], window_info["title"]))
+            w.setWindowTitle(
+                generate_window_title(w, window_info["type"], window_info["title"])
+            )
 
             gps._update_values()
 
@@ -1627,16 +1639,17 @@ class WithMDIArea:
                 }
 
                 new_matrix_signals = {}
-                for signal_mat, (_n, indexes) in zip(matrix_signals.values(), matrix_components):
+                for signal_mat, (_n, indexes) in zip(
+                    matrix_signals.values(), matrix_components
+                ):
                     signal = deepcopy(signal_mat)
                     signal.computed = False
                     signal.computation = {}
-                    signal.group_index, signal.channel_index = self.mdf.whereis(signal.name)[0]
+                    signal.group_index, signal.channel_index = self.mdf.whereis(
+                        signal.name
+                    )[0]
 
-                    indexes_string = ''.join(
-                        f"[{_index}]"
-                        for _index in indexes
-                    )
+                    indexes_string = "".join(f"[{_index}]" for _index in indexes)
 
                     samples = signal.samples
                     if samples.dtype.names:
@@ -1651,10 +1664,7 @@ class WithMDIArea:
                     new_matrix_signals[signal.name] = signal
 
                 measured_signals.update(
-                    {
-                        name: sig
-                        for name, sig in new_matrix_signals.items()
-                    }
+                    {name: sig for name, sig in new_matrix_signals.items()}
                 )
 
                 if measured_signals:
@@ -1797,7 +1807,14 @@ class WithMDIArea:
                 mdf = self.mdf
             else:
                 mdf = None
-            plot = Plot([], with_dots=self.with_dots, line_interconnect=self.line_interconnect, events=events, origin=origin, mdf=mdf)
+            plot = Plot(
+                [],
+                with_dots=self.with_dots,
+                line_interconnect=self.line_interconnect,
+                events=events,
+                origin=origin,
+                mdf=mdf,
+            )
             plot.pattern = pattern_info
 
             if not self.subplots:
@@ -1841,7 +1858,9 @@ class WithMDIArea:
             before = menu.actions()[0]
             menu.insertAction(before, action)
 
-            w.setWindowTitle(generate_window_title(w, window_info["type"], window_info["title"]))
+            w.setWindowTitle(
+                generate_window_title(w, window_info["type"], window_info["title"])
+            )
 
             plot.add_channels_request.connect(
                 partial(self.add_new_channels, widget=plot)
@@ -1864,7 +1883,9 @@ class WithMDIArea:
                     _, _idx = plot.plot.signal_by_uuid(wid.uuid)
 
                     if "y_range" in description:
-                        plot.plot.view_boxes[_idx].setYRange(*description["y_range"], padding=0)
+                        plot.plot.view_boxes[_idx].setYRange(
+                            *description["y_range"], padding=0
+                        )
 
                     wid.set_fmt(description["fmt"])
                     wid.set_precision(description["precision"])
@@ -2016,7 +2037,9 @@ class WithMDIArea:
                 else:
                     self.mdi_area.tileSubWindows()
 
-            w.setWindowTitle(generate_window_title(w, window_info["type"], window_info["title"]))
+            w.setWindowTitle(
+                generate_window_title(w, window_info["type"], window_info["title"])
+            )
 
             filter_count = 0
             available_columns = [signals.index.name] + list(signals.columns)

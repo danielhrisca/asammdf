@@ -14,9 +14,8 @@ from ...blocks.utils import (
     csv_int2hex,
     pandas_query_compatible,
 )
-
 from ..utils import run_thread_with_progress
-from .tabular_base import TabularTreeItem, TabularBase
+from .tabular_base import TabularBase, TabularTreeItem
 from .tabular_filter import TabularFilter
 
 logger = logging.getLogger("asammdf.gui")
@@ -74,7 +73,7 @@ class Tabular(TabularBase):
                             index=signals.index,
                         )
 
-                    elif col.dtype.name != 'category':
+                    elif col.dtype.name != "category":
                         try:
                             dropped[name_] = pd.Series(
                                 csv_bytearray2hex(col), index=signals.index

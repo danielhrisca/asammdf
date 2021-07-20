@@ -15,8 +15,8 @@ import shutil
 import sys
 from tempfile import gettempdir, TemporaryFile
 from traceback import format_exc
-from zlib import decompress
 from zipfile import ZIP_DEFLATED, ZipFile
+from zlib import decompress
 
 import canmatrix
 from lz4.frame import compress as lz_compress
@@ -53,12 +53,12 @@ from numpy.core.defchararray import decode, encode
 from numpy.core.records import fromarrays, fromstring
 from pandas import DataFrame
 
+from . import encryption
 from . import v4_constants as v4c
 from ..signal import Signal
 from ..version import __version__
 from .bus_logging_utils import extract_mux
 from .conversion_utils import conversion_transfer
-from . import encryption
 from .mdf_common import MDF_Common
 from .source_utils import Source
 from .utils import (
@@ -189,7 +189,7 @@ except:
             try:
                 rec_size = cg_size[rec_id]
             except:
-                return b''
+                return b""
 
             if rec_size:
                 if rec_size + i > size:
@@ -792,7 +792,9 @@ class MDF4(MDF_Common):
         for i, gp in enumerate(self.groups):
             for j, ch in enumerate(gp.channels):
                 if isinstance(gp.signal_data[j], int):
-                    gp.signal_data[j] = self._get_signal_data_blocks_info(gp.signal_data[j], stream)
+                    gp.signal_data[j] = self._get_signal_data_blocks_info(
+                        gp.signal_data[j], stream
+                    )
 
         for grp in self.groups:
             channels = grp.channels
@@ -1141,7 +1143,7 @@ class MDF4(MDF_Common):
 
                             nd = frombuffer(new_data[: lines * cols], dtype=uint8)
                             nd = nd.reshape((cols, lines))
-                            new_data = nd.T.tobytes() + new_data[lines * cols:]
+                            new_data = nd.T.tobytes() + new_data[lines * cols :]
                         elif block_type == v4c.DZ_BLOCK_LZ:
                             new_data = lz_decompress(new_data)
 
@@ -1184,19 +1186,28 @@ class MDF4(MDF_Common):
 
                             nd = frombuffer(new_data[: lines * cols], dtype=uint8)
                             nd = nd.reshape((cols, lines))
-                            new_data = nd.T.tobytes() + new_data[lines * cols:]
+                            new_data = nd.T.tobytes() + new_data[lines * cols :]
                         elif block_type == v4c.DZ_BLOCK_LZ:
                             new_data = lz_decompress(new_data)
 
                         if current_offset + original_size > end_offset:
                             start_index = max(0, start_offset - current_offset)
-                            last_sample_size, = UINT32_uf(new_data, end_offset-current_offset)
-                            data.append(new_data[start_index: end_offset - current_offset + last_sample_size + 4])
+                            (last_sample_size,) = UINT32_uf(
+                                new_data, end_offset - current_offset
+                            )
+                            data.append(
+                                new_data[
+                                    start_index : end_offset
+                                    - current_offset
+                                    + last_sample_size
+                                    + 4
+                                ]
+                            )
                             break
 
                         else:
                             if start_offset > current_offset:
-                                data.append(new_data[start_offset - current_offset: ])
+                                data.append(new_data[start_offset - current_offset :])
                             else:
                                 data.append(new_data)
 
@@ -1204,7 +1215,7 @@ class MDF4(MDF_Common):
 
                 data = b"".join(data)
             else:
-                data = b''
+                data = b""
         else:
             data = b""
 
@@ -1300,7 +1311,14 @@ class MDF4(MDF_Common):
                 while True:
                     try:
                         info = next(blocks)
-                        address, original_size, compressed_size, block_type, param, block_limit = (
+                        (
+                            address,
+                            original_size,
+                            compressed_size,
+                            block_type,
+                            param,
+                            block_limit,
+                        ) = (
                             info.address,
                             info.original_size,
                             info.compressed_size,
@@ -2272,7 +2290,7 @@ class MDF4(MDF_Common):
             id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
 
             # can be a DataBlock
-            if id_string == b'##SD':
+            if id_string == b"##SD":
                 size = block_len - 24
                 if size:
                     info.append(
@@ -2326,7 +2344,7 @@ class MDF4(MDF_Common):
                         )
 
                         # can be a DataBlock
-                        if id_string == b'##SD':
+                        if id_string == b"##SD":
                             size = block_len - 24
                             if size:
                                 info.append(
@@ -2346,9 +2364,7 @@ class MDF4(MDF_Common):
                                 param,
                                 original_size,
                                 zip_size,
-                            ) = v4c.DZ_COMMON_INFO_u(
-                                stream.read(v4c.DZ_COMMON_SIZE)
-                            )
+                            ) = v4c.DZ_COMMON_INFO_u(stream.read(v4c.DZ_COMMON_SIZE))
 
                             if original_size:
                                 if zip_type == v4c.FLAG_DZ_DEFLATE:
@@ -4427,8 +4443,8 @@ class MDF4(MDF_Common):
             if sig_type == v4c.SIGNAL_TYPE_SCALAR:
 
                 # compute additional byte offset for large records size
-                if sig.dtype.kind == 'O':
-                    sig = encode(sig.values.astype(str), 'utf-8')
+                if sig.dtype.kind == "O":
+                    sig = encode(sig.values.astype(str), "utf-8")
 
                 s_type, s_size = fmt_to_datatype_v4(sig.dtype, sig.shape)
 
@@ -5890,7 +5906,9 @@ class MDF4(MDF_Common):
             hash_sum = worker.hexdigest()
         hash_sum_encrypted = hash_sum
 
-        encryption_function = encryption_function or self._encryption_function or encryption.encrypt
+        encryption_function = (
+            encryption_function or self._encryption_function or encryption.encrypt
+        )
 
         if hash_sum in self._attachments_cache:
             return self._attachments_cache[hash_sum]
@@ -5973,7 +5991,7 @@ class MDF4(MDF_Common):
                     pass
 
         if self.original_name is not None:
-            if self.original_name.suffix.lower() in ('.bz2', '.gzip', '.mf4z', '.zip'):
+            if self.original_name.suffix.lower() in (".bz2", ".gzip", ".mf4z", ".zip"):
                 try:
                     os.remove(self.name)
                 except:
@@ -6035,7 +6053,9 @@ class MDF4(MDF_Common):
 
         current_path = Path.cwd()
         file_path = Path(attachment.file_name or "embedded")
-        decryption_function = decryption_function or self._decryption_function or encryption.decrypt
+        decryption_function = (
+            decryption_function or self._decryption_function or encryption.decrypt
+        )
         try:
             os.chdir(self.name.resolve().parent)
 
@@ -6048,7 +6068,10 @@ class MDF4(MDF_Common):
                 md5_worker.update(data)
                 md5_sum = md5_worker.digest()
 
-                if attachment.flags & v4c.FLAG_AT_ENCRYPTED and decryption_function is not None:
+                if (
+                    attachment.flags & v4c.FLAG_AT_ENCRYPTED
+                    and decryption_function is not None
+                ):
                     try:
                         data = decryption_function(data)
                     except:
@@ -6086,7 +6109,10 @@ class MDF4(MDF_Common):
                         md5_worker.update(data)
                         md5_sum = md5_worker.digest()
 
-                if attachment.flags & v4c.FLAG_AT_ENCRYPTED and decryption_function is not None:
+                if (
+                    attachment.flags & v4c.FLAG_AT_ENCRYPTED
+                    and decryption_function is not None
+                ):
                     try:
                         data = decryption_function(data)
                     except:
@@ -7330,7 +7356,7 @@ class MDF4(MDF_Common):
                     group=grp, index=ch_nr, start_offset=vals[0], end_offset=vals[-1]
                 )
             else:
-                signal_data = b''
+                signal_data = b""
 
             if signal_data:
                 if data_type in (
@@ -8751,8 +8777,6 @@ class MDF4(MDF_Common):
 
         """
 
-
-
         if is_file_like(dst):
             dst_ = dst
             file_like = True
@@ -9798,7 +9822,9 @@ class MDF4(MDF_Common):
                             break
 
                     starting_address = dl.address
-                    next_block_position = bisect.bisect_right(addresses, starting_address)
+                    next_block_position = bisect.bisect_right(
+                        addresses, starting_address
+                    )
                     # search for data blocks after the DLBLOCK
                     for j in range(i, count):
 
@@ -9808,7 +9834,7 @@ class MDF4(MDF_Common):
                         next_block_address = addresses[next_block_position]
                         next_block_type = blocks[next_block_address]
 
-                        if next_block_type not in {b'##DZ', b'##DT', b'##DV', b'##DI'}:
+                        if next_block_type not in {b"##DZ", b"##DT", b"##DV", b"##DI"}:
                             break
                         else:
 
@@ -9821,19 +9847,31 @@ class MDF4(MDF_Common):
                                     param,
                                     original_size,
                                     zip_size,
-                                ) = v4c.DZ_COMMON_INFO_uf(stream.read(v4c.DZ_COMMON_SIZE))
+                                ) = v4c.DZ_COMMON_INFO_uf(
+                                    stream.read(v4c.DZ_COMMON_SIZE)
+                                )
 
-                                exceeded = limit - (next_block_address + v4c.DZ_COMMON_SIZE + zip_size) < 0
+                                exceeded = (
+                                    limit
+                                    - (
+                                        next_block_address
+                                        + v4c.DZ_COMMON_SIZE
+                                        + zip_size
+                                    )
+                                    < 0
+                                )
 
                             else:
-                                id_string, block_len = COMMON_SHORT_uf(stream.read(v4c.COMMON_SIZE))
+                                id_string, block_len = COMMON_SHORT_uf(
+                                    stream.read(v4c.COMMON_SIZE)
+                                )
                                 original_size = block_len - 24
 
                                 exceeded = limit - (next_block_address + block_len) < 0
 
                             # update the data block size in case all links were NULL before
                             if i == 0 and (dl.flags & v4c.FLAG_DL_EQUAL_LENGHT):
-                                kwargs['data_block_len'] = original_size
+                                kwargs["data_block_len"] = original_size
 
                             # check if the file limit is exceeded
                             if exceeded:
@@ -10021,7 +10059,7 @@ class MDF4(MDF_Common):
                         if new_data:
 
                             tempfile_address = tell()
-                            
+
                             new_data = b"".join(new_data)
                             original_size = len(new_data)
                             if original_size:
@@ -10090,7 +10128,7 @@ class MDF4(MDF_Common):
                             if new_data:
 
                                 tempfile_address = tell()
-                                new_data = b''.join(new_data)
+                                new_data = b"".join(new_data)
 
                                 original_size = len(new_data)
                                 if original_size:

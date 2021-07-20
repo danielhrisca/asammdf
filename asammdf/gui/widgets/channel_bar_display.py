@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import json
 import math
-import numpy as np
 
+import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ..dialogs.range_editor import RangeEditor
@@ -11,7 +11,6 @@ from ..ui.channel_bar_display_widget import Ui_ChannelBarDisplay
 
 
 class BarWidget(QtWidgets.QWidget):
-
     def __init__(self, range=(0, 100), over=20, color=None):
         super().__init__()
         self.range = range
@@ -35,12 +34,16 @@ class BarWidget(QtWidgets.QWidget):
                     break
 
         if isinstance(self.range[0], int):
-             self.ticks = [
-                 int(e)
-                 for e in np.linspace(self.range[0], self.range[1], parts + 1, True).tolist()
-             ]
+            self.ticks = [
+                int(e)
+                for e in np.linspace(
+                    self.range[0], self.range[1], parts + 1, True
+                ).tolist()
+            ]
         else:
-            self.ticks = np.linspace(self.range[0], self.range[1], parts + 1, True).tolist()
+            self.ticks = np.linspace(
+                self.range[0], self.range[1], parts + 1, True
+            ).tolist()
 
     def setValue(self, value):
         self.value = float(value)
@@ -58,7 +61,7 @@ class BarWidget(QtWidgets.QWidget):
 
     def drawWidget(self, qp):
 
-        font = QtGui.QFont('Serif', 7, QtGui.QFont.Light)
+        font = QtGui.QFont("Serif", 7, QtGui.QFont.Light)
         qp.setFont(font)
 
         size = self.size()
@@ -83,11 +86,7 @@ class BarWidget(QtWidgets.QWidget):
             qp.setBrush(QtGui.QColor(self.color))
             qp.drawRect(0, 0, till, h)
 
-        pen = QtGui.QPen(
-            QtGui.QColor(20, 20, 20),
-            1,
-            QtCore.Qt.SolidLine
-        )
+        pen = QtGui.QPen(QtGui.QColor(20, 20, 20), 1, QtCore.Qt.SolidLine)
 
         qp.setPen(pen)
         qp.setBrush(QtCore.Qt.NoBrush)
@@ -104,16 +103,25 @@ class BarWidget(QtWidgets.QWidget):
             fw = metrics.width()
             fh = metrics.height()
 
-            x, y = int(val_pos - fw/2), 7 + fh
+            x, y = int(val_pos - fw / 2), 7 + fh
             x = max(2, x)
-            x = min(x, w-fw-2)
+            x = min(x, w - fw - 2)
             qp.drawText(x, y, val)
 
 
 class ChannelBarDisplay(Ui_ChannelBarDisplay, QtWidgets.QWidget):
-
     def __init__(
-        self, uuid, value, range, over, color, unit="", precision=3, tooltip="", *args, **kwargs
+        self,
+        uuid,
+        value,
+        range,
+        over,
+        color,
+        unit="",
+        precision=3,
+        tooltip="",
+        *args,
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.setupUi(self)

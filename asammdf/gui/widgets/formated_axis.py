@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from datetime import timedelta, datetime, timezone
+from datetime import datetime, timedelta, timezone
 from textwrap import wrap
+
 LOCAL_TIMEZONE = datetime.now(timezone.utc).astimezone().tzinfo
 
 import numpy as np
@@ -74,7 +75,7 @@ class FormatedAxis(pg.AxisItem):
                 strns = [str(timedelta(seconds=val)) for val in values]
             elif self.format == "date":
                 strns = (
-                    pd.to_datetime(np.array(values) + self.origin.timestamp(), unit='s')
+                    pd.to_datetime(np.array(values) + self.origin.timestamp(), unit="s")
                     .tz_localize("UTC")
                     .tz_convert(LOCAL_TIMEZONE)
                     .astype(str)

@@ -938,7 +938,7 @@ class Signal(object):
                 s = signal.samples[idx]
             else:
 
-                kind =signal.samples.dtype.kind
+                kind = signal.samples.dtype.kind
 
                 if kind == "f":
 
@@ -956,7 +956,9 @@ class Signal(object):
                 elif kind in "ui":
                     if integer_interpolation_mode == 2:
                         if signal.raw and signal.conversion:
-                            kind = signal.conversion.convert(signal.samples[:1]).dtype.kind
+                            kind = signal.conversion.convert(
+                                signal.samples[:1]
+                            ).dtype.kind
                             if kind == "f":
                                 integer_interpolation_mode = 1
 
@@ -977,7 +979,9 @@ class Signal(object):
                         s = signal.samples[idx]
 
                 else:
-                    idx = np.searchsorted(signal.timestamps, new_timestamps, side="right")
+                    idx = np.searchsorted(
+                        signal.timestamps, new_timestamps, side="right"
+                    )
                     idx -= 1
                     idx = np.clip(idx, 0, idx[-1])
                     s = signal.samples[idx]

@@ -59,16 +59,16 @@ class CANBusTrace(TabularBase):
         columns = self.tree.columnCount()
 
         try:
-            event_index = self.signals.columns.get_loc('Event Type') + 1
+            event_index = self.signals.columns.get_loc("Event Type") + 1
         except:
-            event_index = self.signals.columns.get_loc('Event_Type') + 1
+            event_index = self.signals.columns.get_loc("Event_Type") + 1
 
         while iterator.value():
             item = iterator.value()
-            if item.text(event_index) == 'Error Frame':
+            if item.text(event_index) == "Error Frame":
                 for col in range(columns):
                     item.setForeground(col, QtGui.QBrush(QtCore.Qt.darkRed))
-            elif item.text(event_index) == 'Remote Frame':
+            elif item.text(event_index) == "Remote Frame":
                 for col in range(columns):
                     item.setForeground(col, QtGui.QBrush(QtCore.Qt.darkGreen))
             iterator += 1

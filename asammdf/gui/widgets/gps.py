@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-import numpy as np
 import io
+
+import numpy as np
 from PyQt5 import QtCore, QtWidgets
 from pyqtlet import L, MapWidget
 
@@ -16,8 +17,7 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
         self.setupUi(self)
 
         timebase = np.around(
-            np.union1d(latitude_channel.timestamps, longitude_channel.timestamps),
-            9
+            np.union1d(latitude_channel.timestamps, longitude_channel.timestamps), 9
         )
         self.latitude_signal = latitude_channel.interp(timebase)
         self.longitude_signal = longitude_channel.interp(timebase)
@@ -52,7 +52,9 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
         self.map = L.map(self.mapWidget)
         self.map.setView([50.1364092, 8.5991296], zoom)
 
-        L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png').addTo(self.map)
+        L.tileLayer("https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png").addTo(
+            self.map
+        )
 
         if len(timebase):
             line = L.polyline(

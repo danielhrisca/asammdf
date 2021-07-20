@@ -10,6 +10,7 @@ from textwrap import wrap
 from traceback import format_exc
 
 from numexpr import evaluate
+
 try:
     from numexpr3 import evaluate as evaluate3
 except:
@@ -980,7 +981,7 @@ class ChannelConversion(_ChannelConversionBase):
             if conv_type == v23c.CONVERSION_TYPE_LINEAR:
                 (self.b, self.a) = unpack_from("<2d", block, v23c.CC_COMMON_SHORT_SIZE)
                 if not size == v23c.CC_LIN_BLOCK_SIZE:
-                    self.CANapeHiddenExtra = block[v23c.CC_LIN_BLOCK_SIZE - 4:]
+                    self.CANapeHiddenExtra = block[v23c.CC_LIN_BLOCK_SIZE - 4 :]
                     size = len(self.CANapeHiddenExtra)
                     nr = size // 40
                     values = unpack_from(

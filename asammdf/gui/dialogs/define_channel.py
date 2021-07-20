@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 
+from functools import reduce
+import re
+from traceback import format_exc
+
+from numexpr import evaluate
 import numpy as np
 from PyQt5 import QtWidgets
 
 from ...signal import Signal as AsamSignal
 from ..ui import resource_rc as resource_rc
 from ..ui.define_channel_dialog import Ui_ComputedChannel
-
-import re
-from functools import reduce
-from numexpr import evaluate
-from traceback import format_exc
 
 OPS_TO_STR = {
     "+": "__add__",
@@ -28,7 +28,7 @@ OPS_TO_STR = {
 }
 
 
-SIG_RE = re.compile(r'\{\{(?!\}\})(?P<name>.*?)\}\}')
+SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
 
 
 class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
@@ -498,11 +498,8 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
     def apply_expression(self):
         expression_string = self.expression.toPlainText().strip()
-        expression_string = ''.join(expression_string.splitlines())
-        names = [
-            match.group('name')
-            for match in SIG_RE.finditer(expression_string)
-        ]
+        expression_string = "".join(expression_string.splitlines())
+        names = [match.group("name") for match in SIG_RE.finditer(expression_string)]
         positions = [
             (i, match.start(), match.end())
             for i, match in enumerate(SIG_RE.finditer(expression_string))
@@ -521,9 +518,11 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                     if name in self.mdf
                 ]
                 signals = self.mdf.select(names)
-                common_timebase = reduce(np.union1d, [sig.timestamps for sig in signals])
+                common_timebase = reduce(
+                    np.union1d, [sig.timestamps for sig in signals]
+                )
                 signals = {
-                    f'X_{i}': sig.interp(common_timebase).samples
+                    f"X_{i}": sig.interp(common_timebase).samples
                     for i, sig in enumerate(signals)
                 }
 

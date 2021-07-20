@@ -9,11 +9,12 @@ from time import perf_counter
 import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
+
 pg.graphicsItems.ScatterPlotItem._USE_QRECT = False
 
+from ...blocks import v4_constants as v4c
 from ...mdf import MDF
 from ...signal import Signal
-from ...blocks import v4_constants as v4c
 from ..dialogs.define_channel import DefineChannel
 from ..ui import resource_rc as resource_rc
 from ..utils import COLORS, extract_mime_names
@@ -645,7 +646,9 @@ class PlotSignal(Signal):
                     rows = (stop_ - start_) // visible_duplication
                     stop_2 = start_ + rows * visible_duplication
 
-                    samples = signal_samples[start_:stop_2].reshape(rows, visible_duplication)
+                    samples = signal_samples[start_:stop_2].reshape(
+                        rows, visible_duplication
+                    )
 
                     try:
                         pos_max = samples.argmax(axis=1)
@@ -663,7 +666,7 @@ class PlotSignal(Signal):
 
                     pos = np.dstack([pos_min, pos_max])[0]
                     pos.sort()
-                    #pos = np.sort(pos)
+                    # pos = np.sort(pos)
 
                     offsets = np.arange(rows) * visible_duplication
 
@@ -697,21 +700,21 @@ class PlotSignal(Signal):
                         samples = np.concatenate((samples, samples_))
                         timestamps = np.concatenate((timestamps, timestamps_))
 
-                        pos2 = p1, p2 = [min(e + stop_2, dim-1) for e in pos2]
+                        pos2 = p1, p2 = [min(e + stop_2, dim - 1) for e in pos2]
 
-                       # pos = np.concatenate([pos, pos2])
+                        # pos = np.concatenate([pos, pos2])
 
-                        new_pos = np.empty(_size+2, dtype=pos.dtype)
+                        new_pos = np.empty(_size + 2, dtype=pos.dtype)
                         new_pos[:_size] = pos
                         new_pos[_size] = p1
-                        new_pos[_size+1] = p2
+                        new_pos[_size + 1] = p2
                         pos = new_pos
 
                     sig.plot_samples = samples
                     sig.plot_timestamps = timestamps
 
                 else:
-                    start_ = min(max(0, start_ - 2), dim -1)
+                    start_ = min(max(0, start_ - 2), dim - 1)
                     stop_ = min(stop_ + 2, dim)
 
                     if start_ == 0 and stop_ == dim:
@@ -779,7 +782,16 @@ class Plot(QtWidgets.QWidget):
     show_properties = QtCore.pyqtSignal(list)
     splitter_moved = QtCore.pyqtSignal(object, int)
 
-    def __init__(self, signals, with_dots=False, origin=None, mdf=None, line_interconnect="line", *args, **kwargs):
+    def __init__(
+        self,
+        signals,
+        with_dots=False,
+        origin=None,
+        mdf=None,
+        line_interconnect="line",
+        *args,
+        **kwargs,
+    ):
         events = kwargs.pop("events", None)
         super().__init__(*args, **kwargs)
         self.line_interconnect = line_interconnect
@@ -823,7 +835,9 @@ class Plot(QtWidgets.QWidget):
         self.plot = _Plot(
             with_dots=with_dots,
             line_interconnect=self.line_interconnect,
-            parent=self, events=events, origin=origin,
+            parent=self,
+            events=events,
+            origin=origin,
             mdf=self.mdf,
         )
 
@@ -1349,7 +1363,9 @@ class Plot(QtWidgets.QWidget):
         name, unit = sig.name, sig.unit
         item = ListItem((-1, -1), name, sig.computation, self.channel_selection)
         tooltip = getattr(sig, "tooltip", "")
-        it = ChannelDisplay(sig.uuid, unit, sig.samples.dtype.kind, 3, tooltip, "", self)
+        it = ChannelDisplay(
+            sig.uuid, unit, sig.samples.dtype.kind, 3, tooltip, "", self
+        )
         it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
         font = QtGui.QFont()
@@ -1462,7 +1478,7 @@ class Plot(QtWidgets.QWidget):
                 src = sig.source
                 source_type = v4c.SOURCE_TYPE_TO_STRING[src.source_type]
                 bus_type = v4c.BUS_TYPE_TO_STRING[src.bus_type]
-                details = f'     {source_type} source on bus {bus_type}: name=[{src.name}] path=[{src.path}]'
+                details = f"     {source_type} source on bus {bus_type}: name=[{src.name}] path=[{src.path}]"
             else:
                 details = ""
 
@@ -1533,11 +1549,13 @@ class Plot(QtWidgets.QWidget):
 
             if sig.computed and sig.conversion:
                 channel["user_defined_name"] = sig.name
-                channel["name"] = sig.computation["expression"].strip('}{')
+                channel["name"] = sig.computation["expression"].strip("}{")
 
                 channel["conversion"] = {}
                 for i in range(sig.conversion.val_param_nr):
-                    channel["conversion"][f"text_{i}"] = sig.conversion.referenced_blocks[f"text_{i}"].decode("utf-8")
+                    channel["conversion"][
+                        f"text_{i}"
+                    ] = sig.conversion.referenced_blocks[f"text_{i}"].decode("utf-8")
                     channel["conversion"][f"val_{i}"] = sig.conversion[f"val_{i}"]
 
             channels.append(channel)
@@ -1545,7 +1563,10 @@ class Plot(QtWidgets.QWidget):
         config = {
             "channels": channels if not self.pattern else [],
             "pattern": self.pattern,
-            "splitter": [int(e) for e in self.splitter.sizes()[:2]] + [0, ],
+            "splitter": [int(e) for e in self.splitter.sizes()[:2]]
+            + [
+                0,
+            ],
             "x_range": [float(e) for e in self.plot.viewbox.viewRange()[0]],
         }
 
@@ -1606,11 +1627,22 @@ class _Plot(pg.PlotWidget):
 
     add_channels_request = QtCore.pyqtSignal(list)
 
-    def __init__(self, signals=None, with_dots=False, origin=None, mdf=None, line_interconnect="line", *args, **kwargs):
+    def __init__(
+        self,
+        signals=None,
+        with_dots=False,
+        origin=None,
+        mdf=None,
+        line_interconnect="line",
+        *args,
+        **kwargs,
+    ):
         events = kwargs.pop("events", [])
         super().__init__()
 
-        self.line_interconnect = line_interconnect if line_interconnect != "line" else ""
+        self.line_interconnect = (
+            line_interconnect if line_interconnect != "line" else ""
+        )
 
         self._last_update = perf_counter()
         self._can_trim = True
@@ -1822,7 +1854,9 @@ class _Plot(pg.PlotWidget):
                             #                            curve.setPen({'color': color, 'style': style})
                             pen = pg.fn.mkPen(color=color, style=style)
                             curve.opts["pen"] = pen
-                            curve.setData(x=t, y=sig.plot_samples, stepMode=self.line_interconnect)
+                            curve.setData(
+                                x=t, y=sig.plot_samples, stepMode=self.line_interconnect
+                            )
                             curve.update()
                         else:
                             curve.invalidateBounds()

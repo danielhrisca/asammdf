@@ -69,8 +69,7 @@ class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
     def show_trace(self, event):
         if self.trace.isHidden():
             self.trace.show()
-            self.show_trace_btn.setText('Hide error trace')
+            self.show_trace_btn.setText("Hide error trace")
         else:
             self.trace.hide()
-            self.show_trace_btn.setText('Show error trace')
-
+            self.show_trace_btn.setText("Show error trace")

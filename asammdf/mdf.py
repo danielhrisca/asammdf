@@ -14,8 +14,8 @@ from pathlib import Path
 import re
 from shutil import copy, move
 from struct import unpack
-from traceback import format_exc
 from tempfile import gettempdir, mkdtemp
+from traceback import format_exc
 import xml.etree.ElementTree as ET
 import zipfile
 
@@ -174,14 +174,14 @@ class MDF:
                     original_name = Path(name._fp.name)
                     name = get_temporary_filename(original_name)
                     name.write_bytes(name.read())
-                    file_stream = open(name, 'rb')
+                    file_stream = open(name, "rb")
                     do_close = False
                 elif isinstance(name, gzip.GzipFile):
 
                     original_name = Path(name.name)
                     name = get_temporary_filename(original_name)
                     name.write_bytes(name.read())
-                    file_stream = open(name, 'rb')
+                    file_stream = open(name, "rb")
                     do_close = False
 
             else:
@@ -189,23 +189,27 @@ class MDF:
                 if not name.is_file() or not name.exists():
                     raise MdfException(f'File "{name}" does not exist')
 
-                if original_name.suffix.lower() in ('.mf4z', '.zip'):
+                if original_name.suffix.lower() in (".mf4z", ".zip"):
                     name = get_temporary_filename(original_name)
                     with zipfile.ZipFile(original_name, allowZip64=True) as archive:
                         files = archive.namelist()
                         if len(files) != 1:
-                            raise Exception("invalid zipped MF4: must contain a single file")
+                            raise Exception(
+                                "invalid zipped MF4: must contain a single file"
+                            )
                         fname = files[0]
 
                         if Path(fname).suffix.lower() not in (".mdf", ".dat", ".mf4"):
-                            raise Exception("invalid zipped MF4: must contain a single MDF file")
+                            raise Exception(
+                                "invalid zipped MF4: must contain a single MDF file"
+                            )
 
                         tmpdir = mkdtemp()
                         output = archive.extract(fname, tmpdir)
 
                         move(output, name)
 
-                file_stream = open(name, 'rb')
+                file_stream = open(name, "rb")
                 do_close = False
 
             file_stream.seek(0)
@@ -4077,7 +4081,11 @@ class MDF:
         for (dbc_name, bus_channel) in dbc_files:
             if isinstance(dbc_name, CanMatrix):
                 valid_dbc_files.append(
-                    (dbc_name, unique_name.get_unique_name("UserProvidedCanMatrix"), bus_channel)
+                    (
+                        dbc_name,
+                        unique_name.get_unique_name("UserProvidedCanMatrix"),
+                        bus_channel,
+                    )
                 )
             else:
                 dbc = load_can_database(Path(dbc_name))
@@ -4180,7 +4188,9 @@ class MDF:
 
                         if is_j1939 and not consolidated_j1939:
                             unique_ids = np.unique(
-                                np.core.records.fromarrays([bus_msg_ids, original_msg_ids])
+                                np.core.records.fromarrays(
+                                    [bus_msg_ids, original_msg_ids]
+                                )
                             )
                         else:
                             unique_ids = np.unique(
@@ -4373,7 +4383,11 @@ class MDF:
         for (dbc_name, bus_channel) in dbc_files:
             if isinstance(dbc_name, CanMatrix):
                 valid_dbc_files.append(
-                    (dbc_name, unique_name.get_unique_name("UserProvidedCanMatrix"), bus_channel)
+                    (
+                        dbc_name,
+                        unique_name.get_unique_name("UserProvidedCanMatrix"),
+                        bus_channel,
+                    )
                 )
             else:
                 dbc = load_can_database(Path(dbc_name))
@@ -4451,7 +4465,7 @@ class MDF:
                             samples_only=True,
                         )[0].astype("<u1")
                     except:
-                        bus_ids = np.ones(len(original_ids), dtype='u1')
+                        bus_ids = np.ones(len(original_ids), dtype="u1")
 
                     bus_t = msg_ids.timestamps
                     bus_msg_ids = msg_ids.samples
@@ -4519,7 +4533,9 @@ class MDF:
                                             name=signal_name,
                                             comment=signal["comment"],
                                             unit=signal["unit"],
-                                            invalidation_bits=signal["invalidation_bits"]
+                                            invalidation_bits=signal[
+                                                "invalidation_bits"
+                                            ]
                                             if ignore_invalid_signals
                                             else None,
                                         )
@@ -4538,7 +4554,9 @@ class MDF:
                                     if prefix:
                                         acq_name = f"{prefix}: from LIN{bus} message ID=0x{msg_id:X}"
                                     else:
-                                        acq_name = f"from LIN{bus} message ID=0x{msg_id:X}"
+                                        acq_name = (
+                                            f"from LIN{bus} message ID=0x{msg_id:X}"
+                                        )
 
                                     cg_nr = out.append(
                                         sigs,
@@ -4574,9 +4592,9 @@ class MDF:
 
                                     if ignore_invalid_signals:
                                         for ch_index, sig in enumerate(sigs, 1):
-                                            max_flags[index][ch_index] = max_flags[index][
-                                                ch_index
-                                            ] or np.all(sig[1])
+                                            max_flags[index][ch_index] = max_flags[
+                                                index
+                                            ][ch_index] or np.all(sig[1])
 
                                     sigs.insert(0, (t, None))
 

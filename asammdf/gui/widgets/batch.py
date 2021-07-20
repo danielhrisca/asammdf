@@ -24,7 +24,14 @@ from .tree_item import TreeItem
 
 
 class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
-    def __init__(self, ignore_value2text_conversions=False, integer_interpolation=2, float_interpolation=1, *args, **kwargs):
+    def __init__(
+        self,
+        ignore_value2text_conversions=False,
+        integer_interpolation=2,
+        float_interpolation=1,
+        *args,
+        **kwargs,
+    ):
 
         super().__init__(*args, **kwargs)
         self.setupUi(self)
@@ -197,7 +204,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             for i in range(count):
                 item = self.can_database_list.item(i)
                 widget = self.can_database_list.itemWidget(item)
-                database_files["CAN"].append((widget.database.text(), widget.bus.currentIndex()))
+                database_files["CAN"].append(
+                    (widget.database.text(), widget.bus.currentIndex())
+                )
 
         count = self.lin_database_list.count()
         if count:
@@ -205,7 +214,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             for i in range(count):
                 item = self.lin_database_list.item(i)
                 widget = self.can_database_list.itemWidget(item)
-                database_files["LIN"].append((widget.database.text(), widget.bus.currentIndex()))
+                database_files["LIN"].append(
+                    (widget.database.text(), widget.bus.currentIndex())
+                )
 
         compression = self.extract_bus_compression.currentIndex()
         ignore_invalid_signals = (
@@ -349,7 +360,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             for i in range(count):
                 item = self.can_database_list.item(i)
                 widget = self.can_database_list.itemWidget(item)
-                database_files["CAN"].append((widget.database.text(), widget.bus.currentIndex()))
+                database_files["CAN"].append(
+                    (widget.database.text(), widget.bus.currentIndex())
+                )
 
         count = self.lin_database_list.count()
         if count:
@@ -357,7 +370,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             for i in range(count):
                 item = self.lin_database_list.item(i)
                 widget = self.can_database_list.itemWidget(item)
-                database_files["LIN"].append((widget.database.text(), widget.bus.currentIndex()))
+                database_files["LIN"].append(
+                    (widget.database.text(), widget.bus.currentIndex())
+                )
 
         ignore_invalid_signals = (
             self.ignore_invalid_signals_csv.checkState() == QtCore.Qt.Checked
@@ -367,10 +382,12 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         empty_channels = self.empty_channels_bus.currentText()
         raster = self.export_raster_bus.value() or None
         time_as_date = self.bus_time_as_date.checkState() == QtCore.Qt.Checked
-        delimiter = self.delimiter_bus.text() or ','
+        delimiter = self.delimiter_bus.text() or ","
         doublequote = self.doublequote_bus.checkState() == QtCore.Qt.Checked
         escapechar = self.escapechar_bus.text() or None
-        lineterminator = self.lineterminator_bus.text().replace("\\r", "\r").replace("\\n", "\n")
+        lineterminator = (
+            self.lineterminator_bus.text().replace("\\r", "\r").replace("\\n", "\n")
+        )
         quotechar = self.quotechar_bus.text() or '"'
         quoting = self.quoting_bus.currentText()
 
@@ -1125,12 +1142,14 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 "compression": False,
                 "empty_channels": self.empty_channels_csv.currentText(),
                 "raw": self.raw_csv.checkState() == QtCore.Qt.Checked,
-                "delimiter": self.delimiter.text() or ',',
+                "delimiter": self.delimiter.text() or ",",
                 "doublequote": self.doublequote.checkState() == QtCore.Qt.Checked,
                 "escapechar": self.escapechar.text() or None,
-                "lineterminator": self.lineterminator.text().replace("\\r", "\r").replace("\\n", "\n"),
+                "lineterminator": self.lineterminator.text()
+                .replace("\\r", "\r")
+                .replace("\\n", "\n"),
                 "quotechar": self.quotechar.text() or '"',
-                'quoting': self.quoting.currentText(),
+                "quoting": self.quoting.currentText(),
                 "mat_format": None,
                 "oned_as": None,
             }
@@ -1550,10 +1569,12 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 if not file_name.parent.exists():
                     os.makedirs(file_name.parent, exist_ok=True)
 
-                delimiter = self.delimiter.text() or ','
+                delimiter = self.delimiter.text() or ","
                 doublequote = self.doublequote.checkState() == QtCore.Qt.Checked
                 escapechar = self.escapechar.text() or None
-                lineterminator = self.lineterminator.text().replace("\\r", "\r").replace("\\n", "\n")
+                lineterminator = (
+                    self.lineterminator.text().replace("\\r", "\r").replace("\\n", "\n")
+                )
                 quotechar = self.quotechar.text() or '"'
                 quoting = self.quoting.currentText()
 

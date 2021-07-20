@@ -32,15 +32,11 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         )
 
         self.integer_interpolation = int(
-            self._settings.value(
-                "integer_interpolation", "2 - hybrid interpolation"
-            )[0]
+            self._settings.value("integer_interpolation", "2 - hybrid interpolation")[0]
         )
 
         self.float_interpolation = int(
-            self._settings.value(
-                "float_interpolation", "1 - linear interpolation"
-            )[0]
+            self._settings.value("float_interpolation", "1 - linear interpolation")[0]
         )
 
         self.batch = BatchWidget(
@@ -234,7 +230,11 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         for option in ("line", "left", "right"):
             icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(f":/{option}_interconnect.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            icon.addPixmap(
+                QtGui.QPixmap(f":/{option}_interconnect.png"),
+                QtGui.QIcon.Normal,
+                QtGui.QIcon.Off,
+            )
             action = QtWidgets.QAction(icon, option, menu)
             action.setCheckable(True)
             step_option.addAction(action)
@@ -252,11 +252,17 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         theme_option = QtWidgets.QActionGroup(self)
 
         for option, tooltip in zip(
-            ("0 - repeat previous sample", "1 - linear interpolation", "2 - hybrid interpolation"),
-            ("", "",
-             "channels with integer data type (raw values) that have a conversion that outputs float "
-             "values will use linear interpolation, otherwise the previous sample is used"
-             )
+            (
+                "0 - repeat previous sample",
+                "1 - linear interpolation",
+                "2 - hybrid interpolation",
+            ),
+            (
+                "",
+                "",
+                "channels with integer data type (raw values) that have a conversion that outputs float "
+                "values will use linear interpolation, otherwise the previous sample is used",
+            ),
         ):
 
             action = QtWidgets.QAction(option, menu)
@@ -266,7 +272,9 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             theme_option.addAction(action)
             action.triggered.connect(partial(self.set_integer_interpolation, option))
 
-            if option == self._settings.value("integer_interpolation", "2 - hybrid interpolation"):
+            if option == self._settings.value(
+                "integer_interpolation", "2 - hybrid interpolation"
+            ):
                 action.setChecked(True)
                 action.triggered.emit()
 
@@ -285,7 +293,9 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             theme_option.addAction(action)
             action.triggered.connect(partial(self.set_float_interpolation, option))
 
-            if option == self._settings.value("float_interpolation", "1 - linear interpolation"):
+            if option == self._settings.value(
+                "float_interpolation", "1 - linear interpolation"
+            ):
                 action.setChecked(True)
                 action.triggered.emit()
 
@@ -1028,7 +1038,9 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         if self.stackedWidget.currentIndex() == 0:
             for root, dirs, files in os.walk(folder):
                 for file in natsorted(files):
-                    if file.lower().endswith((".csv", ".erg", ".dl3", ".dat", ".mdf", ".mf4", ".mf4z")):
+                    if file.lower().endswith(
+                        (".csv", ".erg", ".dl3", ".dat", ".mdf", ".mf4", ".mf4z")
+                    ):
                         self._open_file(os.path.join(root, file))
         else:
             icon = QtGui.QIcon()
@@ -1038,7 +1050,9 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
             for root, dirs, files in os.walk(folder):
                 for file in natsorted(files):
-                    if file.lower().endswith((".csv", ".erg", ".dl3", ".dat", ".mdf", ".mf4", ".mf4z")):
+                    if file.lower().endswith(
+                        (".csv", ".erg", ".dl3", ".dat", ".mdf", ".mf4", ".mf4z")
+                    ):
 
                         row = self.batch.files_list.count()
                         self.batch.files_list.addItem(os.path.join(root, file))
@@ -1068,7 +1082,15 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             if self.stackedWidget.currentIndex() == 0:
                 for path in e.mimeData().text().splitlines():
                     path = Path(path.replace(r"file:///", ""))
-                    if path.suffix.lower() in (".csv", ".zip", ".erg", ".dat", ".mdf", ".mf4", ".mf4z"):
+                    if path.suffix.lower() in (
+                        ".csv",
+                        ".zip",
+                        ".erg",
+                        ".dat",
+                        ".mdf",
+                        ".mf4",
+                        ".mf4z",
+                    ):
 
                         self._open_file(path)
             else:
@@ -1079,7 +1101,15 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
                 for path in e.mimeData().text().splitlines():
                     path = Path(path.replace(r"file:///", ""))
-                    if path.suffix.lower() in (".csv", ".zip", ".erg", ".dat", ".mdf", ".mf4", ".mf4z"):
+                    if path.suffix.lower() in (
+                        ".csv",
+                        ".zip",
+                        ".erg",
+                        ".dat",
+                        ".mdf",
+                        ".mf4",
+                        ".mf4z",
+                    ):
 
                         row = self.batch.files_list.count()
                         self.batch.files_list.addItem(str(path))

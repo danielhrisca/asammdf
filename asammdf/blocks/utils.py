@@ -15,7 +15,6 @@ import sys
 from tempfile import TemporaryDirectory
 import xml.etree.ElementTree as ET
 
-
 try:
     from cchardet import detect
 except:
@@ -248,20 +247,14 @@ def get_text_v4(address, stream, mapped=False, decode=True):
         if block_id not in (b"##TX", b"##MD"):
             return "" if decode else b""
         text_bytes = (
-            stream[address + 24 : address + size]
-            .split(b"\0", 1)[0]
-            .strip(b" \r\t\n")
+            stream[address + 24 : address + size].split(b"\0", 1)[0].strip(b" \r\t\n")
         )
     else:
         stream.seek(address)
         block_id, size = BLK_COMMON_u(stream.read(24))
         if block_id not in (b"##TX", b"##MD"):
             return "" if decode else b""
-        text_bytes = (
-            stream.read(size - 24)
-            .split(b"\0", 1)[0]
-            .strip(b" \r\t\n")
-        )
+        text_bytes = stream.read(size - 24).split(b"\0", 1)[0].strip(b" \r\t\n")
 
     if decode:
         try:
@@ -283,9 +276,9 @@ def sanitize_xml(text):
 
 
 def extract_display_name(comment):
-    if not comment.startswith('<CNcomment'):
+    if not comment.startswith("<CNcomment"):
         return ""
-    
+
     try:
         comment = ET.fromstring(sanitize_xml(comment))
         display_name = comment.find(".//names/display")
@@ -1310,7 +1303,9 @@ class InvalidationBlockInfo(DataBlockInfo):
         all_valid=False,
         block_limit=None,
     ):
-        super().__init__(address, block_type, original_size, compressed_size, param, block_limit)
+        super().__init__(
+            address, block_type, original_size, compressed_size, param, block_limit
+        )
         self.all_valid = all_valid
 
     def __repr__(self):
@@ -1336,7 +1331,15 @@ class SignalDataBlockInfo:
         "location",
     )
 
-    def __init__(self, address, original_size, block_type=v4c.DT_BLOCK, param=0, compressed_size=None, location=v4c.LOCATION_ORIGINAL_FILE):
+    def __init__(
+        self,
+        address,
+        original_size,
+        block_type=v4c.DT_BLOCK,
+        param=0,
+        compressed_size=None,
+        location=v4c.LOCATION_ORIGINAL_FILE,
+    ):
         self.address = address
         self.compressed_size = compressed_size or original_size
         self.block_type = block_type
@@ -1526,9 +1529,7 @@ def load_can_database(path, contents=None, **kwargs):
         arg = contents
 
     try:
-        dbs = func(
-            arg, import_type=import_type, key="db", **kwargs
-        )
+        dbs = func(arg, import_type=import_type, key="db", **kwargs)
     except UnicodeDecodeError:
         if contents is None:
             contents = path.read_bytes()

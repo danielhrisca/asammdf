@@ -4,6 +4,7 @@ classes that implement the blocks for MDF version 4
 """
 
 from datetime import datetime, timezone
+from functools import lru_cache
 from hashlib import md5
 import logging
 from pathlib import Path
@@ -13,9 +14,9 @@ import time
 from traceback import format_exc
 import xml.etree.ElementTree as ET
 from zlib import compress, decompress
-from functools import lru_cache
 
 from numexpr import evaluate
+
 try:
     from numexpr3 import evaluate as evaluate3
 except:
@@ -338,7 +339,9 @@ class AttachmentBlock:
         result = pack(fmt, *[self[key] for key in v4c.KEYS_AT_BLOCK])
         return result
 
+
 CN = b"##CN"
+
 
 class Channel:
     """If the `load_metadata` keyword argument is not provided or is False,
@@ -554,7 +557,9 @@ class Channel:
                         self.upper_limit,
                         self.lower_ext_limit,
                         self.upper_ext_limit,
-                    ) = SINGLE_ATTACHMENT_CHANNEL_PARAMS_uf(stream, address + COMMON_SIZE)
+                    ) = SINGLE_ATTACHMENT_CHANNEL_PARAMS_uf(
+                        stream, address + COMMON_SIZE
+                    )
 
                     at_map = kwargs.get("at_map", {})
                     self.attachment = at_map.get(self.attachment_addr, 0)
@@ -966,7 +971,7 @@ class Channel:
                 self.lower_limit,
                 self.upper_limit,
                 self.lower_ext_limit,
-                self.upper_ext_limit
+                self.upper_ext_limit,
             ) = (
                 b"##CN",
                 0,
@@ -999,7 +1004,7 @@ class Channel:
                 kwargs.get("upper_ext_limit", 0),
             )
 
-            if 'attachment_addr' in kwargs:
+            if "attachment_addr" in kwargs:
                 self.attachment_addr = kwargs["attachment_addr"]
                 self.block_len += 8
                 self.links_nr += 1
@@ -1026,7 +1031,7 @@ class Channel:
                 self.name_addr = defined_texts[text]
             else:
                 tx_block = TextBlock(
-                    text=text.encode('utf-8', 'replace'),
+                    text=text.encode("utf-8", "replace"),
                     meta=False,
                     safe=True,
                 )
@@ -1044,7 +1049,7 @@ class Channel:
                 self.unit_addr = defined_texts[text]
             else:
                 tx_block = TextBlock(
-                    text=text.encode('utf-8', 'replace'),
+                    text=text.encode("utf-8", "replace"),
                     meta=False,
                     safe=True,
                 )
@@ -1094,7 +1099,7 @@ class Channel:
             else:
                 meta = text.startswith("<CNcomment")
                 tx_block = TextBlock(
-                    text=text.encode('utf-8', 'replace'),
+                    text=text.encode("utf-8", "replace"),
                     meta=meta,
                     safe=True,
                 )
@@ -3040,7 +3045,7 @@ class ChannelConversion(_ChannelConversionBase):
                 self.name_addr = defined_texts[text]
             else:
                 tx_block = TextBlock(
-                    text=text.encode('utf-8', 'replace'),
+                    text=text.encode("utf-8", "replace"),
                     meta=False,
                     safe=True,
                 )
@@ -3058,7 +3063,7 @@ class ChannelConversion(_ChannelConversionBase):
                 self.unit_addr = defined_texts[text]
             else:
                 tx_block = TextBlock(
-                    text=text.encode('utf-8', 'replace'),
+                    text=text.encode("utf-8", "replace"),
                     meta=False,
                     safe=True,
                 )
@@ -3077,7 +3082,7 @@ class ChannelConversion(_ChannelConversionBase):
                     self.formula_addr = defined_texts[text]
                 else:
                     tx_block = TextBlock(
-                        text=text.encode('utf-8', 'replace'),
+                        text=text.encode("utf-8", "replace"),
                         meta=False,
                         safe=True,
                     )
@@ -3096,7 +3101,7 @@ class ChannelConversion(_ChannelConversionBase):
             else:
                 meta = text.startswith("<CCcomment")
                 tx_block = TextBlock(
-                    text=text.encode('utf-8', 'replace'),
+                    text=text.encode("utf-8", "replace"),
                     meta=meta,
                     safe=True,
                 )
@@ -4043,7 +4048,7 @@ class DataBlock:
                     logger.exception(message)
                     raise MdfException(message)
 
-                self.data = stream[address + COMMON_SIZE: address + self.block_len]
+                self.data = stream[address + COMMON_SIZE : address + self.block_len]
             else:
 
                 stream.seek(address)
@@ -5960,7 +5965,7 @@ comment: {self.comment}
                 self.name_addr = defined_texts[text]
             else:
                 tx_block = TextBlock(
-                    text=text.encode('utf-8', 'replace'),
+                    text=text.encode("utf-8", "replace"),
                     meta=False,
                     safe=True,
                 )
@@ -5978,7 +5983,7 @@ comment: {self.comment}
                 self.path_addr = defined_texts[text]
             else:
                 tx_block = TextBlock(
-                    text=text.encode('utf-8', 'replace'),
+                    text=text.encode("utf-8", "replace"),
                     meta=False,
                     safe=True,
                 )
@@ -5997,7 +6002,7 @@ comment: {self.comment}
             else:
                 meta = text.startswith("<SIcomment")
                 tx_block = TextBlock(
-                    text=text.encode('utf-8', 'replace'),
+                    text=text.encode("utf-8", "replace"),
                     meta=meta,
                     safe=True,
                 )

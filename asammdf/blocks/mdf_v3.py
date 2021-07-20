@@ -148,7 +148,7 @@ class MDF3(MDF_Common):
 
     def __init__(self, name=None, version="3.30", channels=None, **kwargs):
         self._kwargs = kwargs
-        self.original_name = kwargs['original_name']
+        self.original_name = kwargs["original_name"]
         if channels is None:
             self.load_filter = set()
             self.use_load_filter = False
@@ -2343,7 +2343,7 @@ class MDF3(MDF_Common):
             self._file.close()
 
         if self.original_name is not None:
-            if self.original_name.suffix.lower() in ('.bz2', '.gzip', '.mf4z', '.zip'):
+            if self.original_name.suffix.lower() in (".bz2", ".gzip", ".mf4z", ".zip"):
                 try:
                     os.remove(self.name)
                 except:
