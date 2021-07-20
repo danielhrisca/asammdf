@@ -3,7 +3,7 @@
 classes that implement the blocks for MDF version 4
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from functools import lru_cache
 from hashlib import md5
 import logging
@@ -5313,9 +5313,15 @@ class HeaderBlock:
 
         timestamp = self.abs_time / 10 ** 9
         if self.time_flags & v4c.FLAG_HD_LOCAL_TIME:
-            timestamp = datetime.fromtimestamp(timestamp)
+            try:
+                timestamp = datetime.fromtimestamp(timestamp)
+            except OverflowError:
+                timestamp = datetime.fromtimestamp(0) + timedelta(seconds=timestamp)
         else:
-            timestamp = datetime.fromtimestamp(timestamp, timezone.utc)
+            try:
+                timestamp = datetime.fromtimestamp(timestamp, timezone.utc)
+            except OverflowError:
+                timestamp = datetime.fromtimestamp(0, timezone.utc) + timedelta(seconds=timestamp)
         return timestamp
 
     @start_time.setter
