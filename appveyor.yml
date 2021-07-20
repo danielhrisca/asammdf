@@ -1,13 +1,13 @@
 environment:
-  EXE_BRANCH: "development"
+  EXE_BRANCH: "master"
   EXE_BRANCH_MACOS: "development"
 
   matrix:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-    #- APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-    #- APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
-    #- APPVEYOR_BUILD_WORKER_IMAGE: macos
-    #- APPVEYOR_BUILD_WORKER_IMAGE: macos-mojave
+    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+    - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
+    - APPVEYOR_BUILD_WORKER_IMAGE: macos
+    - APPVEYOR_BUILD_WORKER_IMAGE: macos-mojave
 
 for:
   - matrix:
@@ -69,7 +69,7 @@ for:
       - ps: >-
           $Env:LLVM_DIR="C:\Program Files\LLVM\bin"
 
-          $PYVERSION = @("C:\\Python37-x64")
+          $PYVERSION = @("C:\\Python36","C:\\Python36-x64","C:\\Python37","C:\\Python37-x64","C:\\Python38","C:\\Python38-x64")
 
           foreach ($PY in $PYVERSION)
           {
@@ -94,15 +94,7 @@ for:
                   & "$PY\\Scripts\\pyinstaller" asammdf.spec --clean -y --onefile --log-level WARN
                   & "$PY\\Scripts\\pyinstaller" asammdf.spec --clean -y --log-level WARN
                   
-                  $src = "dist\asammdfgui"
-                  $dst = "dist\asammdfgui.zip"
-                  
-                  dir .
-                  echo "===="
-                  dir dist
-                  echo "$dst $src"
-                  
-                  7z a -bso0 -bsp0 -mx9 $dst $src
+                  7z a -bso0 -bsp0 -mx9 dist\asammdfgui.zip dist\asammdfgui
                   
               } else {
                   & "$PY\\python.exe" -m pip install -r requirements.txt --no-warn-script-location
@@ -115,7 +107,7 @@ for:
 
     test_script:
       - ps: >-
-          $PYVERSION = @("C:\\Python37-x64")
+          $PYVERSION = @("C:\\Python36","C:\\Python36-x64","C:\\Python37","C:\\Python37-x64","C:\\Python38","C:\\Python38-x64")
 
           foreach ($PY in $PYVERSION)
           {
@@ -124,7 +116,7 @@ for:
 
     after_test:
       - ps: >-
-          $PYVERSION = @("C:\\Python37-x64")
+          $PYVERSION = @("C:\\Python36","C:\\Python36-x64","C:\\Python37","C:\\Python37-x64","C:\\Python38","C:\\Python38-x64")
 
           foreach ($PY in $PYVERSION)
           {

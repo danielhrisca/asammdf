@@ -1325,7 +1325,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if window_type is None:
             dialog = WindowSelectionDialog(
-                options=("Plot", "Numeric", "Tabular", "GPS", "CAN Bus Trace", "LIN Bus Trace"),
+                options=("Plot", "Numeric", "Tabular", "CAN Bus Trace", "LIN Bus Trace"),
                 parent=self,
             )
             dialog.setModal(True)
