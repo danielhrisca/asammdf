@@ -3,6 +3,9 @@ import argparse
 import sys
 
 from PyQt5 import QtWidgets
+import pyqtgraph
+
+pyqtgraph.graphicsItems.ScatterPlotItem._USE_QRECT = False
 
 from asammdf.gui.utils import excepthook
 from asammdf.gui.widgets.main import MainWindow
