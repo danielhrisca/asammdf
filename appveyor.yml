@@ -74,7 +74,7 @@ for:
           foreach ($PY in $PYVERSION)
           {
               echo "====================================================================="
-              echo "Python version $PY"
+              echo "Python version $PY $Env:APPVEYOR_REPO_BRANCH $Env:EXE_BRANCH"
               echo "====================================================================="
               
               & "$PY\\python.exe" -m pip install --upgrade pip --no-warn-script-location
@@ -99,7 +99,6 @@ for:
                   
                   7za.exe a -bso0 -bsp0 -SFX7z.sfx -mx9 $dst $src
                   
-                  & "$PY\\Scripts\\pyinstaller" asammdf.spec
               } else {
                   & "$PY\\python.exe" -m pip install -r requirements.txt --no-warn-script-location
                   & "$PY\\python.exe" setup.py bdist_wheel
