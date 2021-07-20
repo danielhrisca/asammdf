@@ -1,5 +1,5 @@
 environment:
-  EXE_BRANCH: "master"
+  EXE_BRANCH: "development"
   EXE_BRANCH_MACOS: "development"
 
   matrix:
@@ -87,10 +87,13 @@ for:
                   & "$PY\\python.exe" -m pip install . --no-warn-script-location
                   & "$PY\\python.exe" -m pip install cmerg cryptography --no-warn-script-location
                   & "$PY\\python.exe" -m pip install pyinstaller --no-warn-script-location
-                  & "$PY\\Scripts\\pyinstaller" asammdf_noconsole.spec
-                  $src = "dist\\asammdfgui.exe"
-                  $dst = "dist\\asammdfgui_noconsole.exe"
-                  Move-Item -Path $src -Destination $dst
+                  & "$PY\\Scripts\\pyinstaller" asammdf.spec --clean -y --onefile --log-level WARN
+                  & "$PY\\Scripts\\pyinstaller" asammdf.spec --clean -y --log-level WARN
+                  
+                  $src = "dist\\asammdfgui"
+                  $dst = "dist\\asammdfgui_sfx.exe"
+                  
+                  7za.exe a -bso0 -bsp0 -SFX7z.sfx -mx9 $dst $src
                   
                   & "$PY\\Scripts\\pyinstaller" asammdf.spec
               } else {
