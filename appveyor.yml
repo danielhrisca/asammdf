@@ -95,9 +95,9 @@ for:
                   & "$PY\\Scripts\\pyinstaller" asammdf.spec --clean -y --log-level WARN
                   
                   $src = "dist\\asammdfgui"
-                  $dst = "dist\\asammdfgui_sfx.exe"
+                  $dst = "dist\\asammdfgui.zip"
                   
-                  7z a -bso0 -bsp0 -SFX7z.sfx -mx9 $dst $src
+                  7z a -bso0 -bsp0 -mx9 $dst $src
                   
               } else {
                   & "$PY\\python.exe" -m pip install -r requirements.txt --no-warn-script-location
