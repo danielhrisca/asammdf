@@ -10,6 +10,10 @@ from setuptools import Extension, find_packages, setup
 PROJECT_PATH = Path(__file__).parent
 
 
+with (PROJECT_PATH / "requirements.txt").open() as f:
+    install_requires = [l.strip() for l in f.readlines()]
+
+
 def _get_version():
     with PROJECT_PATH.joinpath("asammdf", "version.py").open() as f:
         line = next(line for line in f if line.startswith("__version__"))
@@ -85,13 +89,7 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=[
-        "canmatrix[arxml,dbc]>=0.8",
-        "lz4",
-        "numexpr",
-        "numpy>=1.17.5",
-        "pandas",
-    ],
+    install_requires=install_requires,
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
     # for example:
