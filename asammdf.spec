@@ -57,7 +57,7 @@ a = Analysis([asammdf_path],
     excludes=[],
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
-    cipher=block_cipher
+    cipher=block_cipher,
     noarchive=not args.onefile,
 )
     
