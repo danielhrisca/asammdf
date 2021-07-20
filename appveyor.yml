@@ -94,8 +94,8 @@ for:
                   & "$PY\\Scripts\\pyinstaller" asammdf.spec --clean -y --onefile --log-level WARN
                   & "$PY\\Scripts\\pyinstaller" asammdf.spec --clean -y --log-level WARN
                   
-                  $src = "dist\\asammdfgui"
-                  $dst = "dist\\asammdfgui.zip"
+                  $src = "dist\asammdfgui"
+                  $dst = "dist\asammdfgui.zip"
                   
                   dir .
                   echo "===="
