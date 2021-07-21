@@ -363,7 +363,6 @@ class MDF4(MDF_Common):
         self._decryption_function = kwargs.get("decryption_function", None)
         self.copy_on_get = kwargs.get("copy_on_get", True)
         self.compact_vlsd = kwargs.get("compact_vlsd", False)
-        self.raise_on_multiple_occurrences = True
         self._single_bit_uint_as_bool = False
         self._integer_interpolation = 0
         self._float_interpolation = 1
@@ -378,6 +377,8 @@ class MDF4(MDF_Common):
         self._tempfile.write(b"\0")
 
         self._callback = kwargs.get("callback", None)
+
+        self._delete_on_close = False
 
         if name:
             if is_file_like(name):
@@ -399,6 +400,7 @@ class MDF4(MDF_Common):
                     shutil.copy(name, self.name)
                     self._file = open(self.name, "rb+")
                     self._from_filelike = False
+                    self._delete_on_close = True
                     self._read(mapped=False)
                 else:
 
@@ -2570,8 +2572,8 @@ class MDF4(MDF_Common):
             self._integer_interpolation = from_other._integer_interpolation
             self.copy_on_get = from_other.copy_on_get
             self._float_interpolation = from_other._float_interpolation
-            self.raise_on_multiple_occurrences = (
-                from_other.raise_on_multiple_occurrences
+            self._raise_on_multiple_occurrences = (
+                from_other._raise_on_multiple_occurrences
             )
 
         if read_fragment_size is not None:
@@ -2596,7 +2598,7 @@ class MDF4(MDF_Common):
             self._float_interpolation = int(float_interpolation)
 
         if raise_on_multiple_occurrences is not None:
-            self.raise_on_multiple_occurrences = bool(raise_on_multiple_occurrences)
+            self._raise_on_multiple_occurrences = bool(raise_on_multiple_occurrences)
 
     def append(
         self,
@@ -5984,16 +5986,16 @@ class MDF4(MDF_Common):
         if not self._from_filelike and self._file is not None:
             self._file.close()
 
-            if Path(self.name).parent == Path(gettempdir()):
-                try:
-                    Path(self.name).unlink()
-                except:
-                    pass
+        if self._delete_on_close:
+            try:
+                Path(self.name).unlink()
+            except:
+                pass
 
         if self.original_name is not None:
             if self.original_name.suffix.lower() in (".bz2", ".gzip", ".mf4z", ".zip"):
                 try:
-                    os.remove(self.name)
+                    Path(self.name).unlink()
                 except:
                     pass
 
