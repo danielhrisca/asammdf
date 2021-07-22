@@ -831,4 +831,4 @@ class Ui_file_widget(object):
         self.aspects.setTabText(self.aspects.indexOf(self.attachments_tab), _translate("file_widget", "Attachments"))
 from asammdf.gui.widgets.list import MinimalListWidget
 from asammdf.gui.widgets.tree import TreeWidget
-import resource_rc
+from . import resource_rc
