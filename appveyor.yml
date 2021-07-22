@@ -1,6 +1,6 @@
 environment:
   EXE_BRANCH: "master"
-  EXE_BRANCH_MACOS: "development"
+  EXE_BRANCH_MACOS: "master"
 
   matrix:
     - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
