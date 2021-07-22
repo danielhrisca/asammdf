@@ -30,9 +30,3 @@ jobs:
           python -m pytest -vv --color=yes --disable-pytest-warnings --cov-config=.coveragerc --cov-report xml:coverage.xml --cov=asammdf/ test/
           python -m sphinx -nW -b html doc doc/_build/html
           
-      - name: Upload coverage data to coveralls.io
-        run: |
-          python -m pip install coveralls==2.2
-          coveralls --service=github
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

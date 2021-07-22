@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
 
+from functools import reduce
+import re
+from traceback import format_exc
+
+from numexpr import evaluate
 import numpy as np
 from PyQt5 import QtWidgets
 
@@ -23,8 +28,11 @@ OPS_TO_STR = {
 }
 
 
+SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
+
+
 class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
-    def __init__(self, channels, all_timebase, name="", *args, **kwargs):
+    def __init__(self, channels, all_timebase, name="", mdf=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
@@ -39,6 +47,8 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
         self.func_arg1 = None
         self.func_arg2 = None
+
+        self.mdf = mdf
 
         self.operand1.addItems(sorted(self.channels))
         self.operand1.insertItem(0, "CONSTANT")
@@ -126,7 +136,6 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         self.operand1.currentIndexChanged.connect(self.op1_changed)
         self.operand2.currentIndexChanged.connect(self.op2_changed)
 
-        self.apply_function_btn.clicked.connect(self.apply_function)
         self.function.currentIndexChanged.connect(self.function_changed)
 
     def op1_changed(self, index):
@@ -136,7 +145,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             self.op1_type.setCurrentIndex(-1)
             self.op1_type.currentIndexChanged.connect(self.op1_constant_changed)
 
-            self.gridLayout.addWidget(self.op1_type, 0, 2)
+            self.computation_grid_layout.addWidget(self.op1_type, 0, 2)
 
         else:
             if self.op1_value is not None:
@@ -153,7 +162,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             self.op2_type.setCurrentIndex(-1)
             self.op2_type.currentIndexChanged.connect(self.op2_constant_changed)
 
-            self.gridLayout.addWidget(self.op2_type, 2, 2)
+            self.computation_grid_layout.addWidget(self.op2_type, 2, 2)
 
         else:
             if self.op2_value is not None:
@@ -170,7 +179,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 self.op1_value = None
             self.op1_value = QtWidgets.QSpinBox()
             self.op1_value.setRange(-2147483648, 2147483647)
-            self.gridLayout.addWidget(self.op1_value, 0, 3)
+            self.computation_grid_layout.addWidget(self.op1_value, 0, 3)
         else:
             if self.op1_value is not None:
                 self.op1_value.setParent(None)
@@ -178,7 +187,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             self.op1_value = QtWidgets.QDoubleSpinBox()
             self.op1_value.setDecimals(6)
             self.op1_value.setRange(-(2 ** 64), 2 ** 64 - 1)
-            self.gridLayout.addWidget(self.op1_value, 0, 3)
+            self.computation_grid_layout.addWidget(self.op1_value, 0, 3)
 
     def op2_constant_changed(self, index):
         if self.op2_type.currentText() == "int":
@@ -187,7 +196,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 self.op2_value = None
             self.op2_value = QtWidgets.QSpinBox()
             self.op2_value.setRange(-2147483648, 2147483647)
-            self.gridLayout.addWidget(self.op2_value, 2, 3)
+            self.computation_grid_layout.addWidget(self.op2_value, 2, 3)
         else:
             if self.op2_value is not None:
                 self.op2_value.setParent(None)
@@ -195,9 +204,9 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             self.op2_value = QtWidgets.QDoubleSpinBox()
             self.op2_value.setDecimals(6)
             self.op2_value.setRange(-(2 ** 64), 2 ** 64 - 1)
-            self.gridLayout.addWidget(self.op2_value, 2, 3)
+            self.computation_grid_layout.addWidget(self.op2_value, 2, 3)
 
-    def apply(self, event):
+    def apply_simple_computation(self):
         if self.operand1.currentIndex() == -1:
             QtWidgets.QMessageBox.warning(
                 None, "Can't compute new channel", "Must select operand 1 first"
@@ -236,7 +245,10 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 operand1 = float(self.op1_value.value())
             operand1_str = str(operand1)
         else:
-            operand1 = self.channels[operand1]
+            operand1_sig = self.channels[operand1]
+            operand1 = operand1_sig.physical()
+            operand1.computed = operand1_sig.computed
+            operand1.computation = operand1_sig.computation
             operand1_str = operand1.name
 
         if operand2 == "CONSTANT":
@@ -246,7 +258,10 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 operand2 = float(self.op2_value.value())
             operand2_str = str(operand2)
         else:
-            operand2 = self.channels[operand2]
+            operand2_sig = self.channels[operand2]
+            operand2 = operand2_sig.physical()
+            operand2.computed = operand2_sig.computed
+            operand2.computation = operand2_sig.computation
             operand2_str = operand2.name
 
         op = self.op.currentText().split(" ")[0]
@@ -254,6 +269,8 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         try:
             if op in OPS_TO_STR:
                 self.result = eval(f"operand1 {op} operand2")
+                print(f"operand1 {op} operand2", operand1, operand2, op)
+                print(eval(f"operand1 {op} operand2"))
             elif op == "average":
                 self.result = (operand1 + operand2) / 2
             elif op in ("maximum", "minimum"):
@@ -277,7 +294,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                     t = np.union1d(operand1.timestamps, operand2.timestamps)
                     operand1 = operand1.interp(t)
                     operand2 = operand2.interp(t)
-                    self.result = Signal(
+                    self.result = AsamSignal(
                         fnc(operand1.samples, operand2.samples), t, name="_"
                     )
             if not hasattr(self.result, "name"):
@@ -297,6 +314,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             self.result.name = name
             self.result.unit = self.unit.text()
             self.result.enable = True
+            self.result.computed = True
             self.result.computation = {
                 "type": "arithmetic",
                 "op": op,
@@ -362,19 +380,19 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 self.func_arg1 = QtWidgets.QDoubleSpinBox()
                 self.func_arg1.setDecimals(6)
                 self.func_arg1.setRange(-(2 ** 64), 2 ** 64 - 1)
-                self.gridLayout_2.addWidget(self.func_arg1, 0, 2)
+                self.computation_grid_layout_2.addWidget(self.func_arg1, 0, 2)
 
                 self.func_arg2 = QtWidgets.QDoubleSpinBox()
                 self.func_arg2.setDecimals(6)
                 self.func_arg2.setRange(-(2 ** 64), 2 ** 64 - 1)
-                self.gridLayout_2.addWidget(self.func_arg2, 0, 3)
+                self.computation_grid_layout_2.addWidget(self.func_arg2, 0, 3)
 
             if function == "round":
                 self.func_arg2.setEnabled(False)
             else:
                 self.func_arg2.setEnabled(True)
 
-    def apply_function(self, event):
+    def apply_function(self):
         if self.function.currentIndex() == -1:
             QtWidgets.QMessageBox.warning(
                 None, "Can't compute new channel", "Must select a function first"
@@ -390,7 +408,10 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         function = self.function.currentText()
         channel_name = self.channel.currentText()
 
-        channel = self.channels[channel_name]
+        channel_sig = self.channels[channel_name]
+        channel = channel_sig.physical()
+        channel.computed = channel_sig.computed
+        channel.computation = channel_sig.computation
         func = getattr(np, function)
 
         try:
@@ -465,7 +486,67 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             self.result = None
 
         self.pressed_button = "apply"
+
+    def apply(self, event):
+        if self.tabs.currentIndex() == 0:
+            self.apply_simple_computation()
+        elif self.tabs.currentIndex() == 1:
+            self.apply_function()
+        else:
+            self.apply_expression()
         self.close()
+
+    def apply_expression(self):
+        expression_string = self.expression.toPlainText().strip()
+        expression_string = "".join(expression_string.splitlines())
+        names = [match.group("name") for match in SIG_RE.finditer(expression_string)]
+        positions = [
+            (i, match.start(), match.end())
+            for i, match in enumerate(SIG_RE.finditer(expression_string))
+        ]
+        positions.reverse()
+
+        expression = expression_string
+        for idx, start, end in positions:
+            expression = expression[:start] + f"X_{idx}" + expression[end:]
+
+        if names:
+            try:
+                names = [
+                    (None, *self.mdf.whereis(name)[0])
+                    for name in names
+                    if name in self.mdf
+                ]
+                signals = self.mdf.select(names)
+                common_timebase = reduce(
+                    np.union1d, [sig.timestamps for sig in signals]
+                )
+                signals = {
+                    f"X_{i}": sig.interp(common_timebase).samples
+                    for i, sig in enumerate(signals)
+                }
+
+                samples = evaluate(expression, local_dict=signals)
+
+                self.result = AsamSignal(
+                    name=self.expression_name.text() or "expression",
+                    unit=self.expression_unit.text().strip(),
+                    samples=samples,
+                    timestamps=common_timebase,
+                )
+                self.result.enabled = True
+                self.result.computed = True
+                self.result.computation = {
+                    "type": "expression",
+                    "expression": expression_string,
+                }
+
+            except:
+                print(format_exc())
+                self.result = None
+
+        else:
+            self.result = None
 
     def cancel(self, event):
         self.result = None

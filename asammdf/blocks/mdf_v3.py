@@ -7,6 +7,7 @@ from itertools import product
 import logging
 from math import ceil
 import mmap
+import os
 from pathlib import Path
 import sys
 from tempfile import TemporaryFile
@@ -145,9 +146,15 @@ class MDF3(MDF_Common):
 
     _terminate = False
 
-    def __init__(self, name=None, version="3.30", channels=(), **kwargs):
+    def __init__(self, name=None, version="3.30", channels=None, **kwargs):
         self._kwargs = kwargs
-        self.load_filter = set(channels)
+        self.original_name = kwargs["original_name"]
+        if channels is None:
+            self.load_filter = set()
+            self.use_load_filter = False
+        else:
+            self.load_filter = set(channels)
+            self.use_load_filter = True
 
         self.groups = []
         self.header = None
@@ -174,7 +181,6 @@ class MDF3(MDF_Common):
         self._raise_on_multiple_occurrences = True
         self._use_display_names = False
         self.copy_on_get = False
-        self.raise_on_multiple_occurrences = True
 
         self._si_map = {}
         self._cc_map = {}
@@ -190,7 +196,7 @@ class MDF3(MDF_Common):
         if name:
             if is_file_like(name):
                 self._file = name
-                self.name = Path("From_FileLike.mdf")
+                self.name = self.original_name = Path("From_FileLike.mdf")
                 self._from_filelike = True
                 self._read(mapped=False)
             else:
@@ -287,7 +293,7 @@ class MDF3(MDF_Common):
                 while True:
                     try:
                         info = next(blocks)
-                        address, size = info.address, info.size
+                        address, size = info.address, info.original_size
                         current_address = address
                     except StopIteration:
                         break
@@ -349,7 +355,7 @@ class MDF3(MDF_Common):
             blocks = group.data_blocks
 
             for info in blocks:
-                address, size = info.address, info.size
+                address, size = info.address, info.original_size
                 stream.seek(address)
                 data = stream.read(size)
 
@@ -671,7 +677,7 @@ class MDF3(MDF_Common):
 
     def _read(self, mapped=False):
         stream = self._file
-        filter_channels = len(self.load_filter) > 0
+        filter_channels = self.use_load_filter
 
         cg_count, _ = count_channel_groups(stream)
         if self._callback:
@@ -924,8 +930,8 @@ class MDF3(MDF_Common):
                         DataBlockInfo(
                             address=data_group.data_block_addr,
                             block_type=0,
-                            raw_size=total_size,
-                            size=total_size,
+                            original_size=total_size,
+                            compressed_size=total_size,
                             param=0,
                         )
                     )
@@ -943,6 +949,31 @@ class MDF3(MDF_Common):
                         ref_channel_addr = dep[f"ch_{i}"]
                         channel = ch_map[ref_channel_addr]
                         dep.referenced_channels.append(channel)
+
+    def _filter_occurrences(
+        self, occurrences, source_name=None, source_path=None, acq_name=None
+    ):
+        if source_name is not None:
+            occurrences = (
+                (gp_idx, cn_idx)
+                for gp_idx, cn_idx in occurrences
+                if (
+                    self.groups[gp_idx].channels[cn_idx].source is not None
+                    and self.groups[gp_idx].channels[cn_idx].source.name == source_name
+                )
+            )
+
+        if source_path is not None:
+            occurrences = (
+                (gp_idx, cn_idx)
+                for gp_idx, cn_idx in occurrences
+                if (
+                    self.groups[gp_idx].channels[cn_idx].source is not None
+                    and self.groups[gp_idx].channels[cn_idx].source.path == source_path
+                )
+            )
+
+        return occurrences
 
     def configure(
         self,
@@ -1028,7 +1059,9 @@ class MDF3(MDF_Common):
             self._integer_interpolation = from_other._integer_interpolation
             self.copy_on_get = from_other.copy_on_get
             self._float_interpolation = from_other._float_interpolation
-            self._raise_on_multiple_occurrences = from_other._raise_on_multiple_occurrences
+            self._raise_on_multiple_occurrences = (
+                from_other._raise_on_multiple_occurrences
+            )
 
         if read_fragment_size is not None:
             self._read_fragment_size = int(read_fragment_size)
@@ -1650,8 +1683,8 @@ class MDF3(MDF_Common):
                     new_gp.data_blocks.append(
                         DataBlockInfo(
                             address=data_address,
-                            raw_size=size,
-                            size=size,
+                            original_size=size,
+                            compressed_size=size,
                             block_type=0,
                             param=0,
                         )
@@ -2033,8 +2066,8 @@ class MDF3(MDF_Common):
                 DataBlockInfo(
                     address=data_address,
                     block_type=0,
-                    raw_size=size,
-                    size=size,
+                    original_size=size,
+                    compressed_size=size,
                     param=0,
                 )
             )
@@ -2275,8 +2308,8 @@ class MDF3(MDF_Common):
                 DataBlockInfo(
                     address=data_address,
                     block_type=0,
-                    raw_size=size,
-                    size=size,
+                    original_size=size,
+                    compressed_size=size,
                     param=0,
                 )
             )
@@ -2307,6 +2340,13 @@ class MDF3(MDF_Common):
             self._tempfile.close()
         if self._file is not None and not self._from_filelike:
             self._file.close()
+
+        if self.original_name is not None:
+            if self.original_name.suffix.lower() in (".bz2", ".gzip", ".mf4z", ".zip"):
+                try:
+                    os.remove(self.name)
+                except:
+                    pass
 
         self._call_back = None
         self.groups.clear()
@@ -2443,8 +2483,8 @@ class MDF3(MDF_Common):
                     new_gp.data_blocks.append(
                         DataBlockInfo(
                             address=data_address,
-                            raw_size=extended_size,
-                            size=extended_size,
+                            original_size=extended_size,
+                            compressed_size=extended_size,
                             block_type=0,
                             param=0,
                         )
@@ -2498,8 +2538,8 @@ class MDF3(MDF_Common):
                 DataBlockInfo(
                     address=data_address,
                     block_type=0,
-                    raw_size=extended_size,
-                    size=extended_size,
+                    original_size=extended_size,
+                    compressed_size=extended_size,
                     param=0,
                 )
             )
@@ -2890,7 +2930,7 @@ class MDF3(MDF_Common):
                         .interp(
                             t,
                             integer_interpolation_mode=self._integer_interpolation,
-                            float_interpolation_mode=self._float_interpolation
+                            float_interpolation_mode=self._float_interpolation,
                         )
                         .samples
                     )
@@ -3047,8 +3087,8 @@ class MDF3(MDF_Common):
         if samples_only:
             res = vals, None
         else:
-            if conversion:
-                unit = conversion.unit
+            if channel.conversion:
+                unit = channel.conversion.unit
             else:
                 unit = ""
 
@@ -3628,8 +3668,8 @@ class MDF3(MDF_Common):
             for info in group.data_blocks:
                 address, size, block_size, block_type, param = (
                     info.address,
-                    info.raw_size,
-                    info.size,
+                    info.original_size,
+                    info.compressed_size,
                     info.block_type,
                     info.param,
                 )
@@ -3660,8 +3700,8 @@ class MDF3(MDF_Common):
                     block_info = DataBlockInfo(
                         address=address,
                         block_type=0,
-                        raw_size=size,
-                        size=size,
+                        original_size=size,
+                        compressed_size=size,
                         param=0,
                     )
                     partial_records[rec_id] = [block_info]
@@ -3741,7 +3781,7 @@ class MDF3(MDF_Common):
                                 except KeyError:
                                     pass
 
-                gp_master = self.masters_db[group_index]
+                gp_master = self.masters_db.get(group_index, None)
                 if skip_master and gp_master is not None and gp_master in channels:
                     channels.remove(gp_master)
 

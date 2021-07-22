@@ -334,10 +334,17 @@ def extract_mux(
                     "name": sig_name,
                     "comment": sig.comment or "",
                     "unit": sig.unit or "",
-                    "samples": samples if raw else apply_conversion(samples, sig, ignore_value2text_conversion),
+                    "samples": samples
+                    if raw
+                    else apply_conversion(samples, sig, ignore_value2text_conversion),
                     "t": t_,
                     "invalidation_bits": (
-                        np.isclose(apply_conversion(samples, sig, ignore_value2text_conversion=True), max_val)
+                        np.isclose(
+                            apply_conversion(
+                                samples, sig, ignore_value2text_conversion=True
+                            ),
+                            max_val,
+                        )
                         if len(samples.shape) == 1
                         else np.zeros(len(samples), dtype=bool)
                     ),

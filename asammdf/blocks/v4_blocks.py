@@ -3,7 +3,8 @@
 classes that implement the blocks for MDF version 4
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+from functools import lru_cache
 from hashlib import md5
 import logging
 from pathlib import Path
@@ -13,9 +14,13 @@ import time
 from traceback import format_exc
 import xml.etree.ElementTree as ET
 from zlib import compress, decompress
-from functools import lru_cache
 
 from numexpr import evaluate
+
+try:
+    from numexpr3 import evaluate as evaluate3
+except:
+    evaluate3 = evaluate
 import numpy as np
 
 from . import v4_constants as v4c
@@ -40,7 +45,9 @@ COMMON_u = v4c.COMMON_u
 COMMON_uf = v4c.COMMON_uf
 
 CN_BLOCK_SIZE = v4c.CN_BLOCK_SIZE
+CN_SINGLE_ATTACHMENT_BLOCK_SIZE = v4c.CN_SINGLE_ATTACHMENT_BLOCK_SIZE
 SIMPLE_CHANNEL_PARAMS_uf = v4c.SIMPLE_CHANNEL_PARAMS_uf
+SINGLE_ATTACHMENT_CHANNEL_PARAMS_uf = v4c.SINGLE_ATTACHMENT_CHANNEL_PARAMS_uf
 
 EIGHT_BYTES = bytes(8)
 
@@ -219,7 +226,8 @@ class AttachmentBlock:
 
             else:
                 self.file_name = str(file_name)
-                file_name.write_bytes(data)
+                if len(data) > 0:
+                    file_name.write_bytes(data)
                 embedded_size = 0
                 data = b""
 
@@ -331,7 +339,9 @@ class AttachmentBlock:
         result = pack(fmt, *[self[key] for key in v4c.KEYS_AT_BLOCK])
         return result
 
+
 CN = b"##CN"
+
 
 class Channel:
     """If the `load_metadata` keyword argument is not provided or is False,
@@ -518,6 +528,42 @@ class Channel:
                         self.upper_ext_limit,
                     ) = SIMPLE_CHANNEL_PARAMS_uf(stream, address + COMMON_SIZE)
 
+                elif self.block_len == CN_SINGLE_ATTACHMENT_BLOCK_SIZE:
+
+                    (
+                        self.next_ch_addr,
+                        self.component_addr,
+                        self.name_addr,
+                        self.source_addr,
+                        self.conversion_addr,
+                        self.data_block_addr,
+                        self.unit_addr,
+                        self.comment_addr,
+                        self.attachment_addr,
+                        self.channel_type,
+                        self.sync_type,
+                        self.data_type,
+                        self.bit_offset,
+                        self.byte_offset,
+                        self.bit_count,
+                        self.flags,
+                        self.pos_invalidation_bit,
+                        self.precision,
+                        self.reserved1,
+                        self.attachment_nr,
+                        self.min_raw_value,
+                        self.max_raw_value,
+                        self.lower_limit,
+                        self.upper_limit,
+                        self.lower_ext_limit,
+                        self.upper_ext_limit,
+                    ) = SINGLE_ATTACHMENT_CHANNEL_PARAMS_uf(
+                        stream, address + COMMON_SIZE
+                    )
+
+                    at_map = kwargs.get("at_map", {})
+                    self.attachment = at_map.get(self.attachment_addr, 0)
+
                 else:
 
                     stream.seek(address + COMMON_SIZE)
@@ -669,7 +715,7 @@ class Channel:
             else:
                 stream.seek(address)
 
-                block = stream.read(CN_BLOCK_SIZE)
+                block = stream.read(CN_SINGLE_ATTACHMENT_BLOCK_SIZE)
 
                 (self.id, self.reserved0, self.block_len, self.links_nr) = COMMON_uf(
                     block
@@ -711,6 +757,39 @@ class Channel:
                         self.lower_ext_limit,
                         self.upper_ext_limit,
                     ) = SIMPLE_CHANNEL_PARAMS_uf(block, COMMON_SIZE)
+
+                elif self.block_len == CN_SINGLE_ATTACHMENT_BLOCK_SIZE:
+
+                    (
+                        self.next_ch_addr,
+                        self.component_addr,
+                        self.name_addr,
+                        self.source_addr,
+                        self.conversion_addr,
+                        self.data_block_addr,
+                        self.unit_addr,
+                        self.comment_addr,
+                        self.attachment_addr,
+                        self.channel_type,
+                        self.sync_type,
+                        self.data_type,
+                        self.bit_offset,
+                        self.byte_offset,
+                        self.bit_count,
+                        self.flags,
+                        self.pos_invalidation_bit,
+                        self.precision,
+                        self.reserved1,
+                        self.attachment_nr,
+                        self.min_raw_value,
+                        self.max_raw_value,
+                        self.lower_limit,
+                        self.upper_limit,
+                        self.lower_ext_limit,
+                        self.upper_ext_limit,
+                    ) = SINGLE_ATTACHMENT_CHANNEL_PARAMS_uf(block, COMMON_SIZE)
+                    at_map = kwargs.get("at_map", {})
+                    self.attachment = at_map.get(self.attachment_addr, 0)
 
                 else:
 
@@ -892,7 +971,7 @@ class Channel:
                 self.lower_limit,
                 self.upper_limit,
                 self.lower_ext_limit,
-                self.upper_ext_limit
+                self.upper_ext_limit,
             ) = (
                 b"##CN",
                 0,
@@ -925,7 +1004,7 @@ class Channel:
                 kwargs.get("upper_ext_limit", 0),
             )
 
-            if 'attachment_addr' in kwargs:
+            if "attachment_addr" in kwargs:
                 self.attachment_addr = kwargs["attachment_addr"]
                 self.block_len += 8
                 self.links_nr += 1
@@ -951,7 +1030,11 @@ class Channel:
             if text in defined_texts:
                 self.name_addr = defined_texts[text]
             else:
-                tx_block = TextBlock(text=text)
+                tx_block = TextBlock(
+                    text=text.encode("utf-8", "replace"),
+                    meta=False,
+                    safe=True,
+                )
                 self.name_addr = address
                 defined_texts[text] = address
                 tx_block.address = address
@@ -965,7 +1048,11 @@ class Channel:
             if text in defined_texts:
                 self.unit_addr = defined_texts[text]
             else:
-                tx_block = TextBlock(text=text)
+                tx_block = TextBlock(
+                    text=text.encode("utf-8", "replace"),
+                    meta=False,
+                    safe=True,
+                )
                 self.unit_addr = address
                 defined_texts[text] = address
                 tx_block.address = address
@@ -1011,7 +1098,11 @@ class Channel:
                 self.comment_addr = defined_texts[text]
             else:
                 meta = text.startswith("<CNcomment")
-                tx_block = TextBlock(text=text, meta=meta)
+                tx_block = TextBlock(
+                    text=text.encode("utf-8", "replace"),
+                    meta=meta,
+                    safe=True,
+                )
                 self.comment_addr = address
                 defined_texts[text] = address
                 tx_block.address = address
@@ -1076,6 +1167,40 @@ class Channel:
                 self.lower_ext_limit,
                 self.upper_ext_limit,
             )
+        elif self.attachment_nr == 1:
+            return v4c.SINGLE_ATTACHMENT_CHANNEL_PACK(
+                self.id,
+                self.reserved0,
+                self.block_len,
+                self.links_nr,
+                self.next_ch_addr,
+                self.component_addr,
+                self.name_addr,
+                self.source_addr,
+                self.conversion_addr,
+                self.data_block_addr,
+                self.unit_addr,
+                self.comment_addr,
+                self.attachment_addr,
+                self.channel_type,
+                self.sync_type,
+                self.data_type,
+                self.bit_offset,
+                self.byte_offset,
+                self.bit_count,
+                self.flags,
+                self.pos_invalidation_bit,
+                self.precision,
+                self.reserved1,
+                self.attachment_nr,
+                self.min_raw_value,
+                self.max_raw_value,
+                self.lower_limit,
+                self.upper_limit,
+                self.lower_ext_limit,
+                self.upper_ext_limit,
+            )
+
         else:
             fmt = v4c.FMT_CHANNEL.format(self.links_nr)
 
@@ -2919,7 +3044,11 @@ class ChannelConversion(_ChannelConversionBase):
             if text in defined_texts:
                 self.name_addr = defined_texts[text]
             else:
-                tx_block = TextBlock(text=text)
+                tx_block = TextBlock(
+                    text=text.encode("utf-8", "replace"),
+                    meta=False,
+                    safe=True,
+                )
                 self.name_addr = address
                 defined_texts[text] = address
                 tx_block.address = address
@@ -2933,7 +3062,11 @@ class ChannelConversion(_ChannelConversionBase):
             if text in defined_texts:
                 self.unit_addr = defined_texts[text]
             else:
-                tx_block = TextBlock(text=text)
+                tx_block = TextBlock(
+                    text=text.encode("utf-8", "replace"),
+                    meta=False,
+                    safe=True,
+                )
                 self.unit_addr = address
                 defined_texts[text] = address
                 tx_block.address = address
@@ -2948,7 +3081,11 @@ class ChannelConversion(_ChannelConversionBase):
                 if text in defined_texts:
                     self.formula_addr = defined_texts[text]
                 else:
-                    tx_block = TextBlock(text=text)
+                    tx_block = TextBlock(
+                        text=text.encode("utf-8", "replace"),
+                        meta=False,
+                        safe=True,
+                    )
                     self.formula_addr = address
                     defined_texts[text] = address
                     tx_block.address = address
@@ -2963,7 +3100,11 @@ class ChannelConversion(_ChannelConversionBase):
                 self.comment_addr = defined_texts[text]
             else:
                 meta = text.startswith("<CCcomment")
-                tx_block = TextBlock(text=text, meta=meta)
+                tx_block = TextBlock(
+                    text=text.encode("utf-8", "replace"),
+                    meta=meta,
+                    safe=True,
+                )
                 self.comment_addr = address
                 defined_texts[text] = address
                 tx_block.address = address
@@ -3100,7 +3241,10 @@ class ChannelConversion(_ChannelConversionBase):
 
         elif conversion_type == v4c.CONVERSION_TYPE_ALG:
             X = values
-            values = evaluate(self.formula)
+            try:
+                values = evaluate(self.formula.replace("X1", "X"))
+            except:
+                values = evaluate3(self.formula.replace("X1", "X"))
 
         elif conversion_type in (v4c.CONVERSION_TYPE_TABI, v4c.CONVERSION_TYPE_TAB):
             nr = self.val_param_nr // 2
@@ -3904,7 +4048,7 @@ class DataBlock:
                     logger.exception(message)
                     raise MdfException(message)
 
-                self.data = stream[address + COMMON_SIZE: address + self.block_len]
+                self.data = stream[address + COMMON_SIZE : address + self.block_len]
             else:
 
                 stream.seek(address)
@@ -4071,14 +4215,14 @@ class DataZippedBlock(object):
                         data = (
                             np.frombuffer(data[: lines * cols], dtype="B")
                             .reshape((lines, cols))
-                            .T.tostring()
+                            .T.tobytes()
                         ) + data[lines * cols :]
 
                     else:
                         data = (
                             np.frombuffer(data, dtype=np.uint8)
                             .reshape((lines, cols))
-                            .T.tostring()
+                            .T.tobytes()
                         )
                 data = compress(data, 1)
 
@@ -4106,13 +4250,13 @@ class DataZippedBlock(object):
                         data = (
                             np.frombuffer(data[: lines * cols], dtype=np.uint8)
                             .reshape((cols, lines))
-                            .T.tostring()
+                            .T.tobytes()
                         ) + data[lines * cols :]
                     else:
                         data = (
                             np.frombuffer(data, dtype=np.uint8)
                             .reshape((cols, lines))
-                            .T.tostring()
+                            .T.tobytes()
                         )
             else:
                 data = DataZippedBlock.__dict__[item].__get__(self)
@@ -4126,6 +4270,9 @@ class DataZippedBlock(object):
 
     def __getitem__(self, item):
         return self.__getattribute__(item)
+
+    def __str__(self):
+        return f"""<DZBLOCK (address: {hex(self.address)}, original_size: {self.original_size}, zipped_size: {self.zip_size})>"""
 
     def __bytes__(self):
         self.return_unzipped = False
@@ -4464,7 +4611,7 @@ class DataList(_DataListBase):
 
             self.flags = kwargs.get("flags", 1)
             self.reserved1 = kwargs.get("reserved1", b"\0\0\0")
-            self.data_block_nr = kwargs.get("data_block_nr", 1)
+            self.data_block_nr = kwargs.get("data_block_nr", self.links_nr - 1)
             if self.flags & v4c.FLAG_DL_EQUAL_LENGHT:
                 self.data_block_len = kwargs["data_block_len"]
             else:
@@ -5166,10 +5313,15 @@ class HeaderBlock:
 
         timestamp = self.abs_time / 10 ** 9
         if self.time_flags & v4c.FLAG_HD_LOCAL_TIME:
-            timestamp = datetime.fromtimestamp(timestamp)
+            try:
+                timestamp = datetime.fromtimestamp(timestamp)
+            except OverflowError:
+                timestamp = datetime.fromtimestamp(0) + timedelta(seconds=timestamp)
         else:
-            timestamp = datetime.fromtimestamp(timestamp, timezone.utc)
-
+            try:
+                timestamp = datetime.fromtimestamp(timestamp, timezone.utc)
+            except OverflowError:
+                timestamp = datetime.fromtimestamp(0, timezone.utc) + timedelta(seconds=timestamp)
         return timestamp
 
     @start_time.setter
@@ -5818,7 +5970,11 @@ comment: {self.comment}
             if text in defined_texts:
                 self.name_addr = defined_texts[text]
             else:
-                tx_block = TextBlock(text=text)
+                tx_block = TextBlock(
+                    text=text.encode("utf-8", "replace"),
+                    meta=False,
+                    safe=True,
+                )
                 self.name_addr = address
                 defined_texts[text] = address
                 tx_block.address = address
@@ -5832,7 +5988,11 @@ comment: {self.comment}
             if text in defined_texts:
                 self.path_addr = defined_texts[text]
             else:
-                tx_block = TextBlock(text=text)
+                tx_block = TextBlock(
+                    text=text.encode("utf-8", "replace"),
+                    meta=False,
+                    safe=True,
+                )
                 self.path_addr = address
                 defined_texts[text] = address
                 tx_block.address = address
@@ -5847,7 +6007,11 @@ comment: {self.comment}
                 self.comment_addr = defined_texts[text]
             else:
                 meta = text.startswith("<SIcomment")
-                tx_block = TextBlock(text=text, meta=meta)
+                tx_block = TextBlock(
+                    text=text.encode("utf-8", "replace"),
+                    meta=meta,
+                    safe=True,
+                )
                 self.comment_addr = address
                 defined_texts[text] = address
                 tx_block.address = address
@@ -5936,7 +6100,18 @@ class TextBlock:
     def __init__(self, **kwargs):
         super().__init__()
 
-        if "stream" in kwargs:
+        if "safe" in kwargs:
+            self.address = 0
+            text = kwargs["text"]
+            size = len(text)
+            self.id = b"##MD" if kwargs["meta"] else b"##TX"
+            self.reserved0 = 0
+            self.links_nr = 0
+            self.text = text
+
+            self.block_len = size + 32 - size % 8
+
+        elif "stream" in kwargs:
             stream = kwargs["stream"]
             mapped = kwargs.get("mapped", False) or not is_file_like(stream)
             self.address = address = kwargs["address"]
@@ -5984,7 +6159,6 @@ class TextBlock:
 
         else:
 
-            self.address = 0
             text = kwargs["text"]
 
             try:

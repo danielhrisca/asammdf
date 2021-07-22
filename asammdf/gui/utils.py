@@ -3,6 +3,7 @@ from datetime import datetime
 from io import StringIO
 from pathlib import Path
 import re
+from functools import reduce
 from struct import unpack
 from threading import Thread
 from time import sleep
@@ -12,7 +13,9 @@ import lxml
 import natsort
 import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
+from numexpr import evaluate
 
+from ..blocks.conversion_utils import from_dict
 from ..mdf import MDF, MDF2, MDF3, MDF4
 from ..signal import Signal
 from .dialogs.error_dialog import ErrorDialog
@@ -32,6 +35,7 @@ COLORS = [
 ]
 
 COMPARISON_NAME = re.compile(r"(\s*\d+:)?(?P<name>.+)")
+SIG_RE = re.compile(r'\{\{(?!\}\})(?P<name>.*?)\}\}')
 
 TERMINATED = object()
 
@@ -96,12 +100,15 @@ def load_dsp(file):
         all_channels = set()
         patterns = {}
 
+        if display is None:
+            return channels, groups, all_channels, patterns
+
         for item in display.findall("CHANNEL"):
             channels.add(item.get("name"))
             all_channels = all_channels | channels
 
         for item in display.findall(f"GROUP{level}"):
-            group_channels, subgroups, subgroup_all_channels = parse_dsp(
+            group_channels, subgroups, subgroup_all_channels, *_ = parse_dsp(
                 item, level + 1
             )
             all_channels = all_channels | subgroup_all_channels
@@ -114,34 +121,73 @@ def load_dsp(file):
             )
 
         for item in display.findall("CHANNEL_PATTERN"):
-            info = {
-                "pattern": item.get("name_pattern"),
-                "match_type": "Wildcard",
-                "filter_type": item.get("filter_type"),
-                "filter_value": float(item.get("filter_value")),
-                "raw": bool(int(item.get("filter_use_raw"))),
-            }
 
-            multi_color = item.find("MULTI_COLOR")
+            try:
+                info = {
+                    "pattern": item.get("name_pattern"),
+                    "match_type": "Wildcard",
+                    "filter_type": item.get("filter_type"),
+                    "filter_value": float(item.get("filter_value")),
+                    "raw": bool(int(item.get("filter_use_raw"))),
+                }
 
-            ranges = {}
+                multi_color = item.find("MULTI_COLOR")
 
-            for color in multi_color.findall("color"):
-                min_ = float(color.find("min").get("data"))
-                max_ = float(color.find("max").get("data"))
-                color_ = int(color.find("color").get("data"))
-                c = 0
-                for i in range(3):
-                    c = c << 8
-                    c += color_ & 0xFF
-                    color_ = color_ >> 8
-                ranges[(min_, max_)] = f"#{c:06X}"
+                ranges = {}
 
-            info["ranges"] = ranges
+                if multi_color is not None:
+                    for color in multi_color.findall("color"):
+                        min_ = float(color.find("min").get("data"))
+                        max_ = float(color.find("max").get("data"))
+                        color_ = int(color.find("color").get("data"))
+                        c = 0
+                        for i in range(3):
+                            c = c << 8
+                            c += color_ & 0xFF
+                            color_ = color_ >> 8
+                        ranges[(min_, max_)] = f"#{c:06X}"
 
-            patterns[info["pattern"]] = info
+                info["ranges"] = ranges
+
+                patterns[info["pattern"]] = info
+            except:
+                continue
 
         return channels, groups, all_channels, patterns
+
+    def parse_virtual_channels(display):
+        channels = {}
+
+        if display is None:
+            return channels
+
+        for item in display.findall("V_CHAN"):
+            try:
+                virtual_channel = {}
+
+                parent = item.find("VIR_TIME_CHAN")
+                vtab = item.find("COMPU_VTAB")
+                if parent is None or vtab is None:
+                    continue
+
+                name = item.get("name")
+
+                virtual_channel["name"] = name
+                virtual_channel["parent"] = parent.get("data")
+                virtual_channel["comment"] = item.find("description").get("data")
+
+                conv = {}
+                for i, item in enumerate(vtab.findall("tab")):
+                    conv[f'val_{i}'] = float(item.get("min"))
+                    conv[f"text_{i}"] = item.get("text")
+
+                virtual_channel["vtab"] = conv
+
+                channels[name] = virtual_channel
+            except:
+                continue
+
+        return channels
 
     dsp = Path(file).read_bytes().replace(b"\0", b"")
     dsp = lxml.etree.fromstring(dsp)
@@ -154,40 +200,41 @@ def load_dsp(file):
 
     info["windows"] = windows = []
 
-    numeric = {
-        "type": "Numeric",
-        "title": "Numeric",
-        "configuration": {
-            "channels": all_channels,
-            "format": "phys",
-        },
-    }
+    if all_channels:
+        numeric = {
+            "type": "Numeric",
+            "title": "Numeric",
+            "configuration": {
+                "channels": all_channels,
+                "format": "phys",
+            },
+        }
 
-    windows.append(numeric)
+        windows.append(numeric)
 
-    plot = {
-        "type": "Plot",
-        "title": "Plot",
-        "configuration": {
-            "channels": [
-                {
-                    "color": COLORS[i % len(COLORS)],
-                    "common_axis": False,
-                    "computed": False,
-                    "enabled": True,
-                    "fmt": "{}",
-                    "individual_axis": False,
-                    "name": name,
-                    "precision": 3,
-                    "ranges": [],
-                    "unit": "",
-                }
-                for i, name in enumerate(all_channels)
-            ]
-        },
-    }
+        plot = {
+            "type": "Plot",
+            "title": "Display channels",
+            "configuration": {
+                "channels": [
+                    {
+                        "color": COLORS[i % len(COLORS)],
+                        "common_axis": False,
+                        "computed": False,
+                        "enabled": True,
+                        "fmt": "{}",
+                        "individual_axis": False,
+                        "name": name,
+                        "precision": 3,
+                        "ranges": [],
+                        "unit": "",
+                    }
+                    for i, name in enumerate(all_channels)
+                ]
+            },
+        }
 
-    windows.append(plot)
+        windows.append(plot)
 
     for pattern_info in patterns.values():
         plot = {
@@ -196,6 +243,39 @@ def load_dsp(file):
             "configuration": {
                 "channels": [],
                 "pattern": pattern_info,
+            },
+        }
+
+        windows.append(plot)
+
+    channels = parse_virtual_channels(dsp.find("VIRTUAL_CHANNEL"))
+
+    if channels:
+        plot = {
+            "type": "Plot",
+            "title": "Display channels",
+            "configuration": {
+                "channels": [
+                    {
+                        "color": COLORS[i % len(COLORS)],
+                        "common_axis": False,
+                        "computed": True,
+                        "computation": {
+                            "type": "expression",
+                            "expression": "{{" + ch['parent'] + "}}",
+                        },
+                        "enabled": True,
+                        "fmt": "{}",
+                        "individual_axis": False,
+                        "name": ch["parent"],
+                        "precision": 3,
+                        "ranges": [],
+                        "unit": "",
+                        "conversion": ch["vtab"],
+                        "user_defined_name": ch["name"],
+                    }
+                    for i, ch in enumerate(channels.values())
+                ]
             },
         }
 
@@ -319,12 +399,20 @@ def get_required_signals(channel):
                         pass
                     else:
                         names.extend(get_required_signals(op))
-            else:
+            elif computation["type"] == "function":
                 op = computation["channel"]
                 if isinstance(op, str):
                     names.append(op)
                 else:
                     names.extend(get_required_signals(op))
+            elif computation["type"] == "expression":
+                expression_string = computation["expression"]
+                names.extend(
+                    [
+                        match.group('name')
+                        for match in SIG_RE.finditer(expression_string)
+                    ]
+                )
         else:
             names.append(channel["name"])
     else:
@@ -372,7 +460,7 @@ def compute_signal(description, measured_signals, all_timebase):
                 timestamps=all_timebase,
             )
 
-    else:
+    elif type_ == "function":
         function = description["name"]
         args = description["args"]
 
@@ -429,6 +517,38 @@ def compute_signal(description, measured_signals, all_timebase):
 
         result = Signal(samples=samples, timestamps=timestamps, name="_")
 
+    elif type_ == "expression":
+        expression_string = description["expression"]
+        expression_string = ''.join(expression_string.splitlines())
+        names = [
+            match.group('name')
+            for match in SIG_RE.finditer(expression_string)
+        ]
+        positions = [
+            (i, match.start(), match.end())
+            for i, match in enumerate(SIG_RE.finditer(expression_string))
+        ]
+        positions.reverse()
+
+        expression = expression_string
+        for idx, start, end in positions:
+            expression = expression[:start] + f"X_{idx}" + expression[end:]
+
+        signals = [measured_signals[name] for name in names]
+        common_timebase = reduce(np.union1d, [sig.timestamps for sig in signals])
+        signals = {
+            f'X_{i}': sig.interp(common_timebase).samples
+            for i, sig in enumerate(signals)
+        }
+
+        samples = evaluate(expression, local_dict=signals)
+
+        result = Signal(
+            name="_",
+            samples=samples,
+            timestamps=common_timebase,
+        )
+
     return result
 
 
@@ -482,3 +602,6 @@ class HelperChannel:
         self.name = name
         self.entry = entry
         self.added = False
+
+if __name__ == '__main__':
+    load_dsp(r'c:\Users\uidn3651\Downloads\VAR_Volvo_SPA_TN_upd12.dsp')

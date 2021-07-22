@@ -30,7 +30,9 @@ for:
               & "$PY\\python.exe" -m pip install --upgrade setuptools --no-warn-script-location
               & "$PY\\python.exe" -m pip install wheel --no-warn-script-location
               & "$PY\\python.exe" -m pip install numpy --no-warn-script-location
-              & "$PY\\python.exe" -m pip install . --no-warn-script-location
+              & "$PY\\python.exe" -m pip install -r requirements.txt --no-warn-script-location
+              & "$PY\\python.exe" setup.py bdist_wheel
+              & "$PY\\python.exe" -m pip install asammdf --no-index --find-links dist --no-deps --no-warn-script-location
               
               & "$PY\\python.exe" -m pip install -r test/requirements.txt --no-warn-script-location
               
@@ -72,7 +74,7 @@ for:
           foreach ($PY in $PYVERSION)
           {
               echo "====================================================================="
-              echo "Python version $PY"
+              echo "Python version $PY $Env:APPVEYOR_REPO_BRANCH $Env:EXE_BRANCH"
               echo "====================================================================="
               
               & "$PY\\python.exe" -m pip install --upgrade pip --no-warn-script-location
@@ -83,18 +85,21 @@ for:
               & "$PY\\python.exe" -m pip install -r test/requirements.txt --no-warn-script-location
               
               if (($Env:APPVEYOR_REPO_BRANCH -eq $Env:EXE_BRANCH) -and ($PY -eq "C:\\Python37-x64")) {
-                  & "$PY\\python.exe" -m pip install pywin32 lxml natsort psutil PyQt5>=5.13.1 pyqtgraph==0.11.0 h5py fastparquet scipy hdf5storage snappy cChardet==2.1.5 chardet --no-warn-script-location
-                  & "$PY\\python.exe" -m pip install . --no-warn-script-location
+                  & "$PY\\python.exe" -m pip install pywin32 lxml natsort psutil PyQt5>=5.13.1 pyqtgraph==0.12.1 PyQtWebEngine pyqtlet h5py fastparquet scipy hdf5storage snappy cChardet==2.1.5 chardet --no-warn-script-location
+                  & "$PY\\python.exe" -m pip install -r requirements.txt --no-warn-script-location
+                  & "$PY\\python.exe" setup.py bdist_wheel
+                  & "$PY\\python.exe" -m pip install asammdf --no-index --find-links dist --no-deps --no-warn-script-location
                   & "$PY\\python.exe" -m pip install cmerg cryptography --no-warn-script-location
                   & "$PY\\python.exe" -m pip install pyinstaller --no-warn-script-location
-                  & "$PY\\Scripts\\pyinstaller" asammdf_noconsole.spec
-                  $src = "dist\\asammdfgui.exe"
-                  $dst = "dist\\asammdfgui_noconsole.exe"
-                  Move-Item -Path $src -Destination $dst
+                  & "$PY\\Scripts\\pyinstaller" asammdf.spec --clean -y --onefile --log-level WARN
+                  & "$PY\\Scripts\\pyinstaller" asammdf.spec --clean -y --log-level WARN
                   
-                  & "$PY\\Scripts\\pyinstaller" asammdf.spec
+                  7z a -bso0 -bsp0 -mx9 dist\asammdfgui.zip dist\asammdfgui
+                  
               } else {
-                  & "$PY\\python.exe" -m pip install . --no-warn-script-location
+                  & "$PY\\python.exe" -m pip install -r requirements.txt --no-warn-script-location
+                  & "$PY\\python.exe" setup.py bdist_wheel
+                  & "$PY\\python.exe" -m pip install asammdf --no-index --find-links dist --no-deps --no-warn-script-location
               }
           }
 
@@ -146,7 +151,7 @@ for:
                   
                   if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH && $PY == "venv3.7" ]]
                   then
-                      pip install lxml natsort psutil PyQt5>=5.13.1 pyqtgraph==0.11.0 h5py fastparquet scipy hdf5storage snappy cChardet==2.1.5 chardet --no-warn-script-location
+                      pip install lxml natsort psutil PyQt5>=5.13.1 pyqtgraph==0.12.1 PyQtWebEngine h5py pyqtlet fastparquet scipy hdf5storage snappy cChardet==2.1.5 chardet --no-warn-script-location
                       pip3 install .
                       pip3 install cmerg cryptography
                       pip3 install pyinstaller
@@ -249,7 +254,7 @@ for:
                   
                   if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH_MACOS && $PY == "venv3.7" ]]
                   then
-                      pip3 install lxml natsort psutil PyQt5>=5.13.1 pyqtgraph==0.11.0 h5py fastparquet scipy hdf5storage snappy cChardet==2.1.5 chardet --no-warn-script-location
+                      pip3 install lxml natsort psutil PyQt5>=5.13.1 pyqtgraph==0.12.1 PyQtWebEngine h5py pyqtlet fastparquet scipy hdf5storage snappy cChardet==2.1.5 chardet --no-warn-script-location
                       pip3 install .
                       pip3 install cmerg cryptography
                       pip3 install pyinstaller

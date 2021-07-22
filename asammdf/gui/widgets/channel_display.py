@@ -16,7 +16,15 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
     individual_axis_changed = QtCore.pyqtSignal(object, int)
 
     def __init__(
-        self, uuid, unit="", kind="f", precision=3, tooltip="", details="", *args, **kwargs
+        self,
+        uuid,
+        unit="",
+        kind="f",
+        precision=3,
+        tooltip="",
+        details="",
+        *args,
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
@@ -102,6 +110,27 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self.set_value(self._value)
         self.color_btn.setStyleSheet(f"background-color: {color};")
 
+        palette = self.name.palette()
+
+        brush = QtGui.QBrush(QtGui.QColor(color))
+        brush.setStyle(QtCore.Qt.SolidPattern)
+        palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Text, brush)
+
+        self.name.setPalette(palette)
+
+    def set_selected(self, on):
+        palette = self.name.palette()
+        if on:
+            brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
+            brush.setStyle(QtCore.Qt.SolidPattern)
+            palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Text, brush)
+        else:
+            brush = QtGui.QBrush(QtGui.QColor(self.color))
+            brush.setStyle(QtCore.Qt.SolidPattern)
+            palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Text, brush)
+
+        self.name.setPalette(palette)
+
     def set_name(self, text=""):
         self.setToolTip(self._tooltip or text)
         self._name = text
@@ -121,7 +150,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             self.name.setText(
                 self.fm.elidedText(self._name, QtCore.Qt.ElideMiddle, width)
             )
-        self.set_value(self._value)
+        self.set_value(self._value, update=True)
 
     def set_value(self, value, update=False):
         if self._value == value and update is False:
@@ -255,3 +284,9 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self.color_btn.setIcon(icon)
         self.color_btn.setFlat(True)
         self.color_btn.clicked.disconnect()
+
+    def disconnect_slots(self):
+        self.color_changed.disconnect()
+        self.enable_changed.disconnect()
+        self.ylink_changed.disconnect()
+        self.individual_axis_changed.disconnect()

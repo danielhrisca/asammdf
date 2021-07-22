@@ -10,6 +10,10 @@ from setuptools import Extension, find_packages, setup
 PROJECT_PATH = Path(__file__).parent
 
 
+with (PROJECT_PATH / "requirements.txt").open() as f:
+    install_requires = [l.strip() for l in f.readlines()]
+
+
 def _get_version():
     with PROJECT_PATH.joinpath("asammdf", "version.py").open() as f:
         line = next(line for line in f if line.startswith("__version__"))
@@ -85,32 +89,31 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=[
-        "canmatrix[arxml, dbc]>=0.8",
-        "lz4",
-        "numexpr",
-        "numpy>=1.16.1",
-        "pandas",
-    ],
+    install_requires=install_requires,
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
     # for example:
     # $ pip install -e .[dev,test]
     extras_require={
         "decode": ["cChardet==2.1.5", "chardet"],
+        "export": [
+            "fastparquet",
+            "h5py",
+            "hdf5storage>=0.1.17",
+            "scipy",
+            "python-snappy",
+        ],
         "gui": [
             "lxml",
             "natsort",
             "psutil",
-            "PyQt5>=5.13.1",
-            "pyqtgraph==0.11.0",
-            "h5py",
-            "fastparquet",
-            "scipy",
-            "hdf5storage",
-            "snappy",
+            "PyQt5>=5.14.0",
+            "pyqtgraph>=0.12.1",
+            "pyqtlet",
+            "PyQtWebEngine",
         ],
         "encryption": "cryptography",
+        "symbolic_math": "numexpr3",
     },
     # If there are data files included in your packages that need to be
     # installed, specify them here.  If using Python 2.6 or less, then these
@@ -125,6 +128,6 @@ setup(
     # To provide executable scripts, use entry points in preference to the
     # "scripts" keyword. Entry points provide cross-platform support and allow
     # pip to create the appropriate form of executable for the target platform.
-    entry_points={"console_scripts": ["asammdf=asammdf.gui.asammdfgui:main"]},
+    entry_points={"console_scripts": ["asammdf = asammdf.gui.asammdfgui:main [gui,export,decode]"]},
     ext_modules=_get_ext_modules(),
 )

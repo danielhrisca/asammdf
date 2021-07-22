@@ -1,7 +1,7 @@
 # taken from https://stackoverflow.com/a/46096319/11009349
 
 from PyQt5 import QtGui
-from PyQt5.QtWidgets import QTreeWidget, QTreeWidgetItem
+from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem
 
 
 class ViewTree(QTreeWidget):
@@ -35,7 +35,7 @@ class ViewTree(QTreeWidget):
         fill_item(self.invisibleRootItem(), value)
 
 
-class ComputedChannelInfoWindow(QtGui.QMainWindow):
+class ComputedChannelInfoWindow(QMainWindow):
     def __init__(self, signal, parent=None):
         super().__init__(parent)
         self.setCentralWidget(ViewTree(signal.computation, self))

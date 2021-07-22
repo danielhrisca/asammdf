@@ -1,20 +1,23 @@
 # -*- coding: utf-8 -*-
 """ common MDF file format module """
 
+import bz2
 from collections import defaultdict, OrderedDict
 from copy import deepcopy
 import csv
 from datetime import datetime, timezone
 from functools import reduce
+import gzip
 from io import BytesIO
 import logging
 from pathlib import Path
 import re
-from shutil import copy
+from shutil import copy, move
 from struct import unpack
-import zipfile, gzip, bz2
+from tempfile import gettempdir, mkdtemp
 from traceback import format_exc
 import xml.etree.ElementTree as ET
+import zipfile
 
 from canmatrix import CanMatrix
 import numpy as np
@@ -52,7 +55,7 @@ from .blocks.v2_v3_blocks import ChannelConversion as ChannelConversionV3
 from .blocks.v2_v3_blocks import ChannelExtension
 from .blocks.v2_v3_blocks import HeaderBlock as HeaderV3
 from .blocks.v4_blocks import ChannelConversion as ChannelConversionV4
-from .blocks.v4_blocks import EventBlock, FileHistory
+from .blocks.v4_blocks import EventBlock, FileHistory, FileIdentificationBlock
 from .blocks.v4_blocks import HeaderBlock as HeaderV4
 from .blocks.v4_blocks import SourceInformation
 from .signal import Signal
@@ -65,23 +68,34 @@ LOCAL_TIMEZONE = datetime.now(timezone.utc).astimezone().tzinfo
 __all__ = ["MDF", "SUPPORTED_VERSIONS"]
 
 
-def get_measurement_timestamp_and_version(mdf, file):
-    mdf.seek(64)
-    blk_id = mdf.read(2)
-    if blk_id == b"HD":
-        header = HeaderV3
-        version = "3.00"
+def get_measurement_timestamp_and_version(mdf):
+    id_block = FileIdentificationBlock(address=0, stream=mdf)
+
+    version = id_block.mdf_version
+    if version >= 400:
+        header = HeaderV4
     else:
-        version = "4.00"
-        blk_id += mdf.read(2)
-        if blk_id == b"##HD":
-            header = HeaderV4
-        else:
-            raise MdfException(f'"{file}" is not a valid MDF file')
+        header = HeaderV3
 
     header = header(address=64, stream=mdf)
+    main_version, revision = divmod(version, 100)
+    version = f"{main_version}.{revision}"
 
     return header.start_time, version
+
+
+def get_temporary_filename(name="temporary.mf4"):
+    folder = gettempdir()
+    mf4_name = Path(name).with_suffix(".mf4")
+    idx = 0
+    while True:
+        tmp_name = (Path(folder) / mf4_name.name).with_suffix(f".{idx}.mf4")
+        if not tmp_name.exists():
+            break
+        else:
+            idx += 1
+
+    return tmp_name
 
 
 class MDF:
@@ -105,11 +119,13 @@ class MDF:
         only used for MDF objects created from scratch; for MDF objects created
         from a file the version is set to file version
 
-    channels : iterable
+    channels (None) : iterable
         channel names that will used for selective loading. This can dramatically
-        improve the file loading time.
+        improve the file loading time. Default None -> load all channels
 
         .. versionadded:: 6.1.0
+
+        .. versionchanged:: 6.3.0 make the default None
 
 
     callback (\*\*kwargs) : function
@@ -143,41 +159,58 @@ class MDF:
 
     _terminate = False
 
-    def __init__(self, name=None, version="4.10", channels=(), **kwargs):
+    def __init__(self, name=None, version="4.10", channels=None, **kwargs):
         self._mdf = None
-
-        expand_zippedfile = kwargs.pop("expand_zippedfile", True)
 
         if name:
             if is_file_like(name):
-                file_stream = name
-                do_close = False
 
-                if expand_zippedfile and isinstance(file_stream, (bz2.BZ2File, gzip.GzipFile)):
-                    if isinstance(file_stream, (bz2.BZ2File, gzip.GzipFile)):
-                        file_stream.seek(0)
-                        file_stream = BytesIO(file_stream.read())
+                if isinstance(name, BytesIO):
+                    original_name = None
+                    file_stream = name
+                    do_close = False
 
-                    name = file_stream
+                elif isinstance(name, bz2.BZ2File):
+                    original_name = Path(name._fp.name)
+                    name = get_temporary_filename(original_name)
+                    name.write_bytes(name.read())
+                    file_stream = open(name, "rb")
+                    do_close = False
+                elif isinstance(name, gzip.GzipFile):
 
-            elif isinstance(name, zipfile.ZipFile):
-                do_close = False
-                file_stream = name
-
-                for fn in file_stream.namelist():
-                    if fn.lower().endswith(('mdf', 'dat', 'mf4')):
-                        break
-                else:
-                    raise Exception
-                file_stream = name = BytesIO(file_stream.read(fn))
+                    original_name = Path(name.name)
+                    name = get_temporary_filename(original_name)
+                    name.write_bytes(name.read())
+                    file_stream = open(name, "rb")
+                    do_close = False
 
             else:
-                name = Path(name)
-                if name.is_file():
-                    do_close = True
-                    file_stream = open(name, "rb")
-                else:
+                name = original_name = Path(name)
+                if not name.is_file() or not name.exists():
                     raise MdfException(f'File "{name}" does not exist')
+
+                if original_name.suffix.lower() in (".mf4z", ".zip"):
+                    name = get_temporary_filename(original_name)
+                    with zipfile.ZipFile(original_name, allowZip64=True) as archive:
+                        files = archive.namelist()
+                        if len(files) != 1:
+                            raise Exception(
+                                "invalid zipped MF4: must contain a single file"
+                            )
+                        fname = files[0]
+
+                        if Path(fname).suffix.lower() not in (".mdf", ".dat", ".mf4"):
+                            raise Exception(
+                                "invalid zipped MF4: must contain a single MDF file"
+                            )
+
+                        tmpdir = mkdtemp()
+                        output = archive.extract(fname, tmpdir)
+
+                        move(output, name)
+
+                file_stream = open(name, "rb")
+                do_close = False
 
             file_stream.seek(0)
             magic_header = file_stream.read(8)
@@ -190,13 +223,12 @@ class MDF:
             file_stream.seek(8)
             version = file_stream.read(4).decode("ascii").strip(" \0")
             if not version:
-                file_stream.read(16)
-                version = unpack("<H", file_stream.read(2))[0]
-                version = str(version)
-                version = f"{version[0]}.{version[1:]}"
+                _, version = get_measurement_timestamp_and_version(file_stream)
 
             if do_close:
                 file_stream.close()
+
+            kwargs["original_name"] = original_name
 
             if version in MDF3_VERSIONS:
                 self._mdf = MDF3(name, channels=channels, **kwargs)
@@ -209,6 +241,7 @@ class MDF:
                 raise MdfException(message)
 
         else:
+            kwargs["original_name"] = None
             version = validate_version_argument(version)
             if version in MDF2_VERSIONS:
                 self._mdf = MDF3(version=version, **kwargs)
@@ -511,10 +544,7 @@ class MDF:
         """
         version = validate_version_argument(version)
 
-        out = MDF(
-            version=version,
-            **self._kwargs
-        )
+        out = MDF(version=version, **self._kwargs)
 
         integer_interpolation_mode = self._integer_interpolation
         float_interpolation_mode = self._float_interpolation
@@ -543,6 +573,7 @@ class MDF:
                         cg_nr = out.append(
                             sigs,
                             common_timebase=True,
+                            comment=cg.comment,
                         )
                         MDF._transfer_channel_group_data(
                             out.groups[cg_nr].channel_group, cg
@@ -790,6 +821,7 @@ class MDF:
                     cg_nr = out.append(
                         signals,
                         common_timebase=True,
+                        comment=cg.comment,
                     )
                     MDF._transfer_channel_group_data(
                         out.groups[cg_nr].channel_group, cg
@@ -809,7 +841,7 @@ class MDF:
                     sig.samples = sig.samples[:0]
                     sig.timestamps = sig.timestamps[:0]
                     if sig.invalidation_bits is not None:
-                        sig.invaldiation_bits = sig.invalidation_bits[:0]
+                        sig.invalidation_bits = sig.invalidation_bits[:0]
 
                 if start:
                     start_ = f"{start}s"
@@ -1212,7 +1244,7 @@ class MDF:
             fmtparams = {
                 "delimiter": kwargs.get("delimiter", ",")[0],
                 "doublequote": kwargs.get("doublequote", True),
-                "lineterminator": kwargs.get("lineterminator", '\r\n'),
+                "lineterminator": kwargs.get("lineterminator", "\r\n"),
                 "quotechar": kwargs.get("quotechar", '"')[0],
             }
 
@@ -1625,6 +1657,7 @@ class MDF:
                         cg_nr = mdf.append(
                             sigs,
                             common_timebase=True,
+                            comment=cg.comment,
                         )
                         MDF._transfer_channel_group_data(
                             mdf.groups[cg_nr].channel_group, cg
@@ -1764,7 +1797,6 @@ class MDF:
 
         """
 
-
         if not files:
             raise MdfException("No files given for merge")
 
@@ -1786,12 +1818,12 @@ class MDF:
                     versions.append(file.version)
                 else:
                     if is_file_like(file):
-                        ts, version = get_measurement_timestamp_and_version(file, "io")
+                        ts, version = get_measurement_timestamp_and_version(file)
                         timestamps.append(ts)
                         versions.append(version)
                     else:
                         with open(file, "rb") as mdf:
-                            ts, version = get_measurement_timestamp_and_version(mdf, file)
+                            ts, version = get_measurement_timestamp_and_version(mdf)
                             timestamps.append(ts)
                             versions.append(version)
 
@@ -1813,11 +1845,11 @@ class MDF:
                 versions.append(file.version)
             else:
                 if is_file_like(file):
-                    ts, version = get_measurement_timestamp_and_version(file, "io")
+                    ts, version = get_measurement_timestamp_and_version(file)
                     versions.append(version)
                 else:
                     with open(file, "rb") as mdf:
-                        ts, version = get_measurement_timestamp_and_version(mdf, file)
+                        ts, version = get_measurement_timestamp_and_version(mdf)
                         versions.append(version)
 
                 oldest = ts
@@ -2097,11 +2129,11 @@ class MDF:
                     timestamps.append(file.header.start_time)
                 else:
                     if is_file_like(file):
-                        ts, version = get_measurement_timestamp_and_version(file, "io")
+                        ts, version = get_measurement_timestamp_and_version(file)
                         timestamps.append(ts)
                     else:
                         with open(file, "rb") as mdf:
-                            ts, version = get_measurement_timestamp_and_version(mdf, file)
+                            ts, version = get_measurement_timestamp_and_version(mdf)
                             timestamps.append(ts)
 
             try:
@@ -2129,13 +2161,13 @@ class MDF:
 
                 stacked = MDF(
                     version=version,
-                    callback=callback, **kwargs,
+                    callback=callback,
+                    **kwargs,
                 )
 
                 integer_interpolation_mode = mdf._integer_interpolation
                 float_interpolation_mode = mdf._float_interpolation
                 stacked.configure(from_other=mdf)
-
 
                 if sync:
                     stacked.header.start_time = oldest
@@ -2544,6 +2576,7 @@ class MDF:
             dg_cntr = mdf.append(
                 sigs,
                 common_timebase=True,
+                comment=cg.comment,
             )
             MDF._transfer_channel_group_data(mdf.groups[dg_cntr].channel_group, cg)
 
@@ -3305,6 +3338,8 @@ class MDF:
         df = {}
         self._set_temporary_master(None)
 
+        masters = {index: self.get_master(index) for index in self.virtual_groups}
+
         if raster is not None:
             try:
                 raster = float(raster)
@@ -3320,7 +3355,6 @@ class MDF:
                 raster = master_using_raster(self, raster)
             master = raster
         else:
-            masters = {index: self.get_master(index) for index in self.virtual_groups}
 
             if masters:
                 master = reduce(np.union1d, masters.values())
@@ -3834,6 +3868,8 @@ class MDF:
                     for sig in signals:
                         sig.samples = sig.samples[idx]
                         sig.timestamps = sig.timestamps[idx]
+            else:
+                index = pd.Index(group_master, tupleize_cols=False)
 
             size = len(index)
             for k, sig in enumerate(signals):
@@ -3931,9 +3967,13 @@ class MDF:
         database_files : dict
             each key will contain an iterable of database files for that bus type. The
             supported bus types are "CAN", "LIN". The iterables will contain the
-            databases as str, pathlib.Path or canamtrix.CanMatrix objects
+            (databases, valid bus) pairs. The database can be a  str, pathlib.Path or canamtrix.CanMatrix object.
+            The valid bus is an integer specifying for which bus channel the database
+            can be applied; 0 means any bus channel.
 
             .. versionchanged:: 6.0.0 added canmatrix.CanMatrix type
+
+            .. versionchanged:: 6.3.0 added bus channel fileter
 
         version (None) : str
             output file version
@@ -3969,15 +4009,15 @@ class MDF:
         >>> "extrac CAN and LIN bus logging"
         >>> mdf = asammdf.MDF(r'bus_logging.mf4')
         >>> databases = {
-        ...     "CAN": ["file1.dbc", "file2.arxml"],
-        ...     "LIN": ["file3.dbc"],
+        ...     "CAN": [("file1.dbc", 0), ("file2.arxml", 2)],
+        ...     "LIN": [("file3.dbc", 0)],
         ... }
         >>> extracted = mdf.extract_bus_logging(database_files=database_files)
         >>> ...
         >>> "extrac just LIN bus logging"
         >>> mdf = asammdf.MDF(r'bus_logging.mf4')
         >>> databases = {
-        ...     "LIN": ["file3.dbc"],
+        ...     "LIN": [("file3.dbc", 0)],
         ... }
         >>> extracted = mdf.extract_bus_logging(database_files=database_files)
 
@@ -4038,17 +4078,21 @@ class MDF:
 
         valid_dbc_files = []
         unique_name = UniqueDB()
-        for dbc_name in dbc_files:
+        for (dbc_name, bus_channel) in dbc_files:
             if isinstance(dbc_name, CanMatrix):
                 valid_dbc_files.append(
-                    (dbc_name, unique_name.get_unique_name("UserProvidedCanMatrix"))
+                    (
+                        dbc_name,
+                        unique_name.get_unique_name("UserProvidedCanMatrix"),
+                        bus_channel,
+                    )
                 )
             else:
                 dbc = load_can_database(Path(dbc_name))
                 if dbc is None:
                     continue
                 else:
-                    valid_dbc_files.append((dbc, dbc_name))
+                    valid_dbc_files.append((dbc, dbc_name, bus_channel))
 
         count = sum(
             1
@@ -4065,7 +4109,7 @@ class MDF:
         not_found_ids = defaultdict(list)
         unknown_ids = defaultdict(list)
 
-        for dbc, dbc_name in valid_dbc_files:
+        for dbc, dbc_name, bus_channel in valid_dbc_files:
             is_j1939 = dbc.contains_j1939
             if is_j1939:
                 messages = {message.arbitration_id.pgn: message for message in dbc}
@@ -4118,9 +4162,10 @@ class MDF:
                     original_ids = msg_ids.samples.copy()
 
                     if is_j1939:
-                        ps = (msg_ids.samples >> 8) & 0xFF
+                        tmp_pgn = msg_ids.samples >> 8
+                        ps = tmp_pgn & 0xFF
                         pf = (msg_ids.samples >> 16) & 0xFF
-                        _pgn = pf << 8
+                        _pgn = tmp_pgn & 0x3FF00
                         msg_ids.samples = np.where(pf >= 240, _pgn + ps, _pgn)
 
                     data_bytes = self.get(
@@ -4133,6 +4178,8 @@ class MDF:
                     buses = np.unique(bus_ids)
 
                     for bus in buses:
+                        if bus_channel and bus != bus_channel:
+                            continue
                         idx = np.argwhere(bus_ids == bus).ravel()
                         bus_t = msg_ids.timestamps[idx]
                         bus_msg_ids = msg_ids.samples[idx]
@@ -4141,7 +4188,9 @@ class MDF:
 
                         if is_j1939 and not consolidated_j1939:
                             unique_ids = np.unique(
-                                np.core.records.fromarrays([bus_msg_ids, original_ids])
+                                np.core.records.fromarrays(
+                                    [bus_msg_ids, original_msg_ids]
+                                )
                             )
                         else:
                             unique_ids = np.unique(
@@ -4226,14 +4275,14 @@ class MDF:
                                         sigs.append(sig)
 
                                     if prefix:
-                                        acq_name = f"{prefix}: from CAN{bus} message ID=0x{msg_id:X}"
+                                        acq_name = f"{prefix}: CAN{bus} message ID=0x{msg_id:X} from 0x{original_msg_id:X}"
                                     else:
-                                        acq_name = f"from CAN{bus} message ID=0x{msg_id:X}"
+                                        acq_name = f"CAN{bus} message ID=0x{msg_id:X} from 0x{original_msg_id:X}"
 
                                     cg_nr = out.append(
                                         sigs,
                                         acq_name=acq_name,
-                                        comment=f"{message} 0x{msg_id:X}",
+                                        comment=f'CAN{bus} - message "{message}" 0x{msg_id:X} from 0x{original_msg_id:X}',
                                         common_timebase=True,
                                     )
 
@@ -4331,17 +4380,21 @@ class MDF:
 
         valid_dbc_files = []
         unique_name = UniqueDB()
-        for dbc_name in dbc_files:
+        for (dbc_name, bus_channel) in dbc_files:
             if isinstance(dbc_name, CanMatrix):
                 valid_dbc_files.append(
-                    (dbc_name, unique_name.get_unique_name("UserProvidedCanMatrix"))
+                    (
+                        dbc_name,
+                        unique_name.get_unique_name("UserProvidedCanMatrix"),
+                        bus_channel,
+                    )
                 )
             else:
                 dbc = load_can_database(Path(dbc_name))
                 if dbc is None:
                     continue
                 else:
-                    valid_dbc_files.append((dbc, dbc_name))
+                    valid_dbc_files.append((dbc, dbc_name, bus_channel))
 
         count = sum(
             1
@@ -4358,7 +4411,7 @@ class MDF:
         not_found_ids = defaultdict(list)
         unknown_ids = defaultdict(list)
 
-        for dbc, dbc_name in valid_dbc_files:
+        for dbc, dbc_name, bus_channel in valid_dbc_files:
             messages = {message.arbitration_id.id: message for message in dbc}
 
             current_not_found_ids = {
@@ -4404,6 +4457,16 @@ class MDF:
                         samples_only=True,
                     )[0]
 
+                    try:
+                        bus_ids = self.get(
+                            "LIN_Frame.BusChannel",
+                            group=i,
+                            data=fragment,
+                            samples_only=True,
+                        )[0].astype("<u1")
+                    except:
+                        bus_ids = np.ones(len(original_ids), dtype="u1")
+
                     bus_t = msg_ids.timestamps
                     bus_msg_ids = msg_ids.samples
                     bus_data_bytes = data_bytes
@@ -4417,59 +4480,67 @@ class MDF:
                         tuple(int(e) for e in f) for f in unique_ids
                     )
 
-                    for msg_id_record in unique_ids:
-                        msg_id = int(msg_id_record[0])
-                        original_msg_id = int(msg_id_record[1])
-                        message = messages.get(msg_id, None)
-                        if message is None:
-                            unknown_ids[msg_id].append(True)
+                    buses = np.unique(bus_ids)
+
+                    for bus in buses:
+                        if bus_channel and bus != bus_channel:
                             continue
 
-                        found_ids[dbc_name].add((msg_id, message.name))
-                        try:
-                            current_not_found_ids.remove((msg_id, message.name))
-                        except KeyError:
-                            pass
-
-                        unknown_ids[msg_id].append(False)
-
-                        idx = np.argwhere(bus_msg_ids == msg_id).ravel()
-                        payload = bus_data_bytes[idx]
-                        t = bus_t[idx]
-
-                        extracted_signals = extract_mux(
-                            payload,
-                            message,
-                            msg_id,
-                            0,
-                            t,
-                            original_message_id=None,
-                            ignore_value2text_conversion=ignore_value2text_conversion,
-                        )
-
-                        for entry, signals in extracted_signals.items():
-                            if len(next(iter(signals.values()))["samples"]) == 0:
+                        for msg_id_record in unique_ids:
+                            msg_id = int(msg_id_record[0])
+                            original_msg_id = int(msg_id_record[1])
+                            message = messages.get(msg_id, None)
+                            if message is None:
+                                unknown_ids[msg_id].append(True)
                                 continue
-                            if entry not in msg_map:
-                                sigs = []
 
-                                index = len(out.groups)
-                                msg_map[entry] = index
+                            found_ids[dbc_name].add((msg_id, message.name))
+                            try:
+                                current_not_found_ids.remove((msg_id, message.name))
+                            except KeyError:
+                                pass
 
-                                for name_, signal in signals.items():
-                                    signal_name = f"{prefix}{signal['name']}"
-                                    sig = Signal(
-                                        samples=signal["samples"],
-                                        timestamps=signal["t"],
-                                        name=signal_name,
-                                        comment=signal["comment"],
-                                        unit=signal["unit"],
-                                        invalidation_bits=signal["invalidation_bits"]
-                                        if ignore_invalid_signals
-                                        else None,
-                                    )
+                            unknown_ids[msg_id].append(False)
 
-                                    sig.comment = f"""\
+                            idx = np.argwhere(bus_msg_ids == msg_id).ravel()
+                            payload = bus_data_bytes[idx]
+                            t = bus_t[idx]
+
+                            extracted_signals = extract_mux(
+                                payload,
+                                message,
+                                msg_id,
+                                bus,
+                                t,
+                                original_message_id=None,
+                                ignore_value2text_conversion=ignore_value2text_conversion,
+                            )
+
+                            for entry, signals in extracted_signals.items():
+                                if len(next(iter(signals.values()))["samples"]) == 0:
+                                    continue
+                                if entry not in msg_map:
+                                    sigs = []
+
+                                    index = len(out.groups)
+                                    msg_map[entry] = index
+
+                                    for name_, signal in signals.items():
+                                        signal_name = f"{prefix}{signal['name']}"
+                                        sig = Signal(
+                                            samples=signal["samples"],
+                                            timestamps=signal["t"],
+                                            name=signal_name,
+                                            comment=signal["comment"],
+                                            unit=signal["unit"],
+                                            invalidation_bits=signal[
+                                                "invalidation_bits"
+                                            ]
+                                            if ignore_invalid_signals
+                                            else None,
+                                        )
+
+                                        sig.comment = f"""\
 <CNcomment>
 <TX>{sig.comment}</TX>
 <names>
@@ -4478,54 +4549,56 @@ class MDF:
 </display>
 </names>
 </CNcomment>"""
-                                    sigs.append(sig)
+                                        sigs.append(sig)
 
-                                if prefix:
-                                    acq_name = f"{prefix}: from LIN message ID=0x{msg_id:X}"
-                                else:
-                                    acq_name = f"from LIN message ID=0x{msg_id:X}"
-
-                                cg_nr = out.append(
-                                    sigs,
-                                    acq_name=acq_name,
-                                    comment=f"{message} 0x{msg_id:X}",
-                                    common_timebase=True,
-                                )
-
-                                if ignore_invalid_signals:
-                                    max_flags.append([False])
-                                    for ch_index, sig in enumerate(sigs, 1):
-                                        max_flags[cg_nr].append(
-                                            np.all(sig.invalidation_bits)
+                                    if prefix:
+                                        acq_name = f"{prefix}: from LIN{bus} message ID=0x{msg_id:X}"
+                                    else:
+                                        acq_name = (
+                                            f"from LIN{bus} message ID=0x{msg_id:X}"
                                         )
 
-                            else:
-
-                                index = msg_map[entry]
-
-                                sigs = []
-
-                                for name_, signal in signals.items():
-                                    sigs.append(
-                                        (
-                                            signal["samples"],
-                                            signal["invalidation_bits"]
-                                            if ignore_invalid_signals
-                                            else None,
-                                        )
+                                    cg_nr = out.append(
+                                        sigs,
+                                        acq_name=acq_name,
+                                        comment=f'from LIN{bus} - message "{message}" 0x{msg_id:X}',
+                                        common_timebase=True,
                                     )
 
-                                    t = signal["t"]
+                                    if ignore_invalid_signals:
+                                        max_flags.append([False])
+                                        for ch_index, sig in enumerate(sigs, 1):
+                                            max_flags[cg_nr].append(
+                                                np.all(sig.invalidation_bits)
+                                            )
 
-                                if ignore_invalid_signals:
-                                    for ch_index, sig in enumerate(sigs, 1):
-                                        max_flags[index][ch_index] = max_flags[index][
-                                            ch_index
-                                        ] or np.all(sig[1])
+                                else:
 
-                                sigs.insert(0, (t, None))
+                                    index = msg_map[entry]
 
-                                out.extend(index, sigs)
+                                    sigs = []
+
+                                    for name_, signal in signals.items():
+                                        sigs.append(
+                                            (
+                                                signal["samples"],
+                                                signal["invalidation_bits"]
+                                                if ignore_invalid_signals
+                                                else None,
+                                            )
+                                        )
+
+                                        t = signal["t"]
+
+                                    if ignore_invalid_signals:
+                                        for ch_index, sig in enumerate(sigs, 1):
+                                            max_flags[index][ch_index] = max_flags[
+                                                index
+                                            ][ch_index] or np.all(sig[1])
+
+                                    sigs.insert(0, (t, None))
+
+                                    out.extend(index, sigs)
                     self._set_temporary_master(None)
                     group.record = None
                 cntr += 1
@@ -4698,23 +4771,25 @@ class MDF:
             out._callback = out._mdf._callback = self._callback
         return out
 
-    def whereis(self, channel, source_name=None, source_path=None):
-        """get ocurrences of channel name in the file
+    def whereis(self, channel, source_name=None, source_path=None, acq_name=None):
+        """get occurrences of channel name in the file
 
         Parameters
         ----------
         channel : str
             channel name string
         source_name (None) : str
-            filter occurrences using source name
+            filter occurrences on source name
         source_path (None) : str
-            filter occurrences using source path
+            filter occurrences on source path
+        acq_name (None) : str
+            filter occurrences on channel group acquisition name
 
             .. versionadded:: 6.0.0
 
         Returns
         -------
-        ocurrences : tuple
+        occurrences : tuple
 
 
         Examples
@@ -4727,12 +4802,19 @@ class MDF:
 
         """
         try:
-            occurrences = self._filter_occurrences(
-                self.channels_db[channel], source_name=source_name, source_path=source_path
+            occurrences = self.channels_db[channel]
+        except KeyError:
+            occurrences = ()
+        else:
+            occurrences = tuple(
+                self._filter_occurrences(
+                    occurrences,
+                    source_name=source_name,
+                    source_path=source_path,
+                    acq_name=acq_name,
+                )
             )
-        except:
-            occurrences = tuple()
-        return tuple(occurrences)
+        return occurrences
 
 
 if __name__ == "__main__":
