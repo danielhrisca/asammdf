@@ -24,7 +24,7 @@ def _cmd_line_parser():
 def main(measurements=None):
     parser = _cmd_line_parser()
     args = parser.parse_args(sys.argv[1:])
-    app = QtWidgets.QApplication(sys.argv)
+    app = pyqtgraph.mkQApp()
     app.setOrganizationName("py-asammdf")
     app.setOrganizationDomain("py-asammdf")
     app.setApplicationName("py-asammdf")
