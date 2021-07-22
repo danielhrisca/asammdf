@@ -236,7 +236,7 @@ class MDF4(MDF_Common):
     * ``data_block_size`` - list of raw samples block size
     * ``sorted`` - sorted indicator flag
     * ``record_size`` - dict that maps record ID's to record sizes in bytes (including invalidation bytes)
-    * ``param`` - row size used for tranposizition, in case of tranposed zipped blockss
+    * ``param`` - row size used for transposition, in case of transposed zipped blocks
 
 
     Parameters
@@ -1077,7 +1077,7 @@ class MDF4(MDF_Common):
         Parameters
         ----------
         address : int
-            address of refrerenced block
+            address of referenced block
         stream : handle
             file IO stream handle
 
@@ -1568,7 +1568,7 @@ class MDF4(MDF_Common):
                     yield b"", offset, 0, None
 
     def _prepare_record(self, group):
-        """compute record dtype and parents dict fro this group
+        """compute record dtype and parents dict for this group
 
         Parameters
         ----------
@@ -2418,7 +2418,7 @@ class MDF4(MDF_Common):
 
         raise_on_multiple_occurrences : bool
             raise exception when there are multiple channel occurrences in the file and
-            the `get` call is ambiguos; default True
+            the `get` call is ambiguous; default True
 
             .. versionadded:: 6.2.0
 
@@ -2550,7 +2550,7 @@ class MDF4(MDF_Common):
         prepare_record = True
 
         # check if the signals have a common timebase
-        # if not interpolate the signals using the union of all timbases
+        # if not interpolate the signals using the union of all timebases
         if signals:
             t_ = signals[0].timestamps
             if not common_timebase:
@@ -5929,7 +5929,7 @@ class MDF4(MDF_Common):
 
             flags = attachment.flags
 
-            # for embedded attachments extrat data and create new files
+            # for embedded attachments extract data and create new files
             if flags & v4c.FLAG_AT_EMBEDDED:
                 data = attachment.extract()
                 md5_worker = md5()
@@ -6041,7 +6041,7 @@ class MDF4(MDF_Common):
         data : bytes
             prevent redundant data read by providing the raw data group samples
         raw : bool
-            return channel samples without appling the conversion rule; default
+            return channel samples without applying the conversion rule; default
             `False`
         ignore_invalidation_bits : bool
             option to ignore invalidation bits
@@ -7530,7 +7530,7 @@ class MDF4(MDF_Common):
                     if len(item) not in (2, 3):
                         raise MdfException(
                             "The items used for filtering must be strings, "
-                            "or they must match the first 3 argumens of the get "
+                            "or they must match the first 3 arguments of the get "
                             "method"
                         )
                     else:
@@ -7816,7 +7816,7 @@ class MDF4(MDF_Common):
 
         if raster is not None:
             PendingDeprecationWarning(
-                "the argument raster is depreacted since version 5.13.0 "
+                "the argument raster is deprecated since version 5.13.0 "
                 "and will be removed in a future release"
             )
         if self._master is not None:
@@ -8046,7 +8046,7 @@ class MDF4(MDF_Common):
         ignore_invalidation_bits : bool
             option to ignore invalidation bits
         raw : bool
-            return channel samples without appling the conversion rule; default
+            return channel samples without applying the conversion rule; default
             `False`
         ignore_value2text_conversion : bool
             return channel samples without values that have a description in .dbc or .arxml file
@@ -8088,7 +8088,7 @@ class MDF4(MDF_Common):
         ignore_value2text_conversion=True,
     ):
         """get CAN message signal. You can specify an external CAN database (
-        *database* argument) or canmatrix databse object that has already been
+        *database* argument) or canmatrix database object that has already been
         loaded from a file (*db* argument).
 
         The signal name can be specified in the following ways
@@ -8103,16 +8103,16 @@ class MDF4(MDF_Common):
 
         * ``<MESSAGE_NAME>.<SIGNAL_NAME>`` - in this case the first occurrence of
           the message name and signal are returned (the same message could be
-          found on muplit CAN buses; for example on CAN1 and CAN3)
+          found on multiple CAN buses; for example on CAN1 and CAN3)
           Example: Wheels.FL_WheelSpeed
 
         * ``CAN_DataFrame_<MESSAGE_ID>.<SIGNAL_NAME>`` - in this case the first
           occurrence of the message name and signal are returned (the same
-          message could be found on muplit CAN buses; for example on CAN1 and
+          message could be found on multiple CAN buses; for example on CAN1 and
           CAN3). Example: CAN_DataFrame_218.FL_WheelSpeed
 
         * ``<SIGNAL_NAME>`` - in this case the first occurrence of the signal
-          name is returned ( the same signal anme coudl be found in multiple
+          name is returned (the same signal name could be found in multiple
           messages and on multiple CAN buses). Example: FL_WheelSpeed
 
 
@@ -8129,7 +8129,7 @@ class MDF4(MDF_Common):
         ignore_invalidation_bits : bool
             option to ignore invalidation bits
         raw : bool
-            return channel samples without appling the conversion rule; default
+            return channel samples without applying the conversion rule; default
             `False`
         ignore_value2text_conversion : bool
             return channel samples without values that have a description in .dbc or .arxml file
@@ -8372,7 +8372,7 @@ class MDF4(MDF_Common):
         ignore_value2text_conversion=True,
     ):
         """get LIN message signal. You can specify an external LIN database (
-        *database* argument) or canmatrix databse object that has already been
+        *database* argument) or canmatrix database object that has already been
         loaded from a file (*db* argument).
 
         The signal name can be specified in the following ways
@@ -8396,7 +8396,7 @@ class MDF4(MDF_Common):
         ignore_invalidation_bits : bool
             option to ignore invalidation bits
         raw : bool
-            return channel samples without appling the conversion rule; default
+            return channel samples without applying the conversion rule; default
             `False`
         ignore_value2text_conversion : bool
             return channel samples without values that have a description in .dbc or .arxml file
@@ -8572,8 +8572,8 @@ class MDF4(MDF_Common):
 
     def save(self, dst, overwrite=False, compression=0):
         """Save MDF to *dst*. If overwrite is *True* then the destination file
-        is overwritten, otherwise the file name is appened with '.<cntr>', were
-        '<cntr>' is the first conter that produces a new file name
+        is overwritten, otherwise the file name is appended with '.<cntr>', were
+        '<cntr>' is the first counter that produces a new file name
         (that does not already exist in the filesystem)
 
         Parameters
