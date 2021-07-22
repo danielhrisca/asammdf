@@ -1852,7 +1852,7 @@ class _Plot(pg.PlotWidget):
 
                         if self.with_dots or line_interconnect:
                             #                            curve.setPen({'color': color, 'style': style})
-                            pen = pg.fn.mkPen(color=color, style=style)
+                            pen = pg.mkPen(color=color, style=style)
                             curve.opts["pen"] = pen
                             curve.setData(
                                 x=t, y=sig.plot_samples, stepMode=self.line_interconnect
