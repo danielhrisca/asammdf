@@ -155,7 +155,8 @@ for:
                       pip3 install .
                       pip3 install cmerg cryptography
                       pip3 install pyinstaller
-                      pyinstaller asammdf_noconsole.spec
+                      pyinstaller asammdf.spec --clean -y --onefile --log-level WARN
+                      pyinstaller asammdf.spec --clean -y --log-level WARN
                   else
                       pip3 install .
                   fi
@@ -258,7 +259,8 @@ for:
                       pip3 install .
                       pip3 install cmerg cryptography
                       pip3 install pyinstaller
-                      pyinstaller asammdf_noconsole.spec
+                      pyinstaller asammdf.spec --clean -y --onefile --log-level WARN
+                      pyinstaller asammdf.spec --clean -y --log-level WARN
                   else
                       pip3 install .
                   fi
