@@ -11,6 +11,7 @@ class TreeWidget(QtWidgets.QTreeWidget):
         super().__init__(*args, **kwargs)
 
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.setDragDropMode(QtWidgets.QAbstractItemView.DragOnly)
         self.setUniformRowHeights(True)
 
         self.mode = "Natural sort"
@@ -40,7 +41,7 @@ class TreeWidget(QtWidgets.QTreeWidget):
         else:
             super().keyPressEvent(event)
 
-    def mouseMoveEvent(self, e):
+    def startDrag(self, supportedActions):
         def get_data(item):
             data = set()
             count = item.childCount()
@@ -107,6 +108,4 @@ class TreeWidget(QtWidgets.QTreeWidget):
 
         drag = QtGui.QDrag(self)
         drag.setMimeData(mimeData)
-        drag.setHotSpot(e.pos() - self.rect().topLeft())
-
         drag.exec_(QtCore.Qt.MoveAction)
