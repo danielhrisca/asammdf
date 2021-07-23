@@ -3,11 +3,11 @@ environment:
   EXE_BRANCH_MACOS: "master"
 
   matrix:
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
-    - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+    #- APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
+    #- APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
     - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
-    - APPVEYOR_BUILD_WORKER_IMAGE: macos
-    - APPVEYOR_BUILD_WORKER_IMAGE: macos-mojave
+    #- APPVEYOR_BUILD_WORKER_IMAGE: macos
+    #- APPVEYOR_BUILD_WORKER_IMAGE: macos-mojave
 
 for:
   - matrix:
@@ -149,14 +149,14 @@ for:
                   pip3 install -e .
                   pip3 install -r test/requirements.txt 
                   
-                  if [[ $APPVEYOR_REPO_BRANCH == $EXE_BRANCH && $PY == "venv3.7" ]]
+                  if [[ $APPVEYOR_REPO_BRANCH == "development" && $PY == "venv3.7" ]]
                   then
                       pip install lxml natsort psutil PyQt5>=5.13.1 pyqtgraph==0.12.1 PyQtWebEngine h5py pyqtlet fastparquet scipy hdf5storage snappy cChardet==2.1.5 chardet --no-warn-script-location
                       pip3 install .
                       pip3 install cmerg cryptography
                       pip3 install pyinstaller
-                      pyinstaller asammdf.spec --clean -y --onefile --log-level WARN
-                      pyinstaller asammdf.spec --clean -y --log-level WARN
+                      pyinstaller asammdf.spec --clean -y --onefile
+                      pyinstaller asammdf.spec --clean -y
                   else
                       pip3 install .
                   fi
