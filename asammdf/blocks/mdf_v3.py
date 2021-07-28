@@ -1421,6 +1421,7 @@ class MDF3(MDF_Common):
                 if offset > v23c.MAX_UINT16:
                     additional_byte_offset = ceil((offset - v23c.MAX_UINT16) / 8)
                     start_bit_offset = offset - additional_byte_offset * 8
+
                 else:
                     start_bit_offset = offset
                     additional_byte_offset = 0
@@ -1605,8 +1606,8 @@ class MDF3(MDF_Common):
 
                     # compute additional byte offset for large records size
                     if new_offset > v23c.MAX_UINT16:
-                        additional_byte_offset = (new_offset - v23c.MAX_UINT16) // 8
-                        start_bit_offset = new_offset - additional_byte_offset << 3
+                        additional_byte_offset = ceil((new_offset - v23c.MAX_UINT16) / 8)
+                        start_bit_offset = new_offset - additional_byte_offset * 8
                     else:
                         start_bit_offset = new_offset
                         additional_byte_offset = 0
@@ -1751,8 +1752,8 @@ class MDF3(MDF_Common):
                 s_type, s_size = fmt_to_datatype_v3(samples.dtype, (), True)
                 # compute additional byte offset for large records size
                 if offset > v23c.MAX_UINT16:
-                    additional_byte_offset = (offset - v23c.MAX_UINT16) // 8
-                    start_bit_offset = offset - additional_byte_offset << 3
+                    additional_byte_offset = ceil((offset - v23c.MAX_UINT16) / 8)
+                    start_bit_offset = offset - additional_byte_offset * 8
                 else:
                     start_bit_offset = offset
                     additional_byte_offset = 0
@@ -1817,8 +1818,8 @@ class MDF3(MDF_Common):
 
                     # compute additional byte offset for large records size
                     if offset > v23c.MAX_UINT16:
-                        additional_byte_offset = (offset - v23c.MAX_UINT16) // 8
-                        start_bit_offset = offset - additional_byte_offset << 3
+                        additional_byte_offset = ceil((offset - v23c.MAX_UINT16) / 8)
+                        start_bit_offset = offset - additional_byte_offset * 8
                     else:
                         start_bit_offset = offset
                         additional_byte_offset = 0
@@ -1911,8 +1912,8 @@ class MDF3(MDF_Common):
                     s_type, s_size = fmt_to_datatype_v3(samples.dtype, ())
                     # compute additional byte offset for large records size
                     if offset > v23c.MAX_UINT16:
-                        additional_byte_offset = (offset - v23c.MAX_UINT16) // 8
-                        start_bit_offset = offset - additional_byte_offset << 3
+                        additional_byte_offset = ceil((offset - v23c.MAX_UINT16) / 8)
+                        start_bit_offset = offset - additional_byte_offset * 8
                     else:
                         start_bit_offset = offset
                         additional_byte_offset = 0
@@ -1978,8 +1979,8 @@ class MDF3(MDF_Common):
 
                         # compute additional byte offset for large records size
                         if offset > v23c.MAX_UINT16:
-                            additional_byte_offset = (offset - v23c.MAX_UINT16) // 8
-                            start_bit_offset = offset - additional_byte_offset << 3
+                            additional_byte_offset = ceil((offset - v23c.MAX_UINT16) / 8)
+                            start_bit_offset = offset - additional_byte_offset * 8
                         else:
                             start_bit_offset = offset
                             additional_byte_offset = 0
@@ -2420,22 +2421,11 @@ class MDF3(MDF_Common):
         cycles_nr = len(signals[0][0])
         string_counter = 0
 
-        for k_i, (signal, _) in enumerate(signals):
+        for k_i, ((signal, invalidation_bits), sig_type) in enumerate(
+                zip(signals, gp.signal_types)
+        ):
             sig = signal
             names = sig.dtype.names
-
-            if len(sig.shape) <= 1:
-                if names is None:
-                    sig_type = v23c.SIGNAL_TYPE_SCALAR
-                else:
-                    if names in (canopen_time_fields, canopen_date_fields):
-                        sig_type = v23c.SIGNAL_TYPE_CANOPEN
-                    elif names[0] != sig.name:
-                        sig_type = v23c.SIGNAL_TYPE_STRUCTURE_COMPOSITION
-                    else:
-                        sig_type = v23c.SIGNAL_TYPE_ARRAY
-            else:
-                sig_type = v23c.SIGNAL_TYPE_ARRAY
 
             if sig_type == v23c.SIGNAL_TYPE_SCALAR:
                 if signal.dtype.kind == "S":

@@ -2651,6 +2651,9 @@ class ChannelConversion(_ChannelConversionBase):
                 self.unit = get_text_v4(addr, stream, mapped=mapped)
                 tx_map[addr] = self.unit
 
+            if isinstance(self.unit, bytes):
+                self.unit = self.unit.decode('utf-8', errors='ignore')
+
             addr = self.comment_addr
             if addr in tx_map:
                 self.comment = tx_map[addr]

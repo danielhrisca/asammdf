@@ -2466,6 +2466,7 @@ class MDF4(MDF_Common):
             if invalidation_bytes is not None:
                 size = group.channel_group.invalidation_bytes_nr
                 invalidation = frombuffer(invalidation_bytes, dtype=f"({size},)u1")
+
             else:
                 record = group.record
                 if record is None:
