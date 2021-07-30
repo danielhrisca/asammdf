@@ -57,7 +57,7 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
                     match_results = [
                         f"{i:> 2}: {name}"
                         for name in channels_db
-                        if pattern.match(name)
+                        if pattern.search(name)
                     ]
                     results.extend(match_results)
 

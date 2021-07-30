@@ -1310,7 +1310,7 @@ class WithMDIArea:
                     matches = {
                         name: entries[0]
                         for name, entries in self.mdf.channels_db.items()
-                        if pattern.match(name)
+                        if pattern.search(name)
                     }
                 except:
                     print(format_exc())
@@ -1524,7 +1524,7 @@ class WithMDIArea:
                 try:
                     pattern = re.compile(f"(?i){pattern}")
                     matches = [
-                        name for name in self.mdf.channels_db if pattern.match(name)
+                        name for name in self.mdf.channels_db if pattern.search(name)
                     ]
                 except:
                     print(format_exc())
@@ -1940,7 +1940,7 @@ class WithMDIArea:
                     matches = {
                         name: entries[0]
                         for name, entries in self.mdf.channels_db.items()
-                        if pattern.match(name)
+                        if pattern.search(name)
                     }
                 except:
                     print(format_exc())

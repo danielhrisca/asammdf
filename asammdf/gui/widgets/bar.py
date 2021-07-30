@@ -252,7 +252,7 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
         pattern = pattern.replace("_WILDCARD_", ".*")
 
         pattern = re.compile(f"(?i){pattern}")
-        matches = [name for name in self.signals if pattern.match(name)]
+        matches = [name for name in self.signals if pattern.search(name)]
 
         if not matches:
             self.match.setText("the pattern does not match any channel name")
@@ -312,7 +312,7 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
         pattern = pattern.replace("_WILDCARD_", ".*")
 
         pattern = re.compile(f"(?i){pattern}")
-        matches = [name for name in self.signals if pattern.match(name)]
+        matches = [name for name in self.signals if pattern.search(name)]
 
         if not matches:
             self.match.setText("the pattern does not match any channel name")

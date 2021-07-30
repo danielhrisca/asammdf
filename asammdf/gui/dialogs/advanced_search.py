@@ -77,7 +77,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
             try:
                 pattern = re.compile(f"(?i){pattern}")
-                matches = [name for name in self.channels_db if pattern.match(name)]
+                matches = [name for name in self.channels_db if pattern.search(name)]
                 self.matches.clear()
                 self.matches.addItems(matches)
                 if matches:
