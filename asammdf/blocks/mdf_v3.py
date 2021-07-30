@@ -2343,7 +2343,7 @@ class MDF3(MDF_Common):
             self._file.close()
 
         if self.original_name is not None:
-            if self.original_name.suffix.lower() in (".bz2", ".gzip", ".mf4z", ".zip"):
+            if Path(self.original_name).suffix.lower() in (".bz2", ".gzip", ".mf4z", ".zip"):
                 try:
                     os.remove(self.name)
                 except:

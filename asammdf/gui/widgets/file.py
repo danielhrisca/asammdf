@@ -843,7 +843,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         if (dg_cntr, ch_cntr) in result:
                             item.setCheckState(0, QtCore.Qt.Checked)
-                            names.add(item.text(0))
+                            names.add((dg_cntr, ch_cntr))
 
                         iterator += 1
                         ch_cntr += 1
@@ -855,16 +855,16 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         item = iterator.value()
 
                         if item.checkState(0) == QtCore.Qt.Checked:
-                            signals.add(item.entry)
+                            signals.add(item.text(0))
 
                         iterator += 1
 
-                    signals = signals | result
+                    names = signals | result
 
                     widget.clear()
 
                     items = []
-                    for entry in signals:
+                    for entry in names:
                         gp_index, ch_index = entry
                         ch = self.mdf.groups[gp_index].channels[ch_index]
                         channel = TreeItem(entry, ch.name, mdf_uuid=self.uuid)
@@ -885,7 +885,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         if item.entry in result:
                             item.setCheckState(0, QtCore.Qt.Checked)
-                            names.add(item.text(0))
+                            names.add(item.entry)
 
                         iterator += 1
 
@@ -909,6 +909,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         signals = [
                             (None, *self.mdf.whereis(name)[0], self.uuid)
+                            if isinstance(name, str)
+                            else (None, *name, self.uuid)
                             for name in names
                         ]
 

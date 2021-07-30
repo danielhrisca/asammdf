@@ -5994,7 +5994,7 @@ class MDF4(MDF_Common):
                 pass
 
         if self.original_name is not None:
-            if self.original_name.suffix.lower() in (".bz2", ".gzip", ".mf4z", ".zip"):
+            if Path(self.original_name).suffix.lower() in (".bz2", ".gzip", ".mf4z", ".zip"):
                 try:
                     Path(self.name).unlink()
                 except:

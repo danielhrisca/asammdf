@@ -357,17 +357,89 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         column_types = ["u", *[df[name].dtype.kind for name in df.columns]]
         int_format = self.format_selection.currentText()
 
-        items = [TabularTreeItem(column_types, int_format, row) for row in zip(*items)]
+        items = [TabularTreeItem(column_types, int_format, [str(e) for e in row]) for row in zip(*items)]
 
         self.tree.addTopLevelItems(items)
         self.update_header()
 
         self.tree.setSortingEnabled(self.sort.checkState() == QtCore.Qt.Checked)
 
-    def add_new_channels(self, channels):
-        for sig in channels:
-            if sig:
-                self.signals[sig.name] = sig
+    def add_new_channels(self, signals):
+        index = pd.Series(np.arange(len(signals), dtype="u8"), index=signals.index)
+        signals["Index"] = index
+
+        signals.set_index(index, inplace=True)
+        dropped = {}
+
+        for name_ in signals.columns:
+            col = signals[name_]
+            if col.dtype.kind == "O":
+                if name_.endswith("DataBytes"):
+                    try:
+                        sizes = signals[name_.replace("DataBytes", "DataLength")]
+                    except:
+                        sizes = None
+                    dropped[name_] = pd.Series(
+                        csv_bytearray2hex(
+                            col,
+                            sizes,
+                        ),
+                        index=signals.index,
+                    )
+
+                elif name_.endswith("Data Bytes"):
+                    try:
+                        sizes = signals[name_.replace("Data Bytes", "Data Length")]
+                    except:
+                        sizes = None
+                    dropped[name_] = pd.Series(
+                        csv_bytearray2hex(
+                            col,
+                            sizes,
+                        ),
+                        index=signals.index,
+                    )
+
+                elif col.dtype.name != "category":
+                    try:
+                        dropped[name_] = pd.Series(
+                            csv_bytearray2hex(col), index=signals.index
+                        )
+                    except:
+                        pass
+
+                self.signals_descr[name_] = 0
+
+            elif col.dtype.kind == "S":
+                try:
+                    dropped[name_] = pd.Series(
+                        npchar.decode(col, "utf-8"), index=signals.index
+                    )
+                except:
+                    dropped[name_] = pd.Series(
+                        npchar.decode(col, "latin-1"), index=signals.index
+                    )
+                self.signals_descr[name_] = 0
+            else:
+                self.signals_descr[name_] = 0
+
+        signals = signals.drop(columns=["Index", *list(dropped)])
+        for name, s in dropped.items():
+            signals[name] = s
+
+        names = list(signals.columns)
+        names = [
+            *[name for name in names if name.endswith((".ID", ".DataBytes"))],
+            *[
+                name
+                for name in names
+                if name != "timestamps" and not name.endswith((".ID", ".DataBytes"))
+            ],
+        ]
+        signals = signals[names]
+
+        self.signals = pd.concat([self.signals, signals], axis=1)
+        
         self.build(self.signals, reset_header_names=True)
 
     def to_config(self):

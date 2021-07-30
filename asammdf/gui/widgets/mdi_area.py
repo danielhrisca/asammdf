@@ -199,120 +199,159 @@ class WithMDIArea:
 
             uuids = set(entry[3] for entry in signals_)
 
-            signals = []
+            if isinstance(widget, Tabular):
+                dfs = []
 
-            for uuid in uuids:
-                uuids_signals = [entry[:3] for entry in signals_ if entry[3] == uuid]
+                for uuid in uuids:
+                    uuids_signals = [entry[:3] for entry in signals_ if entry[3] == uuid]
 
-                file_info = self.file_by_uuid(uuid)
-                if not file_info:
-                    continue
+                    file_info = self.file_by_uuid(uuid)
+                    if not file_info:
+                        continue
 
-                file_index, file = file_info
+                    file_index, file = file_info
 
-                selected_signals = file.mdf.select(
-                    uuids_signals,
-                    ignore_value2text_conversions=ignore_value2text_conversions,
-                    copy_master=False,
-                    validate=True,
-                    raw=True,
-                )
-
-                for sig, sig_ in zip(selected_signals, uuids_signals):
-                    sig.group_index = sig_[1]
-                    sig.channel_index = sig_[2]
-                    sig.computed = False
-                    sig.computation = {}
-                    sig.mdf_uuid = uuid
-
-                    if not hasattr(self, "mdf"):
-                        # MainWindow => comparison plots
-
-                        sig.tooltip = f"{sig.name}\n@ {file.file_name}"
-                        sig.name = f"{file_index+1}: {sig.name}"
-
-                signals.extend(selected_signals)
-
-            if isinstance(widget, Plot):
-                signals = [
-                    sig
-                    for sig in signals
-                    if sig.samples.dtype.kind not in "SU"
-                    and not sig.samples.dtype.names
-                    and not len(sig.samples.shape) > 1
-                ]
-
-            for signal in signals:
-                if len(signal.samples.shape) > 1:
-
-                    signal.samples = csv_bytearray2hex(pd.Series(list(signal.samples)))
-
-                if signal.name.endswith("CAN_DataFrame.ID"):
-                    signal.samples = signal.samples.astype("<u4") & 0x1FFFFFFF
-
-            signals = sigs = natsorted(signals, key=lambda x: x.name)
-
-            widget.add_new_channels(sigs)
-
-            if isinstance(widget, Plot) and computed:
-                measured_signals = {sig.name: sig for sig in sigs}
-                if measured_signals:
-                    all_timebase = np.unique(
-                        np.concatenate(
-                            [sig.timestamps for sig in measured_signals.values()]
-                        )
-                    )
-                else:
-                    all_timebase = []
-
-                required_channels = []
-                for ch in computed:
-                    required_channels.extend(get_required_signals(ch))
-
-                required_channels = set(required_channels)
-                required_channels = [
-                    (None, *self.mdf.whereis(channel)[0])
-                    for channel in required_channels
-                    if channel not in list(measured_signals) and channel in self.mdf
-                ]
-                required_channels = {
-                    sig.name: sig
-                    for sig in self.mdf.select(
-                        required_channels,
+                    selected_signals = file.mdf.to_dataframe(
+                        channels=uuids_signals,
                         ignore_value2text_conversions=self.ignore_value2text_conversions,
-                        copy_master=False,
+                        time_from_zero=False,
                     )
-                }
 
-                required_channels.update(measured_signals)
+                    dfs.append(selected_signals)
 
-                computed_signals = {}
+                signals = pd.concat(dfs, axis=1)
 
-                for channel in computed:
-                    computation = channel["computation"]
+                for name in signals.columns:
+                    if name.endswith(
+                            (
+                                    "CAN_DataFrame.ID",
+                                    "FLX_Frame.ID",
+                                    "FlexRay_DataFrame.ID",
+                                    "LIN_Frame.ID",
+                                    "MOST_DataFrame.ID",
+                                    "ETH_Frame.ID",
+                            )
+                    ):
+                        signals[name] = signals[name].astype("<u4") & 0x1FFFFFFF
 
-                    try:
-
-                        signal = compute_signal(
-                            computation, required_channels, all_timebase
-                        )
-                        signal.color = channel["color"]
-                        signal.computed = True
-                        signal.computation = channel["computation"]
-                        signal.name = channel["name"]
-                        signal.unit = channel["unit"]
-                        signal.group_index = -1
-                        signal.channel_index = -1
-
-                        if "conversion" in channel:
-                            signal.conversion = from_dict(channel["conversion"])
-                            signal.name = channel["user_defined_name"]
-
-                        computed_signals[signal.name] = signal
-                    except:
-                        pass
-                signals = list(computed_signals.values())
                 widget.add_new_channels(signals)
+
+            else:
+
+                signals = []
+
+                for uuid in uuids:
+                    uuids_signals = [entry[:3] for entry in signals_ if entry[3] == uuid]
+
+                    file_info = self.file_by_uuid(uuid)
+                    if not file_info:
+                        continue
+
+                    file_index, file = file_info
+
+                    selected_signals = file.mdf.select(
+                        uuids_signals,
+                        ignore_value2text_conversions=ignore_value2text_conversions,
+                        copy_master=False,
+                        validate=True,
+                        raw=True,
+                    )
+
+                    for sig, sig_ in zip(selected_signals, uuids_signals):
+                        sig.group_index = sig_[1]
+                        sig.channel_index = sig_[2]
+                        sig.computed = False
+                        sig.computation = {}
+                        sig.mdf_uuid = uuid
+
+                        if not hasattr(self, "mdf"):
+                            # MainWindow => comparison plots
+
+                            sig.tooltip = f"{sig.name}\n@ {file.file_name}"
+                            sig.name = f"{file_index+1}: {sig.name}"
+
+                    signals.extend(selected_signals)
+
+                if isinstance(widget, Plot):
+                    signals = [
+                        sig
+                        for sig in signals
+                        if sig.samples.dtype.kind not in "SU"
+                        and not sig.samples.dtype.names
+                        and not len(sig.samples.shape) > 1
+                    ]
+
+                for signal in signals:
+                    if len(signal.samples.shape) > 1:
+
+                        signal.samples = csv_bytearray2hex(pd.Series(list(signal.samples)))
+
+                    if signal.name.endswith("CAN_DataFrame.ID"):
+                        signal.samples = signal.samples.astype("<u4") & 0x1FFFFFFF
+
+                signals = sigs = natsorted(signals, key=lambda x: x.name)
+
+                widget.add_new_channels(sigs)
+
+                if isinstance(widget, Plot) and computed:
+                    measured_signals = {sig.name: sig for sig in sigs}
+                    if measured_signals:
+                        all_timebase = np.unique(
+                            np.concatenate(
+                                [sig.timestamps for sig in measured_signals.values()]
+                            )
+                        )
+                    else:
+                        all_timebase = []
+
+                    required_channels = []
+                    for ch in computed:
+                        required_channels.extend(get_required_signals(ch))
+
+                    required_channels = set(required_channels)
+                    required_channels = [
+                        (None, *self.mdf.whereis(channel)[0])
+                        for channel in required_channels
+                        if channel not in list(measured_signals) and channel in self.mdf
+                    ]
+                    required_channels = {
+                        sig.name: sig
+                        for sig in self.mdf.select(
+                            required_channels,
+                            ignore_value2text_conversions=self.ignore_value2text_conversions,
+                            copy_master=False,
+                        )
+                    }
+
+                    required_channels.update(measured_signals)
+
+                    computed_signals = {}
+
+                    for channel in computed:
+                        computation = channel["computation"]
+
+                        try:
+
+                            signal = compute_signal(
+                                computation, required_channels, all_timebase
+                            )
+                            signal.color = channel["color"]
+                            signal.computed = True
+                            signal.computation = channel["computation"]
+                            signal.name = channel["name"]
+                            signal.unit = channel["unit"]
+                            signal.group_index = -1
+                            signal.channel_index = -1
+
+                            if "conversion" in channel:
+                                signal.conversion = from_dict(channel["conversion"])
+                                signal.name = channel["user_defined_name"]
+
+                            computed_signals[signal.name] = signal
+                        except:
+                            pass
+                    signals = list(computed_signals.values())
+                    widget.add_new_channels(signals)
 
         except MdfException:
             print(format_exc())
