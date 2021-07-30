@@ -1418,6 +1418,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
 
         try:
             self.address = address = kwargs["address"]
+
             stream = kwargs["stream"]
 
             mapped = kwargs.get("mapped", False) or not is_file_like(stream)
@@ -1715,7 +1716,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
             for size in dim_sizes:
                 data_links_nr *= size
         else:
-            dim_sizes = []
+            dim_sizes = [] 
             data_links_nr = 0
 
         if self.storage == v4c.CA_STORAGE_TYPE_DG_TEMPLATE:
@@ -1780,6 +1781,12 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
                 for i in range(dims_nr)
                 for j in range(self[f"dim_size_{i}"])
             )
+
+            dim_sizes = [
+                1
+                for i in range(dims_nr)
+                for j in range(self[f"dim_size_{i}"])
+            ]
 
         if self.storage:
 
