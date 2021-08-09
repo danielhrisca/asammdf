@@ -4116,6 +4116,8 @@ class MDF:
             else:
                 messages = {message.arbitration_id.id: message for message in dbc}
 
+            ignore_invalid_signals_current_dbc = ignore_invalid_signals and is_j1939
+
             current_not_found_ids = {
                 (msg_id, message.name) for msg_id, message in messages.items()
             }
@@ -4259,7 +4261,7 @@ class MDF:
                                             invalidation_bits=signal[
                                                 "invalidation_bits"
                                             ]
-                                            if ignore_invalid_signals
+                                            if ignore_invalid_signals_current_dbc
                                             else None,
                                         )
 
@@ -4286,12 +4288,14 @@ class MDF:
                                         common_timebase=True,
                                     )
 
-                                    if ignore_invalid_signals:
+                                    if ignore_invalid_signals_current_dbc:
                                         max_flags.append([False])
                                         for ch_index, sig in enumerate(sigs, 1):
                                             max_flags[cg_nr].append(
                                                 np.all(sig.invalidation_bits)
                                             )
+                                    else:
+                                        max_flags.append([False] * (len(sigs) + 1))
 
                                 else:
 
@@ -4305,14 +4309,14 @@ class MDF:
                                             (
                                                 signal["samples"],
                                                 signal["invalidation_bits"]
-                                                if ignore_invalid_signals
+                                                if ignore_invalid_signals_current_dbc
                                                 else None,
                                             )
                                         )
 
                                         t = signal["t"]
 
-                                    if ignore_invalid_signals:
+                                    if ignore_invalid_signals_current_dbc:
                                         for ch_index, sig in enumerate(sigs, 1):
                                             max_flags[index][ch_index] = max_flags[
                                                 index
@@ -4345,15 +4349,18 @@ class MDF:
 
         if ignore_invalid_signals:
             to_keep = []
+            all_channels = []
 
             for i, group in enumerate(out.groups):
                 for j, channel in enumerate(group.channels[1:], 1):
                     if not max_flags[i][j]:
                         to_keep.append((None, i, j))
+                    all_channels.append((None, i, j))
 
-            tmp = out.filter(to_keep, out.version)
-            out.close()
-            out = tmp
+            if to_keep != all_channels:
+                tmp = out.filter(to_keep, out.version)
+                out.close()
+                out = tmp
 
         if self._callback:
             self._callback(100, 100)
