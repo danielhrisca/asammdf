@@ -1,5 +1,5 @@
 environment:
-  EXE_BRANCH: "master"
+  EXE_BRANCH: "development"
   EXE_BRANCH_MACOS: "master"
 
   matrix:
@@ -134,7 +134,7 @@ for:
 
     install:
       - sh: >-
-          for PY in venv3.6 venv3.7 venv3.8 venv3.9
+          for PY in venv3.7 venv3.8 venv3.9
               do
                   echo "====================================================================="
                   echo "Python version $PY"
@@ -151,7 +151,7 @@ for:
                   
                   if [[ $APPVEYOR_REPO_BRANCH == "development" && $PY == "venv3.7" ]]
                   then
-                      pip install lxml natsort psutil PyQt5>=5.13.1 pyqtgraph==0.12.1 PyQtWebEngine h5py pyqtlet fastparquet scipy hdf5storage snappy cChardet==2.1.5 chardet --no-warn-script-location
+                      pip3 install lxml natsort psutil PyQt5>=5.13.1 pyqtgraph==0.12.1 PyQtWebEngine h5py pyqtlet fastparquet scipy hdf5storage snappy cChardet==2.1.5 chardet --no-warn-script-location
                       pip3 install .
                       pip3 install cmerg cryptography
                       pip3 install pyinstaller
