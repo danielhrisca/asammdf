@@ -156,7 +156,7 @@ for:
                       pip3 install cmerg cryptography
                       pip3 install pyinstaller
                       pyinstaller asammdf.spec --clean -y --onefile
-                      cp dist\asammdfgui dist\asammfgui_onefile
+                      cp dist/asammdfgui dist/asammfgui_onefile
                       pyinstaller asammdf.spec --clean -y
                   else
                       pip3 install .
@@ -261,7 +261,7 @@ for:
                       pip3 install cmerg cryptography
                       pip3 install pyinstaller
                       pyinstaller asammdf.spec --clean -y --onefile --log-level WARN
-                      cp dist\asammdfgui dist\asammfgui_onefile
+                      cp dist/asammdfgui dist/asammfgui_onefile
                       pyinstaller asammdf.spec --clean -y --log-level WARN
                   else
                       pip3 install .
