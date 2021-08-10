@@ -1743,7 +1743,10 @@ class MDF:
     ):
         """concatenates several files. The files
         must have the same internal structure (same number of groups, and same
-        channels in each group)
+        channels in each group).
+
+        The order of the input files is always preserved, only the samples timestamps are influenced
+        by the ``sync`` argument.
 
         Parameters
         ----------
@@ -1758,7 +1761,9 @@ class MDF:
         version : str
             merged file version
         sync : bool
-            sync the files based on the start of measurement, default *True*
+            sync the files based on the start of measurement, default *True*. The order of the
+            input files is preserved, only the samples timestamps are influenced by this
+            argument
         add_samples_origin : bool
             option to create a new "__samples_origin" channel that will hold
             the index of the measurement from where each timestamp originated

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from datetime import datetime, timezone, timedelta
 import os
 from pathlib import Path
 
@@ -8,6 +9,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ...blocks.utils import extract_cncomment_xml
 from ...mdf import MDF, SUPPORTED_VERSIONS
+from ...blocks.v4_blocks import HeaderBlock as HeaderBlockV4
+from ...blocks.v2_v3_blocks import HeaderBlock as HeaderBlockV3
 from ..dialogs.advanced_search import AdvancedSearch
 from ..ui import resource_rc as resource_rc
 from ..ui.batch_widget import Ui_batch_widget
@@ -42,9 +45,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.integer_interpolation = integer_interpolation
         self.float_interpolation = float_interpolation
 
+        self.files_list.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
+
         self.progress = None
-        self.files_list = MinimalListWidget()
-        self.splitter.addWidget(self.files_list)
         self.show()
 
         sizes = sum(self.splitter.sizes())
@@ -90,6 +93,8 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.apply_btn.clicked.connect(self.apply_processing)
         self.modify_output_folder_btn.clicked.connect(self.change_modify_output_folder)
         self.output_format.currentTextChanged.connect(self.output_format_changed)
+        self.sort_alphabetically_btn.clicked.connect(self.sort_alphabetically)
+        self.sort_by_start_time_btn.clicked.connect(self.sort_by_start_time)
 
         self.filter_view.setCurrentIndex(-1)
         self.filter_view.currentIndexChanged.connect(self._update_channel_tree)
@@ -1648,3 +1653,58 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             elif name:
                 self.export_compression.clear()
                 self.export_compression.setEnabled(False)
+
+    def sort_alphabetically(self, event=None):
+        count = self.files_list.count()
+
+        if not count:
+            return
+
+        source_files = natsorted([self.files_list.item(row).text() for row in range(count)])
+
+        self.files_list.clear()
+        self.files_list.addItems(source_files)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        for row in range(count):
+            self.files_list.item(row).setIcon(icon)
+
+    def sort_by_start_time(self, event=None):
+        count = self.files_list.count()
+
+        if not count:
+            return
+
+        source_files = [self.files_list.item(row).text() for row in range(count)]
+
+        start_times = []
+
+        for file_name in source_files:
+            with open(file_name, 'rb') as f:
+                f.seek(64)
+                blk_id = f.read(2)
+                block_type = HeaderBlockV4 if blk_id == b'##' else HeaderBlockV3
+                header = block_type(stream=f, address=64)
+                start_times.append((header.start_time, file_name))
+
+        try:
+            start_times = sorted(start_times)
+        except TypeError:
+            start_times = [
+                (st.replace(tzinfo=timezone.utc), name)
+                for (st, name) in start_times
+            ]
+            start_times = sorted(start_times)
+
+        self.files_list.clear()
+        self.files_list.addItems([item[1] for item in start_times])
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        for row in range(count):
+            self.files_list.item(row).setIcon(icon)

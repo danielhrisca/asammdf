@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from struct import pack
+from datetime import datetime, date
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -109,3 +110,42 @@ class TreeWidget(QtWidgets.QTreeWidget):
         drag = QtGui.QDrag(self)
         drag.setMimeData(mimeData)
         drag.exec_(QtCore.Qt.MoveAction)
+
+
+class FileTreeItem(QtWidgets.QTreeWidgetItem):
+
+    def __init__(self, path, start_time, parent=None):
+        if isinstance(start_time, datetime):
+            start_time = start_time.isoformat()
+
+        super().__init__(parent, [path, start_time])
+
+    def __lt__(self, otherItem):
+        column = self.treeWidget().sortColumn()
+
+        if column == 1:
+            val1 = datetime.fromisoformat(self.text(column))
+            val2 = datetime.fromisoformat(otherItem.text(column))
+
+            return val1 < val2
+        else:
+            return self.text(column) < otherItem.text(column)
+
+    def __del__(self):
+        self.entry = self.name = self.mdf_uuid = None
+
+
+class FileTreeWidget(QtWidgets.QTreeWidget):
+    def __init__(self, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+        self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
+        self.setUniformRowHeights(True)
+
+        self.mode = "Natural sort"
+
+
+if __name__ == "__main__":
+    pass

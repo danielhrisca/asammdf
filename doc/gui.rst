@@ -332,6 +332,7 @@ Channels can be dragged and dropped between sub-plots for easier configuration.
 Multiple files
 ==============
 The *Multiple files* toolbox page is used to concatenate or stack multiple files. 
+Keep in mind that the order of the input files is always preserved, only the samples timestamps are influenced by the ``Sync using measurements timestamps`` checkbox.
 
 .. image:: images/multiple_files.png
 
