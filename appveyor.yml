@@ -5,8 +5,8 @@ environment:
   matrix:
     #- APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
     #- APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
-     - APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
-    #- APPVEYOR_BUILD_WORKER_IMAGE: macos
+    #- APPVEYOR_BUILD_WORKER_IMAGE: ubuntu2004
+    - APPVEYOR_BUILD_WORKER_IMAGE: macos
     #- APPVEYOR_BUILD_WORKER_IMAGE: macos-mojave
 
 for:
@@ -134,7 +134,7 @@ for:
 
     install:
       - sh: >-
-          for PY in venv3.7 venv3.8 venv3.9
+          for PY in venv3.6 venv3.7 venv3.8 venv3.9
               do
                   echo "====================================================================="
                   echo "Python version $PY"
@@ -156,8 +156,7 @@ for:
                       pip3 install cmerg cryptography
                       pip3 install pyinstaller
                       pyinstaller asammdf.spec --clean -y --onefile
-                      cp dist/asammdfgui dist/asammfgui_onefile
-                      pyinstaller asammdf.spec --clean -y
+                      cp dist/asammdfgui dist/asammfgui_linux
                   else
                       pip3 install .
                   fi
@@ -261,8 +260,7 @@ for:
                       pip3 install cmerg cryptography
                       pip3 install pyinstaller
                       pyinstaller asammdf.spec --clean -y --onefile --log-level WARN
-                      cp dist/asammdfgui dist/asammfgui_onefile
-                      pyinstaller asammdf.spec --clean -y --log-level WARN
+                      cp dist/asammdfgui dist/asammfgui_macos
                   else
                       pip3 install .
                   fi
