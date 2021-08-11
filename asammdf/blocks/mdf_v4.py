@@ -6702,7 +6702,7 @@ class MDF4(MDF_Common):
                             for j in range(shape[0]):
                                 key = f"axis_{i}_value_{j}"
                                 axis.append(ca_block[key])
-                            axis = array([axis for _ in range(cycles_nr)])
+                            axis = array([axis for _ in range(cycles_nr)], dtype=f'{shape}f8')
                             arrays.append(axis)
                             dtype_pair = (f"axis_{i}", axis.dtype, shape)
                             types.append(dtype_pair)
@@ -6714,10 +6714,7 @@ class MDF4(MDF_Common):
 
                             if axis is None:
                                 axisname = f"axis_{i}"
-                                if cycles:
-                                    axis_values = array([arange(shape[0])] * cycles)
-                                else:
-                                    axis_values = array([], dtype=f"({shape[0]},)f8")
+                                axis_values = array([arange(shape[0])] * cycles, dtype=f"({shape[0]},)f8")
 
                             else:
                                 try:
@@ -6782,7 +6779,8 @@ class MDF4(MDF_Common):
                         for j in range(shape[0]):
                             key = f"axis_{i}_value_{j}"
                             axis.append(ca_block[key])
-                        axis = array([axis for _ in range(cycles_nr)])
+
+                        axis = array([axis for _ in range(cycles_nr)], dtype=f'{shape}f8')
                         arrays.append(axis)
                         types.append((f"axis_{i}", axis.dtype, shape))
                 else:
@@ -6792,10 +6790,7 @@ class MDF4(MDF_Common):
 
                         if axis is None:
                             axisname = f"axis_{i}"
-                            if cycles:
-                                axis_values = array([arange(shape[0])] * cycles)
-                            else:
-                                axis_values = array([], dtype=f"({shape[0]},)f8")
+                            axis_values = array([arange(shape[0])] * cycles, dtype=f"({shape[0]},)f8")
 
                         else:
                             try:
