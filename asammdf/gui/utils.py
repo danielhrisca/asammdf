@@ -330,6 +330,7 @@ def run_thread_with_progress(
                     )
                 else:
                     progress.setRange(0, 0)
+        QtCore.QCoreApplication.processEvents()
         sleep(0.1)
 
     if termination_request:
