@@ -451,7 +451,7 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
     else:
         if size > 64 and data_type in (
             v4c.DATA_TYPE_UNSIGNED_INTEL,
-            v4c.DATA_TYPE_UNSIGNED,
+            v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
         ):
             fmt = f"({size // 8},)u1"
         else:
