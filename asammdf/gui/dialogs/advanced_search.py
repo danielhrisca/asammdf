@@ -26,6 +26,8 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
+        self.selection.all_texts = True
+
         self.result = set()
         self.add_window_request = False
         self.channels_db = channels_db

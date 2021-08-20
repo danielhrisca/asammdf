@@ -395,6 +395,7 @@ class MinimalListWidget(QtWidgets.QListWidget):
         self.itemSelectionChanged.connect(self.item_selection_changed)
 
         self.minimal_menu = False
+        self.all_texts = False
 
     def item_selection_changed(self, item=None):
         try:
@@ -414,15 +415,39 @@ class MinimalListWidget(QtWidgets.QListWidget):
         if key == QtCore.Qt.Key_Delete:
             selected_items = self.selectedItems()
             deleted = []
-            for item in selected_items:
-                row = self.row(item)
-                deleted.append(row)
-                item_widget = self.itemWidget(item)
-                if hasattr(item_widget, "disconnect_slots"):
-                    item_widget.disconnect_slots()
-                self.takeItem(row)
+
+            if self.all_texts:
+                to_delete = set()
+                for item in selected_items:
+                    row = self.row(item)
+                    deleted.append(row)
+                    item_widget = self.itemWidget(item)
+                    if hasattr(item_widget, "disconnect_slots"):
+                        item_widget.disconnect_slots()
+                    to_delete.add(item.text())
+
+                all_texts = set()
+
+                count = self.count()
+                for row in range(count):
+                    item = self.item(row)
+                    all_texts.add(item.text())
+
+                self.clear()
+                self.addItems(sorted(all_texts - to_delete))
+
+            else:
+                for item in selected_items:
+                    row = self.row(item)
+                    deleted.append(row)
+                    item_widget = self.itemWidget(item)
+                    if hasattr(item_widget, "disconnect_slots"):
+                        item_widget.disconnect_slots()
+                    self.takeItem(row)
+
             if deleted:
                 self.itemsDeleted.emit(deleted)
+
         elif key == QtCore.Qt.Key_C and modifiers == QtCore.Qt.ControlModifier:
             try:
                 text = [item.text() for item in self.selectedItems()]
