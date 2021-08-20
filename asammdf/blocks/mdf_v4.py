@@ -6085,7 +6085,7 @@ class MDF4(MDF_Common):
                 # for external attachments read the file and return the content
                 if flags & v4c.FLAG_AT_MD5_VALID:
                     data = open(file_path, "rb").read()
-                    file_path = Path(f"FROM_{file_path}")
+
                     md5_worker = md5()
                     md5_worker.update(data)
                     md5_sum = md5_worker.digest()
@@ -6106,7 +6106,6 @@ class MDF4(MDF_Common):
                     else:
                         mode = "rb"
                     with open(file_path, mode) as f:
-                        file_path = Path(f"FROM_{file_path}")
                         data = f.read()
                         md5_worker = md5()
                         md5_worker.update(data)
