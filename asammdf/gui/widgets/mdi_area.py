@@ -92,6 +92,7 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
         super().__init__(*args, **kwargs)
 
         self.setAcceptDrops(True)
+        self.placeholder_text = "Drag and drop channels, or select channels and press the <Create window> button, to create new windows"
         self.show()
 
     def dragEnterEvent(self, e):
@@ -158,6 +159,21 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
             window.setGeometry(rect)
             window.move(position)
             position.setX(position.x() + ratio)
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        sub_windows = self.subWindowList()
+        if not sub_windows and self.placeholder_text:
+            painter = QtGui.QPainter(self.viewport())
+            painter.save()
+            col = self.palette().placeholderText().color()
+            painter.setPen(col)
+            fm = self.fontMetrics()
+            elided_text = fm.elidedText(
+                self.placeholder_text, QtCore.Qt.ElideRight, self.viewport().width()
+            )
+            painter.drawText(self.viewport().rect(), QtCore.Qt.AlignCenter, elided_text)
+            painter.restore()
 
 
 class WithMDIArea:
@@ -1032,7 +1048,12 @@ class WithMDIArea:
             signals = natsorted(signals, key=lambda x: x.name)
 
         if window_type == "Numeric":
-            numeric = Numeric(signals)
+            numeric = Numeric([], parent=self)
+
+            numeric.show()
+            numeric.hide()
+
+            numeric.add_new_channels(signals)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
@@ -1068,6 +1089,8 @@ class WithMDIArea:
             )
             if self.subplots_link:
                 numeric.timestamp_changed_signal.connect(self.set_cursor)
+
+            numeric.show()
 
         elif window_type == "Bar":
             bar = Bar(signals)
@@ -1167,6 +1190,7 @@ class WithMDIArea:
                 line_interconnect=self.line_interconnect,
                 origin=origin,
                 mdf=mdf,
+                parent=self
             )
 
             if not self.subplots:
@@ -1281,7 +1305,7 @@ class WithMDIArea:
             self.set_subplots_link(self.subplots_link)
 
         elif window_type == "Tabular":
-            numeric = Tabular(signals, start=start)
+            numeric = Tabular(signals, start=start, parent=self)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
@@ -1450,8 +1474,12 @@ class WithMDIArea:
 
                 signals.extend(not_found)
 
-            numeric = Numeric(signals)
+            numeric = Numeric([], parent=self)
+            numeric.show()
+            numeric.hide()
+            numeric.add_new_channels(signals)
             numeric.pattern = pattern_info
+            numeric.show()
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
@@ -1853,6 +1881,7 @@ class WithMDIArea:
                 events=events,
                 origin=origin,
                 mdf=mdf,
+                parent=self,
             )
             plot.pattern = pattern_info
 
@@ -1886,7 +1915,7 @@ class WithMDIArea:
                     sig.mode = channel["mode"]
                     needs_update = True
             if needs_update:
-                plot.plot.update_lines(force=True)
+                plot.plot.update_lines()
 
             plot.show()
 
@@ -2057,7 +2086,7 @@ class WithMDIArea:
                 vals.fill(np.NaN)
                 signals[name] = pd.Series(vals, index=signals.index)
 
-            tabular = Tabular(signals, start=self.mdf.header.start_time.timestamp())
+            tabular = Tabular(signals, start=self.mdf.header.start_time.timestamp(), parent=self)
             tabular.pattern = pattern_info
 
             if not self.subplots:
@@ -2143,7 +2172,9 @@ class WithMDIArea:
 
         current_plot = self.get_current_widget()
         if current_plot and isinstance(current_plot, Plot):
-            current_plot.plot.update_lines(with_dots=with_dots)
+            current_plot.with_dots = with_dots
+            current_plot.plot.with_dots = with_dots
+            current_plot.plot.update_lines()
 
     def set_line_interconnect(self, line_interconnect):
 
@@ -2156,7 +2187,7 @@ class WithMDIArea:
             if isinstance(widget, Plot):
                 widget.line_interconnect = line_interconnect
                 widget.plot.line_interconnect = line_interconnect
-                widget.plot.update_lines(line_interconnect=True)
+                widget.plot.update_lines()
 
     def set_subplots(self, option):
         self.subplots = option

@@ -812,19 +812,19 @@ class Plot(QtWidgets.QWidget):
         # self.setLayout(main_layout)
 
         vbox = QtWidgets.QVBoxLayout()
+        vbox.setSpacing(1)
+        vbox.setContentsMargins(1, 1, 1, 1)
         widget = QtWidgets.QWidget()
         self.channel_selection = ListWidget()
+        self.channel_selection.setUniformItemSizes(True)
         self.channel_selection.setAlternatingRowColors(False)
         self.channel_selection.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
-        hbox = QtWidgets.QHBoxLayout()
-        hbox.addWidget(QtWidgets.QLabel("Cursor/Range information"))
         self.cursor_info = QtWidgets.QLabel("")
         self.cursor_info.setTextFormat(QtCore.Qt.RichText)
         self.cursor_info.setAlignment(
             QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
         )
-        hbox.addWidget(self.cursor_info)
-        vbox.addLayout(hbox)
+        vbox.addWidget(self.cursor_info)
         vbox.addWidget(self.channel_selection)
         widget.setLayout(vbox)
 
@@ -1086,11 +1086,7 @@ class Plot(QtWidgets.QWidget):
 
         self.cursor_info.setText(
             (
-                "< html > < head / > < body >"
-                f"< p >t1 = {start_info}< / p > "
-                f"< p >t2 = {stop_info}< / p > "
-                f"< p >Δt = {delta_info}< / p > "
-                "< / body > < / html >"
+                f"t1 = {start_info}, t2 = {stop_info}, Δt = {delta_info}"
             )
         )
 
@@ -1284,7 +1280,7 @@ class Plot(QtWidgets.QWidget):
                         self.plot.y_axis.hide()
                         self.plot.y_axis.show()
 
-            self.plot.update_lines(force=True)
+            self.plot.update_lines()
 
             if self.plot.cursor1:
                 self.plot.cursor_moved.emit()
@@ -1473,7 +1469,7 @@ class Plot(QtWidgets.QWidget):
                 sig.mdf_uuid,
             )
             item.setData(QtCore.Qt.UserRole, sig.name)
-            tooltip = getattr(sig, "tooltip", "") or sig.comment
+            tooltip = getattr(sig, "tooltip", "") or f"{sig.name}\n{sig.comment}"
             if sig.source:
                 src = sig.source
                 source_type = v4c.SOURCE_TYPE_TO_STRING[src.source_type]
@@ -1500,6 +1496,7 @@ class Plot(QtWidgets.QWidget):
             it.set_value("")
             it.set_color(sig.color)
             item.setSizeHint(it.sizeHint())
+
             self.channel_selection.addItem(item)
             self.channel_selection.setItemWidget(item, it)
 
@@ -1804,83 +1801,78 @@ class _Plot(pg.PlotWidget):
         if signals:
             self.update_views()
 
-    def update_lines(self, with_dots=None, force=False, line_interconnect=False):
-        with_dots_changed = False
+    def update_signal_curve(self, signal, signal_index):
+        sig = signal
+        color = sig.color
+        t = sig.plot_timestamps
 
-        if with_dots is not None and with_dots != self.with_dots:
-            self.with_dots = with_dots
-            self.curvetype = pg.PlotDataItem if with_dots else pg.PlotCurveItem
-            with_dots_changed = True
+        if sig.mode == "raw":
+            style = QtCore.Qt.DashLine
+        else:
+            style = QtCore.Qt.SolidLine
 
-        if self.curves and (with_dots_changed or force or line_interconnect):
+        curve = self.curves[signal_index]
+
+        if not isinstance(curve, self.curvetype):
+            curve = self.curvetype(
+                t,
+                sig.plot_samples,
+                pen={"color": color, "style": style},
+                symbolBrush=color,
+                symbolPen=color,
+                symbol="o",
+                symbolSize=4,
+                clickable=True,
+                mouseWidth=30,
+                dynamicRangeLimit=None,
+                stepMode=self.line_interconnect,
+            )
+
+            curve.sigClicked.connect(partial(self.curve_clicked.emit, signal_index))
+
+            self.view_boxes[signal_index].removeItem(self.curves[signal_index])
+
+            self.curves[signal_index] = curve
+
+            self.view_boxes[signal_index].addItem(curve)
+        else:
+            if self.with_dots or self.line_interconnect != curve.opts['stepMode']:
+                pen = pg.mkPen(color=color, style=style)
+                curve.opts["pen"] = pen
+                curve.setData(
+                    x=t, y=sig.plot_samples, stepMode=self.line_interconnect
+                )
+                curve.update()
+            else:
+                curve.invalidateBounds()
+                curve._boundsCache = [
+                    [(1, None), (t[0], t[-1])],
+                    [(1, None), (sig.min, sig.max)],
+                ]
+
+                curve.xData = t
+                curve.yData = sig.plot_samples
+                curve.path = None
+                curve.fillPath = None
+                curve._mouseShape = None
+                curve.prepareGeometryChange()
+                curve.informViewBoundsChanged()
+                if curve.opts["pen"].style() != style:
+                    curve.opts["pen"].setStyle(style)
+                curve.update()
+
+    def update_lines(self):
+        self.curvetype = pg.PlotDataItem if self.with_dots else pg.PlotCurveItem
+
+        if self.curves:
             for sig in self.signals:
-                _, i = self.signal_by_uuid(sig.uuid)
-                color = sig.color
-                t = sig.plot_timestamps
+                _, signal_index = self.signal_by_uuid(sig.uuid)
 
-                if sig.mode == "raw":
-                    style = QtCore.Qt.DashLine
+                if not sig.enable:
+                    self.curves[signal_index].hide()
                 else:
-                    style = QtCore.Qt.SolidLine
-
-                if not force:
-                    curve = self.curvetype(
-                        t,
-                        sig.plot_samples,
-                        pen={"color": color, "style": style},
-                        symbolBrush=color,
-                        symbolPen=color,
-                        symbol="o",
-                        symbolSize=4,
-                        clickable=True,
-                        mouseWidth=30,
-                        dynamicRangeLimit=None,
-                        stepMode=self.line_interconnect,
-                    )
-
-                    curve.sigClicked.connect(partial(self.curve_clicked.emit, i))
-
-                    self.view_boxes[i].removeItem(self.curves[i])
-
-                    self.curves[i] = curve
-
-                    self.view_boxes[i].addItem(curve)
-                else:
-                    curve = self.curves[i]
-
-                    if len(t):
-
-                        if self.with_dots or line_interconnect:
-                            #                            curve.setPen({'color': color, 'style': style})
-                            pen = pg.mkPen(color=color, style=style)
-                            curve.opts["pen"] = pen
-                            curve.setData(
-                                x=t, y=sig.plot_samples, stepMode=self.line_interconnect
-                            )
-                            curve.update()
-                        else:
-                            curve.invalidateBounds()
-                            curve._boundsCache = [
-                                [(1, None), (t[0], t[-1])],
-                                [(1, None), (sig.min, sig.max)],
-                            ]
-
-                            curve.xData = t
-                            curve.yData = sig.plot_samples
-                            curve.path = None
-                            curve.fillPath = None
-                            curve._mouseShape = None
-                            curve.prepareGeometryChange()
-                            curve.informViewBoundsChanged()
-                            if curve.opts["pen"].style() != style:
-                                curve.opts["pen"].setStyle(style)
-                            curve.update()
-                #                            curve.sigPlotChanged.emit(curve)
-
-                if sig.enable:
-                    curve.show()
-                else:
-                    curve.hide()
+                    self.update_signal_curve(sig, signal_index)
+                    self.curves[signal_index].show()
 
     def set_color(self, uuid, color):
         _, index = self.signal_by_uuid(uuid)
@@ -1932,9 +1924,14 @@ class _Plot(pg.PlotWidget):
         sig, index = self.signal_by_uuid(uuid)
 
         if state in (QtCore.Qt.Checked, True, 1):
-            self.signals[index].enable = True
+            (start, stop), _ = self.viewbox.viewRange()
+            width = self.width() - self.y_axis.width()
+            signal = self.signals[index]
+
+            signal.enable = True
+            signal.trim(start, stop, width)
             self.view_boxes[index].setXLink(self.viewbox)
-            if self.signals[index].individual_axis:
+            if signal.individual_axis:
                 self.axes[index].show()
 
             uuids = self._timebase_db.setdefault(id(sig.timestamps), set())
@@ -1957,7 +1954,7 @@ class _Plot(pg.PlotWidget):
 
     def _signals_enabled_changed_handler(self):
         self._compute_all_timebase()
-        self.update_lines(force=True)
+        self.update_lines()
         if self.cursor1:
             self.cursor_move_finished.emit()
 
@@ -2344,11 +2341,12 @@ class _Plot(pg.PlotWidget):
         width = self.width() - self.y_axis.width()
 
         for sig in signals:
-            sig.trim(start, stop, width)
+            if sig.enable:
+                sig.trim(start, stop, width)
 
     def xrange_changed_handle(self):
         self.trim()
-        self.update_lines(force=True)
+        self.update_lines()
 
     def _resizeEvent(self, ev):
 
@@ -2513,8 +2511,8 @@ class _Plot(pg.PlotWidget):
             self.layout.addItem(axis, 2, self._axes_layout_pos)
             self._axes_layout_pos += 1
 
-            self.layout.addItem(view_box, 2, 1)
-            # self.scene_.addItem(view_box)
+            #self.layout.addItem(view_box, 2, 1)
+            self.scene_.addItem(view_box)
 
             t = sig.plot_timestamps
 

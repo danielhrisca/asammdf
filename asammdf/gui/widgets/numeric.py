@@ -25,7 +25,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
     timestamp_changed_signal = QtCore.pyqtSignal(object, float)
 
     def __init__(self, signals, format="phys", *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super(QtWidgets.QWidget, self).__init__(*args, **kwargs)
         self.setupUi(self)
         for sig in signals:
             sig.timestamps = np.around(sig.timestamps, 9)

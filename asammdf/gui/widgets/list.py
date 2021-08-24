@@ -396,6 +396,7 @@ class MinimalListWidget(QtWidgets.QListWidget):
 
         self.minimal_menu = False
         self.all_texts = False
+        self.placeholder_text = ""
 
     def item_selection_changed(self, item=None):
         try:
@@ -509,3 +510,17 @@ class MinimalListWidget(QtWidgets.QListWidget):
                 QtCore.QEvent.KeyPress, QtCore.Qt.Key_V, QtCore.Qt.ControlModifier
             )
             self.keyPressEvent(event)
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if self.count() == 0 and self.placeholder_text:
+            painter = QtGui.QPainter(self.viewport())
+            painter.save()
+            col = self.palette().placeholderText().color()
+            painter.setPen(col)
+            fm = self.fontMetrics()
+            elided_text = fm.elidedText(
+                self.placeholder_text, QtCore.Qt.ElideRight, self.viewport().width()
+            )
+            painter.drawText(self.viewport().rect(), QtCore.Qt.AlignCenter, elided_text)
+            painter.restore()
