@@ -122,6 +122,7 @@ class PlotSignal(Signal):
         else:
             color = COLORS[index % 10]
         self.color = color
+        self.pen = pg.mkPen(color=color, style=QtCore.Qt.SolidLine)
 
         if len(self.phys_samples) and not fast:
 
@@ -1236,11 +1237,15 @@ class Plot(QtWidgets.QWidget):
 
             if key == QtCore.Qt.Key_R:
                 mode = "raw"
+                style = QtCore.Qt.DashLine
+
             else:
                 mode = "phys"
+                style = QtCore.Qt.SolidLine
 
             for signal, idx in signals:
                 if signal.mode != mode:
+                    signal.pen = pg.mkPen(color=signal.color, style=style)
 
                     view = self.plot.view_boxes[idx]
                     _, (buttom, top) = view.viewRange()
@@ -1805,11 +1810,7 @@ class _Plot(pg.PlotWidget):
         sig = signal
         color = sig.color
         t = sig.plot_timestamps
-
-        if sig.mode == "raw":
-            style = QtCore.Qt.DashLine
-        else:
-            style = QtCore.Qt.SolidLine
+        pen = sig.pen
 
         curve = self.curves[signal_index]
 
@@ -1817,7 +1818,7 @@ class _Plot(pg.PlotWidget):
             curve = self.curvetype(
                 t,
                 sig.plot_samples,
-                pen={"color": color, "style": style},
+                pen=pen,
                 symbolBrush=color,
                 symbolPen=color,
                 symbol="o",
@@ -1837,7 +1838,6 @@ class _Plot(pg.PlotWidget):
             self.view_boxes[signal_index].addItem(curve)
         else:
             if self.with_dots or self.line_interconnect != curve.opts['stepMode']:
-                pen = pg.mkPen(color=color, style=style)
                 curve.opts["pen"] = pen
                 curve.setData(
                     x=t, y=sig.plot_samples, stepMode=self.line_interconnect
@@ -1857,8 +1857,7 @@ class _Plot(pg.PlotWidget):
                 curve._mouseShape = None
                 curve.prepareGeometryChange()
                 curve.informViewBoundsChanged()
-                if curve.opts["pen"].style() != style:
-                    curve.opts["pen"].setStyle(style)
+                curve.opts["pen"] = pen
                 curve.update()
 
     def update_lines(self):
