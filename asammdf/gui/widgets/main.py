@@ -309,9 +309,9 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/fit.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        fullscreen = QtWidgets.QAction(icon, f"{'Fullscreen': <20}\tF8", menu)
+        fullscreen = QtWidgets.QAction(icon, f"{'Fullscreen': <20}\tF11", menu)
         fullscreen.triggered.connect(self.toggle_fullscreen)
-        fullscreen.setShortcut(QtCore.Qt.Key_F8)
+        fullscreen.setShortcut(QtCore.Qt.Key_F11)
 
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/fit.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
@@ -1171,7 +1171,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                         ]
                         self.add_window((ret, names))
 
-        elif key == QtCore.Qt.Key_F8:
+        elif key == QtCore.Qt.Key_F11:
             self.toggle_fullscreen()
 
         elif key in (QtCore.Qt.Key_F2, QtCore.Qt.Key_F3, QtCore.Qt.Key_F4):

@@ -1070,7 +1070,7 @@ class WithMDIArea:
 
             numeric.add_new_channels(signals)
 
-            sub = MdiSubWindow()
+            sub = MdiSubWindow(parent=self)
             sub.setWidget(numeric)
             sub.sigClosed.connect(self.window_closed_handler)
 
@@ -1114,7 +1114,7 @@ class WithMDIArea:
         elif window_type == "Bar":
             bar = Bar(signals)
 
-            sub = MdiSubWindow()
+            sub = MdiSubWindow(parent=self)
             sub.setWidget(bar)
             sub.sigClosed.connect(self.window_closed_handler)
 
@@ -1216,7 +1216,7 @@ class WithMDIArea:
                 parent=self
             )
 
-            sub = MdiSubWindow()
+            sub = MdiSubWindow(parent=self)
             sub.setWidget(plot)
             sub.sigClosed.connect(self.window_closed_handler)
 
@@ -1334,7 +1334,7 @@ class WithMDIArea:
         elif window_type == "Tabular":
             numeric = Tabular(signals, start=start, parent=self)
 
-            sub = MdiSubWindow()
+            sub = MdiSubWindow(parent=self)
             sub.setWidget(numeric)
             sub.sigClosed.connect(self.window_closed_handler)
 
