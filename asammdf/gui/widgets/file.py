@@ -1083,8 +1083,34 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         iterator += 1
 
-            for window in info.get("windows", []):
-                self.load_window(window)
+            windows = info.get("windows", [])
+
+            if windows:
+                count = len(windows)
+
+                progress = setup_progress(
+                    parent=self,
+                    title=f"Loading display windows",
+                    message=f"",
+                    icon_name="window",
+                )
+                progress.setRange(0, count-1)
+                progress.resize(500, progress.height())
+
+                try:
+                    for i, window in enumerate(windows, 1):
+                        window_type = window['type']
+                        window_title = window['title']
+                        progress.setLabelText(
+                            f"Loading {window_type} window <{window_title}>"
+                        )
+                        QtWidgets.QApplication.processEvents()
+                        self.load_window(window)
+                        progress.setValue(i)
+                except:
+                    print(format_exc())
+                finally:
+                    progress.cancel()
 
     def save_filter_list(self):
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(

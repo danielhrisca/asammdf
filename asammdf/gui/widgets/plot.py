@@ -10,6 +10,23 @@ import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
 
+def _keys(self, styles):
+    def getId(obj):
+        try:
+            return obj._id
+        except AttributeError:
+            obj._id = next(pg.graphicsItems.ScatterPlotItem.SymbolAtlas._idGenerator)
+            return obj._id
+
+    res = [
+        (symbol if isinstance(symbol, (str, int)) else getId(symbol), size, getId(pen), getId(brush))
+        for symbol, size, pen, brush in styles[:1]
+    ]
+    
+    return res
+
+# speed-up monkey patches
+pg.graphicsItems.ScatterPlotItem.SymbolAtlas._keys = _keys
 pg.graphicsItems.ScatterPlotItem._USE_QRECT = False
 
 from ...blocks import v4_constants as v4c
@@ -29,17 +46,6 @@ from .list_item import ListItem
 bin_ = bin
 
 HERE = Path(__file__).resolve().parent
-
-
-if not hasattr(pg.InfiniteLine, "addMarker"):
-    logger = logging.getLogger("asammdf")
-    message = (
-        "Old pyqtgraph package: Please install the latest pyqtgraph from the "
-        "github develop branch\n"
-        "pip install -I --no-deps "
-        "https://github.com/pyqtgraph/pyqtgraph/archive/develop.zip"
-    )
-    logger.warning(message)
 
 
 class PlotSignal(Signal):
@@ -1837,7 +1843,7 @@ class _Plot(pg.PlotWidget):
 
             self.view_boxes[signal_index].addItem(curve)
         else:
-            if self.with_dots or self.line_interconnect != curve.opts['stepMode']:
+            if self.with_dots or self.line_interconnect != curve.opts['stepMode'] or not len(t):
                 curve.opts["pen"] = pen
                 curve.setData(
                     x=t, y=sig.plot_samples, stepMode=self.line_interconnect

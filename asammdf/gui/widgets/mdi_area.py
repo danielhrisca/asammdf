@@ -83,6 +83,18 @@ def parse_matrix_component(name):
     return name, tuple(indexes)
 
 
+class MdiSubWindow(QtWidgets.QMdiSubWindow):
+    sigClosed = QtCore.pyqtSignal()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+
+    def closeEvent(self, event):
+        super().closeEvent(event)
+        self.sigClosed.emit()
+
+
 class MdiAreaWidget(QtWidgets.QMdiArea):
 
     add_window_request = QtCore.pyqtSignal(list)
@@ -177,6 +189,9 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
 
 
 class WithMDIArea:
+
+    windows_modified = QtCore.pyqtSignal()
+
     def __init__(self, *args, **kwargs):
         self._cursor_source = None
         self._region_source = None
@@ -1055,14 +1070,18 @@ class WithMDIArea:
 
             numeric.add_new_channels(signals)
 
+            sub = MdiSubWindow()
+            sub.setWidget(numeric)
+            sub.sigClosed.connect(self.window_closed_handler)
+
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
                     mdi.close()
-                w = self.mdi_area.addSubWindow(numeric)
+                w = self.mdi_area.addSubWindow(sub)
 
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(numeric)
+                w = self.mdi_area.addSubWindow(sub)
 
                 if len(self.mdi_area.subWindowList()) == 1:
                     w.showMaximized()
@@ -1095,14 +1114,18 @@ class WithMDIArea:
         elif window_type == "Bar":
             bar = Bar(signals)
 
+            sub = MdiSubWindow()
+            sub.setWidget(bar)
+            sub.sigClosed.connect(self.window_closed_handler)
+
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
                     mdi.close()
-                w = self.mdi_area.addSubWindow(bar)
+                w = self.mdi_area.addSubWindow(sub)
 
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(bar)
+                w = self.mdi_area.addSubWindow(sub)
 
                 if len(self.mdi_area.subWindowList()) == 1:
                     w.showMaximized()
@@ -1193,14 +1216,18 @@ class WithMDIArea:
                 parent=self
             )
 
+            sub = MdiSubWindow()
+            sub.setWidget(plot)
+            sub.sigClosed.connect(self.window_closed_handler)
+
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
                     mdi.close()
-                w = self.mdi_area.addSubWindow(plot)
+                w = self.mdi_area.addSubWindow(sub)
 
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(plot)
+                w = self.mdi_area.addSubWindow(sub)
 
                 if len(self.mdi_area.subWindowList()) == 1:
                     w.showMaximized()
@@ -1307,14 +1334,18 @@ class WithMDIArea:
         elif window_type == "Tabular":
             numeric = Tabular(signals, start=start, parent=self)
 
+            sub = MdiSubWindow()
+            sub.setWidget(numeric)
+            sub.sigClosed.connect(self.window_closed_handler)
+
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
                     mdi.close()
-                w = self.mdi_area.addSubWindow(numeric)
+                w = self.mdi_area.addSubWindow(sub)
 
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(numeric)
+                w = self.mdi_area.addSubWindow(sub)
 
                 if len(self.mdi_area.subWindowList()) == 1:
                     w.showMaximized()
@@ -1334,6 +1365,8 @@ class WithMDIArea:
             menu.insertAction(before, action)
 
             w.setWindowTitle(generate_window_title(w, window_type))
+
+        self.windows_modified.emit()
 
     def get_current_widget(self):
         mdi = self.mdi_area.activeSubWindow()
@@ -2348,3 +2381,6 @@ class WithMDIArea:
 
             msg = ChannelInfoDialog(channel, self)
             msg.show()
+
+    def window_closed_handler(self):
+        self.windows_modified.emit()
