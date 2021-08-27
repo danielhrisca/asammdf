@@ -14,6 +14,7 @@ from ...blocks.utils import (
     csv_int2hex,
     pandas_query_compatible,
 )
+from ...mdf import MDF
 from ..ui import resource_rc as resource_rc
 from ..ui.tabular import Ui_TabularDisplay
 from ..utils import run_thread_with_progress
@@ -586,6 +587,21 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
                 self.format_selection.setCurrentText("phys")
 
             event.accept()
+
+        elif key == QtCore.Qt.Key_S and modifier == QtCore.Qt.ControlModifier:
+            file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
+                self,
+                "Select output measurement file",
+                "",
+                "MDF version 4 files (*.mf4)",
+            )
+
+            if file_name:
+                signals = [signal for signal in self.signals if signal.enable]
+                if signals:
+                    with MDF() as mdf:
+                        mdf.append(self.df)
+                        mdf.save(file_name, overwrite=True)
         else:
             super().keyPressEvent(event)
 

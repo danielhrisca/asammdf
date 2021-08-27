@@ -36,6 +36,7 @@ class ListWidget(QtWidgets.QListWidget):
         self.itemSelectionChanged.connect(self.item_selection_changed)
 
         self.show()
+        self._has_hidden_items = False
 
     def item_selection_changed(self, item=None):
         selection = list(self.selectedItems())
@@ -202,6 +203,13 @@ class ListWidget(QtWidgets.QListWidget):
         menu.addAction(self.tr("Disable all"))
         menu.addAction(self.tr("Enable all but this"))
         menu.addSeparator()
+        if self._has_hidden_items:
+            show_hide = "Show disabled items"
+        else:
+            show_hide = "Hide disabled items"
+        menu.addAction(self.tr(show_hide))
+        menu.addSeparator()
+
         menu.addAction(self.tr("Add to common Y axis"))
         menu.addAction(self.tr("Remove from common Y axis"))
         menu.addSeparator()
@@ -266,6 +274,20 @@ class ListWidget(QtWidgets.QListWidget):
                     widget.display.setCheckState(QtCore.Qt.Unchecked)
                 else:
                     widget.display.setCheckState(QtCore.Qt.Checked)
+
+        elif action.text() == show_hide:
+            if self._has_hidden_items:
+                for i in range(self.count()):
+                    item = self.item(i)
+                    item.setHidden(False)
+            else:
+                for i in range(self.count()):
+                    item = self.item(i)
+                    widget = self.itemWidget(item)
+                    if not widget.display.isChecked():
+                        item.setHidden(True)
+
+            self._has_hidden_items = not self._has_hidden_items
 
         elif action.text() == "Add to common Y axis":
             selected_items = self.selectedItems()

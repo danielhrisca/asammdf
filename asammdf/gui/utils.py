@@ -104,7 +104,17 @@ def load_dsp(file):
             return channels, groups, all_channels, patterns
 
         for item in display.findall("CHANNEL"):
-            channels.add(item.get("name"))
+            color_ = int(item.get("color"))
+            c = 0
+            for i in range(3):
+                c = c << 8
+                c += color_ & 0xFF
+                color_ = color_ >> 8
+
+            if c in (0xFFFFFF, 0x0):
+                c = 0x808080
+
+            channels.add((item.get("name"), item.get("on") == "0", f"#{c:06X}"))
             all_channels = all_channels | channels
 
         for item in display.findall(f"GROUP{level}"):
@@ -201,16 +211,16 @@ def load_dsp(file):
     info["windows"] = windows = []
 
     if all_channels:
-        numeric = {
-            "type": "Numeric",
-            "title": "Numeric",
-            "configuration": {
-                "channels": all_channels,
-                "format": "phys",
-            },
-        }
-
-        windows.append(numeric)
+        # numeric = {
+        #     "type": "Numeric",
+        #     "title": "Numeric",
+        #     "configuration": {
+        #         "channels": all_channels,
+        #         "format": "phys",
+        #     },
+        # }
+        #
+        # windows.append(numeric)
 
         plot = {
             "type": "Plot",
@@ -218,10 +228,10 @@ def load_dsp(file):
             "configuration": {
                 "channels": [
                     {
-                        "color": COLORS[i % len(COLORS)],
+                        "color": color,
                         "common_axis": False,
                         "computed": False,
-                        "enabled": True,
+                        "enabled": enabled,
                         "fmt": "{}",
                         "individual_axis": False,
                         "name": name,
@@ -229,7 +239,7 @@ def load_dsp(file):
                         "ranges": [],
                         "unit": "",
                     }
-                    for i, name in enumerate(all_channels)
+                    for i, (name, enabled, color) in enumerate(all_channels)
                 ]
             },
         }

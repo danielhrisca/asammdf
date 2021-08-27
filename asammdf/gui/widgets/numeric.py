@@ -6,6 +6,7 @@ import numpy as np
 from numpy import searchsorted
 from PyQt5 import QtCore, QtWidgets
 
+from ...mdf import MDF
 from ..ui import resource_rc as resource_rc
 from ..ui.numeric import Ui_NumericDisplay
 from .tree_item import TreeItem
@@ -211,6 +212,10 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             if sig:
                 if np.any(np.diff(sig.timestamps) < 0):
                     invalid.append(sig.name)
+
+                # only physical samples are supported
+                if sig.conversion:
+                    sig.samples = sig.conversion.convert(sig.samples)
                 self.signals[sig.name] = sig
         if invalid:
             QtWidgets.QMessageBox.warning(
@@ -239,6 +244,36 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             self.timestamp_slider.setValue(self.timestamp_slider.value() + 1)
         elif key == QtCore.Qt.Key_Left and modifier == QtCore.Qt.NoModifier:
             self.timestamp_slider.setValue(self.timestamp_slider.value() - 1)
+        elif key == QtCore.Qt.Key_S and modifier == QtCore.Qt.ControlModifier:
+            file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
+                self,
+                "Select output measurement file",
+                "",
+                "MDF version 4 files (*.mf4)",
+            )
+
+            if file_name:
+                signals = [signal for signal in self.signals if signal.enable]
+                if signals:
+                    with MDF() as mdf:
+                        groups = {}
+                        for sig in signals:
+                            id_ = id(sig.timestamps)
+                            group_ = groups.setdefault(id_, [])
+                            group_.append(sig)
+
+                        for signals in groups.values():
+                            sigs = []
+                            for signal in signals:
+                                if ":" in signal.name:
+                                    sig = signal.copy()
+                                    sig.name = sig.name.split(":")[-1].strip()
+                                    sigs.append(sig)
+                                else:
+                                    sigs.append(signal)
+                            mdf.append(sigs, common_timebase=True)
+                        mdf.save(file_name, overwrite=True)
+
         else:
             super().keyPressEvent(event)
 

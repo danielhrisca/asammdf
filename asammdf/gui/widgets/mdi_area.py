@@ -68,6 +68,7 @@ def set_title(mdi):
     )
     if ok and name:
         mdi.setWindowTitle(generate_window_title(mdi, title=name))
+        mdi.titleModified.emit()
 
 
 def parse_matrix_component(name):
@@ -85,6 +86,7 @@ def parse_matrix_component(name):
 
 class MdiSubWindow(QtWidgets.QMdiSubWindow):
     sigClosed = QtCore.pyqtSignal()
+    titleModified = QtCore.pyqtSignal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -536,14 +538,19 @@ class WithMDIArea:
 
             numeric = CANBusTrace(signals, start=self.mdf.header.start_time.timestamp())
 
+            sub = MdiSubWindow(parent=self)
+            sub.setWidget(numeric)
+            sub.sigClosed.connect(self.window_closed_handler)
+            sub.titleModified.connect(self.window_closed_handler)
+
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
                     mdi.close()
-                w = self.mdi_area.addSubWindow(numeric)
+                w = self.mdi_area.addSubWindow(sub)
 
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(numeric)
+                w = self.mdi_area.addSubWindow(sub)
 
                 if len(self.mdi_area.subWindowList()) == 1:
                     w.showMaximized()
@@ -778,14 +785,19 @@ class WithMDIArea:
 
             numeric = LINBusTrace(signals, start=self.mdf.header.start_time.timestamp())
 
+            sub = MdiSubWindow(parent=self)
+            sub.setWidget(numeric)
+            sub.sigClosed.connect(self.window_closed_handler)
+            sub.titleModified.connect(self.window_closed_handler)
+
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
                     mdi.close()
-                w = self.mdi_area.addSubWindow(numeric)
+                w = self.mdi_area.addSubWindow(sub)
 
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(numeric)
+                w = self.mdi_area.addSubWindow(sub)
 
                 if len(self.mdi_area.subWindowList()) == 1:
                     w.showMaximized()
@@ -819,7 +831,12 @@ class WithMDIArea:
         latitude_channel, longitude_channel = self.mdf.select(signals)
 
         gps = GPS(latitude_channel, longitude_channel)
-        w = self.mdi_area.addSubWindow(gps)
+        sub = MdiSubWindow(parent=self)
+        sub.setWidget(gps)
+        sub.sigClosed.connect(self.window_closed_handler)
+        sub.titleModified.connect(self.window_closed_handler)
+
+        w = self.mdi_area.addSubWindow(sub)
 
         if len(self.mdi_area.subWindowList()) == 1:
             w.showMaximized()
@@ -1073,6 +1090,7 @@ class WithMDIArea:
             sub = MdiSubWindow(parent=self)
             sub.setWidget(numeric)
             sub.sigClosed.connect(self.window_closed_handler)
+            sub.titleModified.connect(self.window_closed_handler)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
@@ -1117,6 +1135,7 @@ class WithMDIArea:
             sub = MdiSubWindow(parent=self)
             sub.setWidget(bar)
             sub.sigClosed.connect(self.window_closed_handler)
+            sub.titleModified.connect(self.window_closed_handler)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
@@ -1219,6 +1238,7 @@ class WithMDIArea:
             sub = MdiSubWindow(parent=self)
             sub.setWidget(plot)
             sub.sigClosed.connect(self.window_closed_handler)
+            sub.titleModified.connect(self.window_closed_handler)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
@@ -1337,6 +1357,7 @@ class WithMDIArea:
             sub = MdiSubWindow(parent=self)
             sub.setWidget(numeric)
             sub.sigClosed.connect(self.window_closed_handler)
+            sub.titleModified.connect(self.window_closed_handler)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
@@ -1508,20 +1529,22 @@ class WithMDIArea:
                 signals.extend(not_found)
 
             numeric = Numeric([], parent=self)
-            numeric.show()
-            numeric.hide()
             numeric.add_new_channels(signals)
             numeric.pattern = pattern_info
-            numeric.show()
+
+            sub = MdiSubWindow(parent=self)
+            sub.setWidget(numeric)
+            sub.sigClosed.connect(self.window_closed_handler)
+            sub.titleModified.connect(self.window_closed_handler)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
                     mdi.close()
-                w = self.mdi_area.addSubWindow(numeric)
+                w = self.mdi_area.addSubWindow(sub)
 
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(numeric)
+                w = self.mdi_area.addSubWindow(sub)
                 w.show()
 
                 if geometry:
@@ -1572,14 +1595,19 @@ class WithMDIArea:
 
             gps = GPS(latitude, longitude, window_info["configuration"]["zoom"])
 
+            sub = MdiSubWindow(parent=self)
+            sub.setWidget(gps)
+            sub.sigClosed.connect(self.window_closed_handler)
+            sub.titleModified.connect(self.window_closed_handler)
+
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
                     mdi.close()
-                w = self.mdi_area.addSubWindow(gps)
+                w = self.mdi_area.addSubWindow(sub)
 
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(gps)
+                w = self.mdi_area.addSubWindow(sub)
                 w.show()
 
                 if geometry:
@@ -1918,14 +1946,19 @@ class WithMDIArea:
             )
             plot.pattern = pattern_info
 
+            sub = MdiSubWindow(parent=self)
+            sub.setWidget(plot)
+            sub.sigClosed.connect(self.window_closed_handler)
+            sub.titleModified.connect(self.window_closed_handler)
+
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
                     mdi.close()
-                w = self.mdi_area.addSubWindow(plot)
+                w = self.mdi_area.addSubWindow(sub)
 
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(plot)
+                w = self.mdi_area.addSubWindow(sub)
 
                 w.show()
 
@@ -2009,11 +2042,16 @@ class WithMDIArea:
 
             self.set_subplots_link(self.subplots_link)
 
-            if "x_range" in window_info:
-                plot.plot.viewbox.setXRange(*window_info["x_range"], padding=0)
+            if "x_range" in window_info["configuration"]:
+                plot.plot.viewbox.setXRange(*window_info["configuration"]["x_range"], padding=0)
 
-            if "splitter" in window_info:
-                plot.splitter.setSizes(window_info["splitter"])
+            if "splitter" in window_info["configuration"]:
+                plot.splitter.setSizes(window_info["configuration"]["splitter"])
+
+            if "grid" in window_info["configuration"]:
+                x_grid, y_grid = window_info["configuration"]["grid"]
+                plot.plot.plotItem.ctrl.xGridCheck.setChecked(x_grid)
+                plot.plot.plotItem.ctrl.yGridCheck.setChecked(y_grid)
 
             plot.splitter.setContentsMargins(1, 1, 1, 1)
             plot.setContentsMargins(1, 1, 1, 1)
@@ -2122,14 +2160,19 @@ class WithMDIArea:
             tabular = Tabular(signals, start=self.mdf.header.start_time.timestamp(), parent=self)
             tabular.pattern = pattern_info
 
+            sub = MdiSubWindow(parent=self)
+            sub.setWidget(tabular)
+            sub.sigClosed.connect(self.window_closed_handler)
+            sub.titleModified.connect(self.window_closed_handler)
+
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
                     mdi.close()
-                w = self.mdi_area.addSubWindow(tabular)
+                w = self.mdi_area.addSubWindow(sub)
 
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(tabular)
+                w = self.mdi_area.addSubWindow(sub)
 
                 w.show()
 
@@ -2275,6 +2318,9 @@ class WithMDIArea:
                         pass
 
     def set_cursor(self, widget, pos):
+        if not self.subplots_link:
+            return
+
         if self._cursor_source is None:
             self._cursor_source = widget
             for mdi in self.mdi_area.subWindowList():
@@ -2293,6 +2339,9 @@ class WithMDIArea:
             self._cursor_source = None
 
     def set_region(self, widget, region):
+        if not self.subplots_link:
+            return
+
         if self._region_source is None:
             self._region_source = widget
             for mdi in self.mdi_area.subWindowList():
@@ -2309,6 +2358,10 @@ class WithMDIArea:
             self._region_source = None
 
     def set_splitter(self, widget, selection_width):
+        if not self.subplots_link:
+            return
+
+
         if self._splitter_source is None:
             self._splitter_source = widget
             for mdi in self.mdi_area.subWindowList():
@@ -2324,6 +2377,9 @@ class WithMDIArea:
             self._splitter_source = None
 
     def remove_cursor(self, widget):
+        if not self.subplots_link:
+            return
+
         if self._cursor_source is None:
             self._cursor_source = widget
             for mdi in self.mdi_area.subWindowList():
@@ -2333,6 +2389,9 @@ class WithMDIArea:
             self._cursor_source = None
 
     def remove_region(self, widget):
+        if not self.subplots_link:
+            return
+
         if self._region_source is None:
             self._region_source = widget
             for mdi in self.mdi_area.subWindowList():
@@ -2355,9 +2414,14 @@ class WithMDIArea:
         if file_name:
             with MDF() as mdf:
                 for mdi in self.mdi_area.subWindowList():
-                    plt = mdi.widget()
+                    widget = mdi.widget()
 
-                    mdf.append(plt.plot.signals)
+                    if isinstance(widget, Plot):
+                        mdf.append(widget.plot.signals)
+                    elif isinstance(widget, Numeric):
+                        mdf.append(widget.signals)
+                    elif isinstance(widget, Tabular):
+                        mdf.append(widget.df)
                 mdf.save(file_name, overwrite=True)
 
     def file_by_uuid(self, uuid):

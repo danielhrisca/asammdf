@@ -4,7 +4,7 @@ from functools import partial, reduce
 import logging
 import os
 from pathlib import Path
-from time import perf_counter
+from time import perf_counter, sleep
 
 import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -831,8 +831,10 @@ class Plot(QtWidgets.QWidget):
         self.cursor_info.setAlignment(
             QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
         )
-        vbox.addWidget(self.cursor_info)
+
         vbox.addWidget(self.channel_selection)
+        vbox.addWidget(self.cursor_info)
+
         widget.setLayout(vbox)
 
         self.splitter = QtWidgets.QSplitter()
@@ -911,8 +913,16 @@ class Plot(QtWidgets.QWidget):
             uuid = self.channel_selection.itemWidget(item).uuid
             self.info_uuid = uuid
 
-            sig, _ = self.plot.signal_by_uuid(uuid)
+            sig, index = self.plot.signal_by_uuid(uuid)
             if sig.enable:
+
+                self.plot.curves[index].hide()
+                self.plot.update_signal_curve(sig, index)
+                for i in range(3):
+                    QtWidgets.QApplication.processEvents()
+                    sleep(0.01)
+                self.plot.curves[index].show()
+                self.plot.update_signal_curve(sig, index)
 
                 self.plot.set_current_uuid(self.info_uuid)
                 if self.info.isVisible():
@@ -925,8 +935,16 @@ class Plot(QtWidgets.QWidget):
             uuid = self.channel_selection.itemWidget(item).uuid
             self.info_uuid = uuid
 
-            sig, _ = self.plot.signal_by_uuid(uuid)
+            sig, index = self.plot.signal_by_uuid(uuid)
             if sig.enable:
+
+                self.plot.curves[index].hide()
+                self.plot.update_signal_curve(sig, index)
+                for i in range(3):
+                    QtWidgets.QApplication.processEvents()
+                    sleep(0.01)
+                self.plot.curves[index].show()
+                self.plot.update_signal_curve(sig, index)
 
                 self.plot.set_current_uuid(self.info_uuid)
                 if self.info.isVisible():
@@ -1092,9 +1110,10 @@ class Plot(QtWidgets.QWidget):
             delta_info = f"{timedelta(seconds=(stop - start))}"
 
         self.cursor_info.setText(
-            (
-                f"t1 = {start_info}, t2 = {stop_info}, Δt = {delta_info}"
-            )
+            "<html><head/><body>"
+            f"<p>t1 = {start_info}, t2 = {stop_info}</p>"
+            f"<p>Δt = {delta_info}</p> "
+            "</body></html>"
         )
 
         for i in range(self.channel_selection.count()):
@@ -1576,6 +1595,10 @@ class Plot(QtWidgets.QWidget):
                 0,
             ],
             "x_range": [float(e) for e in self.plot.viewbox.viewRange()[0]],
+            "grid": [
+                self.plot.plotItem.ctrl.xGridCheck.isChecked(),
+                self.plot.plotItem.ctrl.yGridCheck.isChecked(),
+            ],
         }
 
         return config
@@ -1834,6 +1857,8 @@ class _Plot(pg.PlotWidget):
                 dynamicRangeLimit=None,
                 stepMode=self.line_interconnect,
             )
+            if self.with_dots:
+                curve.curve.setClickable(True, 30)
 
             curve.sigClicked.connect(partial(self.curve_clicked.emit, signal_index))
 
@@ -2012,8 +2037,12 @@ class _Plot(pg.PlotWidget):
                 if self.region is not None:
                     if self.region_lock is not None:
                         self.region_lock = None
+                        self.region.lines[0].pen.setStyle(QtCore.Qt.SolidLine)
+                        self.region.lines[1].pen.setStyle(QtCore.Qt.SolidLine)
                     else:
                         self.region_lock = self.region.getRegion()[0]
+                        self.region.lines[0].pen.setStyle(QtCore.Qt.DashDotDotLine)
+
                 else:
                     self.region_lock = None
 
@@ -2116,7 +2145,7 @@ class _Plot(pg.PlotWidget):
                     self.plotItem.addItem(self.region)
                     self.region.sigRegionChanged.connect(self.range_modified.emit)
                     self.region.sigRegionChangeFinished.connect(
-                        self.range_modified_finished.emit
+                        self.range_modified_finished_handler
                     )
                     for line in self.region.lines:
                         line.addMarker("^", 0)
@@ -2130,6 +2159,13 @@ class _Plot(pg.PlotWidget):
 
                     if self.cursor1 is not None:
                         self.cursor1.hide()
+                        self.region.setRegion(
+                            tuple(
+                                sorted(
+                                    (self.cursor1.value(), stop)
+                                )
+                            )
+                        )
 
                 else:
                     self.region_lock = None
@@ -2337,6 +2373,15 @@ class _Plot(pg.PlotWidget):
             else:
                 self.parent().keyPressEvent(event)
 
+    def range_modified_finished_handler(self):
+        if self.region_lock is not None:
+            for i in range(2):
+                if self.region.lines[i].value() == self.region_lock:
+                    self.region.lines[i].pen.setStyle(QtCore.Qt.DashDotDotLine)
+                else:
+                    self.region.lines[i].pen.setStyle(QtCore.Qt.SolidLine)
+        self.range_modified_finished.emit()
+
     def trim(self, signals=None):
         signals = signals or self.signals
         if not self._can_trim:
@@ -2536,6 +2581,8 @@ class _Plot(pg.PlotWidget):
                 #                connect='finite',
             )
             curve.hide()
+            if self.with_dots:
+                curve.curve.setClickable(True, 30)
 
             curve.sigClicked.connect(partial(self.curve_clicked.emit, index))
 
