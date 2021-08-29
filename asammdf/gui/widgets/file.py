@@ -1824,7 +1824,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         if key == QtCore.Qt.Key_F and modifier == QtCore.Qt.ControlModifier:
             self.search()
 
-        elif key == QtCore.Qt.Key_F8:
+        elif key == QtCore.Qt.Key_F11:
             self.full_screen_toggled.emit()
 
         elif (

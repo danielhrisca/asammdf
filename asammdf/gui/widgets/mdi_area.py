@@ -2419,7 +2419,7 @@ class WithMDIArea:
                     if isinstance(widget, Plot):
                         mdf.append(widget.plot.signals)
                     elif isinstance(widget, Numeric):
-                        mdf.append(widget.signals)
+                        mdf.append(list(widget.signals.values()))
                     elif isinstance(widget, Tabular):
                         mdf.append(widget.df)
                 mdf.save(file_name, overwrite=True)
