@@ -1085,8 +1085,6 @@ class WithMDIArea:
             numeric.show()
             numeric.hide()
 
-            numeric.add_new_channels(signals)
-
             sub = MdiSubWindow(parent=self)
             sub.setWidget(numeric)
             sub.sigClosed.connect(self.window_closed_handler)
@@ -1127,6 +1125,7 @@ class WithMDIArea:
             if self.subplots_link:
                 numeric.timestamp_changed_signal.connect(self.set_cursor)
 
+            numeric.add_new_channels(signals)
             numeric.show()
 
         elif window_type == "Bar":
@@ -1263,6 +1262,33 @@ class WithMDIArea:
             plot.show()
             plot.hide()
 
+            menu = w.systemMenu()
+
+            action = QtWidgets.QAction("Set title", menu)
+            action.triggered.connect(partial(set_title, w))
+            before = menu.actions()[0]
+            menu.insertAction(before, action)
+
+            w.setWindowTitle(generate_window_title(w, window_type))
+
+            if self.subplots_link:
+
+                for i, mdi in enumerate(self.mdi_area.subWindowList()):
+                    try:
+                        viewbox = mdi.widget().plot.viewbox
+                        if plot.plot.viewbox is not viewbox:
+                            plot.plot.viewbox.setXLink(viewbox)
+                        break
+                    except:
+                        continue
+
+            plot.add_channels_request.connect(
+                partial(self.add_new_channels, widget=plot)
+            )
+
+            plot.show_properties.connect(self._show_info)
+            plot.channel_selection.setCurrentRow(0)
+
             plot.add_new_channels(signals)
 
             if computed:
@@ -1320,33 +1346,6 @@ class WithMDIArea:
                         pass
                 signals = list(computed_signals.values())
                 plot.add_new_channels(signals)
-
-            menu = w.systemMenu()
-
-            action = QtWidgets.QAction("Set title", menu)
-            action.triggered.connect(partial(set_title, w))
-            before = menu.actions()[0]
-            menu.insertAction(before, action)
-
-            w.setWindowTitle(generate_window_title(w, window_type))
-
-            if self.subplots_link:
-
-                for i, mdi in enumerate(self.mdi_area.subWindowList()):
-                    try:
-                        viewbox = mdi.widget().plot.viewbox
-                        if plot.plot.viewbox is not viewbox:
-                            plot.plot.viewbox.setXLink(viewbox)
-                        break
-                    except:
-                        continue
-
-            plot.add_channels_request.connect(
-                partial(self.add_new_channels, widget=plot)
-            )
-
-            plot.show_properties.connect(self._show_info)
-            plot.channel_selection.setCurrentRow(0)
 
             plot.show()
             self.set_subplots_link(self.subplots_link)
@@ -1529,7 +1528,6 @@ class WithMDIArea:
                 signals.extend(not_found)
 
             numeric = Numeric([], parent=self)
-            numeric.add_new_channels(signals)
             numeric.pattern = pattern_info
 
             sub = MdiSubWindow(parent=self)
@@ -1556,6 +1554,7 @@ class WithMDIArea:
                 generate_window_title(w, window_info["type"], window_info["title"])
             )
 
+            numeric.add_new_channels(signals)
             numeric.format = fmt
             numeric._update_values()
 
@@ -1946,6 +1945,9 @@ class WithMDIArea:
             )
             plot.pattern = pattern_info
 
+            plot.show()
+            plot.hide()
+
             sub = MdiSubWindow(parent=self)
             sub.setWidget(plot)
             sub.sigClosed.connect(self.window_closed_handler)
@@ -1969,6 +1971,17 @@ class WithMDIArea:
 
             plot.hide()
 
+            menu = w.systemMenu()
+
+            action = QtWidgets.QAction("Set title", menu)
+            action.triggered.connect(partial(set_title, w))
+            before = menu.actions()[0]
+            menu.insertAction(before, action)
+
+            w.setWindowTitle(
+                generate_window_title(w, window_info["type"], window_info["title"])
+            )
+
             plot.add_new_channels(signals)
             for i, sig in enumerate(not_found, len(found)):
                 item = plot.channel_selection.item(i)
@@ -1984,17 +1997,6 @@ class WithMDIArea:
                 plot.plot.update_lines()
 
             plot.show()
-
-            menu = w.systemMenu()
-
-            action = QtWidgets.QAction("Set title", menu)
-            action.triggered.connect(partial(set_title, w))
-            before = menu.actions()[0]
-            menu.insertAction(before, action)
-
-            w.setWindowTitle(
-                generate_window_title(w, window_info["type"], window_info["title"])
-            )
 
             plot.add_channels_request.connect(
                 partial(self.add_new_channels, widget=plot)
@@ -2239,6 +2241,8 @@ class WithMDIArea:
             w.setWindowIcon(icon)
 
         w.layout().setSpacing(1)
+
+        self.windows_modified.emit()
 
     def set_line_style(self, with_dots=None):
         if with_dots is None:

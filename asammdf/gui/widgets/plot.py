@@ -1441,9 +1441,15 @@ class Plot(QtWidgets.QWidget):
 
         if invalid:
             errors = "\n".join(invalid)
+            try:
+                mdi_title = self.parent().windowTitle()
+                title = f"plot <{mdi_title}>"
+            except:
+                title = "plot window"
+
             QtWidgets.QMessageBox.warning(
                 self,
-                "The following channels do not have monotonous increasing time stamps:",
+                f"Channels with corrupted time stamps added to {title}",
                 f"The following channels do not have monotonous increasing time stamps:\n{errors}",
             )
             self.plot._can_trim = can_trim
@@ -2497,6 +2503,7 @@ class _Plot(pg.PlotWidget):
                         self.region.setRegion((pos.x(), stop))
 
     def add_new_channels(self, channels, computed=False):
+
         geometry = self.viewbox.sceneBoundingRect()
         initial_index = len(self.signals)
 

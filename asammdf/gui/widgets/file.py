@@ -102,6 +102,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/open.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         progress.setWindowIcon(icon)
+        progress.setMinimumWidth(600)
         progress.show()
 
         try:

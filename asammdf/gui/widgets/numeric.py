@@ -218,11 +218,19 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     sig.samples = sig.conversion.convert(sig.samples)
                 self.signals[sig.name] = sig
         if invalid:
+            errors = ', '.join(invalid)
+            try:
+                mdi_title = self.parent().windowTitle()
+                title = f"numeric <{mdi_title}>"
+            except:
+                title = "numeric window"
+
             QtWidgets.QMessageBox.warning(
                 self,
-                "The following channels do not have monotonous increasing time stamps:",
-                f"The following channels do not have monotonous increasing time stamps:\n{', '.join(invalid)}",
+                f"Channels with corrupted time stamps added to {title}",
+                f"The following channels do not have monotonous increasing time stamps:\n{errors}",
             )
+
         self.build()
 
     def keyPressEvent(self, event):
