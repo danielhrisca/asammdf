@@ -1287,7 +1287,7 @@ class WithMDIArea:
             )
 
             plot.show_properties.connect(self._show_info)
-            plot.channel_selection.setCurrentRow(0)
+            # TO DO plot.channel_selection.setCurrentRow(0)
 
             plot.add_new_channels(signals)
 

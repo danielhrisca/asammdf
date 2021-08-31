@@ -42,6 +42,7 @@ from .dict_to_tree import ComputedChannelInfoWindow
 from .formated_axis import FormatedAxis
 from .list import ListWidget
 from .list_item import ListItem
+from .tree import ChannelsTreeItem, ChannelsTreeWidget
 
 bin_ = bin
 
@@ -822,10 +823,10 @@ class Plot(QtWidgets.QWidget):
         vbox.setSpacing(1)
         vbox.setContentsMargins(1, 1, 1, 1)
         widget = QtWidgets.QWidget()
-        self.channel_selection = ListWidget()
-        self.channel_selection.setUniformItemSizes(True)
-        self.channel_selection.setAlternatingRowColors(False)
-        self.channel_selection.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
+        self.channel_selection = ChannelsTreeWidget(self)
+        # self.channel_selection.setUniformItemSizes(True)
+        # self.channel_selection.setAlternatingRowColors(False)
+        # self.channel_selection.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
         self.cursor_info = QtWidgets.QLabel("")
         self.cursor_info.setTextFormat(QtCore.Qt.RichText)
         self.cursor_info.setAlignment(
@@ -860,7 +861,7 @@ class Plot(QtWidgets.QWidget):
         self.plot.computation_channel_inserted.connect(
             self.computation_channel_inserted
         )
-        self.plot.curve_clicked.connect(self.channel_selection.setCurrentRow)
+        self.plot.curve_clicked.connect(self.channel_selection.setCurrentItem)
 
         self.splitter.addWidget(self.plot)
 
@@ -884,7 +885,7 @@ class Plot(QtWidgets.QWidget):
 
         self.channel_selection.itemsDeleted.connect(self.channel_selection_reduced)
         self.channel_selection.itemPressed.connect(self.channel_selection_modified)
-        self.channel_selection.currentRowChanged.connect(
+        self.channel_selection.currentItemChanged.connect(
             self.channel_selection_row_changed
         )
         self.channel_selection.add_channels_request.connect(self.add_channels_request)
@@ -910,7 +911,7 @@ class Plot(QtWidgets.QWidget):
 
     def channel_selection_modified(self, item):
         if item:
-            uuid = self.channel_selection.itemWidget(item).uuid
+            uuid = self.channel_selection.itemWidget(item, 1).uuid
             self.info_uuid = uuid
 
             sig, index = self.plot.signal_by_uuid(uuid)
@@ -929,10 +930,11 @@ class Plot(QtWidgets.QWidget):
                     stats = self.plot.get_stats(self.info_uuid)
                     self.info.set_stats(stats)
 
-    def channel_selection_row_changed(self, row):
-        if row >= 0:
-            item = self.channel_selection.item(row)
-            uuid = self.channel_selection.itemWidget(item).uuid
+    def channel_selection_row_changed(self, current, previous):
+        if current:
+            print(bin(current.flags()))
+            item = current
+            uuid = self.channel_selection.itemWidget(item, 1).uuid
             self.info_uuid = uuid
 
             sig, index = self.plot.signal_by_uuid(uuid)
@@ -1014,7 +1016,7 @@ class Plot(QtWidgets.QWidget):
                 for i in range(self.channel_selection.count())
             ]
 
-            uuids = [self.channel_selection.itemWidget(item).uuid for item in items]
+            uuids = [self.channel_selection.itemWidget(item, 1).uuid for item in items]
 
             for uuid in uuids:
                 sig, idx = self.plot.signal_by_uuid(uuid)
@@ -1055,14 +1057,14 @@ class Plot(QtWidgets.QWidget):
                 for i in range(self.channel_selection.count())
             ]
 
-            uuids = [self.channel_selection.itemWidget(item).uuid for item in items]
+            uuids = [self.channel_selection.itemWidget(item, 1).uuid for item in items]
 
             for i, uuid in enumerate(uuids):
                 signal, idx = self.plot.signal_by_uuid(uuid)
                 value, kind, fmt = signal.value_at_timestamp(position)
 
                 item = self.channel_selection.item(i)
-                item = self.channel_selection.itemWidget(item)
+                item = self.channel_selection.itemWidget(item, 1)
 
                 item.set_prefix("= ")
                 item.kind = kind
@@ -1079,7 +1081,7 @@ class Plot(QtWidgets.QWidget):
 
         for i in range(self.channel_selection.count()):
             item = self.channel_selection.item(i)
-            item = self.channel_selection.itemWidget(item)
+            item = self.channel_selection.itemWidget(item, 1)
 
             if not self.plot.region:
                 self.cursor_info.setText("")
@@ -1119,7 +1121,7 @@ class Plot(QtWidgets.QWidget):
         for i in range(self.channel_selection.count()):
 
             item = self.channel_selection.item(i)
-            item = self.channel_selection.itemWidget(item)
+            item = self.channel_selection.itemWidget(item, 1)
 
             signal, i = self.plot.signal_by_uuid(item.uuid)
 
@@ -1220,7 +1222,7 @@ class Plot(QtWidgets.QWidget):
 
             else:
                 uuids = [
-                    self.channel_selection.itemWidget(item).uuid
+                    self.channel_selection.itemWidget(item, 1).uuid
                     for item in selected_items
                 ]
 
@@ -1254,7 +1256,7 @@ class Plot(QtWidgets.QWidget):
 
             else:
                 uuids = [
-                    self.channel_selection.itemWidget(item).uuid
+                    self.channel_selection.itemWidget(item, 1).uuid
                     for item in selected_items
                 ]
 
@@ -1366,7 +1368,7 @@ class Plot(QtWidgets.QWidget):
     def range_removed(self):
         for i in range(self.channel_selection.count()):
             item = self.channel_selection.item(i)
-            item = self.channel_selection.itemWidget(item)
+            item = self.channel_selection.itemWidget(item, 1)
 
             item.set_prefix("")
             item.set_value("")
@@ -1483,28 +1485,31 @@ class Plot(QtWidgets.QWidget):
 
         channels = self.plot.add_new_channels(channels)
 
-        count = self.channel_selection.count()
-        if count:
-            for i in range(count):
-                wid = self.channel_selection.itemWidget(self.channel_selection.item(i))
-                if wid.ylink.checkState() == QtCore.Qt.Unchecked:
-                    enforce_y_axis = False
-                    break
-            else:
-                enforce_y_axis = True
-        else:
-            enforce_y_axis = False
+        # TO DO
+        # count = self.channel_selection.count()
+        # if count:
+        #     for i in range(count):
+        #         wid = self.channel_selection.itemWidget(self.channel_selection.item(i))
+        #         if wid.ylink.checkState() == QtCore.Qt.Unchecked:
+        #             enforce_y_axis = False
+        #             break
+        #     else:
+        #         enforce_y_axis = True
+        # else:
+        #     enforce_y_axis = False
+        enforce_y_axis = False
 
         for sig in channels:
 
-            item = ListItem(
+            item = ChannelsTreeItem(
                 (sig.group_index, sig.channel_index),
                 sig.name,
                 sig.computation,
                 self.channel_selection,
                 sig.mdf_uuid,
             )
-            item.setData(QtCore.Qt.UserRole, sig.name)
+            # item.setCheckState(0, QtCore.Qt.Unchecked)
+            # item.setData(QtCore.Qt.UserRole, sig.name)
             tooltip = getattr(sig, "tooltip", "") or f"{sig.name}\n{sig.comment}"
             if sig.source:
                 src = sig.source
@@ -1531,17 +1536,161 @@ class Plot(QtWidgets.QWidget):
             it.set_name(sig.name)
             it.set_value("")
             it.set_color(sig.color)
-            item.setSizeHint(it.sizeHint())
+            # TO DO item.setSizeHint(it.sizeHint())
 
-            self.channel_selection.addItem(item)
-            self.channel_selection.setItemWidget(item, it)
+            self.channel_selection.addTopLevelItem(item)
+            self.channel_selection.setItemWidget(item, 0, it)
+
 
             it.color_changed.connect(self.plot.set_color)
-            it.enable_changed.connect(self.plot.set_signal_enable)
+            # TO DO it.enable_changed.connect(self.plot.set_signal_enable)
             it.ylink_changed.connect(self.plot.set_common_axis)
             if enforce_y_axis:
                 it.ylink.setCheckState(QtCore.Qt.Checked)
             it.individual_axis_changed.connect(self.plot.set_individual_axis)
+
+            item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+            print('>>', bin(item.flags()))
+
+            self.info_uuid = sig.uuid
+
+    def add_new_channels(self, channels):
+
+        for sig in channels:
+            sig.uuid = os.urandom(6).hex()
+
+        invalid = []
+
+        can_trim = True
+        for channel in channels:
+            diff = np.diff(channel.timestamps)
+            invalid_indexes = np.argwhere(diff <= 0).ravel()
+            if len(invalid_indexes):
+                invalid_indexes = invalid_indexes[:10] + 1
+                idx = invalid_indexes[0]
+                ts = channel.timestamps[idx - 1 : idx + 2]
+                invalid.append(
+                    f"{channel.name} @ index {invalid_indexes[:10] - 1} with first time stamp error: {ts}"
+                )
+                if len(np.argwhere(diff < 0).ravel()):
+                    can_trim = False
+
+        if invalid:
+            errors = "\n".join(invalid)
+            try:
+                mdi_title = self.parent().windowTitle()
+                title = f"plot <{mdi_title}>"
+            except:
+                title = "plot window"
+
+            QtWidgets.QMessageBox.warning(
+                self,
+                f"Channels with corrupted time stamps added to {title}",
+                f"The following channels do not have monotonous increasing time stamps:\n{errors}",
+            )
+            self.plot._can_trim = can_trim
+
+        valid = []
+        invalid = []
+        for channel in channels:
+            if len(channel):
+                samples = channel.samples
+                if samples.dtype.kind not in "SUV" and np.all(np.isnan(samples)):
+                    invalid.append(channel.name)
+                elif channel.conversion:
+                    samples = channel.physical().samples
+                    if samples.dtype.kind not in "SUV" and np.all(np.isnan(samples)):
+                        invalid.append(channel.name)
+                    else:
+                        valid.append(channel)
+                else:
+                    valid.append(channel)
+            else:
+                valid.append(channel)
+
+        if invalid:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "All NaN channels will not be plotted:",
+                f"The following channels have all NaN samples and will not be plotted:\n{', '.join(invalid)}",
+            )
+
+        channels = valid
+
+        channels = self.plot.add_new_channels(channels)
+
+        # TO DO
+        # count = self.channel_selection.count()
+        # if count:
+        #     for i in range(count):
+        #         wid = self.channel_selection.itemWidget(self.channel_selection.item(i))
+        #         if wid.ylink.checkState() == QtCore.Qt.Unchecked:
+        #             enforce_y_axis = False
+        #             break
+        #     else:
+        #         enforce_y_axis = True
+        # else:
+        #     enforce_y_axis = False
+        enforce_y_axis = False
+
+        for sig in channels:
+
+            item = ChannelsTreeItem(
+                (sig.group_index, sig.channel_index),
+                sig.name,
+                sig.computation,
+                self.channel_selection,
+                sig.mdf_uuid,
+                # texts=[sig.name, "", "", ""],
+                texts = [sig.name, "", "🔗", "⇭"]
+            )
+            self.channel_selection.addTopLevelItem(item)
+
+            # self.channel_selection.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
+            # self.channel_selection.header().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
+
+            # item.setCheckState(0, QtCore.Qt.Unchecked)
+            # item.setData(QtCore.Qt.UserRole, sig.name)
+            # tooltip = getattr(sig, "tooltip", "") or f"{sig.name}\n{sig.comment}"
+            # if sig.source:
+            #     src = sig.source
+            #     source_type = v4c.SOURCE_TYPE_TO_STRING[src.source_type]
+            #     bus_type = v4c.BUS_TYPE_TO_STRING[src.bus_type]
+            #     details = f"     {source_type} source on bus {bus_type}: name=[{src.name}] path=[{src.path}]"
+            # else:
+            #     details = ""
+            #
+            # if len(sig.samples) and sig.conversion:
+            #     kind = sig.conversion.convert(sig.samples[:1]).dtype.kind
+            # else:
+            #     kind = sig.samples.dtype.kind
+            # it = ChannelDisplay(sig.uuid, sig.unit, kind, 3, tooltip, details, self)
+            # if self.channel_selection.details_enabled:
+            #     it.details.setVisible(True)
+            # it.setAttribute(QtCore.Qt.WA_StyledBackground)
+            #
+            # if sig.computed:
+            #     font = QtGui.QFont()
+            #     font.setItalic(True)
+            #     it.name.setFont(font)
+            #
+            # it.set_name(sig.name)
+            # it.set_value("")
+            # it.set_color(sig.color)
+            # TO DO item.setSizeHint(it.sizeHint())
+
+            #self.channel_selection.addTopLevelItem(item)
+            # self.channel_selection.setItemWidget(item, 1, it)
+
+            # it.color_changed.connect(self.plot.set_color)
+            # # TO DO it.enable_changed.connect(self.plot.set_signal_enable)
+            # it.ylink_changed.connect(self.plot.set_common_axis)
+            # if enforce_y_axis:
+            #     it.ylink.setCheckState(QtCore.Qt.Checked)
+            # it.individual_axis_changed.connect(self.plot.set_individual_axis)
+
+            item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+            print('>>', bin(item.flags()))
 
             self.info_uuid = sig.uuid
 
@@ -1628,7 +1777,7 @@ class Plot(QtWidgets.QWidget):
     def widget_by_uuid(self, uuid):
         for i in range(self.channel_selection.count()):
             item = self.channel_selection.item(i)
-            widget = self.channel_selection.itemWidget(item)
+            widget = self.channel_selection.itemWidget(item, 1)
             if widget.uuid == uuid:
                 break
         else:
@@ -2221,7 +2370,7 @@ class _Plot(pg.PlotWidget):
 
                 for i in range(count):
                     item = parent.channel_selection.item(i)
-                    uuids.append(parent.channel_selection.itemWidget(item).uuid)
+                    uuids.append(parent.channel_selection.itemWidget(item, 1).uuid)
                 uuids = reversed(uuids)
 
                 count = sum(

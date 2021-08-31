@@ -376,6 +376,7 @@ def setup_progress(parent, title, message, icon_name):
         QtGui.QPixmap(f":/{icon_name}.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
     )
     progress.setWindowIcon(icon)
+    progress.setMinimumWidth(600)
     progress.show()
 
     return progress

@@ -48,7 +48,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self._tooltip = tooltip
 
         self.color_btn.clicked.connect(self.select_color)
-        self.display.stateChanged.connect(self.display_changed)
+        # self.display.stateChanged.connect(self.display_changed)
         self.ylink.stateChanged.connect(self._ylink_changed)
         self.individual_axis.stateChanged.connect(self._individual_axis)
 
@@ -66,9 +66,9 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             self.precision = precision
             self.fmt = f"{{:.{self.precision}f}}"
 
-    def display_changed(self, state):
-        state = self.display.checkState()
-        self.enable_changed.emit(self.uuid, state)
+    # def display_changed(self, state):
+    #     state = self.display.checkState()
+    #     self.enable_changed.emit(self.uuid, state)
 
     def _individual_axis(self, state):
         state = self.individual_axis.checkState()
@@ -216,9 +216,9 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
                 viewbox = parent.plot.view_boxes[index]
                 viewbox.setYRange(info["min"], info["max"], padding=0)
 
-                self.display.setCheckState(
-                    QtCore.Qt.Checked if info["display"] else QtCore.Qt.Unchecked
-                )
+                # self.display.setCheckState(
+                #     QtCore.Qt.Checked if info["display"] else QtCore.Qt.Unchecked
+                # )
 
                 self.ranges = {}
 
@@ -259,7 +259,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             else "bin"
             if self.fmt.startswith("0b")
             else "phys",
-            "display": self.display.checkState() == QtCore.Qt.Checked,
+            # "display": self.display.checkState() == QtCore.Qt.Checked,
             "ranges": {
                 f"{start}|{stop}": val for (start, stop), val in self.ranges.items()
             },
