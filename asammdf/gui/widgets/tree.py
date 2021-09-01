@@ -307,8 +307,14 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         if item is None:
             return
 
+        count = 0
+        iterator = QtWidgets.QTreeWidgetItemIterator(self)
+        while iterator.value():
+            count += 1
+            iterator += 1
+
         menu = QtWidgets.QMenu()
-        menu.addAction(self.tr(f"{'TO DO'} items in the list"))
+        menu.addAction(self.tr(f"{count} items in the list"))
         menu.addSeparator()
         menu.addAction(self.tr("Copy name (Ctrl+C)"))
         menu.addAction(self.tr("Copy display properties (Ctrl+Shift+C)"))
@@ -324,6 +330,211 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             show_hide = "Hide disabled items"
         menu.addAction(self.tr(show_hide))
         menu.addSeparator()
+
+        menu.addAction(self.tr("Add to common Y axis"))
+        menu.addAction(self.tr("Remove from common Y axis"))
+        menu.addSeparator()
+        menu.addAction(self.tr("Set unit"))
+        menu.addAction(self.tr("Set precision"))
+        menu.addSeparator()
+        menu.addAction(self.tr("Relative time base shift"))
+        menu.addAction(self.tr("Set time base start offset"))
+        menu.addSeparator()
+        menu.addAction(self.tr("Insert computation using this channel"))
+        menu.addSeparator()
+        menu.addAction(self.tr("Delete (Del)"))
+        menu.addSeparator()
+        menu.addAction(self.tr("Toggle details"))
+        menu.addAction(self.tr("File/Computation properties"))
+
+        action = menu.exec_(self.viewport().mapToGlobal(position))
+
+        if action is None:
+            return
+
+        if action.text() == "Copy name (Ctrl+C)":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.KeyPress, QtCore.Qt.Key_C, QtCore.Qt.ControlModifier
+            )
+            self.itemWidget(item).keyPressEvent(event)
+
+        elif action.text() == "Copy display properties (Ctrl+Shift+C)":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.KeyPress,
+                QtCore.Qt.Key_C,
+                QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier,
+            )
+            self.itemWidget(item).keyPressEvent(event)
+
+        elif action.text() == "Paste display properties (Ctrl+Shift+P)":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.KeyPress,
+                QtCore.Qt.Key_P,
+                QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier,
+            )
+            self.itemWidget(item).keyPressEvent(event)
+
+        elif action.text() == "Enable all":
+            iterator = QtWidgets.QTreeWidgetItemIterator(self)
+            while iterator.value():
+                item = iterator.value()
+                item.setCheckState(0, QtCore.Qt.Checked)
+
+                iterator += 1
+
+        elif action.text() == "Disable all":
+            iterator = QtWidgets.QTreeWidgetItemIterator(self)
+            while iterator.value():
+                item = iterator.value()
+                item.setCheckState(0, QtCore.Qt.Unchecked)
+
+                iterator += 1
+
+        elif action.text() == "Enable all but this":
+            selected_items = self.selectedItems()
+
+            iterator = QtWidgets.QTreeWidgetItemIterator(self)
+            while iterator.value():
+                item = iterator.value()
+                if item in selected_items:
+                    item.setCheckState(0, QtCore.Qt.Unchecked)
+                else:
+                    item.setCheckState(0, QtCore.Qt.Checked)
+
+                iterator += 1
+
+        elif action.text() == show_hide:
+            if self._has_hidden_items:
+                iterator = QtWidgets.QTreeWidgetItemIterator(self)
+                while iterator.value():
+                    item = iterator.value()
+                    item.setHidden(False)
+                    iterator += 1
+            else:
+                for i in range(self.count()):
+                    item = iterator.value()
+                    if item.checkState(0) == QtCore.Qt.Unchecked:
+                        item.setHidden(True)
+                    iterator += 1
+
+            self._has_hidden_items = not self._has_hidden_items
+
+        elif action.text() == "Add to common Y axis":
+            selected_items = self.selectedItems()
+
+            iterator = QtWidgets.QTreeWidgetItemIterator(self)
+            while iterator.value():
+                item = iterator.value()
+                if item in selected_items:
+                    widget = self.itemWidget(item, 1)
+                    widget.ylink.setCheckState(QtCore.Qt.Checked)
+                iterator += 1
+
+        elif action.text() == "Remove from common Y axis":
+            selected_items = self.selectedItems()
+            iterator = QtWidgets.QTreeWidgetItemIterator(self)
+            while iterator.value():
+                item = iterator.value()
+                if item in selected_items:
+                    widget = self.itemWidget(item, 1)
+                    widget.ylink.setCheckState(QtCore.Qt.Unchecked)
+                iterator += 1
+
+        elif action.text() == "Set unit":
+            selected_items = self.selectedItems()
+
+            unit, ok = QtWidgets.QInputDialog.getText(None, "Set new unit", "Unit:")
+
+            if ok:
+
+                iterator = QtWidgets.QTreeWidgetItemIterator(self)
+                while iterator.value():
+                    item = iterator.value()
+                    if item in selected_items:
+                        widget = self.itemWidget(item, 1)
+                        widget.unit = unit
+                        widget.update()
+                    iterator += 1
+
+        elif action.text() == "Set precision":
+            selected_items = self.selectedItems()
+
+            precision, ok = QtWidgets.QInputDialog.getInt(
+                None, "Set new precision (float decimals)", "Precision:"
+            )
+
+            if ok and 0 <= precision <= 15:
+
+                iterator = QtWidgets.QTreeWidgetItemIterator(self)
+                while iterator.value():
+                    item = iterator.value()
+                    if item in selected_items:
+                        widget = self.itemWidget(item, 1)
+                        widget.set_precision(precision)
+                        widget.update()
+                    iterator += 1
+
+        elif action.text() in (
+                "Relative time base shift",
+                "Set time base start offset",
+        ):
+            selected_items = self.selectedItems()
+            if selected_items:
+
+                if action.text() == "Relative time base shift":
+                    offset, ok = QtWidgets.QInputDialog.getDouble(
+                        self, "Relative offset [s]", "Offset [s]:", decimals=6
+                    )
+                    absolute = False
+                else:
+                    offset, ok = QtWidgets.QInputDialog.getDouble(
+                        self,
+                        "Absolute time start offset [s]",
+                        "Offset [s]:",
+                        decimals=6,
+                    )
+                    absolute = True
+                if ok:
+                    uuids = []
+
+                    iterator = QtWidgets.QTreeWidgetItemIterator(self)
+                    while iterator.value():
+                        item = iterator.value()
+                        if item in selected_items:
+                            widget = self.itemWidget(item, 1)
+                            uuids.append(widget.uuid)
+                        iterator += 1
+
+                    self.set_time_offset.emit([absolute, offset] + uuids)
+
+        elif action.text() == "Delete (Del)":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.KeyPress, QtCore.Qt.Key_Delete, QtCore.Qt.NoModifier
+            )
+            self.keyPressEvent(event)
+
+        elif action.text() == "Toggle details":
+            self.details_enabled = not self.details_enabled
+
+            iterator = QtWidgets.QTreeWidgetItemIterator(self)
+            while iterator.value():
+                item = iterator.value()
+                widget = self.itemWidget(item, 1)
+                widget.details.setVisible(self.details_enabled)
+                item.setSizeHint(widget.sizeHint())
+                iterator += 1
+
+        elif action.text() == "File/Computation properties":
+            selected_items = self.selectedItems()
+            if len(selected_items) == 1:
+                item = selected_items[0]
+                self.show_properties.emit(self.itemWidget(item, 1).uuid)
+
+        elif action.text() == "Insert computation using this channel":
+            selected_items = self.selectedItems()
+            if len(selected_items) == 1:
+                item = selected_items[0]
+                self.insert_computation.emit(self.itemWidget(item, 1)._name)
 
 
 class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):

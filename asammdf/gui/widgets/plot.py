@@ -908,7 +908,6 @@ class Plot(QtWidgets.QWidget):
         )
 
     def channel_selection_item_changed(self, item, column):
-        print(item, column)
         if item is not None and column == 0:
             state = item.checkState(0)
             widget = self.channel_selection.itemWidget(item, 1)
@@ -1539,25 +1538,25 @@ class Plot(QtWidgets.QWidget):
 
             channel = {}
 
-            sig, idx = self.plot.signal_by_uuid(item.uuid)
+            sig, idx = self.plot.signal_by_uuid(widget.uuid)
 
             channel["name"] = sig.name
             channel["unit"] = sig.unit
-            channel["enabled"] = item.display.checkState() == QtCore.Qt.Checked
+            channel["enabled"] = item.checkState(0) == QtCore.Qt.Checked
             channel["individual_axis"] = (
-                item.individual_axis.checkState() == QtCore.Qt.Checked
+                widget.individual_axis.checkState() == QtCore.Qt.Checked
             )
-            channel["common_axis"] = item.ylink.checkState() == QtCore.Qt.Checked
+            channel["common_axis"] = widget.ylink.checkState() == QtCore.Qt.Checked
             channel["color"] = sig.color
             channel["computed"] = sig.computed
             ranges = [
                 {"start": start, "stop": stop, "color": color}
-                for (start, stop), color in item.ranges.items()
+                for (start, stop), color in widget.ranges.items()
             ]
             channel["ranges"] = ranges
 
-            channel["precision"] = item.precision
-            channel["fmt"] = item.fmt
+            channel["precision"] = widget.precision
+            channel["fmt"] = widget.fmt
             channel["mode"] = sig.mode
             if sig.computed:
                 channel["computation"] = sig.computation

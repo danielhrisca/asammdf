@@ -2007,10 +2007,10 @@ class WithMDIArea:
                 for channel in window_info["configuration"]["channels"]
             }
 
-            count = plot.channel_selection.count()
-
-            for i in range(count):
-                wid = plot.channel_selection.itemWidget(plot.channel_selection.item(i))
+            iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
+            while iterator.value():
+                item = iterator.value()
+                wid = plot.channel_selection.itemWidget(item, 1)
                 name = wid._name
 
                 description = descriptions.get(name, None)
@@ -2034,13 +2034,16 @@ class WithMDIArea:
                         if description["common_axis"]
                         else QtCore.Qt.Unchecked
                     )
-                    wid.display.setCheckState(
+                    item.setCheckState(
+                        0,
                         QtCore.Qt.Checked
                         if description["enabled"]
                         else QtCore.Qt.Unchecked
                     )
                 elif pattern_info:
                     wid.ranges = pattern_info["ranges"]
+
+                iterator += 1
 
             self.set_subplots_link(self.subplots_link)
 
