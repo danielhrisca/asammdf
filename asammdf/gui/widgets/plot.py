@@ -971,9 +971,14 @@ class Plot(QtWidgets.QWidget):
             self.info_uuid = None
             self.info.hide()
 
-        rows = self.channel_selection.count()
+        count = 0
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+        while iterator.value():
+            count += 1
 
-        if not rows:
+            iterator += 1
+
+        if not count:
             self.close_request.emit()
 
     def cursor_move_finished(self):
@@ -1034,14 +1039,18 @@ class Plot(QtWidgets.QWidget):
 
     def cursor_removed(self):
 
-        for i in range(self.channel_selection.count()):
-            item = self.channel_selection.item(i)
-            item = self.channel_selection.itemWidget(item, 1)
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+        while iterator.value():
+            item = iterator.value()
+            widget = self.channel_selection.itemWidget(item, 1)
 
             if not self.plot.region:
                 self.cursor_info.setText("")
-                item.set_prefix("")
-                item.set_value("")
+                widget.set_prefix("")
+                widget.set_value("")
+
+            iterator += 1
+
         if self.info.isVisible():
             stats = self.plot.get_stats(self.info_uuid)
             self.info.set_stats(stats)
@@ -1073,34 +1082,36 @@ class Plot(QtWidgets.QWidget):
             "</body></html>"
         )
 
-        for i in range(self.channel_selection.count()):
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+        while iterator.value():
+            item = iterator.value()
+            widget = self.channel_selection.itemWidget(item, 1)
 
-            item = self.channel_selection.item(i)
-            item = self.channel_selection.itemWidget(item, 1)
-
-            signal, i = self.plot.signal_by_uuid(item.uuid)
+            signal, i = self.plot.signal_by_uuid(widget.uuid)
 
             start_v, kind, fmt = signal.value_at_timestamp(start)
             stop_v, kind, fmt = signal.value_at_timestamp(stop)
 
-            item.set_prefix("Δ = ")
-            item.set_fmt(signal.format)
+            widget.set_prefix("Δ = ")
+            widget.set_fmt(signal.format)
 
             if "n.a." not in (start_v, stop_v):
                 if kind in "ui":
                     delta = np.int64(stop_v) - np.int64(start_v)
-                    item.kind = kind
-                    item.set_value(delta)
-                    item.set_fmt(fmt)
+                    widget.kind = kind
+                    widget.set_value(delta)
+                    widget.set_fmt(fmt)
                 elif kind == "f":
                     delta = stop_v - start_v
-                    item.kind = kind
-                    item.set_value(delta)
-                    item.set_fmt(fmt)
+                    widget.kind = kind
+                    widget.set_value(delta)
+                    widget.set_fmt(fmt)
                 else:
-                    item.set_value("n.a.")
+                    widget.set_value("n.a.")
             else:
-                item.set_value("n.a.")
+                widget.set_value("n.a.")
+
+            iterator += 1
 
         if self.info.isVisible():
             stats = self.plot.get_stats(self.info_uuid)
@@ -1321,13 +1332,16 @@ class Plot(QtWidgets.QWidget):
             event.ignore()
 
     def range_removed(self):
-        for i in range(self.channel_selection.count()):
-            item = self.channel_selection.item(i)
-            item = self.channel_selection.itemWidget(item, 1)
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+        while iterator.value():
+            item = iterator.value()
+            widget = self.channel_selection.itemWidget(item, 1)
 
-            item.set_prefix("")
-            item.set_value("")
+            widget.set_prefix("")
+            widget.set_value("")
             self.cursor_info.setText("")
+
+            iterator += 1
 
         self._range_start = None
         self._range_stop = None
@@ -1440,153 +1454,18 @@ class Plot(QtWidgets.QWidget):
 
         channels = self.plot.add_new_channels(channels)
 
-        # TO DO
-        # count = self.channel_selection.count()
-        # if count:
-        #     for i in range(count):
-        #         wid = self.channel_selection.itemWidget(self.channel_selection.item(i))
-        #         if wid.ylink.checkState() == QtCore.Qt.Unchecked:
-        #             enforce_y_axis = False
-        #             break
-        #     else:
-        #         enforce_y_axis = True
-        # else:
-        #     enforce_y_axis = False
         enforce_y_axis = False
-
-        for sig in channels:
-
-            item = ChannelsTreeItem(
-                (sig.group_index, sig.channel_index),
-                sig.name,
-                sig.computation,
-                self.channel_selection,
-                sig.mdf_uuid,
-            )
-            # item.setCheckState(0, QtCore.Qt.Unchecked)
-            # item.setData(QtCore.Qt.UserRole, sig.name)
-            tooltip = getattr(sig, "tooltip", "") or f"{sig.name}\n{sig.comment}"
-            if sig.source:
-                src = sig.source
-                source_type = v4c.SOURCE_TYPE_TO_STRING[src.source_type]
-                bus_type = v4c.BUS_TYPE_TO_STRING[src.bus_type]
-                details = f"     {source_type} source on bus {bus_type}: name=[{src.name}] path=[{src.path}]"
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+        while iterator.value():
+            item = iterator.value()
+            widget = self.channel_selection.itemWidget(item, 1)
+            if widget.ylink.checkState() == QtCore.Qt.Unchecked:
+                enforce_y_axis = False
+                break
             else:
-                details = ""
+                enforce_y_axis = True
 
-            if len(sig.samples) and sig.conversion:
-                kind = sig.conversion.convert(sig.samples[:1]).dtype.kind
-            else:
-                kind = sig.samples.dtype.kind
-            it = ChannelDisplay(sig.uuid, sig.unit, kind, 3, tooltip, details, self)
-            if self.channel_selection.details_enabled:
-                it.details.setVisible(True)
-            it.setAttribute(QtCore.Qt.WA_StyledBackground)
-
-            if sig.computed:
-                font = QtGui.QFont()
-                font.setItalic(True)
-                it.name.setFont(font)
-
-            it.set_name(sig.name)
-            it.set_value("")
-            it.set_color(sig.color)
-            # TO DO item.setSizeHint(it.sizeHint())
-
-            self.channel_selection.addTopLevelItem(item)
-            self.channel_selection.setItemWidget(item, 0, it)
-
-
-            it.color_changed.connect(self.plot.set_color)
-            # TO DO it.enable_changed.connect(self.plot.set_signal_enable)
-            it.ylink_changed.connect(self.plot.set_common_axis)
-            if enforce_y_axis:
-                it.ylink.setCheckState(QtCore.Qt.Checked)
-            it.individual_axis_changed.connect(self.plot.set_individual_axis)
-
-            item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
-            print('>>', bin(item.flags()))
-
-            self.info_uuid = sig.uuid
-
-    def add_new_channels(self, channels):
-
-        for sig in channels:
-            sig.uuid = os.urandom(6).hex()
-
-        invalid = []
-
-        can_trim = True
-        for channel in channels:
-            diff = np.diff(channel.timestamps)
-            invalid_indexes = np.argwhere(diff <= 0).ravel()
-            if len(invalid_indexes):
-                invalid_indexes = invalid_indexes[:10] + 1
-                idx = invalid_indexes[0]
-                ts = channel.timestamps[idx - 1 : idx + 2]
-                invalid.append(
-                    f"{channel.name} @ index {invalid_indexes[:10] - 1} with first time stamp error: {ts}"
-                )
-                if len(np.argwhere(diff < 0).ravel()):
-                    can_trim = False
-
-        if invalid:
-            errors = "\n".join(invalid)
-            try:
-                mdi_title = self.parent().windowTitle()
-                title = f"plot <{mdi_title}>"
-            except:
-                title = "plot window"
-
-            QtWidgets.QMessageBox.warning(
-                self,
-                f"Channels with corrupted time stamps added to {title}",
-                f"The following channels do not have monotonous increasing time stamps:\n{errors}",
-            )
-            self.plot._can_trim = can_trim
-
-        valid = []
-        invalid = []
-        for channel in channels:
-            if len(channel):
-                samples = channel.samples
-                if samples.dtype.kind not in "SUV" and np.all(np.isnan(samples)):
-                    invalid.append(channel.name)
-                elif channel.conversion:
-                    samples = channel.physical().samples
-                    if samples.dtype.kind not in "SUV" and np.all(np.isnan(samples)):
-                        invalid.append(channel.name)
-                    else:
-                        valid.append(channel)
-                else:
-                    valid.append(channel)
-            else:
-                valid.append(channel)
-
-        if invalid:
-            QtWidgets.QMessageBox.warning(
-                self,
-                "All NaN channels will not be plotted:",
-                f"The following channels have all NaN samples and will not be plotted:\n{', '.join(invalid)}",
-            )
-
-        channels = valid
-
-        channels = self.plot.add_new_channels(channels)
-
-        # TO DO
-        # count = self.channel_selection.count()
-        # if count:
-        #     for i in range(count):
-        #         wid = self.channel_selection.itemWidget(self.channel_selection.item(i))
-        #         if wid.ylink.checkState() == QtCore.Qt.Unchecked:
-        #             enforce_y_axis = False
-        #             break
-        #     else:
-        #         enforce_y_axis = True
-        # else:
-        #     enforce_y_axis = False
-        enforce_y_axis = False
+            iterator += 1
 
         for sig in channels:
 
@@ -1651,12 +1530,14 @@ class Plot(QtWidgets.QWidget):
             self.info_uuid = sig.uuid
 
     def to_config(self):
-        count = self.channel_selection.count()
 
         channels = []
-        for i in range(count):
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+        while iterator.value():
+            item = iterator.value()
+            widget = self.channel_selection.itemWidget(item, 1)
+
             channel = {}
-            item = self.channel_selection.itemWidget(self.channel_selection.item(i))
 
             sig, idx = self.plot.signal_by_uuid(item.uuid)
 
@@ -1698,6 +1579,8 @@ class Plot(QtWidgets.QWidget):
 
             channels.append(channel)
 
+            iterator += 1
+
         config = {
             "channels": channels if not self.pattern else [],
             "pattern": self.pattern,
@@ -1731,11 +1614,15 @@ class Plot(QtWidgets.QWidget):
                 super().dropEvent(e)
 
     def widget_by_uuid(self, uuid):
-        for i in range(self.channel_selection.count()):
-            item = self.channel_selection.item(i)
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+        while iterator.value():
+            item = iterator.value()
             widget = self.channel_selection.itemWidget(item, 1)
+
             if widget.uuid == uuid:
                 break
+
+            iterator += 1
         else:
             widget = None
         return widget
