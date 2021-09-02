@@ -23,25 +23,36 @@ def valid_drop_target(target, item):
     return True
 
 
-def prepare_pseudo_tree(items):
-    tree = {}
+def validate_drag_items(root, items, not_allowed):
+
+    valid_items = []
+
     for item in items:
-        parents = []
-        while True:
+        idx = root.indexOfChild(item)
+        if idx >= 0:
+            parents = []
             parent = item.parent()
-            if parent is None:
+            while parent:
                 parents.append(parent)
-                break
+                parent = parent.parent()
+
+            for parent in parents:
+                if parent in not_allowed:
+                    break
             else:
-                parents.append(id(parent))
+                not_allowed.append(item)
+                valid_items.append(item)
 
-        parents.reverse()
+    for item in valid_items:
+        pos = items.index(item)
+        items.pop(pos)
 
+    for i in range(root.childCount()):
+        child = root.child(i)
+        if child.childCount():
+            valid_items.extend(validate_drag_items(child, items, not_allowed))
 
-
-        tree[path].append(item)
-
-    return tree
+    return valid_items
 
 
 def get_data(items, uuids_only=False):
@@ -356,12 +367,18 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         if e.source() is self:
 
+            selectedItems = validate_drag_items(
+                self.invisibleRootItem(),
+                self.selectedItems(),
+                []
+            )
+
             items = []
             valid_items = []
             drop_item = self.itemAt(e.pos())
             if drop_item is None:
 
-                for it in self.selectedItems():
+                for it in selectedItems:
                     items.append((it.copy(), self.itemWidget(it, 1).copy()))
 
                 for item, widget in items:
@@ -369,7 +386,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                         item.setSizeHint(1, widget.sizeHint())
 
                 root = self.invisibleRootItem()
-                for item in self.selectedItems():
+                for item in selectedItems:
                     (item.parent() or root).removeChild(item)
 
                 self.addTopLevelItems([elem[0] for elem in items])
@@ -395,7 +412,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                         index_func = parent.indexOfChild
                         insert_func = parent.insertChildren
 
-                    for it in self.selectedItems():
+                    for it in selectedItems:
 
                         if not valid_drop_target(target=drop_item, item=it):
                             continue
@@ -424,7 +441,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                                 uuids.append(widget.uuid)
                             self.setItemWidget(item, 1, widget)
                 else:
-                    for it in self.selectedItems():
+                    for it in selectedItems:
 
                         if not valid_drop_target(target=drop_item, item=it):
                             continue
