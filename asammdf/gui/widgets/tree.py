@@ -11,6 +11,29 @@ from .channel_group_display import ChannelGroupDisplay
 from collections import defaultdict
 
 
+def add_new_items(tree, root, items, pos):
+
+    for item in items:
+
+        new_item = item.copy()
+        new_widget = tree.itemWidget(item, 1).copy()
+
+        if pos is None:
+            root.addChild(new_item)
+        else:
+            root.insertChild(pos, new_item)
+            pos += 1
+
+        tree.setItemWidget(new_item, 1, new_widget)
+
+        if isinstance(item, ChannelsGroupTreeItem):
+            child_items = [
+                item.child(i)
+                for i in range(item.childCount())
+            ]
+
+            add_new_items(tree, new_item, child_items, None)
+
 def valid_drop_target(target, item):
     if target is None:
         return True
@@ -367,106 +390,72 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         if e.source() is self:
 
-            selectedItems = validate_drag_items(
+            drop_item = self.itemAt(e.pos())
+
+            selected_items = validate_drag_items(
                 self.invisibleRootItem(),
                 self.selectedItems(),
                 []
             )
 
-            items = []
-            valid_items = []
-            drop_item = self.itemAt(e.pos())
+            if drop_item is not None:
+                selected_items = [
+                    item
+                    for item in selected_items
+                    if valid_drop_target(target=drop_item, item=item)
+                ]
+
+            uuids = get_data(selected_items, uuids_only=True)
+
             if drop_item is None:
+                add_new_items(
+                    self,
+                    self.invisibleRootItem(),
+                    selected_items,
+                    pos=None,
+                )
 
-                for it in selectedItems:
-                    items.append((it.copy(), self.itemWidget(it, 1).copy()))
+            elif isinstance(drop_item, ChannelsTreeItem):
+                parent = drop_item.parent()
 
-                for item, widget in items:
-                    if widget:
-                        item.setSizeHint(1, widget.sizeHint())
-
-                root = self.invisibleRootItem()
-                for item in selectedItems:
-                    (item.parent() or root).removeChild(item)
-
-                self.addTopLevelItems([elem[0] for elem in items])
-
-                uuids = []
-                for item, widget in items:
-                    if widget:
-                        if isinstance(widget, ChannelDisplay):
-                            uuids.append(widget.uuid)
-                        self.setItemWidget(item, 1, widget)
-
-            else:
-
-                if isinstance(drop_item, ChannelsTreeItem):
-                    parent = drop_item.parent()
-
-                    if not parent:
-                        index = initial = self.indexOfTopLevelItem(self.itemAt(e.pos()))
-                        index_func = self.indexOfTopLevelItem
-                        insert_func = self.insertTopLevelItems
-                    else:
-                        index = initial = parent.indexOfChild(drop_item)
-                        index_func = parent.indexOfChild
-                        insert_func = parent.insertChildren
-
-                    for it in selectedItems:
-
-                        if not valid_drop_target(target=drop_item, item=it):
-                            continue
-
-                        valid_items.append(it)
-                        idx = index_func(it)
-                        if 0 <= idx < initial:
-                            index -= 1
-
-                        items.append((it.copy(), self.itemWidget(it, 1).copy()))
-
-                    for item, widget in items:
-                        if widget:
-                            item.setSizeHint(1, widget.sizeHint())
-
+                if not parent:
+                    index = initial = self.indexOfTopLevelItem(self.itemAt(e.pos()))
+                    index_func = self.indexOfTopLevelItem
                     root = self.invisibleRootItem()
-                    for item in valid_items:
-                        (item.parent() or root).removeChild(item)
-
-                    insert_func(index, [elem[0] for elem in items])
-
-                    uuids = []
-                    for item, widget in items:
-                        if widget:
-                            if isinstance(widget, ChannelDisplay):
-                                uuids.append(widget.uuid)
-                            self.setItemWidget(item, 1, widget)
                 else:
-                    for it in selectedItems:
+                    index = initial = parent.indexOfChild(drop_item)
+                    index_func = parent.indexOfChild
+                    root = parent
 
-                        if not valid_drop_target(target=drop_item, item=it):
-                            continue
+                for it in selected_items:
 
-                        valid_items.append(it)
-                        items.append((it.copy(), self.itemWidget(it, 1).copy()))
+                    idx = index_func(it)
+                    if 0 <= idx < initial:
+                        index -= 1
 
-                    for item, widget in items:
-                        if widget:
-                            item.setSizeHint(1, widget.sizeHint())
+                add_new_items(
+                    self,
+                    root,
+                    selected_items,
+                    pos=index,
+                )
 
-                    root = self.invisibleRootItem()
-                    for item in valid_items:
-                        (item.parent() or root).removeChild(item)
+            elif isinstance(drop_item, ChannelsGroupTreeItem):
+                add_new_items(
+                    self,
+                    drop_item,
+                    selected_items,
+                    pos=0,
+                )
 
-                    drop_item.insertChildren(0, [elem[0] for elem in items])
+            root = self.invisibleRootItem()
+            for item in selected_items:
+                item_widget = self.itemWidget(item, 1)
+                if hasattr(item_widget, "disconnect_slots"):
+                    item_widget.disconnect_slots()
+                (item.parent() or root).removeChild(item)
 
-                    uuids = []
-                    for item, widget in items:
-                        if widget:
-                            if isinstance(widget, ChannelDisplay):
-                                uuids.append(widget.uuid)
-                            self.setItemWidget(item, 1, widget)
-
-            self.items_rearranged.emit(uuids)
+            self.items_rearranged.emit(list(uuids))
         else:
             data = e.mimeData()
             if data.hasFormat("application/octet-stream-asammdf"):
@@ -771,7 +760,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
     ylink_changed = QtCore.pyqtSignal(object, int)
     individual_axis_changed = QtCore.pyqtSignal(object, int)
 
-    def __init__(self, entry, name="", computation=None, parent=None, mdf_uuid=None, category="channel", texts=("","")):
+    def __init__(self, entry, name="", computation=None, parent=None, mdf_uuid=None, category="channel", texts=("",""), check=None):
         super().__init__(parent, list(texts))
 
         self.entry = entry
@@ -782,10 +771,13 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
         self.setFlags(self.flags() | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
 
-        self.setCheckState(0, QtCore.Qt.Checked)
+        if check is None:
+            self.setCheckState(0, QtCore.Qt.Checked)
+        else:
+            self.setCheckState(0, check)
 
     def copy(self):
-        x = ChannelsTreeItem(self.entry, self.name, self.computation, mdf_uuid=self.mdf_uuid, category=self.category)
+        x = ChannelsTreeItem(self.entry, self.name, self.computation, mdf_uuid=self.mdf_uuid, category=self.category, check=self.checkState(0))
         return x
 
 

@@ -1541,60 +1541,72 @@ class Plot(QtWidgets.QWidget):
 
     def to_config(self):
 
-        channels = []
-        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
-        while iterator.value():
-            item = iterator.value()
-            widget = self.channel_selection.itemWidget(item, 1)
+        def item_to_config(tree, root):
+            channels = []
 
-            if isinstance(widget, ChannelDisplay):
+            for i in range(root.childCount()):
+                item = root.child(i)
+                widget = tree.itemWidget(item, 1)
+                if isinstance(widget, ChannelDisplay):
 
-                channel = {}
+                    channel = {
+                        'type': 'channel'
+                    }
 
-                sig, idx = self.plot.signal_by_uuid(widget.uuid)
+                    sig, idx = self.plot.signal_by_uuid(widget.uuid)
 
-                channel["name"] = sig.name
-                channel["unit"] = sig.unit
-                channel["enabled"] = item.checkState(0) == QtCore.Qt.Checked
-                channel["individual_axis"] = (
-                    widget.individual_axis.checkState() == QtCore.Qt.Checked
-                )
-                channel["common_axis"] = widget.ylink.checkState() == QtCore.Qt.Checked
-                channel["color"] = sig.color
-                channel["computed"] = sig.computed
-                ranges = [
-                    {"start": start, "stop": stop, "color": color}
-                    for (start, stop), color in widget.ranges.items()
-                ]
-                channel["ranges"] = ranges
+                    channel["name"] = sig.name
+                    channel["unit"] = sig.unit
+                    channel["enabled"] = item.checkState(0) == QtCore.Qt.Checked
+                    channel["individual_axis"] = (
+                            widget.individual_axis.checkState() == QtCore.Qt.Checked
+                    )
+                    channel["common_axis"] = widget.ylink.checkState() == QtCore.Qt.Checked
+                    channel["color"] = sig.color
+                    channel["computed"] = sig.computed
+                    ranges = [
+                        {"start": start, "stop": stop, "color": color}
+                        for (start, stop), color in widget.ranges.items()
+                    ]
+                    channel["ranges"] = ranges
 
-                channel["precision"] = widget.precision
-                channel["fmt"] = widget.fmt
-                channel["mode"] = sig.mode
-                if sig.computed:
-                    channel["computation"] = sig.computation
+                    channel["precision"] = widget.precision
+                    channel["fmt"] = widget.fmt
+                    channel["mode"] = sig.mode
+                    if sig.computed:
+                        channel["computation"] = sig.computation
 
-                view = self.plot.view_boxes[idx]
-                channel["y_range"] = [float(e) for e in view.viewRange()[1]]
-                channel["mdf_uuid"] = str(sig.mdf_uuid)
+                    view = self.plot.view_boxes[idx]
+                    channel["y_range"] = [float(e) for e in view.viewRange()[1]]
+                    channel["mdf_uuid"] = str(sig.mdf_uuid)
 
-                if sig.computed and sig.conversion:
-                    channel["user_defined_name"] = sig.name
-                    channel["name"] = sig.computation["expression"].strip("}{")
+                    if sig.computed and sig.conversion:
+                        channel["user_defined_name"] = sig.name
+                        channel["name"] = sig.computation["expression"].strip("}{")
 
-                    channel["conversion"] = {}
-                    for i in range(sig.conversion.val_param_nr):
-                        channel["conversion"][
-                            f"text_{i}"
-                        ] = sig.conversion.referenced_blocks[f"text_{i}"].decode("utf-8")
-                        channel["conversion"][f"val_{i}"] = sig.conversion[f"val_{i}"]
+                        channel["conversion"] = {}
+                        for i in range(sig.conversion.val_param_nr):
+                            channel["conversion"][
+                                f"text_{i}"
+                            ] = sig.conversion.referenced_blocks[f"text_{i}"].decode("utf-8")
+                            channel["conversion"][f"val_{i}"] = sig.conversion[f"val_{i}"]
+
+                    channels.append(channel)
+
+                elif isinstance(widget, ChannelGroupDisplay):
+                    channel = {
+                        'type': 'group',
+                        'name': widget.name.text(),
+                        'channels': item_to_config(tree, item),
+                        "enabled": item.checkState(0) == QtCore.Qt.Checked,
+                    }
 
                 channels.append(channel)
 
-            iterator += 1
+            return channels
 
         config = {
-            "channels": channels if not self.pattern else [],
+            "channels": item_to_config(self.channel_selection, self.channel_selection.invisibleRootItem()) if not self.pattern else [],
             "pattern": self.pattern,
             "splitter": [int(e) for e in self.splitter.sizes()[:2]]
             + [
