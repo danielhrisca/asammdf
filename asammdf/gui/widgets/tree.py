@@ -6,6 +6,40 @@ from datetime import datetime, date
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ..utils import extract_mime_names
+from collections import defaultdict
+
+
+def valid_drop_target(target, item):
+    if target is None:
+        return True
+
+    while target.parent():
+        if target.parent() is item:
+            return False
+        target = target.parent()
+
+    return True
+
+
+def prepare_pseudo_tree(items):
+    tree = {}
+    for item in items:
+        parents = []
+        while True:
+            parent = item.parent()
+            if parent is None:
+                parents.append(parent)
+                break
+            else:
+                parents.append(id(parent))
+
+        parents.reverse()
+
+
+
+        tree[path].append(item)
+
+    return tree
 
 
 def get_data(items, uuids_only=False):
@@ -217,7 +251,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 
-        self.setUniformRowHeights(True)
+        self.setUniformRowHeights(False)
 
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.open_menu)
@@ -313,10 +347,15 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         e.accept()
 
     def dropEvent(self, e):
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/open.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
 
         if e.source() is self:
 
             items = []
+            valid_items = []
             drop_item = self.itemAt(e.pos())
             if drop_item is None:
 
@@ -324,7 +363,20 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     if isinstance(it, ChannelsTreeItem):
                         items.append((it.copy(), self.itemWidget(it, 1).copy()))
                     else:
-                        items.append((QtWidgets.QTreeWidgetItem(it), None))
+                        texts = [it.text(0), it.text(1)]
+                        new_item = QtWidgets.QTreeWidgetItem(texts)
+                        new_item.setFlags(
+                            new_item.flags()
+                            | QtCore.Qt.ItemIsTristate
+                            | QtCore.Qt.ItemIsUserCheckable
+                        )
+                        new_item.setCheckState(0, it.checkState(0))
+                        new_item.setIcon(1, icon)
+                        font = new_item.font(1)
+                        font.setPointSize(font.pointSize() + 2)
+                        font.setBold(True)
+                        new_item.setFont(1, font)
+                        items.append((new_item, None))
 
                 for item, widget in items:
                     if widget:
@@ -343,6 +395,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                         self.setItemWidget(item, 1, widget)
 
             else:
+
                 if isinstance(drop_item, ChannelsTreeItem):
                     parent = drop_item.parent()
 
@@ -356,6 +409,11 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                         insert_func = parent.insertChildren
 
                     for it in self.selectedItems():
+
+                        if not valid_drop_target(target=drop_item, item=it):
+                            continue
+
+                        valid_items.append(it)
                         idx = index_func(it)
                         if 0 <= idx < initial:
                             index -= 1
@@ -371,6 +429,11 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                                 | QtCore.Qt.ItemIsUserCheckable
                             )
                             new_item.setCheckState(0, it.checkState(0))
+                            new_item.setIcon(1, icon)
+                            font = new_item.font(1)
+                            font.setPointSize(font.pointSize() + 2)
+                            font.setBold(True)
+                            new_item.setFont(1, font)
                             items.append((new_item, None))
 
                     for item, widget in items:
@@ -378,7 +441,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                             item.setSizeHint(1, widget.sizeHint())
 
                     root = self.invisibleRootItem()
-                    for item in self.selectedItems():
+                    for item in valid_items:
                         (item.parent() or root).removeChild(item)
 
                     insert_func(index, [elem[0] for elem in items])
@@ -391,6 +454,11 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 else:
                     for it in self.selectedItems():
 
+                        if not valid_drop_target(target=drop_item, item=it):
+                            continue
+
+                        valid_items.append(it)
+
                         if isinstance(it, ChannelsTreeItem):
                             items.append((it.copy(), self.itemWidget(it, 1).copy()))
                         else:
@@ -402,6 +470,11 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                                 | QtCore.Qt.ItemIsUserCheckable
                             )
                             new_item.setCheckState(0, it.checkState(0))
+                            new_item.setIcon(1, icon)
+                            font = new_item.font(1)
+                            font.setPointSize(font.pointSize() + 2)
+                            font.setBold(True)
+                            new_item.setFont(1, font)
                             items.append((new_item, None))
 
                     for item, widget in items:
@@ -409,7 +482,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                             item.setSizeHint(1, widget.sizeHint())
 
                     root = self.invisibleRootItem()
-                    for item in self.selectedItems():
+                    for item in valid_items:
                         (item.parent() or root).removeChild(item)
 
                     drop_item.insertChildren(0, [elem[0] for elem in items])
@@ -689,6 +762,16 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     | QtCore.Qt.ItemIsTristate
                     | QtCore.Qt.ItemIsUserCheckable
                 )
+                icon = QtGui.QIcon()
+                icon.addPixmap(
+                    QtGui.QPixmap(":/open.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                )
+                group.setIcon(1, icon)
+
+                font = group.font(1)
+                font.setPointSize(font.pointSize() + 2)
+                font.setBold(True)
+                group.setFont(1, font)
 
                 if item is None:
                     self.addTopLevelItem(group)

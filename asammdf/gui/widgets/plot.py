@@ -935,7 +935,7 @@ class Plot(QtWidgets.QWidget):
         super().mousePressEvent(event)
 
     def channel_selection_modified(self, item):
-        if isinstance(item, ChannelsTreeWidget):
+        if isinstance(item, ChannelsTreeItem):
             uuid = self.channel_selection.itemWidget(item, 1).uuid
             self.info_uuid = uuid
 
@@ -956,7 +956,7 @@ class Plot(QtWidgets.QWidget):
                     self.info.set_stats(stats)
 
     def channel_selection_row_changed(self, current, previous):
-        if isinstance(current, ChannelsTreeWidget):
+        if isinstance(current, ChannelsTreeItem):
             item = current
             uuid = self.channel_selection.itemWidget(item, 1).uuid
             self.info_uuid = uuid
