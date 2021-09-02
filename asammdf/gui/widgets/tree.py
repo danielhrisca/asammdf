@@ -310,6 +310,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
     def keyPressEvent(self, event):
         key = event.key()
+        modifiers = event.modifiers()
 
         if key == QtCore.Qt.Key_Delete and self.can_delete_items:
             selected_items = self.selectedItems()
@@ -324,6 +325,27 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
             if deleted:
                 self.itemsDeleted.emit(list(deleted))
+
+        elif key == QtCore.Qt.Key_Insert and modifiers == QtCore.Qt.ShiftModifier:
+            text, ok = QtWidgets.QInputDialog.getText(self, 'Channel group name', 'New channel group name:')
+            if ok:
+                group = ChannelsGroupTreeItem(text)
+                widget = ChannelGroupDisplay(text)
+
+                item = self.currentItem()
+
+                if item is None:
+                    self.addTopLevelItem(group)
+                else:
+                    parent = item.parent()
+                    if parent:
+                        index = parent.indexOfChild(item)
+                        parent.insertChild(index, group)
+                    else:
+                        index = self.indexOfTopLevelItem(item)
+                        self.insertTopLevelItem(index, group)
+
+                self.setItemWidget(group, 1, widget)
 
         elif key == QtCore.Qt.Key_Space:
             selected_items = self.selectedItems()
@@ -719,23 +741,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     self.insert_computation.emit(self.itemWidget(item, 1)._name)
 
         elif action.text() == "Add channel group":
-            text, ok = QtWidgets.QInputDialog.getText(self, 'Channel group name', 'New channel group name:')
-            if ok:
-                group = ChannelsGroupTreeItem(text)
-                widget = ChannelGroupDisplay(text)
-
-                if item is None:
-                    self.addTopLevelItem(group)
-                else:
-                    parent = item.parent()
-                    if parent:
-                        index = parent.indexOfChild(item)
-                        parent.insertChild(index, group)
-                    else:
-                        index = self.indexOfTopLevelItem(item)
-                        self.insertTopLevelItem(index, group)
-
-                self.setItemWidget(group, 1, widget)
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.KeyPress, QtCore.Qt.Key_Insert, QtCore.Qt.ShiftModifier
+            )
+            self.keyPressEvent(event)
 
         elif action.text() == "Rename group":
             text, ok = QtWidgets.QInputDialog.getText(self, 'Rename group', 'New channel group name:')
