@@ -5,6 +5,8 @@ from datetime import datetime, date
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+from ..utils import extract_mime_names
+
 
 class TreeWidget(QtWidgets.QTreeWidget):
     def __init__(self, *args, **kwargs):
@@ -150,7 +152,7 @@ class FileTreeWidget(QtWidgets.QTreeWidget):
 class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     itemsDeleted = QtCore.pyqtSignal(list)
     set_time_offset = QtCore.pyqtSignal(list)
-    items_rearranged = QtCore.pyqtSignal()
+    items_rearranged = QtCore.pyqtSignal(list)
     add_channels_request = QtCore.pyqtSignal(list)
     show_properties = QtCore.pyqtSignal(object)
     insert_computation = QtCore.pyqtSignal(str)
@@ -158,7 +160,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     def __init__(self, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
-        self.setDragDropMode(QtWidgets.QAbstractItemView.DragDrop)
+        self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 
         self.setUniformRowHeights(True)
@@ -167,6 +169,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.customContextMenuRequested.connect(self.open_menu)
         self.details_enabled = False
         self._has_hidden_items = False
+        self.can_delete_items = True
 
         self.setHeaderHidden(True)
         self.setColumnCount(2)
@@ -179,10 +182,25 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.header().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self.header().setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
         # self.header().hideSection(0)
+        self._moved = []
 
     def keyPressEvent(self, event):
         key = event.key()
-        if key == QtCore.Qt.Key_Space:
+
+        if key == QtCore.Qt.Key_Delete and self.can_delete_items:
+            selected_items = self.selectedItems()
+            deleted = []
+            for item in selected_items:
+                item_widget = self.itemWidget(item, 1)
+                deleted.append(getattr(item_widget, "uuid", None))
+                if hasattr(item_widget, "disconnect_slots"):
+                    item_widget.disconnect_slots()
+                self.takeTopLevelItem(self.indexOfTopLevelItem(item))
+
+            if deleted:
+                self.itemsDeleted.emit(deleted)
+
+        elif key == QtCore.Qt.Key_Space:
             selected_items = self.selectedItems()
             if not selected_items:
                 return
@@ -206,7 +224,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             super().keyPressEvent(event)
 
     def startDrag(self, supportedActions):
-        print('start drag')
         def get_data(item):
             data = set()
             count = item.childCount()
@@ -271,29 +288,56 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             "application/octet-stream-asammdf", QtCore.QByteArray(b"".join(data))
         )
 
-        print('execut', b"".join(data))
-        print(bin(self.dragDropMode()))
-
         drag = QtGui.QDrag(self)
         drag.setMimeData(mimeData)
         drag.exec_(QtCore.Qt.MoveAction)
 
     def dragEnterEvent(self, e):
-        print("DragEnter")
         e.accept()
-
     def dragMoveEvent(self, e):
-        print("DragMove")
         e.accept()
 
     def dropEvent(self, e):
-        print('drop', e)
         if e.source() is self:
-            print('a')
-            super().dropEvent(e)
-            self.items_rearranged.emit()
+
+            items = []
+            indexes = []
+            drop_item = self.itemAt(e.pos())
+            if drop_item is None:
+                append = True
+
+                for it in self.selectedItems():
+                    items.append((it.copy(), self.itemWidget(it, 1).copy()))
+            else:
+                append = False
+
+                index = initial = self.indexOfTopLevelItem(self.itemAt(e.pos()))
+
+                for it in self.selectedItems():
+                    idx = self.indexOfTopLevelItem(it)
+                    if idx < initial:
+                        index -= 1
+
+                    items.append((it.copy(), self.itemWidget(it, 1).copy()))
+                    self.removeItemWidget(it, 1)
+                    indexes.append(idx)
+
+            root = self.invisibleRootItem()
+            for item in self.selectedItems():
+                (item.parent() or root).removeChild(item)
+
+            if append:
+                self.addTopLevelItems([elem[0] for elem in items])
+            else:
+                self.insertTopLevelItems(index, [elem[0] for elem in items])
+
+            uuids = []
+            for item, widget in items:
+                uuids.append(widget.uuid)
+                self.setItemWidget(item, 1, widget)
+
+            self.items_rearranged.emit(uuids)
         else:
-            print('b')
             data = e.mimeData()
             if data.hasFormat("application/octet-stream-asammdf"):
                 names = extract_mime_names(data)
@@ -452,7 +496,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     item = iterator.value()
                     if item in selected_items:
                         widget = self.itemWidget(item, 1)
-                        widget.unit = unit
+                        widget.set_unit(unit)
                         widget.update()
                     iterator += 1
 
@@ -556,9 +600,10 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         self.setFlags(self.flags() | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
 
         self.setCheckState(0, QtCore.Qt.Checked)
-        # self.setCheckState(2, QtCore.Qt.Unchecked)
-        # self.setCheckState(3, QtCore.Qt.Unchecked)
 
+    def copy(self):
+        x = ChannelsTreeItem(self.entry, self.name, self.computation, mdf_uuid=self.mdf_uuid, category=self.category)
+        return x
 
 
 if __name__ == "__main__":

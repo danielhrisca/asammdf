@@ -894,6 +894,7 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.insert_computation.connect(self.plot.insert_computation)
 
         self.channel_selection.itemChanged.connect(self.channel_selection_item_changed)
+        self.channel_selection.items_rearranged.connect(self.channel_selection_rearranged)
 
         self.keyboard_events = (
             set(
@@ -906,6 +907,21 @@ class Plot(QtWidgets.QWidget):
             )
             | self.plot.keyboard_events
         )
+
+    def channel_selection_rearranged(self, uuids):
+        uuids = set(uuids)
+
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+        while iterator.value():
+            item = iterator.value()
+            widget = self.channel_selection.itemWidget(item, 1)
+            if widget.uuid in uuids:
+                widget.color_changed.connect(self.plot.set_color)
+                widget.enable_changed.connect(self.plot.set_signal_enable)
+                widget.ylink_changed.connect(self.plot.set_common_axis)
+                widget.individual_axis_changed.connect(self.plot.set_individual_axis)
+
+            iterator += 1
 
     def channel_selection_item_changed(self, item, column):
         if item is not None and column == 0:
@@ -941,7 +957,6 @@ class Plot(QtWidgets.QWidget):
 
     def channel_selection_row_changed(self, current, previous):
         if current:
-            print(bin(current.flags()))
             item = current
             uuid = self.channel_selection.itemWidget(item, 1).uuid
             self.info_uuid = uuid
@@ -1474,15 +1489,8 @@ class Plot(QtWidgets.QWidget):
                 sig.computation,
                 self.channel_selection,
                 sig.mdf_uuid,
-                # texts=[sig.name, "", "", ""],
-                # texts = ["", sig.name]
             )
-            # self.channel_selection.addTopLevelItem(item)
 
-            # self.channel_selection.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
-            # self.channel_selection.header().setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
-
-            item.setCheckState(0, QtCore.Qt.Unchecked)
             # item.setData(QtCore.Qt.UserRole, sig.name)
             tooltip = getattr(sig, "tooltip", "") or f"{sig.name}\n{sig.comment}"
             if sig.source:
@@ -1516,16 +1524,14 @@ class Plot(QtWidgets.QWidget):
             self.channel_selection.setItemWidget(item, 1, it)
 
             it.color_changed.connect(self.plot.set_color)
-            # TO DO it.enable_changed.connect(self.plot.set_signal_enable)
             it.enable_changed.connect(self.plot.set_signal_enable)
             it.ylink_changed.connect(self.plot.set_common_axis)
+            it.unit_changed.connect(self.plot.set_unit)
             if enforce_y_axis:
                 it.ylink.setCheckState(QtCore.Qt.Checked)
             it.individual_axis_changed.connect(self.plot.set_individual_axis)
 
             item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
-            print('>>', bin(item.flags()))
-
             self.info_uuid = sig.uuid
 
     def to_config(self):
@@ -1916,6 +1922,28 @@ class _Plot(pg.PlotWidget):
         if uuid == self.current_uuid:
             self.y_axis.setPen(color)
             self.y_axis.setTextPen(color)
+
+    def set_unit(self, uuid, unit):
+        sig, index = self.signal_by_uuid(uuid)
+        sig.unit = unit
+
+        sig_axis = [self.axes[index]]
+
+        if uuid == self.current_uuid:
+            sig_axis.append(self.y_axis)
+
+        for axis in sig_axis:
+            if len(sig.name) <= 32:
+                if sig.unit:
+                    axis.setLabel(f"{sig.name} [{sig.unit}]")
+                else:
+                    axis.setLabel(f"{sig.name}")
+            else:
+                if sig.unit:
+                    axis.setLabel(f"{sig.name[:29]}...  [{sig.unit}]")
+                else:
+                    axis.setLabel(f"{sig.name[:29]}...")
+            axis.update()
 
     def set_common_axis(self, uuid, state):
         _, index = self.signal_by_uuid(uuid)
