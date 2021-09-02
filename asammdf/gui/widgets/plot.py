@@ -36,6 +36,7 @@ from ..dialogs.define_channel import DefineChannel
 from ..ui import resource_rc as resource_rc
 from ..utils import COLORS, extract_mime_names
 from .channel_display import ChannelDisplay
+from .channel_group_display import ChannelGroupDisplay
 from .channel_stats import ChannelStats
 from .cursor import Cursor
 from .dict_to_tree import ComputedChannelInfoWindow
@@ -915,7 +916,7 @@ class Plot(QtWidgets.QWidget):
         while iterator.value():
             item = iterator.value()
             widget = self.channel_selection.itemWidget(item, 1)
-            if widget and widget.uuid in uuids:
+            if isinstance(widget, ChannelDisplay) and widget.uuid in uuids:
                 widget.color_changed.connect(self.plot.set_color)
                 widget.enable_changed.connect(self.plot.set_signal_enable)
                 widget.ylink_changed.connect(self.plot.set_common_axis)
@@ -927,7 +928,7 @@ class Plot(QtWidgets.QWidget):
         if item is not None and column == 0:
             state = item.checkState(0)
             widget = self.channel_selection.itemWidget(item, 1)
-            if widget is not None:
+            if isinstance(widget, ChannelDisplay):
                 widget.enable_changed.emit(widget.uuid, state)
 
     def mousePressEvent(self, event):
@@ -1033,7 +1034,7 @@ class Plot(QtWidgets.QWidget):
             while iterator.value():
                 item = iterator.value()
                 widget = self.channel_selection.itemWidget(item, 1)
-                if widget:
+                if isinstance(widget, ChannelDisplay):
 
                     signal, idx = self.plot.signal_by_uuid(widget.uuid)
                     value, kind, fmt = signal.value_at_timestamp(position)
@@ -1058,7 +1059,7 @@ class Plot(QtWidgets.QWidget):
             item = iterator.value()
             widget = self.channel_selection.itemWidget(item, 1)
 
-            if widget and not self.plot.region:
+            if isinstance(widget, ChannelDisplay) and not self.plot.region:
                 self.cursor_info.setText("")
                 widget.set_prefix("")
                 widget.set_value("")
@@ -1100,7 +1101,7 @@ class Plot(QtWidgets.QWidget):
         while iterator.value():
             item = iterator.value()
             widget = self.channel_selection.itemWidget(item, 1)
-            if widget:
+            if isinstance(widget, ChannelDisplay):
 
                 signal, i = self.plot.signal_by_uuid(widget.uuid)
 
@@ -1351,7 +1352,7 @@ class Plot(QtWidgets.QWidget):
         while iterator.value():
             item = iterator.value()
             widget = self.channel_selection.itemWidget(item, 1)
-            if widget:
+            if isinstance(widget, ChannelDisplay):
                 widget.set_prefix("")
                 widget.set_value("")
                 self.cursor_info.setText("")
@@ -1395,6 +1396,8 @@ class Plot(QtWidgets.QWidget):
         it.enable_changed.connect(self.plot.set_signal_enable)
         it.ylink_changed.connect(self.plot.set_common_axis)
         it.individual_axis_changed.connect(self.plot.set_individual_axis)
+        it.unit_changed.connect(self.plot.set_unit)
+        it.name_changed.connect(self.plot.set_name)
 
         it.enable_changed.emit(sig.uuid, 1)
         it.enable_changed.emit(sig.uuid, 0)
@@ -1474,7 +1477,7 @@ class Plot(QtWidgets.QWidget):
         while iterator.value():
             item = iterator.value()
             widget = self.channel_selection.itemWidget(item, 1)
-            if widget and widget.ylink.checkState() == QtCore.Qt.Unchecked:
+            if isinstance(widget, ChannelDisplay) and widget.ylink.checkState() == QtCore.Qt.Unchecked:
                 enforce_y_axis = False
                 break
             else:
@@ -1528,6 +1531,7 @@ class Plot(QtWidgets.QWidget):
             it.enable_changed.connect(self.plot.set_signal_enable)
             it.ylink_changed.connect(self.plot.set_common_axis)
             it.unit_changed.connect(self.plot.set_unit)
+            it.name_changed.connect(self.plot.set_name)
             if enforce_y_axis:
                 it.ylink.setCheckState(QtCore.Qt.Checked)
             it.individual_axis_changed.connect(self.plot.set_individual_axis)
@@ -1543,7 +1547,7 @@ class Plot(QtWidgets.QWidget):
             item = iterator.value()
             widget = self.channel_selection.itemWidget(item, 1)
 
-            if widget:
+            if isinstance(widget, ChannelDisplay):
 
                 channel = {}
 
@@ -1627,7 +1631,7 @@ class Plot(QtWidgets.QWidget):
             item = iterator.value()
             widget = self.channel_selection.itemWidget(item, 1)
 
-            if widget and widget.uuid == uuid:
+            if isinstance(widget, ChannelDisplay) and widget.uuid == uuid:
                 break
 
             iterator += 1
@@ -1929,6 +1933,28 @@ class _Plot(pg.PlotWidget):
     def set_unit(self, uuid, unit):
         sig, index = self.signal_by_uuid(uuid)
         sig.unit = unit
+
+        sig_axis = [self.axes[index]]
+
+        if uuid == self.current_uuid:
+            sig_axis.append(self.y_axis)
+
+        for axis in sig_axis:
+            if len(sig.name) <= 32:
+                if sig.unit:
+                    axis.setLabel(f"{sig.name} [{sig.unit}]")
+                else:
+                    axis.setLabel(f"{sig.name}")
+            else:
+                if sig.unit:
+                    axis.setLabel(f"{sig.name[:29]}...  [{sig.unit}]")
+                else:
+                    axis.setLabel(f"{sig.name[:29]}...")
+            axis.update()
+
+    def set_name(self, uuid, name):
+        sig, index = self.signal_by_uuid(uuid)
+        sig.name = name
 
         sig_axis = [self.axes[index]]
 

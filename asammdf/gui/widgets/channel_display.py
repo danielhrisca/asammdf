@@ -15,6 +15,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
     ylink_changed = QtCore.pyqtSignal(object, int)
     individual_axis_changed = QtCore.pyqtSignal(object, int)
     unit_changed = QtCore.pyqtSignal(object, str)
+    name_changed = QtCore.pyqtSignal(object, str)
 
     def __init__(
         self,
@@ -161,6 +162,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
     def set_name(self, text=""):
         self.setToolTip(self._tooltip or text)
         self._name = text
+        self.name_changed.emit(self.uuid, text)
 
     def set_prefix(self, text=""):
         self._value_prefix = text
