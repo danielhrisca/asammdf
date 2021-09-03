@@ -2,6 +2,7 @@
 
 from struct import pack
 from datetime import datetime, date
+import json
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -79,56 +80,50 @@ def validate_drag_items(root, items, not_allowed):
 
 
 def get_data(items, uuids_only=False):
-    data = set()
+    data = []
 
     if items:
         tree = items[0].treeWidget()
 
     for item in items:
-        count = item.childCount()
+        if isinstance(item, ChannelsGroupTreeItem):
+            children = [item.child(i) for i in range(item.childCount())]
+            if uuids_only:
+                data.extend(get_data(children, uuids_only))
+            else:
+                data.append(
+                    (
+                        item.name,
+                        None,
+                        get_data(children, uuids_only),
+                        None,
+                        "group",
+                    )
+                )
 
-        if count:
-            for i in range(count):
-                child = item.child(i)
-
-                if child.childCount():
-                    children = [child.child(i) for i in range(child.childCount())]
-                    data = data | get_data(children, uuids_only)
-                else:
-                    if isinstance(child, ChannelsTreeItem):
-                        if uuids_only:
-                            data.add(tree.itemWidget(child, 1).uuid)
-                        else:
-
-                            name = child.name.encode("utf-8")
-                            entry = child.entry
-                            if entry[1] != 0xFFFFFFFFFFFFFFFF:
-                                data.add(
-                                    (
-                                        str(child.mdf_uuid).encode("ascii"),
-                                        name,
-                                        entry[0],
-                                        entry[1],
-                                        len(name),
-                                    )
-                                )
         else:
-            if isinstance(item, ChannelsTreeItem):
-                if uuids_only:
-                    data.add(tree.itemWidget(item, 1).uuid)
+            if uuids_only:
+                data.append(tree.itemWidget(item, 1).uuid)
+            else:
+                if item.entry == (-1, -1):
+                    widget = item.treeWidget().itemWidget(item, 1)
+                    info = {
+                        "name": item.name,
+                        "computation": item.computation,
+                        "computed": True,
+                        "unit": widget._unit,
+                        "color": widget.color,
+                    }
                 else:
-                    name = item.name.encode("utf-8")
-                    entry = item.entry
-                    if entry[1] != 0xFFFFFFFFFFFFFFFF:
-                        data.add(
-                            (
-                                str(item.mdf_uuid).encode("ascii"),
-                                name,
-                                entry[0],
-                                entry[1],
-                                len(name),
-                            )
-                        )
+                    info = item.name
+                data.append(
+                    (
+                        info,
+                        *item.entry,
+                        item.mdf_uuid,
+                        "channel"
+                    )
+                )
     return data
 
 
@@ -170,7 +165,7 @@ class TreeWidget(QtWidgets.QTreeWidget):
 
     def startDrag(self, supportedActions):
         def get_data(item):
-            data = set()
+            data = []
             count = item.childCount()
 
             if count:
@@ -178,32 +173,26 @@ class TreeWidget(QtWidgets.QTreeWidget):
                     child = item.child(i)
 
                     if child.childCount():
-                        data = data | get_data(child)
+                        data.extend(get_data(child))
                     else:
 
-                        name = child.name.encode("utf-8")
-                        entry = child.entry
-                        if entry[1] != 0xFFFFFFFFFFFFFFFF:
-                            data.add(
+                        if child.entry[1] != 0xFFFFFFFFFFFFFFFF:
+                            data.append(
                                 (
-                                    str(child.mdf_uuid).encode("ascii"),
-                                    name,
-                                    entry[0],
-                                    entry[1],
-                                    len(name),
+                                    child.name,
+                                    *child.entry,
+                                    child.mdf_uuid,
+                                    "channel",
                                 )
                             )
             else:
-                name = item.name.encode("utf-8")
-                entry = item.entry
-                if entry[1] != 0xFFFFFFFFFFFFFFFF:
-                    data.add(
+                if item.entry[1] != 0xFFFFFFFFFFFFFFFF:
+                    data.append(
                         (
-                            str(item.mdf_uuid).encode("ascii"),
-                            name,
-                            entry[0],
-                            entry[1],
-                            len(name),
+                            item.name,
+                            *item.entry,
+                            item.mdf_uuid,
+                            "channel",
                         )
                     )
 
@@ -213,24 +202,14 @@ class TreeWidget(QtWidgets.QTreeWidget):
 
         mimeData = QtCore.QMimeData()
 
-        data = set()
+        data = []
         for item in selected_items:
-            data = data | get_data(item)
+            data.extend(get_data(item))
 
-        data = [
-            pack(
-                f"<12s3q{name_length}s",
-                uuid,
-                group_index,
-                channel_index,
-                name_length,
-                name,
-            )
-            for uuid, name, group_index, channel_index, name_length in sorted(data)
-        ]
+        data = json.dumps(sorted(data)).encode('utf-8')
 
         mimeData.setData(
-            "application/octet-stream-asammdf", QtCore.QByteArray(b"".join(data))
+            "application/octet-stream-asammdf", QtCore.QByteArray(data)
         )
 
         drag = QtGui.QDrag(self)
@@ -378,20 +357,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         data = get_data(selected_items, uuids_only=False)
 
-        data = [
-            pack(
-                f"<12s3q{name_length}s",
-                uuid,
-                group_index,
-                channel_index,
-                name_length,
-                name,
-            )
-            for uuid, name, group_index, channel_index, name_length in sorted(data)
-        ]
+        data = json.dumps(data).encode('utf-8')
 
         mimeData.setData(
-            "application/octet-stream-asammdf", QtCore.QByteArray(b"".join(data))
+            "application/octet-stream-asammdf", QtCore.QByteArray(data)
         )
 
         drag = QtGui.QDrag(self)
@@ -526,7 +495,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addAction(self.tr(show_hide))
         menu.addSeparator()
 
-        if item:
+        if isinstance(item, ChannelsTreeItem):
             menu.addAction(self.tr("Add to common Y axis"))
             menu.addAction(self.tr("Remove from common Y axis"))
             menu.addSeparator()
@@ -538,10 +507,11 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             menu.addSeparator()
             menu.addAction(self.tr("Insert computation using this channel"))
             menu.addSeparator()
+        if item:
             menu.addAction(self.tr("Delete (Del)"))
             menu.addSeparator()
         menu.addAction(self.tr("Toggle details"))
-        if item:
+        if isinstance(item, ChannelsTreeItem):
             menu.addAction(self.tr("File/Computation properties"))
 
         action = menu.exec_(self.viewport().mapToGlobal(position))

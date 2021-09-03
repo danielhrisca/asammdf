@@ -43,7 +43,7 @@ from .dict_to_tree import ComputedChannelInfoWindow
 from .formated_axis import FormatedAxis
 from .list import ListWidget
 from .list_item import ListItem
-from .tree import ChannelsTreeItem, ChannelsTreeWidget
+from .tree import ChannelsTreeItem, ChannelsTreeWidget, ChannelsGroupTreeItem
 
 bin_ = bin
 
@@ -1374,7 +1374,7 @@ class Plot(QtWidgets.QWidget):
         sig = self.plot.signals[-1]
 
         name, unit = sig.name, sig.unit
-        item = ListItem((-1, -1), name, sig.computation, self.channel_selection)
+        item = ChannelsTreeItem((-1, -1), name, sig.computation)
         tooltip = getattr(sig, "tooltip", "")
         it = ChannelDisplay(
             sig.uuid, unit, sig.samples.dtype.kind, 3, tooltip, "", self
@@ -1388,11 +1388,13 @@ class Plot(QtWidgets.QWidget):
         it.set_name(name)
         it.set_value("")
         it.set_color(sig.color)
-        item.setSizeHint(it.sizeHint())
-        self.channel_selection.addItem(item)
-        self.channel_selection.setItemWidget(item, it)
+        item.setSizeHint(1, it.sizeHint())
+        self.channel_selection.addTopLevelItem(item)
+        self.channel_selection.setItemWidget(item, 1, it)
 
         it.color_changed.connect(self.plot.set_color)
+        it.unit_changed.connect(self.plot.set_unit)
+        it.name_changed.connect(self.plot.set_name)
         it.enable_changed.connect(self.plot.set_signal_enable)
         it.ylink_changed.connect(self.plot.set_common_axis)
         it.individual_axis_changed.connect(self.plot.set_individual_axis)
@@ -1407,7 +1409,29 @@ class Plot(QtWidgets.QWidget):
 
         self.plot.set_current_uuid(self.info_uuid, True)
 
-    def add_new_channels(self, channels):
+    def add_new_channels(self, channels, mime_data=None):
+
+        def add_new_items(tree, root, items, items_pool):
+            for (name, group_index, channel_index, mdf_uuid, type_) in items:
+
+                if type_ == "group":
+                    item = ChannelsGroupTreeItem(name)
+                    widget = ChannelGroupDisplay(name)
+                    root.addChild(item)
+                    tree.setItemWidget(item, 1, widget)
+
+                    add_new_items(tree, item, channel_index, items_pool)
+
+                else:
+
+                    key = (name, group_index, channel_index, mdf_uuid)
+
+                    if key in items_pool:
+                        item, widget = items_pool[key]
+                        root.addChild(item)
+                        tree.setItemWidget(item, 1, widget)
+
+                        del items_pool[key]
 
         for sig in channels:
             sig.uuid = os.urandom(6).hex()
@@ -1485,13 +1509,14 @@ class Plot(QtWidgets.QWidget):
 
             iterator += 1
 
+        new_items = {}
         for sig in channels:
 
             item = ChannelsTreeItem(
                 (sig.group_index, sig.channel_index),
                 sig.name,
                 sig.computation,
-                self.channel_selection,
+                None,
                 sig.mdf_uuid,
             )
 
@@ -1524,8 +1549,13 @@ class Plot(QtWidgets.QWidget):
             it.set_color(sig.color)
             item.setSizeHint(1, it.sizeHint())
 
-            self.channel_selection.addTopLevelItem(item)
-            self.channel_selection.setItemWidget(item, 1, it)
+            if mime_data is None:
+
+                self.channel_selection.addTopLevelItem(item)
+                self.channel_selection.setItemWidget(item, 1, it)
+
+            else:
+                new_items[(item.name, *item.entry, item.mdf_uuid)] = (item, it)
 
             it.color_changed.connect(self.plot.set_color)
             it.enable_changed.connect(self.plot.set_signal_enable)
@@ -1538,6 +1568,15 @@ class Plot(QtWidgets.QWidget):
 
             item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
             self.info_uuid = sig.uuid
+
+        if mime_data:
+            add_new_items(self.channel_selection, self.channel_selection.invisibleRootItem(), mime_data, new_items)
+
+            # still have simple signals to add
+            if new_items:
+                for item, widget in new_items.values():
+                    self.channel_selection.addTopLevelItem(item)
+                    self.channel_selection.setItemWidget(item, 1, widget)
 
     def to_config(self):
 
@@ -1590,8 +1629,6 @@ class Plot(QtWidgets.QWidget):
                                 f"text_{i}"
                             ] = sig.conversion.referenced_blocks[f"text_{i}"].decode("utf-8")
                             channel["conversion"][f"val_{i}"] = sig.conversion[f"val_{i}"]
-
-                    channels.append(channel)
 
                 elif isinstance(widget, ChannelGroupDisplay):
                     channel = {
