@@ -90,6 +90,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                 self.channels,
                 [sig.name, value, sig.unit],
                 mdf_uuid=sig.mdf_uuid,
+                computation=sig.computation,
             )
             item.setFlags(item.flags() & ~QtCore.Qt.ItemIsDropEnabled)
             items.append(item)

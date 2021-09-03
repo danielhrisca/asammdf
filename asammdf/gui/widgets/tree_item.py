@@ -7,13 +7,14 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
 
     __slots__ = "entry", "name", "mdf_uuid"
 
-    def __init__(self, entry, name="", parent=None, strings=None, mdf_uuid=None):
+    def __init__(self, entry, name="", parent=None, strings=None, mdf_uuid=None, computation=None):
 
         super().__init__(parent, strings)
 
         self.entry = entry
         self.name = name
         self.mdf_uuid = mdf_uuid
+        self.computation = computation or {}
 
     def __lt__(self, otherItem):
         column = self.treeWidget().sortColumn()

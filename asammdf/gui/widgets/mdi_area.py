@@ -201,7 +201,7 @@ class WithMDIArea:
         self._window_counter = 0
         self._frameless_windows = False
 
-    def add_new_channels(self, names, widget):
+    def add_new_channels(self, names, widget, mime_data=None):
         if isinstance(widget, Plot):
             ignore_value2text_conversions = False
             current_count = len(widget.plot.signals)
@@ -878,15 +878,25 @@ class WithMDIArea:
         elif window_type == "GPS":
             return self._add_gps_window(names)
 
+        def get_entries(data):
+            entries = []
+            for (name, group_index, channel_index, mdf_uuid, type_) in data:
+                if type_ == "channel":
+                    entries.append((None, group_index, channel_index, mdf_uuid))
+                else:
+                    entries.extend(get_entries(channel_index))
+            return entries
+
         if names and isinstance(names[0], str):
             signals_ = [
                 (None, *self.mdf.whereis(name)[0]) for name in names if name in self.mdf
             ]
             computed = []
         else:
-            signals_ = [(None, *name[1:]) for name in names if name[1:3] != (-1, -1)]
+            flatten_entries = get_entries(names)
+            signals_ = [(None, *entry[1:]) for entry in flatten_entries if entry[1:3] != (-1, -1)]
 
-            computed = [json.loads(name[0]) for name in names if name[1:3] == (-1, -1)]
+            computed = [json.loads(entry[0]) for entry in flatten_entries if entry[1:3] == (-1, -1)]
 
         if not signals_:
             return
@@ -1170,6 +1180,7 @@ class WithMDIArea:
                 bar.timestamp_changed_signal.connect(self.set_cursor)
 
         elif window_type == "Plot":
+            mime_data = names
             if hasattr(self, "mdf"):
                 events = []
                 origin = self.mdf.start_time
@@ -1287,9 +1298,9 @@ class WithMDIArea:
             )
 
             plot.show_properties.connect(self._show_info)
-            plot.channel_selection.setCurrentRow(0)
+            # TO DO plot.channel_selection.setCurrentRow(0)
 
-            plot.add_new_channels(signals)
+            plot.add_new_channels(signals, mime_data)
 
             if computed:
                 measured_signals = {sig.name: sig for sig in signals}
@@ -1703,22 +1714,70 @@ class WithMDIArea:
                                     continue
                     signals = keep
 
+                mime_data = None
+
             else:
 
-                required = set(
-                    e["name"] for e in window_info["configuration"]["channels"]
-                )
+                def get_required(channels, mdf):
+                    required, found, not_found, computed = set(), {}, set(), []
+                    for channel in channels:
+                        if channel['type'] == 'group':
+                            new_required, new_found, new_not_found, new_computed = get_required(channel['channels'], mdf)
+                            required |= new_required
+                            found.update(new_found)
+                            not_found |= new_not_found
+                            computed.extend(new_computed)
+                        else:
+                            if channel['computed']:
+                                computed.append(channel)
+                            name = channel['name']
+                            required.add(name)
+                            if name in mdf:
+                                found[name] = channel
+                            elif not channel["computed"]:
+                                not_found.add(name)
 
-                found_signals = [
-                    channel
-                    for channel in window_info["configuration"]["channels"]
-                    if not channel["computed"] and channel["name"] in self.mdf
-                ]
+                    return required, found, not_found, computed
+
+                def build_mime(channels, mdf):
+                    mime = []
+                    for channel in channels:
+                        if channel['type'] == 'group':
+                            mime.append(
+                                (
+                                    channel['name'],
+                                    None,
+                                    build_mime(channel['channels'], mdf),
+                                    None,
+                                    "group",
+                                )
+                            )
+                        else:
+                            occurrences = mdf.whereis(channel['name'])
+                            if occurrences:
+                                group_index, channel_index = occurrences[0]
+                            else:
+                                group_index, channel_index = -1, -1
+                            mime.append(
+                                (
+                                    channel['name'],
+                                    group_index,
+                                    channel_index,
+                                    uuid,
+                                    "channel",
+                                )
+                            )
+                    return mime
+
+                required, found_signals, not_found, computed_signals_descriptions = get_required(window_info["configuration"]["channels"], self.mdf)
+                mime_data = build_mime(window_info["configuration"]["channels"], self.mdf)
 
                 measured_signals_ = [
-                    (None, *self.mdf.whereis(channel["name"])[0])
-                    for channel in found_signals
+                    (None, *self.mdf.whereis(name)[0])
+                    for name in found_signals
                 ]
+
+                found_signals = list(found_signals.values())
 
                 measured_signals = {
                     sig.name: sig
@@ -1740,12 +1799,6 @@ class WithMDIArea:
                     signal.group_index = entry_info[1]
                     signal.channel_index = entry_info[2]
                     signal.mdf_uuid = uuid
-
-                not_found = [
-                    channel["name"]
-                    for channel in window_info["configuration"]["channels"]
-                    if not channel["computed"] and channel["name"] not in self.mdf
-                ]
 
                 matrix_components = []
                 for name in not_found:
@@ -1802,12 +1855,6 @@ class WithMDIArea:
                     )
                 else:
                     all_timebase = []
-
-                computed_signals_descriptions = [
-                    channel
-                    for channel in window_info["configuration"]["channels"]
-                    if channel["computed"]
-                ]
 
                 required_channels = []
                 for ch in computed_signals_descriptions:
@@ -1982,7 +2029,7 @@ class WithMDIArea:
                 generate_window_title(w, window_info["type"], window_info["title"])
             )
 
-            plot.add_new_channels(signals)
+            plot.add_new_channels(signals, mime_data)
             for i, sig in enumerate(not_found, len(found)):
                 item = plot.channel_selection.item(i)
                 widget = plot.channel_selection.itemWidget(item)
@@ -2007,40 +2054,46 @@ class WithMDIArea:
                 for channel in window_info["configuration"]["channels"]
             }
 
-            count = plot.channel_selection.count()
+            iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
+            while iterator.value():
+                item = iterator.value()
+                wid = plot.channel_selection.itemWidget(item, 1)
+                try:
+                    name = wid._name
 
-            for i in range(count):
-                wid = plot.channel_selection.itemWidget(plot.channel_selection.item(i))
-                name = wid._name
+                    description = descriptions.get(name, None)
+                    if description is not None:
 
-                description = descriptions.get(name, None)
-                if description is not None:
+                        _, _idx = plot.plot.signal_by_uuid(wid.uuid)
 
-                    _, _idx = plot.plot.signal_by_uuid(wid.uuid)
+                        if "y_range" in description:
+                            plot.plot.view_boxes[_idx].setYRange(
+                                *description["y_range"], padding=0
+                            )
 
-                    if "y_range" in description:
-                        plot.plot.view_boxes[_idx].setYRange(
-                            *description["y_range"], padding=0
+                        wid.set_fmt(description["fmt"])
+                        wid.set_precision(description["precision"])
+                        wid.ranges = {
+                            (range["start"], range["stop"]): range["color"]
+                            for range in description["ranges"]
+                        }
+                        wid.ylink.setCheckState(
+                            QtCore.Qt.Checked
+                            if description["common_axis"]
+                            else QtCore.Qt.Unchecked
                         )
+                        item.setCheckState(
+                            0,
+                            QtCore.Qt.Checked
+                            if description["enabled"]
+                            else QtCore.Qt.Unchecked
+                        )
+                    elif pattern_info:
+                        wid.ranges = pattern_info["ranges"]
+                except:
+                    pass
 
-                    wid.set_fmt(description["fmt"])
-                    wid.set_precision(description["precision"])
-                    wid.ranges = {
-                        (range["start"], range["stop"]): range["color"]
-                        for range in description["ranges"]
-                    }
-                    wid.ylink.setCheckState(
-                        QtCore.Qt.Checked
-                        if description["common_axis"]
-                        else QtCore.Qt.Unchecked
-                    )
-                    wid.display.setCheckState(
-                        QtCore.Qt.Checked
-                        if description["enabled"]
-                        else QtCore.Qt.Unchecked
-                    )
-                elif pattern_info:
-                    wid.ranges = pattern_info["ranges"]
+                iterator += 1
 
             self.set_subplots_link(self.subplots_link)
 

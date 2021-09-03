@@ -36,23 +36,7 @@
     <number>2</number>
    </property>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,1,0,0,0">
-     <item>
-      <widget class="QCheckBox" name="display">
-       <property name="minimumSize">
-        <size>
-         <width>13</width>
-         <height>13</height>
-        </size>
-       </property>
-       <property name="text">
-        <string/>
-       </property>
-       <property name="checked">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
+    <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1,0,0,0">
      <item>
       <widget class="QPushButton" name="color_btn">
        <property name="sizePolicy">
@@ -95,7 +79,7 @@
        <property name="minimumSize">
         <size>
          <width>0</width>
-         <height>30</height>
+         <height>24</height>
         </size>
        </property>
        <property name="mouseTracking">
