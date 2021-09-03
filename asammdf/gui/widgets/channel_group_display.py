@@ -30,3 +30,6 @@ class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
         )
 
         return new
+
+    def set_selected(self, state):
+        pass

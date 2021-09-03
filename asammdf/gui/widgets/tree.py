@@ -284,8 +284,26 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         self.header().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self.header().setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
+        self.itemSelectionChanged.connect(self.item_selection_changed)
         # self.header().hideSection(0)
         self._moved = []
+
+    def item_selection_changed(self):
+        selection = list(self.selectedItems())
+
+        iterator = QtWidgets.QTreeWidgetItemIterator(self)
+        while iterator.value():
+            item = iterator.value()
+            widget = self.itemWidget(item, 1)
+
+            if widget:
+                if item in selection:
+                    widget.set_selected(True)
+                    selection.remove(item)
+                else:
+                    widget.set_selected(False)
+
+            iterator += 1
 
     def keyPressEvent(self, event):
         key = event.key()

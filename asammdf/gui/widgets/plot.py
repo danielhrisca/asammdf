@@ -862,7 +862,7 @@ class Plot(QtWidgets.QWidget):
         self.plot.computation_channel_inserted.connect(
             self.computation_channel_inserted
         )
-        self.plot.curve_clicked.connect(self.channel_selection.setCurrentItem)
+        self.plot.curve_clicked.connect(self.curve_clicked)
 
         self.splitter.addWidget(self.plot)
 
@@ -908,6 +908,17 @@ class Plot(QtWidgets.QWidget):
             )
             | self.plot.keyboard_events
         )
+
+    def curve_clicked(self, uuid):
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+        while iterator.value():
+            item = iterator.value()
+            widget = self.channel_selection.itemWidget(item, 1)
+            if isinstance(widget, ChannelDisplay) and widget.uuid == uuid:
+                self.channel_selection.setCurrentItem(item)
+                break
+
+            iterator += 1
 
     def channel_selection_rearranged(self, uuids):
         uuids = set(uuids)
@@ -1713,7 +1724,7 @@ class _Plot(pg.PlotWidget):
     cursor_move_finished = QtCore.pyqtSignal()
     xrange_changed = QtCore.pyqtSignal()
     computation_channel_inserted = QtCore.pyqtSignal()
-    curve_clicked = QtCore.pyqtSignal(int)
+    curve_clicked = QtCore.pyqtSignal(str)
 
     add_channels_request = QtCore.pyqtSignal(list)
 
@@ -1919,7 +1930,7 @@ class _Plot(pg.PlotWidget):
             if self.with_dots:
                 curve.curve.setClickable(True, 30)
 
-            curve.sigClicked.connect(partial(self.curve_clicked.emit, signal_index))
+            curve.sigClicked.connect(partial(self.curve_clicked.emit, signal.uuid))
 
             self.view_boxes[signal_index].removeItem(self.curves[signal_index])
 
@@ -2692,7 +2703,7 @@ class _Plot(pg.PlotWidget):
             if self.with_dots:
                 curve.curve.setClickable(True, 30)
 
-            curve.sigClicked.connect(partial(self.curve_clicked.emit, index))
+            curve.sigClicked.connect(partial(self.curve_clicked.emit, sig.uuid))
 
             self.view_boxes.append(view_box)
             self.curves.append(curve)
