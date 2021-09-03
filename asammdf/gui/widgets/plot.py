@@ -1939,9 +1939,11 @@ class _Plot(pg.PlotWidget):
             self.view_boxes[signal_index].addItem(curve)
         else:
             if self.with_dots or self.line_interconnect != curve.opts['stepMode'] or not len(t):
-                curve.opts["pen"] = pen
                 curve.setData(
-                    x=t, y=sig.plot_samples, stepMode=self.line_interconnect
+                    x=t, y=sig.plot_samples, stepMode=self.line_interconnect,
+                    symbolBrush=color,
+                    symbolPen=color,
+                    pen=pen,
                 )
                 curve.update()
             else:
@@ -1975,14 +1977,26 @@ class _Plot(pg.PlotWidget):
                     self.curves[signal_index].show()
 
     def set_color(self, uuid, color):
-        _, index = self.signal_by_uuid(uuid)
-        self.signals[index].color = color
-        self.curves[index].setPen(color)
-        if self.curvetype == pg.PlotDataItem:
-            self.curves[index].setSymbolPen(color)
-            self.curves[index].setSymbolBrush(color)
+        sig, index = self.signal_by_uuid(uuid)
+        curve = self.curves[index]
+        sig.color = color
 
-            if self.signals[index].individual_axis:
+        if sig.mode == "raw":
+            style = QtCore.Qt.DashLine
+        else:
+            style = QtCore.Qt.SolidLine
+
+        sig.pen = pg.mkPen(color=color, style=style)
+        curve.setPen(sig.pen)
+        curve.setBrush(color)
+
+        if self.curvetype == pg.PlotDataItem:
+            curve.curve.setPen(sig.pen)
+            curve.curve.setBrush(color)
+            curve.scatter.setPen(sig.pen)
+            curve.scatter.setBrush(color)
+
+            if sig.individual_axis:
                 self.axes[index].setPen(color)
                 self.axes[index].setTextPen(color)
 
