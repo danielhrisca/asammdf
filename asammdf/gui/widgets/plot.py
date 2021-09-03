@@ -49,6 +49,8 @@ bin_ = bin
 
 HERE = Path(__file__).resolve().parent
 
+FAKE = -2
+
 
 class PlotSignal(Signal):
     def __init__(self, signal, index=0, fast=False, trim_info=None, duplication=1):
@@ -74,8 +76,8 @@ class PlotSignal(Signal):
         self.uuid = getattr(signal, "uuid", os.urandom(6).hex())
         self.mdf_uuid = getattr(signal, "mdf_uuid", os.urandom(6).hex())
 
-        self.group_index = getattr(signal, "group_index", -1)
-        self.channel_index = getattr(signal, "channel_index", -1)
+        self.group_index = getattr(signal, "group_index", FAKE)
+        self.channel_index = getattr(signal, "channel_index", FAKE)
         self.precision = getattr(signal, "precision", 6)
 
         self._mode = "raw"
@@ -2897,6 +2899,8 @@ class _Plot(pg.PlotWidget):
 
         if sig is not None:
             sig.uuid = os.urandom(6).hex()
+            sig.group_index = -1
+            sig.channel_index = -1
             sig.mdf_uuid = os.urandom(6).hex()
             self.add_new_channels([sig], computed=True)
             self.computation_channel_inserted.emit()

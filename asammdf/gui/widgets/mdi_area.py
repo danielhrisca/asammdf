@@ -119,6 +119,16 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
         else:
             data = e.mimeData()
             if data.hasFormat("application/octet-stream-asammdf"):
+
+                def count(data):
+                    s = 0
+                    for (name, group_index, channel_index, mdf_uuid, type_) in data:
+                        if type_ == "channel":
+                            s += 1
+                        else:
+                            s += count(channel_index)
+                    return s
+
                 names = extract_mime_names(data)
 
                 dialog = WindowSelectionDialog(parent=self)
@@ -128,12 +138,12 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
                 if dialog.result():
                     window_type = dialog.selected_type()
 
-                    if window_type == "Plot" and len(names) > 200:
+                    if window_type == "Plot" and count(names) > 200:
                         ret = QtWidgets.QMessageBox.question(
                             self,
                             "Continue plotting large number of channels?",
                             "For optimal performance it is advised not plot more than 200 channels. "
-                            f"You are attempting to plot {len(names)} channels.\n"
+                            f"You are attempting to plot {count(names)} channels.\n"
                             "Do you wish to continue?",
                         )
 
@@ -1721,7 +1731,7 @@ class WithMDIArea:
                 def get_required(channels, mdf):
                     required, found, not_found, computed = set(), {}, set(), []
                     for channel in channels:
-                        if channel['type'] == 'group':
+                        if channel.get('type', 'channel') == 'group':
                             new_required, new_found, new_not_found, new_computed = get_required(channel['channels'], mdf)
                             required |= new_required
                             found.update(new_found)
@@ -1742,7 +1752,7 @@ class WithMDIArea:
                 def build_mime(channels, mdf):
                     mime = []
                     for channel in channels:
-                        if channel['type'] == 'group':
+                        if channel.get('type', 'channel') == 'group':
                             mime.append(
                                 (
                                     channel['name'],

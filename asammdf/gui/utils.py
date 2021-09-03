@@ -81,8 +81,9 @@ def extract_mime_names(data):
     def fix_comparison_name(data):
         for i, (name, group_index, channel_index, mdf_uuid, item_type) in enumerate(data):
             if item_type == "channel":
-                name = COMPARISON_NAME.match(name).group("name").strip()
-                data[i][0] = name
+                if  (group_index, channel_index) != (-1, -1):
+                    name = COMPARISON_NAME.match(name).group("name").strip()
+                    data[i][0] = name
             else:
                 fix_comparison_name(channel_index)
     names = []

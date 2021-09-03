@@ -375,6 +375,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         data = get_data(selected_items, uuids_only=False)
 
+        from pprint import pprint
+
         data = json.dumps(data).encode('utf-8')
 
         mimeData.setData(
