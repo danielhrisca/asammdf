@@ -104,56 +104,51 @@ def get_flatten_entries_from_mime(data):
 
 def get_required_from_computed(channel):
     names = []
-    if channel['type'] == "channel":
-        if "computed" in channel:
-            if channel["computed"]:
-                computation = channel["computation"]
-                if computation["type"] == "arithmetic":
-                    for op in (
-                        computation["operand1"],
-                        computation["operand2"],
-                    ):
-                        if isinstance(op, str):
-                            names.append(op)
-                        elif isinstance(op, (int, float)):
-                            pass
-                        else:
-                            names.extend(get_required_from_computed(op))
-                elif computation["type"] == "function":
-                    op = computation["channel"]
-                    if isinstance(op, str):
-                        names.append(op)
-                    else:
-                        names.extend(get_required_from_computed(op))
-                elif computation["type"] == "expression":
-                    expression_string = computation["expression"]
-                    names.extend(
-                        [
-                            match.group('name')
-                            for match in SIG_RE.finditer(expression_string)
-                        ]
-                    )
-            else:
-                names.append(channel["name"])
-        else:
-            if channel["type"] == "arithmetic":
-                for op in (channel["operand1"], channel["operand2"]):
+    if "computed" in channel:
+        if channel["computed"]:
+            computation = channel["computation"]
+            if computation["type"] == "arithmetic":
+                for op in (
+                    computation["operand1"],
+                    computation["operand2"],
+                ):
                     if isinstance(op, str):
                         names.append(op)
                     elif isinstance(op, (int, float)):
                         pass
                     else:
                         names.extend(get_required_from_computed(op))
-            else:
-                op = channel["channel"]
+            elif computation["type"] == "function":
+                op = computation["channel"]
                 if isinstance(op, str):
                     names.append(op)
                 else:
                     names.extend(get_required_from_computed(op))
+            elif computation["type"] == "expression":
+                expression_string = computation["expression"]
+                names.extend(
+                    [
+                        match.group('name')
+                        for match in SIG_RE.finditer(expression_string)
+                    ]
+                )
+        else:
+            names.append(channel["name"])
     else:
-        for ch in channel['channels']:
-            names.extend(get_required_from_computed(ch))
-
+        if channel["type"] == "arithmetic":
+            for op in (channel["operand1"], channel["operand2"]):
+                if isinstance(op, str):
+                    names.append(op)
+                elif isinstance(op, (int, float)):
+                    pass
+                else:
+                    names.extend(get_required_from_computed(op))
+        else:
+            op = channel["channel"]
+            if isinstance(op, str):
+                names.append(op)
+            else:
+                names.extend(get_required_from_computed(op))
     return names
 
 
@@ -366,13 +361,14 @@ class WithMDIArea:
             else:
                 mime_data = names
 
-                signals_ = get_flatten_entries_from_mime(names)
-                signals_ = [name for name in signals_ if tuple(name[1:3]) != (-1, -1)]
+                entries = get_flatten_entries_from_mime(names)
+                signals_ = [name for name in entries if tuple(name[1:3]) != (-1, -1)]
 
-                computed = [json.loads(name[0]) for name in signals_ if tuple(name[1:3]) == (-1, -1)]
+                computed = [name[0] for name in entries if tuple(name[1:3]) == (-1, -1)]
 
-                uuids = set(entry[3] for entry in signals_)
+                uuids = set(entry[3] for entry in entries)
 
+            # print(computed)
             # print(names)
             # print(signals_)
 
@@ -509,6 +505,7 @@ class WithMDIArea:
                     computed_signals = {}
 
                     for channel in computed:
+
                         computation = channel["computation"]
 
                         try:
@@ -523,6 +520,7 @@ class WithMDIArea:
                             signal.unit = channel["unit"]
                             signal.group_index = -1
                             signal.channel_index = -1
+                            signal.mdf_uuid = self.uuid
 
                             if "conversion" in channel:
                                 signal.conversion = from_dict(channel["conversion"])
@@ -1038,7 +1036,7 @@ class WithMDIArea:
             flatten_entries = get_flatten_entries_from_mime(names)
             signals_ = [(None, *entry[1:]) for entry in flatten_entries if tuple(entry[1:3]) != (-1, -1)]
 
-            computed = [json.loads(entry[0]) for entry in flatten_entries if tuple(entry[1:3]) == (-1, -1)]
+            computed = [entry[0] for entry in flatten_entries if tuple(entry[1:3]) == (-1, -1)]
 
         if not signals_:
             return
