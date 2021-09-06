@@ -38,7 +38,7 @@ COMPONENT = re.compile(r"\[(?P<index>\d+)\]$")
 SIG_RE = re.compile(r'\{\{(?!\}\})(?P<name>.*?)\}\}')
 
 
-def build_mime_from_config(channels, mdf, uuid):
+def build_mime_from_config(channels, mdf=None, uuid=None, default_index=-1):
     mime = []
     for channel in channels:
         if channel.get('type', 'channel') == 'group':
@@ -46,23 +46,23 @@ def build_mime_from_config(channels, mdf, uuid):
                 (
                     channel['name'],
                     None,
-                    build_mime_from_config(channel['channels'], mdf, uuid),
+                    build_mime_from_config(channel['channels'], mdf, uuid, default_index),
                     None,
                     "group",
                 )
             )
         else:
-            occurrences = mdf.whereis(channel['name'])
+            occurrences = mdf.whereis(channel['name']) if mdf else None
             if occurrences:
                 group_index, channel_index = occurrences[0]
             else:
-                group_index, channel_index = -1, -1
+                group_index, channel_index = default_index, default_index
             mime.append(
                 (
                     channel['name'],
                     group_index,
                     channel_index,
-                    uuid,
+                    uuid or channel['mdf_uuid'],
                     "channel",
                 )
             )
@@ -92,11 +92,14 @@ def generate_window_title(mdi, window_name="", title=""):
     return name
 
 
-def get_flatten_entries_from_mime(data):
+def get_flatten_entries_from_mime(data, default_index=None):
     entries = []
     for (name, group_index, channel_index, mdf_uuid, type_) in data:
         if type_ == "channel":
-            entries.append((name, group_index, channel_index, mdf_uuid, 'channel'))
+            if default_index is not None:
+                entries.append((name, default_index, default_index, mdf_uuid, 'channel'))
+            else:
+                entries.append((name, group_index, channel_index, mdf_uuid, 'channel'))
         else:
             entries.extend(get_flatten_entries_from_mime(channel_index))
     return entries
