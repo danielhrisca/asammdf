@@ -47,7 +47,7 @@ F1           Help                   Opens this online help page
 F2           Create plot            Create a new Plot window using the checked channels from the selection tree
 F3           Create numeric         Create a new Numeric window using the checked channels from the selection tree
 F4           Create tabular         Create a new Tabular window using the checked channels from the selection tree
-F8           Toggle fullscreen      In the single files mode will display the current opened file in full screen
+F11          Toggle fullscreen      In the single files mode will display the current opened file in full screen
 Ctrl+O       Open file(s)
 ============ ====================== ================================================================================================================
 
@@ -144,7 +144,7 @@ Y            Lock/unlock region     Lock or unlock the left margin of the region
 ←            Move cursor left       Moves the cursor to the next sample on the left
 →            Move cursor right      Moves the cursor to the next sample on the right
 Ins          Insert computation     Insert new channel in the plot using functions and operations
-F8           Toggle full screen     In the single files mode will display the current opened file in full screen
+F11          Toggle full screen     In the single files mode will display the current opened file in full screen
 Alt+I        Toggle trigger texts   Toggle the text boxes for the triggers [6]_
 Alt+R        Raw samples            Toggle raw samples mode for the selected channels [6]_
 Alt+S        Scaled samples         Toggle scaled (physical) samples mode for the selected channels

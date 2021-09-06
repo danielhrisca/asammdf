@@ -68,6 +68,7 @@ def set_title(mdi):
     )
     if ok and name:
         mdi.setWindowTitle(generate_window_title(mdi, title=name))
+        mdi.titleModified.emit()
 
 
 def parse_matrix_component(name):
@@ -83,6 +84,19 @@ def parse_matrix_component(name):
     return name, tuple(indexes)
 
 
+class MdiSubWindow(QtWidgets.QMdiSubWindow):
+    sigClosed = QtCore.pyqtSignal()
+    titleModified = QtCore.pyqtSignal()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+
+    def closeEvent(self, event):
+        super().closeEvent(event)
+        self.sigClosed.emit()
+
+
 class MdiAreaWidget(QtWidgets.QMdiArea):
 
     add_window_request = QtCore.pyqtSignal(list)
@@ -92,6 +106,7 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
         super().__init__(*args, **kwargs)
 
         self.setAcceptDrops(True)
+        self.placeholder_text = "Drag and drop channels, or select channels and press the <Create window> button, to create new windows"
         self.show()
 
     def dragEnterEvent(self, e):
@@ -104,6 +119,16 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
         else:
             data = e.mimeData()
             if data.hasFormat("application/octet-stream-asammdf"):
+
+                def count(data):
+                    s = 0
+                    for (name, group_index, channel_index, mdf_uuid, type_) in data:
+                        if type_ == "channel":
+                            s += 1
+                        else:
+                            s += count(channel_index)
+                    return s
+
                 names = extract_mime_names(data)
 
                 dialog = WindowSelectionDialog(parent=self)
@@ -113,12 +138,12 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
                 if dialog.result():
                     window_type = dialog.selected_type()
 
-                    if window_type == "Plot" and len(names) > 200:
+                    if window_type == "Plot" and count(names) > 200:
                         ret = QtWidgets.QMessageBox.question(
                             self,
                             "Continue plotting large number of channels?",
                             "For optimal performance it is advised not plot more than 200 channels. "
-                            f"You are attempting to plot {len(names)} channels.\n"
+                            f"You are attempting to plot {count(names)} channels.\n"
                             "Do you wish to continue?",
                         )
 
@@ -159,8 +184,26 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
             window.move(position)
             position.setX(position.x() + ratio)
 
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        sub_windows = self.subWindowList()
+        if not sub_windows and self.placeholder_text:
+            painter = QtGui.QPainter(self.viewport())
+            painter.save()
+            col = self.palette().placeholderText().color()
+            painter.setPen(col)
+            fm = self.fontMetrics()
+            elided_text = fm.elidedText(
+                self.placeholder_text, QtCore.Qt.ElideRight, self.viewport().width()
+            )
+            painter.drawText(self.viewport().rect(), QtCore.Qt.AlignCenter, elided_text)
+            painter.restore()
+
 
 class WithMDIArea:
+
+    windows_modified = QtCore.pyqtSignal()
+
     def __init__(self, *args, **kwargs):
         self._cursor_source = None
         self._region_source = None
@@ -168,7 +211,7 @@ class WithMDIArea:
         self._window_counter = 0
         self._frameless_windows = False
 
-    def add_new_channels(self, names, widget):
+    def add_new_channels(self, names, widget, mime_data=None):
         if isinstance(widget, Plot):
             ignore_value2text_conversions = False
             current_count = len(widget.plot.signals)
@@ -505,14 +548,19 @@ class WithMDIArea:
 
             numeric = CANBusTrace(signals, start=self.mdf.header.start_time.timestamp())
 
+            sub = MdiSubWindow(parent=self)
+            sub.setWidget(numeric)
+            sub.sigClosed.connect(self.window_closed_handler)
+            sub.titleModified.connect(self.window_closed_handler)
+
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
                     mdi.close()
-                w = self.mdi_area.addSubWindow(numeric)
+                w = self.mdi_area.addSubWindow(sub)
 
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(numeric)
+                w = self.mdi_area.addSubWindow(sub)
 
                 if len(self.mdi_area.subWindowList()) == 1:
                     w.showMaximized()
@@ -747,14 +795,19 @@ class WithMDIArea:
 
             numeric = LINBusTrace(signals, start=self.mdf.header.start_time.timestamp())
 
+            sub = MdiSubWindow(parent=self)
+            sub.setWidget(numeric)
+            sub.sigClosed.connect(self.window_closed_handler)
+            sub.titleModified.connect(self.window_closed_handler)
+
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
                     mdi.close()
-                w = self.mdi_area.addSubWindow(numeric)
+                w = self.mdi_area.addSubWindow(sub)
 
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(numeric)
+                w = self.mdi_area.addSubWindow(sub)
 
                 if len(self.mdi_area.subWindowList()) == 1:
                     w.showMaximized()
@@ -788,7 +841,12 @@ class WithMDIArea:
         latitude_channel, longitude_channel = self.mdf.select(signals)
 
         gps = GPS(latitude_channel, longitude_channel)
-        w = self.mdi_area.addSubWindow(gps)
+        sub = MdiSubWindow(parent=self)
+        sub.setWidget(gps)
+        sub.sigClosed.connect(self.window_closed_handler)
+        sub.titleModified.connect(self.window_closed_handler)
+
+        w = self.mdi_area.addSubWindow(sub)
 
         if len(self.mdi_area.subWindowList()) == 1:
             w.showMaximized()
@@ -830,15 +888,25 @@ class WithMDIArea:
         elif window_type == "GPS":
             return self._add_gps_window(names)
 
+        def get_entries(data):
+            entries = []
+            for (name, group_index, channel_index, mdf_uuid, type_) in data:
+                if type_ == "channel":
+                    entries.append((None, group_index, channel_index, mdf_uuid))
+                else:
+                    entries.extend(get_entries(channel_index))
+            return entries
+
         if names and isinstance(names[0], str):
             signals_ = [
                 (None, *self.mdf.whereis(name)[0]) for name in names if name in self.mdf
             ]
             computed = []
         else:
-            signals_ = [(None, *name[1:]) for name in names if name[1:3] != (-1, -1)]
+            flatten_entries = get_entries(names)
+            signals_ = [(None, *entry[1:]) for entry in flatten_entries if entry[1:3] != (-1, -1)]
 
-            computed = [json.loads(name[0]) for name in names if name[1:3] == (-1, -1)]
+            computed = [json.loads(entry[0]) for entry in flatten_entries if entry[1:3] == (-1, -1)]
 
         if not signals_:
             return
@@ -1032,16 +1100,24 @@ class WithMDIArea:
             signals = natsorted(signals, key=lambda x: x.name)
 
         if window_type == "Numeric":
-            numeric = Numeric(signals)
+            numeric = Numeric([], parent=self)
+
+            numeric.show()
+            numeric.hide()
+
+            sub = MdiSubWindow(parent=self)
+            sub.setWidget(numeric)
+            sub.sigClosed.connect(self.window_closed_handler)
+            sub.titleModified.connect(self.window_closed_handler)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
                     mdi.close()
-                w = self.mdi_area.addSubWindow(numeric)
+                w = self.mdi_area.addSubWindow(sub)
 
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(numeric)
+                w = self.mdi_area.addSubWindow(sub)
 
                 if len(self.mdi_area.subWindowList()) == 1:
                     w.showMaximized()
@@ -1069,17 +1145,25 @@ class WithMDIArea:
             if self.subplots_link:
                 numeric.timestamp_changed_signal.connect(self.set_cursor)
 
+            numeric.add_new_channels(signals)
+            numeric.show()
+
         elif window_type == "Bar":
             bar = Bar(signals)
+
+            sub = MdiSubWindow(parent=self)
+            sub.setWidget(bar)
+            sub.sigClosed.connect(self.window_closed_handler)
+            sub.titleModified.connect(self.window_closed_handler)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
                     mdi.close()
-                w = self.mdi_area.addSubWindow(bar)
+                w = self.mdi_area.addSubWindow(sub)
 
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(bar)
+                w = self.mdi_area.addSubWindow(sub)
 
                 if len(self.mdi_area.subWindowList()) == 1:
                     w.showMaximized()
@@ -1106,6 +1190,7 @@ class WithMDIArea:
                 bar.timestamp_changed_signal.connect(self.set_cursor)
 
         elif window_type == "Plot":
+            mime_data = names
             if hasattr(self, "mdf"):
                 events = []
                 origin = self.mdf.start_time
@@ -1167,16 +1252,22 @@ class WithMDIArea:
                 line_interconnect=self.line_interconnect,
                 origin=origin,
                 mdf=mdf,
+                parent=self
             )
+
+            sub = MdiSubWindow(parent=self)
+            sub.setWidget(plot)
+            sub.sigClosed.connect(self.window_closed_handler)
+            sub.titleModified.connect(self.window_closed_handler)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
                     mdi.close()
-                w = self.mdi_area.addSubWindow(plot)
+                w = self.mdi_area.addSubWindow(sub)
 
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(plot)
+                w = self.mdi_area.addSubWindow(sub)
 
                 if len(self.mdi_area.subWindowList()) == 1:
                     w.showMaximized()
@@ -1192,7 +1283,34 @@ class WithMDIArea:
             plot.show()
             plot.hide()
 
-            plot.add_new_channels(signals)
+            menu = w.systemMenu()
+
+            action = QtWidgets.QAction("Set title", menu)
+            action.triggered.connect(partial(set_title, w))
+            before = menu.actions()[0]
+            menu.insertAction(before, action)
+
+            w.setWindowTitle(generate_window_title(w, window_type))
+
+            if self.subplots_link:
+
+                for i, mdi in enumerate(self.mdi_area.subWindowList()):
+                    try:
+                        viewbox = mdi.widget().plot.viewbox
+                        if plot.plot.viewbox is not viewbox:
+                            plot.plot.viewbox.setXLink(viewbox)
+                        break
+                    except:
+                        continue
+
+            plot.add_channels_request.connect(
+                partial(self.add_new_channels, widget=plot)
+            )
+
+            plot.show_properties.connect(self._show_info)
+            # TO DO plot.channel_selection.setCurrentRow(0)
+
+            plot.add_new_channels(signals, mime_data)
 
             if computed:
                 measured_signals = {sig.name: sig for sig in signals}
@@ -1250,47 +1368,25 @@ class WithMDIArea:
                 signals = list(computed_signals.values())
                 plot.add_new_channels(signals)
 
-            menu = w.systemMenu()
-
-            action = QtWidgets.QAction("Set title", menu)
-            action.triggered.connect(partial(set_title, w))
-            before = menu.actions()[0]
-            menu.insertAction(before, action)
-
-            w.setWindowTitle(generate_window_title(w, window_type))
-
-            if self.subplots_link:
-
-                for i, mdi in enumerate(self.mdi_area.subWindowList()):
-                    try:
-                        viewbox = mdi.widget().plot.viewbox
-                        if plot.plot.viewbox is not viewbox:
-                            plot.plot.viewbox.setXLink(viewbox)
-                        break
-                    except:
-                        continue
-
-            plot.add_channels_request.connect(
-                partial(self.add_new_channels, widget=plot)
-            )
-
-            plot.show_properties.connect(self._show_info)
-            plot.channel_selection.setCurrentRow(0)
-
             plot.show()
             self.set_subplots_link(self.subplots_link)
 
         elif window_type == "Tabular":
-            numeric = Tabular(signals, start=start)
+            numeric = Tabular(signals, start=start, parent=self)
+
+            sub = MdiSubWindow(parent=self)
+            sub.setWidget(numeric)
+            sub.sigClosed.connect(self.window_closed_handler)
+            sub.titleModified.connect(self.window_closed_handler)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
                     mdi.close()
-                w = self.mdi_area.addSubWindow(numeric)
+                w = self.mdi_area.addSubWindow(sub)
 
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(numeric)
+                w = self.mdi_area.addSubWindow(sub)
 
                 if len(self.mdi_area.subWindowList()) == 1:
                     w.showMaximized()
@@ -1310,6 +1406,8 @@ class WithMDIArea:
             menu.insertAction(before, action)
 
             w.setWindowTitle(generate_window_title(w, window_type))
+
+        self.windows_modified.emit()
 
     def get_current_widget(self):
         mdi = self.mdi_area.activeSubWindow()
@@ -1450,17 +1548,22 @@ class WithMDIArea:
 
                 signals.extend(not_found)
 
-            numeric = Numeric(signals)
+            numeric = Numeric([], parent=self)
             numeric.pattern = pattern_info
+
+            sub = MdiSubWindow(parent=self)
+            sub.setWidget(numeric)
+            sub.sigClosed.connect(self.window_closed_handler)
+            sub.titleModified.connect(self.window_closed_handler)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
                     mdi.close()
-                w = self.mdi_area.addSubWindow(numeric)
+                w = self.mdi_area.addSubWindow(sub)
 
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(numeric)
+                w = self.mdi_area.addSubWindow(sub)
                 w.show()
 
                 if geometry:
@@ -1472,6 +1575,7 @@ class WithMDIArea:
                 generate_window_title(w, window_info["type"], window_info["title"])
             )
 
+            numeric.add_new_channels(signals)
             numeric.format = fmt
             numeric._update_values()
 
@@ -1511,14 +1615,19 @@ class WithMDIArea:
 
             gps = GPS(latitude, longitude, window_info["configuration"]["zoom"])
 
+            sub = MdiSubWindow(parent=self)
+            sub.setWidget(gps)
+            sub.sigClosed.connect(self.window_closed_handler)
+            sub.titleModified.connect(self.window_closed_handler)
+
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
                     mdi.close()
-                w = self.mdi_area.addSubWindow(gps)
+                w = self.mdi_area.addSubWindow(sub)
 
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(gps)
+                w = self.mdi_area.addSubWindow(sub)
                 w.show()
 
                 if geometry:
@@ -1615,22 +1724,70 @@ class WithMDIArea:
                                     continue
                     signals = keep
 
+                mime_data = None
+
             else:
 
-                required = set(
-                    e["name"] for e in window_info["configuration"]["channels"]
-                )
+                def get_required(channels, mdf):
+                    required, found, not_found, computed = set(), {}, set(), []
+                    for channel in channels:
+                        if channel.get('type', 'channel') == 'group':
+                            new_required, new_found, new_not_found, new_computed = get_required(channel['channels'], mdf)
+                            required |= new_required
+                            found.update(new_found)
+                            not_found |= new_not_found
+                            computed.extend(new_computed)
+                        else:
+                            if channel['computed']:
+                                computed.append(channel)
+                            name = channel['name']
+                            required.add(name)
+                            if name in mdf:
+                                found[name] = channel
+                            elif not channel["computed"]:
+                                not_found.add(name)
 
-                found_signals = [
-                    channel
-                    for channel in window_info["configuration"]["channels"]
-                    if not channel["computed"] and channel["name"] in self.mdf
-                ]
+                    return required, found, not_found, computed
+
+                def build_mime(channels, mdf):
+                    mime = []
+                    for channel in channels:
+                        if channel.get('type', 'channel') == 'group':
+                            mime.append(
+                                (
+                                    channel['name'],
+                                    None,
+                                    build_mime(channel['channels'], mdf),
+                                    None,
+                                    "group",
+                                )
+                            )
+                        else:
+                            occurrences = mdf.whereis(channel['name'])
+                            if occurrences:
+                                group_index, channel_index = occurrences[0]
+                            else:
+                                group_index, channel_index = -1, -1
+                            mime.append(
+                                (
+                                    channel['name'],
+                                    group_index,
+                                    channel_index,
+                                    uuid,
+                                    "channel",
+                                )
+                            )
+                    return mime
+
+                required, found_signals, not_found, computed_signals_descriptions = get_required(window_info["configuration"]["channels"], self.mdf)
+                mime_data = build_mime(window_info["configuration"]["channels"], self.mdf)
 
                 measured_signals_ = [
-                    (None, *self.mdf.whereis(channel["name"])[0])
-                    for channel in found_signals
+                    (None, *self.mdf.whereis(name)[0])
+                    for name in found_signals
                 ]
+
+                found_signals = list(found_signals.values())
 
                 measured_signals = {
                     sig.name: sig
@@ -1652,12 +1809,6 @@ class WithMDIArea:
                     signal.group_index = entry_info[1]
                     signal.channel_index = entry_info[2]
                     signal.mdf_uuid = uuid
-
-                not_found = [
-                    channel["name"]
-                    for channel in window_info["configuration"]["channels"]
-                    if not channel["computed"] and channel["name"] not in self.mdf
-                ]
 
                 matrix_components = []
                 for name in not_found:
@@ -1714,12 +1865,6 @@ class WithMDIArea:
                     )
                 else:
                     all_timebase = []
-
-                computed_signals_descriptions = [
-                    channel
-                    for channel in window_info["configuration"]["channels"]
-                    if channel["computed"]
-                ]
 
                 required_channels = []
                 for ch in computed_signals_descriptions:
@@ -1853,17 +1998,26 @@ class WithMDIArea:
                 events=events,
                 origin=origin,
                 mdf=mdf,
+                parent=self,
             )
             plot.pattern = pattern_info
+
+            plot.show()
+            plot.hide()
+
+            sub = MdiSubWindow(parent=self)
+            sub.setWidget(plot)
+            sub.sigClosed.connect(self.window_closed_handler)
+            sub.titleModified.connect(self.window_closed_handler)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
                     mdi.close()
-                w = self.mdi_area.addSubWindow(plot)
+                w = self.mdi_area.addSubWindow(sub)
 
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(plot)
+                w = self.mdi_area.addSubWindow(sub)
 
                 w.show()
 
@@ -1873,22 +2027,6 @@ class WithMDIArea:
                     self.mdi_area.tileSubWindows()
 
             plot.hide()
-
-            plot.add_new_channels(signals)
-            for i, sig in enumerate(not_found, len(found)):
-                item = plot.channel_selection.item(i)
-                widget = plot.channel_selection.itemWidget(item)
-                widget.does_not_exist()
-
-            needs_update = False
-            for channel, sig in zip(found_signals, plot.plot.signals):
-                if "mode" in channel:
-                    sig.mode = channel["mode"]
-                    needs_update = True
-            if needs_update:
-                plot.plot.update_lines(force=True)
-
-            plot.show()
 
             menu = w.systemMenu()
 
@@ -1901,6 +2039,22 @@ class WithMDIArea:
                 generate_window_title(w, window_info["type"], window_info["title"])
             )
 
+            plot.add_new_channels(signals, mime_data)
+            for i, sig in enumerate(not_found, len(found)):
+                item = plot.channel_selection.item(i)
+                widget = plot.channel_selection.itemWidget(item)
+                widget.does_not_exist()
+
+            needs_update = False
+            for channel, sig in zip(found_signals, plot.plot.signals):
+                if "mode" in channel:
+                    sig.mode = channel["mode"]
+                    needs_update = True
+            if needs_update:
+                plot.plot.update_lines()
+
+            plot.show()
+
             plot.add_channels_request.connect(
                 partial(self.add_new_channels, widget=plot)
             )
@@ -1910,48 +2064,59 @@ class WithMDIArea:
                 for channel in window_info["configuration"]["channels"]
             }
 
-            count = plot.channel_selection.count()
+            iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
+            while iterator.value():
+                item = iterator.value()
+                wid = plot.channel_selection.itemWidget(item, 1)
+                try:
+                    name = wid._name
 
-            for i in range(count):
-                wid = plot.channel_selection.itemWidget(plot.channel_selection.item(i))
-                name = wid._name
+                    description = descriptions.get(name, None)
+                    if description is not None:
 
-                description = descriptions.get(name, None)
-                if description is not None:
+                        _, _idx = plot.plot.signal_by_uuid(wid.uuid)
 
-                    _, _idx = plot.plot.signal_by_uuid(wid.uuid)
+                        if "y_range" in description:
+                            plot.plot.view_boxes[_idx].setYRange(
+                                *description["y_range"], padding=0
+                            )
 
-                    if "y_range" in description:
-                        plot.plot.view_boxes[_idx].setYRange(
-                            *description["y_range"], padding=0
+                        wid.set_fmt(description["fmt"])
+                        wid.set_precision(description["precision"])
+                        wid.ranges = {
+                            (range["start"], range["stop"]): range["color"]
+                            for range in description["ranges"]
+                        }
+                        wid.ylink.setCheckState(
+                            QtCore.Qt.Checked
+                            if description["common_axis"]
+                            else QtCore.Qt.Unchecked
                         )
+                        item.setCheckState(
+                            0,
+                            QtCore.Qt.Checked
+                            if description["enabled"]
+                            else QtCore.Qt.Unchecked
+                        )
+                    elif pattern_info:
+                        wid.ranges = pattern_info["ranges"]
+                except:
+                    pass
 
-                    wid.set_fmt(description["fmt"])
-                    wid.set_precision(description["precision"])
-                    wid.ranges = {
-                        (range["start"], range["stop"]): range["color"]
-                        for range in description["ranges"]
-                    }
-                    wid.ylink.setCheckState(
-                        QtCore.Qt.Checked
-                        if description["common_axis"]
-                        else QtCore.Qt.Unchecked
-                    )
-                    wid.display.setCheckState(
-                        QtCore.Qt.Checked
-                        if description["enabled"]
-                        else QtCore.Qt.Unchecked
-                    )
-                elif pattern_info:
-                    wid.ranges = pattern_info["ranges"]
+                iterator += 1
 
             self.set_subplots_link(self.subplots_link)
 
-            if "x_range" in window_info:
-                plot.plot.viewbox.setXRange(*window_info["x_range"], padding=0)
+            if "x_range" in window_info["configuration"]:
+                plot.plot.viewbox.setXRange(*window_info["configuration"]["x_range"], padding=0)
 
-            if "splitter" in window_info:
-                plot.splitter.setSizes(window_info["splitter"])
+            if "splitter" in window_info["configuration"]:
+                plot.splitter.setSizes(window_info["configuration"]["splitter"])
+
+            if "grid" in window_info["configuration"]:
+                x_grid, y_grid = window_info["configuration"]["grid"]
+                plot.plot.plotItem.ctrl.xGridCheck.setChecked(x_grid)
+                plot.plot.plotItem.ctrl.yGridCheck.setChecked(y_grid)
 
             plot.splitter.setContentsMargins(1, 1, 1, 1)
             plot.setContentsMargins(1, 1, 1, 1)
@@ -2057,17 +2222,22 @@ class WithMDIArea:
                 vals.fill(np.NaN)
                 signals[name] = pd.Series(vals, index=signals.index)
 
-            tabular = Tabular(signals, start=self.mdf.header.start_time.timestamp())
+            tabular = Tabular(signals, start=self.mdf.header.start_time.timestamp(), parent=self)
             tabular.pattern = pattern_info
+
+            sub = MdiSubWindow(parent=self)
+            sub.setWidget(tabular)
+            sub.sigClosed.connect(self.window_closed_handler)
+            sub.titleModified.connect(self.window_closed_handler)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
                     mdi.close()
-                w = self.mdi_area.addSubWindow(tabular)
+                w = self.mdi_area.addSubWindow(sub)
 
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(tabular)
+                w = self.mdi_area.addSubWindow(sub)
 
                 w.show()
 
@@ -2135,6 +2305,8 @@ class WithMDIArea:
 
         w.layout().setSpacing(1)
 
+        self.windows_modified.emit()
+
     def set_line_style(self, with_dots=None):
         if with_dots is None:
             with_dots = not self.with_dots
@@ -2143,7 +2315,9 @@ class WithMDIArea:
 
         current_plot = self.get_current_widget()
         if current_plot and isinstance(current_plot, Plot):
-            current_plot.plot.update_lines(with_dots=with_dots)
+            current_plot.with_dots = with_dots
+            current_plot.plot.with_dots = with_dots
+            current_plot.plot.update_lines()
 
     def set_line_interconnect(self, line_interconnect):
 
@@ -2156,7 +2330,7 @@ class WithMDIArea:
             if isinstance(widget, Plot):
                 widget.line_interconnect = line_interconnect
                 widget.plot.line_interconnect = line_interconnect
-                widget.plot.update_lines(line_interconnect=True)
+                widget.plot.update_lines()
 
     def set_subplots(self, option):
         self.subplots = option
@@ -2211,6 +2385,9 @@ class WithMDIArea:
                         pass
 
     def set_cursor(self, widget, pos):
+        if not self.subplots_link:
+            return
+
         if self._cursor_source is None:
             self._cursor_source = widget
             for mdi in self.mdi_area.subWindowList():
@@ -2229,6 +2406,9 @@ class WithMDIArea:
             self._cursor_source = None
 
     def set_region(self, widget, region):
+        if not self.subplots_link:
+            return
+
         if self._region_source is None:
             self._region_source = widget
             for mdi in self.mdi_area.subWindowList():
@@ -2245,6 +2425,10 @@ class WithMDIArea:
             self._region_source = None
 
     def set_splitter(self, widget, selection_width):
+        if not self.subplots_link:
+            return
+
+
         if self._splitter_source is None:
             self._splitter_source = widget
             for mdi in self.mdi_area.subWindowList():
@@ -2260,6 +2444,9 @@ class WithMDIArea:
             self._splitter_source = None
 
     def remove_cursor(self, widget):
+        if not self.subplots_link:
+            return
+
         if self._cursor_source is None:
             self._cursor_source = widget
             for mdi in self.mdi_area.subWindowList():
@@ -2269,6 +2456,9 @@ class WithMDIArea:
             self._cursor_source = None
 
     def remove_region(self, widget):
+        if not self.subplots_link:
+            return
+
         if self._region_source is None:
             self._region_source = widget
             for mdi in self.mdi_area.subWindowList():
@@ -2291,9 +2481,14 @@ class WithMDIArea:
         if file_name:
             with MDF() as mdf:
                 for mdi in self.mdi_area.subWindowList():
-                    plt = mdi.widget()
+                    widget = mdi.widget()
 
-                    mdf.append(plt.plot.signals)
+                    if isinstance(widget, Plot):
+                        mdf.append(widget.plot.signals)
+                    elif isinstance(widget, Numeric):
+                        mdf.append(list(widget.signals.values()))
+                    elif isinstance(widget, Tabular):
+                        mdf.append(widget.df)
                 mdf.save(file_name, overwrite=True)
 
     def file_by_uuid(self, uuid):
@@ -2317,3 +2512,6 @@ class WithMDIArea:
 
             msg = ChannelInfoDialog(channel, self)
             msg.show()
+
+    def window_closed_handler(self):
+        self.windows_modified.emit()

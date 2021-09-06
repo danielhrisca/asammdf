@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
 from io import StringIO
+import json
 from pathlib import Path
 import re
 from functools import reduce
@@ -76,20 +77,22 @@ def excepthook(exc_type, exc_value, tracebackobj):
 
 
 def extract_mime_names(data):
+
+    def fix_comparison_name(data):
+        for i, (name, group_index, channel_index, mdf_uuid, item_type) in enumerate(data):
+            if item_type == "channel":
+                if  (group_index, channel_index) != (-1, -1):
+                    name = COMPARISON_NAME.match(name).group("name").strip()
+                    data[i][0] = name
+            else:
+                fix_comparison_name(channel_index)
     names = []
     if data.hasFormat("application/octet-stream-asammdf"):
-        data = bytes(data.data("application/octet-stream-asammdf"))
-        size = len(data)
-        pos = 0
-        while pos < size:
-            mdf_uuid, group_index, channel_index, name_length = unpack(
-                "<12s3q", data[pos : pos + 36]
-            )
-            pos += 36
-            name = data[pos : pos + name_length].decode("utf-8")
-            pos += name_length
-            name = COMPARISON_NAME.match(name).group("name").strip()
-            names.append((name, group_index, channel_index, mdf_uuid.decode("ascii")))
+        data = bytes(data.data("application/octet-stream-asammdf")).decode('utf-8')
+        data = json.loads(data)
+        fix_comparison_name(data)
+        names = data
+
     return names
 
 
@@ -104,7 +107,17 @@ def load_dsp(file):
             return channels, groups, all_channels, patterns
 
         for item in display.findall("CHANNEL"):
-            channels.add(item.get("name"))
+            color_ = int(item.get("color"))
+            c = 0
+            for i in range(3):
+                c = c << 8
+                c += color_ & 0xFF
+                color_ = color_ >> 8
+
+            if c in (0xFFFFFF, 0x0):
+                c = 0x808080
+
+            channels.add((item.get("name"), item.get("on") == "0", f"#{c:06X}"))
             all_channels = all_channels | channels
 
         for item in display.findall(f"GROUP{level}"):
@@ -201,16 +214,16 @@ def load_dsp(file):
     info["windows"] = windows = []
 
     if all_channels:
-        numeric = {
-            "type": "Numeric",
-            "title": "Numeric",
-            "configuration": {
-                "channels": all_channels,
-                "format": "phys",
-            },
-        }
-
-        windows.append(numeric)
+        # numeric = {
+        #     "type": "Numeric",
+        #     "title": "Numeric",
+        #     "configuration": {
+        #         "channels": all_channels,
+        #         "format": "phys",
+        #     },
+        # }
+        #
+        # windows.append(numeric)
 
         plot = {
             "type": "Plot",
@@ -218,10 +231,10 @@ def load_dsp(file):
             "configuration": {
                 "channels": [
                     {
-                        "color": COLORS[i % len(COLORS)],
+                        "color": color,
                         "common_axis": False,
                         "computed": False,
-                        "enabled": True,
+                        "enabled": enabled,
                         "fmt": "{}",
                         "individual_axis": False,
                         "name": name,
@@ -229,7 +242,7 @@ def load_dsp(file):
                         "ranges": [],
                         "unit": "",
                     }
-                    for i, name in enumerate(all_channels)
+                    for i, (name, enabled, color) in enumerate(all_channels)
                 ]
             },
         }
@@ -366,6 +379,7 @@ def setup_progress(parent, title, message, icon_name):
         QtGui.QPixmap(f":/{icon_name}.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
     )
     progress.setWindowIcon(icon)
+    progress.setMinimumWidth(600)
     progress.show()
 
     return progress
@@ -386,51 +400,55 @@ class WorkerThread(Thread):
 
 def get_required_signals(channel):
     names = []
-    if "computed" in channel:
-        if channel["computed"]:
-            computation = channel["computation"]
-            if computation["type"] == "arithmetic":
-                for op in (
-                    computation["operand1"],
-                    computation["operand2"],
-                ):
+    if channel['type'] == "channel":
+        if "computed" in channel:
+            if channel["computed"]:
+                computation = channel["computation"]
+                if computation["type"] == "arithmetic":
+                    for op in (
+                        computation["operand1"],
+                        computation["operand2"],
+                    ):
+                        if isinstance(op, str):
+                            names.append(op)
+                        elif isinstance(op, (int, float)):
+                            pass
+                        else:
+                            names.extend(get_required_signals(op))
+                elif computation["type"] == "function":
+                    op = computation["channel"]
+                    if isinstance(op, str):
+                        names.append(op)
+                    else:
+                        names.extend(get_required_signals(op))
+                elif computation["type"] == "expression":
+                    expression_string = computation["expression"]
+                    names.extend(
+                        [
+                            match.group('name')
+                            for match in SIG_RE.finditer(expression_string)
+                        ]
+                    )
+            else:
+                names.append(channel["name"])
+        else:
+            if channel["type"] == "arithmetic":
+                for op in (channel["operand1"], channel["operand2"]):
                     if isinstance(op, str):
                         names.append(op)
                     elif isinstance(op, (int, float)):
                         pass
                     else:
                         names.extend(get_required_signals(op))
-            elif computation["type"] == "function":
-                op = computation["channel"]
-                if isinstance(op, str):
-                    names.append(op)
-                else:
-                    names.extend(get_required_signals(op))
-            elif computation["type"] == "expression":
-                expression_string = computation["expression"]
-                names.extend(
-                    [
-                        match.group('name')
-                        for match in SIG_RE.finditer(expression_string)
-                    ]
-                )
-        else:
-            names.append(channel["name"])
-    else:
-        if channel["type"] == "arithmetic":
-            for op in (channel["operand1"], channel["operand2"]):
-                if isinstance(op, str):
-                    names.append(op)
-                elif isinstance(op, (int, float)):
-                    pass
-                else:
-                    names.extend(get_required_signals(op))
-        else:
-            op = channel["channel"]
-            if isinstance(op, str):
-                names.append(op)
             else:
-                names.extend(get_required_signals(op))
+                op = channel["channel"]
+                if isinstance(op, str):
+                    names.append(op)
+                else:
+                    names.extend(get_required_signals(op))
+    else:
+        for ch in channel['channels']:
+            names.extend(get_required_signals(ch))
 
     return names
 

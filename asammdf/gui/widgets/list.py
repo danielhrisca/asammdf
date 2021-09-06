@@ -36,6 +36,7 @@ class ListWidget(QtWidgets.QListWidget):
         self.itemSelectionChanged.connect(self.item_selection_changed)
 
         self.show()
+        self._has_hidden_items = False
 
     def item_selection_changed(self, item=None):
         selection = list(self.selectedItems())
@@ -191,34 +192,43 @@ class ListWidget(QtWidgets.QListWidget):
         if item is None:
             return
 
-        menu = QtWidgets.QMenu()
-        menu.addAction(self.tr(f"{self.count()} items in the list"))
-        menu.addSeparator()
-        menu.addAction(self.tr("Copy name (Ctrl+C)"))
-        menu.addAction(self.tr("Copy display properties (Ctrl+Shift+C)"))
-        menu.addAction(self.tr("Paste display properties (Ctrl+Shift+P)"))
-        menu.addSeparator()
-        menu.addAction(self.tr("Enable all"))
-        menu.addAction(self.tr("Disable all"))
-        menu.addAction(self.tr("Enable all but this"))
-        menu.addSeparator()
-        menu.addAction(self.tr("Add to common Y axis"))
-        menu.addAction(self.tr("Remove from common Y axis"))
-        menu.addSeparator()
-        menu.addAction(self.tr("Set unit"))
-        menu.addAction(self.tr("Set precision"))
-        menu.addSeparator()
-        menu.addAction(self.tr("Relative time base shift"))
-        menu.addAction(self.tr("Set time base start offset"))
-        menu.addSeparator()
-        menu.addAction(self.tr("Insert computation using this channel"))
-        menu.addSeparator()
-        menu.addAction(self.tr("Delete (Del)"))
-        menu.addSeparator()
-        menu.addAction(self.tr("Toggle details"))
-        menu.addAction(self.tr("File/Computation properties"))
+        else:
 
-        action = menu.exec_(self.viewport().mapToGlobal(position))
+            menu = QtWidgets.QMenu()
+            menu.addAction(self.tr(f"{self.count()} items in the list"))
+            menu.addSeparator()
+            menu.addAction(self.tr("Copy name (Ctrl+C)"))
+            menu.addAction(self.tr("Copy display properties (Ctrl+Shift+C)"))
+            menu.addAction(self.tr("Paste display properties (Ctrl+Shift+P)"))
+            menu.addSeparator()
+            menu.addAction(self.tr("Enable all"))
+            menu.addAction(self.tr("Disable all"))
+            menu.addAction(self.tr("Enable all but this"))
+            menu.addSeparator()
+            if self._has_hidden_items:
+                show_hide = "Show disabled items"
+            else:
+                show_hide = "Hide disabled items"
+            menu.addAction(self.tr(show_hide))
+            menu.addSeparator()
+
+            menu.addAction(self.tr("Add to common Y axis"))
+            menu.addAction(self.tr("Remove from common Y axis"))
+            menu.addSeparator()
+            menu.addAction(self.tr("Set unit"))
+            menu.addAction(self.tr("Set precision"))
+            menu.addSeparator()
+            menu.addAction(self.tr("Relative time base shift"))
+            menu.addAction(self.tr("Set time base start offset"))
+            menu.addSeparator()
+            menu.addAction(self.tr("Insert computation using this channel"))
+            menu.addSeparator()
+            menu.addAction(self.tr("Delete (Del)"))
+            menu.addSeparator()
+            menu.addAction(self.tr("Toggle details"))
+            menu.addAction(self.tr("File/Computation properties"))
+
+            action = menu.exec_(self.viewport().mapToGlobal(position))
 
         if action is None:
             return
@@ -266,6 +276,20 @@ class ListWidget(QtWidgets.QListWidget):
                     widget.display.setCheckState(QtCore.Qt.Unchecked)
                 else:
                     widget.display.setCheckState(QtCore.Qt.Checked)
+
+        elif action.text() == show_hide:
+            if self._has_hidden_items:
+                for i in range(self.count()):
+                    item = self.item(i)
+                    item.setHidden(False)
+            else:
+                for i in range(self.count()):
+                    item = self.item(i)
+                    widget = self.itemWidget(item)
+                    if not widget.display.isChecked():
+                        item.setHidden(True)
+
+            self._has_hidden_items = not self._has_hidden_items
 
         elif action.text() == "Add to common Y axis":
             selected_items = self.selectedItems()
@@ -396,6 +420,7 @@ class MinimalListWidget(QtWidgets.QListWidget):
 
         self.minimal_menu = False
         self.all_texts = False
+        self.placeholder_text = ""
 
     def item_selection_changed(self, item=None):
         try:
@@ -509,3 +534,17 @@ class MinimalListWidget(QtWidgets.QListWidget):
                 QtCore.QEvent.KeyPress, QtCore.Qt.Key_V, QtCore.Qt.ControlModifier
             )
             self.keyPressEvent(event)
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if self.count() == 0 and self.placeholder_text:
+            painter = QtGui.QPainter(self.viewport())
+            painter.save()
+            col = self.palette().placeholderText().color()
+            painter.setPen(col)
+            fm = self.fontMetrics()
+            elided_text = fm.elidedText(
+                self.placeholder_text, QtCore.Qt.ElideRight, self.viewport().width()
+            )
+            painter.drawText(self.viewport().rect(), QtCore.Qt.AlignCenter, elided_text)
+            painter.restore()

@@ -14,6 +14,8 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
     enable_changed = QtCore.pyqtSignal(object, int)
     ylink_changed = QtCore.pyqtSignal(object, int)
     individual_axis_changed = QtCore.pyqtSignal(object, int)
+    unit_changed = QtCore.pyqtSignal(object, str)
+    name_changed = QtCore.pyqtSignal(object, str)
 
     def __init__(
         self,
@@ -40,7 +42,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
         self.uuid = uuid
         self.ranges = {}
-        self.unit = unit.strip()
+        self._unit = unit.strip()
         self.kind = kind
         self.precision = precision
 
@@ -48,7 +50,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self._tooltip = tooltip
 
         self.color_btn.clicked.connect(self.select_color)
-        self.display.stateChanged.connect(self.display_changed)
+        # self.display.stateChanged.connect(self.display_changed)
         self.ylink.stateChanged.connect(self._ylink_changed)
         self.individual_axis.stateChanged.connect(self._individual_axis)
 
@@ -61,14 +63,40 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         else:
             self.fmt = f"{{:.{self.precision}f}}"
 
+    def set_unit(self, unit):
+        unit = str(unit)
+        if unit != self._unit:
+            self._unit = unit
+            self.unit_changed.emit(self.uuid, unit)
+
+    def copy(self):
+        new = ChannelDisplay(
+            self.uuid,
+            self._unit,
+            self.kind,
+            self.precision,
+            self._tooltip,
+            self.details.text(),
+        )
+
+        new._value_prefix = self._value_prefix
+        new.fmt = self.fmt
+        new.set_name(self._name)
+        new.individual_axis.setCheckState(self.individual_axis.checkState())
+        new.ylink.setCheckState(self.ylink.checkState())
+        new.set_color(self.color)
+        new.set_value(self._value)
+
+        return new
+
     def set_precision(self, precision):
         if self.kind == "f":
             self.precision = precision
             self.fmt = f"{{:.{self.precision}f}}"
 
-    def display_changed(self, state):
-        state = self.display.checkState()
-        self.enable_changed.emit(self.uuid, state)
+    # def display_changed(self, state):
+    #     state = self.display.checkState()
+    #     self.enable_changed.emit(self.uuid, state)
 
     def _individual_axis(self, state):
         state = self.individual_axis.checkState()
@@ -79,7 +107,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self.ylink_changed.emit(self.uuid, state)
 
     def mouseDoubleClickEvent(self, event):
-        dlg = RangeEditor(self.unit, self.ranges)
+        dlg = RangeEditor(self._unit, self.ranges)
         dlg.exec_()
         if dlg.pressed_button == "apply":
             self.ranges = dlg.result
@@ -134,16 +162,17 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
     def set_name(self, text=""):
         self.setToolTip(self._tooltip or text)
         self._name = text
+        self.name_changed.emit(self.uuid, text)
 
     def set_prefix(self, text=""):
         self._value_prefix = text
 
     def update(self):
         width = self.name.size().width()
-        if self.unit:
+        if self._unit:
             self.name.setText(
                 self.fm.elidedText(
-                    f"{self._name} ({self.unit})", QtCore.Qt.ElideMiddle, width
+                    f"{self._name} ({self._unit})", QtCore.Qt.ElideMiddle, width
                 )
             )
         else:
@@ -216,9 +245,9 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
                 viewbox = parent.plot.view_boxes[index]
                 viewbox.setYRange(info["min"], info["max"], padding=0)
 
-                self.display.setCheckState(
-                    QtCore.Qt.Checked if info["display"] else QtCore.Qt.Unchecked
-                )
+                # self.display.setCheckState(
+                #     QtCore.Qt.Checked if info["display"] else QtCore.Qt.Unchecked
+                # )
 
                 self.ranges = {}
 
@@ -234,10 +263,10 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
     def resizeEvent(self, event):
         width = self.name.size().width()
-        if self.unit:
+        if self._unit:
             self.name.setText(
                 self.fm.elidedText(
-                    f"{self._name} ({self.unit})", QtCore.Qt.ElideMiddle, width
+                    f"{self._name} ({self._unit})", QtCore.Qt.ElideMiddle, width
                 )
             )
         else:
@@ -259,7 +288,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             else "bin"
             if self.fmt.startswith("0b")
             else "phys",
-            "display": self.display.checkState() == QtCore.Qt.Checked,
+            # "display": self.display.checkState() == QtCore.Qt.Checked,
             "ranges": {
                 f"{start}|{stop}": val for (start, stop), val in self.ranges.items()
             },

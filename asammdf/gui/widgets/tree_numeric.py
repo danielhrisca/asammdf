@@ -73,25 +73,24 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
             if entry == (-1, -1):
                 info = {
                     "name": item.name,
-                    "computation": {},
+                    "computation": item.computation,
                 }
-                info = json.dumps(info).encode("utf-8")
             else:
-                info = item.name.encode("utf-8")
+                info = item.name
 
             data.append(
-                pack(
-                    f"<12s3q{len(info)}s",
-                    str(item.mdf_uuid).encode("ascii"),
-                    entry[0],
-                    entry[1],
-                    len(info),
+                (
                     info,
+                    *item.entry,
+                    str(item.mdf_uuid),
+                    "channel"
                 )
             )
 
+        data = json.dumps(data).encode('utf-8')
+
         mimeData.setData(
-            "application/octet-stream-asammdf", QtCore.QByteArray(b"".join(data))
+            "application/octet-stream-asammdf", QtCore.QByteArray(data)
         )
 
         drag = QtGui.QDrag(self)

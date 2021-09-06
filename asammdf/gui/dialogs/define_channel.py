@@ -336,6 +336,8 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 else:
                     self.result.computation["operand2"] = operand2.name
         except:
+            print(format_exc())
+            QtWidgets.QMessageBox.critical(self, "Simple computation apply error", format_exc())
             self.result = None
 
         self.pressed_button = "apply"
@@ -380,12 +382,12 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 self.func_arg1 = QtWidgets.QDoubleSpinBox()
                 self.func_arg1.setDecimals(6)
                 self.func_arg1.setRange(-(2 ** 64), 2 ** 64 - 1)
-                self.computation_grid_layout_2.addWidget(self.func_arg1, 0, 2)
+                self.gridLayout_4.addWidget(self.func_arg1, 0, 2)
 
                 self.func_arg2 = QtWidgets.QDoubleSpinBox()
                 self.func_arg2.setDecimals(6)
                 self.func_arg2.setRange(-(2 ** 64), 2 ** 64 - 1)
-                self.computation_grid_layout_2.addWidget(self.func_arg2, 0, 3)
+                self.gridLayout_4.addWidget(self.func_arg2, 0, 3)
 
             if function == "round":
                 self.func_arg2.setEnabled(False)
@@ -481,8 +483,8 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 "args": args,
             }
 
-        except Exception as err:
-            QtWidgets.QMessageBox.critical(None, "Function error", str(err))
+        except:
+            QtWidgets.QMessageBox.critical(self, "Function error", format_exc())
             self.result = None
 
         self.pressed_button = "apply"
@@ -543,6 +545,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
             except:
                 print(format_exc())
+                QtWidgets.QMessageBox.critical(self, "Function apply error", format_exc())
                 self.result = None
 
         else:

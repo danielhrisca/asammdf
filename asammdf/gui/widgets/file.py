@@ -102,384 +102,393 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/open.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         progress.setWindowIcon(icon)
+        progress.setMinimumWidth(600)
         progress.show()
 
-        if file_name.suffix.lower() in (".erg", ".bsig"):
+        try:
+            if file_name.suffix.lower() in (".erg", ".bsig"):
 
-            extension = file_name.suffix.lower().strip(".")
-            progress.setLabelText(f"Converting from {extension} to mdf")
+                extension = file_name.suffix.lower().strip(".")
+                progress.setLabelText(f"Converting from {extension} to mdf")
 
-            try:
-                from mfile import BSIG, ERG
-            except ImportError:
-                from cmerg import BSIG, ERG
+                try:
+                    from mfile import BSIG, ERG
+                except ImportError:
+                    from cmerg import BSIG, ERG
 
-            if file_name.suffix.lower() == ".erg":
-                cls = ERG
-            else:
-                cls = BSIG
-
-            out_file = Path(gettempdir()) / file_name.name
-
-            mdf_path = (
-                cls(file_name).export_mdf().save(out_file.with_suffix(".tmp.mf4"))
-            )
-            self.mdf = MDF(mdf_path)
-
-        elif file_name.suffix.lower() == ".csv":
-            try:
-                with open(file_name) as csv:
-                    names = [n.strip() for n in csv.readline().split(",")]
-                    units = [n.strip() for n in csv.readline().split(",")]
-
-                    try:
-                        float(units[0])
-                    except:
-                        units = {name: unit for name, unit in zip(names, units)}
-                    else:
-                        csv.seek(0)
-                        csv.readline()
-                        units = None
-
-                    df = pd.read_csv(csv, header=None, names=names)
-                    df.set_index(df[names[0]], inplace=True)
-                    self.mdf = MDF()
-                    self.mdf.append(df, units=units)
-            except:
-                progress.cancel()
-                print(format_exc())
-                raise Exception(
-                    "Could not load CSV. The first line must contain the channel names. The seconds line "
-                    "can optionally contain the channel units. The first column must be the time"
-                )
-
-        else:
-
-            if file_name.suffix.lower() == ".dl3":
-                progress.setLabelText("Converting from dl3 to mdf")
-                datalyser_active = any(
-                    proc.name() == "Datalyser3.exe" for proc in psutil.process_iter()
-                )
+                if file_name.suffix.lower() == ".erg":
+                    cls = ERG
+                else:
+                    cls = BSIG
 
                 out_file = Path(gettempdir()) / file_name.name
 
-                import win32com.client
+                mdf_path = (
+                    cls(file_name).export_mdf().save(out_file.with_suffix(".tmp.mf4"))
+                )
+                self.mdf = MDF(mdf_path)
 
-                index = 0
-                while True:
-                    mdf_name = out_file.with_suffix(f".{index}.mdf")
-                    if mdf_name.exists():
-                        index += 1
-                    else:
-                        break
-
+            elif file_name.suffix.lower() == ".csv":
                 try:
-                    datalyser = win32com.client.Dispatch("Datalyser3.Datalyser3_COM")
+                    with open(file_name) as csv:
+                        names = [n.strip() for n in csv.readline().split(",")]
+                        units = [n.strip() for n in csv.readline().split(",")]
+
+                        try:
+                            float(units[0])
+                        except:
+                            units = {name: unit for name, unit in zip(names, units)}
+                        else:
+                            csv.seek(0)
+                            csv.readline()
+                            units = None
+
+                        df = pd.read_csv(csv, header=None, names=names)
+                        df.set_index(df[names[0]], inplace=True)
+                        self.mdf = MDF()
+                        self.mdf.append(df, units=units)
                 except:
+                    progress.cancel()
+                    print(format_exc())
                     raise Exception(
-                        "Datalyser must be installed if you wasnt to open DL3 files"
+                        "Could not load CSV. The first line must contain the channel names. The seconds line "
+                        "can optionally contain the channel units. The first column must be the time"
                     )
-                if not datalyser_active:
+
+            else:
+
+                if file_name.suffix.lower() == ".dl3":
+                    progress.setLabelText("Converting from dl3 to mdf")
+                    datalyser_active = any(
+                        proc.name() == "Datalyser3.exe" for proc in psutil.process_iter()
+                    )
+
+                    out_file = Path(gettempdir()) / file_name.name
+
+                    import win32com.client
+
+                    index = 0
+                    while True:
+                        mdf_name = out_file.with_suffix(f".{index}.mdf")
+                        if mdf_name.exists():
+                            index += 1
+                        else:
+                            break
+
                     try:
-                        datalyser.DCOM_set_datalyser_visibility(False)
+                        datalyser = win32com.client.Dispatch("Datalyser3.Datalyser3_COM")
                     except:
-                        pass
-                datalyser.DCOM_convert_file_mdf_dl3(file_name, str(mdf_name), 0)
-                if not datalyser_active:
-                    datalyser.DCOM_TerminateDAS()
-                file_name = mdf_name
+                        raise Exception(
+                            "Datalyser must be installed if you want to open DL3 files"
+                        )
+                    if not datalyser_active:
+                        try:
+                            datalyser.DCOM_set_datalyser_visibility(False)
+                        except:
+                            pass
+                    datalyser.DCOM_convert_file_mdf_dl3(file_name, str(mdf_name), 0)
+                    if not datalyser_active:
+                        datalyser.DCOM_TerminateDAS()
+                    file_name = mdf_name
 
-            target = MDF
-            kwargs = {
-                "name": file_name,
-                "callback": self.update_progress,
-                "encryption_function": encryption_function,
-                "decryption_function": decryption_function,
-                "use_display_names": True,
-            }
+                target = MDF
+                kwargs = {
+                    "name": file_name,
+                    "callback": self.update_progress,
+                    "encryption_function": encryption_function,
+                    "decryption_function": decryption_function,
+                    "use_display_names": True,
+                }
 
-            self.mdf = run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=33,
-                offset=0,
-                progress=progress,
+                self.mdf = run_thread_with_progress(
+                    self,
+                    target=target,
+                    kwargs=kwargs,
+                    factor=33,
+                    offset=0,
+                    progress=progress,
+                )
+
+                if self.mdf is TERMINATED:
+                    return
+
+            channels_db_items = sorted(self.mdf.channels_db, key=lambda x: x.lower())
+            self.channels_db_items = channels_db_items
+
+            progress.setLabelText("Loading graphical elements")
+
+            progress.setValue(37)
+
+            self.channel_view.currentIndexChanged.connect(
+                partial(self._update_channel_tree, widget=self.channels_tree)
+            )
+            self.filter_view.currentIndexChanged.connect(
+                partial(self._update_channel_tree, widget=self.filter_tree)
+            )
+            self.channel_view.currentTextChanged.connect(
+                partial(self._update_channel_tree, widget=self.channels_tree)
+            )
+            self.filter_view.currentTextChanged.connect(
+                partial(self._update_channel_tree, widget=self.filter_tree)
             )
 
-            if self.mdf is TERMINATED:
-                return
+            self.channels_tree.setDragEnabled(True)
 
-        channels_db_items = sorted(self.mdf.channels_db, key=lambda x: x.lower())
-        self.channels_db_items = channels_db_items
+            self.mdi_area = MdiAreaWidget()
+            self.mdi_area.add_window_request.connect(self.add_window)
+            self.mdi_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+            self.mdi_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
+            self.splitter.addWidget(self.mdi_area)
 
-        progress.setLabelText("Loading graphical elements")
+            self.channels_tree.itemDoubleClicked.connect(self.show_info)
+            self.filter_tree.itemDoubleClicked.connect(self.show_info)
 
-        progress.setValue(37)
+            self.channel_view.setCurrentIndex(-1)
+            self.filter_view.setCurrentIndex(-1)
+            self.channel_view.setCurrentText(
+                self._settings.value("channels_view", "Internal file structure")
+            )
+            self.filter_view.setCurrentText(
+                self._settings.value("filter_view", "Internal file structure")
+            )
 
-        self.channel_view.currentIndexChanged.connect(
-            partial(self._update_channel_tree, widget=self.channels_tree)
-        )
-        self.filter_view.currentIndexChanged.connect(
-            partial(self._update_channel_tree, widget=self.filter_tree)
-        )
-        self.channel_view.currentTextChanged.connect(
-            partial(self._update_channel_tree, widget=self.channels_tree)
-        )
-        self.filter_view.currentTextChanged.connect(
-            partial(self._update_channel_tree, widget=self.filter_tree)
-        )
+            progress.setValue(70)
 
-        self.channels_tree.setDragEnabled(True)
+            self.raster_type_channel.toggled.connect(self.set_raster_type)
 
-        self.mdi_area = MdiAreaWidget()
-        self.mdi_area.add_window_request.connect(self.add_window)
-        self.mdi_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-        self.mdi_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-        self.splitter.addWidget(self.mdi_area)
+            progress.setValue(90)
 
-        self.channels_tree.itemDoubleClicked.connect(self.show_info)
-        self.filter_tree.itemDoubleClicked.connect(self.show_info)
+            self.output_options.setCurrentIndex(0)
 
-        self.channel_view.setCurrentIndex(-1)
-        self.filter_view.setCurrentIndex(-1)
-        self.channel_view.setCurrentText(
-            self._settings.value("channels_view", "Internal file structure")
-        )
-        self.filter_view.setCurrentText(
-            self._settings.value("filter_view", "Internal file structure")
-        )
+            self.mdf_version.insertItems(0, SUPPORTED_VERSIONS)
+            self.mdf_version.setCurrentText("4.10")
+            self.mdf_compression.insertItems(
+                0, ("no compression", "deflate", "transposed deflate")
+            )
+            self.mdf_split_size.setValue(4)
 
-        progress.setValue(70)
+            self.extract_bus_format.insertItems(0, SUPPORTED_VERSIONS)
+            self.extract_bus_format.setCurrentText("4.10")
+            index = self.extract_bus_format.findText(self.mdf.version)
+            if index >= 0:
+                self.extract_bus_format.setCurrentIndex(index)
+            self.extract_bus_compression.insertItems(
+                0, ("no compression", "deflate", "transposed deflate")
+            )
+            self.extract_bus_btn.clicked.connect(self.extract_bus_logging)
+            self.extract_bus_csv_btn.clicked.connect(self.extract_bus_csv_logging)
+            self.load_can_database_btn.clicked.connect(self.load_can_database)
+            self.load_lin_database_btn.clicked.connect(self.load_lin_database)
 
-        self.raster_type_channel.toggled.connect(self.set_raster_type)
+            progress.setValue(99)
 
-        progress.setValue(90)
+            self.empty_channels.insertItems(0, ("skip", "zeros"))
+            self.empty_channels_bus.insertItems(0, ("skip", "zeros"))
+            self.empty_channels_mat.insertItems(0, ("skip", "zeros"))
+            self.empty_channels_csv.insertItems(0, ("skip", "zeros"))
+            self.mat_format.insertItems(0, ("4", "5", "7.3"))
+            self.oned_as.insertItems(0, ("row", "column"))
 
-        self.output_options.setCurrentIndex(0)
+            self.output_format.currentTextChanged.connect(self.output_format_changed)
 
-        self.mdf_version.insertItems(0, SUPPORTED_VERSIONS)
-        self.mdf_version.setCurrentText("4.10")
-        self.mdf_compression.insertItems(
-            0, ("no compression", "deflate", "transposed deflate")
-        )
-        self.mdf_split_size.setValue(4)
-
-        self.extract_bus_format.insertItems(0, SUPPORTED_VERSIONS)
-        self.extract_bus_format.setCurrentText("4.10")
-        index = self.extract_bus_format.findText(self.mdf.version)
-        if index >= 0:
-            self.extract_bus_format.setCurrentIndex(index)
-        self.extract_bus_compression.insertItems(
-            0, ("no compression", "deflate", "transposed deflate")
-        )
-        self.extract_bus_btn.clicked.connect(self.extract_bus_logging)
-        self.extract_bus_csv_btn.clicked.connect(self.extract_bus_csv_logging)
-        self.load_can_database_btn.clicked.connect(self.load_can_database)
-        self.load_lin_database_btn.clicked.connect(self.load_lin_database)
-
-        progress.setValue(99)
-
-        self.empty_channels.insertItems(0, ("skip", "zeros"))
-        self.empty_channels_bus.insertItems(0, ("skip", "zeros"))
-        self.empty_channels_mat.insertItems(0, ("skip", "zeros"))
-        self.empty_channels_csv.insertItems(0, ("skip", "zeros"))
-        self.mat_format.insertItems(0, ("4", "5", "7.3"))
-        self.oned_as.insertItems(0, ("row", "column"))
-
-        self.output_format.currentTextChanged.connect(self.output_format_changed)
-
-        # info tab
-        try:
-            file_stats = os.stat(self.mdf.name)
-        except:
-            file_stats = None
-        file_info = QtWidgets.QTreeWidgetItem()
-        file_info.setText(0, "File information")
-
-        self.info.addTopLevelItem(file_info)
-
-        children = []
-
-        item = QtWidgets.QTreeWidgetItem()
-        item.setText(0, "Path")
-        item.setText(1, str(self.mdf.name))
-        children.append(item)
-
-        item = QtWidgets.QTreeWidgetItem()
-        item.setText(0, "Size")
-        if file_stats is not None:
-            item.setText(1, f"{file_stats.st_size / 1024 / 1024:.1f} MB")
-        else:
+            # info tab
             try:
-                item.setText(1, f"{self.mdf.file_limit / 1024 / 1024:.1f} MB")
+                file_stats = os.stat(self.mdf.name)
             except:
-                item.setText(1, f"Unknown size")
-        children.append(item)
+                file_stats = None
+            file_info = QtWidgets.QTreeWidgetItem()
+            file_info.setText(0, "File information")
 
-        if file_stats is not None:
-            date_ = datetime.fromtimestamp(file_stats.st_ctime)
-        else:
-            date_ = datetime.now()
-        item = QtWidgets.QTreeWidgetItem()
-        item.setText(0, "Created")
-        item.setText(1, date_.strftime("%d-%b-%Y %H-%M-%S"))
-        children.append(item)
+            self.info.addTopLevelItem(file_info)
 
-        if file_stats is not None:
-            date_ = datetime.fromtimestamp(file_stats.st_mtime)
-        else:
-            date_ = datetime.now()
-        item = QtWidgets.QTreeWidgetItem()
-        item.setText(0, "Last modified")
-        item.setText(1, date_.strftime("%d-%b-%Y %H:%M:%S"))
-        children.append(item)
+            children = []
 
-        file_info.addChildren(children)
+            item = QtWidgets.QTreeWidgetItem()
+            item.setText(0, "Path")
+            item.setText(1, str(self.mdf.name))
+            children.append(item)
 
-        mdf_info = QtWidgets.QTreeWidgetItem()
-        mdf_info.setText(0, "MDF information")
-
-        self.info.addTopLevelItem(mdf_info)
-
-        children = []
-
-        item = QtWidgets.QTreeWidgetItem()
-        item.setText(0, "Version")
-        item.setText(1, self.mdf.version)
-        children.append(item)
-
-        item = QtWidgets.QTreeWidgetItem()
-        item.setText(0, "Program identification")
-        item.setText(
-            1,
-            self.mdf.identification.program_identification.decode("ascii").strip(
-                " \r\n\t\0"
-            ),
-        )
-        children.append(item)
-
-        item = QtWidgets.QTreeWidgetItem()
-        item.setText(0, "Measurement start time")
-        item.setText(
-            1, self.mdf.header.start_time.strftime("%d-%b-%Y %H:%M:%S + %fus UTC")
-        )
-        children.append(item)
-
-        item = QtWidgets.QTreeWidgetItem()
-        item.setText(0, "Measurement comment")
-        item.setText(1, self.mdf.header.comment)
-        item.setTextAlignment(0, QtCore.Qt.AlignTop)
-        children.append(item)
-
-        channel_groups = QtWidgets.QTreeWidgetItem()
-        channel_groups.setText(0, "Channel groups")
-        channel_groups.setText(1, str(len(self.mdf.groups)))
-        children.append(channel_groups)
-
-        channel_groups_children = []
-        for i, group in enumerate(self.mdf.groups):
-            channel_group = group.channel_group
-            if hasattr(channel_group, "comment"):
-                comment = channel_group.comment
+            item = QtWidgets.QTreeWidgetItem()
+            item.setText(0, "Size")
+            if file_stats is not None:
+                item.setText(1, f"{file_stats.st_size / 1024 / 1024:.1f} MB")
             else:
-                comment = ""
-            if comment:
-                name = f"Channel group {i} ({comment})"
+                try:
+                    item.setText(1, f"{self.mdf.file_limit / 1024 / 1024:.1f} MB")
+                except:
+                    item.setText(1, f"Unknown size")
+            children.append(item)
+
+            if file_stats is not None:
+                date_ = datetime.fromtimestamp(file_stats.st_ctime)
             else:
-                name = f"Channel group {i}"
+                date_ = datetime.now()
+            item = QtWidgets.QTreeWidgetItem()
+            item.setText(0, "Created")
+            item.setText(1, date_.strftime("%d-%b-%Y %H-%M-%S"))
+            children.append(item)
 
-            cycles = channel_group.cycles_nr
-
-            channel_group_item = QtWidgets.QTreeWidgetItem()
-            channel_group_item.setText(0, name)
-
-            if self.mdf.version < "4.00":
-                size = channel_group.samples_byte_nr * cycles
+            if file_stats is not None:
+                date_ = datetime.fromtimestamp(file_stats.st_mtime)
             else:
-                if channel_group.flags & 0x1:
-                    size = channel_group.samples_byte_nr + (
-                        channel_group.invalidation_bytes_nr << 32
-                    )
+                date_ = datetime.now()
+            item = QtWidgets.QTreeWidgetItem()
+            item.setText(0, "Last modified")
+            item.setText(1, date_.strftime("%d-%b-%Y %H:%M:%S"))
+            children.append(item)
+
+            file_info.addChildren(children)
+
+            mdf_info = QtWidgets.QTreeWidgetItem()
+            mdf_info.setText(0, "MDF information")
+
+            self.info.addTopLevelItem(mdf_info)
+
+            children = []
+
+            item = QtWidgets.QTreeWidgetItem()
+            item.setText(0, "Version")
+            item.setText(1, self.mdf.version)
+            children.append(item)
+
+            item = QtWidgets.QTreeWidgetItem()
+            item.setText(0, "Program identification")
+            item.setText(
+                1,
+                self.mdf.identification.program_identification.decode("ascii").strip(
+                    " \r\n\t\0"
+                ),
+            )
+            children.append(item)
+
+            item = QtWidgets.QTreeWidgetItem()
+            item.setText(0, "Measurement start time")
+            item.setText(
+                1, self.mdf.header.start_time.strftime("%d-%b-%Y %H:%M:%S + %fus UTC")
+            )
+            children.append(item)
+
+            item = QtWidgets.QTreeWidgetItem()
+            item.setText(0, "Measurement comment")
+            item.setText(1, self.mdf.header.comment)
+            item.setTextAlignment(0, QtCore.Qt.AlignTop)
+            children.append(item)
+
+            channel_groups = QtWidgets.QTreeWidgetItem()
+            channel_groups.setText(0, "Channel groups")
+            channel_groups.setText(1, str(len(self.mdf.groups)))
+            children.append(channel_groups)
+
+            channel_groups_children = []
+            for i, group in enumerate(self.mdf.groups):
+                channel_group = group.channel_group
+                if hasattr(channel_group, "comment"):
+                    comment = channel_group.comment
                 else:
-                    size = (
-                        channel_group.samples_byte_nr
-                        + channel_group.invalidation_bytes_nr
-                    ) * cycles
+                    comment = ""
+                if comment:
+                    name = f"Channel group {i} ({comment})"
+                else:
+                    name = f"Channel group {i}"
 
-                if group.channel_group.acq_source:
-                    source = group.channel_group.acq_source
-                    if source.bus_type == BUS_TYPE_CAN:
-                        ico = ":/bus_can.png"
-                    elif source.bus_type == BUS_TYPE_LIN:
-                        ico = ":/bus_lin.png"
-                    elif source.bus_type == BUS_TYPE_ETHERNET:
-                        ico = ":/bus_eth.png"
-                    elif source.bus_type == BUS_TYPE_USB:
-                        ico = ":/bus_usb.png"
-                    elif source.bus_type == BUS_TYPE_FLEXRAY:
-                        ico = ":/bus_flx.png"
-                    else:
-                        ico = None
+                cycles = channel_group.cycles_nr
 
-                    if ico is not None:
-                        icon = QtGui.QIcon()
-                        icon.addPixmap(
-                            QtGui.QPixmap(ico), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                channel_group_item = QtWidgets.QTreeWidgetItem()
+                channel_group_item.setText(0, name)
+
+                if self.mdf.version < "4.00":
+                    size = channel_group.samples_byte_nr * cycles
+                else:
+                    if channel_group.flags & 0x1:
+                        size = channel_group.samples_byte_nr + (
+                            channel_group.invalidation_bytes_nr << 32
                         )
-                        channel_group_item.setIcon(0, icon)
+                    else:
+                        size = (
+                            channel_group.samples_byte_nr
+                            + channel_group.invalidation_bytes_nr
+                        ) * cycles
 
-            item = QtWidgets.QTreeWidgetItem()
-            item.setText(0, "Channels")
-            item.setText(1, f"{len(group.channels)}")
-            channel_group_item.addChild(item)
+                    if group.channel_group.acq_source:
+                        source = group.channel_group.acq_source
+                        if source.bus_type == BUS_TYPE_CAN:
+                            ico = ":/bus_can.png"
+                        elif source.bus_type == BUS_TYPE_LIN:
+                            ico = ":/bus_lin.png"
+                        elif source.bus_type == BUS_TYPE_ETHERNET:
+                            ico = ":/bus_eth.png"
+                        elif source.bus_type == BUS_TYPE_USB:
+                            ico = ":/bus_usb.png"
+                        elif source.bus_type == BUS_TYPE_FLEXRAY:
+                            ico = ":/bus_flx.png"
+                        else:
+                            ico = None
 
-            item = QtWidgets.QTreeWidgetItem()
-            item.setText(0, "Cycles")
-            item.setText(1, str(cycles))
-            if cycles:
-                item.setForeground(1, QtGui.QBrush(QtCore.Qt.darkGreen))
-            channel_group_item.addChild(item)
+                        if ico is not None:
+                            icon = QtGui.QIcon()
+                            icon.addPixmap(
+                                QtGui.QPixmap(ico), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                            )
+                            channel_group_item.setIcon(0, icon)
 
-            item = QtWidgets.QTreeWidgetItem()
-            item.setText(0, "Raw size")
-            item.setText(1, f"{size / 1024 / 1024:.1f} MB")
-            if cycles:
-                item.setForeground(1, QtGui.QBrush(QtCore.Qt.darkGreen))
-            channel_group_item.addChild(item)
+                item = QtWidgets.QTreeWidgetItem()
+                item.setText(0, "Channels")
+                item.setText(1, f"{len(group.channels)}")
+                channel_group_item.addChild(item)
 
-            channel_groups_children.append(channel_group_item)
+                item = QtWidgets.QTreeWidgetItem()
+                item.setText(0, "Cycles")
+                item.setText(1, str(cycles))
+                if cycles:
+                    item.setForeground(1, QtGui.QBrush(QtCore.Qt.darkGreen))
+                channel_group_item.addChild(item)
 
-        channel_groups.addChildren(channel_groups_children)
+                item = QtWidgets.QTreeWidgetItem()
+                item.setText(0, "Raw size")
+                item.setText(1, f"{size / 1024 / 1024:.1f} MB")
+                if cycles:
+                    item.setForeground(1, QtGui.QBrush(QtCore.Qt.darkGreen))
+                channel_group_item.addChild(item)
 
-        channels = QtWidgets.QTreeWidgetItem()
-        channels.setText(0, "Channels")
-        channels.setText(
-            1, str(sum(len(entry) for entry in self.mdf.channels_db.values()))
-        )
-        children.append(channels)
+                channel_groups_children.append(channel_group_item)
 
-        mdf_info.addChildren(children)
+            channel_groups.addChildren(channel_groups_children)
 
-        self.info.expandAll()
+            channels = QtWidgets.QTreeWidgetItem()
+            channels.setText(0, "Channels")
+            channels.setText(
+                1, str(sum(len(entry) for entry in self.mdf.channels_db.values()))
+            )
+            children.append(channels)
 
-        self.info.header().setSectionResizeMode(
-            0, QtWidgets.QHeaderView.ResizeToContents
-        )
+            mdf_info.addChildren(children)
 
-        # self.channels_tree.itemChanged.connect(self.select)
-        self.create_window_btn.clicked.connect(self._create_window)
+            self.info.expandAll()
 
-        self.clear_filter_btn.clicked.connect(self.clear_filter)
-        self.clear_channels_btn.clicked.connect(self.clear_channels)
-        self.select_all_btn.clicked.connect(self.select_all_channels)
+            self.info.header().setSectionResizeMode(
+                0, QtWidgets.QHeaderView.ResizeToContents
+            )
 
-        self.aspects.setCurrentIndex(0)
+            # self.channels_tree.itemChanged.connect(self.select)
+            self.create_window_btn.clicked.connect(self._create_window)
 
-        self.aspects.currentChanged.connect(self.aspect_changed)
+            self.clear_filter_btn.clicked.connect(self.clear_filter)
+            self.clear_channels_btn.clicked.connect(self.clear_channels)
+            self.select_all_btn.clicked.connect(self.select_all_channels)
 
-        progress.setValue(100)
-        progress.deleteLater()
+            self.aspects.setCurrentIndex(0)
+
+            self.aspects.currentChanged.connect(self.aspect_changed)
+
+        except:
+
+            progress.setValue(100)
+            progress.deleteLater()
+            raise
+
+        else:
+            progress.setValue(100)
+            progress.deleteLater()
 
         self.load_channel_list_btn.clicked.connect(self.load_channel_list)
         self.save_channel_list_btn.clicked.connect(self.save_channel_list)
@@ -1075,8 +1084,34 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         iterator += 1
 
-            for window in info.get("windows", []):
-                self.load_window(window)
+            windows = info.get("windows", [])
+
+            if windows:
+                count = len(windows)
+
+                progress = setup_progress(
+                    parent=self,
+                    title=f"Loading display windows",
+                    message=f"",
+                    icon_name="window",
+                )
+                progress.setRange(0, count-1)
+                progress.resize(500, progress.height())
+
+                try:
+                    for i, window in enumerate(windows, 1):
+                        window_type = window['type']
+                        window_title = window['title']
+                        progress.setLabelText(
+                            f"Loading {window_type} window <{window_title}>"
+                        )
+                        QtWidgets.QApplication.processEvents()
+                        self.load_window(window)
+                        progress.setValue(i)
+                except:
+                    print(format_exc())
+                finally:
+                    progress.cancel()
 
     def save_filter_list(self):
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
@@ -1790,7 +1825,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         if key == QtCore.Qt.Key_F and modifier == QtCore.Qt.ControlModifier:
             self.search()
 
-        elif key == QtCore.Qt.Key_F8:
+        elif key == QtCore.Qt.Key_F11:
             self.full_screen_toggled.emit()
 
         elif (
