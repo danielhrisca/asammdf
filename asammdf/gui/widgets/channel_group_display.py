@@ -12,6 +12,7 @@ class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
     def __init__(
         self,
         name="",
+        pattern_group=False,
         *args,
         **kwargs,
     ):
@@ -23,6 +24,15 @@ class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
         font.setPointSize(font.pointSize() + 2)
         font.setBold(True)
         self.name.setFont(font)
+
+    def set_pattern_group(self, state):
+        if state:
+            self._icon.setPixmap(QtGui.QPixmap(":/filter.png"))
+            self.blocked = True
+        else:
+            self._icon.setPixmap(QtGui.QPixmap(":/open.png"))
+            self.blocked = False
+
 
     def copy(self):
         new = ChannelGroupDisplay(

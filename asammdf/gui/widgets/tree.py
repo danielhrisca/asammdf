@@ -63,6 +63,12 @@ def validate_drag_items(root, items, not_allowed):
             for parent in parents:
                 if parent in not_allowed:
                     break
+                elif isinstance(parent, ChannelsGroupTreeItem):
+                    widget = parent.treeWidget().itemWidget(parent, 1)
+                    if widget.locked:
+                        not_allowed.append(parent)
+                        break
+
             else:
                 not_allowed.append(item)
                 valid_items.append(item)

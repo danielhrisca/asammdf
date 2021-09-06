@@ -97,41 +97,46 @@ def extract_mime_names(data):
 
 
 def load_dsp(file):
-    def parse_dsp(display, level=1):
-        channels = set()
-        groups = []
-        all_channels = set()
+    def parse_channels(display):
+        channels = []
         patterns = {}
+        for elem in display.iterchildren():
+            if elem.tag == 'CHANNEL':
+                color_ = int(elem.get("color"))
+                c = 0
+                for i in range(3):
+                    c = c << 8
+                    c += color_ & 0xFF
+                    color_ = color_ >> 8
 
-        if display is None:
-            return channels, groups, all_channels, patterns
+                if c in (0xFFFFFF, 0x0):
+                    c = 0x808080
 
-        for item in display.findall("CHANNEL"):
-            color_ = int(item.get("color"))
-            c = 0
-            for i in range(3):
-                c = c << 8
-                c += color_ & 0xFF
-                color_ = color_ >> 8
+                channels.append(
+                    {
+                        "color": f"#{c:06X}",
+                        "common_axis": False,
+                        "computed": False,
+                        "enabled": elem.get("on") == "1",
+                        "fmt": "{}",
+                        "individual_axis": False,
+                        "name": elem.get("name"),
+                        "precision": 3,
+                        "ranges": [],
+                        "unit": "",
+                        "type": "channel",
+                    }
+                )
 
-            if c in (0xFFFFFF, 0x0):
-                c = 0x808080
-
-            channels.add((item.get("name"), item.get("on") == "0", f"#{c:06X}"))
-            all_channels = all_channels | channels
-
-        for item in display.findall(f"GROUP{level}"):
-            group_channels, subgroups, subgroup_all_channels, *_ = parse_dsp(
-                item, level + 1
-            )
-            all_channels = all_channels | subgroup_all_channels
-            groups.append(
-                {
-                    "name": item.get("data"),
-                    "dsp_channels": natsort.natsorted(group_channels),
-                    "dsp_groups": subgroups,
-                }
-            )
+            elif elem.tag.startswith("GROUP"):
+                channels.append(
+                    {
+                        "name": elem.get("data"),
+                        "enabled": elem.get("on") == "1",
+                        "type": "group",
+                        "channels": parse_channels(elem)[0],
+                    }
+                )
 
         for item in display.findall("CHANNEL_PATTERN"):
 
@@ -166,7 +171,7 @@ def load_dsp(file):
             except:
                 continue
 
-        return channels, groups, all_channels, patterns
+        return channels, patterns
 
     def parse_virtual_channels(display):
         channels = {}
@@ -205,15 +210,14 @@ def load_dsp(file):
     dsp = Path(file).read_bytes().replace(b"\0", b"")
     dsp = lxml.etree.fromstring(dsp)
 
-    channels, groups, all_channels, patterns = parse_dsp(dsp.find("DISPLAY_INFO"))
+    channels, patterns = parse_channels(dsp.find("DISPLAY_INFO"))
 
     info = {}
-    all_channels = natsort.natsorted(all_channels)
-    info["selected_channels"] = all_channels
+    info["selected_channels"] = []
 
     info["windows"] = windows = []
 
-    if all_channels:
+    if channels:
         # numeric = {
         #     "type": "Numeric",
         #     "title": "Numeric",
@@ -229,21 +233,7 @@ def load_dsp(file):
             "type": "Plot",
             "title": "Display channels",
             "configuration": {
-                "channels": [
-                    {
-                        "color": color,
-                        "common_axis": False,
-                        "computed": False,
-                        "enabled": enabled,
-                        "fmt": "{}",
-                        "individual_axis": False,
-                        "name": name,
-                        "precision": 3,
-                        "ranges": [],
-                        "unit": "",
-                    }
-                    for i, (name, enabled, color) in enumerate(all_channels)
-                ]
+                "channels": channels,
             },
         }
 

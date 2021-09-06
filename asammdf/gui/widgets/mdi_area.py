@@ -28,6 +28,7 @@ from ..dialogs.window_selection_dialog import WindowSelectionDialog
 from ..utils import compute_signal, extract_mime_names
 from .bar import Bar
 from .can_bus_trace import CANBusTrace
+from .channel_display import ChannelDisplay
 from .gps import GPS
 from .lin_bus_trace import LINBusTrace
 from .numeric import Numeric
@@ -36,6 +37,7 @@ from .tabular import Tabular
 
 COMPONENT = re.compile(r"\[(?P<index>\d+)\]$")
 SIG_RE = re.compile(r'\{\{(?!\}\})(?P<name>.*?)\}\}')
+NOT_FOUND = 2**32 - 1
 
 
 def build_mime_from_config(channels, mdf=None, uuid=None, default_index=-1):
@@ -2065,7 +2067,7 @@ class WithMDIArea:
             uuid = os.urandom(6).hex()
             for sig in not_found:
                 sig.mdf_uuid = uuid
-                sig.group_index = 0
+                sig.group_index = NOT_FOUND
 
             signals.extend(not_found)
 
@@ -2122,10 +2124,18 @@ class WithMDIArea:
             )
 
             plot.add_new_channels(signals, mime_data)
-            for i, sig in enumerate(not_found, len(found)):
-                item = plot.channel_selection.item(i)
-                widget = plot.channel_selection.itemWidget(item)
-                widget.does_not_exist()
+
+            iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
+            while iterator.value():
+                item = iterator.value()
+                iterator += 1
+
+                widget = plot.channel_selection.itemWidget(item, 1)
+
+                if isinstance(widget, ChannelDisplay):
+                    sig, index = plot.plot.signal_by_uuid(widget.uuid)
+                    if sig.group_index == NOT_FOUND:
+                        widget.does_not_exist()
 
             needs_update = False
             for channel, sig in zip(found_signals, plot.plot.signals):
