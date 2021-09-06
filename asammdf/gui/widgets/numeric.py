@@ -207,7 +207,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         self.channels.sortByColumn(index, order)
 
-    def add_new_channels(self, channels):
+    def add_new_channels(self, channels, mime_data=None):
         invalid = []
         for sig in channels:
             if sig:

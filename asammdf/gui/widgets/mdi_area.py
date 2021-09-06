@@ -25,7 +25,7 @@ from ...mdf import MDF
 from ...signal import Signal
 from ..dialogs.channel_info import ChannelInfoDialog
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
-from ..utils import compute_signal, extract_mime_names, get_required_signals
+from ..utils import compute_signal, extract_mime_names
 from .bar import Bar
 from .can_bus_trace import CANBusTrace
 from .gps import GPS
@@ -35,6 +35,38 @@ from .plot import Plot
 from .tabular import Tabular
 
 COMPONENT = re.compile(r"\[(?P<index>\d+)\]$")
+SIG_RE = re.compile(r'\{\{(?!\}\})(?P<name>.*?)\}\}')
+
+
+def build_mime_from_config(channels, mdf, uuid):
+    mime = []
+    for channel in channels:
+        if channel.get('type', 'channel') == 'group':
+            mime.append(
+                (
+                    channel['name'],
+                    None,
+                    build_mime_from_config(channel['channels'], mdf, uuid),
+                    None,
+                    "group",
+                )
+            )
+        else:
+            occurrences = mdf.whereis(channel['name'])
+            if occurrences:
+                group_index, channel_index = occurrences[0]
+            else:
+                group_index, channel_index = -1, -1
+            mime.append(
+                (
+                    channel['name'],
+                    group_index,
+                    channel_index,
+                    uuid,
+                    "channel",
+                )
+            )
+    return mime
 
 
 def generate_window_title(mdi, window_name="", title=""):
@@ -58,6 +90,93 @@ def generate_window_title(mdi, window_name="", title=""):
         name = title
 
     return name
+
+
+def get_flatten_entries_from_mime(data):
+    entries = []
+    for (name, group_index, channel_index, mdf_uuid, type_) in data:
+        if type_ == "channel":
+            entries.append((name, group_index, channel_index, mdf_uuid, 'channel'))
+        else:
+            entries.extend(get_flatten_entries_from_mime(channel_index))
+    return entries
+
+
+def get_required_from_computed(channel):
+    names = []
+    if channel['type'] == "channel":
+        if "computed" in channel:
+            if channel["computed"]:
+                computation = channel["computation"]
+                if computation["type"] == "arithmetic":
+                    for op in (
+                        computation["operand1"],
+                        computation["operand2"],
+                    ):
+                        if isinstance(op, str):
+                            names.append(op)
+                        elif isinstance(op, (int, float)):
+                            pass
+                        else:
+                            names.extend(get_required_from_computed(op))
+                elif computation["type"] == "function":
+                    op = computation["channel"]
+                    if isinstance(op, str):
+                        names.append(op)
+                    else:
+                        names.extend(get_required_from_computed(op))
+                elif computation["type"] == "expression":
+                    expression_string = computation["expression"]
+                    names.extend(
+                        [
+                            match.group('name')
+                            for match in SIG_RE.finditer(expression_string)
+                        ]
+                    )
+            else:
+                names.append(channel["name"])
+        else:
+            if channel["type"] == "arithmetic":
+                for op in (channel["operand1"], channel["operand2"]):
+                    if isinstance(op, str):
+                        names.append(op)
+                    elif isinstance(op, (int, float)):
+                        pass
+                    else:
+                        names.extend(get_required_from_computed(op))
+            else:
+                op = channel["channel"]
+                if isinstance(op, str):
+                    names.append(op)
+                else:
+                    names.extend(get_required_from_computed(op))
+    else:
+        for ch in channel['channels']:
+            names.extend(get_required_from_computed(ch))
+
+    return names
+
+
+def get_required_from_config(channels, mdf):
+    required, found, not_found, computed = set(), {}, set(), []
+    for channel in channels:
+        if channel.get('type', 'channel') == 'group':
+            new_required, new_found, new_not_found, new_computed = get_required_from_config(channel['channels'], mdf)
+            required |= new_required
+            found.update(new_found)
+            not_found |= new_not_found
+            computed.extend(new_computed)
+        else:
+            if channel['computed']:
+                computed.append(channel)
+            name = channel['name']
+            required.add(name)
+            if name in mdf:
+                found[name] = channel
+            elif not channel["computed"]:
+                not_found.add(name)
+
+    return required, found, not_found, computed
 
 
 def set_title(mdi):
@@ -234,19 +353,40 @@ class WithMDIArea:
         try:
             names = list(names)
             if names and isinstance(names[0], str):
-                signals_ = names
+                signals_ = [
+                    (name, *self.mdf.whereis(name)[0], self.uuid, 'channel')
+                    for name in names
+                    if name in self.mdf
+                ]
+
+                uuids = {self.uuid}
+
+                mime_data = signals_
+
             else:
-                signals_ = [name for name in names if name[1:] != (-1, -1)]
+                mime_data = names
 
-            computed = [json.loads(name[0]) for name in names if name[1:] == (-1, -1)]
+                signals_ = get_flatten_entries_from_mime(names)
+                signals_ = [name for name in signals_ if tuple(name[1:3]) != (-1, -1)]
 
-            uuids = set(entry[3] for entry in signals_)
+                computed = [json.loads(name[0]) for name in signals_ if tuple(name[1:3]) == (-1, -1)]
+
+                uuids = set(entry[3] for entry in signals_)
+
+            # print(names)
+            # print(signals_)
 
             if isinstance(widget, Tabular):
                 dfs = []
 
                 for uuid in uuids:
-                    uuids_signals = [entry[:3] for entry in signals_ if entry[3] == uuid]
+                    uuids_signals = [
+                        entry[:3]
+                        for entry in signals_
+                        if entry[3] == uuid
+                        and entry
+
+                    ]
 
                     file_info = self.file_by_uuid(uuid)
                     if not file_info:
@@ -334,8 +474,6 @@ class WithMDIArea:
 
                 signals = sigs = natsorted(signals, key=lambda x: x.name)
 
-                widget.add_new_channels(sigs)
-
                 if isinstance(widget, Plot) and computed:
                     measured_signals = {sig.name: sig for sig in sigs}
                     if measured_signals:
@@ -349,7 +487,7 @@ class WithMDIArea:
 
                     required_channels = []
                     for ch in computed:
-                        required_channels.extend(get_required_signals(ch))
+                        required_channels.extend(get_required_from_computed(ch))
 
                     required_channels = set(required_channels)
                     required_channels = [
@@ -393,8 +531,9 @@ class WithMDIArea:
                             computed_signals[signal.name] = signal
                         except:
                             pass
-                    signals = list(computed_signals.values())
-                    widget.add_new_channels(signals)
+                    signals.extend(computed_signals.values())
+
+                widget.add_new_channels(sigs, mime_data=mime_data)
 
         except MdfException:
             print(format_exc())
@@ -888,25 +1027,18 @@ class WithMDIArea:
         elif window_type == "GPS":
             return self._add_gps_window(names)
 
-        def get_entries(data):
-            entries = []
-            for (name, group_index, channel_index, mdf_uuid, type_) in data:
-                if type_ == "channel":
-                    entries.append((None, group_index, channel_index, mdf_uuid))
-                else:
-                    entries.extend(get_entries(channel_index))
-            return entries
-
         if names and isinstance(names[0], str):
             signals_ = [
-                (None, *self.mdf.whereis(name)[0]) for name in names if name in self.mdf
+                (None, *self.mdf.whereis(name)[0], self.uuid, 'channel')
+                for name in names
+                if name in self.mdf
             ]
             computed = []
         else:
-            flatten_entries = get_entries(names)
-            signals_ = [(None, *entry[1:]) for entry in flatten_entries if entry[1:3] != (-1, -1)]
+            flatten_entries = get_flatten_entries_from_mime(names)
+            signals_ = [(None, *entry[1:]) for entry in flatten_entries if tuple(entry[1:3]) != (-1, -1)]
 
-            computed = [json.loads(entry[0]) for entry in flatten_entries if entry[1:3] == (-1, -1)]
+            computed = [json.loads(entry[0]) for entry in flatten_entries if tuple(entry[1:3]) == (-1, -1)]
 
         if not signals_:
             return
@@ -1325,7 +1457,7 @@ class WithMDIArea:
 
                 required_channels = []
                 for ch in computed:
-                    required_channels.extend(get_required_signals(ch))
+                    required_channels.extend(get_required_from_computed(ch))
 
                 required_channels = set(required_channels)
                 required_channels = [
@@ -1728,59 +1860,8 @@ class WithMDIArea:
 
             else:
 
-                def get_required(channels, mdf):
-                    required, found, not_found, computed = set(), {}, set(), []
-                    for channel in channels:
-                        if channel.get('type', 'channel') == 'group':
-                            new_required, new_found, new_not_found, new_computed = get_required(channel['channels'], mdf)
-                            required |= new_required
-                            found.update(new_found)
-                            not_found |= new_not_found
-                            computed.extend(new_computed)
-                        else:
-                            if channel['computed']:
-                                computed.append(channel)
-                            name = channel['name']
-                            required.add(name)
-                            if name in mdf:
-                                found[name] = channel
-                            elif not channel["computed"]:
-                                not_found.add(name)
-
-                    return required, found, not_found, computed
-
-                def build_mime(channels, mdf):
-                    mime = []
-                    for channel in channels:
-                        if channel.get('type', 'channel') == 'group':
-                            mime.append(
-                                (
-                                    channel['name'],
-                                    None,
-                                    build_mime(channel['channels'], mdf),
-                                    None,
-                                    "group",
-                                )
-                            )
-                        else:
-                            occurrences = mdf.whereis(channel['name'])
-                            if occurrences:
-                                group_index, channel_index = occurrences[0]
-                            else:
-                                group_index, channel_index = -1, -1
-                            mime.append(
-                                (
-                                    channel['name'],
-                                    group_index,
-                                    channel_index,
-                                    uuid,
-                                    "channel",
-                                )
-                            )
-                    return mime
-
-                required, found_signals, not_found, computed_signals_descriptions = get_required(window_info["configuration"]["channels"], self.mdf)
-                mime_data = build_mime(window_info["configuration"]["channels"], self.mdf)
+                required, found_signals, not_found, computed_signals_descriptions = get_required_from_config(window_info["configuration"]["channels"], self.mdf)
+                mime_data = build_mime_from_config(window_info["configuration"]["channels"], self.mdf, self.uuid)
 
                 measured_signals_ = [
                     (None, *self.mdf.whereis(name)[0])
@@ -1868,7 +1949,7 @@ class WithMDIArea:
 
                 required_channels = []
                 for ch in computed_signals_descriptions:
-                    required_channels.extend(get_required_signals(ch))
+                    required_channels.extend(get_required_from_computed(ch))
 
                 required_channels = set(required_channels)
                 required_channels = [

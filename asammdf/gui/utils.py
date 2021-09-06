@@ -398,61 +398,6 @@ class WorkerThread(Thread):
             self.error = traceback.format_exc()
 
 
-def get_required_signals(channel):
-    names = []
-    if channel['type'] == "channel":
-        if "computed" in channel:
-            if channel["computed"]:
-                computation = channel["computation"]
-                if computation["type"] == "arithmetic":
-                    for op in (
-                        computation["operand1"],
-                        computation["operand2"],
-                    ):
-                        if isinstance(op, str):
-                            names.append(op)
-                        elif isinstance(op, (int, float)):
-                            pass
-                        else:
-                            names.extend(get_required_signals(op))
-                elif computation["type"] == "function":
-                    op = computation["channel"]
-                    if isinstance(op, str):
-                        names.append(op)
-                    else:
-                        names.extend(get_required_signals(op))
-                elif computation["type"] == "expression":
-                    expression_string = computation["expression"]
-                    names.extend(
-                        [
-                            match.group('name')
-                            for match in SIG_RE.finditer(expression_string)
-                        ]
-                    )
-            else:
-                names.append(channel["name"])
-        else:
-            if channel["type"] == "arithmetic":
-                for op in (channel["operand1"], channel["operand2"]):
-                    if isinstance(op, str):
-                        names.append(op)
-                    elif isinstance(op, (int, float)):
-                        pass
-                    else:
-                        names.extend(get_required_signals(op))
-            else:
-                op = channel["channel"]
-                if isinstance(op, str):
-                    names.append(op)
-                else:
-                    names.extend(get_required_signals(op))
-    else:
-        for ch in channel['channels']:
-            names.extend(get_required_signals(ch))
-
-    return names
-
-
 def compute_signal(description, measured_signals, all_timebase):
     type_ = description["type"]
 

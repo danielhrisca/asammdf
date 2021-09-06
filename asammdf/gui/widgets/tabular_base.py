@@ -365,7 +365,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
 
         self.tree.setSortingEnabled(self.sort.checkState() == QtCore.Qt.Checked)
 
-    def add_new_channels(self, signals):
+    def add_new_channels(self, signals, mime_data=None):
         index = pd.Series(np.arange(len(signals), dtype="u8"), index=signals.index)
         signals["Index"] = index
 

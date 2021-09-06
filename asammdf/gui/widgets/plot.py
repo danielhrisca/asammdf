@@ -1439,12 +1439,22 @@ class Plot(QtWidgets.QWidget):
 
                     key = (name, group_index, channel_index, mdf_uuid)
 
-                    if key in items_pool:
-                        item, widget = items_pool[key]
-                        root.addChild(item)
-                        tree.setItemWidget(item, 1, widget)
+                    if isinstance(name, dict):
+                        key = (name['name'],) + key[1:]
+                        if key in items_pool:
+                            item, widget = items_pool[key]
+                            root.addChild(item)
+                            tree.setItemWidget(item, 1, widget)
 
-                        del items_pool[key]
+                            del items_pool[key]
+                    else:
+
+                        if key in items_pool:
+                            item, widget = items_pool[key]
+                            root.addChild(item)
+                            tree.setItemWidget(item, 1, widget)
+
+                            del items_pool[key]
 
         for sig in channels:
             sig.uuid = os.urandom(6).hex()
