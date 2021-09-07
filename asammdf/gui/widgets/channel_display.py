@@ -167,7 +167,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
     def set_prefix(self, text=""):
         self._value_prefix = text
 
-    def update(self):
+    def update_information(self):
         width = self.name.size().width()
         if self._unit:
             self.name.setText(

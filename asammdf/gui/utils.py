@@ -111,6 +111,9 @@ def load_dsp(file):
                 if c in (0xFFFFFF, 0x0):
                     c = 0x808080
 
+                gain = float(elem.get("gain"))
+                offset = float(elem.get("offset")) / 100
+
                 channels.append(
                     {
                         "color": f"#{c:06X}",
@@ -124,6 +127,10 @@ def load_dsp(file):
                         "ranges": [],
                         "unit": "",
                         "type": "channel",
+                        "y_range": [
+                            - gain * offset,
+                            - gain * offset + 19 * gain,
+                        ]
                     }
                 )
 

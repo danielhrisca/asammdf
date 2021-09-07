@@ -827,7 +827,7 @@ class Plot(QtWidgets.QWidget):
         vbox.setSpacing(1)
         vbox.setContentsMargins(1, 1, 1, 1)
         widget = QtWidgets.QWidget()
-        self.channel_selection = ChannelsTreeWidget(self)
+        self.channel_selection = ChannelsTreeWidget(self) # self
         # self.channel_selection.setUniformItemSizes(True)
         # self.channel_selection.setAlternatingRowColors(False)
         # self.channel_selection.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)

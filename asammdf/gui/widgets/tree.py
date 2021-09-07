@@ -556,8 +556,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         count = 0
         iterator = QtWidgets.QTreeWidgetItemIterator(self)
         while iterator.value():
-            item = iterator.value()
-            if isinstance(item, ChannelsTreeItem):
+            cur_item = iterator.value()
+            if isinstance(cur_item, ChannelsTreeItem):
                 count += 1
             iterator += 1
 
@@ -720,7 +720,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     if item in selected_items and isinstance(item, ChannelsTreeItem):
                         widget = self.itemWidget(item, 1)
                         widget.set_unit(unit)
-                        widget.update()
+                        widget.update_information()
                     iterator += 1
 
         elif action.text() == "Set precision":
@@ -738,7 +738,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     if item in selected_items and isinstance(item, ChannelsTreeItem):
                         widget = self.itemWidget(item, 1)
                         widget.set_precision(precision)
-                        widget.update()
+                        widget.update_information()
                     iterator += 1
 
         elif action.text() in (
@@ -789,8 +789,19 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 if isinstance(item, ChannelsTreeItem):
                     widget = self.itemWidget(item, 1)
                     widget.details.setVisible(self.details_enabled)
-                    item.setSizeHint(widget.sizeHint())
+                    widget.update()
+                    item.setSizeHint(1, widget.sizeHint())
+                    widget.repaint()
                 iterator += 1
+
+            sizes = self.parent().parent().sizes()
+            if self.details_enabled:
+                sizes[0] += 1
+                sizes[1] -= 1
+            else:
+                sizes[0] -= 1
+                sizes[1] += 1
+            self.parent().parent().setSizes(sizes)
 
         elif action.text() == "File/Computation properties":
             selected_items = self.selectedItems()
@@ -831,7 +842,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 text = text.strip()
                 item.name = text
                 self.itemWidget(item, 1).set_name(text)
-                self.itemWidget(item, 1).update()
+                self.itemWidget(item, 1).update_information()
 
         self.update_channel_groups_count()
 
