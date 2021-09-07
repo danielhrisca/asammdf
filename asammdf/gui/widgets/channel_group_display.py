@@ -13,18 +13,21 @@ class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
         self,
         name="",
         pattern=None,
+        count=0,
         *args,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
-        self.name.setText(name)
+        self._name = name
+        self.pattern = None
         font = self.name.font()
         font.setPointSize(font.pointSize() + 2)
         font.setBold(True)
         self.name.setFont(font)
         self.set_pattern(pattern)
+        self.count = count
 
     def set_pattern(self, pattern):
         if pattern:
@@ -38,9 +41,26 @@ class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
         new = ChannelGroupDisplay(
             self.name.text(),
             self.pattern,
+            self.count,
         )
 
         return new
 
     def set_selected(self, state):
         pass
+
+    @property
+    def count(self):
+        return self._count
+
+    @count.setter
+    def count(self, value):
+        self._count = value
+
+        if self.pattern:
+            if value:
+                self.name.setText(f'{self._name}\t[{value} matches]')
+            else:
+                self.name.setText(f'{self._name}\t[no matches]')
+        else:
+            self.name.setText(f'{self._name}\t[{value} items]')

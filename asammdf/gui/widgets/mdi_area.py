@@ -83,6 +83,82 @@ def build_mime_from_config(channels, mdf=None, uuid=None, default_index=-1):
     return mime
 
 
+def extract_signals_using_pattern(mdf, pattern_info, ignore_value2text_conversions, uuid):
+    pattern = pattern_info["pattern"]
+    match_type = pattern_info["match_type"]
+    filter_value = pattern_info["filter_value"]
+    filter_type = pattern_info["filter_type"]
+    raw = pattern_info["raw"]
+
+    if match_type == "Wildcard":
+        pattern = pattern.replace("*", "_WILDCARD_")
+        pattern = re.escape(pattern)
+        pattern = pattern.replace("_WILDCARD_", ".*")
+
+    try:
+        pattern = re.compile(f"(?i){pattern}")
+        matches = {
+            name: entries[0]
+            for name, entries in mdf.channels_db.items()
+            if pattern.search(name)
+        }
+    except:
+        print(format_exc())
+        signals = []
+    else:
+
+        psignals = mdf.select(
+            list(matches),
+            ignore_value2text_conversions=ignore_value2text_conversions,
+            copy_master=False,
+            validate=True,
+            raw=True,
+        )
+
+        if filter_type == "Unspecified":
+            keep = psignals
+        else:
+
+            keep = []
+            for i, (name, entry) in enumerate(matches.items()):
+                sig = psignals[i]
+                sig.mdf_uuid = uuid
+                sig.group_index, sig.channel_index = entry
+
+                size = len(sig)
+                if not size:
+                    continue
+
+                target = np.ones(size) * filter_value
+
+                if not raw:
+                    samples = sig.physical().samples
+                else:
+                    samples = sig.samples
+
+                if filter_type == "Contains":
+                    try:
+                        if np.any(np.isclose(samples, target)):
+                            keep.append(sig)
+                    except:
+                        continue
+                elif filter_type == "Do not contain":
+                    try:
+                        if not np.allclose(samples, target):
+                            keep.append(sig)
+                    except:
+                        continue
+                else:
+                    try:
+                        if np.allclose(samples, target):
+                            keep.append(sig)
+                    except:
+                        continue
+        signals = keep
+
+    return signals
+
+
 def generate_window_title(mdi, window_name="", title=""):
     used_names = {
         window.windowTitle()
@@ -354,79 +430,13 @@ class WithMDIArea:
         self._frameless_windows = False
 
     def add_pattern_group(self, plot, group):
-        pattern_info = group.pattern
 
-        pattern = pattern_info["pattern"]
-        match_type = pattern_info["match_type"]
-        filter_value = pattern_info["filter_value"]
-        filter_type = pattern_info["filter_type"]
-        raw = pattern_info["raw"]
-
-        if match_type == "Wildcard":
-            pattern = pattern.replace("*", "_WILDCARD_")
-            pattern = re.escape(pattern)
-            pattern = pattern.replace("_WILDCARD_", ".*")
-
-        try:
-            pattern = re.compile(f"(?i){pattern}")
-            matches = {
-                name: entries[0]
-                for name, entries in self.mdf.channels_db.items()
-                if pattern.search(name)
-            }
-        except:
-            print(format_exc())
-            signals = []
-        else:
-
-            psignals = self.mdf.select(
-                list(matches),
-                ignore_value2text_conversions=self.ignore_value2text_conversions,
-                copy_master=False,
-                validate=True,
-                raw=True,
-            )
-
-            if filter_type == "Unspecified":
-                keep = psignals
-            else:
-
-                keep = []
-                for i, (name, entry) in enumerate(matches.items()):
-                    sig = psignals[i]
-                    sig.mdf_uuid = self.uuid
-                    sig.group_index, sig.channel_index = entry
-
-                    size = len(sig)
-                    if not size:
-                        continue
-
-                    target = np.ones(size) * filter_value
-
-                    if not raw:
-                        samples = sig.physical().samples
-                    else:
-                        samples = sig.samples
-
-                    if filter_type == "Contains":
-                        try:
-                            if np.any(np.isclose(samples, target)):
-                                keep.append(sig)
-                        except:
-                            continue
-                    elif filter_type == "Do not contain":
-                        try:
-                            if not np.allclose(samples, target):
-                                keep.append(sig)
-                        except:
-                            continue
-                    else:
-                        try:
-                            if np.allclose(samples, target):
-                                keep.append(sig)
-                        except:
-                            continue
-            signals = keep
+        signals = extract_signals_using_pattern(
+            self.mdf,
+            group.pattern,
+            self.ignore_value2text_conversions,
+            self.uuid,
+        )
 
         signals = [
             sig
@@ -436,14 +446,13 @@ class WithMDIArea:
                and not len(sig.samples.shape) > 1
         ]
 
-        if not signals:
-            return
-
-        plot.add_new_channels(
-            signals,
-            mime_data=None,
-            destination=group,
-        )
+        group.count = len(signals)
+        if signals:
+            plot.add_new_channels(
+                signals,
+                mime_data=None,
+                destination=group,
+            )
 
     def add_new_channels(self, names, widget, mime_data=None):
         if isinstance(widget, Plot):
@@ -1334,76 +1343,14 @@ class WithMDIArea:
 
                     file_index, file = file_info
 
-                    pattern = pattern_info["pattern"]
-                    match_type = pattern_info["match_type"]
-                    filter_value = pattern_info["filter_value"]
-                    filter_type = pattern_info["filter_type"]
-                    raw = pattern_info["raw"]
-
-                    if match_type == "Wildcard":
-                        pattern = pattern.replace("*", "_WILDCARD_")
-                        pattern = re.escape(pattern)
-                        pattern = pattern.replace("_WILDCARD_", ".*")
-
-                    try:
-                        pattern = re.compile(f"(?i){pattern}")
-                        matches = {
-                            name: entries[0]
-                            for name, entries in file.mdf.channels_db.items()
-                            if pattern.search(name)
-                        }
-                    except:
-                        print(format_exc())
-                    else:
-
-                        psignals = file.mdf.select(
-                            list(matches),
-                            ignore_value2text_conversions=self.ignore_value2text_conversions,
-                            copy_master=False,
-                            validate=True,
-                            raw=True,
+                    signals.extend(
+                        extract_signals_using_pattern(
+                            file.mdf,
+                            pattern_info,
+                            file.ignore_value2text_conversions,
+                            file.uuid,
                         )
-
-                        if filter_type == "Unspecified":
-                            keep = psignals
-                        else:
-
-                            keep = []
-                            for i, (name, entry) in enumerate(matches.items()):
-                                sig = psignals[i]
-                                sig.mdf_uuid = self.uuid
-                                sig.group_index, sig.channel_index = entry
-
-                                size = len(sig)
-                                if not size:
-                                    continue
-
-                                target = np.ones(size) * filter_value
-
-                                if not raw:
-                                    samples = sig.physical().samples
-                                else:
-                                    samples = sig.samples
-
-                                if filter_type == "Contains":
-                                    try:
-                                        if np.any(np.isclose(samples, target)):
-                                            keep.append(sig)
-                                    except:
-                                        continue
-                                elif filter_type == "Do not contain":
-                                    try:
-                                        if not np.allclose(samples, target):
-                                            keep.append(sig)
-                                    except:
-                                        continue
-                                else:
-                                    try:
-                                        if np.allclose(samples, target):
-                                            keep.append(sig)
-                                    except:
-                                        continue
-                        signals.extend(keep)
+                    )
 
             for signal in signals:
                 if len(signal.samples.shape) > 1:
@@ -1772,77 +1719,12 @@ class WithMDIArea:
                 found_signals = []
                 fmt = "phys"
 
-                pattern = pattern_info["pattern"]
-                match_type = pattern_info["match_type"]
-                filter_value = pattern_info["filter_value"]
-                filter_type = pattern_info["filter_type"]
-                raw = pattern_info["raw"]
-
-                if match_type == "Wildcard":
-                    pattern = pattern.replace("*", "_WILDCARD_")
-                    pattern = re.escape(pattern)
-                    pattern = pattern.replace("_WILDCARD_", ".*")
-
-                try:
-                    pattern = re.compile(f"(?i){pattern}")
-                    matches = {
-                        name: entries[0]
-                        for name, entries in self.mdf.channels_db.items()
-                        if pattern.search(name)
-                    }
-                except:
-                    print(format_exc())
-                    signals = []
-                else:
-
-                    psignals = self.mdf.select(
-                        list(matches),
-                        ignore_value2text_conversions=self.ignore_value2text_conversions,
-                        copy_master=False,
-                        validate=True,
-                        raw=True,
-                    )
-
-                    if filter_type == "Unspecified":
-                        keep = psignals
-                    else:
-
-                        keep = []
-                        for i, (name, entry) in enumerate(matches.items()):
-                            sig = psignals[i]
-                            sig.mdf_uuid = uuid
-                            sig.group_index, sig.channel_index = entry
-
-                            size = len(sig)
-                            if not size:
-                                continue
-
-                            target = np.ones(size) * filter_value
-
-                            if not raw:
-                                samples = sig.physical().samples
-                            else:
-                                samples = sig.samples
-
-                            if filter_type == "Contains":
-                                try:
-                                    if np.any(np.isclose(samples, target)):
-                                        keep.append(sig)
-                                except:
-                                    continue
-                            elif filter_type == "Do not contain":
-                                try:
-                                    if not np.allclose(samples, target):
-                                        keep.append(sig)
-                                except:
-                                    continue
-                            else:
-                                try:
-                                    if np.allclose(samples, target):
-                                        keep.append(sig)
-                                except:
-                                    continue
-                    signals = keep
+                signals = extract_signals_using_pattern(
+                    self.mdf,
+                    pattern_info,
+                    self.ignore_value2text_conversions,
+                    self.uuid,
+                )
 
             else:
 
@@ -1999,71 +1881,12 @@ class WithMDIArea:
                 required = set()
                 found_signals = []
 
-                pattern = pattern_info["pattern"]
-                match_type = pattern_info["match_type"]
-                filter_value = pattern_info["filter_value"]
-                filter_type = pattern_info["filter_type"]
-                raw = pattern_info["raw"]
-
-                if match_type == "Wildcard":
-                    pattern = pattern.replace("*", "_WILDCARD_")
-                    pattern = re.escape(pattern)
-                    pattern = pattern.replace("_WILDCARD_", ".*")
-
-                try:
-                    pattern = re.compile(f"(?i){pattern}")
-                    matches = [
-                        name for name in self.mdf.channels_db if pattern.search(name)
-                    ]
-                except:
-                    print(format_exc())
-                    signals = []
-                else:
-
-                    psignals = self.mdf.select(
-                        matches,
-                        ignore_value2text_conversions=self.ignore_value2text_conversions,
-                        copy_master=False,
-                        validate=True,
-                        raw=True,
-                    )
-
-                    if filter_type == "Unspecified":
-                        keep = psignals
-                    else:
-
-                        keep = []
-                        for sig in psignals:
-                            size = len(sig)
-                            if not size:
-                                continue
-
-                            target = np.ones(size) * filter_value
-
-                            if not raw:
-                                samples = sig.physical().samples
-                            else:
-                                samples = sig.samples
-
-                            if filter_type == "Contains":
-                                try:
-                                    if np.any(np.isclose(samples, target)):
-                                        keep.append(sig)
-                                except:
-                                    continue
-                            elif filter_type == "Do not contain":
-                                try:
-                                    if not np.allclose(samples, target):
-                                        keep.append(sig)
-                                except:
-                                    continue
-                            else:
-                                try:
-                                    if np.allclose(samples, target):
-                                        keep.append(sig)
-                                except:
-                                    continue
-                    signals = keep
+                signals = extract_signals_using_pattern(
+                    self.mdf,
+                    pattern_info,
+                    self.ignore_value2text_conversions,
+                    self.uuid,
+                )
 
                 mime_data = None
 
@@ -2436,74 +2259,12 @@ class WithMDIArea:
                 required = set()
                 found_signals = []
 
-                pattern = pattern_info["pattern"]
-                match_type = pattern_info["match_type"]
-                filter_value = pattern_info["filter_value"]
-                filter_type = pattern_info["filter_type"]
-                raw = pattern_info["raw"]
-
-                if match_type == "Wildcard":
-                    pattern = pattern.replace("*", "_WILDCARD_")
-                    pattern = re.escape(pattern)
-                    pattern = pattern.replace("_WILDCARD_", ".*")
-
-                try:
-                    pattern = re.compile(f"(?i){pattern}")
-                    matches = {
-                        name: entries[0]
-                        for name, entries in self.mdf.channels_db.items()
-                        if pattern.search(name)
-                    }
-                except:
-                    print(format_exc())
-                    signals_ = []
-                else:
-
-                    psignals = self.mdf.select(
-                        list(matches),
-                        ignore_value2text_conversions=self.ignore_value2text_conversions,
-                        copy_master=False,
-                        validate=True,
-                        raw=True,
-                    )
-
-                    if filter_type == "Unspecified":
-                        keep = list(matches)
-                    else:
-
-                        keep = []
-                        for i, (name, entry) in enumerate(matches.items()):
-                            sig = psignals[i]
-                            size = len(sig)
-                            if not size:
-                                continue
-
-                            target = np.ones(size) * filter_value
-
-                            if not raw:
-                                samples = sig.physical().samples
-                            else:
-                                samples = sig.samples
-
-                            if filter_type == "Contains":
-                                try:
-                                    if np.any(np.isclose(samples, target)):
-                                        keep.append(name)
-                                except:
-                                    continue
-                            elif filter_type == "Do not contain":
-                                try:
-                                    if not np.allclose(samples, target):
-                                        keep.append(name)
-                                except:
-                                    continue
-                            else:
-                                try:
-                                    if np.allclose(samples, target):
-                                        keep.append(name)
-                                except:
-                                    continue
-                    signals_ = keep
+                signals_ = extract_signals_using_pattern(
+                    self.mdf,
+                    pattern_info,
+                    self.ignore_value2text_conversions,
+                    self.uuid,
+                )
 
             else:
                 required = set(window_info["configuration"]["channels"])

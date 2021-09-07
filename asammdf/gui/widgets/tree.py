@@ -65,8 +65,7 @@ def validate_drag_items(root, items, not_allowed):
                 if parent in not_allowed:
                     break
                 elif isinstance(parent, ChannelsGroupTreeItem):
-                    widget = parent.treeWidget().itemWidget(parent, 1)
-                    if widget.locked:
+                    if parent.pattern:
                         not_allowed.append(parent)
                         break
 
@@ -432,6 +431,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         else:
             super().keyPressEvent(event)
 
+        self.update_channel_groups_count()
+
     def startDrag(self, supportedActions):
 
         selected_items = self.selectedItems()
@@ -465,6 +466,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
             drop_item = self.itemAt(e.pos())
 
+            # cannot move inside pattern channel group
             current_item = drop_item
             while current_item:
                 if isinstance(current_item, ChannelsGroupTreeItem):
@@ -536,7 +538,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     item_widget.disconnect_slots()
                 (item.parent() or root).removeChild(item)
 
+            self.update_channel_groups_count()
             self.items_rearranged.emit(list(uuids))
+
         else:
             data = e.mimeData()
             if data.hasFormat("application/octet-stream-asammdf"):
@@ -828,6 +832,17 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 item.name = text
                 self.itemWidget(item, 1).set_name(text)
                 self.itemWidget(item, 1).update()
+
+        self.update_channel_groups_count()
+
+    def update_channel_groups_count(self):
+        iterator = QtWidgets.QTreeWidgetItemIterator(self)
+        while iterator.value():
+            item = iterator.value()
+            if isinstance(item, ChannelsGroupTreeItem):
+                widget = self.itemWidget(item, 1)
+                widget.count = item.childCount()
+            iterator += 1
 
 
 class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
