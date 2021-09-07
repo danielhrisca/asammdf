@@ -184,6 +184,7 @@ def generate_window_title(mdi, window_name="", title=""):
 
 def get_flatten_entries_from_mime(data, default_index=None):
     entries = []
+
     for (name, group_index, channel_index, mdf_uuid, type_) in data:
         if type_ == "channel":
             if default_index is not None:
@@ -191,7 +192,7 @@ def get_flatten_entries_from_mime(data, default_index=None):
             else:
                 entries.append((name, group_index, channel_index, mdf_uuid, 'channel'))
         else:
-            entries.extend(get_flatten_entries_from_mime(channel_index))
+            entries.extend(get_flatten_entries_from_mime(channel_index, default_index))
     return entries
 
 
@@ -266,13 +267,14 @@ def get_required_from_config(channels, mdf):
             not_found |= new_not_found
             computed.extend(new_computed)
         else:
-            if channel['computed']:
+            if channel.get('computed', False):
                 computed.append(channel)
             name = channel['name']
             required.add(name)
+
             if name in mdf:
                 found[name] = channel
-            elif not channel["computed"]:
+            elif not channel.get("computed", False):
                 not_found.add(name)
 
     return required, found, not_found, computed

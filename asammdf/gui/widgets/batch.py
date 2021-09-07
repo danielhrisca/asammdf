@@ -936,7 +936,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     iterator += 1
                     ch_cntr += 1
             elif view.currentText() == "Selected channels only":
-                iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
+                iterator = QtWidgets.QTreeWidgetItemIterator(widget)
 
                 signals = set()
                 while iterator.value():

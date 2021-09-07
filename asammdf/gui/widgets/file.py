@@ -854,29 +854,35 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         if (dg_cntr, ch_cntr) in result:
                             item.setCheckState(0, QtCore.Qt.Checked)
-                            names.add((dg_cntr, ch_cntr))
+                            names.add((item.name, dg_cntr, ch_cntr))
 
                         iterator += 1
                         ch_cntr += 1
                 elif view.currentText() == "Selected channels only":
-                    iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
+                    iterator = QtWidgets.QTreeWidgetItemIterator(widget)
 
                     signals = set()
                     while iterator.value():
                         item = iterator.value()
 
                         if item.checkState(0) == QtCore.Qt.Checked:
-                            signals.add(item.text(0))
+                            signals.add((item.text(0), *item.entry))
 
                         iterator += 1
 
-                    names = signals | result
+                    result = {
+                        (self.mdf.groups[dg_cntr].channels[ch_cntr].name, dg_cntr, ch_cntr)
+                        for (dg_cntr, ch_cntr) in result
+                    }
+
+                    signals = signals | result
+                    names = result
 
                     widget.clear()
 
                     items = []
-                    for entry in names:
-                        gp_index, ch_index = entry
+                    for name, gp_index, ch_index in signals:
+                        entry = gp_index, ch_index
                         ch = self.mdf.groups[gp_index].channels[ch_index]
                         channel = TreeItem(entry, ch.name, mdf_uuid=self.uuid)
                         channel.setText(0, ch.name)
@@ -896,7 +902,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         if item.entry in result:
                             item.setCheckState(0, QtCore.Qt.Checked)
-                            names.add(item.entry)
+                            names.add((item.name, *item.entry))
 
                         iterator += 1
 
@@ -919,9 +925,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         window_type = dialog.selected_type()
 
                         signals = [
-                            (None, *self.mdf.whereis(name)[0], self.uuid)
+                            (name, *self.mdf.whereis(name)[0], self.uuid, 'channel')
                             if isinstance(name, str)
-                            else (None, *name, self.uuid)
+                            else (*name, self.uuid, 'channel')
                             for name in names
                         ]
 

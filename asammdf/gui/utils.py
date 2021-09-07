@@ -99,7 +99,6 @@ def extract_mime_names(data):
 def load_dsp(file):
     def parse_channels(display):
         channels = []
-        patterns = {}
         for elem in display.iterchildren():
             if elem.tag == 'CHANNEL':
                 color_ = int(elem.get("color"))
@@ -134,44 +133,55 @@ def load_dsp(file):
                         "name": elem.get("data"),
                         "enabled": elem.get("on") == "1",
                         "type": "group",
-                        "channels": parse_channels(elem)[0],
+                        "channels": parse_channels(elem),
+                        "pattern": None,
                     }
                 )
 
-        for item in display.findall("CHANNEL_PATTERN"):
+            elif elem.tag == "CHANNEL_PATTERN":
 
-            try:
-                info = {
-                    "pattern": item.get("name_pattern"),
-                    "match_type": "Wildcard",
-                    "filter_type": item.get("filter_type"),
-                    "filter_value": float(item.get("filter_value")),
-                    "raw": bool(int(item.get("filter_use_raw"))),
-                }
+                try:
+                    info = {
+                        "pattern": elem.get("name_pattern"),
+                        "name": elem.get("name_pattern"),
+                        "match_type": "Wildcard",
+                        "filter_type": elem.get("filter_type"),
+                        "filter_value": float(elem.get("filter_value")),
+                        "raw": bool(int(elem.get("filter_use_raw"))),
+                    }
 
-                multi_color = item.find("MULTI_COLOR")
+                    multi_color = elem.find("MULTI_COLOR")
 
-                ranges = {}
+                    ranges = {}
 
-                if multi_color is not None:
-                    for color in multi_color.findall("color"):
-                        min_ = float(color.find("min").get("data"))
-                        max_ = float(color.find("max").get("data"))
-                        color_ = int(color.find("color").get("data"))
-                        c = 0
-                        for i in range(3):
-                            c = c << 8
-                            c += color_ & 0xFF
-                            color_ = color_ >> 8
-                        ranges[(min_, max_)] = f"#{c:06X}"
+                    if multi_color is not None:
+                        for color in multi_color.findall("color"):
+                            min_ = float(color.find("min").get("data"))
+                            max_ = float(color.find("max").get("data"))
+                            color_ = int(color.find("color").get("data"))
+                            c = 0
+                            for i in range(3):
+                                c = c << 8
+                                c += color_ & 0xFF
+                                color_ = color_ >> 8
+                            ranges[(min_, max_)] = f"#{c:06X}"
 
-                info["ranges"] = ranges
+                    info["ranges"] = ranges
 
-                patterns[info["pattern"]] = info
-            except:
-                continue
+                    channels.append(
+                        {
+                            "channels": [],
+                            "enabled": True,
+                            "name": info["pattern"],
+                            "pattern": info,
+                            "type": "group"
+                        }
+                    )
 
-        return channels, patterns
+                except:
+                    continue
+
+        return channels
 
     def parse_virtual_channels(display):
         channels = {}
@@ -210,7 +220,7 @@ def load_dsp(file):
     dsp = Path(file).read_bytes().replace(b"\0", b"")
     dsp = lxml.etree.fromstring(dsp)
 
-    channels, patterns = parse_channels(dsp.find("DISPLAY_INFO"))
+    channels = parse_channels(dsp.find("DISPLAY_INFO"))
 
     info = {}
     info["selected_channels"] = []
@@ -218,34 +228,12 @@ def load_dsp(file):
     info["windows"] = windows = []
 
     if channels:
-        # numeric = {
-        #     "type": "Numeric",
-        #     "title": "Numeric",
-        #     "configuration": {
-        #         "channels": all_channels,
-        #         "format": "phys",
-        #     },
-        # }
-        #
-        # windows.append(numeric)
 
         plot = {
             "type": "Plot",
             "title": "Display channels",
             "configuration": {
                 "channels": channels,
-            },
-        }
-
-        windows.append(plot)
-
-    for pattern_info in patterns.values():
-        plot = {
-            "type": "Plot",
-            "title": pattern_info["pattern"],
-            "configuration": {
-                "channels": [],
-                "pattern": pattern_info,
             },
         }
 
