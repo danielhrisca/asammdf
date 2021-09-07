@@ -34,6 +34,7 @@ from .lin_bus_trace import LINBusTrace
 from .numeric import Numeric
 from .plot import Plot
 from .tabular import Tabular
+from .tree import ChannelsGroupTreeItem
 
 COMPONENT = re.compile(r"\[(?P<index>\d+)\]$")
 SIG_RE = re.compile(r'\{\{(?!\}\})(?P<name>.*?)\}\}')
@@ -44,15 +45,26 @@ def build_mime_from_config(channels, mdf=None, uuid=None, default_index=-1):
     mime = []
     for channel in channels:
         if channel.get('type', 'channel') == 'group':
-            mime.append(
-                (
-                    channel['name'],
-                    None,
-                    build_mime_from_config(channel['channels'], mdf, uuid, default_index),
-                    None,
-                    "group",
+            if channel["pattern"] is None:
+                mime.append(
+                    (
+                        channel['name'],
+                        None,
+                        build_mime_from_config(channel['channels'], mdf, uuid, default_index),
+                        None,
+                        "group",
+                    )
                 )
-            )
+            else:
+                mime.append(
+                    (
+                        channel['name'],
+                        channel['pattern'],
+                        [],
+                        None,
+                        "group",
+                    )
+                )
         else:
             occurrences = mdf.whereis(channel['name']) if mdf else None
             if occurrences:
@@ -105,6 +117,17 @@ def get_flatten_entries_from_mime(data, default_index=None):
         else:
             entries.extend(get_flatten_entries_from_mime(channel_index))
     return entries
+
+
+def get_pattern_groups(data):
+    groups = []
+    for (name, pattern, channels, mdf_uuid, type_) in data:
+        if type_ == "group":
+            if pattern is not None:
+                groups.append(name, pattern, channels, mdf_uuid, type_)
+            else:
+                groups.extend(get_pattern_groups(channels))
+    return groups
 
 
 def get_required_from_computed(channel):
@@ -329,6 +352,98 @@ class WithMDIArea:
         self._splitter_source = None
         self._window_counter = 0
         self._frameless_windows = False
+
+    def add_pattern_group(self, plot, group):
+        pattern_info = group.pattern
+
+        pattern = pattern_info["pattern"]
+        match_type = pattern_info["match_type"]
+        filter_value = pattern_info["filter_value"]
+        filter_type = pattern_info["filter_type"]
+        raw = pattern_info["raw"]
+
+        if match_type == "Wildcard":
+            pattern = pattern.replace("*", "_WILDCARD_")
+            pattern = re.escape(pattern)
+            pattern = pattern.replace("_WILDCARD_", ".*")
+
+        try:
+            pattern = re.compile(f"(?i){pattern}")
+            matches = {
+                name: entries[0]
+                for name, entries in self.mdf.channels_db.items()
+                if pattern.search(name)
+            }
+        except:
+            print(format_exc())
+            signals = []
+        else:
+
+            psignals = self.mdf.select(
+                list(matches),
+                ignore_value2text_conversions=self.ignore_value2text_conversions,
+                copy_master=False,
+                validate=True,
+                raw=True,
+            )
+
+            if filter_type == "Unspecified":
+                keep = psignals
+            else:
+
+                keep = []
+                for i, (name, entry) in enumerate(matches.items()):
+                    sig = psignals[i]
+                    sig.mdf_uuid = self.uuid
+                    sig.group_index, sig.channel_index = entry
+
+                    size = len(sig)
+                    if not size:
+                        continue
+
+                    target = np.ones(size) * filter_value
+
+                    if not raw:
+                        samples = sig.physical().samples
+                    else:
+                        samples = sig.samples
+
+                    if filter_type == "Contains":
+                        try:
+                            if np.any(np.isclose(samples, target)):
+                                keep.append(sig)
+                        except:
+                            continue
+                    elif filter_type == "Do not contain":
+                        try:
+                            if not np.allclose(samples, target):
+                                keep.append(sig)
+                        except:
+                            continue
+                    else:
+                        try:
+                            if np.allclose(samples, target):
+                                keep.append(sig)
+                        except:
+                            continue
+            signals = keep
+
+        signals = [
+            sig
+            for sig in signals
+            if sig.samples.dtype.kind not in "SU"
+               and not sig.samples.dtype.names
+               and not len(sig.samples.shape) > 1
+        ]
+
+        if not signals:
+            return
+
+        plot.add_new_channels(
+            signals,
+            mime_data=None,
+            destination=group,
+        )
 
     def add_new_channels(self, names, widget, mime_data=None):
         if isinstance(widget, Plot):
@@ -1210,6 +1325,86 @@ class WithMDIArea:
 
                                 signals.append(new_sig)
 
+            elif window_type == "Numeric":
+                for (name, pattern_info, channels, mdf_uuid, type_) in get_pattern_groups(names):
+
+                    file_info = self.file_by_uuid(mdf_uuid)
+                    if not file_info:
+                        continue
+
+                    file_index, file = file_info
+
+                    pattern = pattern_info["pattern"]
+                    match_type = pattern_info["match_type"]
+                    filter_value = pattern_info["filter_value"]
+                    filter_type = pattern_info["filter_type"]
+                    raw = pattern_info["raw"]
+
+                    if match_type == "Wildcard":
+                        pattern = pattern.replace("*", "_WILDCARD_")
+                        pattern = re.escape(pattern)
+                        pattern = pattern.replace("_WILDCARD_", ".*")
+
+                    try:
+                        pattern = re.compile(f"(?i){pattern}")
+                        matches = {
+                            name: entries[0]
+                            for name, entries in file.mdf.channels_db.items()
+                            if pattern.search(name)
+                        }
+                    except:
+                        print(format_exc())
+                    else:
+
+                        psignals = file.mdf.select(
+                            list(matches),
+                            ignore_value2text_conversions=self.ignore_value2text_conversions,
+                            copy_master=False,
+                            validate=True,
+                            raw=True,
+                        )
+
+                        if filter_type == "Unspecified":
+                            keep = psignals
+                        else:
+
+                            keep = []
+                            for i, (name, entry) in enumerate(matches.items()):
+                                sig = psignals[i]
+                                sig.mdf_uuid = self.uuid
+                                sig.group_index, sig.channel_index = entry
+
+                                size = len(sig)
+                                if not size:
+                                    continue
+
+                                target = np.ones(size) * filter_value
+
+                                if not raw:
+                                    samples = sig.physical().samples
+                                else:
+                                    samples = sig.samples
+
+                                if filter_type == "Contains":
+                                    try:
+                                        if np.any(np.isclose(samples, target)):
+                                            keep.append(sig)
+                                    except:
+                                        continue
+                                elif filter_type == "Do not contain":
+                                    try:
+                                        if not np.allclose(samples, target):
+                                            keep.append(sig)
+                                    except:
+                                        continue
+                                else:
+                                    try:
+                                        if np.allclose(samples, target):
+                                            keep.append(sig)
+                                    except:
+                                        continue
+                        signals.extend(keep)
+
             for signal in signals:
                 if len(signal.samples.shape) > 1:
                     if signal.name.endswith(".DataBytes"):
@@ -1389,6 +1584,8 @@ class WithMDIArea:
                 mdf=mdf,
                 parent=self
             )
+            plot.pattern_group_added.connect(self.add_pattern_group)
+            plot.pattern = {}
 
             sub = MdiSubWindow(parent=self)
             sub.setWidget(plot)
@@ -1505,6 +1702,15 @@ class WithMDIArea:
 
             plot.show()
             self.set_subplots_link(self.subplots_link)
+
+            iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
+            while iterator.value():
+                item = iterator.value()
+                iterator += 1
+
+                if isinstance(item, ChannelsGroupTreeItem):
+                    if item.pattern:
+                        plot.pattern_group_added.emit(plot, item)
 
         elif window_type == "Tabular":
             numeric = Tabular(signals, start=start, parent=self)
@@ -2084,6 +2290,7 @@ class WithMDIArea:
                 mdf=mdf,
                 parent=self,
             )
+            plot.pattern_group_added.connect(self.add_pattern_group)
             plot.pattern = pattern_info
 
             plot.show()
@@ -2212,6 +2419,15 @@ class WithMDIArea:
 
             plot.splitter.setContentsMargins(1, 1, 1, 1)
             plot.setContentsMargins(1, 1, 1, 1)
+
+            iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
+            while iterator.value():
+                item = iterator.value()
+                iterator += 1
+
+                if isinstance(item, ChannelsGroupTreeItem):
+                    if item.pattern:
+                        plot.pattern_group_added.emit(plot, item)
 
         elif window_info["type"] == "Tabular":
             # patterns

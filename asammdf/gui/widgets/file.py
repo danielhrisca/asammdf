@@ -212,6 +212,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 if self.mdf is TERMINATED:
                     return
 
+            self.mdf.configure(raise_on_multiple_occurrences=False)
+
             channels_db_items = sorted(self.mdf.channels_db, key=lambda x: x.lower())
             self.channels_db_items = channels_db_items
 

@@ -792,6 +792,7 @@ class Plot(QtWidgets.QWidget):
     region_removed_signal = QtCore.pyqtSignal(object)
     show_properties = QtCore.pyqtSignal(list)
     splitter_moved = QtCore.pyqtSignal(object, int)
+    pattern_group_added = QtCore.pyqtSignal(object, object)
 
     def __init__(
         self,
@@ -898,6 +899,8 @@ class Plot(QtWidgets.QWidget):
 
         self.channel_selection.itemChanged.connect(self.channel_selection_item_changed)
         self.channel_selection.items_rearranged.connect(self.channel_selection_rearranged)
+        self.channel_selection.pattern_group_added.connect(self.pattern_group_added_req)
+        self.channel_selection.itemDoubleClicked.connect(self.channel_selection_item_double_clicked)
 
         self.keyboard_events = (
             set(
@@ -943,6 +946,10 @@ class Plot(QtWidgets.QWidget):
             widget = self.channel_selection.itemWidget(item, 1)
             if isinstance(widget, ChannelDisplay):
                 widget.enable_changed.emit(widget.uuid, state)
+
+    def channel_selection_item_double_clicked(self, item, column):
+        if isinstance(item, ChannelsGroupTreeItem):
+            item.show_info()
 
     def mousePressEvent(self, event):
         self.clicked.emit()
@@ -1422,14 +1429,15 @@ class Plot(QtWidgets.QWidget):
 
         self.plot.set_current_uuid(self.info_uuid, True)
 
-    def add_new_channels(self, channels, mime_data=None):
+    def add_new_channels(self, channels, mime_data=None, destination=None):
 
         def add_new_items(tree, root, items, items_pool):
             for (name, group_index, channel_index, mdf_uuid, type_) in items:
 
                 if type_ == "group":
-                    item = ChannelsGroupTreeItem(name)
-                    widget = ChannelGroupDisplay(name)
+                    pattern = group_index
+                    item = ChannelsGroupTreeItem(name, pattern)
+                    widget = ChannelGroupDisplay(name, pattern)
                     root.addChild(item)
                     tree.setItemWidget(item, 1, widget)
 
@@ -1574,9 +1582,12 @@ class Plot(QtWidgets.QWidget):
 
             if mime_data is None:
 
-                self.channel_selection.addTopLevelItem(item)
-                self.channel_selection.setItemWidget(item, 1, it)
+                if destination is None:
+                    self.channel_selection.addTopLevelItem(item)
+                else:
+                    destination.addChild(item)
 
+                self.channel_selection.setItemWidget(item, 1, it)
             else:
                 new_items[(item.name, *item.entry, item.mdf_uuid)] = (item, it)
 
@@ -1593,7 +1604,12 @@ class Plot(QtWidgets.QWidget):
             self.info_uuid = sig.uuid
 
         if mime_data:
-            add_new_items(self.channel_selection, self.channel_selection.invisibleRootItem(), mime_data, new_items)
+            add_new_items(
+                self.channel_selection,
+                destination or self.channel_selection.invisibleRootItem(),
+                mime_data,
+                new_items
+            )
 
             # still have simple signals to add
             if new_items:
@@ -1657,8 +1673,9 @@ class Plot(QtWidgets.QWidget):
                     channel = {
                         'type': 'group',
                         'name': widget.name.text(),
-                        'channels': item_to_config(tree, item),
+                        'channels': item_to_config(tree, item) if item.pattern is None else [],
                         "enabled": item.checkState(0) == QtCore.Qt.Checked,
+                        'pattern': item.pattern,
                     }
 
                 channels.append(channel)
@@ -1725,6 +1742,9 @@ class Plot(QtWidgets.QWidget):
 
     def set_splitter(self, pos, index):
         self.splitter_moved.emit(self, pos)
+
+    def pattern_group_added_req(self, group):
+        self.pattern_group_added.emit(self, group)
 
 
 class _Plot(pg.PlotWidget):

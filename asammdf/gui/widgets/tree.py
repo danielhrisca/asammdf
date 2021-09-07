@@ -9,6 +9,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from ..utils import extract_mime_names
 from .channel_display import ChannelDisplay
 from .channel_group_display import ChannelGroupDisplay
+from ..dialogs.advanced_search import AdvancedSearch
 from collections import defaultdict
 
 
@@ -97,15 +98,26 @@ def get_data(items, uuids_only=False):
             if uuids_only:
                 data.extend(get_data(children, uuids_only))
             else:
-                data.append(
-                    (
-                        item.name,
-                        None,
-                        get_data(children, uuids_only),
-                        None,
-                        "group",
+                if item.pattern:
+                    data.append(
+                        (
+                            item.name,
+                            item.pattern,
+                            [],
+                            None,
+                            "group",
+                        )
                     )
-                )
+                else:
+                    data.append(
+                        (
+                            item.name,
+                            None,
+                            get_data(children, uuids_only),
+                            None,
+                            "group",
+                        )
+                    )
 
         else:
             if uuids_only:
@@ -265,6 +277,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     add_channels_request = QtCore.pyqtSignal(list)
     show_properties = QtCore.pyqtSignal(object)
     insert_computation = QtCore.pyqtSignal(str)
+    pattern_group_added = QtCore.pyqtSignal(object)
 
     def __init__(self, *args, **kwargs):
 
@@ -329,6 +342,52 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             if deleted:
                 self.itemsDeleted.emit(list(deleted))
 
+        elif key == QtCore.Qt.Key_Insert and modifiers == QtCore.Qt.ControlModifier:
+
+            dlg = AdvancedSearch(
+                {},
+                show_add_window=False,
+                show_apply=True,
+                show_search=False,
+                window_title="Add pattern based group",
+                parent=self,
+            )
+            dlg.setModal(True)
+            dlg.exec_()
+            pattern = dlg.result
+
+            if pattern:
+                group = ChannelsGroupTreeItem(pattern["name"], pattern)
+                widget = ChannelGroupDisplay(pattern["name"], pattern)
+
+                item = self.currentItem()
+
+                if item is None:
+                    self.addTopLevelItem(group)
+                else:
+                    parent = item.parent()
+                    if parent:
+                        current_parent = parent
+                        can_add_child = True
+                        while current_parent:
+                            if isinstance(current_parent, ChannelsGroupTreeItem):
+                                if current_parent.pattern:
+                                    can_add_child = False
+                                    break
+                            current_parent = current_parent.parent()
+
+                        if can_add_child:
+                            index = parent.indexOfChild(item)
+                            parent.insertChild(index, group)
+                        else:
+                            self.addTopLevelItem(group)
+                    else:
+                        index = self.indexOfTopLevelItem(item)
+                        self.insertTopLevelItem(index, group)
+
+                self.setItemWidget(group, 1, widget)
+                self.pattern_group_added.emit(group)
+
         elif key == QtCore.Qt.Key_Insert and modifiers == QtCore.Qt.ShiftModifier:
             text, ok = QtWidgets.QInputDialog.getText(self, 'Channel group name', 'New channel group name:')
             if ok:
@@ -380,9 +439,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         mimeData = QtCore.QMimeData()
 
         data = get_data(selected_items, uuids_only=False)
-
-        from pprint import pprint
-
         data = json.dumps(data).encode('utf-8')
 
         mimeData.setData(
@@ -408,6 +464,14 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         if e.source() is self:
 
             drop_item = self.itemAt(e.pos())
+
+            current_item = drop_item
+            while current_item:
+                if isinstance(current_item, ChannelsGroupTreeItem):
+                    if current_item.pattern:
+                        e.ignore()
+                        return
+                current_item = current_item.parent()
 
             selected_items = validate_drag_items(
                 self.invisibleRootItem(),
@@ -488,21 +552,23 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         count = 0
         iterator = QtWidgets.QTreeWidgetItemIterator(self)
         while iterator.value():
-            count += 1
+            item = iterator.value()
+            if isinstance(item, ChannelsTreeItem):
+                count += 1
             iterator += 1
 
         menu = QtWidgets.QMenu()
         menu.addAction(self.tr(f"{count} items in the list"))
         menu.addSeparator()
 
-        menu = QtWidgets.QMenu()
-        menu.addAction(self.tr(f"Add channel group"))
+        menu.addAction(self.tr(f"Add channel group [Shift+Insert]"))
+        menu.addAction(self.tr(f"Add pattern based channel group [Ctrl+Insert]"))
         menu.addSeparator()
 
         if isinstance(item, ChannelsTreeItem):
             menu.addAction(self.tr("Copy name (Ctrl+C)"))
-            menu.addAction(self.tr("Copy display properties (Ctrl+Shift+C)"))
-            menu.addAction(self.tr("Paste display properties (Ctrl+Shift+P)"))
+            menu.addAction(self.tr("Copy display properties [Ctrl+Shift+C]"))
+            menu.addAction(self.tr("Paste display properties [Ctrl+Shift+P]"))
             menu.addAction(self.tr("Rename channel"))
             menu.addSeparator()
         elif isinstance(item, ChannelsGroupTreeItem):
@@ -534,7 +600,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             menu.addAction(self.tr("Insert computation using this channel"))
             menu.addSeparator()
         if item:
-            menu.addAction(self.tr("Delete (Del)"))
+            menu.addAction(self.tr("Delete [Del]"))
             menu.addSeparator()
         menu.addAction(self.tr("Toggle details"))
         if isinstance(item, ChannelsTreeItem):
@@ -545,14 +611,14 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         if action is None:
             return
 
-        if action.text() == "Copy name (Ctrl+C)":
+        if action.text() == "Copy name [Ctrl+C]":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.KeyPress, QtCore.Qt.Key_C, QtCore.Qt.ControlModifier
             )
             if isinstance(item, ChannelsTreeItem):
                 self.itemWidget(item, 1).keyPressEvent(event)
 
-        elif action.text() == "Copy display properties (Ctrl+Shift+C)":
+        elif action.text() == "Copy display properties [Ctrl+Shift+C]":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.KeyPress,
                 QtCore.Qt.Key_C,
@@ -561,7 +627,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             if isinstance(item, ChannelsTreeItem):
                 self.itemWidget(item, 1).keyPressEvent(event)
 
-        elif action.text() == "Paste display properties (Ctrl+Shift+P)":
+        elif action.text() == "Paste display properties [Ctrl+Shift+P]":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.KeyPress,
                 QtCore.Qt.Key_P,
@@ -704,7 +770,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
                     self.set_time_offset.emit([absolute, offset] + uuids)
 
-        elif action.text() == "Delete (Del)":
+        elif action.text() == "Delete [Del]":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.KeyPress, QtCore.Qt.Key_Delete, QtCore.Qt.NoModifier
             )
@@ -736,9 +802,15 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 if isinstance(item, ChannelsTreeItem):
                     self.insert_computation.emit(self.itemWidget(item, 1)._name)
 
-        elif action.text() == "Add channel group":
+        elif action.text() == "Add channel group [Shift+Insert]":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.KeyPress, QtCore.Qt.Key_Insert, QtCore.Qt.ShiftModifier
+            )
+            self.keyPressEvent(event)
+
+        elif action.text() == "Add pattern based channel group [Ctrl+Insert]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.KeyPress, QtCore.Qt.Key_Insert, QtCore.Qt.ControlModifier
             )
             self.keyPressEvent(event)
 
@@ -788,19 +860,59 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
 class ChannelsGroupTreeItem(QtWidgets.QTreeWidgetItem):
 
-    def __init__(self, name=""):
+    def __init__(self, name="", pattern=None):
         super().__init__(["", ""])
         self.name = name
+        self.pattern = pattern
 
         self.setFlags(self.flags() | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsTristate)
 
         self.setCheckState(0, QtCore.Qt.Checked)
 
     def copy(self):
-        x = ChannelsGroupTreeItem(self.name)
+        x = ChannelsGroupTreeItem(self.name, self.pattern)
         return x
 
+    def show_info(self):
+        if self.pattern:
+            ChannnelGroupPatternDialog(self.pattern, self.treeWidget()).show()
 
+
+class ChannnelGroupPatternDialog(QtWidgets.QDialog):
+    def __init__(self, pattern, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.setWindowFlags(QtCore.Qt.Window)
+
+        layout = QtWidgets.QGridLayout()
+        layout.setColumnStretch(0, 0)
+        layout.setColumnStretch(1, 1)
+        self.setLayout(layout)
+
+        self.setWindowTitle(f'<{pattern["name"]}> pattern group details')
+
+        for i, key in enumerate(("name", "pattern", "match_type", "filter_type", "filter_value", "raw")):
+            widget = QtWidgets.QLabel(str(pattern[key]))
+
+            if key == "raw":
+                key = "Use raw values"
+            label = QtWidgets.QLabel(key.replace("_", " ").capitalize())
+            label.setStyleSheet("color:rgb(97, 190, 226);")
+
+            layout.addWidget(label, i, 0)
+            layout.addWidget(widget, i, 1)
+
+        # self.setStyleSheet('font: 8pt "Consolas";}')
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/info.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+
+        self.setWindowIcon(icon)
+        self.setMinimumWidth(500)
+        self.adjustSize()
+
+        screen = QtWidgets.QApplication.desktop().screenGeometry()
+        self.move((screen.width() - 1200) // 2, (screen.height() - 600) // 2)
 
 if __name__ == "__main__":
     pass

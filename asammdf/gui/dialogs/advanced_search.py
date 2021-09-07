@@ -19,6 +19,8 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         show_pattern=True,
         apply_text="Apply",
         add_window_text="Add window",
+        show_search=True,
+        window_title="Search & select channels",
         *args,
         **kwargs,
     ):
@@ -65,7 +67,10 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         if not show_pattern:
             self.tabs.removeTab(1)
 
-        self.setWindowTitle("Search & select channels")
+        if not show_search:
+            self.tabs.removeTab(0)
+
+        self.setWindowTitle(window_title)
 
     def search_text_changed(self):
         text = self.search_box.text().strip()
@@ -121,7 +126,24 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             "filter_value": self.filter_value.value(),
             "raw": self.raw.checkState() == QtCore.Qt.Checked,
             "ranges": self.ranges,
+            "name": self.name.text().strip(),
         }
+
+        if not self.result['pattern']:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Cannot apply pattern",
+                "The pattern cannot be empty"
+            )
+            return
+
+        if not self.result['name']:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Cannot apply pattern",
+                "The name cannot be empty"
+            )
+            return
 
         self.pattern_window = True
         self.close()
