@@ -1240,6 +1240,13 @@ class Plot(QtWidgets.QWidget):
             for signal, idx in signals:
                 if signal.plot_samples.dtype.kind in "ui":
                     signal.format = fmt
+
+                    value, kind, fmt = signal.value_at_timestamp(0)
+
+                    widget = self.widget_by_uuid(signal.uuid)
+                    widget.kind = kind
+                    widget.set_fmt(fmt)
+
                     if self.plot.current_uuid == signal.uuid:
                         self.plot.y_axis.format = fmt
                         self.plot.y_axis.hide()
