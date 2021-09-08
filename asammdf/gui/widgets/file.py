@@ -1411,7 +1411,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 return
 
             signals = [
-                (None, *self.mdf.whereis(name)[0]) for name in [latitude, longitude]
+                (name, *self.mdf.whereis(name)[0], self.uuid, "channel") for name in [latitude, longitude]
             ]
         else:
 
@@ -1435,7 +1435,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             group, index = item.entry
                             ch = self.mdf.groups[group].channels[index]
                             if not ch.component_addr:
-                                signals.append((None, group, index, self.uuid))
+                                signals.append((ch.name, group, index, self.uuid, "channel"))
 
                         iterator += 1
                 else:
@@ -1446,7 +1446,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             group, index = item.entry
                             ch = self.mdf.groups[group].channels[index]
                             if not ch.component_addr:
-                                signals.append((None, group, index, self.uuid))
+                                signals.append((ch.name, group, index, self.uuid, "channel"))
 
                         iterator += 1
 
