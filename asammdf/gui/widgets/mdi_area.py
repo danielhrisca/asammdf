@@ -45,7 +45,7 @@ def build_mime_from_config(channels, mdf=None, uuid=None, default_index=-1):
     mime = []
     for channel in channels:
         if channel.get('type', 'channel') == 'group':
-            if channel["pattern"] is None:
+            if channel.get("pattern", None) is None:
                 mime.append(
                     (
                         channel['name'],
