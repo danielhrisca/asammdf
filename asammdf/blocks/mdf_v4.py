@@ -133,21 +133,23 @@ try:
 #    2/0
 except:
 
-    def extract(signal_data, is_byte_array, offsets=()):
-        #        offsets_ = set(offsets)
-        size = len(signal_data)
+    def extract(signal_data, is_byte_array, offsets=None):
         positions = []
         values = []
         pos = 0
+        size = len(signal_data)
 
-        while pos < size:
-
-            positions.append(pos)
-            #            if offsets_ and pos not in offsets_:
-            #                raise Exception(f"VLSD offsets do not match the signal data:\n{positions}\n{offsets[:len(positions)]}")
-            (str_size,) = UINT32_uf(signal_data, pos)
-            pos = pos + 4 + str_size
-            values.append(signal_data[pos - str_size : pos])
+        if offsets is not None:
+            for offset in offsets.tolist():
+                (str_size,) = UINT32_uf(signal_data, offset)
+                offset += 4
+                values.append(signal_data[offset: offset + str_size])
+        else:
+            while pos < size:
+                positions.append(pos)
+                (str_size,) = UINT32_uf(signal_data, pos)
+                pos = pos + 4 + str_size
+                values.append(signal_data[pos - str_size: pos])
 
         if is_byte_array:
 
@@ -7350,7 +7352,10 @@ class MDF4(MDF_Common):
 
             if count_:
                 signal_data = self._load_signal_data(
-                    group=grp, index=ch_nr, start_offset=vals[0], end_offset=vals[-1]
+                    group=grp,
+                    index=ch_nr,
+                    start_offset=vals[0],
+                    end_offset=vals[-1]
                 )
             else:
                 signal_data = b""
@@ -7361,9 +7366,9 @@ class MDF4(MDF_Common):
                     v4c.DATA_TYPE_UNSIGNED_INTEL,
                     v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
                 ):
-                    vals = extract(signal_data, 1)
+                    vals = extract(signal_data, 1, vals - vals[0])
                 else:
-                    vals = extract(signal_data, 0)
+                    vals = extract(signal_data, 0, vals - vals[0])
 
                 if data_type not in (
                     v4c.DATA_TYPE_BYTEARRAY,
@@ -10340,6 +10345,13 @@ class MDF4(MDF_Common):
                 self._set_temporary_master(None)
                 self._set_temporary_master(self.get_master(group_index, data=fragment))
 
+                data_bytes = self.get(
+                    "CAN_DataFrame.DataBytes",
+                    group=group_index,
+                    data=fragment,
+                    samples_only=True,
+                )[0]
+
                 bus_ids = self.get(
                     "CAN_DataFrame.BusChannel",
                     group=group_index,
@@ -10362,13 +10374,6 @@ class MDF4(MDF_Common):
                     _pgn = tmp_pgn & 0x3FF00
                     msg_ids.samples = where(pf >= 240, _pgn + ps, _pgn)
 
-                data_bytes = self.get(
-                    "CAN_DataFrame.DataBytes",
-                    group=group_index,
-                    data=fragment,
-                    samples_only=True,
-                )[0]
-
                 buses = unique(bus_ids)
                 if len(bus_ids) == 0:
                     continue
@@ -10378,6 +10383,7 @@ class MDF4(MDF_Common):
                     bus_msg_ids = msg_ids.samples[idx_]
 
                     bus_t = msg_ids.timestamps[idx_]
+
                     bus_data_bytes = data_bytes[idx_]
 
                     unique_ids = sorted(unique(bus_msg_ids).astype("<u8"))

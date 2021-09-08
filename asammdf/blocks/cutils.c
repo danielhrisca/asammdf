@@ -154,16 +154,16 @@ static Py_ssize_t calc_size(char* buf)
 
 static PyObject* extract(PyObject* self, PyObject* args)
 {
-    int i=0, count, max=0;
+    int i=0, count, max=0, offset, list_count;
     Py_ssize_t pos=0, size=0;
-    PyObject *signal_data, *is_byte_array;
+    PyObject *signal_data, *is_byte_array, *offsets, *offsets_list;
     char *buf;
     PyArrayObject *vals;
     PyArray_Descr *descr;
     void *addr;
     unsigned char * addr2;
 
-    if(!PyArg_ParseTuple(args, "OO", &signal_data, &is_byte_array))
+    if(!PyArg_ParseTuple(args, "OOO", &signal_data, &is_byte_array, &offsets))
     {
         snprintf(err_string, 1024, "extract was called with wrong parameters");
         PyErr_SetString(PyExc_ValueError, err_string);
@@ -173,18 +173,30 @@ static PyObject* extract(PyObject* self, PyObject* args)
     {
         Py_ssize_t max_size = 0;
         int retval = PyBytes_AsStringAndSize(signal_data, &buf, &max_size);
-
+        
         count = 0;
         pos = 0;
+        
+        if (offsets == Py_None) {
+            while ((pos + 4) < max_size)
+            {
+                size = calc_size(&buf[pos]);
 
-        while ((pos + 4) < max_size)
-        {
-            size = calc_size(&buf[pos]);
-
-            if (max < size)
-                max = size;
-            pos += 4 + size;
-            count++;
+                if (max < size) max = size;
+                pos += 4 + size;
+                count++;
+            }
+        }
+        else {
+            offsets_list = PyObject_CallMethod(offsets, "tolist", NULL);
+            list_count = (int) PyList_Size(offsets_list);
+            for (i=0; i<list_count; i++) {
+                offset = (int) PyLong_AsLong(PyList_GET_ITEM(offsets_list, i));
+                if ((offset + 4) >= max_size) break;
+                size = calc_size(&buf[offset]);
+                if (max < size) max = size;
+                count++;
+            }
         }
 
         if (PyObject_IsTrue(is_byte_array))
@@ -195,15 +207,26 @@ static PyObject* extract(PyObject* self, PyObject* args)
             dims[1] = max;
             
             vals = (PyArrayObject *) PyArray_ZEROS(2, dims, NPY_UBYTE, 0);
+            
+            if (offsets == Py_None) {
 
-            pos = 0;
-            for (i=0; i<count; i++)
-            {
-                addr2 = (unsigned char *) PyArray_GETPTR2(vals, i, 0);
-                size = calc_size(&buf[pos]);
-                pos += 4;
-                memcpy(addr2, &buf[pos], size);
-                pos += size;
+                pos = 0;
+                for (i=0; i<count; i++)
+                {
+                    addr2 = (unsigned char *) PyArray_GETPTR2(vals, i, 0);
+                    size = calc_size(&buf[pos]);
+                    pos += 4;
+                    memcpy(addr2, &buf[pos], size);
+                    pos += size;
+                }
+            }
+            else {
+                for (i=0; i<count; i++) {
+                    addr2 = (unsigned char *) PyArray_GETPTR2(vals, i, 0);
+                    offset = (int) PyLong_AsLong(PyList_GET_ITEM(offsets_list, i));
+                    size = calc_size(&buf[offset]);
+                    memcpy(addr2, &buf[offset+4], size);
+                }
             }
         }
         else
@@ -216,15 +239,26 @@ static PyObject* extract(PyObject* self, PyObject* args)
             descr->elsize = max;
 
             vals = (PyArrayObject *) PyArray_Zeros(1, dims, descr, 0);
+            
+            if (offsets == Py_None) {
 
-            pos = 0;
-            for (i=0; i<count; i++)
-            {
-                addr2 = (unsigned char *) PyArray_GETPTR1(vals, i);
-                size = calc_size(&buf[pos]);
-                pos += 4;
-                memcpy(addr2, &buf[pos], size);
-                pos += size;
+                pos = 0;
+                for (i=0; i<count; i++)
+                {
+                    addr2 = (unsigned char *) PyArray_GETPTR1(vals, i);
+                    size = calc_size(&buf[pos]);
+                    pos += 4;
+                    memcpy(addr2, &buf[pos], size);
+                    pos += size;
+                }
+            }
+            else {
+                for (i=0; i<count; i++) {
+                    addr2 = (unsigned char *) PyArray_GETPTR1(vals, i);
+                    offset = (int) PyLong_AsLong(PyList_GET_ITEM(offsets_list, i));
+                    size = calc_size(&buf[offset]);
+                    memcpy(addr2, &buf[offset+4], size);
+                }
             }
         }
     }
