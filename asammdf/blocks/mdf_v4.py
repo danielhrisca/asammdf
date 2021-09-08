@@ -898,6 +898,7 @@ class MDF4(MDF_Common):
                         id_,
                         links_nr,
                         next_ch_addr,
+                        component_addr,
                         name_addr,
                         comment_addr,
                     ) = v4c.CHANNEL_FILTER_uf(stream, ch_addr)
@@ -916,6 +917,7 @@ class MDF4(MDF_Common):
                         id_,
                         links_nr,
                         next_ch_addr,
+                        component_addr,
                         name_addr,
                         comment_addr,
                     ) = v4c.CHANNEL_FILTER_u(stream.read(v4c.CHANNEL_FILTER_SIZE))
@@ -955,9 +957,36 @@ class MDF4(MDF_Common):
                         parsed_strings=(name, display_name, comment),
                     )
 
-                else:
+                elif not component_addr:
                     ch_addr = next_ch_addr
                     continue
+                else:
+                    if component_addr > self.file_limit:
+                        logger.warning(
+                            f"Channel component address {component_addr:X} is outside the file size {self.file_limit}"
+                        )
+                        break
+                    # check if it is a CABLOCK or CNBLOCK
+                    stream.seek(component_addr)
+                    blk_id = stream.read(4)
+                    if blk_id == b"##CN":
+                        (
+                            ch_cntr,
+                            _1,
+                            _2,
+                        ) = self._read_channels(
+                            component_addr,
+                            grp,
+                            stream,
+                            dg_cntr,
+                            ch_cntr,
+                            False,
+                            mapped=mapped,
+                        )
+
+                    ch_addr = next_ch_addr
+                    continue
+
             else:
                 channel = Channel(
                     address=ch_addr,
