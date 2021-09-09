@@ -218,7 +218,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             database_files["LIN"] = []
             for i in range(count):
                 item = self.lin_database_list.item(i)
-                widget = self.can_database_list.itemWidget(item)
+                widget = self.lin_database_list.itemWidget(item)
                 database_files["LIN"].append(
                     (widget.database.text(), widget.bus.currentIndex())
                 )
@@ -374,7 +374,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             database_files["LIN"] = []
             for i in range(count):
                 item = self.lin_database_list.item(i)
-                widget = self.can_database_list.itemWidget(item)
+                widget = self.lin_database_list.itemWidget(item)
                 database_files["LIN"].append(
                     (widget.database.text(), widget.bus.currentIndex())
                 )

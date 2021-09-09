@@ -305,14 +305,23 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
         return json.dumps(info)
 
-    def does_not_exist(self):
-        icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/error.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
-        self.color_btn.setIcon(icon)
-        self.color_btn.setFlat(True)
-        self.color_btn.clicked.disconnect()
+    def does_not_exist(self, exists=False):
+        if not exists:
+            icon = QtGui.QIcon()
+            icon.addPixmap(
+                QtGui.QPixmap(":/error.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+            )
+            self.color_btn.setIcon(icon)
+            self.color_btn.setFlat(True)
+            try:
+                self.color_btn.clicked.disconnect()
+            except:
+                pass
+        else:
+            icon = QtGui.QIcon()
+            self.color_btn.setIcon(icon)
+            self.color_btn.setFlat(False)
+            self.color_btn.clicked.connect(self.select_color)
 
     def disconnect_slots(self):
         self.color_changed.disconnect()
