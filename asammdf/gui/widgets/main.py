@@ -3,6 +3,7 @@ from functools import partial
 import gc
 import os
 from pathlib import Path
+import platform
 from textwrap import wrap
 import webbrowser
 
@@ -1006,13 +1007,26 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             widget.full_screen_toggled.connect(self.toggle_fullscreen)
 
     def open_file(self, event):
-        file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
-            self,
-            "Select measurement file",
-            self._settings.value("last_opened_path", "", str),
-            "CSV (*.csv);;MDF v3 (*.dat *.mdf);;MDF v4(*.mf4 *.mf4z);;DL3/ERG files (*.dl3 *.erg);;All files (*.csv *.dat *.mdf *.mf4 *.mf4z *.dl3 *.erg)",
-            "All files (*.csv *.dat *.mdf *.mf4 *.mf4z *.dl3 *.erg)",
-        )
+        system = platform.system().lower()
+        if system == "linux":
+            # see issue #567
+            # file extension is case sensitive on linux
+            file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
+                self,
+                "Select measurement file",
+                self._settings.value("last_opened_path", "", str),
+                "CSV (*.csv);;MDF v3 (*.dat *.mdf);;MDF v4(*.mf4 *.mf4z);;DL3/ERG files (*.dl3 *.erg);;All files (*.csv *.dat *.mdf *.mf4 *.mf4z *.dl3 *.erg)",
+                "All files (*.csv *.dat *.mdf *.mf4 *.mf4z *.dl3 *.erg)",
+                options=QtWidgets.QFileDialog.DontUseNativeDialog,
+            )
+        else:
+            file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
+                self,
+                "Select measurement file",
+                self._settings.value("last_opened_path", "", str),
+                "CSV (*.csv);;MDF v3 (*.dat *.mdf);;MDF v4(*.mf4 *.mf4z);;DL3/ERG files (*.dl3 *.erg);;All files (*.csv *.dat *.mdf *.mf4 *.mf4z *.dl3 *.erg)",
+                "All files (*.csv *.dat *.mdf *.mf4 *.mf4z *.dl3 *.erg)",
+            )
 
         if file_names:
             self._settings.setValue("last_opened_path", file_names[0])
