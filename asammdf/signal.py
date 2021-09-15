@@ -45,8 +45,8 @@ class Signal(object):
         signal samples are raw values, with no physical conversion applied
     master_metadata : list
         master name and sync type
-    display_name : str
-        display name used by mdf version 3
+    display_names : dict
+        display names used by mdf version 3
     attachment : bytes, name
         channel attachment and name from MDF version 4
     source : Source
@@ -72,7 +72,7 @@ class Signal(object):
         comment="",
         raw=True,
         master_metadata=None,
-        display_name="",
+        display_names="",
         attachment=(),
         source=None,
         bit_count=None,
@@ -123,7 +123,7 @@ class Signal(object):
             self._plot_axis = None
             self.raw = raw
             self.master_metadata = master_metadata
-            self.display_names = display_name
+            self.display_names = display_names
             self.attachment = attachment
             self.encoding = encoding
             self.group_index = group_index
@@ -174,7 +174,7 @@ class Signal(object):
 \tcomment="{self.comment}"
 \tmastermeta="{self.master_metadata}"
 \traw={self.raw}
-\tdisplay_name={self.display_names}
+\tdisplay_names={self.display_names}
 \tattachment={self.attachment}>
 """
 
@@ -920,7 +920,7 @@ class Signal(object):
                 conversion=self.conversion,
                 raw=self.raw,
                 master_metadata=self.master_metadata,
-                display_name=self.display_names,
+                display_names=self.display_names,
                 attachment=self.attachment,
                 stream_sync=self.stream_sync,
                 invalidation_bits=None,
@@ -954,7 +954,7 @@ class Signal(object):
                     conversion=self.conversion,
                     raw=self.raw,
                     master_metadata=self.master_metadata,
-                    display_name=self.display_names,
+                    display_names=self.display_names,
                     attachment=self.attachment,
                     stream_sync=self.stream_sync,
                     invalidation_bits=None if invalidation_bits is None else np.array([], dtype=bool),
@@ -1056,7 +1056,7 @@ class Signal(object):
                 source=self.source,
                 raw=self.raw,
                 master_metadata=self.master_metadata,
-                display_name=self.display_names,
+                display_names=self.display_names,
                 attachment=self.attachment,
                 stream_sync=self.stream_sync,
                 invalidation_bits=invalidation_bits,
@@ -1103,7 +1103,7 @@ class Signal(object):
             conversion=conversion,
             raw=self.raw,
             master_metadata=self.master_metadata,
-            display_name=self.display_names,
+            display_names=self.display_names,
             attachment=self.attachment,
             stream_sync=self.stream_sync,
             invalidation_bits=self.invalidation_bits,
@@ -1125,7 +1125,7 @@ class Signal(object):
             conversion=self.conversion,
             raw=self.raw,
             master_metadata=self.master_metadata,
-            display_name=self.display_names,
+            display_names=self.display_names,
             attachment=self.attachment,
             stream_sync=self.stream_sync,
             invalidation_bits=self.invalidation_bits,
@@ -1142,7 +1142,7 @@ class Signal(object):
             conversion=self.conversion,
             raw=self.raw,
             master_metadata=self.master_metadata,
-            display_name=self.display_names,
+            display_names=self.display_names,
             attachment=self.attachment,
             stream_sync=self.stream_sync,
             invalidation_bits=self.invalidation_bits,
@@ -1221,7 +1221,7 @@ class Signal(object):
             conversion=self.conversion,
             raw=self.raw,
             master_metadata=self.master_metadata,
-            display_name=self.display_names,
+            display_names=self.display_names,
             attachment=self.attachment,
             stream_sync=self.stream_sync,
             invalidation_bits=self.invalidation_bits,
@@ -1272,7 +1272,7 @@ class Signal(object):
             conversion=self.conversion,
             raw=self.raw,
             master_metadata=self.master_metadata,
-            display_name=self.display_names,
+            display_names=self.display_names,
             attachment=self.attachment,
             stream_sync=self.stream_sync,
             invalidation_bits=self.invalidation_bits,
@@ -1307,7 +1307,7 @@ class Signal(object):
             conversion=self.conversion,
             raw=self.raw,
             master_metadata=self.master_metadata,
-            display_name=self.display_names,
+            display_names=self.display_names,
             attachment=self.attachment,
             stream_sync=self.stream_sync,
             invalidation_bits=self.invalidation_bits,
@@ -1344,7 +1344,7 @@ class Signal(object):
             conversion=None,
             raw=False,
             master_metadata=self.master_metadata,
-            display_name=self.display_names,
+            display_names=self.display_names,
             attachment=self.attachment,
             stream_sync=self.stream_sync,
             invalidation_bits=self.invalidation_bits,
