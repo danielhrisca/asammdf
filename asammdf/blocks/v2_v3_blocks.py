@@ -103,7 +103,12 @@ class Channel:
     * ``comment`` - str : channel comment
     * ``conversion`` - ChannelConversion : channel conversion; *None* if the channel has
       no conversion
-    * ``display_name`` - str : channel display name
+    * ``display_names`` - dict : channel display names
+
+        ..versionchanged:: 7.0.0
+
+            changed from str to dict
+
     * ``name`` - str : full channel name
     * ``source`` - SourceInformation : channel source information; *None* if the channel
       has no source information
@@ -115,7 +120,7 @@ class Channel:
     stream : handle
         file handle; to be used for objects created from file
     load_metadata : bool
-        option to load conversion, source and display_name; default *True*
+        option to load conversion, source and display_names; default *True*
     for dynamically created objects :
         see the key-value pairs
 
@@ -133,7 +138,7 @@ class Channel:
 
     __slots__ = (
         "name",
-        "display_name",
+        "display_names",
         "comment",
         "conversion",
         "source",
@@ -163,7 +168,8 @@ class Channel:
     def __init__(self, **kwargs):
         super().__init__()
 
-        self.name = self.display_name = self.comment = ""
+        self.name = self.comment = ""
+        self.display_names = {}
         self.conversion = self.source = None
 
         try:
@@ -214,12 +220,14 @@ class Channel:
 
                         addr = self.display_name_addr
                         if addr:
-                            self.display_name = get_text_v3(
-                                address=addr, stream=stream, mapped=mapped
-                            )
+                            self.display_names = {
+                                get_text_v3(
+                                    address=addr, stream=stream, mapped=mapped
+                                ): "display_name",
+                            }
 
                     else:
-                        self.name, self.display_name = parsed_strings
+                        self.name, self.display_names = parsed_strings
 
                 elif size == v23c.CN_LONGNAME_BLOCK_SIZE:
                     (
@@ -258,7 +266,7 @@ class Channel:
                             )
 
                     else:
-                        self.name, self.display_name = parsed_strings
+                        self.name, self.display_names = parsed_strings
 
                 else:
                     (
@@ -387,12 +395,14 @@ class Channel:
 
                         addr = self.display_name_addr
                         if addr:
-                            self.display_name = get_text_v3(
-                                address=addr, stream=stream, mapped=mapped
-                            )
+                            self.display_names = {
+                                get_text_v3(
+                                    address=addr, stream=stream, mapped=mapped
+                                ): "display_name",
+                            }
 
                     else:
-                        self.name, self.display_name = parsed_strings
+                        self.name, self.display_names = parsed_strings
 
                 elif size == v23c.CN_LONGNAME_BLOCK_SIZE:
                     (
@@ -431,7 +441,7 @@ class Channel:
                             )
 
                     else:
-                        self.name, self.display_name = parsed_strings
+                        self.name, self.display_names = parsed_strings
 
                 else:
                     (
@@ -549,8 +559,8 @@ class Channel:
                 self.display_name_addr = kwargs.get("display_name_addr", 0)
                 self.additional_byte_offset = kwargs.get("additional_byte_offset", 0)
 
-        if self.display_name == self.name:
-            self.display_name = ""
+        if self.name in self.display_names:
+            del self.display_names[self.name]
 
     def to_blocks(self, address, blocks, defined_texts, cc_map, si_map):
         key = "long_name_addr"
@@ -572,7 +582,7 @@ class Channel:
         self.short_name = text.encode("latin-1", "backslashreplace")[:31]
 
         key = "display_name_addr"
-        text = self.display_name
+        text = list(self.display_names)[0] if self.display_names else ""
         if self.block_len >= v23c.CN_DISPLAYNAME_BLOCK_SIZE:
             if text:
                 if text in defined_texts:
@@ -634,7 +644,7 @@ class Channel:
         metadata = []
         lines = f"""
 name: {self.name}
-display name: {self.display_name}
+display names: {self.display_names}
 address: {hex(self.address)}
 comment: {self.comment}
 
@@ -816,7 +826,7 @@ comment: {self.comment}
                 fields.append(f"{attr}:{getattr(self, attr)}")
             except AttributeError:
                 continue
-        return f"Channel (name: {self.name}, display name: {self.display_name,}, comment: {self.comment}, address: {hex(self.address)}, fields: {fields})"
+        return f"Channel (name: {self.name}, display names: {self.display_names}, comment: {self.comment}, address: {hex(self.address)}, fields: {fields})"
 
 
 class _ChannelConversionBase:

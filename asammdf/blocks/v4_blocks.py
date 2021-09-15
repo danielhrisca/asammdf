@@ -27,7 +27,7 @@ from . import v4_constants as v4c
 from ..version import __version__
 from .utils import (
     block_fields,
-    extract_display_name,
+    extract_display_names,
     FLOAT64_u,
     get_text_v4,
     is_file_like,
@@ -637,12 +637,12 @@ class Channel:
                     self.comment = get_text_v4(self.comment_addr, stream, mapped=mapped)
 
                     if kwargs["use_display_names"]:
-                        self.display_name = extract_display_name(self.comment)
+                        self.display_names = extract_display_names(self.comment)
                     else:
-                        self.display_name = ""
+                        self.display_names = {}
                 else:
 
-                    self.name, self.display_name, self.comment = parsed_strings
+                    self.name, self.display_names, self.comment = parsed_strings
 
                 addr = self.unit_addr
                 if addr in tx_map:
@@ -861,11 +861,11 @@ class Channel:
                     self.comment = get_text_v4(self.comment_addr, stream)
 
                     if kwargs["use_display_names"]:
-                        self.display_name = extract_display_name(self.comment)
+                        self.display_names = extract_display_names(self.comment)
                     else:
-                        self.display_name = ""
+                        self.display_names = {}
                 else:
-                    self.name, self.display_name, self.comment = parsed_strings
+                    self.name, self.display_names, self.comment = parsed_strings
                 addr = self.unit_addr
                 if addr in tx_map:
                     self.unit = tx_map[addr]
@@ -939,7 +939,8 @@ class Channel:
         else:
 
             self.address = 0
-            self.name = self.comment = self.display_name = self.unit = ""
+            self.name = self.comment = self.unit = ""
+            self.display_names = {}
             self.conversion = self.source = self.attachment = self.dtype_fmt = None
 
             (
@@ -1015,8 +1016,8 @@ class Channel:
             self.data_block_addr = 0
             self.channel_type = v4c.CHANNEL_TYPE_VALUE
 
-        if self.display_name == self.name:
-            self.display_name = ""
+        if self.name in self.display_names:
+            del self.display_names[self.name]
 
     def __getitem__(self, item):
         return self.__getattribute__(item)
@@ -1062,29 +1063,26 @@ class Channel:
             self.unit_addr = 0
 
         comment = self.comment
-        display_name = self.display_name
+        display_names = self.display_names
 
-        if display_name and not comment:
-            text = v4c.CN_COMMENT_TEMPLATE.format("", display_name)
-        elif display_name and comment:
+        if display_names:
+            items = []
+            for _name, description in display_names.items():
+                items.append(f'<{description}>{_name}</{description}')
+            display_names_tags = '\n'.join(items)
+
+        if display_names_tags and not comment:
+            text = v4c.CN_COMMENT_TEMPLATE.format("", display_names_tags)
+
+        elif display_names_tags and comment:
             if not comment.startswith("<CNcomment"):
-                text = v4c.CN_COMMENT_TEMPLATE.format(comment, display_name)
+                text = v4c.CN_COMMENT_TEMPLATE.format(comment, display_names_tags)
             else:
-                if display_name not in comment:
+                if any(_name not in comment for _name in display_names):
                     try:
                         CNcomment = ET.fromstring(comment)
-                        display_name_element = CNcomment.find(".//names/display")
-                        if display_name_element is not None:
-                            display_name_element.text = display_name or ""
-                        else:
-
-                            display = ET.Element("display")
-                            display.text = display_name
-                            names = ET.Element("names")
-                            names.append(display)
-                            CNcomment.append(names)
-
-                        text = ET.tostring(CNcomment).decode("utf-8")
+                        text = CNcomment.find('TX').text
+                        text = v4c.CN_COMMENT_TEMPLATE.format(text, display_names_tags)
 
                     except UnicodeEncodeError:
                         text = comment
@@ -1299,7 +1297,7 @@ class Channel:
         metadata = []
         lines = f"""
 name: {self.name}
-display name: {self.display_name}
+display names: {self.display_names}
 address: {hex(self.address)}
 comment: {self.comment}
 unit: {self.unit}

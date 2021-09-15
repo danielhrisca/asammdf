@@ -782,7 +782,7 @@ LIN_DATA_FRAME_PATTERN = re.compile(r"(?i:LIN_Frame)_(?P<id>\d+)")
 CN_COMMENT_TEMPLATE = """<CNcomment>
 <TX>{}</TX>
 <names>
-    <display>{}</display>
+{}
 </names>
 </CNcomment>"""
 

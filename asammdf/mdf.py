@@ -175,14 +175,14 @@ class MDF:
                     name = get_temporary_filename(original_name)
                     name.write_bytes(name.read())
                     file_stream = open(name, "rb")
-                    do_close = False
+                    do_close = True
                 elif isinstance(name, gzip.GzipFile):
 
                     original_name = Path(name.name)
                     name = get_temporary_filename(original_name)
                     name.write_bytes(name.read())
                     file_stream = open(name, "rb")
-                    do_close = False
+                    do_close = True
 
             else:
                 name = original_name = Path(name)
@@ -210,7 +210,7 @@ class MDF:
                         move(output, name)
 
                 file_stream = open(name, "rb")
-                do_close = False
+                do_close = True
 
             file_stream.seek(0)
             magic_header = file_stream.read(8)
@@ -1089,7 +1089,7 @@ class MDF:
                 for ch in grp.channels:
 
                     if use_display_names:
-                        channel_name = ch.display_name or ch.name
+                        channel_name = list(ch.display_names)[0] if ch.display_names else ch.name
                     else:
                         channel_name = ch.name
 
@@ -1215,7 +1215,7 @@ class MDF:
 
                         for j, sig in enumerate(channels):
                             if use_display_names:
-                                name = sig.display_name or sig.name
+                                name = list(sig.display_names)[0] if sig.display_names else sig.name
                             else:
                                 name = sig.name
                             name = name.replace("\\", "_").replace("/", "_")
@@ -1467,7 +1467,7 @@ class MDF:
                         else:
 
                             if use_display_names:
-                                channel_name = sig.display_name or sig.name
+                                channel_name = list(sig.display_names)[0] if sig.display_names else sig.name
                             else:
                                 channel_name = sig.name
                             channel_name = channel_name_template.format(i, channel_name)
@@ -2412,7 +2412,7 @@ class MDF:
                 comment=""
                 mastermeta="('time', 1)"
                 raw=True
-                display_name=
+                display_names={}
                 attachment=()>
         , <Signal S2:
                 samples=[1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 2 2 3 3 4 4]
@@ -2425,7 +2425,7 @@ class MDF:
                 comment=""
                 mastermeta="('time', 1)"
                 raw=True
-                display_name=
+                display_names={}
                 attachment=()>
         ]
         >>> resampled = mdf.resample(raster='S2')
@@ -2440,7 +2440,7 @@ class MDF:
                 comment=""
                 mastermeta="('time', 1)"
                 raw=True
-                display_name=
+                display_names={}
                 attachment=()>
         , <Signal S2:
                 samples=[1 2 3 4]
@@ -2452,7 +2452,7 @@ class MDF:
                 comment=""
                 mastermeta="('time', 1)"
                 raw=True
-                display_name=
+                display_names={}
                 attachment=()>
         ]
         >>> resampled = mdf.resample(raster=[1.9, 2.0, 2.1])
@@ -2467,7 +2467,7 @@ class MDF:
                 comment=""
                 mastermeta="('time', 1)"
                 raw=True
-                display_name=
+                display_names={}
                 attachment=()>
         , <Signal S2:
                 samples=[1 1 1]
@@ -2479,7 +2479,7 @@ class MDF:
                 comment=""
                 mastermeta="('time', 1)"
                 raw=True
-                display_name=
+                display_names={}
                 attachment=()>
         ]
         >>> resampled = mdf.resample(raster='S2', time_from_zero=True)
@@ -2494,7 +2494,7 @@ class MDF:
                 comment=""
                 mastermeta="('time', 1)"
                 raw=True
-                display_name=
+                display_names={}
                 attachment=()>
         , <Signal S2:
                 samples=[1 2 3 4]
@@ -2506,7 +2506,7 @@ class MDF:
                 comment=""
                 mastermeta="('time', 1)"
                 raw=True
-                display_name=
+                display_names={}
                 attachment=()>
         ]
         """
@@ -3531,7 +3531,7 @@ class MDF:
                     if len(sig.samples.shape) > 1:
 
                         if use_display_names:
-                            channel_name = sig.display_name or sig.name
+                            channel_name = list(sig.display_names)[0] if sig.display_names else sig.name
                         else:
                             channel_name = sig.name
 
@@ -3556,7 +3556,7 @@ class MDF:
                     # scalars
                     else:
                         if use_display_names:
-                            channel_name = sig.display_name or sig.name
+                            channel_name = list(sig.display_names)[0] if sig.display_names else sig.name
                         else:
                             channel_name = sig.name
 
@@ -3888,7 +3888,7 @@ class MDF:
                 if len(sig.samples.shape) > 1:
 
                     if use_display_names:
-                        channel_name = sig.display_name or sig.name
+                        channel_name = list(sig.display_names)[0] if sig.display_names else sig.name
                     else:
                         channel_name = sig.name
 
@@ -3913,7 +3913,7 @@ class MDF:
                 # scalars
                 else:
                     if use_display_names:
-                        channel_name = sig.display_name or sig.name
+                        channel_name = list(sig.display_names)[0] if sig.display_names else sig.name
                     else:
                         channel_name = sig.name
 

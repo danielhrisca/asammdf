@@ -275,26 +275,23 @@ def sanitize_xml(text):
     return re.sub(_xmlns_pattern, "", text)
 
 
-def extract_display_name(comment):
-    if not comment.startswith("<CNcomment"):
-        return ""
+def extract_display_names(comment):
+    display_names = {}
+    if comment.startswith("<CNcomment"):
 
-    try:
-        comment = ET.fromstring(sanitize_xml(comment))
-        display_name = comment.find(".//names/display")
-        if display_name is not None:
-            display_name = display_name.text or ""
-        else:
-            display_name = comment.find(".//names/name")
-            if display_name is not None:
-                display_name = display_name.text or ""
-            else:
-                display_name = ""
+        try:
+            comment = ET.fromstring(sanitize_xml(comment))
+            names = comment.find(".//names")
+            if names is not None:
+                for i, elem in enumerate(names.iter()):
+                    if i == 0:
+                        continue
+                    display_names[elem.text] = elem.tag
 
-    except:
-        display_name = ""
+        except:
+            pass
 
-    return display_name
+    return display_names
 
 
 @lru_cache(maxsize=1024)

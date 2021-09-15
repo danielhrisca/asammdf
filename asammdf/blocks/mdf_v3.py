@@ -775,7 +775,7 @@ class MDF3(MDF_Common):
                         break
 
                     if filter_channels:
-                        display_name = ""
+                        display_names = {}
                         if mapped:
                             (
                                 id_,
@@ -798,9 +798,11 @@ class MDF3(MDF_Common):
                                         stream, ch_addr + v23c.CN_LONGNAME_BLOCK_SIZE
                                     )[0]
                                     if tx_address:
-                                        display_name = get_text_v3(
-                                            tx_address, stream, mapped=mapped
-                                        )
+                                        display_names = {
+                                            get_text_v3(
+                                                tx_address, stream, mapped=mapped
+                                            ): "display_name",
+                                        }
 
                         else:
                             stream.seek(ch_addr)
@@ -826,9 +828,11 @@ class MDF3(MDF_Common):
                                     stream.seek(ch_addr + v23c.CN_LONGNAME_BLOCK_SIZE)
                                     tx_address = v23c.UINT32_u(stream.read(4))[0]
                                     if tx_address:
-                                        display_name = get_text_v3(
-                                            tx_address, stream, mapped=mapped
-                                        )
+                                        display_names = {
+                                            get_text_v3(
+                                                tx_address, stream, mapped=mapped
+                                            ): "display_name",
+                                        }
 
                         if id_ != b"CN":
                             message = (
@@ -839,7 +843,7 @@ class MDF3(MDF_Common):
                         if (
                             channel_type == v23c.CHANNEL_TYPE_MASTER
                             or name in self.load_filter
-                            or display_name in self.load_filter
+                            or (any(_name in self.load_filter for _name in display_names))
                         ):
                             new_ch = Channel(
                                 address=ch_addr,
@@ -847,7 +851,7 @@ class MDF3(MDF_Common):
                                 mapped=mapped,
                                 si_map=self._si_map,
                                 cc_map=self._cc_map,
-                                parsed_strings=(name, display_name),
+                                parsed_strings=(name, display_names),
                             )
                         else:
                             ch_addr = next_ch_addr
@@ -865,7 +869,10 @@ class MDF3(MDF_Common):
 
                     if self._remove_source_from_channel_names:
                         new_ch.name = new_ch.name.split("\\", 1)[0]
-                        new_ch.display_name = new_ch.display_name.split("\\", 1)[0]
+                        new_ch.display_names = {
+                            _name.split("\\", 1)[0]: val
+                            for _name, val in new_ch.display_names.items()
+                        }
 
                     # check if it has channel dependencies
                     if new_ch.component_addr:
@@ -880,7 +887,7 @@ class MDF3(MDF_Common):
                     entry = dg_cntr, ch_cntr
                     ch_map[ch_addr] = entry
 
-                    for name in (new_ch.name, new_ch.display_name):
+                    for name in (new_ch.name, *tuple(new_ch.display_names)):
                         if name:
                             self.channels_db.add(name, entry)
 
@@ -1431,7 +1438,7 @@ class MDF3(MDF_Common):
                 )
 
                 name = signal.name
-                display_name = signal.display_name
+                display_names = signal.display_names
 
                 if signal.samples.dtype.kind == "u" and signal.bit_count <= 4:
                     s_size_ = signal.bit_count
@@ -1456,14 +1463,15 @@ class MDF3(MDF_Common):
                 channel.comment = signal.comment
                 channel.source = new_source
                 channel.conversion = conversion
-                channel.display_name = display_name
+                channel.display_names = display_names
                 gp_channels.append(channel)
 
                 offset += s_size
 
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
-                self.channels_db.add(display_name, entry)
+                for _name in display_names:
+                    self.channels_db.add(_name, entry)
 
                 # update the parents as well
                 field_name = field_names.get_unique_name(name)
@@ -1773,7 +1781,7 @@ class MDF3(MDF_Common):
 
                 channel = Channel(**kargs)
                 channel.comment = signal.comment
-                channel.display_name = signal.display_name
+                channel.display_names = signal.display_names
 
                 gp_channels.append(channel)
 
@@ -2826,7 +2834,7 @@ class MDF3(MDF_Common):
 
         conversion = channel.conversion
         name = channel.name
-        display_name = channel.display_name
+        display_names = channel.display_names
 
         bit_count = channel.bit_count or 64
 
@@ -3106,7 +3114,7 @@ class MDF3(MDF_Common):
                 conversion=conversion,
                 raw=raw,
                 master_metadata=master_metadata,
-                display_name=display_name,
+                display_names=display_names,
                 source=source,
                 bit_count=bit_count,
                 encoding=encoding,

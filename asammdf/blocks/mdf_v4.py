@@ -71,7 +71,7 @@ from .utils import (
     DataBlockInfo,
     debug_channel,
     extract_cncomment_xml,
-    extract_display_name,
+    extract_display_names,
     fmt_to_datatype_v4,
     get_fmt_v4,
     get_text_v4,
@@ -906,9 +906,9 @@ class MDF4(MDF_Common):
                     name = get_text_v4(name_addr, stream, mapped=mapped)
                     if use_display_names:
                         comment = get_text_v4(comment_addr, stream, mapped=mapped)
-                        display_name = extract_display_name(comment)
+                        display_names = extract_display_names(comment)
                     else:
-                        display_name = ""
+                        display_names = {}
                         comment = None
 
                 else:
@@ -927,9 +927,9 @@ class MDF4(MDF_Common):
 
                     if use_display_names:
                         comment = get_text_v4(comment_addr, stream, mapped=mapped)
-                        display_name = extract_display_name(comment)
+                        display_names = extract_display_names(comment)
                     else:
-                        display_name = ""
+                        display_names = {}
                         comment = None
 
                 if id_ != b"##CN":
@@ -940,7 +940,7 @@ class MDF4(MDF_Common):
                     channel_composition
                     or channel_type in v4c.MASTER_TYPES
                     or name in self.load_filter
-                    or (use_display_names and display_name in self.load_filter)
+                    or (use_display_names and any(dsp_name in self.load_filter for dsp_name in display_names))
                 ):
                     if comment is None:
                         comment = get_text_v4(comment_addr, stream, mapped=mapped)
@@ -954,7 +954,7 @@ class MDF4(MDF_Common):
                         mapped=mapped,
                         tx_map=self._interned_strings,
                         file_limit=self.file_limit,
-                        parsed_strings=(name, display_name, comment),
+                        parsed_strings=(name, display_names, comment),
                     )
 
                 elif not component_addr:
@@ -1009,7 +1009,10 @@ class MDF4(MDF_Common):
 
             if self._remove_source_from_channel_names:
                 channel.name = channel.name.split(path_separator, 1)[0]
-                channel.display_name = channel.display_name.split(path_separator, 1)[0]
+                channel.display_names = {
+                    _name.split(path_separator, 1)[0]: val
+                    for _name, val in channel.display_names.items()
+                }
 
             entry = (dg_cntr, ch_cntr)
             self._ch_map[ch_addr] = entry
@@ -1019,8 +1022,8 @@ class MDF4(MDF_Common):
                 composition.append(entry)
                 composition_channels.append(channel)
 
-            if channel.display_name:
-                self.channels_db.add(channel.display_name, entry)
+            for _name in channel.display_names:
+                self.channels_db.add(_name, entry)
             self.channels_db.add(channel.name, entry)
 
             # signal data
@@ -2944,7 +2947,7 @@ class MDF4(MDF_Common):
                 ch.name = name
                 ch.unit = signal.unit
                 ch.comment = signal.comment
-                ch.display_name = signal.display_name
+                ch.display_names = signal.display_names
                 if len(sig_shape) > 1:
                     ch.dtype_fmt = dtype((sig_dtype, sig_shape[1:]))
                 else:
@@ -2980,8 +2983,8 @@ class MDF4(MDF_Common):
                 gp_sdata.append(None)
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
-                if ch.display_name:
-                    self.channels_db.add(ch.display_name, entry)
+                for _name in ch.display_names:
+                    self.channels_db.add(_name, entry)
 
                 # update the parents as well
                 field_name = field_names.get_unique_name(name)
@@ -3056,7 +3059,7 @@ class MDF4(MDF_Common):
                 ch.name = name
                 ch.unit = signal.unit
                 ch.comment = signal.comment
-                ch.display_name = signal.display_name
+                ch.display_names = signal.display_names
                 ch.dtype_fmt = s_dtype
 
                 # source for channel
@@ -3082,8 +3085,8 @@ class MDF4(MDF_Common):
 
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
-                if ch.display_name:
-                    self.channels_db.add(ch.display_name, entry)
+                for _name in ch.display_names:
+                    self.channels_db.add(_name, entry)
 
                 # update the parents as well
                 parents[ch_cntr] = field_name, 0
@@ -3202,7 +3205,7 @@ class MDF4(MDF_Common):
                 ch.name = name
                 ch.unit = signal.unit
                 ch.comment = signal.comment
-                ch.display_name = signal.display_name
+                ch.display_names = signal.display_names
                 ch.dtype_fmt = samples.dtype
 
                 # source for channel
@@ -3232,8 +3235,8 @@ class MDF4(MDF_Common):
                 gp_sdata.append(None)
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
-                if ch.display_name:
-                    self.channels_db.add(ch.display_name, entry)
+                for _name in ch.display_names:
+                    self.channels_db.add(_name, entry)
 
                 # update the parents as well
                 parents[ch_cntr] = name, 0
@@ -3282,7 +3285,7 @@ class MDF4(MDF_Common):
                     ch.name = name
                     ch.unit = signal.unit
                     ch.comment = signal.comment
-                    ch.display_name = signal.display_name
+                    ch.display_names = signal.display_names
                     ch.dtype_fmt = samples.dtype
 
                     gp_channels.append(ch)
@@ -3409,7 +3412,7 @@ class MDF4(MDF_Common):
                 ch.name = name
                 ch.unit = signal.unit
                 ch.comment = signal.comment
-                ch.display_name = signal.display_name
+                ch.display_names = signal.display_names
                 ch.dtype_fmt = dtype("<u8")
 
                 # conversions for channel
@@ -3440,8 +3443,8 @@ class MDF4(MDF_Common):
 
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
-                if ch.display_name:
-                    self.channels_db.add(ch.display_name, entry)
+                for _name in ch.display_names:
+                    self.channels_db.add(_name, entry)
 
                 # update the parents as well
                 field_name = field_names.get_unique_name(name)
@@ -3846,7 +3849,7 @@ class MDF4(MDF_Common):
                 ch.name = name
                 ch.unit = signal.unit
                 ch.comment = signal.comment
-                ch.display_name = signal.display_name
+                ch.display_names = signal.display_names
 
                 # conversions for channel
                 if signal.raw:
@@ -3876,8 +3879,8 @@ class MDF4(MDF_Common):
                 gp_sdata.append(None)
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
-                if ch.display_name:
-                    self.channels_db.add(ch.display_name, entry)
+                for _name in ch.display_names:
+                    self.channels_db.add(_name, entry)
 
                 # update the parents as well
                 parents[ch_cntr] = name, 0
@@ -3945,7 +3948,7 @@ class MDF4(MDF_Common):
                 ch.name = name
                 ch.unit = signal.unit
                 ch.comment = signal.comment
-                ch.display_name = signal.display_name
+                ch.display_names = signal.display_names
                 ch.dtype_fmt = gp.single_channel_dtype
 
                 # source for channel
@@ -3971,8 +3974,8 @@ class MDF4(MDF_Common):
 
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
-                if ch.display_name:
-                    self.channels_db.add(ch.display_name, entry)
+                for _name in ch.display_names:
+                    self.channels_db.add(_name, entry)
 
                 # update the parents as well
                 parents[ch_cntr] = name, 0
@@ -4094,7 +4097,7 @@ class MDF4(MDF_Common):
                 ch.name = name
                 ch.unit = signal.unit
                 ch.comment = signal.comment
-                ch.display_name = signal.display_name
+                ch.display_names = signal.display_names
                 ch.dtype_fmt = samples.dtype
 
                 # source for channel
@@ -4124,8 +4127,8 @@ class MDF4(MDF_Common):
                 gp_sdata.append(None)
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
-                if ch.display_name:
-                    self.channels_db.add(ch.display_name, entry)
+                for _name in ch.display_names:
+                    self.channels_db.add(_name, entry)
 
                 # update the parents as well
                 parents[ch_cntr] = name, 0
@@ -4174,7 +4177,7 @@ class MDF4(MDF_Common):
                     ch.name = name
                     ch.unit = signal.unit
                     ch.comment = signal.comment
-                    ch.display_name = signal.display_name
+                    ch.display_names = signal.display_names
                     ch.dtype_fmt = samples.dtype
 
                     gp_channels.append(ch)
@@ -4262,7 +4265,7 @@ class MDF4(MDF_Common):
                 ch.name = name
                 ch.unit = signal.unit
                 ch.comment = signal.comment
-                ch.display_name = signal.display_name
+                ch.display_names = signal.display_names
 
                 # conversions for channel
                 conversion = conversion_transfer(signal.conversion, version=4)
@@ -4292,8 +4295,8 @@ class MDF4(MDF_Common):
 
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
-                if ch.display_name:
-                    self.channels_db.add(ch.display_name, entry)
+                for _name in ch.display_names:
+                    self.channels_db.add(_name, entry)
 
                 # update the parents as well
                 parents[ch_cntr] = name, 0
@@ -4714,7 +4717,7 @@ class MDF4(MDF_Common):
         ch.name = name
         ch.unit = signal.unit
         ch.comment = signal.comment
-        ch.display_name = signal.display_name
+        ch.display_names = signal.display_names
         ch.attachment = attachment
         ch.dtype_fmt = signal.samples.dtype
 
@@ -4765,8 +4768,8 @@ class MDF4(MDF_Common):
 
         gp_sdata.append(None)
         self.channels_db.add(name, entry)
-        if ch.display_name:
-            self.channels_db.add(ch.display_name, entry)
+        for _name in ch.display_names:
+            self.channels_db.add(_name, entry)
 
         # update the parents as well
         parents[ch_cntr] = name, 0
@@ -4926,7 +4929,7 @@ class MDF4(MDF_Common):
                 ch.name = name
                 ch.unit = signal.unit
                 ch.comment = signal.comment
-                ch.display_name = signal.display_name
+                ch.display_names = signal.display_names
                 ch.dtype_fmt = samples.dtype
 
                 # source for channel
@@ -4956,8 +4959,8 @@ class MDF4(MDF_Common):
                 gp_sdata.append(None)
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
-                if ch.display_name:
-                    self.channels_db.add(ch.display_name, entry)
+                for _name in ch.display_names:
+                    self.channels_db.add(_name, entry)
 
                 # update the parents as well
                 parents[ch_cntr] = name, 0
@@ -5006,7 +5009,7 @@ class MDF4(MDF_Common):
                     ch.name = name
                     ch.unit = signal.unit
                     ch.comment = signal.comment
-                    ch.display_name = signal.display_name
+                    ch.display_names = signal.display_names
                     ch.dtype_fmt = samples.dtype
 
                     gp_channels.append(ch)
@@ -5135,7 +5138,7 @@ class MDF4(MDF_Common):
         ch.name = name
         ch.unit = signal.unit
         ch.comment = signal.comment
-        ch.display_name = signal.display_name
+        ch.display_names = signal.display_names
         ch.attachment = attachment
         ch.dtype_fmt = signal.samples.dtype
 
@@ -5177,8 +5180,8 @@ class MDF4(MDF_Common):
 
         gp_sdata.append(None)
         self.channels_db.add(name, entry)
-        if ch.display_name:
-            self.channels_db.add(ch.display_name, entry)
+        for _name in ch.display_names:
+            self.channels_db.add(_name, entry)
 
         # update the parents as well
         parents[ch_cntr] = name, 0
@@ -5333,7 +5336,7 @@ class MDF4(MDF_Common):
                 ch.name = name
                 ch.unit = signal.unit
                 ch.comment = signal.comment
-                ch.display_name = signal.display_name
+                ch.display_names = signal.display_names
                 ch.dtype_fmt = samples.dtype
 
                 # source for channel
@@ -5363,8 +5366,8 @@ class MDF4(MDF_Common):
                 gp_sdata.append(None)
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
-                if ch.display_name:
-                    self.channels_db.add(ch.display_name, entry)
+                for _name in ch.display_names:
+                    self.channels_db.add(_name, entry)
 
                 # update the parents as well
                 parents[ch_cntr] = name, 0
@@ -5410,7 +5413,7 @@ class MDF4(MDF_Common):
                     ch.name = name
                     ch.unit = signal.unit
                     ch.comment = signal.comment
-                    ch.display_name = signal.display_name
+                    ch.display_names = signal.display_names
                     ch.dtype_fmt = samples.dtype
 
                     gp_channels.append(ch)
@@ -6422,7 +6425,7 @@ class MDF4(MDF_Common):
                     master_metadata=master_metadata,
                     attachment=attachment,
                     source=source,
-                    display_name=channel.display_name,
+                    display_names=channel.display_names,
                     bit_count=channel.bit_count,
                     stream_sync=stream_sync,
                     invalidation_bits=invalidation_bits,
@@ -10449,7 +10452,10 @@ class MDF4(MDF_Common):
                                         comment=signal["comment"],
                                         unit=signal["unit"],
                                         invalidation_bits=signal["invalidation_bits"],
-                                        display_name=f"CAN{bus}.{message.name}.{signal['name']}",
+                                        display_names={
+                                            f"{message.name}.{signal['name']}": "message_name",
+                                            f"CAN{bus}.{message.name}.{signal['name']}": "bus_name",
+                                        },
                                     )
 
                                     sigs.append(sig)
@@ -10642,7 +10648,10 @@ class MDF4(MDF_Common):
                                     comment=signal["comment"],
                                     unit=signal["unit"],
                                     invalidation_bits=signal["invalidation_bits"],
-                                    display_name=f"LIN.{message.name}.{signal['name']}",
+                                    display_names={
+                                        f"{message.name}.{signal['name']}": "message_name",
+                                        f"LIN.{message.name}.{signal['name']}": "bus_name",
+                                    }
                                 )
 
                                 sigs.append(sig)

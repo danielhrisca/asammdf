@@ -291,9 +291,9 @@ def from_dict(conversion):
         nr = 0
         while f"text_{nr}" in conversion:
             val = conversion[f"text_{nr}"]
-            if not isinstance(conversion[f"text_{nr}"], (bytes, str)):
+            if isinstance(val, (bytes, str)):
                 partial_conversion = {
-                    "conversion_type": v4c.CONCONVERSION_TYPE_RTABX,
+                    "conversion_type": v4c.CONVERSION_TYPE_RTABX,
                     "upper_0": conversion[f"upper_{nr}"],
                     "lower_0": conversion[f"lower_{nr}"],
                     "text_0": conversion[f"text_{nr}"]
