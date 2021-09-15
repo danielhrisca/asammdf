@@ -435,7 +435,7 @@ class Channel:
         "name",
         "unit",
         "comment",
-        "display_name",
+        "display_names",
         "conversion",
         "source",
         "attachment",
