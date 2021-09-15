@@ -1070,6 +1070,8 @@ class Channel:
             for _name, description in display_names.items():
                 items.append(f'<{description}>{_name}</{description}')
             display_names_tags = '\n'.join(items)
+        else:
+            display_names_tags = ""
 
         if display_names_tags and not comment:
             text = v4c.CN_COMMENT_TEMPLATE.format("", display_names_tags)
