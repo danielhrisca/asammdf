@@ -63,7 +63,7 @@ class PlotSignal(Signal):
             signal.comment,
             signal.raw,
             signal.master_metadata,
-            signal.display_name,
+            signal.display_names,
             signal.attachment,
             signal.source,
             signal.bit_count,
