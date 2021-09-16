@@ -501,7 +501,7 @@ class WithMDIArea:
 
             # print(computed)
             # print(names)
-            # print(signals_)
+            print(signals_)
 
             if isinstance(widget, Tabular):
                 dfs = []
@@ -512,7 +512,6 @@ class WithMDIArea:
                         for entry in signals_
                         if entry[3] == uuid
                         and entry
-
                     ]
 
                     file_info = self.file_by_uuid(uuid)
@@ -573,6 +572,7 @@ class WithMDIArea:
                         sig.computed = False
                         sig.computation = {}
                         sig.mdf_uuid = uuid
+                        sig.name = sig_[0]
 
                         if not hasattr(self, "mdf"):
                             # MainWindow => comparison plots
@@ -1165,7 +1165,7 @@ class WithMDIArea:
             computed = []
         else:
             flatten_entries = get_flatten_entries_from_mime(names)
-            signals_ = [(None, *entry[1:]) for entry in flatten_entries if tuple(entry[1:3]) != (-1, -1)]
+            signals_ = [entry for entry in flatten_entries if tuple(entry[1:3]) != (-1, -1)]
 
             computed = [entry[0] for entry in flatten_entries if tuple(entry[1:3]) == (-1, -1)]
 
@@ -1251,6 +1251,7 @@ class WithMDIArea:
                     sig.computed = False
                     sig.computation = {}
                     sig.mdf_uuid = uuid
+                    sig.name = sig_[0]
 
                     if not hasattr(self, "mdf"):
                         # MainWindow => comparison plots
@@ -1734,7 +1735,7 @@ class WithMDIArea:
                 required = set(window_info["configuration"]["channels"])
 
                 signals_ = [
-                    (None, *self.mdf.whereis(name)[0])
+                    (name, *self.mdf.whereis(name)[0])
                     for name in window_info["configuration"]["channels"]
                     if name in self.mdf
                 ]
@@ -1898,20 +1899,23 @@ class WithMDIArea:
                 mime_data = build_mime_from_config(window_info["configuration"]["channels"], self.mdf, self.uuid)
 
                 measured_signals_ = [
-                    (None, *self.mdf.whereis(name)[0])
+                    (name, *self.mdf.whereis(name)[0])
                     for name in found_signals
                 ]
 
                 found_signals = list(found_signals.values())
 
                 measured_signals = {
-                    sig.name: sig
-                    for sig in self.mdf.select(
-                        measured_signals_,
-                        ignore_value2text_conversions=self.ignore_value2text_conversions,
-                        copy_master=False,
-                        validate=True,
-                        raw=True,
+                    sig_info[0]: sig
+                    for sig, sig_info in zip(
+                        self.mdf.select(
+                            measured_signals_,
+                            ignore_value2text_conversions=self.ignore_value2text_conversions,
+                            copy_master=False,
+                            validate=True,
+                            raw=True,
+                        ),
+                        measured_signals_
                     )
                 }
 
@@ -1924,6 +1928,7 @@ class WithMDIArea:
                     signal.group_index = entry_info[1]
                     signal.channel_index = entry_info[2]
                     signal.mdf_uuid = uuid
+                    signal.name = entry_info[0]
 
                 matrix_components = []
                 for name in not_found:

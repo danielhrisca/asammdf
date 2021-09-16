@@ -870,16 +870,14 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         channels = self.mdf.channels_db
         mdf.close()
         dlg = AdvancedSearch(
-            channels, show_add_window=False, show_pattern=False, parent=self
+            channels, show_add_window=False, show_pattern=False, parent=self,
+            return_names=True,
         )
         dlg.setModal(True)
         dlg.exec_()
         result = dlg.result
         if result:
-            dg_cntr, ch_cntr = next(iter(result))
-
-            name = self.mdf.groups[dg_cntr].channels[ch_cntr].name
-
+            name = list(result)[0]
             self.raster_channel.setCurrentText(name)
 
     def filter_changed(self, item, column):
@@ -914,7 +912,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         result = dlg.result
 
         if result:
-            names = set()
             if view.currentText() == "Internal file structure":
                 iterator = QtWidgets.QTreeWidgetItemIterator(widget)
 
@@ -931,7 +928,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
                     if (dg_cntr, ch_cntr) in result:
                         item.setCheckState(0, QtCore.Qt.Checked)
-                        names.add(item.text(0))
 
                     iterator += 1
                     ch_cntr += 1
@@ -947,7 +943,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
                     iterator += 1
 
-                signals = signals | result
+                signals = signals | set(result)
 
                 widget.clear()
 
@@ -973,7 +969,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
                     if item.entry in result:
                         item.setCheckState(0, QtCore.Qt.Checked)
-                        names.add(item.text(0))
 
                     iterator += 1
 

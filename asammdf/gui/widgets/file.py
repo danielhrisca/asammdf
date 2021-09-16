@@ -777,6 +777,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             apply_text = "Check channels"
             widget = self.filter_tree
             view = self.filter_view
+            
         dlg = AdvancedSearch(
             self.mdf.channels_db,
             show_add_window=show_add_window,
@@ -837,6 +838,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             else:
 
+                from pprint import pprint
+                pprint(result)
+
                 names = set()
                 if view.currentText() == "Internal file structure":
                     iterator = QtWidgets.QTreeWidgetItemIterator(widget)
@@ -851,10 +855,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             dg_cntr += 1
                             ch_cntr = 0
                             continue
+                            
+                        entry = (dg_cntr, ch_cntr)
 
-                        if (dg_cntr, ch_cntr) in result:
+                        if entry in result:
                             item.setCheckState(0, QtCore.Qt.Checked)
-                            names.add((item.name, dg_cntr, ch_cntr))
+                            names.add((result[entry], dg_cntr, ch_cntr))
 
                         iterator += 1
                         ch_cntr += 1
@@ -870,13 +876,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         iterator += 1
 
-                    result = {
-                        (self.mdf.groups[dg_cntr].channels[ch_cntr].name, dg_cntr, ch_cntr)
-                        for (dg_cntr, ch_cntr) in result
-                    }
+                    names = set(
+                        (_name, *entry)
+                        for entry, _name in result.items()
+                    )
 
-                    signals = signals | result
-                    names = result
+                    signals = signals | names
 
                     widget.clear()
 
@@ -902,7 +907,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         if item.entry in result:
                             item.setCheckState(0, QtCore.Qt.Checked)
-                            names.add((item.name, *item.entry))
+                            names.add((result[item.entry], *item.entry))
 
                         iterator += 1
 
@@ -925,10 +930,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         window_type = dialog.selected_type()
 
                         signals = [
-                            (name, *self.mdf.whereis(name)[0], self.uuid, 'channel')
-                            if isinstance(name, str)
-                            else (*name, self.uuid, 'channel')
-                            for name in names
+                            (name, dg_cntr, ch_cntr, self.uuid, 'channel')
+                            for name, dg_cntr, ch_cntr in names
                         ]
 
                         if window_type == "New plot window":
@@ -2509,16 +2512,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             show_apply=True,
             apply_text="Set raster channel",
             show_pattern=False,
+            return_names=True,
             parent=self,
         )
         dlg.setModal(True)
         dlg.exec_()
         result = dlg.result
         if result:
-            dg_cntr, ch_cntr = next(iter(result))
-
-            name = self.mdf.groups[dg_cntr].channels[ch_cntr].name
-
+            name = list(result)[0]
             self.raster_channel.setCurrentText(name)
 
     def filter_changed(self, item, column):

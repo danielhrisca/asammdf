@@ -30,7 +30,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
         self.selection.all_texts = True
 
-        self.result = set()
+        self.result = {}
         self.add_window_request = False
         self.channels_db = channels_db
 
@@ -112,10 +112,11 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         if self._return_names:
             self.result = set(self.selection.item(i).text() for i in range(count))
         else:
-            self.result = set()
+            self.result = {}
             for i in range(count):
-                for entry in self.channels_db[self.selection.item(i).text()]:
-                    self.result.add(entry)
+                name = self.selection.item(i).text()
+                for entry in self.channels_db[name]:
+                    self.result[entry] = name
         self.close()
 
     def _apply_pattern(self, event):
@@ -154,16 +155,17 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         if self._return_names:
             self.result = set(self.selection.item(i).text() for i in range(count))
         else:
-            self.result = set()
+            self.result = {}
             for i in range(count):
-                for entry in self.channels_db[self.selection.item(i).text()]:
-                    self.result.add(entry)
+                name = self.selection.item(i).text()
+                for entry in self.channels_db[name]:
+                    self.result[entry] = name
 
         self.add_window_request = True
         self.close()
 
     def _cancel(self, event):
-        self.result = set()
+        self.result = {}
         self.close()
 
     def _cancel_pattern(self, event):
