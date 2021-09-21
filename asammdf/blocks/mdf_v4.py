@@ -262,11 +262,11 @@ class MDF4(MDF_Common):
         keyword only argument: function to call to update the progress; the
         function must accept two arguments (the current progress and maximum
         progress value)
-    use_display_names : bool
+    use_display_names (True) : bool
         keyword only argument: for MDF4 files parse the XML channel comment to
         search for the display name; XML parsing is quite expensive so setting
         this to *False* can decrease the loading times very much; default
-        *False*
+        *True*
     remove_source_from_channel_names (True) : bool
 
     copy_on_get (True) : bool
@@ -357,7 +357,7 @@ class MDF4(MDF_Common):
         self._raise_on_multiple_occurrences = True
         self._read_fragment_size = 0 * 2 ** 20
         self._write_fragment_size = 4 * 2 ** 20
-        self._use_display_names = kwargs.get("use_display_names", False)
+        self._use_display_names = kwargs.get("use_display_names", True)
         self._remove_source_from_channel_names = kwargs.get(
             "remove_source_from_channel_names", False
         )
@@ -2837,6 +2837,7 @@ class MDF4(MDF_Common):
                 "bit_count": t_size,
             }
 
+
             ch = Channel(**kwargs)
             ch.unit = time_unit
             ch.name = time_name
@@ -3091,7 +3092,7 @@ class MDF4(MDF_Common):
                 # update the parents as well
                 parents[ch_cntr] = field_name, 0
 
-                gp_sdata.append(0)
+                gp_sdata.append(None)
 
                 ch_cntr += 1
 
@@ -7533,13 +7534,15 @@ class MDF4(MDF_Common):
                 types = dtype([("ms", "<u4"), ("days", "<u2")])
                 vals = vals.view(types)
 
-                arrays = []
-                # bits 28 to 31 are reserverd for ms
-                arrays.append(vals["ms"] & 0xFFFFFFF)
-                arrays.append(vals["days"] & 0x3F)
-
-                names = ["ms", "days"]
-                vals = fromarrays(arrays, names=names)
+                # print(vals)
+                #
+                # arrays = []
+                # # bits 28 to 31 are reserverd for ms
+                # arrays.append(vals["ms"] & 0xFFFFFFF)
+                # arrays.append(vals["days"] & 0x3F)
+                #
+                # names = ["ms", "days"]
+                # vals = fromarrays(arrays, names=names)
 
         return vals, timestamps, invalidation_bits, encoding
 

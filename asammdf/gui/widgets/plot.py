@@ -1370,6 +1370,7 @@ class Plot(QtWidgets.QWidget):
                     pass
 
         elif (key, modifiers) in self.plot.keyboard_events:
+            print((key, modifiers), self.plot.keyboard_events)
             self.plot.keyPressEvent(event)
         else:
             event.ignore()
@@ -1900,6 +1901,7 @@ class _Plot(pg.PlotWidget):
                 (QtCore.Qt.Key_G, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_I, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_O, QtCore.Qt.NoModifier),
+                (QtCore.Qt.Key_X, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_R, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_S, QtCore.Qt.ControlModifier),
                 (QtCore.Qt.Key_S, QtCore.Qt.NoModifier),

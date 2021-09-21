@@ -1754,6 +1754,7 @@ class WithMDIArea:
                 for sig, sig_ in zip(signals, signals_):
                     sig.group_index = sig_[1]
                     sig.mdf_uuid = uuid
+                    sig.computation = None
 
                 signals = [
                     sig

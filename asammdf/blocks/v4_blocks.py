@@ -1068,6 +1068,7 @@ class Channel:
         if display_names:
             items = []
             for _name, description in display_names.items():
+                description = "display"
                 items.append(f'<{description}>{_name}</{description}>')
             display_names_tags = '\n'.join(items)
         else:
