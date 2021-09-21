@@ -1074,6 +1074,7 @@ class MDF:
                 reduce_memory_usage=reduce_memory_usage,
                 ignore_value2text_conversions=ignore_value2text_conversions,
                 raw=raw,
+                numeric_1D_only=fmt == "parquet",
             )
             units = OrderedDict()
             comments = OrderedDict()
@@ -3243,6 +3244,7 @@ class MDF:
         only_basenames=False,
         chunk_ram_size=200 * 1024 * 1024,
         interpolate_outwards_with_nan=False,
+        numeric_1D_only=False,
     ):
         """generator that yields pandas DataFrame's that should not exceed
         200MB of RAM
@@ -3307,6 +3309,10 @@ class MDF:
             signal's timestamps
         chunk_ram_size : int
             desired data frame RAM usage in bytes; default 200 MB
+        numeric_1D_only (False) : bool
+            only keep the 1D-columns that have numeric values
+
+            .. versionadded:: 7.0.0
 
 
         Returns
@@ -3333,6 +3339,7 @@ class MDF:
                 only_basenames=only_basenames,
                 chunk_ram_size=chunk_ram_size,
                 interpolate_outwards_with_nan=interpolate_outwards_with_nan,
+                numeric_1D_only=numeric_1D_only,
             )
 
             for df in result:
@@ -3628,6 +3635,7 @@ class MDF:
         use_interpolation=True,
         only_basenames=False,
         interpolate_outwards_with_nan=False,
+        numeric_1D_only=False,
     ):
         """generate pandas DataFrame
 
@@ -3723,6 +3731,7 @@ class MDF:
                 use_interpolation=use_interpolation,
                 only_basenames=only_basenames,
                 interpolate_outwards_with_nan=interpolate_outwards_with_nan,
+                numeric_1D_only=numeric_1D_only,
             )
 
             mdf.close()
@@ -3936,6 +3945,14 @@ class MDF:
                 strings[col] = series
             else:
                 nonstrings[col] = series
+
+        if numeric_1D_only:
+            nonstrings = {
+                col: series
+                for col, series in nonstrings.items()
+                if series.dtype.kind in 'uif'
+            }
+            strings = {}
 
         df = pd.DataFrame(nonstrings, index=master)
 

@@ -6736,7 +6736,8 @@ class MDF4(MDF_Common):
                             for j in range(shape[0]):
                                 key = f"axis_{i}_value_{j}"
                                 axis.append(ca_block[key])
-                            axis = array([axis for _ in range(cycles_nr)], dtype=f'{shape}f8')
+                            axis = array(axis)
+                            axis = array([axis for _ in range(cycles_nr)])
                             arrays.append(axis)
                             dtype_pair = (f"axis_{i}", axis.dtype, shape)
                             types.append(dtype_pair)
@@ -6869,6 +6870,7 @@ class MDF4(MDF_Common):
                         arrays.append(axis_values)
                         dtype_pair = (axisname, axis_values.dtype, shape)
                         types.append(dtype_pair)
+
 
             vals = fromarrays(arrays, dtype(types))
 
