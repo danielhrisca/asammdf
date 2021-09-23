@@ -687,11 +687,8 @@ class Signal(object):
                         channel_index=self.channel_index,
                     )
                 else:
-                    if start == stop:
-                        start = np.searchsorted(self.timestamps, start, side="left")
-                        stop = np.searchsorted(self.timestamps, stop, side="right")
-                    else:
-                        start = stop = np.searchsorted(self.timestamps, start, side="left")
+                    start = np.searchsorted(self.timestamps, start, side="left")
+                    stop = np.searchsorted(self.timestamps, stop, side="right")
 
                     if start == stop:
                         if include_ends:
