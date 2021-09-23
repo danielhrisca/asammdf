@@ -1557,6 +1557,7 @@ class Plot(QtWidgets.QWidget):
                 sig.computation,
                 None,
                 sig.mdf_uuid,
+                check=QtCore.Qt.Checked if sig.enable else QtCore.Qt.Unchecked
             )
 
             # item.setData(QtCore.Qt.UserRole, sig.name)
@@ -1682,7 +1683,7 @@ class Plot(QtWidgets.QWidget):
                 elif isinstance(widget, ChannelGroupDisplay):
                     channel = {
                         'type': 'group',
-                        'name': widget.name.text(),
+                        'name': widget.name.text().rsplit('[')[0],
                         'channels': item_to_config(tree, item) if item.pattern is None else [],
                         "enabled": item.checkState(0) == QtCore.Qt.Checked,
                         'pattern': item.pattern,

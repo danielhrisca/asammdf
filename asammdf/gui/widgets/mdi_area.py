@@ -182,6 +182,18 @@ def generate_window_title(mdi, window_name="", title=""):
     return name
 
 
+def get_descriptions(channels):
+    descriptions = {}
+    for channel in channels:
+        if channel.get("type", "channel") == "group":
+            new_descriptions = get_descriptions(channel["channels"])
+            descriptions.update(new_descriptions)
+        else:
+            descriptions[channel["name"]] = channel
+
+    return descriptions
+
+
 def get_flatten_entries_from_mime(data, default_index=None):
     entries = []
 
@@ -382,6 +394,8 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
         ratio = height // len(sub_windows)
 
         for window in sub_windows:
+            if window.isMinimized() or window.isMaximized():
+                window.showNormal()
             rect = QtCore.QRect(0, 0, width, ratio)
 
             window.setGeometry(rect)
@@ -398,6 +412,8 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
         ratio = width // len(sub_windows)
 
         for window in sub_windows:
+            if window.isMinimized() or window.isMaximized():
+                window.showNormal()
             rect = QtCore.QRect(0, 0, ratio, height)
 
             window.setGeometry(rect)
@@ -501,7 +517,7 @@ class WithMDIArea:
 
             # print(computed)
             # print(names)
-            print(signals_)
+            # print(signals_)
 
             if isinstance(widget, Tabular):
                 dfs = []
@@ -1894,6 +1910,8 @@ class WithMDIArea:
 
                 mime_data = None
 
+                found_descriptions = {}
+
             else:
 
                 required, found_signals, not_found, computed_signals_descriptions = get_required_from_config(window_info["configuration"]["channels"], self.mdf)
@@ -1904,6 +1922,7 @@ class WithMDIArea:
                     for name in found_signals
                 ]
 
+                found_descriptions = found_signals
                 found_signals = list(found_signals.values())
 
                 measured_signals = {
@@ -2189,16 +2208,14 @@ class WithMDIArea:
                 partial(self.add_new_channels, widget=plot)
             )
 
-            descriptions = {
-                channel["name"]: channel
-                for channel in window_info["configuration"]["channels"]
-            }
+            descriptions = get_descriptions(window_info["configuration"]["channels"])
 
             iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
             while iterator.value():
                 item = iterator.value()
+                iterator += 1
                 wid = plot.channel_selection.itemWidget(item, 1)
-                try:
+                if isinstance(wid, ChannelDisplay):
                     name = wid._name
 
                     description = descriptions.get(name, None)
@@ -2228,12 +2245,9 @@ class WithMDIArea:
                             if description["enabled"]
                             else QtCore.Qt.Unchecked
                         )
+
                     elif pattern_info:
                         wid.ranges = pattern_info["ranges"]
-                except:
-                    pass
-
-                iterator += 1
 
             self.set_subplots_link(self.subplots_link)
 
