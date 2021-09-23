@@ -1621,3 +1621,18 @@ def plausible_timestamps(t, minimum, maximum, exp_min=-15, exp_max=15):
     else:
         all_ok = True
         return all_ok, idx
+
+
+table = str.maketrans(
+    {
+        "<": "&lt;",
+        ">": "&gt;",
+        "&": "&amp;",
+        "'": "&apos;",
+        '"': "&quot;",
+    }
+)
+
+
+def escape_xml_string(string):
+    return string.translate(table)

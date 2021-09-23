@@ -27,6 +27,7 @@ from . import v4_constants as v4c
 from ..version import __version__
 from .utils import (
     block_fields,
+    escape_xml_string,
     extract_display_names,
     FLOAT64_u,
     get_text_v4,
@@ -1079,13 +1080,13 @@ class Channel:
 
         elif display_names_tags and comment:
             if not comment.startswith("<CNcomment"):
-                text = v4c.CN_COMMENT_TEMPLATE.format(comment, display_names_tags)
+                text = v4c.CN_COMMENT_TEMPLATE.format(escape_xml_string(comment), display_names_tags)
             else:
                 if any(_name not in comment for _name in display_names):
                     try:
                         CNcomment = ET.fromstring(comment)
                         text = CNcomment.find('TX').text
-                        text = v4c.CN_COMMENT_TEMPLATE.format(text, display_names_tags)
+                        text = v4c.CN_COMMENT_TEMPLATE.format(escape_xml_string(text), display_names_tags)
 
                     except UnicodeEncodeError:
                         text = comment
@@ -5420,7 +5421,11 @@ class HeaderBlock:
 
         else:
             comment = v4c.HD_COMMENT_TEMPLATE.format(
-                self.comment, self.author, self.department, self.project, self.subject
+                escape_xml_string(self.comment),
+                escape_xml_string(self.author),
+                escape_xml_string(self.department),
+                escape_xml_string(self.project),
+                escape_xml_string(self.subject)
             )
 
         tx_block = TextBlock(text=comment, meta=True)
