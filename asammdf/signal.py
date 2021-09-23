@@ -471,7 +471,7 @@ class Signal(object):
         if float_interpolation_mode not in (0, 1):
             raise MdfException("Float interpolation mode should be one of (0, 1)")
 
-        ends = (start, stop)
+        original_start, original_stop = (start, stop)
 
         if len(self) == 0:
             result = Signal(
@@ -544,11 +544,11 @@ class Signal(object):
                     stop = np.searchsorted(self.timestamps, stop, side="right")
                     if (
                         include_ends
-                        and ends[-1] not in self.timestamps
-                        and ends[-1] < self.timestamps[-1]
+                        and original_stop not in self.timestamps
+                        and original_stop < self.timestamps[-1]
                     ):
                         interpolated = self.interp(
-                            [ends[1]],
+                            [original_stop],
                             integer_interpolation_mode=integer_interpolation_mode,
                             float_interpolation_mode=float_interpolation_mode,
                         )
@@ -618,11 +618,11 @@ class Signal(object):
                     start = np.searchsorted(self.timestamps, start, side="left")
                     if (
                         include_ends
-                        and ends[0] not in self.timestamps
-                        and ends[0] > self.timestamps[0]
+                        and original_start not in self.timestamps
+                        and original_start > self.timestamps[0]
                     ):
                         interpolated = self.interp(
-                            [ends[0]],
+                            [original_start],
                             integer_interpolation_mode=integer_interpolation_mode,
                             float_interpolation_mode=float_interpolation_mode,
                         )
@@ -687,20 +687,26 @@ class Signal(object):
                         channel_index=self.channel_index,
                     )
                 else:
-                    start = np.searchsorted(self.timestamps, start, side="left")
-                    stop = np.searchsorted(self.timestamps, stop, side="right")
+                    if start == stop:
+                        start = np.searchsorted(self.timestamps, start, side="left")
+                        stop = np.searchsorted(self.timestamps, stop, side="right")
+                    else:
+                        start = stop = np.searchsorted(self.timestamps, start, side="left")
 
                     if start == stop:
                         if include_ends:
+                            if original_start == original_stop:
+                                ends = np.array([original_start], dtype=self.timestamps.dtype)
+                            else:
+                                ends = np.array([original_start, original_stop], dtype=self.timestamps.dtype)
+                                
                             interpolated = self.interp(
-                                np.unique(ends),
+                                ends,
                                 integer_interpolation_mode=integer_interpolation_mode,
                                 float_interpolation_mode=float_interpolation_mode,
                             )
                             samples = interpolated.samples
-                            timestamps = np.array(
-                                np.unique(ends), dtype=self.timestamps.dtype
-                            )
+                            timestamps = ends
                             invalidation_bits = interpolated.invalidation_bits
                         else:
                             samples = np.array([], dtype=self.samples.dtype)
@@ -721,11 +727,11 @@ class Signal(object):
 
                         if (
                             include_ends
-                            and ends[-1] not in self.timestamps
-                            and ends[-1] < self.timestamps[-1]
+                            and original_stop not in self.timestamps
+                            and original_stop < self.timestamps[-1]
                         ):
                             interpolated = self.interp(
-                                [ends[1]],
+                                [original_stop],
                                 integer_interpolation_mode=integer_interpolation_mode,
                                 float_interpolation_mode=float_interpolation_mode,
                             )
@@ -740,11 +746,11 @@ class Signal(object):
 
                         if (
                             include_ends
-                            and ends[0] not in self.timestamps
-                            and ends[0] > self.timestamps[0]
+                            and original_start not in self.timestamps
+                            and original_start > self.timestamps[0]
                         ):
                             interpolated = self.interp(
-                                [ends[0]],
+                                [original_start],
                                 integer_interpolation_mode=integer_interpolation_mode,
                                 float_interpolation_mode=float_interpolation_mode,
                             )
@@ -966,7 +972,7 @@ class Signal(object):
             if len(signal.samples.shape) > 1:
                 idx = np.searchsorted(signal.timestamps, new_timestamps, side="right")
                 idx -= 1
-                idx = np.clip(idx, 0, idx[-1])
+                idx[idx<0] = 0
                 s = signal.samples[idx]
                 if invalidation_bits is not None:
                     invalidation_bits = invalidation_bits[idx]
@@ -981,7 +987,7 @@ class Signal(object):
                             signal.timestamps, new_timestamps, side="right"
                         )
                         idx -= 1
-                        idx = np.clip(idx, 0, idx[-1])
+                        idx[idx<0] = 0
                         s = signal.samples[idx]
 
                         if invalidation_bits is not None:
@@ -995,7 +1001,7 @@ class Signal(object):
                                 signal.timestamps, new_timestamps, side="right"
                             )
                             idx -= 1
-                            idx = np.clip(idx, 0, idx[-1])
+                            idx[idx<0] = 0
                             invalidation_bits = invalidation_bits[idx]
 
                 elif kind in "ui":
@@ -1020,7 +1026,7 @@ class Signal(object):
                                 signal.timestamps, new_timestamps, side="right"
                             )
                             idx -= 1
-                            idx = np.clip(idx, 0, idx[-1])
+                            idx[idx<0] = 0
                             invalidation_bits = invalidation_bits[idx]
 
                     elif integer_interpolation_mode == 0:
@@ -1028,7 +1034,7 @@ class Signal(object):
                             signal.timestamps, new_timestamps, side="right"
                         )
                         idx -= 1
-                        idx = np.clip(idx, 0, idx[-1])
+                        idx[idx<0] = 0
 
                         s = signal.samples[idx]
 
@@ -1040,7 +1046,7 @@ class Signal(object):
                         signal.timestamps, new_timestamps, side="right"
                     )
                     idx -= 1
-                    idx = np.clip(idx, 0, idx[-1])
+                    idx[idx<0] = 0
                     s = signal.samples[idx]
 
                     if invalidation_bits is not None:

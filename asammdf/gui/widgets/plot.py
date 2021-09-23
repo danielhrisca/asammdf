@@ -127,12 +127,13 @@ class PlotSignal(Signal):
             "fmt": "",
         }
 
-        if hasattr(signal, "color"):
-            color = signal.color or COLORS[index % 10]
-        else:
-            color = COLORS[index % 10]
-        self.color = color
-        self.pen = pg.mkPen(color=color, style=QtCore.Qt.SolidLine)
+        if not fast:
+            if hasattr(signal, "color"):
+                color = signal.color or COLORS[index % 10]
+            else:
+                color = COLORS[index % 10]
+            self.color = color
+            self.pen = pg.mkPen(color=color, style=QtCore.Qt.SolidLine)
 
         if len(self.phys_samples) and not fast:
 
@@ -256,7 +257,7 @@ class PlotSignal(Signal):
     def std(self, std):
         self._std = std
 
-    def cut(self, start=None, stop=None, include_ends=True, interpolation_mode=0):
+    def cut(self, start=None, stop=None, include_ends=True, interpolation_mode=0, fast=False):
         cut_sig = super().cut(start, stop, include_ends, interpolation_mode)
 
         cut_sig.group_index = self.group_index
@@ -267,7 +268,7 @@ class PlotSignal(Signal):
         cut_sig.precision = self.precision
         cut_sig.mdf_uuif = self.mdf_uuid
 
-        return PlotSignal(cut_sig, duplication=self.duplication)
+        return PlotSignal(cut_sig, duplication=self.duplication, fast=fast)
 
     @property
     def mode(self):
@@ -746,37 +747,29 @@ class PlotSignal(Signal):
         return pos
 
     def value_at_timestamp(self, stamp):
-        cut = self.cut(stamp, stamp)
-
         if len(self.timestamps) and self.timestamps[-1] < stamp:
-            cut.samples = self.samples[-1:]
-            cut.phys_samples = self.phys_samples[-1:]
-            cut.raw_samples = self.raw_samples[-1:]
-            cut.timestamps = self.timestamps[-1:]
-
-        if self.mode == "raw":
-            values = cut.raw_samples
+            values = self.samples[-1:]
         else:
-            if self.conversion and hasattr(self.conversion, "text_0"):
-                values = self.conversion.convert(cut.samples)
-            else:
-                values = cut.phys_samples
+            values = super().cut(stamp, stamp).samples
 
         if len(values) == 0:
             value = "n.a."
             kind = values.dtype.kind
         else:
 
+            if self.mode != "raw":
+                if self.conversion:
+                    values = self.conversion.convert(values)
+            value = values[0]
+
             kind = values.dtype.kind
             if kind == "S":
                 try:
-                    value = values[0].decode("utf-8").strip(" \r\n\t\v\0")
+                    value = value.decode("utf-8").strip(" \r\n\t\v\0")
                 except:
-                    value = values[0].decode("latin-1").strip(" \r\n\t\v\0")
+                    value = value.decode("latin-1").strip(" \r\n\t\v\0")
 
                 value = value or "<empty string>"
-            else:
-                value = values.tolist()[0]
 
         return value, kind, self.format
 
@@ -817,6 +810,9 @@ class Plot(QtWidgets.QWidget):
         self._range_stop = None
 
         self._can_switch_mode = True
+        
+        self._accept_cursor_update = False
+        self._last_cursor_update = perf_counter()
 
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setSpacing(1)
@@ -1031,12 +1027,16 @@ class Plot(QtWidgets.QWidget):
                     next_pos = x[right - 1]
                 else:
                     next_pos = x[right]
+            self._accept_cursor_update = True
             self.plot.cursor1.setPos(next_pos)
 
         # self.plot.cursor_hint.setData(x=[], y=[])
         self.plot.cursor_hint.hide()
 
     def cursor_moved(self):
+        if not self._accept_cursor_update and perf_counter() - self._last_cursor_update < 0.030:
+            return
+        
         position = self.plot.cursor1.value()
 
         if not self.plot.region:
@@ -1070,6 +1070,8 @@ class Plot(QtWidgets.QWidget):
             stats = self.plot.get_stats(self.info_uuid)
             self.info.set_stats(stats)
 
+        self._last_cursor_update = perf_counter()
+        self._accept_cursor_update = False
         self.cursor_moved_signal.emit(self, position)
 
     def cursor_removed(self):

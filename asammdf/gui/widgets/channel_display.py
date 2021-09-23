@@ -62,6 +62,8 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             self.fmt = "{}"
         else:
             self.fmt = f"{{:.{self.precision}f}}"
+            
+        self.setAutoFillBackground(True)
 
     def set_unit(self, unit):
         unit = str(unit)
@@ -180,21 +182,25 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
                 self.fm.elidedText(self._name, QtCore.Qt.ElideMiddle, width)
             )
         self.set_value(self._value, update=True)
-
+            
     def set_value(self, value, update=False):
         if self._value == value and update is False:
             return
 
         self._value = value
         if self.ranges and value not in ("", "n.a."):
+            p = self.palette()
             for (start, stop), color in self.ranges.items():
                 if start <= value <= stop:
-                    self.setStyleSheet(f"background-color: {color};")
+                    self.setAttribute(QtCore.Qt.WA_NoSystemBackground, False)
+                    
+                    p.setColor(self.backgroundRole(), QtGui.QColor(color))
+                    self.setPalette(p)
                     break
             else:
-                self.setStyleSheet("background-color: transparent;")
+                self.setAttribute(QtCore.Qt.WA_NoSystemBackground, True)
         elif not self._transparent:
-            self.setStyleSheet("background-color: transparent;")
+            self.setAttribute(QtCore.Qt.WA_NoSystemBackground, True)
         template = "{{}}{}"
         if value not in ("", "n.a."):
             template = template.format(self.fmt)
