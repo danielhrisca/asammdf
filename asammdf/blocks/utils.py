@@ -286,7 +286,7 @@ def extract_display_names(comment):
                 for i, elem in enumerate(names.iter()):
                     if i == 0:
                         continue
-                    display_names[elem.text] = elem.tag
+                    display_names[elem.text.strip(' \t\r\n\v\0')] = elem.tag
 
         except:
             pass

@@ -58,6 +58,9 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.apply_btn.setText(apply_text)
         self.add_window_btn.setText(add_window_text)
 
+        self.selection.setUniformItemSizes(True)
+        self.matches.setUniformItemSizes(True)
+
         if not show_add_window:
             self.add_window_btn.hide()
 
@@ -85,6 +88,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             try:
                 pattern = re.compile(f"(?i){pattern}")
                 matches = [name for name in self.channels_db if pattern.search(name)]
+
                 self.matches.clear()
                 self.matches.addItems(matches)
                 if matches:
