@@ -1827,8 +1827,6 @@ class WithMDIArea:
             )
 
             numeric.add_new_channels(signals)
-            numeric.format = fmt
-            numeric._update_values()
 
             menu = w.systemMenu()
 
