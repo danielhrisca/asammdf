@@ -15,23 +15,81 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout" stretch="0,1,0,0,0,0">
    <item>
-    <widget class="QComboBox" name="format_selection">
-     <item>
-      <property name="text">
-       <string>phys</string>
-      </property>
+    <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,1">
+     <item row="0" column="1">
+      <widget class="QComboBox" name="mode_selection">
+       <property name="currentIndex">
+        <number>1</number>
+       </property>
+       <item>
+        <property name="text">
+         <string>raw values</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>scaled values</string>
+        </property>
+       </item>
+      </widget>
      </item>
-     <item>
-      <property name="text">
-       <string>hex</string>
-      </property>
+     <item row="1" column="1">
+      <widget class="QComboBox" name="format_selection">
+       <item>
+        <property name="text">
+         <string>phys</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>hex</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>bin</string>
+        </property>
+       </item>
+      </widget>
      </item>
-     <item>
-      <property name="text">
-       <string>bin</string>
-      </property>
+     <item row="0" column="0">
+      <widget class="QLabel" name="label_4">
+       <property name="text">
+        <string>Samples mode</string>
+       </property>
+      </widget>
      </item>
-    </widget>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_5">
+       <property name="text">
+        <string>Integer format</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="label_6">
+       <property name="text">
+        <string>Float precision</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QSpinBox" name="float_precision">
+       <property name="suffix">
+        <string> decimals</string>
+       </property>
+       <property name="prefix">
+        <string/>
+       </property>
+       <property name="maximum">
+        <number>15</number>
+       </property>
+       <property name="value">
+        <number>3</number>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item>
     <widget class="NumericTreeWidget" name="channels">

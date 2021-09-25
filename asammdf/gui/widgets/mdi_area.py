@@ -1750,7 +1750,6 @@ class WithMDIArea:
 
             else:
 
-                fmt = window_info["configuration"]["format"]
                 required = set(window_info["configuration"]["channels"])
 
                 signals_ = [
@@ -1794,7 +1793,13 @@ class WithMDIArea:
 
                 signals.extend(not_found)
 
-            numeric = Numeric([], parent=self)
+            numeric = Numeric(
+                [],
+                format=window_info["configuration"]["format"],
+                mode=window_info["configuration"].get("mode", "scaled values"),
+                float_precision=window_info["configuration"].get("float_precision", 3),
+                parent=self
+            )
             numeric.pattern = pattern_info
 
             sub = MdiSubWindow(parent=self)

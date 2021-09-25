@@ -839,9 +839,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             else:
 
-                from pprint import pprint
-                pprint(result)
-
                 names = set()
                 if view.currentText() == "Internal file structure":
                     iterator = QtWidgets.QTreeWidgetItemIterator(widget)

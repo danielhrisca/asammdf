@@ -24,13 +24,32 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
             try:
                 val1 = float(val1)
             except:
-                pass
+                if val1.startswith('0x'):
+                    try:
+                        val1 = int(val1, 16)
+                    except:
+                        pass
+                elif val1.startswith('0b'):
+                    try:
+                        val1 = int(val1, 2)
+                    except:
+                        pass
+
 
             val2 = otherItem.text(column)
             try:
                 val2 = float(val2)
             except:
-                pass
+                if val2.startswith('0x'):
+                    try:
+                        val2 = int(val2, 16)
+                    except:
+                        pass
+                elif val2.startswith('0b'):
+                    try:
+                        val2 = int(val2, 2)
+                    except:
+                        pass
 
             try:
                 return val1 < val2

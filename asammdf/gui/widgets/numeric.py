@@ -25,14 +25,30 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
     add_channels_request = QtCore.pyqtSignal(list)
     timestamp_changed_signal = QtCore.pyqtSignal(object, float)
 
-    def __init__(self, signals, format="phys", *args, **kwargs):
+    def __init__(self, signals, format=None, mode=None, float_precision=None, *args, **kwargs):
         super(QtWidgets.QWidget, self).__init__(*args, **kwargs)
         self.setupUi(self)
+        self._settings = QtCore.QSettings()
+
         for sig in signals:
             sig.timestamps = np.around(sig.timestamps, 9)
         self.signals = {}
         self._min = self._max = 0
+
+        if format is None:
+            format = self._settings.value("numeric_format", "phys")
+        self.format_selection.setCurrentText(format)
         self.format = format
+
+        if mode is None:
+            mode = self._settings.value("numeric_mode", "scaled values")
+        self.mode_selection.setCurrentText(mode)
+        self.mode = mode
+
+        if float_precision is None:
+            float_precision = self._settings.value("numeric_float_precision", 3)
+        self.float_precision.setValue(float_precision)
+
         self.add_new_channels(signals)
         self.pattern = {}
 
@@ -50,10 +66,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         self.op.addItems([">", ">=", "<", "<=", "==", "!="])
 
         self.format_selection.currentTextChanged.connect(self.set_format)
-
-        self._settings = QtCore.QSettings()
-        integer_mode = self._settings.value("numeric_format", "phys")
-        self.format_selection.setCurrentText(integer_mode)
+        self.mode_selection.currentTextChanged.connect(self.set_mode)
+        self.float_precision.valueChanged.connect(self.set_float_precision)
 
         self.build()
 
@@ -70,13 +84,20 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         self._max = -float("inf")
         items = []
 
+        mode = self.mode
+
+        float_format = f'{{:.{self.float_precision.value()}f}}'
+
         for sig in self.signals.values():
-            sig.kind = sig.samples.dtype.kind
+            if mode == "raw values":
+                sig.kind = sig.raw_samples.dtype.kind
+            else:
+                sig.kind = sig.phys_samples.dtype.kind
             size = len(sig)
             sig.size = size
             if size:
                 if sig.kind == "f":
-                    value = f"{sig.samples[0]:.3f}"
+                    value = float_format.format(sig.samples[0])
                 else:
                     value = str(sig.samples[0])
                 self._min = min(self._min, sig.timestamps[0])
@@ -100,8 +121,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             self._min = self._max = 0
 
         self.timestamp.setRange(self._min, self._max)
-        self.min_t.setText(f"{self._min:.3f}s")
-        self.max_t.setText(f"{self._max:.3f}s")
+        self.min_t.setText(f"{self._min:.6f}s")
+        self.max_t.setText(f"{self._max:.6f}s")
         self._update_values()
         self.channels.setSortingEnabled(True)
 
@@ -134,6 +155,10 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         idx_cache = {}
 
+        float_format = f'{{:.{self.float_precision.value()}f}}'
+
+        mode = self.mode
+
         if self.format == "bin":
 
             while 1:
@@ -147,16 +172,21 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     else:
                         idx = min(sig.size - 1, searchsorted(sig.timestamps, stamp))
                         idx_cache[(sig.group_index, sig.mdf_uuid)] = idx
-                    value = sig.samples[idx]
+
+                    if mode == "raw values":
+                        value = sig.raw_samples[idx]
+                    else:
+                        value = sig.phys_samples[idx]
 
                     if sig.kind == "f":
-                        item.setText(1, f"{value:.3f}")
+                        item.setText(1, float_format.format(value))
                     elif sig.kind in "ui":
                         item.setText(1, bin(value))
                     else:
                         item.setText(1, str(value))
 
                 iterator += 1
+
         elif self.format == "hex":
 
             while 1:
@@ -170,10 +200,14 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     else:
                         idx = min(sig.size - 1, searchsorted(sig.timestamps, stamp))
                         idx_cache[(sig.group_index, sig.mdf_uuid)] = idx
-                    value = sig.samples[idx]
+
+                    if mode == "raw values":
+                        value = sig.raw_samples[idx]
+                    else:
+                        value = sig.phys_samples[idx]
 
                     if sig.kind == "f":
-                        item.setText(1, f"{value:.3f}")
+                        item.setText(1, float_format.format(value))
                     elif sig.kind in "ui":
                         item.setText(1, f"0x{value:X}")
                     else:
@@ -192,9 +226,14 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     else:
                         idx = min(sig.size - 1, searchsorted(sig.timestamps, stamp))
                         idx_cache[(sig.group_index, sig.mdf_uuid)] = idx
-                    value = sig.samples[idx]
+
+                    if mode == "raw values":
+                        value = sig.raw_samples[idx]
+                    else:
+                        value = sig.phys_samples[idx]
+
                     if sig.kind == "f":
-                        item.setText(1, f"{value:.3f}")
+                        item.setText(1, float_format.format(value))
                     else:
                         item.setText(1, str(value))
 
@@ -214,9 +253,12 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                 if np.any(np.diff(sig.timestamps) < 0):
                     invalid.append(sig.name)
 
-                # only physical samples are supported
                 if sig.conversion:
-                    sig.samples = sig.conversion.convert(sig.samples)
+                    sig.phys_samples = sig.conversion.convert(sig.samples)
+                    sig.raw_samples = sig.samples
+                else:
+                    sig.phys_samples = sig.raw_samples = sig.samples
+
                 self.signals[sig.name] = sig
         if invalid:
             errors = ', '.join(invalid)
@@ -251,8 +293,10 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             event.accept()
         elif key == QtCore.Qt.Key_Right and modifier == QtCore.Qt.NoModifier:
             self.timestamp_slider.setValue(self.timestamp_slider.value() + 1)
+
         elif key == QtCore.Qt.Key_Left and modifier == QtCore.Qt.NoModifier:
             self.timestamp_slider.setValue(self.timestamp_slider.value() - 1)
+
         elif key == QtCore.Qt.Key_S and modifier == QtCore.Qt.ControlModifier:
             file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
                 self,
@@ -283,6 +327,14 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                             mdf.append(sigs, common_timebase=True)
                         mdf.save(file_name, overwrite=True)
 
+        elif (
+            key in (QtCore.Qt.Key_R, QtCore.Qt.Key_S)
+            and modifier == QtCore.Qt.AltModifier
+        ):
+            if key == QtCore.Qt.Key_R:
+                self.mode_selection.setCurrentText("raw values")
+            else:
+                self.mode_selection.setCurrentText("scaled values")
         else:
             super().keyPressEvent(event)
 
@@ -299,8 +351,10 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         config = {
             "format": self.format,
+            "mode": self.mode,
             "channels": channels if not self.pattern else [],
             "pattern": self.pattern,
+            "float_precision": self.float_precision.value(),
         }
 
         return config
@@ -323,6 +377,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         pattern = re.compile(f"(?i){pattern}")
         matches = [name for name in self.signals if pattern.search(name)]
 
+        mode = self.mode
+
         if not matches:
             self.match.setText("the pattern does not match any channel name")
             return
@@ -342,7 +398,10 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             signal_name = ""
             for name in matches:
                 sig = self.signals[name].cut(start=start)
-                samples = sig.samples
+                if mode == "raw values" or sig.comversion is None:
+                    samples = sig.samples
+                else:
+                    samples = sig.conversion.convert(sig.samples)
 
                 op = getattr(samples, OPS[operator])
                 try:
@@ -383,6 +442,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         pattern = re.compile(f"(?i){pattern}")
         matches = [name for name in self.signals if pattern.search(name)]
 
+        mode = self.mode
+
         if not matches:
             self.match.setText("the pattern does not match any channel name")
             return
@@ -402,7 +463,10 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             signal_name = ""
             for name in matches:
                 sig = self.signals[name].cut(stop=stop)
-                samples = sig.samples[:-1]
+                if mode == "raw values" or sig.comversion is None:
+                    samples = sig.samples[:-1]
+                else:
+                    samples = sig.conversion.convert(sig.samples)[:-1]
 
                 op = getattr(samples, OPS[operator])
                 try:
@@ -429,4 +493,13 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
     def set_format(self, fmt):
         self.format = fmt
         self._settings.setValue("numeric_format", fmt)
+        self._update_values()
+
+    def set_mode(self, mode):
+        self.mode = mode
+        self._settings.setValue("numeric_mode", mode)
+        self._update_values()
+
+    def set_float_precision(self, value):
+        self._settings.setValue("numeric_float_precision", value)
         self._update_values()
