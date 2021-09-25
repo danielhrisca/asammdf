@@ -1654,11 +1654,10 @@ class Plot(QtWidgets.QWidget):
                     channel["common_axis"] = widget.ylink.checkState() == QtCore.Qt.Checked
                     channel["color"] = sig.color
                     channel["computed"] = sig.computed
-                    ranges = [
-                        {"start": start, "stop": stop, "color": color}
-                        for (start, stop), color in widget.ranges.items()
-                    ]
-                    channel["ranges"] = ranges
+                    channel["ranges"] = [dict(e) for e in widget.ranges]
+
+                    for range_info in channel['ranges']:
+                        range_info['color'] = range_info['color'].name()
 
                     channel["precision"] = widget.precision
                     channel["fmt"] = widget.fmt

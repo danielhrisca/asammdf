@@ -41,7 +41,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self.details.setVisible(False)
 
         self.uuid = uuid
-        self.ranges = {}
+        self.ranges = []
         self._unit = unit.strip()
         self.kind = kind
         self.precision = precision
@@ -64,6 +64,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             self.fmt = f"{{:.{self.precision}f}}"
             
         self.setAutoFillBackground(True)
+        self._back_ground_color = self.palette().color(self.backgroundRole())
 
     def set_unit(self, unit):
         unit = str(unit)
@@ -109,7 +110,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self.ylink_changed.emit(self.uuid, state)
 
     def mouseDoubleClickEvent(self, event):
-        dlg = RangeEditor(self._unit, self.ranges)
+        dlg = RangeEditor(self._name, self._unit, self.ranges, parent=self)
         dlg.exec_()
         if dlg.pressed_button == "apply":
             self.ranges = dlg.result
@@ -190,15 +191,54 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self._value = value
         if self.ranges and value not in ("", "n.a."):
             p = self.palette()
-            for (start, stop), color in self.ranges.items():
-                if start <= value <= stop:
-                    self.setAttribute(QtCore.Qt.WA_NoSystemBackground, False)
-                    
-                    p.setColor(self.backgroundRole(), QtGui.QColor(color))
-                    self.setPalette(p)
+            new_color = self._back_ground_color
+
+            for range in self.ranges:
+                color, op1, op2, value1, value2 = range.values()
+
+                result = False
+                
+                if value1 is not None:
+                    if op1 == '==':
+                        result = value1 == value
+                    elif op1 == '!=':
+                        result = value1 != value
+                    elif op1 == '<=':
+                        result = value1 <= value
+                    elif op1 == '<':
+                        result = value1 < value
+                    elif op1 == '>=':
+                        result = value1 >= value
+                    elif op1 == '>':
+                        result = value1 > value
+
+                    if not result:
+                        continue
+                        
+                if value2 is not None:
+                    if op2 == '==':
+                        result = value == value2
+                    elif op2 == '!=':
+                        result = value != value2
+                    elif op2 == '<=':
+                        result = value <= value2
+                    elif op2 == '<':
+                        result = value < value2
+                    elif op2 == '>=':
+                        result = value >= value2
+                    elif op2 == '>':
+                        result = value > value2
+
+                    if not result:
+                        continue
+
+                if result:
+                    new_color = color
                     break
-            else:
-                self.setAttribute(QtCore.Qt.WA_NoSystemBackground, True)
+
+            p.setColor(self.backgroundRole(), new_color)
+            self.setPalette(p)
+
         elif not self._transparent:
             self.setAttribute(QtCore.Qt.WA_NoSystemBackground, True)
         template = "{{}}{}"
@@ -255,11 +295,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
                 #     QtCore.Qt.Checked if info["display"] else QtCore.Qt.Unchecked
                 # )
 
-                self.ranges = {}
-
-                for key, val in info["ranges"].items():
-                    start, stop = [float(e) for e in key.split("|")]
-                    self.ranges[(start, stop)] = val
+                self.ranges = info["ranges"]
 
             except:
                 pass
@@ -295,9 +331,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             if self.fmt.startswith("0b")
             else "phys",
             # "display": self.display.checkState() == QtCore.Qt.Checked,
-            "ranges": {
-                f"{start}|{stop}": val for (start, stop), val in self.ranges.items()
-            },
+            "ranges": self.ranges,
         }
 
         parent = self.parent().parent().parent().parent().parent()

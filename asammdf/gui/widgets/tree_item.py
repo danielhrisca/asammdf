@@ -35,7 +35,6 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
                     except:
                         pass
 
-
             val2 = otherItem.text(column)
             try:
                 val2 = float(val2)

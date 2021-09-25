@@ -2236,10 +2236,23 @@ class WithMDIArea:
 
                         wid.set_fmt(description["fmt"])
                         wid.set_precision(description["precision"])
-                        wid.ranges = {
-                            (range["start"], range["stop"]): range["color"]
-                            for range in description["ranges"]
-                        }
+                        try:
+                            wid.ranges = [
+                                {
+                                    "color": range["color"],
+                                    "op1": "<=",
+                                    "op2": "<=",
+                                    "value1": float(range["start"]),
+                                    "value2": float(range["stop"]),
+                                }
+                                for range in description["ranges"]
+                            ]
+                        except KeyError:
+                            wid.ranges = description["ranges"]
+
+                        for range in wid.ranges:
+                            range['color'] = QtGui.QColor(range['color'])
+
                         wid.ylink.setCheckState(
                             QtCore.Qt.Checked
                             if description["common_axis"]
