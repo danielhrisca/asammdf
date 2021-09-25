@@ -24,6 +24,7 @@ from ...blocks.v4_constants import (
     FLAG_CG_BUS_EVENT,
 )
 from ...mdf import MDF, SUPPORTED_VERSIONS
+from ..dialogs.gps_dialog import GPSDialog
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_group_info import ChannelGroupInfoDialog
 from ..dialogs.channel_info import ChannelInfoDialog
@@ -1376,6 +1377,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     "Tabular",
                     "CAN Bus Trace",
                     "LIN Bus Trace",
+                    "GPS",
                 ),
                 parent=self,
             )
@@ -1392,30 +1394,27 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         elif window_type in ("CAN Bus Trace", "LIN Bus Trace"):
             signals = []
         elif window_type == "GPS":
-            names = sorted(self.mdf.channels_db)
-            latitude, ok = QtWidgets.QInputDialog.getItem(
-                self,
-                "Select the Latitude signals",
-                "Latitude signal name:",
-                names,
-                editable=False,
-            )
-            if not ok:
-                return
 
-            longitude, ok = QtWidgets.QInputDialog.getItem(
-                self,
-                "Select the Longitude signals",
-                "Longitude signal name:",
-                names,
-                editable=False,
+            dlg = GPSDialog(
+                self.mdf.channels_db,
+                parent=self,
             )
-            if not ok:
-                return
+            dlg.setModal(True)
+            dlg.exec_()
 
-            signals = [
-                (name, *self.mdf.whereis(name)[0], self.uuid, "channel") for name in [latitude, longitude]
-            ]
+            if dlg.valid:
+                latitude = dlg.latitude.text().strip()
+                longitude = dlg.longitude.text().strip()
+
+                signals = [
+                    (name, *self.mdf.whereis(name)[0], self.uuid, "channel")
+                    for name in [latitude, longitude]
+                    if name in self.mdf
+                ]
+                if len(signals) != 2:
+                    return
+            else:
+                return
         else:
 
             try:

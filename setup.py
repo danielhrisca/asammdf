@@ -107,7 +107,7 @@ setup(
             "lxml",
             "natsort",
             "psutil",
-            "PyQt5>=5.14.0",
+            "PyQt5>=5.15.0",
             "pyqtgraph>=0.12.1",
             "pyqtlet",
             "PyQtWebEngine",

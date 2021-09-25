@@ -1122,6 +1122,9 @@ class WithMDIArea:
 
     def _add_gps_window(self, signals):
 
+        signals = [
+            sig[:3] for sig in signals
+        ]
         latitude_channel, longitude_channel = self.mdf.select(signals)
 
         gps = GPS(latitude_channel, longitude_channel)

@@ -1372,7 +1372,6 @@ class Plot(QtWidgets.QWidget):
                     pass
 
         elif (key, modifiers) in self.plot.keyboard_events:
-            print((key, modifiers), self.plot.keyboard_events)
             self.plot.keyPressEvent(event)
         else:
             event.ignore()

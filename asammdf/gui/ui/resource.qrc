@@ -49,5 +49,6 @@
     <file alias="right_interconnect.png">images/right_interconnect.png</file>
     <file alias="clock.png">images/clock.png</file>
     <file alias="alphabetical_sorting.png">images/alphabetical_sorting.png</file>
+    <file alias="globe.png">images/globe.png</file>
 </qresource>
 </RCC>
