@@ -1762,6 +1762,25 @@ class WithMDIArea:
                     if name in self.mdf
                 ]
 
+                if window_info["configuration"].get("ranges", []):
+                    ranges = [
+                        range
+                        for name, range in zip(
+                            window_info["configuration"]["ranges"],
+                            window_info["configuration"]["channels"]
+                        )
+                        if name in self.mdf
+                    ]
+
+                    for range in ranges:
+                        range['color'] = QtGui.QColor(range['color'])
+                else:
+                    ranges = [
+                        []
+                        for name in window_info["configuration"]["channels"]
+                        if name in self.mdf
+                    ]
+
                 if not signals_:
                     return
 
@@ -1773,10 +1792,11 @@ class WithMDIArea:
                     raw=True,
                 )
 
-                for sig, sig_ in zip(signals, signals_):
+                for sig, sig_ in zip(signals, signals_, ranges):
                     sig.group_index = sig_[1]
                     sig.mdf_uuid = uuid
                     sig.computation = None
+                    sig.ranges = ranges
 
                 signals = [
                     sig

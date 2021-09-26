@@ -112,6 +112,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                 [sig.name, value, sig.unit],
                 mdf_uuid=sig.mdf_uuid,
                 computation=sig.computation,
+                ranges=sig.ranges,
             )
             item.setFlags(item.flags() & ~QtCore.Qt.ItemIsDropEnabled)
             items.append(item)
@@ -260,6 +261,9 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     sig.phys_samples = sig.raw_samples = sig.samples
 
                 self.signals[sig.name] = sig
+
+                sig.ranges = getattr(sig, "ranges", [])
+
         if invalid:
             errors = ', '.join(invalid)
             try:
@@ -340,13 +344,19 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
     def to_config(self):
 
-        channels = []
+        channels = {}
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channels)
         while 1:
             item = iterator.value()
             if not item:
                 break
-            channels.append(item.text(0))
+
+            ranges = [dict(e) for e in item["ranges"]]
+
+            for range_info in ranges:
+                range_info['color'] = range_info['color'].name()
+
+            channels[item.name] = ranges
             iterator += 1
 
         pattern = self.pattern
@@ -361,7 +371,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         config = {
             "format": self.format,
             "mode": self.mode,
-            "channels": channels if not self.pattern else [],
+            "channels": list(channels) if not self.pattern else [],
+            "ranges": list(channels.values()) if not self.pattern else [],
             "pattern": pattern,
             "float_precision": self.float_precision.value(),
         }

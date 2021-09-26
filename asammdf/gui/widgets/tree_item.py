@@ -5,9 +5,9 @@ from PyQt5 import QtWidgets
 
 class TreeItem(QtWidgets.QTreeWidgetItem):
 
-    __slots__ = "entry", "name", "mdf_uuid"
+    __slots__ = "entry", "name", "mdf_uuid", "ranges"
 
-    def __init__(self, entry, name="", parent=None, strings=None, mdf_uuid=None, computation=None):
+    def __init__(self, entry, name="", parent=None, strings=None, mdf_uuid=None, computation=None, ranges=None):
 
         super().__init__(parent, strings)
 
@@ -15,6 +15,7 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
         self.name = name
         self.mdf_uuid = mdf_uuid
         self.computation = computation or {}
+        self.ranges = ranges or []
 
     def __lt__(self, otherItem):
         column = self.treeWidget().sortColumn()
@@ -62,3 +63,21 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
 
     def __del__(self):
         self.entry = self.name = self.mdf_uuid = None
+        
+    def value(self):
+        val = self.text(1)
+        try:
+            val = float(val)
+        except:
+            if val.startswith('0x'):
+                try:
+                    val = int(val, 16)
+                except:
+                    pass
+            elif val.startswith('0b'):
+                try:
+                    val = int(val, 2)
+                except:
+                    pass
+
+        return val

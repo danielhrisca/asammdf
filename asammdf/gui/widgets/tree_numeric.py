@@ -4,6 +4,7 @@ from struct import pack
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+from ..dialogs.range_editor import RangeEditor
 from ..utils import extract_mime_names
 
 
@@ -20,6 +21,8 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
         self.setAcceptDrops(True)
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
         self.setEditTriggers(QtWidgets.QAbstractItemView.DoubleClicked)
+
+        self.itemDoubleClicked.connect(self.handle_item_double_click)
 
     def keyPressEvent(self, event):
         key = event.key()
@@ -112,3 +115,9 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
                 self.add_channels_request.emit(names)
             else:
                 super().dropEvent(e)
+
+    def handle_item_double_click(self, item, column):
+        dlg = RangeEditor(item.name, ranges=item.ranges, parent=self)
+        dlg.exec_()
+        if dlg.pressed_button == "apply":
+            item.ranges = dlg.result
