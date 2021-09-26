@@ -46,6 +46,9 @@ class RangeEditor(Ui_RangeDialog, QtWidgets.QDialog):
         count = self.ranges.count()
         for i in range(count):
             item = self.ranges.item(i)
+            if item is None:
+                continue
+
             widget = self.ranges.itemWidget(item)
             ranges.append(widget.to_dict())
 

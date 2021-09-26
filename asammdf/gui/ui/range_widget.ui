@@ -132,7 +132,7 @@
    <item>
     <widget class="QLabel" name="label_2">
      <property name="text">
-      <string>    set color</string>
+      <string>    then set color</string>
      </property>
     </widget>
    </item>

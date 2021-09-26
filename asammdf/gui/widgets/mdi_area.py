@@ -1748,6 +1748,10 @@ class WithMDIArea:
                     self.uuid,
                 )
 
+                for sig  in signals:
+                    sig.mdf_uuid = uuid
+                    sig.computation = None
+
             else:
 
                 required = set(window_info["configuration"]["channels"])
@@ -2318,6 +2322,11 @@ class WithMDIArea:
 
                 if not signals_:
                     return
+
+            signals_ = [
+                (sig.name, sig.group_index, sig.channel_index)
+                for sig in signals_
+            ]
 
             signals = self.mdf.to_dataframe(
                 channels=signals_,

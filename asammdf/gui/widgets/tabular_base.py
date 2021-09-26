@@ -447,6 +447,15 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
 
         count = self.filters.count()
 
+        pattern = self.pattern
+        if pattern:
+            ranges = [dict(e) for e in pattern["ranges"]]
+
+            for range_info in ranges:
+                range_info['color'] = range_info['color'].name()
+
+            pattern["ranges"] = ranges
+
         config = {
             "sorted": self.sort.checkState() == QtCore.Qt.Checked,
             "channels": list(self.signals.columns) if not self.pattern else [],
@@ -458,7 +467,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             if not self.pattern
             else [],
             "time_as_date": self.time_as_date.checkState() == QtCore.Qt.Checked,
-            "pattern": self.pattern,
+            "pattern": pattern,
             "format": self.format,
         }
 

@@ -818,7 +818,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             {
                                 "type": "Numeric",
                                 "title": result["pattern"],
-                                "configuration": {"channels": [], "pattern": result},
+                                "configuration": {
+                                    "channels": [], "pattern": result,
+                                    "format": "phys",
+                                },
                             }
                         )
                     elif window_type == "New pattern based tabular window":

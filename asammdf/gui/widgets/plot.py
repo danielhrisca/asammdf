@@ -1681,21 +1681,39 @@ class Plot(QtWidgets.QWidget):
                             channel["conversion"][f"val_{i}"] = sig.conversion[f"val_{i}"]
 
                 elif isinstance(widget, ChannelGroupDisplay):
+                    pattern = item.pattern
+                    if pattern:
+                        ranges = [dict(e) for e in pattern["ranges"]]
+
+                        for range_info in ranges:
+                            range_info['color'] = range_info['color'].name()
+
+                        pattern["ranges"] = ranges
+
                     channel = {
                         'type': 'group',
                         'name': widget.name.text().rsplit('[')[0],
                         'channels': item_to_config(tree, item) if item.pattern is None else [],
                         "enabled": item.checkState(0) == QtCore.Qt.Checked,
-                        'pattern': item.pattern,
+                        'pattern': pattern,
                     }
 
                 channels.append(channel)
 
             return channels
 
+        pattern = self.pattern
+        if pattern:
+            ranges = [dict(e) for e in pattern["ranges"]]
+
+            for range_info in ranges:
+                range_info['color'] = range_info['color'].name()
+
+            pattern["ranges"] = ranges
+
         config = {
             "channels": item_to_config(self.channel_selection, self.channel_selection.invisibleRootItem()) if not self.pattern else [],
-            "pattern": self.pattern,
+            "pattern": pattern,
             "splitter": [int(e) for e in self.splitter.sizes()[:2]]
             + [
                 0,

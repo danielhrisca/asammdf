@@ -349,11 +349,20 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             channels.append(item.text(0))
             iterator += 1
 
+        pattern = self.pattern
+        if pattern:
+            ranges = [dict(e) for e in pattern["ranges"]]
+
+            for range_info in ranges:
+                range_info['color'] = range_info['color'].name()
+
+            pattern["ranges"] = ranges
+
         config = {
             "format": self.format,
             "mode": self.mode,
             "channels": channels if not self.pattern else [],
-            "pattern": self.pattern,
+            "pattern": pattern,
             "float_precision": self.float_precision.value(),
         }
 
