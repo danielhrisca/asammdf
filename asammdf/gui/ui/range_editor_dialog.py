@@ -20,6 +20,8 @@ class Ui_RangeDialog(object):
         self.gridLayout = QtWidgets.QGridLayout(RangeDialog)
         self.gridLayout.setObjectName("gridLayout")
         self.ranges = MinimalListWidget(RangeDialog)
+        self.ranges.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
+        self.ranges.setDefaultDropAction(QtCore.Qt.MoveAction)
         self.ranges.setObjectName("ranges")
         self.gridLayout.addWidget(self.ranges, 0, 0, 7, 1)
         spacerItem = QtWidgets.QSpacerItem(20, 271, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)

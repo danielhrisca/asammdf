@@ -10,7 +10,7 @@ from ..widgets.range_widget import RangeWidget
 
 
 class RangeEditor(Ui_RangeDialog, QtWidgets.QDialog):
-    def __init__(self, name, unit="", ranges=None, *args, **kwargs):
+    def __init__(self, name, unit="", ranges=None, brush=False, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
@@ -18,12 +18,14 @@ class RangeEditor(Ui_RangeDialog, QtWidgets.QDialog):
         self.unit = unit
         self.result = []
         self.pressed_button = None
+        self._brush = brush
 
         if ranges:
             for range in ranges:
                 widget = RangeWidget(
                     parent=self,
                     name=self.name,
+                    brush=brush,
                     **range,
                 )
 
@@ -50,7 +52,7 @@ class RangeEditor(Ui_RangeDialog, QtWidgets.QDialog):
                 continue
 
             widget = self.ranges.itemWidget(item)
-            ranges.append(widget.to_dict())
+            ranges.append(widget.to_dict(brush=self._brush))
 
         self.result = ranges
         self.pressed_button = "apply"

@@ -53,6 +53,7 @@ def build_mime_from_config(channels, mdf=None, uuid=None, default_index=-1):
                         build_mime_from_config(channel['channels'], mdf, uuid, default_index),
                         None,
                         "group",
+                        [],
                     )
                 )
             else:
@@ -63,6 +64,7 @@ def build_mime_from_config(channels, mdf=None, uuid=None, default_index=-1):
                         [],
                         None,
                         "group",
+                        [],
                     )
                 )
         else:
@@ -78,6 +80,7 @@ def build_mime_from_config(channels, mdf=None, uuid=None, default_index=-1):
                     channel_index,
                     uuid or channel['mdf_uuid'],
                     "channel",
+                    channel.get("ranges", []),
                 )
             )
     return mime
@@ -197,12 +200,12 @@ def get_descriptions(channels):
 def get_flatten_entries_from_mime(data, default_index=None):
     entries = []
 
-    for (name, group_index, channel_index, mdf_uuid, type_) in data:
+    for (name, group_index, channel_index, mdf_uuid, type_, ranges) in data:
         if type_ == "channel":
             if default_index is not None:
-                entries.append((name, default_index, default_index, mdf_uuid, 'channel'))
+                entries.append((name, default_index, default_index, mdf_uuid, 'channel', ranges))
             else:
-                entries.append((name, group_index, channel_index, mdf_uuid, 'channel'))
+                entries.append((name, group_index, channel_index, mdf_uuid, 'channel', ranges))
         else:
             entries.extend(get_flatten_entries_from_mime(channel_index, default_index))
     return entries
@@ -213,7 +216,7 @@ def get_pattern_groups(data):
     for (name, pattern, channels, mdf_uuid, type_) in data:
         if type_ == "group":
             if pattern is not None:
-                groups.append(name, pattern, channels, mdf_uuid, type_)
+                groups.append(name, pattern, channels, mdf_uuid, type_, [])
             else:
                 groups.extend(get_pattern_groups(channels))
     return groups
@@ -354,7 +357,7 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
 
                 def count(data):
                     s = 0
-                    for (name, group_index, channel_index, mdf_uuid, type_) in data:
+                    for (name, group_index, channel_index, mdf_uuid, type_, ranges) in data:
                         if type_ == "channel":
                             s += 1
                         else:
@@ -496,7 +499,7 @@ class WithMDIArea:
             names = list(names)
             if names and isinstance(names[0], str):
                 signals_ = [
-                    (name, *self.mdf.whereis(name)[0], self.uuid, 'channel')
+                    (name, *self.mdf.whereis(name)[0], self.uuid, 'channel', [])
                     for name in names
                     if name in self.mdf
                 ]
@@ -1752,6 +1755,25 @@ class WithMDIArea:
                     sig.mdf_uuid = uuid
                     sig.computation = None
 
+                try:
+                    ranges = [
+                        {
+                            "color": range["color"],
+                            "op1": "<=",
+                            "op2": "<=",
+                            "value1": float(range["start"]),
+                            "value2": float(range["stop"]),
+                        }
+                        for range in pattern_info["ranges"]
+                    ]
+                except KeyError:
+                    ranges = pattern_info["ranges"]
+
+                for range in ranges:
+                    range['color'] = QtGui.QBrush(QtGui.QColor(range['color']))
+
+                pattern_info["ranges"] = ranges
+
             else:
 
                 required = set(window_info["configuration"]["channels"])
@@ -1766,14 +1788,15 @@ class WithMDIArea:
                     ranges = [
                         range
                         for name, range in zip(
+                            window_info["configuration"]["channels"],
                             window_info["configuration"]["ranges"],
-                            window_info["configuration"]["channels"]
                         )
                         if name in self.mdf
                     ]
 
-                    for range in ranges:
-                        range['color'] = QtGui.QColor(range['color'])
+                    for channel_ranges in ranges:
+                        for range in channel_ranges:
+                            range['color'] = QtGui.QBrush(QtGui.QColor(range['color']))
                 else:
                     ranges = [
                         []
@@ -1792,11 +1815,11 @@ class WithMDIArea:
                     raw=True,
                 )
 
-                for sig, sig_ in zip(signals, signals_, ranges):
+                for sig, sig_ , channel_ranges in zip(signals, signals_, ranges):
                     sig.group_index = sig_[1]
                     sig.mdf_uuid = uuid
                     sig.computation = None
-                    sig.ranges = ranges
+                    sig.ranges = channel_ranges
 
                 signals = [
                     sig
@@ -2330,6 +2353,25 @@ class WithMDIArea:
                     self.ignore_value2text_conversions,
                     self.uuid,
                 )
+
+                try:
+                    ranges = [
+                        {
+                            "color": range["color"],
+                            "op1": "<=",
+                            "op2": "<=",
+                            "value1": float(range["start"]),
+                            "value2": float(range["stop"]),
+                        }
+                        for range in pattern_info["ranges"]
+                    ]
+                except KeyError:
+                    ranges = pattern_info["ranges"]
+
+                for range in ranges:
+                    range['color'] = QtGui.QColor(range['color'])
+
+                pattern_info["ranges"] = ranges
 
             else:
                 required = set(window_info["configuration"]["channels"])

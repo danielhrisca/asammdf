@@ -105,6 +105,7 @@ def get_data(items, uuids_only=False):
                             [],
                             None,
                             "group",
+                            [],
                         )
                     )
                 else:
@@ -115,6 +116,7 @@ def get_data(items, uuids_only=False):
                             get_data(children, uuids_only),
                             None,
                             "group",
+                            [],
                         )
                     )
 
@@ -122,8 +124,8 @@ def get_data(items, uuids_only=False):
             if uuids_only:
                 data.append(tree.itemWidget(item, 1).uuid)
             else:
+                widget = item.treeWidget().itemWidget(item, 1)
                 if item.entry == (-1, -1):
-                    widget = item.treeWidget().itemWidget(item, 1)
                     info = {
                         "name": item.name,
                         "computation": item.computation,
@@ -133,12 +135,19 @@ def get_data(items, uuids_only=False):
                     }
                 else:
                     info = item.name
+
+                ranges = [dict(e) for e in widget.ranges]
+
+                for range_info in ranges:
+                    range_info['color'] = range_info['color'].name()
+
                 data.append(
                     (
                         info,
                         *item.entry,
                         item.mdf_uuid,
-                        "channel"
+                        "channel",
+                        ranges,
                     )
                 )
     return data
@@ -200,6 +209,7 @@ class TreeWidget(QtWidgets.QTreeWidget):
                                     *child.entry,
                                     child.mdf_uuid,
                                     "channel",
+                                    [],
                                 )
                             )
             else:
@@ -210,6 +220,7 @@ class TreeWidget(QtWidgets.QTreeWidget):
                             *item.entry,
                             item.mdf_uuid,
                             "channel",
+                            [],
                         )
                     )
 

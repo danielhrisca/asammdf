@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from copy import deepcopy
 from datetime import timedelta
 from functools import partial, reduce
 import logging
@@ -34,7 +35,7 @@ from ...mdf import MDF
 from ...signal import Signal
 from ..dialogs.define_channel import DefineChannel
 from ..ui import resource_rc as resource_rc
-from ..utils import COLORS, extract_mime_names
+from ..utils import COLORS, extract_mime_names, copy_ranges
 from .channel_display import ChannelDisplay
 from .channel_group_display import ChannelGroupDisplay
 from .channel_stats import ChannelStats
@@ -1441,7 +1442,7 @@ class Plot(QtWidgets.QWidget):
     def add_new_channels(self, channels, mime_data=None, destination=None):
 
         def add_new_items(tree, root, items, items_pool):
-            for (name, group_index, channel_index, mdf_uuid, type_) in items:
+            for (name, group_index, channel_index, mdf_uuid, type_, ranges) in items:
 
                 if type_ == "group":
                     pattern = group_index
@@ -1460,6 +1461,12 @@ class Plot(QtWidgets.QWidget):
                         key = (name['name'],) + key[1:]
                         if key in items_pool:
                             item, widget = items_pool[key]
+
+                            ranges = deepcopy(ranges)
+                            for range_info in ranges:
+                                range_info['color'] = QtGui.QColor(range_info['color'])
+                            widget.ranges = ranges
+
                             root.addChild(item)
                             tree.setItemWidget(item, 1, widget)
 
@@ -1468,6 +1475,12 @@ class Plot(QtWidgets.QWidget):
 
                         if key in items_pool:
                             item, widget = items_pool[key]
+
+                            ranges = [deepcopy(e) for e in ranges]
+                            for range_info in ranges:
+                                range_info['color'] = QtGui.QColor(range_info['color'])
+                            widget.ranges = ranges
+
                             root.addChild(item)
                             tree.setItemWidget(item, 1, widget)
 
@@ -1654,7 +1667,7 @@ class Plot(QtWidgets.QWidget):
                     channel["common_axis"] = widget.ylink.checkState() == QtCore.Qt.Checked
                     channel["color"] = sig.color
                     channel["computed"] = sig.computed
-                    channel["ranges"] = [dict(e) for e in widget.ranges]
+                    channel["ranges"] = copy_ranges(widget.ranges)
 
                     for range_info in channel['ranges']:
                         range_info['color'] = range_info['color'].name()
@@ -1683,7 +1696,7 @@ class Plot(QtWidgets.QWidget):
                 elif isinstance(widget, ChannelGroupDisplay):
                     pattern = item.pattern
                     if pattern:
-                        ranges = [dict(e) for e in pattern["ranges"]]
+                        ranges = copy_ranges(pattern["ranges"])
 
                         for range_info in ranges:
                             range_info['color'] = range_info['color'].name()
@@ -1704,7 +1717,7 @@ class Plot(QtWidgets.QWidget):
 
         pattern = self.pattern
         if pattern:
-            ranges = [dict(e) for e in pattern["ranges"]]
+            ranges = copy_ranges(pattern["ranges"])
 
             for range_info in ranges:
                 range_info['color'] = range_info['color'].name()

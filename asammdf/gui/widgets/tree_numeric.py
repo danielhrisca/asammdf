@@ -26,27 +26,7 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
 
     def keyPressEvent(self, event):
         key = event.key()
-        if key == QtCore.Qt.Key_Space:
-            selected_items = self.selectedItems()
-            if not selected_items:
-                return
-            elif len(selected_items) == 1:
-                item = selected_items[0]
-                checked = item.checkState(0)
-                if checked == QtCore.Qt.Checked:
-                    item.setCheckState(0, QtCore.Qt.Unchecked)
-                else:
-                    item.setCheckState(0, QtCore.Qt.Checked)
-            else:
-                if any(
-                    item.checkState(0) == QtCore.Qt.Unchecked for item in selected_items
-                ):
-                    checked = QtCore.Qt.Checked
-                else:
-                    checked = QtCore.Qt.Unchecked
-                for item in selected_items:
-                    item.setCheckState(0, checked)
-        elif (
+        if (
             event.key() == QtCore.Qt.Key_Delete
             and event.modifiers() == QtCore.Qt.NoModifier
         ):
@@ -81,12 +61,18 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
             else:
                 info = item.name
 
+            ranges = [dict(e) for e in item.ranges]
+
+            for range_info in ranges:
+                range_info['color'] = range_info['color'].color().name()
+
             data.append(
                 (
                     info,
                     *item.entry,
                     str(item.mdf_uuid),
-                    "channel"
+                    "channel",
+                    ranges,
                 )
             )
 
@@ -117,7 +103,12 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
                 super().dropEvent(e)
 
     def handle_item_double_click(self, item, column):
-        dlg = RangeEditor(item.name, ranges=item.ranges, parent=self)
+        dlg = RangeEditor(
+            item.name,
+            ranges=item.ranges,
+            parent=self,
+            brush=True,
+        )
         dlg.exec_()
         if dlg.pressed_button == "apply":
             item.ranges = dlg.result

@@ -931,7 +931,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         window_type = dialog.selected_type()
 
                         signals = [
-                            (name, dg_cntr, ch_cntr, self.uuid, 'channel')
+                            (name, dg_cntr, ch_cntr, self.uuid, 'channel', [])
                             for name, dg_cntr, ch_cntr in names
                         ]
 
@@ -1437,7 +1437,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             group, index = item.entry
                             ch = self.mdf.groups[group].channels[index]
                             if not ch.component_addr:
-                                signals.append((ch.name, group, index, self.uuid, "channel"))
+                                signals.append((ch.name, group, index, self.uuid, "channel", []))
 
                         iterator += 1
                 else:
@@ -1448,7 +1448,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             group, index = item.entry
                             ch = self.mdf.groups[group].channels[index]
                             if not ch.component_addr:
-                                signals.append((ch.name, group, index, self.uuid, "channel"))
+                                signals.append((ch.name, group, index, self.uuid, "channel", []))
 
                         iterator += 1
 

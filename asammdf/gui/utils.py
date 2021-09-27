@@ -79,7 +79,7 @@ def excepthook(exc_type, exc_value, tracebackobj):
 def extract_mime_names(data):
 
     def fix_comparison_name(data):
-        for i, (name, group_index, channel_index, mdf_uuid, item_type) in enumerate(data):
+        for i, (name, group_index, channel_index, mdf_uuid, item_type, ranges) in enumerate(data):
             if item_type == "channel":
                 if (group_index, channel_index) != (-1, -1):
                     name = COMPARISON_NAME.match(name).group("name").strip()
@@ -531,7 +531,6 @@ def add_children(
                     child, channels, channel_dependencies, signals, dep, mdf_uuid=mdf_uuid
                 )
 
-
         if entry in signals:
             child.setCheckState(0, QtCore.Qt.Checked)
         else:
@@ -552,5 +551,20 @@ class HelperChannel:
         self.entry = entry
         self.added = False
 
+
+def copy_ranges(ranges):
+    new_ranges = []
+    for range_info in ranges:
+        range_info = dict(range_info)
+        color = range_info['color']
+        if isinstance(color, QtGui.QBrush):
+            range_info['color'] = QtGui.QBrush(color)
+        elif isinstance(color, QtGui.QColor):
+            range_info['color'] = QtGui.QColor(color)
+        new_ranges.append(range_info)
+
+    return new_ranges
+
+
 if __name__ == '__main__':
-    load_dsp(r'c:\Users\uidn3651\Downloads\VAR_Volvo_SPA_TN_upd12.dsp')
+    pass

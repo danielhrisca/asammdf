@@ -87,4 +87,4 @@ class Ui_RangeWidget(object):
         self.op2.setItemText(3, _translate("RangeWidget", ">="))
         self.op2.setItemText(4, _translate("RangeWidget", "<"))
         self.op2.setItemText(5, _translate("RangeWidget", "<="))
-        self.label_2.setText(_translate("RangeWidget", "    set color"))
+        self.label_2.setText(_translate("RangeWidget", "    then set color"))

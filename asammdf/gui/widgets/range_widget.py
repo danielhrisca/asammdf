@@ -9,7 +9,7 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
     add_channels_request = QtCore.pyqtSignal(list)
     timestamp_changed_signal = QtCore.pyqtSignal(object, float)
 
-    def __init__(self, name, value1="", op1='==', value2="", op2="==", color="#000000", *args, **kwargs):
+    def __init__(self, name, value1="", op1='==', value2="", op2="==", color="#000000", brush=False, *args, **kwargs):
         super(QtWidgets.QWidget, self).__init__(*args, **kwargs)
         self.setupUi(self)
         self._settings = QtCore.QSettings()
@@ -29,6 +29,8 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
 
         if isinstance(color, QtGui.QColor):
             color = color.name()
+        elif isinstance(color, QtGui.QBrush):
+            color = color.color().name()
 
         self.color_btn.setStyleSheet(f"background-color: {color};")
 
@@ -51,7 +53,7 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
             color = color.name()
             self.color_btn.setStyleSheet(f"background-color: {color};")
 
-    def to_dict(self):
+    def to_dict(self, brush=False):
         value1 = self.value1.text().strip()
         if value1:
             try:
@@ -92,9 +94,13 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
                     value2 = None
         else:
             value2 = None
+
+        color = self.color_btn.palette().button().color()
+        if brush:
+            color = QtGui.QBrush(color)
             
         return {
-            "color": self.color_btn.palette().button().color(),
+            "color": color,
             "op1": self.op1.currentText(),
             "op2": self.op2.currentText(),
             "value1": value1,

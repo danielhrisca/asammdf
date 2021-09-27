@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from copy import deepcopy
 import datetime
 import logging
 from traceback import format_exc
@@ -17,7 +18,7 @@ from ...blocks.utils import (
 from ...mdf import MDF
 from ..ui import resource_rc as resource_rc
 from ..ui.tabular import Ui_TabularDisplay
-from ..utils import run_thread_with_progress
+from ..utils import run_thread_with_progress, copy_ranges
 from .tabular_filter import TabularFilter
 
 logger = logging.getLogger("asammdf.gui")
@@ -449,7 +450,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
 
         pattern = self.pattern
         if pattern:
-            ranges = [dict(e) for e in pattern["ranges"]]
+            ranges = copy_ranges(pattern["ranges"])
 
             for range_info in ranges:
                 range_info['color'] = range_info['color'].name()

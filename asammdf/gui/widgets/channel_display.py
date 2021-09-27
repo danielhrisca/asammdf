@@ -64,7 +64,10 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             self.fmt = f"{{:.{self.precision}f}}"
             
         self.setAutoFillBackground(True)
-        self._back_ground_color = self.palette().color(self.backgroundRole())
+        self._back_ground_color = self.palette().color(QtGui.QPalette.Base)
+        self._selected_color = self.palette().color(QtGui.QPalette.Highlight)
+
+        self._color = self._back_ground_color
 
     def set_unit(self, unit):
         unit = str(unit)
@@ -152,10 +155,14 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
     def set_selected(self, on):
         palette = self.name.palette()
         if on:
-            brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
+            self._color = self._selected_color
+            self.set_value(self._value, True)
+            brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
             brush.setStyle(QtCore.Qt.SolidPattern)
             palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Text, brush)
         else:
+            self._color = self._back_ground_color
+            self.set_value(self._value, True)
             brush = QtGui.QBrush(QtGui.QColor(self.color))
             brush.setStyle(QtCore.Qt.SolidPattern)
             palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Text, brush)
@@ -191,7 +198,6 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self._value = value
         if self.ranges and value not in ("", "n.a."):
             p = self.palette()
-            new_color = self._back_ground_color
 
             for range in self.ranges:
                 color, op1, op2, value1, value2 = range.values()
@@ -235,12 +241,17 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
                 if result:
                     new_color = color
                     break
+            else:
+                new_color = self._color
 
             p.setColor(self.backgroundRole(), new_color)
             self.setPalette(p)
 
-        elif not self._transparent:
-            self.setAttribute(QtCore.Qt.WA_NoSystemBackground, True)
+        else:
+            p = self.palette()
+            p.setColor(self.backgroundRole(), self._color)
+            self.setPalette(p)
+
         template = "{{}}{}"
         if value not in ("", "n.a."):
             template = template.format(self.fmt)

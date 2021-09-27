@@ -9,6 +9,7 @@ from PyQt5 import QtCore, QtWidgets
 from ...mdf import MDF
 from ..ui import resource_rc as resource_rc
 from ..ui.numeric import Ui_NumericDisplay
+from ..utils import copy_ranges
 from .tree_item import TreeItem
 
 OPS = {
@@ -68,6 +69,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         self.format_selection.currentTextChanged.connect(self.set_format)
         self.mode_selection.currentTextChanged.connect(self.set_mode)
         self.float_precision.valueChanged.connect(self.set_float_precision)
+
+        self.channels.setAlternatingRowColors(False)
 
         self.build()
 
@@ -186,6 +189,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     else:
                         item.setText(1, str(value))
 
+                    item.check_signal_range(value)
+
                 iterator += 1
 
         elif self.format == "hex":
@@ -214,6 +219,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     else:
                         item.setText(1, str(value))
 
+                    item.check_signal_range(value)
+
                 iterator += 1
         else:
             while 1:
@@ -238,6 +245,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     else:
                         item.setText(1, str(value))
 
+                    item.check_signal_range(value)
+
                 iterator += 1
 
         header = self.channels.header()
@@ -246,6 +255,15 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         order = header.sortIndicatorOrder()
 
         self.channels.sortByColumn(index, order)
+
+        selection = self.channels.selectedItems()
+        if selection:
+            self.channels.setCurrentItem(selection[0], 1, QtCore.QItemSelectionModel.SelectCurrent)
+        else:
+            item = self.channels.itemAt(10, 10)
+            if item:
+                self.channels.setCurrentItem(item, 1, QtCore.QItemSelectionModel.SelectCurrent)
+            self.channels.clearSelection()
 
     def add_new_channels(self, channels, mime_data=None):
         invalid = []
@@ -351,20 +369,20 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             if not item:
                 break
 
-            ranges = [dict(e) for e in item["ranges"]]
+            ranges = copy_ranges(item.ranges)
 
             for range_info in ranges:
-                range_info['color'] = range_info['color'].name()
+                range_info['color'] = range_info['color'].color().name()
 
             channels[item.name] = ranges
             iterator += 1
 
         pattern = self.pattern
         if pattern:
-            ranges = [dict(e) for e in pattern["ranges"]]
+            ranges = copy_ranges(pattern["ranges"])
 
             for range_info in ranges:
-                range_info['color'] = range_info['color'].name()
+                range_info['color'] = range_info['color'].color().name()
 
             pattern["ranges"] = ranges
 
