@@ -2583,7 +2583,7 @@ class WithMDIArea:
                         wid.plot.keyPressEvent(event)
                     wid.plot.cursor1.setPos(pos)
                 elif isinstance(wid, (Numeric, Bar, GPS)) and wid is not widget:
-                    wid.timestamp.setValue(pos)
+                    wid._update_values(pos)
             self._cursor_source = None
 
     def set_region(self, widget, region):

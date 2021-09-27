@@ -31,8 +31,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         self.setupUi(self)
         self._settings = QtCore.QSettings()
 
-        for sig in signals:
-            sig.timestamps = np.around(sig.timestamps, 9)
+        # for sig in signals:
+        #     sig.timestamps = np.around(sig.timestamps, 9)
         self.signals = {}
         self._min = self._max = 0
 
@@ -125,8 +125,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             self._min = self._max = 0
 
         self.timestamp.setRange(self._min, self._max)
-        self.min_t.setText(f"{self._min:.6f}s")
-        self.max_t.setText(f"{self._max:.6f}s")
+        self.min_t.setText(f"{self._min:.9f}s")
+        self.max_t.setText(f"{self._max:.9f}s")
         self._update_values()
         self.channels.setSortingEnabled(True)
 
@@ -174,7 +174,10 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     if (sig.group_index, sig.mdf_uuid) in idx_cache:
                         idx = idx_cache[(sig.group_index, sig.mdf_uuid)]
                     else:
-                        idx = min(sig.size - 1, searchsorted(sig.timestamps, stamp))
+                        idx = searchsorted(sig.timestamps, stamp, side="right")
+                        idx -= 1
+                        if idx < 0:
+                            idx = 0
                         idx_cache[(sig.group_index, sig.mdf_uuid)] = idx
 
                     if mode == "raw values":
@@ -204,7 +207,10 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     if (sig.group_index, sig.mdf_uuid) in idx_cache:
                         idx = idx_cache[(sig.group_index, sig.mdf_uuid)]
                     else:
-                        idx = min(sig.size - 1, searchsorted(sig.timestamps, stamp))
+                        idx = searchsorted(sig.timestamps, stamp, side="right")
+                        idx -= 1
+                        if idx < 0:
+                            idx = 0
                         idx_cache[(sig.group_index, sig.mdf_uuid)] = idx
 
                     if mode == "raw values":
@@ -232,7 +238,10 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     if (sig.group_index, sig.mdf_uuid) in idx_cache:
                         idx = idx_cache[(sig.group_index, sig.mdf_uuid)]
                     else:
-                        idx = min(sig.size - 1, searchsorted(sig.timestamps, stamp))
+                        idx = searchsorted(sig.timestamps, stamp, side="right")
+                        idx -= 1
+                        if idx < 0:
+                            idx = 0
                         idx_cache[(sig.group_index, sig.mdf_uuid)] = idx
 
                     if mode == "raw values":

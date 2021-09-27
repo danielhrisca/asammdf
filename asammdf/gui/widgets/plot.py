@@ -1043,7 +1043,7 @@ class Plot(QtWidgets.QWidget):
         if not self.plot.region:
             fmt = self.plot.x_axis.format
             if fmt == "phys":
-                cursor_info_text = f"t = {position:.6f}s"
+                cursor_info_text = f"t = {position:.9f}s"
             elif fmt == "time":
                 cursor_info_text = f"t = {timedelta(seconds=position)}"
             elif fmt == "date":
@@ -1100,9 +1100,9 @@ class Plot(QtWidgets.QWidget):
 
         fmt = self.plot.x_axis.format
         if fmt == "phys":
-            start_info = f"{start:.6f}s"
-            stop_info = f"{stop:.6f}s"
-            delta_info = f"{stop - start:.6f}s"
+            start_info = f"{start:.9f}s"
+            stop_info = f"{stop:.9f}s"
+            delta_info = f"{stop - start:.9f}s"
         elif fmt == "time":
             start_info = f"{timedelta(seconds=start)}"
             stop_info = f"{timedelta(seconds=stop)}"
@@ -1335,7 +1335,7 @@ class Plot(QtWidgets.QWidget):
                 comment, _ = QtWidgets.QInputDialog.getMultiLineText(
                     self,
                     "Insert comments",
-                    f"Enter the comments for cursor position {position:.6f}s:",
+                    f"Enter the comments for cursor position {position:.9f}s:",
                     "",
                 )
                 line = pg.InfiniteLine(
