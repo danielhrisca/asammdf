@@ -213,10 +213,10 @@ def get_flatten_entries_from_mime(data, default_index=None):
 
 def get_pattern_groups(data):
     groups = []
-    for (name, pattern, channels, mdf_uuid, type_) in data:
+    for (name, pattern, channels, mdf_uuid, type_, ranges) in data:
         if type_ == "group":
             if pattern is not None:
-                groups.append(name, pattern, channels, mdf_uuid, type_, [])
+                groups.append(name, pattern, channels, mdf_uuid, type_, ranges)
             else:
                 groups.extend(get_pattern_groups(channels))
     return groups
@@ -1360,7 +1360,7 @@ class WithMDIArea:
                                 signals.append(new_sig)
 
             elif window_type == "Numeric":
-                for (name, pattern_info, channels, mdf_uuid, type_) in get_pattern_groups(names):
+                for (name, pattern_info, channels, mdf_uuid, type_, ranges) in get_pattern_groups(names):
 
                     file_info = self.file_by_uuid(mdf_uuid)
                     if not file_info:
