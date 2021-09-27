@@ -460,7 +460,8 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             ranges = copy_ranges(pattern["ranges"])
 
             for range_info in ranges:
-                range_info['color'] = range_info['color'].name()
+                range_info['font_color'] = range_info['font_color'].name()
+                range_info['background_color'] = range_info['background_color'].name()
 
             pattern["ranges"] = ranges
 

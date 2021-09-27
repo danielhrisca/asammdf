@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from functools import partial
 
 from PyQt5 import QtWidgets
 
@@ -21,12 +20,12 @@ class RangeEditor(Ui_RangeDialog, QtWidgets.QDialog):
         self._brush = brush
 
         if ranges:
-            for range in ranges:
+            for range_info in ranges:
                 widget = RangeWidget(
                     parent=self,
                     name=self.name,
                     brush=brush,
-                    **range,
+                    **range_info,
                 )
 
                 item = QtWidgets.QListWidgetItem()

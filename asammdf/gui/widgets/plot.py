@@ -1464,7 +1464,8 @@ class Plot(QtWidgets.QWidget):
 
                             ranges = deepcopy(ranges)
                             for range_info in ranges:
-                                range_info['color'] = QtGui.QColor(range_info['color'])
+                                range_info['font_color'] = QtGui.QColor(range_info['font_color'])
+                                range_info['background_color'] = QtGui.QColor(range_info['background_color'])
                             widget.ranges = ranges
 
                             root.addChild(item)
@@ -1478,7 +1479,8 @@ class Plot(QtWidgets.QWidget):
 
                             ranges = [deepcopy(e) for e in ranges]
                             for range_info in ranges:
-                                range_info['color'] = QtGui.QColor(range_info['color'])
+                                range_info['font_color'] = QtGui.QColor(range_info['font_color'])
+                                range_info['background_color'] = QtGui.QColor(range_info['background_color'])
                             widget.ranges = ranges
 
                             root.addChild(item)
@@ -1670,7 +1672,8 @@ class Plot(QtWidgets.QWidget):
                     channel["ranges"] = copy_ranges(widget.ranges)
 
                     for range_info in channel['ranges']:
-                        range_info['color'] = range_info['color'].name()
+                        range_info['background_color'] = range_info['background_color'].name()
+                        range_info['font_color'] = range_info['font_color'].name()
 
                     channel["precision"] = widget.precision
                     channel["fmt"] = widget.fmt
@@ -1699,7 +1702,8 @@ class Plot(QtWidgets.QWidget):
                         ranges = copy_ranges(pattern["ranges"])
 
                         for range_info in ranges:
-                            range_info['color'] = range_info['color'].name()
+                            range_info['font_color'] = range_info['font_color'].name()
+                            range_info['background_color'] = range_info['background_color'].name()
 
                         pattern["ranges"] = ranges
 
@@ -1720,7 +1724,8 @@ class Plot(QtWidgets.QWidget):
             ranges = copy_ranges(pattern["ranges"])
 
             for range_info in ranges:
-                range_info['color'] = range_info['color'].name()
+                range_info['font_color'] = range_info['font_color'].name()
+                range_info['background_color'] = range_info['background_color'].name()
 
             pattern["ranges"] = ranges
 

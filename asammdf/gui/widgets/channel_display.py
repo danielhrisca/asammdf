@@ -66,8 +66,11 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self.setAutoFillBackground(True)
         self._back_ground_color = self.palette().color(QtGui.QPalette.Base)
         self._selected_color = self.palette().color(QtGui.QPalette.Highlight)
+        self._selected_font_color = self.palette().color(QtGui.QPalette.HighlightedText)
+        self._font_color = QtGui.QColor(self.color)
 
-        self._color = self._back_ground_color
+        self._current_background_color = self._back_ground_color
+        self._current_font_color = self._font_color = QtGui.QColor(self.color)
 
     def set_unit(self, unit):
         unit = str(unit)
@@ -122,7 +125,6 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         color = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.color))
         if color.isValid():
             self.set_color(color.name())
-
             self.color_changed.emit(self.uuid, color.name())
 
     def set_fmt(self, fmt):
@@ -144,30 +146,22 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self.set_value(self._value)
         self.color_btn.setStyleSheet(f"background-color: {color};")
 
-        palette = self.name.palette()
+        self._font_color = QtGui.QColor(self.color)
 
-        brush = QtGui.QBrush(QtGui.QColor(color))
-        brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Text, brush)
+        palette = self.palette()
+        palette.setColor(QtGui.QPalette.Text, self._font_color)
 
-        self.name.setPalette(palette)
+        self.setPalette(palette)
 
     def set_selected(self, on):
-        palette = self.name.palette()
         if on:
-            self._color = self._selected_color
+            self._current_background_color = self._selected_color
+            self._current_font_color = self._selected_font_color
             self.set_value(self._value, True)
-            brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
-            brush.setStyle(QtCore.Qt.SolidPattern)
-            palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Text, brush)
         else:
-            self._color = self._back_ground_color
+            self._current_background_color = self._back_ground_color
+            self._current_font_color = self._font_color
             self.set_value(self._value, True)
-            brush = QtGui.QBrush(QtGui.QColor(self.color))
-            brush.setStyle(QtCore.Qt.SolidPattern)
-            palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Text, brush)
-
-        self.name.setPalette(palette)
 
     def set_name(self, text=""):
         self.setToolTip(self._tooltip or text)
@@ -200,7 +194,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             p = self.palette()
 
             for range in self.ranges:
-                color, op1, op2, value1, value2 = range.values()
+                font_color, background_color, op1, op2, value1, value2 = range.values()
 
                 result = False
                 
@@ -239,17 +233,21 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
                         continue
 
                 if result:
-                    new_color = color
+                    new_background_color = background_color
+                    new_font_color = font_color
                     break
             else:
-                new_color = self._color
+                new_background_color = self._current_background_color
+                new_font_color = self._current_font_color
 
-            p.setColor(self.backgroundRole(), new_color)
+            p.setColor(QtGui.QPalette.Base, new_background_color)
+            p.setColor(QtGui.QPalette.Text, new_font_color)
             self.setPalette(p)
 
         else:
             p = self.palette()
-            p.setColor(self.backgroundRole(), self._color)
+            p.setColor(QtGui.QPalette.Base, self._current_background_color)
+            p.setColor(QtGui.QPalette.Text, self._current_font_color)
             self.setPalette(p)
 
         template = "{{}}{}"

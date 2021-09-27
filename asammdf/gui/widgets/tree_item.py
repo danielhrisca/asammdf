@@ -18,6 +18,10 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
         self.ranges = ranges or []
 
         self._back_ground_color = self.background(0)
+        self._font_color = self.foreground(0)
+
+        self._current_background_color = self._back_ground_color
+        self._current_font_color = self._font_color
 
     def __lt__(self, otherItem):
         column = self.treeWidget().sortColumn()
@@ -74,10 +78,9 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
             value = None
 
         if self.ranges and value is not None:
-            new_color = self._back_ground_color
 
             for range in self.ranges:
-                color, op1, op2, value1, value2 = range.values()
+                font_color, background_color, op1, op2, value1, value2 = range.values()
 
                 result = False
 
@@ -116,14 +119,27 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
                         continue
 
                 if result:
-                    new_color = QtGui.QBrush(color)
+                    new_background_color = QtGui.QBrush(background_color)
+                    new_font_color = QtGui.QBrush(font_color)
                     break
+            else:
+                new_background_color = self._current_background_color
+                new_font_color = self._current_font_color
 
-            self.setBackground(0, new_color)
-            self.setBackground(1, new_color)
-            self.setBackground(2, new_color)
+            self.setBackground(0, new_background_color)
+            self.setBackground(1, new_background_color)
+            self.setBackground(2, new_background_color)
+
+            self.setForeground(0, new_font_color)
+            self.setForeground(1, new_font_color)
+            self.setForeground(2, new_font_color)
         else:
             new_color = self._back_ground_color
             self.setBackground(0, new_color)
             self.setBackground(1, new_color)
             self.setBackground(2, new_color)
+
+            new_color = self._font_color
+            self.setForeground(0, new_color)
+            self.setForeground(1, new_color)
+            self.setForeground(2, new_color)

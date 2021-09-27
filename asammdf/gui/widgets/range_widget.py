@@ -9,7 +9,7 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
     add_channels_request = QtCore.pyqtSignal(list)
     timestamp_changed_signal = QtCore.pyqtSignal(object, float)
 
-    def __init__(self, name, value1="", op1='==', value2="", op2="==", color="#000000", brush=False, *args, **kwargs):
+    def __init__(self, name, value1="", op1='==', value2="", op2="==", font_color="#000000", background_color="#000000", brush=False, *args, **kwargs):
         super(QtWidgets.QWidget, self).__init__(*args, **kwargs)
         self.setupUi(self)
         self._settings = QtCore.QSettings()
@@ -19,7 +19,8 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
         self.value1.textChanged.connect(self.value1_changed)
         self.value2.textChanged.connect(self.value2_changed)
 
-        self.color_btn.clicked.connect(self.select_color)
+        self.background_color_btn.clicked.connect(self.select_background_color)
+        self.font_color_btn.clicked.connect(self.select_font_color)
 
         self.value1.setText(str(value1) if value1 is not None else "")
         self.value2.setText(str(value2) if value2 is not None else "")
@@ -27,12 +28,28 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
         self.op1.setCurrentText(op1)
         self.op2.setCurrentText(op2)
 
-        if isinstance(color, QtGui.QColor):
-            color = color.name()
-        elif isinstance(color, QtGui.QBrush):
-            color = color.color().name()
+        if isinstance(font_color, QtGui.QColor):
+            font_color = font_color.name()
+        elif isinstance(font_color, QtGui.QBrush):
+            font_color = font_color.color().name()
 
-        self.color_btn.setStyleSheet(f"background-color: {color};")
+        if isinstance(font_color, QtGui.QColor):
+            font_color = font_color.name()
+        elif isinstance(font_color, QtGui.QBrush):
+            font_color = font_color.color().name()
+            
+        if isinstance(background_color, QtGui.QColor):
+            background_color = background_color.name()
+        elif isinstance(background_color, QtGui.QBrush):
+            background_color = background_color.color().name()
+
+        if isinstance(background_color, QtGui.QColor):
+            background_color = background_color.name()
+        elif isinstance(background_color, QtGui.QBrush):
+            background_color = background_color.color().name()
+
+        self.background_color_btn.setStyleSheet(f"background-color: {background_color};")
+        self.font_color_btn.setStyleSheet(f"background-color: {font_color};")
 
     def value1_changed(self, text):
         if text.strip():
@@ -46,12 +63,19 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
         else:
             self.op2.setEnabled(False)
 
-    def select_color(self, event=None):
-        color = self.color_btn.palette().button().color()
+    def select_background_color(self, event=None):
+        color = self.background_color_btn.palette().button().color()
         color = QtWidgets.QColorDialog.getColor(color)
         if color.isValid():
             color = color.name()
-            self.color_btn.setStyleSheet(f"background-color: {color};")
+            self.background_color_btn.setStyleSheet(f"background-color: {color};")
+
+    def select_font_color(self, event=None):
+        color = self.font_color_btn.palette().button().color()
+        color = QtWidgets.QColorDialog.getColor(color)
+        if color.isValid():
+            color = color.name()
+            self.font_color_btn.setStyleSheet(f"background-color: {color};")
 
     def to_dict(self, brush=False):
         value1 = self.value1.text().strip()
@@ -95,12 +119,15 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
         else:
             value2 = None
 
-        color = self.color_btn.palette().button().color()
+        font_color = self.font_color_btn.palette().button().color()
+
+        background_color = self.background_color_btn.palette().button().color()
         if brush:
-            color = QtGui.QBrush(color)
+            background_color = QtGui.QBrush(background_color)
             
         return {
-            "color": color,
+            "font_color": font_color,
+            "background_color": background_color,
             "op1": self.op1.currentText(),
             "op2": self.op2.currentText(),
             "value1": value1,

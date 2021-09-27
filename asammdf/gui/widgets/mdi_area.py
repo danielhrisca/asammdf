@@ -1767,7 +1767,8 @@ class WithMDIArea:
                 try:
                     ranges = [
                         {
-                            "color": range["color"],
+                            "font_color": range["color"],
+                            "background_color": range["color"],
                             "op1": "<=",
                             "op2": "<=",
                             "value1": float(range["start"]),
@@ -1779,7 +1780,8 @@ class WithMDIArea:
                     ranges = pattern_info["ranges"]
 
                 for range in ranges:
-                    range['color'] = QtGui.QBrush(QtGui.QColor(range['color']))
+                    range['font_color'] = QtGui.QBrush(QtGui.QColor(range['font_color']))
+                    range['background_color'] = QtGui.QBrush(QtGui.QColor(range['background_color']))
 
                 pattern_info["ranges"] = ranges
 
@@ -1805,7 +1807,8 @@ class WithMDIArea:
 
                     for channel_ranges in ranges:
                         for range in channel_ranges:
-                            range['color'] = QtGui.QBrush(QtGui.QColor(range['color']))
+                            range['font_color'] = QtGui.QBrush(QtGui.QColor(range['font_color']))
+                            range['background_color'] = QtGui.QBrush(QtGui.QColor(range['background_color']))
                 else:
                     ranges = [
                         []
@@ -2295,7 +2298,8 @@ class WithMDIArea:
                         try:
                             wid.ranges = [
                                 {
-                                    "color": range["color"],
+                                    "font_color": range["color"],
+                                    "background_color": range["color"],
                                     "op1": "<=",
                                     "op2": "<=",
                                     "value1": float(range["start"]),
@@ -2307,7 +2311,8 @@ class WithMDIArea:
                             wid.ranges = description["ranges"]
 
                         for range in wid.ranges:
-                            range['color'] = QtGui.QColor(range['color'])
+                            range['font_color'] = QtGui.QColor(range['font_color'])
+                            range['background_color'] = QtGui.QColor(range['background_color'])
 
                         wid.ylink.setCheckState(
                             QtCore.Qt.Checked
@@ -2366,7 +2371,8 @@ class WithMDIArea:
                 try:
                     ranges = [
                         {
-                            "color": range["color"],
+                            "font_color": range["color"],
+                            "background_color": range["color"],
                             "op1": "<=",
                             "op2": "<=",
                             "value1": float(range["start"]),
@@ -2378,7 +2384,8 @@ class WithMDIArea:
                     ranges = pattern_info["ranges"]
 
                 for range in ranges:
-                    range['color'] = QtGui.QColor(range['color'])
+                    range['font_color'] = QtGui.QColor(range['font_color'])
+                    range['background_color'] = QtGui.QColor(range['background_color'])
 
                 pattern_info["ranges"] = ranges
 

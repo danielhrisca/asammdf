@@ -382,7 +382,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             ranges = copy_ranges(item.ranges)
 
             for range_info in ranges:
-                range_info['color'] = range_info['color'].color().name()
+                range_info['font_color'] = range_info['font_color'].color().name()
+                range_info['background_color'] = range_info['background_color'].color().name()
 
             channels[item.name] = ranges
             iterator += 1
@@ -392,7 +393,8 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             ranges = copy_ranges(pattern["ranges"])
 
             for range_info in ranges:
-                range_info['color'] = range_info['color'].color().name()
+                range_info['font_color'] = range_info['font_color'].color().name()
+                range_info['background_color'] = range_info['background_color'].color().name()
 
             pattern["ranges"] = ranges
 
