@@ -29,6 +29,10 @@ class LINBusTrace(TabularBase):
             self.signals = signals
 
         self._original_timestamps = signals["timestamps"]
+        self._original_ts_series = pd.Series(
+            self._original_timestamps,
+            index=self.signals.index,
+        )
 
         self.build(self.signals, True)
 
