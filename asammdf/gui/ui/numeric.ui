@@ -13,10 +13,17 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,1,0,0,0,0">
+  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,1,0,0">
    <item>
-    <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,1">
-     <item row="0" column="1">
+    <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,0,1">
+     <item row="0" column="0">
+      <widget class="QLabel" name="label_4">
+       <property name="text">
+        <string>Samples mode</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
       <widget class="QComboBox" name="mode_selection">
        <property name="currentIndex">
         <number>1</number>
@@ -31,6 +38,13 @@
          <string>scaled values</string>
         </property>
        </item>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLabel" name="label_5">
+       <property name="text">
+        <string>Integer format</string>
+       </property>
       </widget>
      </item>
      <item row="1" column="1">
@@ -52,28 +66,14 @@
        </item>
       </widget>
      </item>
-     <item row="0" column="0">
-      <widget class="QLabel" name="label_4">
-       <property name="text">
-        <string>Samples mode</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0">
-      <widget class="QLabel" name="label_5">
-       <property name="text">
-        <string>Integer format</string>
-       </property>
-      </widget>
-     </item>
-     <item row="2" column="0">
+     <item row="0" column="2">
       <widget class="QLabel" name="label_6">
        <property name="text">
         <string>Float precision</string>
        </property>
       </widget>
      </item>
-     <item row="2" column="1">
+     <item row="1" column="2">
       <widget class="QSpinBox" name="float_precision">
        <property name="suffix">
         <string> decimals</string>
@@ -125,14 +125,7 @@
     </widget>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
-      <widget class="QLabel" name="label">
-       <property name="text">
-        <string>Time</string>
-       </property>
-      </widget>
-     </item>
+    <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,1,0">
      <item>
       <widget class="QDoubleSpinBox" name="timestamp">
        <property name="suffix">
@@ -146,10 +139,6 @@
        </property>
       </widget>
      </item>
-    </layout>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
       <widget class="QLabel" name="min_t">
        <property name="text">
@@ -158,17 +147,26 @@
       </widget>
      </item>
      <item>
-      <spacer name="horizontalSpacer">
+      <widget class="QSlider" name="timestamp_slider">
+       <property name="maximum">
+        <number>9999</number>
+       </property>
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
+       <property name="invertedAppearance">
+        <bool>false</bool>
        </property>
-      </spacer>
+       <property name="invertedControls">
+        <bool>false</bool>
+       </property>
+       <property name="tickPosition">
+        <enum>QSlider::NoTicks</enum>
+       </property>
+       <property name="tickInterval">
+        <number>1</number>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QLabel" name="max_t">
@@ -180,57 +178,67 @@
     </layout>
    </item>
    <item>
-    <widget class="QSlider" name="timestamp_slider">
-     <property name="maximum">
-      <number>9999</number>
-     </property>
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="invertedAppearance">
-      <bool>false</bool>
-     </property>
-     <property name="invertedControls">
-      <bool>false</bool>
-     </property>
-     <property name="tickPosition">
-      <enum>QSlider::NoTicks</enum>
-     </property>
-     <property name="tickInterval">
-      <number>1</number>
-     </property>
-    </widget>
-   </item>
-   <item>
     <widget class="QGroupBox" name="groupBox">
      <property name="title">
       <string>Search for values</string>
      </property>
      <layout class="QGridLayout" name="gridLayout" columnstretch="1,0,0">
       <item row="0" column="0">
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>Pattern</string>
+       <widget class="QLineEdit" name="pattern_match">
+        <property name="placeholderText">
+         <string>pattern</string>
         </property>
        </widget>
       </item>
+      <item row="0" column="1">
+       <widget class="QComboBox" name="op">
+        <item>
+         <property name="text">
+          <string>==</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>!=</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>&lt;</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>&lt;=</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>&gt;</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>&gt;=</string>
+         </property>
+        </item>
+       </widget>
+      </item>
       <item row="0" column="2">
-       <widget class="QLabel" name="label_3">
-        <property name="text">
+       <widget class="QLineEdit" name="target">
+        <property name="placeholderText">
          <string>target value</string>
         </property>
        </widget>
       </item>
       <item row="1" column="0">
-       <widget class="QLineEdit" name="pattern_match"/>
-      </item>
-      <item row="1" column="1">
-       <widget class="QComboBox" name="op"/>
+       <widget class="QLabel" name="match">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
       </item>
       <item row="1" column="2">
-       <widget class="QLineEdit" name="target"/>
-      </item>
-      <item row="2" column="2">
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
          <widget class="QPushButton" name="backward">
@@ -269,13 +277,6 @@
         </item>
        </layout>
       </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="match">
-        <property name="text">
-         <string/>
-        </property>
-       </widget>
-      </item>
      </layout>
     </widget>
    </item>
@@ -290,7 +291,6 @@
  </customwidgets>
  <tabstops>
   <tabstop>timestamp</tabstop>
-  <tabstop>timestamp_slider</tabstop>
   <tabstop>pattern_match</tabstop>
   <tabstop>op</tabstop>
   <tabstop>target</tabstop>
