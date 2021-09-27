@@ -53,6 +53,7 @@ class TabularTreeItem(QtWidgets.QTreeWidgetItem):
 
 class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
     add_channels_request = QtCore.pyqtSignal(list)
+    timestamp_changed_signal = QtCore.pyqtSignal(object, float)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -72,6 +73,8 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         self.tree.verticalScrollBar().valueChanged.connect(self._scroll_tree)
         self.tree.currentItemChanged.connect(self._scroll_tree)
         self.format_selection.currentTextChanged.connect(self.set_format)
+
+        self._timestamps = None
 
     def _scroll_tree(self, selected_item):
         count = self.tree.topLevelItemCount()
@@ -298,6 +301,8 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         self.tree.setHeaderLabels(names)
 
         self.df = df
+        self._filtered_ts_series = self._original_ts_series.reindex(self.df.index)
+
         self.size = len(df.index)
         self.position = 0
 
@@ -365,6 +370,8 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         self.update_header()
 
         self.tree.setSortingEnabled(self.sort.checkState() == QtCore.Qt.Checked)
+
+        self.timestamp_changed_signal.emit(self, float(self._filtered_ts_series.iloc[max(0, position * 10 - 50)]))
 
     def add_new_channels(self, signals, mime_data=None):
         index = pd.Series(np.arange(len(signals), dtype="u8"), index=signals.index)
@@ -653,3 +660,18 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
                 names.append(name)
 
         self.tree.setHeaderLabels(names)
+
+    def set_timestamp(self, stamp):
+
+        if not (self._filtered_ts_series.iloc[0] <= stamp <= self._filtered_ts_series.iloc[-1]):
+            return
+
+        idx = self._filtered_ts_series.searchsorted(stamp, side="right") - 1
+        if idx < 0:
+            idx = 0
+
+        count = max(1, self.size // 10 + 1)
+        idx = int(idx / self.size * count)
+
+        self._display(idx)
+

@@ -1685,10 +1685,10 @@ class WithMDIArea:
                         plot.pattern_group_added.emit(plot, item)
 
         elif window_type == "Tabular":
-            numeric = Tabular(signals, start=start, parent=self)
+            tabular = Tabular(signals, start=start, parent=self)
 
             sub = MdiSubWindow(parent=self)
-            sub.setWidget(numeric)
+            sub.setWidget(tabular)
             sub.sigClosed.connect(self.window_closed_handler)
             sub.titleModified.connect(self.window_closed_handler)
 
@@ -1719,6 +1719,9 @@ class WithMDIArea:
             menu.insertAction(before, action)
 
             w.setWindowTitle(generate_window_title(w, window_type))
+
+            if self.subplots_link:
+                tabular.timestamp_changed_signal.connect(self.set_cursor)
 
         self.windows_modified.emit()
 
@@ -2473,6 +2476,9 @@ class WithMDIArea:
             action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
+
+            if self.subplots_link:
+                tabular.timestamp_changed_signal.connect(self.set_cursor)
 
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
