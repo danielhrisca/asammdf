@@ -6,6 +6,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from ..dialogs.range_editor import RangeEditor
 from ..ui import resource_rc as resource_rc
 from ..ui.channel_display_widget import Ui_ChannelDiplay
+from ..utils import copy_ranges
 
 
 class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
@@ -25,6 +26,8 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         precision=3,
         tooltip="",
         details="",
+        ranges=None,
+        item=None,
         *args,
         **kwargs,
     ):
@@ -41,7 +44,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self.details.setVisible(False)
 
         self.uuid = uuid
-        self.ranges = []
+        self.ranges = ranges or []
         self._unit = unit.strip()
         self.kind = kind
         self.precision = precision
@@ -86,6 +89,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             self.precision,
             self._tooltip,
             self.details.text(),
+            ranges=copy_ranges(self.ranges),
         )
 
         new._value_prefix = self._value_prefix
@@ -185,70 +189,67 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             )
         self.set_value(self._value, update=True)
             
-    def set_value(self, value, update=False):
+    def set_value(self, value, update=False, parent_ranges=None):
         if self._value == value and update is False:
             return
 
         self._value = value
-        if self.ranges and value not in ("", "n.a."):
-            p = self.palette()
 
-            for range in self.ranges:
-                font_color, background_color, op1, op2, value1, value2 = range.values()
+        new_background_color = self._current_background_color
+        new_font_color = self._current_font_color
 
-                result = False
-                
-                if value1 is not None:
-                    if op1 == '==':
-                        result = value1 == value
-                    elif op1 == '!=':
-                        result = value1 != value
-                    elif op1 == '<=':
-                        result = value1 <= value
-                    elif op1 == '<':
-                        result = value1 < value
-                    elif op1 == '>=':
-                        result = value1 >= value
-                    elif op1 == '>':
-                        result = value1 > value
+        if value not in ("", "n.a.", None):
+            ranges = self.get_ranges()
+            if ranges:
 
-                    if not result:
-                        continue
-                        
-                if value2 is not None:
-                    if op2 == '==':
-                        result = value == value2
-                    elif op2 == '!=':
-                        result = value != value2
-                    elif op2 == '<=':
-                        result = value <= value2
-                    elif op2 == '<':
-                        result = value < value2
-                    elif op2 == '>=':
-                        result = value >= value2
-                    elif op2 == '>':
-                        result = value > value2
+                for range_info in ranges:
+                    font_color, background_color, op1, op2, value1, value2 = range_info.values()
 
-                    if not result:
-                        continue
+                    result = False
 
-                if result:
-                    new_background_color = background_color
-                    new_font_color = font_color
-                    break
-            else:
-                new_background_color = self._current_background_color
-                new_font_color = self._current_font_color
+                    if value1 is not None:
+                        if op1 == '==':
+                            result = value1 == value
+                        elif op1 == '!=':
+                            result = value1 != value
+                        elif op1 == '<=':
+                            result = value1 <= value
+                        elif op1 == '<':
+                            result = value1 < value
+                        elif op1 == '>=':
+                            result = value1 >= value
+                        elif op1 == '>':
+                            result = value1 > value
 
-            p.setColor(QtGui.QPalette.Base, new_background_color)
-            p.setColor(QtGui.QPalette.Text, new_font_color)
-            self.setPalette(p)
+                        if not result:
+                            continue
 
-        else:
-            p = self.palette()
-            p.setColor(QtGui.QPalette.Base, self._current_background_color)
-            p.setColor(QtGui.QPalette.Text, self._current_font_color)
-            self.setPalette(p)
+                    if value2 is not None:
+                        if op2 == '==':
+                            result = value == value2
+                        elif op2 == '!=':
+                            result = value != value2
+                        elif op2 == '<=':
+                            result = value <= value2
+                        elif op2 == '<':
+                            result = value < value2
+                        elif op2 == '>=':
+                            result = value >= value2
+                        elif op2 == '>':
+                            result = value > value2
+
+                        if not result:
+                            continue
+
+                    if result:
+                        new_background_color = background_color
+                        new_font_color = font_color
+                        break
+
+        p = self.palette()
+        p.setColor(QtGui.QPalette.Base, new_background_color)
+        p.setColor(QtGui.QPalette.Text, new_font_color)
+        self.setPalette(p)
 
         template = "{{}}{}"
         if value not in ("", "n.a."):
@@ -377,3 +378,9 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self.enable_changed.disconnect()
         self.ylink_changed.disconnect()
         self.individual_axis_changed.disconnect()
+
+    def get_ranges(self):
+        if self.item is None:
+            return self.ranges
+        else:
+            return self.item.get_ranges()

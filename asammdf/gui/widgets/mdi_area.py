@@ -53,7 +53,7 @@ def build_mime_from_config(channels, mdf=None, uuid=None, default_index=-1):
                         build_mime_from_config(channel['channels'], mdf, uuid, default_index),
                         None,
                         "group",
-                        [],
+                        channel.get("ranges", []),
                     )
                 )
             else:
@@ -64,7 +64,7 @@ def build_mime_from_config(channels, mdf=None, uuid=None, default_index=-1):
                         [],
                         None,
                         "group",
-                        [],
+                        channel.get("ranges", []),
                     )
                 )
         else:

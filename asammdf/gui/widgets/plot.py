@@ -911,6 +911,8 @@ class Plot(QtWidgets.QWidget):
             | self.plot.keyboard_events
         )
 
+        print(self.channel_selection)
+
     def curve_clicked(self, uuid):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
         while iterator.value():
@@ -1063,6 +1065,7 @@ class Plot(QtWidgets.QWidget):
                     widget.set_prefix("= ")
                     widget.kind = kind
                     widget.set_fmt(fmt)
+
                     widget.set_value(value, update=True)
 
                 iterator += 1
@@ -1444,10 +1447,16 @@ class Plot(QtWidgets.QWidget):
         def add_new_items(tree, root, items, items_pool):
             for (name, group_index, channel_index, mdf_uuid, type_, ranges) in items:
 
+                ranges = deepcopy(ranges)
+                for range_info in ranges:
+                    range_info['font_color'] = QtGui.QColor(range_info['font_color'])
+                    range_info['background_color'] = QtGui.QColor(range_info['background_color'])
+
                 if type_ == "group":
                     pattern = group_index
                     item = ChannelsGroupTreeItem(name, pattern)
-                    widget = ChannelGroupDisplay(name, pattern)
+                    widget = ChannelGroupDisplay(name, pattern, item=item, ranges=ranges)
+                    widget.item = item
                     root.addChild(item)
                     tree.setItemWidget(item, 1, widget)
 
@@ -1461,11 +1470,7 @@ class Plot(QtWidgets.QWidget):
                         key = (name['name'],) + key[1:]
                         if key in items_pool:
                             item, widget = items_pool[key]
-
-                            ranges = deepcopy(ranges)
-                            for range_info in ranges:
-                                range_info['font_color'] = QtGui.QColor(range_info['font_color'])
-                                range_info['background_color'] = QtGui.QColor(range_info['background_color'])
+                            widget.item = item
                             widget.ranges = ranges
 
                             root.addChild(item)
@@ -1476,11 +1481,7 @@ class Plot(QtWidgets.QWidget):
 
                         if key in items_pool:
                             item, widget = items_pool[key]
-
-                            ranges = [deepcopy(e) for e in ranges]
-                            for range_info in ranges:
-                                range_info['font_color'] = QtGui.QColor(range_info['font_color'])
-                                range_info['background_color'] = QtGui.QColor(range_info['background_color'])
+                            widget.item = item
                             widget.ranges = ranges
 
                             root.addChild(item)
@@ -1590,7 +1591,7 @@ class Plot(QtWidgets.QWidget):
                 kind = sig.conversion.convert(sig.samples[:1]).dtype.kind
             else:
                 kind = sig.samples.dtype.kind
-            it = ChannelDisplay(sig.uuid, sig.unit, kind, 3, tooltip, details, self)
+            it = ChannelDisplay(sig.uuid, sig.unit, kind, 3, tooltip, details, self, item=item)
             if self.channel_selection.details_enabled:
                 it.details.setVisible(True)
             it.setAttribute(QtCore.Qt.WA_StyledBackground)
@@ -1640,6 +1641,7 @@ class Plot(QtWidgets.QWidget):
             if new_items:
                 for item, widget in new_items.values():
                     self.channel_selection.addTopLevelItem(item)
+                    widget.item = item
                     self.channel_selection.setItemWidget(item, 1, widget)
 
         self.channel_selection.update_channel_groups_count()
@@ -1707,12 +1709,19 @@ class Plot(QtWidgets.QWidget):
 
                         pattern["ranges"] = ranges
 
+                    ranges = copy_ranges(widget.ranges)
+
+                    for range_info in ranges:
+                        range_info['font_color'] = range_info['font_color'].name()
+                        range_info['background_color'] = range_info['background_color'].name()
+
                     channel = {
                         'type': 'group',
                         'name': widget.name.text().rsplit('[')[0],
                         'channels': item_to_config(tree, item) if item.pattern is None else [],
                         "enabled": item.checkState(0) == QtCore.Qt.Checked,
                         'pattern': pattern,
+                        "ranges": ranges,
                     }
 
                 channels.append(channel)

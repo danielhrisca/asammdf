@@ -19,6 +19,7 @@ def add_new_items(tree, root, items, pos):
 
         new_item = item.copy()
         new_widget = tree.itemWidget(item, 1).copy()
+        new_widget.item = new_item
 
         if pos is None:
             root.addChild(new_item)
@@ -368,7 +369,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
             if pattern:
                 group = ChannelsGroupTreeItem(pattern["name"], pattern)
-                widget = ChannelGroupDisplay(pattern["name"], pattern)
+                widget = ChannelGroupDisplay(pattern["name"], pattern, item=group)
 
                 item = self.currentItem()
 
@@ -402,7 +403,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             text, ok = QtWidgets.QInputDialog.getText(self, 'Channel group name', 'New channel group name:')
             if ok:
                 group = ChannelsGroupTreeItem(text)
-                widget = ChannelGroupDisplay(text)
+                widget = ChannelGroupDisplay(text, item=group)
 
                 item = self.currentItem()
 
@@ -894,6 +895,21 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         x = ChannelsTreeItem(self.entry, self.name, self.computation, mdf_uuid=self.mdf_uuid, category=self.category, check=self.checkState(0))
         return x
 
+    def get_ranges(self):
+        tree = self.treeWidget()
+        widget = tree.itemWidget(self, 1)
+        parent = self.parent()
+        if widget is None:
+            if parent is None:
+                return []
+            else:
+                return parent.get_ranges(tree)
+        else:
+            if parent is None:
+                return widget.ranges
+            else:
+                return [*widget.ranges, *parent.get_ranges(tree)]
+
 
 class ChannelsGroupTreeItem(QtWidgets.QTreeWidgetItem):
 
@@ -913,6 +929,21 @@ class ChannelsGroupTreeItem(QtWidgets.QTreeWidgetItem):
     def show_info(self):
         if self.pattern:
             ChannnelGroupPatternDialog(self.pattern, self.treeWidget()).show()
+
+    def get_ranges(self, tree=None):
+        tree = tree or self.treeWidget()
+        widget = tree.itemWidget(self, 1)
+        parent = self.parent()
+        if widget is None:
+            if parent is None:
+                return []
+            else:
+                return parent.get_ranges(tree)
+        else:
+            if parent is None:
+                return widget.ranges
+            else:
+                return [*widget.ranges, *parent.get_ranges(tree)]
 
 
 class ChannnelGroupPatternDialog(QtWidgets.QDialog):

@@ -5,6 +5,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ..ui import resource_rc as resource_rc
 from ..ui.channel_group_display_widget import Ui_ChannelGroupDisplay
+from ..dialogs.range_editor import RangeEditor
+from ..utils import copy_ranges
 
 
 class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
@@ -14,6 +16,8 @@ class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
         name="",
         pattern=None,
         count=0,
+        ranges=None,
+        item=None,
         *args,
         **kwargs,
     ):
@@ -28,6 +32,8 @@ class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
         self.name.setFont(font)
         self.set_pattern(pattern)
         self.count = count
+        self.ranges = ranges or []
+        self.item = item
 
     def set_pattern(self, pattern):
         if pattern:
@@ -42,6 +48,7 @@ class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
             self.name.text(),
             self.pattern,
             self.count,
+            ranges=copy_ranges(self.ranges),
         )
 
         return new
@@ -64,3 +71,10 @@ class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
                 self.name.setText(f'{self._name}\t[no matches]')
         else:
             self.name.setText(f'{self._name}\t[{value} items]')
+
+    def mouseDoubleClickEvent(self, event):
+        dlg = RangeEditor(f"channels from <{self._name}>", ranges=self.ranges, parent=self)
+        dlg.exec_()
+        if dlg.pressed_button == "apply":
+            self.ranges = dlg.result
+
