@@ -910,6 +910,11 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             else:
                 return [*widget.ranges, *parent.get_ranges(tree)]
 
+    def update_child_values(self, tree=None):
+        tree = tree or self.treeWidget()
+        widget = tree.itemWidget(self, 1)
+        widget.set_value(update=True)
+
 
 class ChannelsGroupTreeItem(QtWidgets.QTreeWidgetItem):
 
@@ -944,6 +949,13 @@ class ChannelsGroupTreeItem(QtWidgets.QTreeWidgetItem):
                 return widget.ranges
             else:
                 return [*widget.ranges, *parent.get_ranges(tree)]
+
+    def update_child_values(self, tree=None):
+        tree = tree or self.treeWidget()
+        count = self.childCount()
+        for i in range(count):
+            item = self.child(i)
+            item.update_child_values(tree)
 
 
 class ChannnelGroupPatternDialog(QtWidgets.QDialog):

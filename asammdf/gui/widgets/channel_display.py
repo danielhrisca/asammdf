@@ -34,6 +34,8 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
+        self.item = item
+
         self.color = "#ff0000"
         self._value_prefix = ""
         self._value = ""
@@ -124,6 +126,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         dlg.exec_()
         if dlg.pressed_button == "apply":
             self.ranges = dlg.result
+            self.set_value(self._value, update=True)
 
     def select_color(self):
         color = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.color))
@@ -187,13 +190,16 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             self.name.setText(
                 self.fm.elidedText(self._name, QtCore.Qt.ElideMiddle, width)
             )
-        self.set_value(self._value, update=True)
+        self.set_value(update=True)
             
-    def set_value(self, value, update=False, parent_ranges=None):
+    def set_value(self, value=None, update=False):
         if self._value == value and update is False:
             return
 
-        self._value = value
+        if value is not None:
+            self._value = value
+        else:
+            value = self._value
 
         new_background_color = self._current_background_color
         new_font_color = self._current_font_color

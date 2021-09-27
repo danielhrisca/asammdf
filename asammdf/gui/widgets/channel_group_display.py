@@ -77,4 +77,6 @@ class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
         dlg.exec_()
         if dlg.pressed_button == "apply":
             self.ranges = dlg.result
+            self.item.update_child_values()
+
 
