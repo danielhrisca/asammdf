@@ -2573,17 +2573,8 @@ class WithMDIArea:
             self._cursor_source = widget
             for mdi in self.mdi_area.subWindowList():
                 wid = mdi.widget()
-                if isinstance(wid, Plot) and wid is not widget:
-                    if wid.plot.cursor1 is None:
-                        event = QtGui.QKeyEvent(
-                            QtCore.QEvent.KeyPress,
-                            QtCore.Qt.Key_C,
-                            QtCore.Qt.NoModifier,
-                        )
-                        wid.plot.keyPressEvent(event)
-                    wid.plot.cursor1.setPos(pos)
-                elif isinstance(wid, (Numeric, Bar, GPS)) and wid is not widget:
-                    wid._update_values(pos)
+                wid.set_timestamp(pos)
+
             self._cursor_source = None
 
     def set_region(self, widget, region):
@@ -2608,7 +2599,6 @@ class WithMDIArea:
     def set_splitter(self, widget, selection_width):
         if not self.subplots_link:
             return
-
 
         if self._splitter_source is None:
             self._splitter_source = widget

@@ -1788,6 +1788,16 @@ class Plot(QtWidgets.QWidget):
     def pattern_group_added_req(self, group):
         self.pattern_group_added.emit(self, group)
 
+    def set_timestamp(self, stamp):
+        if self.plot.cursor1 is None:
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.KeyPress,
+                QtCore.Qt.Key_C,
+                QtCore.Qt.NoModifier,
+            )
+            self.plot.keyPressEvent(event)
+        self.plot.cursor1.setPos(stamp)
+
 
 class _Plot(pg.PlotWidget):
     cursor_moved = QtCore.pyqtSignal()

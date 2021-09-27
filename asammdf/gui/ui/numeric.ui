@@ -149,7 +149,7 @@
      <item>
       <widget class="QSlider" name="timestamp_slider">
        <property name="maximum">
-        <number>9999</number>
+        <number>99999</number>
        </property>
        <property name="orientation">
         <enum>Qt::Horizontal</enum>

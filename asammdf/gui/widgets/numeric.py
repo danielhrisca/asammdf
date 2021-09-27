@@ -56,7 +56,6 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         self.timestamp.valueChanged.connect(self._timestamp_changed)
         self.timestamp_slider.valueChanged.connect(self._timestamp_slider_changed)
 
-        self._update_values(self.timestamp.value())
         self.channels.add_channels_request.connect(self.add_channels_request)
         self.channels.items_deleted.connect(self.items_deleted)
 
@@ -124,37 +123,31 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
         if self._min == float("inf"):
             self._min = self._max = 0
 
+        self._timestamp = self._min
+
         self.timestamp.setRange(self._min, self._max)
         self.min_t.setText(f"{self._min:.9f}s")
         self.max_t.setText(f"{self._max:.9f}s")
-        self._update_values()
+        self.set_timestamp(self._min)
         self.channels.setSortingEnabled(True)
 
     def _timestamp_changed(self, stamp):
-        val = int((stamp - self._min) / (self._max - self._min) * 9999)
-
         if not self._inhibit:
-            self._inhibit = True
-            self.timestamp_slider.setValue(val)
-        else:
-            self._inhibit = False
-
-        self._update_values(stamp)
-        self.timestamp_changed_signal.emit(self, stamp)
+            self.set_timestamp(stamp)
 
     def _timestamp_slider_changed(self, stamp):
-        factor = stamp / 9999
-        val = (self._max - self._min) * factor + self._min
-
         if not self._inhibit:
-            self._inhibit = True
-            self.timestamp.setValue(val)
-        else:
-            self._inhibit = False
+            factor = stamp / 99999
+            stamp = (self._max - self._min) * factor + self._min
+            self.set_timestamp(stamp)
 
-    def _update_values(self, stamp=None):
+    def set_timestamp(self, stamp=None):
         if stamp is None:
-            stamp = self.timestamp.value()
+            stamp = self._timestamp
+
+        if not (self._min <= stamp <= self._max):
+            return
+
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channels)
 
         idx_cache = {}
@@ -273,6 +266,14 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             if item:
                 self.channels.setCurrentItem(item, 1, QtCore.QItemSelectionModel.SelectCurrent)
             self.channels.clearSelection()
+
+        self._inhibit = True
+        if self._min != self._max:
+            val = int((stamp - self._min) / (self._max - self._min) * 99999)
+            self.timestamp_slider.setValue(val)
+        self.timestamp.setValue(stamp)
+        self._inhibit = False
+        self.timestamp_changed_signal.emit(self, stamp)
 
     def add_new_channels(self, channels, mime_data=None):
         invalid = []
@@ -540,13 +541,13 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
     def set_format(self, fmt):
         self.format = fmt
         self._settings.setValue("numeric_format", fmt)
-        self._update_values()
+        self.set_timestamp()
 
     def set_mode(self, mode):
         self.mode = mode
         self._settings.setValue("numeric_mode", mode)
-        self._update_values()
+        self.set_timestamp()
 
     def set_float_precision(self, value):
         self._settings.setValue("numeric_float_precision", value)
-        self._update_values()
+        self.set_timestamp()

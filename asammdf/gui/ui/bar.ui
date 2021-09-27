@@ -13,19 +13,12 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0">
+  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0">
    <item>
     <widget class="MinimalListWidget" name="channels"/>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
-      <widget class="QLabel" name="label">
-       <property name="text">
-        <string>Time</string>
-       </property>
-      </widget>
-     </item>
+    <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="0,0,1,0">
      <item>
       <widget class="QDoubleSpinBox" name="timestamp">
        <property name="suffix">
@@ -39,10 +32,6 @@
        </property>
       </widget>
      </item>
-    </layout>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
       <widget class="QLabel" name="min_t">
        <property name="text">
@@ -51,17 +40,26 @@
       </widget>
      </item>
      <item>
-      <spacer name="horizontalSpacer">
+      <widget class="QSlider" name="timestamp_slider">
+       <property name="maximum">
+        <number>99999</number>
+       </property>
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
+       <property name="invertedAppearance">
+        <bool>false</bool>
        </property>
-      </spacer>
+       <property name="invertedControls">
+        <bool>false</bool>
+       </property>
+       <property name="tickPosition">
+        <enum>QSlider::NoTicks</enum>
+       </property>
+       <property name="tickInterval">
+        <number>1</number>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QLabel" name="max_t">
@@ -72,28 +70,6 @@
      </item>
     </layout>
    </item>
-   <item>
-    <widget class="QSlider" name="timestamp_slider">
-     <property name="maximum">
-      <number>9999</number>
-     </property>
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="invertedAppearance">
-      <bool>false</bool>
-     </property>
-     <property name="invertedControls">
-      <bool>false</bool>
-     </property>
-     <property name="tickPosition">
-      <enum>QSlider::NoTicks</enum>
-     </property>
-     <property name="tickInterval">
-      <number>1</number>
-     </property>
-    </widget>
-   </item>
   </layout>
  </widget>
  <customwidgets>
@@ -103,10 +79,6 @@
    <header>asammdf/gui/widgets/list.h</header>
   </customwidget>
  </customwidgets>
- <tabstops>
-  <tabstop>timestamp</tabstop>
-  <tabstop>timestamp_slider</tabstop>
- </tabstops>
  <resources>
   <include location="resource.qrc"/>
  </resources>
