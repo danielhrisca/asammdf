@@ -68,7 +68,7 @@ class Ui_NumericDisplay(object):
         self.min_t.setObjectName("min_t")
         self.horizontalLayout.addWidget(self.min_t)
         self.timestamp_slider = QtWidgets.QSlider(NumericDisplay)
-        self.timestamp_slider.setMaximum(9999)
+        self.timestamp_slider.setMaximum(99999)
         self.timestamp_slider.setOrientation(QtCore.Qt.Horizontal)
         self.timestamp_slider.setInvertedAppearance(False)
         self.timestamp_slider.setInvertedControls(False)

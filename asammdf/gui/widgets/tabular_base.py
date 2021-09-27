@@ -673,5 +673,5 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         count = max(1, self.size // 10 + 1)
         idx = int(idx / self.size * count)
 
-        self._display(idx)
+        self.tree_scroll.setValue(idx)
 

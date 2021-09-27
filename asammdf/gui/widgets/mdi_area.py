@@ -833,10 +833,10 @@ class WithMDIArea:
 
             signals = pd.DataFrame(columns)
 
-            numeric = CANBusTrace(signals, start=self.mdf.header.start_time.timestamp())
+            trace = CANBusTrace(signals, start=self.mdf.header.start_time.timestamp())
 
             sub = MdiSubWindow(parent=self)
-            sub.setWidget(numeric)
+            sub.setWidget(trace)
             sub.sigClosed.connect(self.window_closed_handler)
             sub.titleModified.connect(self.window_closed_handler)
 
@@ -875,6 +875,9 @@ class WithMDIArea:
 
             w.setWindowTitle(f"CAN Bus Trace {self._window_counter}")
             self._window_counter += 1
+
+            if self.subplots_link:
+                trace.timestamp_changed_signal.connect(self.set_cursor)
 
     def _add_lin_bus_trace_window(self):
         items = []
@@ -1080,10 +1083,10 @@ class WithMDIArea:
 
             signals = pd.DataFrame(columns)
 
-            numeric = LINBusTrace(signals, start=self.mdf.header.start_time.timestamp())
+            trace = LINBusTrace(signals, start=self.mdf.header.start_time.timestamp())
 
             sub = MdiSubWindow(parent=self)
-            sub.setWidget(numeric)
+            sub.setWidget(trace)
             sub.sigClosed.connect(self.window_closed_handler)
             sub.titleModified.connect(self.window_closed_handler)
 
@@ -1122,6 +1125,9 @@ class WithMDIArea:
 
             w.setWindowTitle(f"LIN Bus Trace {self._window_counter}")
             self._window_counter += 1
+
+            if self.subplots_link:
+                trace.timestamp_changed_signal.connect(self.set_cursor)
 
     def _add_gps_window(self, signals):
 
