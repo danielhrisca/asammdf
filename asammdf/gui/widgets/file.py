@@ -42,6 +42,7 @@ from ..utils import (
 from .attachment import Attachment
 from .can_bus_trace import CANBusTrace
 from .database_item import DatabaseItem
+from .flexray_bus_trace import FlexRayBusTrace
 from .gps import GPS
 from .lin_bus_trace import LINBusTrace
 from .mdi_area import MdiAreaWidget, WithMDIArea
@@ -1003,6 +1004,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 window_config["type"] = "GPS"
             elif isinstance(wid, CANBusTrace):
                 window_config["type"] = "CAN Bus Trace"
+            elif isinstance(wid, FlexRayBusTrace):
+                window_config["type"] = "FlexRay Bus Trace"
             elif isinstance(wid, LINBusTrace):
                 window_config["type"] = "LIN Bus Trace"
             else:
@@ -1381,6 +1384,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     "Numeric",
                     "Tabular",
                     "CAN Bus Trace",
+                    "FlexRay Bus Trace",
                     "LIN Bus Trace",
                     "GPS",
                 ),
@@ -1396,7 +1400,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if window_type is None:
             return
-        elif window_type in ("CAN Bus Trace", "LIN Bus Trace"):
+        elif window_type in ("CAN Bus Trace", "FlexRay Bus Trace", "LIN Bus Trace"):
             signals = []
         elif window_type == "GPS":
 

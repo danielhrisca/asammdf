@@ -911,8 +911,6 @@ class Plot(QtWidgets.QWidget):
             | self.plot.keyboard_events
         )
 
-        print(self.channel_selection)
-
     def curve_clicked(self, uuid):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
         while iterator.value():
@@ -1591,7 +1589,7 @@ class Plot(QtWidgets.QWidget):
                 kind = sig.conversion.convert(sig.samples[:1]).dtype.kind
             else:
                 kind = sig.samples.dtype.kind
-            it = ChannelDisplay(sig.uuid, sig.unit, kind, 3, tooltip, details, self, item=item)
+            it = ChannelDisplay(sig.uuid, sig.unit, kind, 3, tooltip, details, parent=self, item=item)
             if self.channel_selection.details_enabled:
                 it.details.setVisible(True)
             it.setAttribute(QtCore.Qt.WA_StyledBackground)

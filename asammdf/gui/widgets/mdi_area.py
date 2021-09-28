@@ -29,6 +29,7 @@ from ..utils import compute_signal, extract_mime_names, copy_ranges
 from .bar import Bar
 from .can_bus_trace import CANBusTrace
 from .channel_display import ChannelDisplay
+from .flexray_bus_trace import FlexRayBusTrace
 from .gps import GPS
 from .lin_bus_trace import LINBusTrace
 from .numeric import Numeric
@@ -881,6 +882,204 @@ class WithMDIArea:
 
         self.windows_modified.emit()
 
+    def _add_flexray_bus_trace_window(self, ranges=None):
+        items = []
+        groups_count = len(self.mdf.groups)
+
+        for index in range(groups_count):
+            group = self.mdf.groups[index]
+            if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
+                source = group.channel_group.acq_source
+
+                names = [ch.name for ch in group.channels]
+
+                if source and source.bus_type == v4c.BUS_TYPE_FLEXRAY:
+                    if "FLX_Frame" in names:
+                        data = self.mdf.get("FLX_Frame", index, raw=True)
+                        items.append(data)
+
+                    elif "FLX_NullFrame" in names:
+                        data = self.mdf.get("FLX_NullFrame", index, raw=True)
+                        items.append(data)
+
+                    elif "FLX_StartCycle" in names:
+                        data = self.mdf.get("FLX_StartCycle", index, raw=True)
+                        items.append(data)
+
+                    elif "FLX_Status" in names:
+                        data = self.mdf.get("FLX_Status", index, raw=True)
+                        items.append(data)
+
+        if len(items):
+
+            df_index = np.sort(np.concatenate([item.timestamps for item in items]))
+            count = len(df_index)
+
+            columns = {
+                "timestamps": df_index,
+                "Bus": np.full(count, "Unknown", dtype="O"),
+                "ID": np.full(count, 0xFFFF, dtype="u2"),
+                "Cycle": np.full(count, 0xFF, dtype="u1"),
+                "Name": np.full(count, "", dtype="O"),
+                "Event Type": np.full(count, "FlexRay Frame", dtype="O"),
+                "Details": np.full(count, "", dtype="O"),
+                "Data Length": np.zeros(count, dtype="u1"),
+                "Data Bytes": np.full(count, "", dtype="O"),
+                "Header CRC": np.full(count, 0xFFFF, dtype="u2"),
+            }
+
+            count = len(items)
+
+            # TO DO: add flexray error types
+            # for string in v4c.CAN_ERROR_TYPES.values():
+            #     sys.intern(string)
+
+            for _ in range(count):
+                item = items.pop()
+
+                frame_map = None
+
+                # TO DO : add flexray fibex support
+                # if item.attachment and item.attachment[0]:
+                #     dbc = load_can_database(item.attachment[1], item.attachment[0])
+                #     if dbc:
+                #         frame_map = {
+                #             frame.arbitration_id.id: frame.name for frame in dbc
+                #         }
+                #
+                #         for name in frame_map.values():
+                #             sys.intern(name)
+
+                if item.name == "FLX_Frame":
+
+                    index = np.searchsorted(df_index, item.timestamps)
+
+                    vals = item["FLX_Frame.FlxChannel"].astype("u1")
+
+                    vals = [f"FlexRay {chn}" for chn in vals.tolist()]
+                    columns["Bus"][index] = vals
+
+                    vals = item["FLX_Frame.ID"].astype("u2")
+                    columns["ID"][index] = vals
+                    if frame_map:
+                        columns["Name"][index] = [frame_map[_id] for _id in vals]
+
+                    vals = item["FLX_Frame.Cycle"].astype("u1")
+                    columns["Cycle"][index] = vals
+
+                    data_length = item["FLX_Frame.PayloadLength"].astype("u1").tolist()
+                    columns["Data Length"][index] = data_length
+
+                    vals = csv_bytearray2hex(
+                        pd.Series(list(item["FLX_Frame.DataBytes"])),
+                        data_length,
+                    )
+                    columns["Data Bytes"][index] = vals
+
+                    vals = item["FLX_Frame.HeaderCRC"].astype("u2")
+                    columns["Header CRC"][index] = vals
+
+                    vals = None
+                    data_length = None
+
+                elif item.name == "FLX_NullFrame":
+
+                    index = np.searchsorted(df_index, item.timestamps)
+
+                    vals = item["FLX_NullFrame.FlxChannel"].astype("u1")
+                    vals = [f"FlexRay {chn}" for chn in vals.tolist()]
+                    columns["Bus"][index] = vals
+
+                    vals = item["FLX_NullFrame.ID"].astype("u2")
+                    columns["ID"][index] = vals
+                    if frame_map:
+                        columns["Name"][index] = [frame_map[_id] for _id in vals]
+
+                    vals = item["FLX_NullFrame.Cycle"].astype("u1")
+                    columns["Cycle"][index] = vals
+
+                    columns["Event Type"][index] = "FlexRay NullFrame"
+
+                    vals = item["FLX_NullFrame.HeaderCRC"].astype("u2")
+                    columns["Header CRC"][index] = vals
+
+                    vals = None
+                    data_length = None
+
+                elif item.name == "FLX_StartCycle":
+
+                    index = np.searchsorted(df_index, item.timestamps)
+
+                    vals = item["FLX_StartCycle.cycleCount"].astype("u1")
+                    columns["Cycle"][index] = vals
+
+                    columns["Event Type"][index] = "FlexRay StartCycle"
+
+                    vals = None
+                    data_length = None
+
+                elif item.name == "FLX_Status":
+
+                    index = np.searchsorted(df_index, item.timestamps)
+
+                    vals = item["FLX_Status.StatusType"].astype("u1")
+                    columns["Details"][index] = vals.astype('U').astype('O')
+
+                    columns["Event Type"][index] = "FlexRay Status"
+
+                    vals = None
+                    data_length = None
+
+            signals = pd.DataFrame(columns)
+
+            trace = FlexRayBusTrace(signals, start=self.mdf.header.start_time.timestamp(), ranges=ranges)
+
+            sub = MdiSubWindow(parent=self)
+            sub.setWidget(trace)
+            sub.sigClosed.connect(self.window_closed_handler)
+            sub.titleModified.connect(self.window_closed_handler)
+
+            if not self.subplots:
+                for mdi in self.mdi_area.subWindowList():
+                    mdi.close()
+                w = self.mdi_area.addSubWindow(sub)
+
+                w.showMaximized()
+            else:
+                w = self.mdi_area.addSubWindow(sub)
+
+                if len(self.mdi_area.subWindowList()) == 1:
+                    w.showMaximized()
+                else:
+                    w.show()
+                    self.mdi_area.tileSubWindows()
+
+            menu = w.systemMenu()
+            if self._frameless_windows:
+                w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+
+            w.layout().setSpacing(1)
+
+            def set_title(mdi):
+                name, ok = QtWidgets.QInputDialog.getText(
+                    None, "Set sub-plot title", "Title:"
+                )
+                if ok and name:
+                    mdi.setWindowTitle(name)
+
+            action = QtWidgets.QAction("Set title", menu)
+            action.triggered.connect(partial(set_title, w))
+            before = menu.actions()[0]
+            menu.insertAction(before, action)
+
+            w.setWindowTitle(f"FlexRay Bus Trace {self._window_counter}")
+            self._window_counter += 1
+
+            if self.subplots_link:
+                trace.timestamp_changed_signal.connect(self.set_cursor)
+
+        self.windows_modified.emit()
+
     def _add_lin_bus_trace_window(self, ranges=None):
         items = []
         groups_count = len(self.mdf.groups)
@@ -1185,6 +1384,8 @@ class WithMDIArea:
 
         if window_type == "CAN Bus Trace":
             return self._add_can_bus_trace_window()
+        elif window_type == "FlexRay Bus Trace":
+            return self._add_flexray_bus_trace_window()
         elif window_type == "LIN Bus Trace":
             return self._add_lin_bus_trace_window()
         elif window_type == "GPS":
@@ -2515,7 +2716,7 @@ class WithMDIArea:
             if self.subplots_link:
                 tabular.timestamp_changed_signal.connect(self.set_cursor)
 
-        elif window_info["type"] == "CAN Bus Trace":
+        elif window_info["type"] in ("CAN Bus Trace", "FlexRay Bus Trace", "LIN Bus Trace"):
 
             ranges = window_info["configuration"].get("ranges", {})
             for channel_ranges in ranges.values():
@@ -2523,17 +2724,14 @@ class WithMDIArea:
                     range_info['font_color'] = QtGui.QBrush(QtGui.QColor(range_info['font_color']))
                     range_info['background_color'] = QtGui.QBrush(QtGui.QColor(range_info['background_color']))
 
-            return self._add_can_bus_trace_window(ranges)
+            if window_info["type"] == "CAN Bus Trace":
+                self._add_can_bus_trace_window(ranges)
+            elif window_info["type"] == "FlexRay Bus Trace":
+                self._add_can_bus_trace_window(ranges)
+            elif window_info["type"] == "LIN Bus Trace":
+                self._add_lin_bus_trace_window(ranges)
 
-        elif window_info["type"] == "LIN Bus Trace":
-
-            ranges = window_info["configuration"].get("ranges", {})
-            for channel_ranges in ranges.values():
-                for range_info in channel_ranges:
-                    range_info['font_color'] = QtGui.QBrush(QtGui.QColor(range_info['font_color']))
-                    range_info['background_color'] = QtGui.QBrush(QtGui.QColor(range_info['background_color']))
-
-            return self._add_lin_bus_trace_window(ranges)
+            return
 
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
