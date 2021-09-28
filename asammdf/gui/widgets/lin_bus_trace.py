@@ -57,7 +57,7 @@ class LINBusTrace(TabularBase):
 
         self.format_selection.setCurrentText(integer_mode)
 
-    def _display(self, position):
+    def _display(self, position=None):
         super()._display(position)
         iterator = QtWidgets.QTreeWidgetItemIterator(self.tree)
         columns = self.tree.columnCount()
