@@ -686,7 +686,7 @@ class WithMDIArea:
         except MdfException:
             print(format_exc())
 
-    def _add_can_bus_trace_window(self):
+    def _add_can_bus_trace_window(self, ranges=None):
         items = []
         groups_count = len(self.mdf.groups)
 
@@ -833,7 +833,7 @@ class WithMDIArea:
 
             signals = pd.DataFrame(columns)
 
-            trace = CANBusTrace(signals, start=self.mdf.header.start_time.timestamp())
+            trace = CANBusTrace(signals, start=self.mdf.header.start_time.timestamp(), ranges=ranges)
 
             sub = MdiSubWindow(parent=self)
             sub.setWidget(trace)
@@ -879,7 +879,9 @@ class WithMDIArea:
             if self.subplots_link:
                 trace.timestamp_changed_signal.connect(self.set_cursor)
 
-    def _add_lin_bus_trace_window(self):
+        self.windows_modified.emit()
+
+    def _add_lin_bus_trace_window(self, ranges=None):
         items = []
         groups_count = len(self.mdf.groups)
 
@@ -1083,7 +1085,7 @@ class WithMDIArea:
 
             signals = pd.DataFrame(columns)
 
-            trace = LINBusTrace(signals, start=self.mdf.header.start_time.timestamp())
+            trace = LINBusTrace(signals, start=self.mdf.header.start_time.timestamp(), range=ranges)
 
             sub = MdiSubWindow(parent=self)
             sub.setWidget(trace)
@@ -1129,6 +1131,8 @@ class WithMDIArea:
             if self.subplots_link:
                 trace.timestamp_changed_signal.connect(self.set_cursor)
 
+        self.windows_modified.emit()
+
     def _add_gps_window(self, signals):
 
         signals = [
@@ -1173,6 +1177,8 @@ class WithMDIArea:
 
         if self.subplots_link:
             gps.timestamp_changed_signal.connect(self.set_cursor)
+
+        self.windows_modified.emit()
 
     def add_window(self, args):
         window_type, names = args
@@ -2508,6 +2514,26 @@ class WithMDIArea:
 
             if self.subplots_link:
                 tabular.timestamp_changed_signal.connect(self.set_cursor)
+
+        elif window_info["type"] == "CAN Bus Trace":
+
+            ranges = window_info["configuration"].get("ranges", {})
+            for channel_ranges in ranges.values():
+                for range_info in channel_ranges:
+                    range_info['font_color'] = QtGui.QBrush(QtGui.QColor(range_info['font_color']))
+                    range_info['background_color'] = QtGui.QBrush(QtGui.QColor(range_info['background_color']))
+
+            return self._add_can_bus_trace_window(ranges)
+
+        elif window_info["type"] == "LIN Bus Trace":
+
+            ranges = window_info["configuration"].get("ranges", {})
+            for channel_ranges in ranges.values():
+                for range_info in channel_ranges:
+                    range_info['font_color'] = QtGui.QBrush(QtGui.QColor(range_info['font_color']))
+                    range_info['background_color'] = QtGui.QBrush(QtGui.QColor(range_info['background_color']))
+
+            return self._add_lin_bus_trace_window(ranges)
 
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
