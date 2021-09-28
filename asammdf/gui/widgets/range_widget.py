@@ -87,14 +87,12 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
                     try:
                         value1 = float(int(value1, 16))
                     except:
-                        value1 = None
+                        pass
                 elif value1.startswith('0b'):
                     try:
                         value1 = float(int(value1, 2))
                     except:
-                        value1 = None
-                else:
-                    value1 = None
+                        pass
 
         else:
             value1 = None
@@ -108,14 +106,12 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
                     try:
                         value2 = float(int(value2, 16))
                     except:
-                        value2 = None
+                        pass
                 elif value2.startswith('0b'):
                     try:
                         value2 = float(int(value2, 2))
                     except:
-                        value2 = None
-                else:
-                    value2 = None
+                        pass
         else:
             value2 = None
 

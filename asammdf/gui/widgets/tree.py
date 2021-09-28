@@ -11,6 +11,48 @@ from .channel_display import ChannelDisplay
 from .channel_group_display import ChannelGroupDisplay
 from ..dialogs.advanced_search import AdvancedSearch
 from collections import defaultdict
+from .tree_item import TreeItem
+
+
+def add_children(
+    widget, channels, channel_dependencies, signals, entries=None, mdf_uuid=None,
+    version="4.11",
+):
+    children = []
+    if entries is not None:
+        channels_ = [channels[i] for _, i in entries]
+    else:
+        channels_ = channels
+
+    for ch in channels_:
+        if ch.added == True:
+            continue
+
+        entry = ch.entry
+
+        child = TreeItem(entry, ch.name, mdf_uuid=mdf_uuid)
+        child.setText(0, ch.name)
+
+        dep = channel_dependencies[entry[1]]
+        if version >= "4.00":
+            if dep and isinstance(dep[0], tuple):
+                child.setFlags(
+                    child.flags() | QtCore.Qt.ItemIsTristate | QtCore.Qt.ItemIsUserCheckable
+                )
+
+                add_children(
+                    child, channels, channel_dependencies, signals, dep, mdf_uuid=mdf_uuid
+                )
+
+        if entry in signals:
+            child.setCheckState(0, QtCore.Qt.Checked)
+        else:
+            child.setCheckState(0, QtCore.Qt.Unchecked)
+
+        ch.added = True
+        children.append(child)
+
+    widget.addChildren(children)
 
 
 def add_new_items(tree, root, items, pos):

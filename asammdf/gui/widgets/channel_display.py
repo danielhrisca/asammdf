@@ -6,7 +6,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from ..dialogs.range_editor import RangeEditor
 from ..ui import resource_rc as resource_rc
 from ..ui.channel_display_widget import Ui_ChannelDiplay
-from ..utils import copy_ranges
+from ..utils import copy_ranges, get_colors_using_ranges
 
 
 class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
@@ -201,56 +201,12 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         else:
             value = self._value
 
-        new_background_color = self._current_background_color
-        new_font_color = self._current_font_color
-
-        if value not in ("", "n.a.", None):
-            ranges = self.get_ranges()
-            if ranges:
-
-                for range_info in ranges:
-                    background_color, font_color, op1, op2, value1, value2 = range_info.values()
-
-                    result = False
-
-                    if value1 is not None:
-                        if op1 == '==':
-                            result = value1 == value
-                        elif op1 == '!=':
-                            result = value1 != value
-                        elif op1 == '<=':
-                            result = value1 <= value
-                        elif op1 == '<':
-                            result = value1 < value
-                        elif op1 == '>=':
-                            result = value1 >= value
-                        elif op1 == '>':
-                            result = value1 > value
-
-                        if not result:
-                            continue
-
-                    if value2 is not None:
-                        if op2 == '==':
-                            result = value == value2
-                        elif op2 == '!=':
-                            result = value != value2
-                        elif op2 == '<=':
-                            result = value <= value2
-                        elif op2 == '<':
-                            result = value < value2
-                        elif op2 == '>=':
-                            result = value >= value2
-                        elif op2 == '>':
-                            result = value > value2
-
-                        if not result:
-                            continue
-
-                    if result:
-                        new_background_color = background_color
-                        new_font_color = font_color
-                        break
+        new_background_color, new_font_color = get_colors_using_ranges(
+            value,
+            ranges=self.get_ranges(),
+            default_background_color=self._current_background_color,
+            default_font_color=self._current_font_color,
+        )
 
         p = self.palette()
         p.setColor(QtGui.QPalette.Base, new_background_color)

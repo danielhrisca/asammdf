@@ -18,7 +18,7 @@ from ...blocks.utils import (
 from ...mdf import MDF
 from ..ui import resource_rc as resource_rc
 from ..ui.tabular import Ui_TabularDisplay
-from ..utils import run_thread_with_progress, copy_ranges
+from ..utils import run_thread_with_progress, copy_ranges, get_colors_using_ranges
 from .tabular_filter import TabularFilter
 from ..dialogs.range_editor import RangeEditor
 
@@ -75,70 +75,20 @@ class TabularTreeItem(QtWidgets.QTreeWidgetItem):
                     value = int(value, 2)
                 else:
                     value = int(value)
+                value = float(value)
 
             elif dtype == "f":
                 value = float(value)
 
-            else:
-                value = None
+            new_background_color, new_font_color = get_colors_using_ranges(
+                value,
+                ranges=channel_ranges,
+                default_background_color=self._current_background_color,
+                default_font_color=self._current_font_color,
+            )
 
-            if channel_ranges and value is not None:
-
-                for range_info in channel_ranges:
-                    background_color, font_color, op1, op2, value1, value2 = range_info.values()
-
-                    result = False
-
-                    if value1 is not None:
-                        if op1 == '==':
-                            result = value1 == value
-                        elif op1 == '!=':
-                            result = value1 != value
-                        elif op1 == '<=':
-                            result = value1 <= value
-                        elif op1 == '<':
-                            result = value1 < value
-                        elif op1 == '>=':
-                            result = value1 >= value
-                        elif op1 == '>':
-                            result = value1 > value
-
-                        if not result:
-                            continue
-
-                    if value2 is not None:
-                        if op2 == '==':
-                            result = value == value2
-                        elif op2 == '!=':
-                            result = value != value2
-                        elif op2 == '<=':
-                            result = value <= value2
-                        elif op2 == '<':
-                            result = value < value2
-                        elif op2 == '>=':
-                            result = value >= value2
-                        elif op2 == '>':
-                            result = value > value2
-
-                        if not result:
-                            continue
-
-                    if result:
-                        new_background_color = QtGui.QBrush(background_color)
-                        new_font_color = QtGui.QBrush(font_color)
-                        break
-                else:
-                    new_background_color = self._current_background_color
-                    new_font_color = self._current_font_color
-
-                self.setBackground(column, new_background_color)
-                self.setForeground(column, new_font_color)
-            else:
-                new_color = self._back_ground_color
-                self.setBackground(column, new_color)
-
-                new_color = self._font_color
-                self.setForeground(column, new_color)
+            self.setBackground(column, new_background_color)
+            self.setForeground(column, new_font_color)
 
 
 class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):

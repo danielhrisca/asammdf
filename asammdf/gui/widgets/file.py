@@ -32,7 +32,6 @@ from ..dialogs.window_selection_dialog import WindowSelectionDialog
 from ..ui import resource_rc as resource_rc
 from ..ui.file_widget import Ui_file_widget
 from ..utils import (
-    add_children,
     HelperChannel,
     load_dsp,
     load_lab,
@@ -50,6 +49,7 @@ from .numeric import Numeric
 from .plot import Plot
 from .tabular import Tabular
 from .tree_item import TreeItem
+from .tree import add_children
 
 
 class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):

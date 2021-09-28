@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from PyQt5 import QtWidgets, QtGui, QtCore
+from ..utils import get_colors_using_ranges
 
 
 class TreeItem(QtWidgets.QTreeWidgetItem):
@@ -71,75 +72,35 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
         self.entry = self.name = self.mdf_uuid = None
         
     def check_signal_range(self, value):
-        value = self.text(1)
-        try:
-            value = float(value)
-        except:
+        value = self.text(1).strip()
+        if value:
+            try:
+                value = float(value)
+            except:
+                if value.startswith('0x'):
+                    try:
+                        value = float(int(value, 16))
+                    except:
+                        pass
+                elif value.startswith('0b'):
+                    try:
+                        value = float(int(value, 2))
+                    except:
+                        pass
+        else:
             value = None
 
-        if self.ranges and value is not None:
+        new_background_color, new_font_color = get_colors_using_ranges(
+            value,
+            ranges=self.ranges,
+            default_background_color=self._back_ground_color,
+            default_font_color=self._font_color,
+        )
 
-            for range in self.ranges:
-                background_color, font_color, op1, op2, value1, value2 = range.values()
+        self.setBackground(0, new_background_color)
+        self.setBackground(1, new_background_color)
+        self.setBackground(2, new_background_color)
 
-                result = False
-
-                if value1 is not None:
-                    if op1 == '==':
-                        result = value1 == value
-                    elif op1 == '!=':
-                        result = value1 != value
-                    elif op1 == '<=':
-                        result = value1 <= value
-                    elif op1 == '<':
-                        result = value1 < value
-                    elif op1 == '>=':
-                        result = value1 >= value
-                    elif op1 == '>':
-                        result = value1 > value
-
-                    if not result:
-                        continue
-
-                if value2 is not None:
-                    if op2 == '==':
-                        result = value == value2
-                    elif op2 == '!=':
-                        result = value != value2
-                    elif op2 == '<=':
-                        result = value <= value2
-                    elif op2 == '<':
-                        result = value < value2
-                    elif op2 == '>=':
-                        result = value >= value2
-                    elif op2 == '>':
-                        result = value > value2
-
-                    if not result:
-                        continue
-
-                if result:
-                    new_background_color = QtGui.QBrush(background_color)
-                    new_font_color = QtGui.QBrush(font_color)
-                    break
-            else:
-                new_background_color = self._current_background_color
-                new_font_color = self._current_font_color
-
-            self.setBackground(0, new_background_color)
-            self.setBackground(1, new_background_color)
-            self.setBackground(2, new_background_color)
-
-            self.setForeground(0, new_font_color)
-            self.setForeground(1, new_font_color)
-            self.setForeground(2, new_font_color)
-        else:
-            new_color = self._back_ground_color
-            self.setBackground(0, new_color)
-            self.setBackground(1, new_color)
-            self.setBackground(2, new_color)
-
-            new_color = self._font_color
-            self.setForeground(0, new_color)
-            self.setForeground(1, new_color)
-            self.setForeground(2, new_color)
+        self.setForeground(0, new_font_color)
+        self.setForeground(1, new_font_color)
+        self.setForeground(2, new_font_color)

@@ -15,7 +15,6 @@ from ..dialogs.advanced_search import AdvancedSearch
 from ..ui import resource_rc as resource_rc
 from ..ui.batch_widget import Ui_batch_widget
 from ..utils import (
-    add_children,
     HelperChannel,
     run_thread_with_progress,
     setup_progress,
@@ -24,6 +23,7 @@ from ..utils import (
 from .database_item import DatabaseItem
 from .list import MinimalListWidget
 from .tree_item import TreeItem
+from .tree import add_children
 
 
 class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):

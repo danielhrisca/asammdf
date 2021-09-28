@@ -20,7 +20,6 @@ from ..blocks.conversion_utils import from_dict
 from ..mdf import MDF, MDF2, MDF3, MDF4
 from ..signal import Signal
 from .dialogs.error_dialog import ErrorDialog
-from .widgets.tree_item import TreeItem
 
 COLORS = [
     "#1f77b4",
@@ -501,47 +500,6 @@ def compute_signal(description, measured_signals, all_timebase):
     return result
 
 
-def add_children(
-    widget, channels, channel_dependencies, signals, entries=None, mdf_uuid=None,
-    version="4.11",
-):
-    children = []
-    if entries is not None:
-        channels_ = [channels[i] for _, i in entries]
-    else:
-        channels_ = channels
-
-    for ch in channels_:
-        if ch.added == True:
-            continue
-
-        entry = ch.entry
-
-        child = TreeItem(entry, ch.name, mdf_uuid=mdf_uuid)
-        child.setText(0, ch.name)
-
-        dep = channel_dependencies[entry[1]]
-        if version >= "4.00":
-            if dep and isinstance(dep[0], tuple):
-                child.setFlags(
-                    child.flags() | QtCore.Qt.ItemIsTristate | QtCore.Qt.ItemIsUserCheckable
-                )
-
-                add_children(
-                    child, channels, channel_dependencies, signals, dep, mdf_uuid=mdf_uuid
-                )
-
-        if entry in signals:
-            child.setCheckState(0, QtCore.Qt.Checked)
-        else:
-            child.setCheckState(0, QtCore.Qt.Unchecked)
-
-        ch.added = True
-        children.append(child)
-
-    widget.addChildren(children)
-
-
 class HelperChannel:
 
     __slots__ = "entry", "name", "added"
@@ -565,6 +523,67 @@ def copy_ranges(ranges):
         new_ranges.append(range_info)
 
     return new_ranges
+
+
+def get_colors_using_ranges(value, ranges, default_background_color, default_font_color):
+    new_background_color = default_background_color
+    new_font_color = default_font_color
+
+    if value is None:
+        return new_background_color, new_font_color
+
+    if ranges:
+
+        for base_class in (float, str):
+            if isinstance(value, base_class):
+                for range_info in ranges:
+                    background_color, font_color, op1, op2, value1, value2 = range_info.values()
+
+                    result = False
+
+                    if isinstance(value1, base_class):
+                        if op1 == '==':
+                            result = value1 == value
+                        elif op1 == '!=':
+                            result = value1 != value
+                        elif op1 == '<=':
+                            result = value1 <= value
+                        elif op1 == '<':
+                            result = value1 < value
+                        elif op1 == '>=':
+                            result = value1 >= value
+                        elif op1 == '>':
+                            result = value1 > value
+
+                        if not result:
+                            continue
+
+                    if isinstance(value2, base_class):
+                        if op2 == '==':
+                            result = value == value2
+                        elif op2 == '!=':
+                            result = value != value2
+                        elif op2 == '<=':
+                            result = value <= value2
+                        elif op2 == '<':
+                            result = value < value2
+                        elif op2 == '>=':
+                            result = value >= value2
+                        elif op2 == '>':
+                            result = value > value2
+
+                        if not result:
+                            continue
+
+                    if result:
+
+                        new_background_color = background_color
+                        new_font_color = font_color
+                        break
+                break
+
+    return new_background_color, new_font_color
+
 
 
 if __name__ == '__main__':

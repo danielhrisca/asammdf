@@ -112,3 +112,4 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
         dlg.exec_()
         if dlg.pressed_button == "apply":
             item.ranges = dlg.result
+            item.check_signal_range()
