@@ -80,7 +80,7 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
         if self.ranges and value is not None:
 
             for range in self.ranges:
-                font_color, background_color, op1, op2, value1, value2 = range.values()
+                background_color, font_color, op1, op2, value1, value2 = range.values()
 
                 result = False
 

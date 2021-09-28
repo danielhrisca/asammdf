@@ -25,7 +25,7 @@ from ...mdf import MDF
 from ...signal import Signal
 from ..dialogs.channel_info import ChannelInfoDialog
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
-from ..utils import compute_signal, extract_mime_names
+from ..utils import compute_signal, extract_mime_names, copy_ranges
 from .bar import Bar
 from .can_bus_trace import CANBusTrace
 from .channel_display import ChannelDisplay
@@ -2383,9 +2383,19 @@ class WithMDIArea:
                 except KeyError:
                     ranges = pattern_info["ranges"]
 
-                for range in ranges:
-                    range['font_color'] = QtGui.QColor(range['font_color'])
-                    range['background_color'] = QtGui.QColor(range['background_color'])
+                for range_info in ranges:
+                    range_info['font_color'] = QtGui.QBrush(QtGui.QColor(range_info['font_color']))
+                    range_info['background_color'] = QtGui.QBrush(QtGui.QColor(range_info['background_color']))
+
+                ranges = {
+                    sig.name: copy_ranges(ranges)
+                    for sig in signals_
+                }
+
+                signals_ = [
+                    (sig.name, sig.group_index, sig.channel_index)
+                    for sig in signals_
+                ]
 
                 pattern_info["ranges"] = ranges
 
@@ -2393,18 +2403,19 @@ class WithMDIArea:
                 required = set(window_info["configuration"]["channels"])
 
                 signals_ = [
-                    (None, *self.mdf.whereis(name)[0])
+                    (name, *self.mdf.whereis(name)[0])
                     for name in window_info["configuration"]["channels"]
                     if name in self.mdf
                 ]
 
+                ranges = window_info["configuration"].get("ranges", {})
+                for channel_ranges in ranges.values():
+                    for range_info in channel_ranges:
+                        range_info['font_color'] = QtGui.QBrush(QtGui.QColor(range_info['font_color']))
+                        range_info['background_color'] = QtGui.QBrush(QtGui.QColor(range_info['background_color']))
+
                 if not signals_:
                     return
-
-            signals_ = [
-                (sig.name, sig.group_index, sig.channel_index)
-                for sig in signals_
-            ]
 
             signals = self.mdf.to_dataframe(
                 channels=signals_,
@@ -2419,7 +2430,12 @@ class WithMDIArea:
                 vals.fill(np.NaN)
                 signals[name] = pd.Series(vals, index=signals.index)
 
-            tabular = Tabular(signals, start=self.mdf.header.start_time.timestamp(), parent=self)
+            tabular = Tabular(
+                signals,
+                ranges=ranges,
+                start=self.mdf.header.start_time.timestamp(),
+                parent=self
+            )
             tabular.pattern = pattern_info
 
             sub = MdiSubWindow(parent=self)

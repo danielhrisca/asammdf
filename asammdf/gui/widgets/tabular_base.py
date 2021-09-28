@@ -20,16 +20,26 @@ from ..ui import resource_rc as resource_rc
 from ..ui.tabular import Ui_TabularDisplay
 from ..utils import run_thread_with_progress, copy_ranges
 from .tabular_filter import TabularFilter
+from ..dialogs.range_editor import RangeEditor
 
 logger = logging.getLogger("asammdf.gui")
 LOCAL_TIMEZONE = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
 
 
 class TabularTreeItem(QtWidgets.QTreeWidgetItem):
-    def __init__(self, column_types, int_format, *args, **kwargs):
+    def __init__(self, column_types, int_format, ranges=None, *args, **kwargs):
         self.column_types = column_types
         self.int_format = int_format
+        self.ranges = ranges
         super().__init__(*args, **kwargs)
+
+        self._back_ground_color = self.background(0)
+        self._font_color = self.foreground(0)
+
+        self._current_background_color = self._back_ground_color
+        self._current_font_color = self._font_color
+
+        self.check_signal_range()
 
     def __lt__(self, other):
         column = self.treeWidget().sortColumn()
@@ -50,6 +60,86 @@ class TabularTreeItem(QtWidgets.QTreeWidgetItem):
         else:
             return self.text(column) < other.text(column)
 
+    def check_signal_range(self):
+        if not self.ranges:
+            return
+
+        for column, channel_ranges in enumerate(self.ranges, 1):
+            value = self.text(column)
+            dtype = self.column_types[column]
+
+            if dtype in "ui":
+                if self.int_format == "hex":
+                    value = int(value, 16)
+                elif self.int_format == "bin":
+                    value = int(value, 2)
+                else:
+                    value = int(value)
+
+            elif dtype == "f":
+                value = float(value)
+
+            else:
+                value = None
+
+            if channel_ranges and value is not None:
+
+                for range_info in channel_ranges:
+                    background_color, font_color, op1, op2, value1, value2 = range_info.values()
+
+                    result = False
+
+                    if value1 is not None:
+                        if op1 == '==':
+                            result = value1 == value
+                        elif op1 == '!=':
+                            result = value1 != value
+                        elif op1 == '<=':
+                            result = value1 <= value
+                        elif op1 == '<':
+                            result = value1 < value
+                        elif op1 == '>=':
+                            result = value1 >= value
+                        elif op1 == '>':
+                            result = value1 > value
+
+                        if not result:
+                            continue
+
+                    if value2 is not None:
+                        if op2 == '==':
+                            result = value == value2
+                        elif op2 == '!=':
+                            result = value != value2
+                        elif op2 == '<=':
+                            result = value <= value2
+                        elif op2 == '<':
+                            result = value < value2
+                        elif op2 == '>=':
+                            result = value >= value2
+                        elif op2 == '>':
+                            result = value > value2
+
+                        if not result:
+                            continue
+
+                    if result:
+                        new_background_color = QtGui.QBrush(background_color)
+                        new_font_color = QtGui.QBrush(font_color)
+                        break
+                else:
+                    new_background_color = self._current_background_color
+                    new_font_color = self._current_font_color
+
+                self.setBackground(column, new_background_color)
+                self.setForeground(column, new_font_color)
+            else:
+                new_color = self._back_ground_color
+                self.setBackground(column, new_color)
+
+                new_color = self._font_color
+                self.setForeground(column, new_color)
+
 
 class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
     add_channels_request = QtCore.pyqtSignal(list)
@@ -68,6 +158,8 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         self.time_as_date.stateChanged.connect(self.time_as_date_changed)
         self.remove_prefix.stateChanged.connect(self.remove_prefix_changed)
         self.tree.header().sortIndicatorChanged.connect(self._sort)
+        self.tree.header().sectionDoubleClicked.connect(self._section_double_clicked)
+        self.tree.header().setSectionsMovable(False)
 
         self.tree_scroll.valueChanged.connect(self._display)
         self.tree.verticalScrollBar().valueChanged.connect(self._scroll_tree)
@@ -123,14 +215,16 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
                 self.tree_scroll.value() + self.tree_scroll.singleStep()
             )
 
-            item = self.tree.findItems(current_index, QtCore.Qt.MatchExactly)[0]
-            below = self.tree.itemBelow(item)
-            self.tree.scrollToItem(below, QtWidgets.QAbstractItemView.PositionAtBottom)
-            try:
-                item = self.tree.itemAbove(below)
-                self.tree.setCurrentItem(item)
-            except:
-                pass
+            items = self.tree.findItems(current_index, QtCore.Qt.MatchExactly)
+            if items:
+                item = items[0]
+                below = self.tree.itemBelow(item)
+                self.tree.scrollToItem(below, QtWidgets.QAbstractItemView.PositionAtBottom)
+                try:
+                    item = self.tree.itemAbove(below)
+                    self.tree.setCurrentItem(item)
+                except:
+                    pass
 
     def _sort(self, index, mode):
         ascending = mode == QtCore.Qt.AscendingOrder
@@ -274,7 +368,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             self.signals_descr.pop(name)
         self.build()
 
-    def build(self, df, reset_header_names=False):
+    def build(self, df, reset_header_names=False, ranges=None):
         self.tree.setSortingEnabled(False)
         self.tree.clear()
 
@@ -312,9 +406,19 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
 
         self.tree_scroll.setSliderPosition(0)
 
+        self.ranges = []
+        ranges = ranges or {}
+        for name in self.signals.columns:
+            channel_ranges = ranges.get(name, [])
+            self.ranges.append(channel_ranges)
+
         self._display(0)
 
-    def _display(self, position):
+    def _display(self, position=None):
+        if position is None:
+            position = self._current_position
+        else:
+            self._current_position = position
         self.tree.setSortingEnabled(False)
         self.tree.clear()
 
@@ -364,7 +468,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         column_types = ["u", *[df[name].dtype.kind for name in df.columns]]
         int_format = self.format_selection.currentText()
 
-        items = [TabularTreeItem(column_types, int_format, [str(e) for e in row]) for row in zip(*items)]
+        items = [TabularTreeItem(column_types, int_format, self.ranges, [str(e) for e in row]) for row in zip(*items)]
 
         self.tree.addTopLevelItems(items)
         self.update_header()
@@ -379,6 +483,11 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
 
         signals.set_index(index, inplace=True)
         dropped = {}
+
+        ranges = {
+            name: channel_ranges
+            for name, channel_ranges in zip(self.signals.columns, self.ranges)
+        }
 
         for name_ in signals.columns:
             col = signals[name_]
@@ -449,7 +558,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
 
         self.signals = pd.concat([self.signals, signals], axis=1)
         
-        self.build(self.signals, reset_header_names=True)
+        self.build(self.signals, reset_header_names=True, ranges=ranges)
 
     def to_config(self):
 
@@ -460,10 +569,20 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             ranges = copy_ranges(pattern["ranges"])
 
             for range_info in ranges:
-                range_info['font_color'] = range_info['font_color'].name()
-                range_info['background_color'] = range_info['background_color'].name()
+                range_info['font_color'] = range_info['font_color'].color().name()
+                range_info['background_color'] = range_info['background_color'].color().name()
 
             pattern["ranges"] = ranges
+
+        ranges = {}
+        for name, channel_ranges in zip(self.signals.columns, self.ranges):
+            channel_ranges = copy_ranges(channel_ranges)
+
+            for range_info in channel_ranges:
+                range_info['font_color'] = range_info['font_color'].color().name()
+                range_info['background_color'] = range_info['background_color'].color().name()
+
+            ranges[name] = channel_ranges
 
         config = {
             "sorted": self.sort.checkState() == QtCore.Qt.Checked,
@@ -478,6 +597,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             "time_as_date": self.time_as_date.checkState() == QtCore.Qt.Checked,
             "pattern": pattern,
             "format": self.format,
+            "ranges": ranges,
         }
 
         return config
@@ -675,4 +795,18 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         idx = int(idx / self.size * count)
 
         self.tree_scroll.setValue(idx)
+
+    def _section_double_clicked(self, index):
+        if index >= 1:
+            name = self.tree.headerItem().text(index)
+
+            index -= 1
+
+            dlg = RangeEditor(name, "", self.ranges[index], parent=self, brush=True)
+            dlg.exec_()
+            if dlg.pressed_button == "apply":
+                ranges = dlg.result
+                self.ranges[index] = ranges
+                self._display()
+
 

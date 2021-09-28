@@ -25,7 +25,7 @@ LOCAL_TIMEZONE = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinf
 class Tabular(TabularBase):
     add_channels_request = QtCore.pyqtSignal(list)
 
-    def __init__(self, signals=None, start=0, format="phys", *args, **kwargs):
+    def __init__(self, signals=None, start=0, format="phys", ranges=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.signals_descr = {}
@@ -118,7 +118,7 @@ class Tabular(TabularBase):
             index=index,
         )
 
-        self.build(self.signals, True)
+        self.build(self.signals, True, ranges=ranges)
 
         prefixes = set()
         for name in self.signals.columns:

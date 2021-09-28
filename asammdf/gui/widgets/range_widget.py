@@ -120,14 +120,14 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
             value2 = None
 
         font_color = self.font_color_btn.palette().button().color()
-
         background_color = self.background_color_btn.palette().button().color()
         if brush:
             background_color = QtGui.QBrush(background_color)
-            
+            font_color = QtGui.QBrush(font_color)
+
         return {
-            "font_color": font_color,
             "background_color": background_color,
+            "font_color": font_color,
             "op1": self.op1.currentText(),
             "op2": self.op2.currentText(),
             "value1": value1,

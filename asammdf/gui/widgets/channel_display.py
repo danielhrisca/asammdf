@@ -209,7 +209,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             if ranges:
 
                 for range_info in ranges:
-                    font_color, background_color, op1, op2, value1, value2 = range_info.values()
+                    background_color, font_color, op1, op2, value1, value2 = range_info.values()
 
                     result = False
 
