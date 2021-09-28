@@ -1552,7 +1552,7 @@ def load_can_database(path, contents=None, **kwargs):
 
 def all_blocks_addresses(obj):
     pattern = re.compile(
-        rb"(?P<block>##(D[GVTZIL]|AT|C[AGHNC]|EV|FH|HL|LD|MD|R[DVI]|S[IRD]|TX))",
+        rb"(?P<block>##(D[GVTZIL]|AT|C[AGHNC]|EV|FH|HL|LD|MD|R[DVI]|S[IRD]|TX)\x00\x00)",
         re.DOTALL | re.MULTILINE,
     )
 
@@ -1574,6 +1574,9 @@ def all_blocks_addresses(obj):
     for match in re.finditer(pattern, source):
         btype = match.group("block")
         start = match.start()
+
+        if start % 8:
+            continue
 
         btype_addresses = block_groups.setdefault(btype, [])
         btype_addresses.append(start)

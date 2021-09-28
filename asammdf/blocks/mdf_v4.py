@@ -9827,7 +9827,7 @@ class MDF4(MDF_Common):
         mapped = self._mapped
 
         if flags & v4c.FLAG_UNFIN_UPDATE_LAST_DL:
-            for dg_addr in block_groups[b"##DG"]:
+            for dg_addr in block_groups[b"##DG\x00\x00"]:
                 group = DataGroup(address=dg_addr, stream=stream, mapped=mapped)
                 data_addr = group.data_block_addr
                 if not data_addr:
@@ -9937,7 +9937,7 @@ class MDF4(MDF_Common):
 
         if flags & v4c.FLAG_UNFIN_UPDATE_LAST_DT_LENGTH:
             try:
-                for dg_addr in block_groups[b"##DG"]:
+                for dg_addr in block_groups[b"##DG\x00\x00"]:
                     group = DataGroup(address=dg_addr, stream=stream, mapped=mapped)
                     data_addr = group.data_block_addr
                     if not data_addr:
