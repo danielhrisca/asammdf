@@ -1097,6 +1097,8 @@ class Plot(QtWidgets.QWidget):
         self.cursor_removed_signal.emit(self)
 
     def range_modified(self):
+        if not self.plot.region:
+            return
         start, stop = self.plot.region.getRegion()
 
         fmt = self.plot.x_axis.format
@@ -1165,6 +1167,8 @@ class Plot(QtWidgets.QWidget):
             self.info.set_stats(stats)
 
     def range_modified_finished(self):
+        if not self.plot.region:
+            return
         start, stop = self.plot.region.getRegion()
 
         if self.plot.timebase is not None and len(self.plot.timebase):

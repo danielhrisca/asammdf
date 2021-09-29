@@ -149,26 +149,31 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
     def set_color(self, color):
         self.color = color
-        self.set_name(self._name)
-        self.set_value(self._value)
         self.color_btn.setStyleSheet(f"background-color: {color};")
 
-        self._font_color = self.__current_font_color = QtGui.QColor(self.color)
+        self._font_color = QtGui.QColor(self.color)
+
+        if self._current_font_color.name() != self._selected_font_color.name():
+            self._current_font_color = self._font_color
 
         palette = self.palette()
-        palette.setColor(QtGui.QPalette.Text, self._font_color)
+        palette.setColor(QtGui.QPalette.Text, self._current_font_color)
 
         self.setPalette(palette)
+
+        self.set_name(self._name)
+        if self.item is not None:
+            self.set_value(update=True)
 
     def set_selected(self, on):
         if on:
             self._current_background_color = self._selected_color
             self._current_font_color = self._selected_font_color
-            self.set_value(self._value, True)
+            self.set_value(update=True)
         else:
             self._current_background_color = self._back_ground_color
             self._current_font_color = self._font_color
-            self.set_value(self._value, True)
+            self.set_value(update=True)
 
     def set_name(self, text=""):
         self.setToolTip(self._tooltip or text)

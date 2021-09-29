@@ -939,18 +939,21 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
     def get_ranges(self):
         tree = self.treeWidget()
-        widget = tree.itemWidget(self, 1)
-        parent = self.parent()
-        if widget is None:
-            if parent is None:
-                return []
+        if tree:
+            widget = tree.itemWidget(self, 1)
+            parent = self.parent()
+            if widget is None:
+                if parent is None:
+                    return []
+                else:
+                    return parent.get_ranges(tree)
             else:
-                return parent.get_ranges(tree)
+                if parent is None:
+                    return widget.ranges
+                else:
+                    return [*widget.ranges, *parent.get_ranges(tree)]
         else:
-            if parent is None:
-                return widget.ranges
-            else:
-                return [*widget.ranges, *parent.get_ranges(tree)]
+            return []
 
     def update_child_values(self, tree=None):
         tree = tree or self.treeWidget()

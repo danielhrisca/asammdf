@@ -116,12 +116,35 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         self.tree.currentItemChanged.connect(self._scroll_tree)
         self.format_selection.currentTextChanged.connect(self.set_format)
 
+        self.toggle_filters_btn.clicked.connect(self.toggle_filters)
+        self.filters_group.setHidden(True)
+
         self._timestamps = None
+
+    def toggle_filters(self, event=None):
+        if self.toggle_filters_btn.text() == "Show filters":
+            self.toggle_filters_btn.setText("Hide filters")
+            self.filters_group.setHidden(False)
+            icon = QtGui.QIcon()
+            icon.addPixmap(QtGui.QPixmap(":/up.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            self.toggle_filters_btn.setIcon(icon)
+        else:
+            self.toggle_filters_btn.setText("Show filters")
+            self.filters_group.setHidden(True)
+            icon = QtGui.QIcon()
+            icon.addPixmap(QtGui.QPixmap(":/down.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            self.toggle_filters_btn.setIcon(icon)
 
     def _scroll_tree(self, selected_item):
         count = self.tree.topLevelItemCount()
         if count <= 1:
             return
+
+        if selected_item:
+            index = int(selected_item.text(0))
+            timestamp = self._filtered_ts_series[index]
+        else:
+            timestamp = None
 
         if isinstance(selected_item, int):
 
@@ -175,6 +198,9 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
                     self.tree.setCurrentItem(item)
                 except:
                     pass
+
+        if timestamp:
+            self.timestamp_changed_signal.emit(self, timestamp)
 
     def _sort(self, index, mode):
         ascending = mode == QtCore.Qt.AscendingOrder
@@ -741,10 +767,23 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         if idx < 0:
             idx = 0
 
+        index = self.df.index[idx]
+
         count = max(1, self.size // 10 + 1)
         idx = int(idx / self.size * count)
 
         self.tree_scroll.setValue(idx)
+
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.tree)
+        while iterator.value():
+            item = iterator.value()
+            if item:
+                current_index = int(item.text(0))
+                if current_index == index:
+                    self.tree.setCurrentItem(item)
+                    break
+
+            iterator += 1
 
     def _section_double_clicked(self, index):
         if index >= 1:
