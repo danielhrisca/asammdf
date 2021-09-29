@@ -153,7 +153,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self.set_value(self._value)
         self.color_btn.setStyleSheet(f"background-color: {color};")
 
-        self._font_color = QtGui.QColor(self.color)
+        self._font_color = self.__current_font_color = QtGui.QColor(self.color)
 
         palette = self.palette()
         palette.setColor(QtGui.QPalette.Text, self._font_color)
