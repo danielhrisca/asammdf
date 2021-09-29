@@ -639,9 +639,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             menu.addAction(self.tr("Enable all but this"))
         menu.addSeparator()
         if self._has_hidden_items:
-            show_hide = "Show disabled items"
+            show_hide = "Show disabled or not available items"
         else:
-            show_hide = "Hide disabled items"
+            show_hide = "Hide disabled or not available items"
         menu.addAction(self.tr(show_hide))
         menu.addSeparator()
 
@@ -736,6 +736,11 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     item = iterator.value()
                     if item.checkState(0) == QtCore.Qt.Unchecked:
                         item.setHidden(True)
+                    else:
+                        widget = self.itemWidget(item, 1)
+                        if not widget.exists:
+                            item.setHidden(True)
+
                     iterator += 1
 
             self._has_hidden_items = not self._has_hidden_items

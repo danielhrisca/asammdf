@@ -77,6 +77,8 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self._current_background_color = self._back_ground_color
         self._current_font_color = self._font_color = QtGui.QColor(self.color)
 
+        self.exists = True
+
     def set_unit(self, unit):
         unit = str(unit)
         if unit != self._unit:
@@ -339,6 +341,8 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             self.color_btn.setIcon(icon)
             self.color_btn.setFlat(False)
             self.color_btn.clicked.connect(self.select_color)
+
+        self.exists = exists
 
     def disconnect_slots(self):
         self.color_changed.disconnect()
