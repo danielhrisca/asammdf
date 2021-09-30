@@ -68,6 +68,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         line_interconnect="line",
         encryption_function=None,
         decryption_function=None,
+        hide_missing_channels=False,
+        hide_disabled_channels=False,
         *args,
         **kwargs,
     ):
@@ -77,6 +79,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.setupUi(self)
         self._settings = QtCore.QSettings()
         self.uuid = os.urandom(6).hex()
+
+        self.hide_missing_channels = hide_missing_channels
+        self.hide_disabled_channels = hide_disabled_channels
 
         file_name = Path(file_name)
         self.subplots = subplots

@@ -332,7 +332,13 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     insert_computation = QtCore.pyqtSignal(str)
     pattern_group_added = QtCore.pyqtSignal(object)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(
+            self,
+            hide_missing_channels=False,
+            hide_disabled_channels=False,
+            *args,
+            **kwargs
+        ):
 
         super().__init__(*args, **kwargs)
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
@@ -343,7 +349,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.open_menu)
         self.details_enabled = False
-        self._has_hidden_items = False
+        self.hide_missing_channels = hide_missing_channels
+        self.hide_disabled_channels = hide_disabled_channels
         self.can_delete_items = True
 
         self.setHeaderHidden(True)
@@ -471,6 +478,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 checked = item.checkState(0)
                 if checked == QtCore.Qt.Checked:
                     item.setCheckState(0, QtCore.Qt.Unchecked)
+                    if self.hide_disabled_channels:
+                        item.setHidden(True)
                 else:
                     item.setCheckState(0, QtCore.Qt.Checked)
             else:
@@ -482,6 +491,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     checked = QtCore.Qt.Unchecked
                 for item in selected_items:
                     item.setCheckState(0, checked)
+                    if self.hide_disabled_channels and checked == QtCore.Qt.Unchecked:
+                        item.setHidden(True)
         else:
             super().keyPressEvent(event)
 
@@ -638,11 +649,16 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         if item:
             menu.addAction(self.tr("Enable all but this"))
         menu.addSeparator()
-        if self._has_hidden_items:
-            show_hide = "Show disabled or not available items"
+        if self.hide_disabled_channels:
+            show_disabled_channels = "Show disabled items"
         else:
-            show_hide = "Hide disabled or not available items"
-        menu.addAction(self.tr(show_hide))
+            show_disabled_channels = "Hide disabled items"
+        menu.addAction(self.tr(show_disabled_channels))
+        if self.hide_missing_channels:
+            show_missing_channels = "Show missing items"
+        else:
+            show_missing_channels = "Hide missing items"
+        menu.addAction(self.tr(show_missing_channels))
         menu.addSeparator()
 
         if isinstance(item, ChannelsTreeItem):
@@ -723,12 +739,21 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
                 iterator += 1
 
-        elif action.text() == show_hide:
-            if self._has_hidden_items:
+        elif action.text() == show_disabled_channels:
+            if self.hide_disabled_channels:
                 iterator = QtWidgets.QTreeWidgetItemIterator(self)
                 while iterator.value():
                     item = iterator.value()
-                    item.setHidden(False)
+                    widget = self.itemWidget(item, 1)
+                    if (
+                        widget
+                        and isinstance(widget, ChannelDisplay)
+                        and self.hide_missing_channels
+                        and not widget.exists
+                    ):
+                        pass
+                    else:
+                        item.setHidden(False)
                     iterator += 1
             else:
                 iterator = QtWidgets.QTreeWidgetItemIterator(self)
@@ -738,12 +763,40 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                         item.setHidden(True)
                     else:
                         widget = self.itemWidget(item, 1)
-                        if not widget.exists:
+                        if isinstance(widget, ChannelDisplay) and not widget.exists:
                             item.setHidden(True)
 
                     iterator += 1
 
-            self._has_hidden_items = not self._has_hidden_items
+            self.hide_disabled_channels = not self.hide_disabled_channels
+
+        elif action.text() == show_missing_channels:
+            if self.hide_missing_channels:
+                iterator = QtWidgets.QTreeWidgetItemIterator(self)
+                while iterator.value():
+                    item = iterator.value()
+                    widget = self.itemWidget(item, 1)
+                    if (
+                        widget
+                        and isinstance(widget, ChannelDisplay)
+                        and self.hide_disabled_channels
+                        and item.checkState(0) == QtCore.Qt.Unchecked
+                    ):
+                        pass
+                    else:
+                        item.setHidden(False)
+                    iterator += 1
+            else:
+                iterator = QtWidgets.QTreeWidgetItemIterator(self)
+                while iterator.value():
+                    item = iterator.value()
+                    widget = self.itemWidget(item, 1)
+                    if isinstance(widget, ChannelDisplay) and not widget.exists:
+                        item.setHidden(True)
+
+                    iterator += 1
+
+            self.hide_missing_channels = not self.hide_missing_channels
 
         elif action.text() == "Add to common Y axis":
             selected_items = self.selectedItems()
@@ -912,6 +965,29 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             if isinstance(item, ChannelsGroupTreeItem):
                 widget = self.itemWidget(item, 1)
                 widget.count = item.childCount()
+            iterator += 1
+
+    def update_hidden_states(self):
+        hide_missing_channels = self.hide_missing_channels
+        hide_disabled_channels = self.hide_disabled_channels
+
+        iterator = QtWidgets.QTreeWidgetItemIterator(self)
+        while iterator.value():
+            item = iterator.value()
+            widget = self.itemWidget(item, 1)
+            hidden = False
+            if widget:
+                if isinstance(widget, ChannelDisplay):
+                    if hide_missing_channels and not widget.exists:
+                        hidden = True
+                    if hide_disabled_channels and item.checkState(0) == QtCore.Qt.Unchecked:
+                        hidden = True
+                else:
+                    if hide_disabled_channels and item.checkState(0) == QtCore.Qt.Unchecked:
+                        hidden = True
+
+            item.setHidden(hidden)
+
             iterator += 1
 
 

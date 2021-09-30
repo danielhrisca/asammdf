@@ -1767,7 +1767,9 @@ class WithMDIArea:
                 line_interconnect=self.line_interconnect,
                 origin=origin,
                 mdf=mdf,
-                parent=self
+                parent=self,
+                hide_missing_channels=self.hide_missing_channels,
+                hide_disabled_channels=self.hide_disabled_channels,
             )
             plot.pattern_group_added.connect(self.add_pattern_group)
             plot.pattern = {}
@@ -2411,6 +2413,8 @@ class WithMDIArea:
                 origin=origin,
                 mdf=mdf,
                 parent=self,
+                hide_missing_channels=self.hide_missing_channels,
+                hide_disabled_channels=self.hide_disabled_channels,
             )
             plot.pattern_group_added.connect(self.add_pattern_group)
             plot.pattern = pattern_info

@@ -344,6 +344,11 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
         self.exists = exists
 
+        if self.item:
+            tree = self.item.treeWidget()
+            if tree:
+                tree.update_hidden_states()
+
     def disconnect_slots(self):
         self.color_changed.disconnect()
         self.enable_changed.disconnect()

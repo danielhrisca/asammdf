@@ -625,6 +625,8 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         self.set_subplot_option(self._settings.value("subplots", "Disabled"))
         self.set_subplot_link_option(self._settings.value("subplots_link", "Disabled"))
+        self.hide_missing_channels = False
+        self.hide_disabled_channels = False
 
         if files:
             for name in files:
