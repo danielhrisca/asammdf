@@ -32,7 +32,7 @@
    <item>
     <widget class="QTabWidget" name="aspects">
      <property name="toolTip">
-      <string>Load channel selection list</string>
+      <string/>
      </property>
      <property name="tabPosition">
       <enum>QTabWidget::West</enum>

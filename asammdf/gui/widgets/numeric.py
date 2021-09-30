@@ -178,9 +178,9 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     else:
                         value = sig.phys_samples[idx]
 
-                    if sig.kind == "f":
+                    if value.kind == "f":
                         item.setText(1, float_format.format(value))
-                    elif sig.kind in "ui":
+                    elif value.kind in "ui":
                         item.setText(1, bin(value))
                     else:
                         item.setText(1, str(value))
@@ -211,9 +211,9 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     else:
                         value = sig.phys_samples[idx]
 
-                    if sig.kind == "f":
+                    if value.kind == "f":
                         item.setText(1, float_format.format(value))
-                    elif sig.kind in "ui":
+                    elif value.kind in "ui":
                         item.setText(1, f"0x{value:X}")
                     else:
                         item.setText(1, str(value))
@@ -242,7 +242,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     else:
                         value = sig.phys_samples[idx]
 
-                    if sig.kind == "f":
+                    if value.kind == "f":
                         item.setText(1, float_format.format(value))
                     else:
                         item.setText(1, str(value))

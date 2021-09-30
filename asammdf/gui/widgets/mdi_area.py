@@ -841,6 +841,12 @@ class WithMDIArea:
             sub.sigClosed.connect(self.window_closed_handler)
             sub.titleModified.connect(self.window_closed_handler)
 
+            icon = QtGui.QIcon()
+            icon.addPixmap(
+                QtGui.QPixmap(":/bus_can.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+            )
+            sub.setWindowIcon(icon)
+
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
                     mdi.close()
@@ -1038,6 +1044,12 @@ class WithMDIArea:
             sub.setWidget(trace)
             sub.sigClosed.connect(self.window_closed_handler)
             sub.titleModified.connect(self.window_closed_handler)
+
+            icon = QtGui.QIcon()
+            icon.addPixmap(
+                QtGui.QPixmap(":/bus_flx.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+            )
+            sub.setWindowIcon(icon)
 
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
@@ -1291,6 +1303,12 @@ class WithMDIArea:
             sub.sigClosed.connect(self.window_closed_handler)
             sub.titleModified.connect(self.window_closed_handler)
 
+            icon = QtGui.QIcon()
+            icon.addPixmap(
+                QtGui.QPixmap(":/bus_lin.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+            )
+            sub.setWindowIcon(icon)
+
             if not self.subplots:
                 for mdi in self.mdi_area.subWindowList():
                     mdi.close()
@@ -1344,6 +1362,12 @@ class WithMDIArea:
         sub.setWidget(gps)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/globe.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        sub.setWindowIcon(icon)
 
         w = self.mdi_area.addSubWindow(sub)
 

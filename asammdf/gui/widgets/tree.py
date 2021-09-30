@@ -761,10 +761,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     item = iterator.value()
                     if item.checkState(0) == QtCore.Qt.Unchecked:
                         item.setHidden(True)
-                    else:
-                        widget = self.itemWidget(item, 1)
-                        if isinstance(widget, ChannelDisplay) and not widget.exists:
-                            item.setHidden(True)
 
                     iterator += 1
 

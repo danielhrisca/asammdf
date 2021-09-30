@@ -113,7 +113,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
 
         self.tree_scroll.valueChanged.connect(self._display)
         self.tree.verticalScrollBar().valueChanged.connect(self._scroll_tree)
-        self.tree.currentItemChanged.connect(self._scroll_tree)
+        self.tree.currentItemChanged.connect(self._scroll_to_item)
         self.format_selection.currentTextChanged.connect(self.set_format)
 
         self.toggle_filters_btn.clicked.connect(self.toggle_filters)
@@ -135,7 +135,24 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             icon.addPixmap(QtGui.QPixmap(":/down.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
             self.toggle_filters_btn.setIcon(icon)
 
-    def _scroll_tree(self, selected_item):
+    def _scroll_tree(self, position):
+        count = self.tree.topLevelItemCount()
+        if count <= 1:
+            return
+
+        try:
+            row = int(
+                position
+                / self.tree.verticalScrollBar().maximum()
+                * (count - 1)
+            )
+        except:
+            row = count - 1
+        selected_item = self.tree.topLevelItem(row)
+
+        self._scroll_to_item(selected_item)
+
+    def _scroll_to_item(self, selected_item):
         count = self.tree.topLevelItemCount()
         if count <= 1:
             return
@@ -145,18 +162,6 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             timestamp = self._filtered_ts_series[index]
         else:
             timestamp = None
-
-        if isinstance(selected_item, int):
-
-            try:
-                row = int(
-                    selected_item
-                    / self.tree.verticalScrollBar().maximum()
-                    * (count - 1)
-                )
-            except:
-                row = count - 1
-            selected_item = self.tree.topLevelItem(row)
 
         first = self.tree.topLevelItem(0)
         last = self.tree.topLevelItem(count - 1)

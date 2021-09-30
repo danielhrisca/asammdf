@@ -20,6 +20,7 @@ class Ui_file_widget(object):
         self.verticalLayout.setSpacing(0)
         self.verticalLayout.setObjectName("verticalLayout")
         self.aspects = QtWidgets.QTabWidget(file_widget)
+        self.aspects.setToolTip("")
         self.aspects.setTabPosition(QtWidgets.QTabWidget.West)
         self.aspects.setDocumentMode(False)
         self.aspects.setObjectName("aspects")
@@ -697,7 +698,6 @@ class Ui_file_widget(object):
     def retranslateUi(self, file_widget):
         _translate = QtCore.QCoreApplication.translate
         file_widget.setWindowTitle(_translate("file_widget", "Form"))
-        self.aspects.setToolTip(_translate("file_widget", "Load channel selection list"))
         self.channel_view.setItemText(0, _translate("file_widget", "Natural sort"))
         self.channel_view.setItemText(1, _translate("file_widget", "Internal file structure"))
         self.channel_view.setItemText(2, _translate("file_widget", "Selected channels only"))
