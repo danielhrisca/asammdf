@@ -35,6 +35,8 @@ class FFTWindow(Ui_FFTWindow, QtWidgets.QMainWindow):
         self.end_frequency.valueChanged.connect(self.update)
         self.frequency_step.valueChanged.connect(self.update)
 
+        self.setWindowTitle(f'{self.signal.name} FFT using Lomb-Scargle periodogram')
+
         self.update(initial=True)
 
     def update(self, *args, initial=False):
