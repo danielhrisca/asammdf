@@ -332,6 +332,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     show_properties = QtCore.pyqtSignal(object)
     insert_computation = QtCore.pyqtSignal(str)
     pattern_group_added = QtCore.pyqtSignal(object)
+    compute_fft_request = QtCore.pyqtSignal(str)
 
     def __init__(
             self,
@@ -673,6 +674,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             menu.addAction(self.tr("Set time base start offset"))
             menu.addSeparator()
             menu.addAction(self.tr("Insert computation using this channel"))
+            menu.addAction(self.tr("Compute FFT"))
             menu.addSeparator()
         if item:
             menu.addAction(self.tr("Delete [Del]"))
@@ -925,6 +927,14 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 item = selected_items[0]
                 if isinstance(item, ChannelsTreeItem):
                     self.insert_computation.emit(self.itemWidget(item, 1)._name)
+
+        elif action.text() == "Compute FFT":
+            selected_items = self.selectedItems()
+            if len(selected_items) == 1:
+                item = selected_items[0]
+                if isinstance(item, ChannelsTreeItem):
+                    widget = self.itemWidget(item, 1)
+                    self.compute_fft_request.emit(widget.uuid)
 
         elif action.text() == "Add channel group [Shift+Insert]":
             event = QtGui.QKeyEvent(

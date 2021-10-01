@@ -307,6 +307,12 @@ class PlotSignal(Signal):
                 stats["overall_std"] = ""
                 stats["overall_start"] = x[0]
                 stats["overall_stop"] = x[-1]
+                stats["overall_gradient"] = ""
+                stats["overall_integral"] = ""
+                stats["overall_delta"] = ""
+                stats["overall_start"] = x[0]
+                stats["overall_stop"] = x[-1]
+                stats["overall_delta_t"] = x[-1] - x[0]
                 stats["unit"] = ""
                 stats["color"] = sig.color
                 stats["name"] = sig.name
@@ -346,12 +352,16 @@ class PlotSignal(Signal):
                 stats["selected_rms"] = ""
                 stats["selected_std"] = ""
                 stats["selected_delta"] = ""
+                stats["selected_gradient"] = ""
+                stats["selected_integral"] = ""
                 stats["visible_min"] = ""
                 stats["visible_max"] = ""
                 stats["visible_average"] = ""
                 stats["visible_rms"] = ""
                 stats["visible_delta"] = ""
                 stats["visible_std"] = ""
+                stats["visible_gradient"] = ""
+                stats["visible_integral"] = ""
             else:
                 if isinstance(sig.min, str):
                     kind = "S"
@@ -371,6 +381,13 @@ class PlotSignal(Signal):
                         elif format == "phys":
                             fmt = "{}"
 
+                if size == 1:
+                    stats["overall_gradient"] = 0
+                    stats["overall_integral"] = 0
+                else:
+                    stats["overall_gradient"] = (sig.samples[-1] - sig.samples[0]) / (sig.timestamps[-1] - sig.timestamps[0])
+                    stats["overall_integral"] = np.trapz(sig.samples, sig.timestamps)
+
                 stats["overall_min"] = fmt.format(sig.min)
                 stats["overall_max"] = fmt.format(sig.max)
                 stats["overall_average"] = sig.avg
@@ -378,6 +395,8 @@ class PlotSignal(Signal):
                 stats["overall_std"] = sig.std
                 stats["overall_start"] = sig.timestamps[0]
                 stats["overall_stop"] = sig.timestamps[-1]
+                stats["overall_delta"] = sig.samples[-1] - sig.samples[0]
+                stats["overall_delta_t"] = x[-1] - x[0]
                 stats["unit"] = sig.unit
                 stats["color"] = sig.color
                 stats["name"] = sig.name
@@ -424,9 +443,13 @@ class PlotSignal(Signal):
                     else:
                         samples = cut.phys_samples
 
-                    samples = samples[np.isfinite(samples)]
+                    idx = np.isfinite(samples).ravel()
+                    samples = samples[idx]
+                    timestamps = cut.timestamps[idx]
 
-                    if len(samples):
+                    size = len(samples)
+
+                    if size:
                         kind = samples.dtype.kind
                         format = self.format
 
@@ -456,12 +479,21 @@ class PlotSignal(Signal):
                                 (samples[-1] - samples[0])
                             )
 
+                        if size == 1:
+                            new_stats["selected_gradient"] = 0
+                            new_stats["selected_integral"] = 0
+                        else:
+                            new_stats["selected_gradient"] = (samples[-1] - samples[0]) / (timestamps[-1] - timestamps[0])
+                            new_stats["selected_integral"] = np.trapz(samples, timestamps)
+
                     else:
                         new_stats["selected_min"] = "n.a."
                         new_stats["selected_max"] = "n.a."
                         new_stats["selected_average"] = "n.a."
                         new_stats["selected_rms"] = "n.a."
                         new_stats["selected_std"] = "n.a."
+                        new_stats["selected_gradient"] = "n.a."
+                        new_stats["selected_integral"] = "n.a."
                         new_stats["selected_delta"] = "n.a."
 
                     sig._stats["range"] = (start, stop)
@@ -479,6 +511,8 @@ class PlotSignal(Signal):
                     stats["selected_rms"] = ""
                     stats["selected_std"] = ""
                     stats["selected_delta"] = ""
+                    stats["selected_gradient"] = ""
+                    stats["selected_integral"] = ""
 
                 start, stop = view_region
 
@@ -495,9 +529,13 @@ class PlotSignal(Signal):
                 else:
                     samples = cut.phys_samples
 
-                samples = samples[np.isfinite(samples)]
+                idx = np.isfinite(samples).ravel()
+                samples = samples[idx]
+                timestamps = cut.timestamps[idx]
 
-                if len(samples):
+                size = len(samples)
+
+                if size:
                     kind = samples.dtype.kind
                     format = self.format
 
@@ -527,6 +565,13 @@ class PlotSignal(Signal):
                             cut.samples[-1] - cut.samples[0]
                         )
 
+                    if size == 1:
+                        new_stats["visible_gradient"] = 0
+                        new_stats["visible_integral"] = 0
+                    else:
+                        new_stats["visible_gradient"] = (samples[-1] - samples[0]) / (timestamps[-1] - timestamps[0])
+                        new_stats["visible_integral"] = np.trapz(samples, timestamps)
+
                 else:
                     new_stats["visible_min"] = "n.a."
                     new_stats["visible_max"] = "n.a."
@@ -534,6 +579,8 @@ class PlotSignal(Signal):
                     new_stats["visible_rms"] = "n.a."
                     new_stats["visible_std"] = "n.a."
                     new_stats["visible_delta"] = "n.a."
+                    new_stats["visible_gradient"] = "n.a."
+                    new_stats["visible_integral"] = "n.a."
 
                 sig._stats["visible"] = (start, stop)
                 sig._stats["visible_stats"] = new_stats
@@ -548,6 +595,10 @@ class PlotSignal(Signal):
             stats["overall_std"] = "n.a."
             stats["overall_start"] = "n.a."
             stats["overall_stop"] = "n.a."
+            stats["overall_gradient"] = "n.a."
+            stats["overall_integral"] = "n.a."
+            stats["overall_delta"] = "n.a."
+            stats["overall_delta_t"] = "n.a."
             stats["unit"] = sig.unit
             stats["color"] = sig.color
             stats["name"] = sig.name
@@ -575,6 +626,8 @@ class PlotSignal(Signal):
                 stats["selected_rms"] = "n.a."
                 stats["selected_std"] = "n.a."
                 stats["selected_delta"] = "n.a."
+                stats["selected_gradient"] = "n.a."
+                stats["selected_integral"] = "n.a."
 
             else:
                 stats["selected_start"] = ""
@@ -586,6 +639,8 @@ class PlotSignal(Signal):
                 stats["selected_rms"] = "n.a."
                 stats["selected_std"] = "n.a."
                 stats["selected_delta"] = ""
+                stats["selected_gradient"] = ""
+                stats["selected_integral"] = ""
 
             start, stop = view_region
 
@@ -599,6 +654,8 @@ class PlotSignal(Signal):
             stats["visible_rms"] = "n.a."
             stats["visible_std"] = "n.a."
             stats["visible_delta"] = "n.a."
+            stats["visible_gradient"] = "n.a."
+            stats["v_integral"] = "n.a."
 
         #        sig._stats["fmt"] = fmt
         return stats
@@ -797,6 +854,7 @@ class Plot(QtWidgets.QWidget):
         line_interconnect="line",
         hide_missing_channels=False,
         hide_disabled_channels=False,
+        x_axis='time',
         *args,
         **kwargs,
     ):
@@ -806,6 +864,9 @@ class Plot(QtWidgets.QWidget):
         self.setContentsMargins(0, 0, 0, 0)
         self.pattern = {}
         self.mdf = mdf
+
+        self.x_name = 't' if x_axis == 'time' else 'f'
+        self.x_unit = 's' if x_axis == 'time' else 'Hz'
 
         self.info_uuid = None
 
@@ -856,6 +917,7 @@ class Plot(QtWidgets.QWidget):
             events=events,
             origin=origin,
             mdf=self.mdf,
+            x_axis=x_axis,
         )
 
         self.plot.range_modified.connect(self.range_modified)
@@ -872,7 +934,7 @@ class Plot(QtWidgets.QWidget):
 
         self.splitter.addWidget(self.plot)
 
-        self.info = ChannelStats()
+        self.info = ChannelStats(self.x_unit)
         self.info.hide()
         self.splitter.addWidget(self.info)
 
@@ -904,6 +966,7 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.items_rearranged.connect(self.channel_selection_rearranged)
         self.channel_selection.pattern_group_added.connect(self.pattern_group_added_req)
         self.channel_selection.itemDoubleClicked.connect(self.channel_selection_item_double_clicked)
+        self.channel_selection.compute_fft_request.connect(self.compute_fft)
 
         self.keyboard_events = (
             set(
@@ -1049,12 +1112,12 @@ class Plot(QtWidgets.QWidget):
         if not self.plot.region:
             fmt = self.plot.x_axis.format
             if fmt == "phys":
-                cursor_info_text = f"t = {position:.9f}s"
+                cursor_info_text = f"{self.x_name} = {position:.9f}{self.x_unit}"
             elif fmt == "time":
-                cursor_info_text = f"t = {timedelta(seconds=position)}"
+                cursor_info_text = f"{self.x_name} = {timedelta(seconds=position)}"
             elif fmt == "date":
                 position_date = self.plot.x_axis.origin + timedelta(seconds=position)
-                cursor_info_text = f"t = {position_date}"
+                cursor_info_text = f"{self.x_name} = {position_date}"
             self.cursor_info.setText(cursor_info_text)
 
             iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
@@ -1109,9 +1172,9 @@ class Plot(QtWidgets.QWidget):
 
         fmt = self.plot.x_axis.format
         if fmt == "phys":
-            start_info = f"{start:.9f}s"
-            stop_info = f"{stop:.9f}s"
-            delta_info = f"{stop - start:.9f}s"
+            start_info = f"{start:.9f}{self.x_unit}"
+            stop_info = f"{stop:.9f}{self.x_unit}"
+            delta_info = f"{stop - start:.9f}{self.x_unit}"
         elif fmt == "time":
             start_info = f"{timedelta(seconds=start)}"
             stop_info = f"{timedelta(seconds=stop)}"
@@ -1124,8 +1187,8 @@ class Plot(QtWidgets.QWidget):
 
         self.cursor_info.setText(
             "<html><head/><body>"
-            f"<p>t1 = {start_info}, t2 = {stop_info}</p>"
-            f"<p>Δt = {delta_info}</p> "
+            f"<p>{self.x_name}1 = {start_info}, {self.x_name}2 = {stop_info}</p>"
+            f"<p>Δ{self.x_name} = {delta_info}</p> "
             "</body></html>"
         )
 
@@ -1820,6 +1883,21 @@ class Plot(QtWidgets.QWidget):
             self.plot.keyPressEvent(event)
         self.plot.cursor1.setPos(stamp)
 
+    def compute_fft(self, uuid):
+        signal, index = self.plot.signal_by_uuid(uuid)
+        window = FFTWindow(PlotSignal(signal), parent=self)
+        window.show()
+
+    def clear(self):
+        event = QtGui.QKeyEvent(
+            QtCore.QEvent.KeyPress, QtCore.Qt.Key_A, QtCore.Qt.ControlModifier
+        )
+        self.channel_selection.keyPressEvent(event)
+        event = QtGui.QKeyEvent(
+            QtCore.QEvent.KeyPress, QtCore.Qt.Key_Delete, QtCore.Qt.NoModifier
+        )
+        self.channel_selection.keyPressEvent(event)
+
 
 class _Plot(pg.PlotWidget):
     cursor_moved = QtCore.pyqtSignal()
@@ -1841,11 +1919,14 @@ class _Plot(pg.PlotWidget):
         origin=None,
         mdf=None,
         line_interconnect="line",
+        x_axis='time',
         *args,
         **kwargs,
     ):
         events = kwargs.pop("events", [])
         super().__init__()
+
+        self.cursor_unit = 's' if x_axis == 'time' else 'Hz'
 
         self.line_interconnect = (
             line_interconnect if line_interconnect != "line" else ""
@@ -1914,9 +1995,12 @@ class _Plot(pg.PlotWidget):
         self.layout.addItem(self.x_axis, 3, 1)
         self.x_axis.linkToView(axis.linkedView())
         self.plot_item.axes["bottom"]["item"] = self.x_axis
-        fmt = self._settings.value("plot_xaxis")
-        if fmt == "seconds":
-            fmt = "phys"
+        if x_axis == 'time':
+            fmt = self._settings.value("plot_xaxis")
+            if fmt == "seconds":
+                fmt = "phys"
+        else:
+            fmt = 'phys'
         self.x_axis.format = fmt
         self.x_axis.origin = origin
 
@@ -2250,7 +2334,7 @@ class _Plot(pg.PlotWidget):
             if key == QtCore.Qt.Key_C and modifier == QtCore.Qt.NoModifier:
                 if self.cursor1 is None:
                     start, stop = self.viewbox.viewRange()[0]
-                    self.cursor1 = Cursor(pos=0, angle=90, movable=True)
+                    self.cursor1 = Cursor(self.cursor_unit, pos=0, angle=90, movable=True)
                     self.plotItem.addItem(self.cursor1, ignoreBounds=True)
                     self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
                     self.cursor1.sigPositionChangeFinished.connect(
@@ -2715,7 +2799,7 @@ class _Plot(pg.PlotWidget):
                     self.cursor1.setParent(None)
                     self.cursor1 = None
 
-                self.cursor1 = Cursor(pos=pos, angle=90, movable=True)
+                self.cursor1 = Cursor(self.cursor_unit, pos=pos, angle=90, movable=True)
                 self.plotItem.addItem(self.cursor1, ignoreBounds=True)
                 self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
                 self.cursor1.sigPositionChangeFinished.connect(
@@ -3009,3 +3093,5 @@ class _Plot(pg.PlotWidget):
             sig.mdf_uuid = os.urandom(6).hex()
             self.add_new_channels([sig], computed=True)
             self.computation_channel_inserted.emit()
+
+from .fft_window import FFTWindow

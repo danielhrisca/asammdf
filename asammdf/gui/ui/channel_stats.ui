@@ -76,13 +76,6 @@
             <property name="spacing">
              <number>0</number>
             </property>
-            <item row="9" column="0">
-             <widget class="QLabel" name="label_18">
-              <property name="text">
-               <string>Δ</string>
-              </property>
-             </widget>
-            </item>
             <item row="6" column="1">
              <widget class="QLabel" name="selected_average">
               <property name="autoFillBackground">
@@ -96,13 +89,6 @@
               </property>
              </widget>
             </item>
-            <item row="3" column="2">
-             <widget class="QLabel" name="label_23">
-              <property name="text">
-               <string> s</string>
-              </property>
-             </widget>
-            </item>
             <item row="3" column="1">
              <widget class="QLabel" name="selected_delta_t">
               <property name="text">
@@ -113,10 +99,17 @@
               </property>
              </widget>
             </item>
-            <item row="9" column="2">
-             <widget class="QLabel" name="unit4">
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_13">
               <property name="text">
-               <string/>
+               <string>First timestamp</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="2">
+             <widget class="QLabel" name="xunit3">
+              <property name="text">
+               <string> s</string>
               </property>
              </widget>
             </item>
@@ -127,20 +120,10 @@
               </property>
              </widget>
             </item>
-            <item row="5" column="1">
-             <widget class="QLabel" name="selected_max">
+            <item row="4" column="0">
+             <widget class="QLabel" name="label_14">
               <property name="text">
-               <string/>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="2">
-             <widget class="QLabel" name="label_22">
-              <property name="text">
-               <string> s</string>
+               <string>Min</string>
               </property>
              </widget>
             </item>
@@ -151,84 +134,29 @@
               </property>
              </widget>
             </item>
-            <item row="4" column="0">
-             <widget class="QLabel" name="label_14">
-              <property name="text">
-               <string>Min</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QLabel" name="label_15">
-              <property name="text">
-               <string>Last timestamp</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="0">
-             <widget class="QLabel" name="label_13">
-              <property name="text">
-               <string>First timestamp</string>
-              </property>
-             </widget>
-            </item>
-            <item row="9" column="1">
-             <widget class="QLabel" name="selected_delta">
-              <property name="text">
-               <string/>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="2">
-             <widget class="QLabel" name="unit3">
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="1">
-             <widget class="QLabel" name="selected_start">
-              <property name="text">
-               <string/>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-              </property>
-             </widget>
-            </item>
             <item row="0" column="2">
-             <widget class="QLabel" name="label_20">
+             <widget class="QLabel" name="xunit1">
               <property name="text">
                <string> s</string>
               </property>
              </widget>
             </item>
-            <item row="7" column="2">
-             <widget class="QLabel" name="unit11">
+            <item row="10" column="0">
+             <widget class="QLabel" name="label_37">
               <property name="text">
-               <string/>
+               <string>Gradient</string>
               </property>
              </widget>
             </item>
-            <item row="5" column="0">
-             <widget class="QLabel" name="label_17">
+            <item row="9" column="0">
+             <widget class="QLabel" name="label_18">
               <property name="text">
-               <string>Max</string>
+               <string>Δ</string>
               </property>
              </widget>
             </item>
-            <item row="3" column="0">
-             <widget class="QLabel" name="label_21">
-              <property name="text">
-               <string>Δt</string>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="1">
-             <widget class="QLabel" name="selected_min">
+            <item row="8" column="1">
+             <widget class="QLabel" name="selected_std">
               <property name="text">
                <string/>
               </property>
@@ -237,32 +165,8 @@
               </property>
              </widget>
             </item>
-            <item row="1" column="1">
-             <widget class="QLabel" name="selected_stop">
-              <property name="text">
-               <string/>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="2">
-             <widget class="QLabel" name="unit2">
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-            <item row="6" column="0">
-             <widget class="QLabel" name="label">
-              <property name="text">
-               <string>Average</string>
-              </property>
-             </widget>
-            </item>
-            <item row="7" column="1">
-             <widget class="QLabel" name="selected_rms">
+            <item row="0" column="1">
+             <widget class="QLabel" name="selected_start">
               <property name="text">
                <string/>
               </property>
@@ -278,8 +182,8 @@
               </property>
              </widget>
             </item>
-            <item row="8" column="1">
-             <widget class="QLabel" name="selected_std">
+            <item row="5" column="1">
+             <widget class="QLabel" name="selected_max">
               <property name="text">
                <string/>
               </property>
@@ -288,8 +192,152 @@
               </property>
              </widget>
             </item>
+            <item row="6" column="0">
+             <widget class="QLabel" name="label">
+              <property name="text">
+               <string>Average</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="1">
+             <widget class="QLabel" name="selected_min">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="2">
+             <widget class="QLabel" name="xunit2">
+              <property name="text">
+               <string> s</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLabel" name="selected_stop">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="2">
+             <widget class="QLabel" name="unit3">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0">
+             <widget class="QLabel" name="label_21">
+              <property name="text">
+               <string>Δt</string>
+              </property>
+             </widget>
+            </item>
+            <item row="9" column="1">
+             <widget class="QLabel" name="selected_delta">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="9" column="2">
+             <widget class="QLabel" name="unit4">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="7" column="1">
+             <widget class="QLabel" name="selected_rms">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_15">
+              <property name="text">
+               <string>Last timestamp</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="2">
+             <widget class="QLabel" name="unit2">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="0">
+             <widget class="QLabel" name="label_17">
+              <property name="text">
+               <string>Max</string>
+              </property>
+             </widget>
+            </item>
             <item row="8" column="2">
              <widget class="QLabel" name="unit16">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="7" column="2">
+             <widget class="QLabel" name="unit11">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="11" column="0">
+             <widget class="QLabel" name="label_38">
+              <property name="text">
+               <string>Integral</string>
+              </property>
+             </widget>
+            </item>
+            <item row="10" column="1">
+             <widget class="QLabel" name="selected_gradient">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="11" column="1">
+             <widget class="QLabel" name="selected_integral">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="10" column="2">
+             <widget class="QLabel" name="selected_gradient_unit">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="11" column="2">
+             <widget class="QLabel" name="selected_integral_unit">
               <property name="text">
                <string/>
               </property>
@@ -319,98 +367,59 @@
             <property name="spacing">
              <number>0</number>
             </property>
-            <item row="4" column="2">
-             <widget class="QLabel" name="unit9">
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="0">
-             <widget class="QLabel" name="label_5">
-              <property name="text">
-               <string>Min</string>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="2">
-             <widget class="QLabel" name="unit14">
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="1">
-             <widget class="QLabel" name="overall_start">
-              <property name="text">
-               <string/>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="2">
-             <widget class="QLabel" name="unit8">
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-            <item row="6" column="1">
-             <widget class="QLabel" name="overall_rms">
-              <property name="text">
-               <string/>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-              </property>
-             </widget>
-            </item>
             <item row="0" column="2">
-             <widget class="QLabel" name="label_27">
+             <widget class="QLabel" name="xunit7">
               <property name="text">
                <string> s</string>
               </property>
              </widget>
             </item>
-            <item row="6" column="2">
-             <widget class="QLabel" name="unit15">
+            <item row="9" column="1">
+             <widget class="QLabel" name="overall_delta">
               <property name="text">
                <string/>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="1">
+             <widget class="QLabel" name="overall_max">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLabel" name="overall_stop">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="9" column="0">
+             <widget class="QLabel" name="label_43">
+              <property name="text">
+               <string>Δ</string>
               </property>
              </widget>
             </item>
             <item row="5" column="0">
-             <widget class="QLabel" name="label_32">
-              <property name="text">
-               <string>Average</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="2">
-             <widget class="QLabel" name="label_28">
-              <property name="text">
-               <string> s</string>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QLabel" name="label_4">
-              <property name="text">
-               <string>Last timestamp</string>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="0">
              <widget class="QLabel" name="label_6">
               <property name="text">
                <string>Max</string>
               </property>
              </widget>
             </item>
-            <item row="5" column="1">
-             <widget class="QLabel" name="overall_average">
+            <item row="8" column="1">
+             <widget class="QLabel" name="overall_std">
               <property name="text">
                <string/>
               </property>
@@ -426,8 +435,29 @@
               </property>
              </widget>
             </item>
-            <item row="4" column="1">
-             <widget class="QLabel" name="overall_max">
+            <item row="6" column="0">
+             <widget class="QLabel" name="label_32">
+              <property name="text">
+               <string>Average</string>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="2">
+             <widget class="QLabel" name="unit9">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="10" column="0">
+             <widget class="QLabel" name="label_41">
+              <property name="text">
+               <string>Gradient</string>
+              </property>
+             </widget>
+            </item>
+            <item row="7" column="1">
+             <widget class="QLabel" name="overall_rms">
               <property name="text">
                <string/>
               </property>
@@ -436,15 +466,109 @@
               </property>
              </widget>
             </item>
-            <item row="6" column="0">
+            <item row="1" column="2">
+             <widget class="QLabel" name="xunit8">
+              <property name="text">
+               <string> s</string>
+              </property>
+             </widget>
+            </item>
+            <item row="6" column="1">
+             <widget class="QLabel" name="overall_average">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="2">
+             <widget class="QLabel" name="unit8">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_4">
+              <property name="text">
+               <string>Last timestamp</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="0">
+             <widget class="QLabel" name="label_5">
+              <property name="text">
+               <string>Min</string>
+              </property>
+             </widget>
+            </item>
+            <item row="8" column="2">
+             <widget class="QLabel" name="unit18">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="11" column="2">
+             <widget class="QLabel" name="overall_integral_unit">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="9" column="2">
+             <widget class="QLabel" name="unit19">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="10" column="2">
+             <widget class="QLabel" name="overall_gradient_unit">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="6" column="2">
+             <widget class="QLabel" name="unit14">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="7" column="0">
              <widget class="QLabel" name="label_33">
               <property name="text">
                <string>RMS</string>
               </property>
              </widget>
             </item>
-            <item row="1" column="1">
-             <widget class="QLabel" name="overall_stop">
+            <item row="7" column="2">
+             <widget class="QLabel" name="unit15">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="8" column="0">
+             <widget class="QLabel" name="label_36">
+              <property name="text">
+               <string>STD</string>
+              </property>
+             </widget>
+            </item>
+            <item row="11" column="0">
+             <widget class="QLabel" name="label_42">
+              <property name="text">
+               <string>Integral</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QLabel" name="overall_start">
               <property name="text">
                <string/>
               </property>
@@ -453,7 +577,7 @@
               </property>
              </widget>
             </item>
-            <item row="3" column="1">
+            <item row="4" column="1">
              <widget class="QLabel" name="overall_min">
               <property name="sizePolicy">
                <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
@@ -469,15 +593,8 @@
               </property>
              </widget>
             </item>
-            <item row="7" column="0">
-             <widget class="QLabel" name="label_36">
-              <property name="text">
-               <string>STD</string>
-              </property>
-             </widget>
-            </item>
-            <item row="7" column="1">
-             <widget class="QLabel" name="overall_std">
+            <item row="11" column="1">
+             <widget class="QLabel" name="overall_integral">
               <property name="text">
                <string/>
               </property>
@@ -486,10 +603,40 @@
               </property>
              </widget>
             </item>
-            <item row="7" column="2">
-             <widget class="QLabel" name="unit18">
+            <item row="10" column="1">
+             <widget class="QLabel" name="overall_gradient">
               <property name="text">
                <string/>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="0">
+             <widget class="QLabel" name="label_44">
+              <property name="text">
+               <string>Δt</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1">
+             <widget class="QLabel" name="overall_delta_t">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="2">
+             <widget class="QLabel" name="xunit9">
+              <property name="text">
+               <string> s</string>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
               </property>
              </widget>
             </item>
@@ -587,7 +734,7 @@ p, li { white-space: pre-wrap; }
              </widget>
             </item>
             <item row="0" column="2">
-             <widget class="QLabel" name="label_2">
+             <widget class="QLabel" name="xunit0">
               <property name="text">
                <string> s</string>
               </property>
@@ -624,57 +771,6 @@ p, li { white-space: pre-wrap; }
             <property name="spacing">
              <number>0</number>
             </property>
-            <item row="4" column="0">
-             <widget class="QLabel" name="label_10">
-              <property name="text">
-               <string>Max</string>
-              </property>
-             </widget>
-            </item>
-            <item row="6" column="0">
-             <widget class="QLabel" name="label_31">
-              <property name="text">
-               <string>RMS</string>
-              </property>
-             </widget>
-            </item>
-            <item row="0" column="2">
-             <widget class="QLabel" name="label_24">
-              <property name="text">
-               <string> s</string>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="1">
-             <widget class="QLabel" name="visible_average">
-              <property name="text">
-               <string/>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-              </property>
-             </widget>
-            </item>
-            <item row="6" column="1">
-             <widget class="QLabel" name="visible_rms">
-              <property name="text">
-               <string/>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-              </property>
-             </widget>
-            </item>
-            <item row="3" column="1">
-             <widget class="QLabel" name="visible_min">
-              <property name="text">
-               <string/>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-              </property>
-             </widget>
-            </item>
             <item row="0" column="1">
              <widget class="QLabel" name="visible_start">
               <property name="text">
@@ -685,13 +781,6 @@ p, li { white-space: pre-wrap; }
               </property>
              </widget>
             </item>
-            <item row="5" column="0">
-             <widget class="QLabel" name="label_30">
-              <property name="text">
-               <string>Average</string>
-              </property>
-             </widget>
-            </item>
             <item row="8" column="2">
              <widget class="QLabel" name="unit7">
               <property name="text">
@@ -699,48 +788,17 @@ p, li { white-space: pre-wrap; }
               </property>
              </widget>
             </item>
-            <item row="1" column="2">
-             <widget class="QLabel" name="label_25">
+            <item row="4" column="0">
+             <widget class="QLabel" name="label_10">
               <property name="text">
-               <string> s</string>
+               <string>Max</string>
               </property>
              </widget>
             </item>
-            <item row="4" column="2">
-             <widget class="QLabel" name="unit6">
+            <item row="7" column="0">
+             <widget class="QLabel" name="label_35">
               <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="2">
-             <widget class="QLabel" name="label_26">
-              <property name="text">
-               <string> s</string>
-              </property>
-             </widget>
-            </item>
-            <item row="4" column="1">
-             <widget class="QLabel" name="visible_max">
-              <property name="text">
-               <string/>
-              </property>
-              <property name="alignment">
-               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-              </property>
-             </widget>
-            </item>
-            <item row="6" column="2">
-             <widget class="QLabel" name="unit13">
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-            <item row="1" column="0">
-             <widget class="QLabel" name="label_8">
-              <property name="text">
-               <string>Last timestamp</string>
+               <string>STD</string>
               </property>
              </widget>
             </item>
@@ -748,27 +806,6 @@ p, li { white-space: pre-wrap; }
              <widget class="QLabel" name="unit5">
               <property name="text">
                <string/>
-              </property>
-             </widget>
-            </item>
-            <item row="8" column="0">
-             <widget class="QLabel" name="label_19">
-              <property name="text">
-               <string>Δ</string>
-              </property>
-             </widget>
-            </item>
-            <item row="5" column="2">
-             <widget class="QLabel" name="unit12">
-              <property name="text">
-               <string/>
-              </property>
-             </widget>
-            </item>
-            <item row="2" column="0">
-             <widget class="QLabel" name="label_16">
-              <property name="text">
-               <string>Δt</string>
               </property>
              </widget>
             </item>
@@ -782,10 +819,10 @@ p, li { white-space: pre-wrap; }
               </property>
              </widget>
             </item>
-            <item row="0" column="0">
-             <widget class="QLabel" name="label_7">
+            <item row="8" column="0">
+             <widget class="QLabel" name="label_19">
               <property name="text">
-               <string>First timestamp</string>
+               <string>Δ</string>
               </property>
              </widget>
             </item>
@@ -796,8 +833,8 @@ p, li { white-space: pre-wrap; }
               </property>
              </widget>
             </item>
-            <item row="2" column="1">
-             <widget class="QLabel" name="visible_delta_t">
+            <item row="6" column="1">
+             <widget class="QLabel" name="visible_rms">
               <property name="text">
                <string/>
               </property>
@@ -806,20 +843,27 @@ p, li { white-space: pre-wrap; }
               </property>
              </widget>
             </item>
-            <item row="8" column="1">
-             <widget class="QLabel" name="visible_delta">
+            <item row="7" column="2">
+             <widget class="QLabel" name="unit17">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="0">
+             <widget class="QLabel" name="label_16">
+              <property name="text">
+               <string>Δt</string>
+              </property>
+             </widget>
+            </item>
+            <item row="3" column="1">
+             <widget class="QLabel" name="visible_min">
               <property name="text">
                <string/>
               </property>
               <property name="alignment">
                <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-              </property>
-             </widget>
-            </item>
-            <item row="7" column="0">
-             <widget class="QLabel" name="label_35">
-              <property name="text">
-               <string>STD</string>
               </property>
              </widget>
             </item>
@@ -833,10 +877,161 @@ p, li { white-space: pre-wrap; }
               </property>
              </widget>
             </item>
-            <item row="7" column="2">
-             <widget class="QLabel" name="unit17">
+            <item row="0" column="2">
+             <widget class="QLabel" name="xunit4">
+              <property name="text">
+               <string> s</string>
+              </property>
+             </widget>
+            </item>
+            <item row="9" column="0">
+             <widget class="QLabel" name="label_39">
+              <property name="text">
+               <string>Gradient</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_8">
+              <property name="text">
+               <string>Last timestamp</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_7">
+              <property name="text">
+               <string>First timestamp</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="2">
+             <widget class="QLabel" name="unit6">
               <property name="text">
                <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="2">
+             <widget class="QLabel" name="xunit6">
+              <property name="text">
+               <string> s</string>
+              </property>
+             </widget>
+            </item>
+            <item row="8" column="1">
+             <widget class="QLabel" name="visible_delta">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="6" column="0">
+             <widget class="QLabel" name="label_31">
+              <property name="text">
+               <string>RMS</string>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="2">
+             <widget class="QLabel" name="unit12">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="0">
+             <widget class="QLabel" name="label_30">
+              <property name="text">
+               <string>Average</string>
+              </property>
+             </widget>
+            </item>
+            <item row="4" column="1">
+             <widget class="QLabel" name="visible_max">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="2" column="1">
+             <widget class="QLabel" name="visible_delta_t">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="5" column="1">
+             <widget class="QLabel" name="visible_average">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="2">
+             <widget class="QLabel" name="xunit5">
+              <property name="text">
+               <string> s</string>
+              </property>
+             </widget>
+            </item>
+            <item row="6" column="2">
+             <widget class="QLabel" name="unit13">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="10" column="0">
+             <widget class="QLabel" name="label_40">
+              <property name="text">
+               <string>Integral</string>
+              </property>
+             </widget>
+            </item>
+            <item row="9" column="2">
+             <widget class="QLabel" name="visible_gradient_unit">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="10" column="2">
+             <widget class="QLabel" name="visible_integral_unit">
+              <property name="text">
+               <string/>
+              </property>
+             </widget>
+            </item>
+            <item row="9" column="1">
+             <widget class="QLabel" name="visible_gradient">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+              </property>
+             </widget>
+            </item>
+            <item row="10" column="1">
+             <widget class="QLabel" name="visible_integral">
+              <property name="text">
+               <string/>
+              </property>
+              <property name="alignment">
+               <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
               </property>
              </widget>
             </item>
