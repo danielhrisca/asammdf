@@ -6,7 +6,7 @@ import json
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from ..utils import extract_mime_names
+from ..utils import extract_mime_names, copy_ranges
 from .channel_display import ChannelDisplay
 from .channel_group_display import ChannelGroupDisplay
 from ..dialogs.advanced_search import AdvancedSearch
@@ -179,10 +179,11 @@ def get_data(items, uuids_only=False):
                 else:
                     info = item.name
 
-                ranges = [dict(e) for e in widget.ranges]
+                ranges = copy_ranges(widget.ranges)
 
                 for range_info in ranges:
-                    range_info['color'] = range_info['color'].name()
+                    range_info['background_color'] = range_info['background_color'].name()
+                    range_info['font_color'] = range_info['font_color'].name()
 
                 data.append(
                     (

@@ -1479,7 +1479,7 @@ class Plot(QtWidgets.QWidget):
                         if key in items_pool:
                             item, widget = items_pool[key]
                             widget.item = item
-                            widget.ranges = ranges
+                            widget.set_ranges(ranges)
 
                             root.addChild(item)
                             tree.setItemWidget(item, 1, widget)
@@ -1490,7 +1490,7 @@ class Plot(QtWidgets.QWidget):
                         if key in items_pool:
                             item, widget = items_pool[key]
                             widget.item = item
-                            widget.ranges = ranges
+                            widget.set_ranges(ranges)
 
                             root.addChild(item)
                             tree.setItemWidget(item, 1, widget)

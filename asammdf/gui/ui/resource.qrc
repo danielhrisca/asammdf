@@ -50,5 +50,6 @@
     <file alias="clock.png">images/clock.png</file>
     <file alias="alphabetical_sorting.png">images/alphabetical_sorting.png</file>
     <file alias="globe.png">images/globe.png</file>
+    <file alias="paint.png">images/paint.png</file>
 </qresource>
 </RCC>

@@ -46,7 +46,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self.details.setVisible(False)
 
         self.uuid = uuid
-        self.ranges = ranges or []
+        self.set_ranges(ranges or [])
         self._unit = unit.strip()
         self.kind = kind
         self.precision = precision
@@ -127,7 +127,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         dlg = RangeEditor(self._name, self._unit, self.ranges, parent=self)
         dlg.exec_()
         if dlg.pressed_button == "apply":
-            self.ranges = dlg.result
+            self.set_ranges(dlg.result)
             self.set_value(self._value, update=True)
 
     def select_color(self):
@@ -274,7 +274,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
                 #     QtCore.Qt.Checked if info["display"] else QtCore.Qt.Unchecked
                 # )
 
-                self.ranges = info["ranges"]
+                self.set_ranges(info["ranges"])
 
             except:
                 pass
@@ -360,3 +360,10 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             return self.ranges
         else:
             return self.item.get_ranges()
+
+    def set_ranges(self, ranges):
+        if ranges:
+            self.range_indicator.setHidden(False)
+        else:
+            self.range_indicator.setHidden(True)
+        self.ranges = ranges

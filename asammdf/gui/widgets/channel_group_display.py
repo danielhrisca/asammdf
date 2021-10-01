@@ -32,7 +32,7 @@ class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
         self.name.setFont(font)
         self.set_pattern(pattern)
         self.count = count
-        self.ranges = ranges or []
+        self.set_ranges(ranges or [])
         self.item = item
 
     def set_pattern(self, pattern):
@@ -76,7 +76,14 @@ class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
         dlg = RangeEditor(f"channels from <{self._name}>", ranges=self.ranges, parent=self)
         dlg.exec_()
         if dlg.pressed_button == "apply":
-            self.ranges = dlg.result
+            self.set_ranges(dlg.result)
             self.item.update_child_values()
+
+    def set_ranges(self, ranges):
+        if ranges:
+            self.range_indicator.setHidden(False)
+        else:
+            self.range_indicator.setHidden(True)
+        self.ranges = ranges
 
 

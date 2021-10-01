@@ -2531,19 +2531,21 @@ class WithMDIArea:
                         wid.set_fmt(description["fmt"])
                         wid.set_precision(description["precision"])
                         try:
-                            wid.ranges = [
-                                {
-                                    "font_color": range["color"],
-                                    "background_color": range["color"],
-                                    "op1": "<=",
-                                    "op2": "<=",
-                                    "value1": float(range["start"]),
-                                    "value2": float(range["stop"]),
-                                }
-                                for range in description["ranges"]
-                            ]
+                            wid.set_ranges(
+                                [
+                                    {
+                                        "font_color": range["color"],
+                                        "background_color": range["color"],
+                                        "op1": "<=",
+                                        "op2": "<=",
+                                        "value1": float(range["start"]),
+                                        "value2": float(range["stop"]),
+                                    }
+                                    for range in description["ranges"]
+                                ]
+                            )
                         except KeyError:
-                            wid.ranges = description["ranges"]
+                            wid.set_ranges(description["ranges"])
 
                         for range in wid.ranges:
                             range['font_color'] = QtGui.QColor(range['font_color'])
@@ -2562,7 +2564,7 @@ class WithMDIArea:
                         )
 
                     elif pattern_info:
-                        wid.ranges = pattern_info["ranges"]
+                        wid.set_ranges(pattern_info["ranges"])
 
             self.set_subplots_link(self.subplots_link)
 
