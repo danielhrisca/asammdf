@@ -828,6 +828,10 @@ class PlotSignal(Signal):
                     value = value.decode("latin-1").strip(" \r\n\t\v\0")
 
                 value = value or "<empty string>"
+            elif kind == 'f':
+                value = float(value)
+            else:
+                value = int(value)
 
         return value, kind, self.format
 

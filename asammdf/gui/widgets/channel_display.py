@@ -200,13 +200,13 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self.set_value(update=True)
             
     def set_value(self, value=None, update=False):
-        if self._value == value and update is False:
-            return
-
         if value is not None:
             self._value = value
         else:
             value = self._value
+
+        if self._value == value and update is False:
+            return
 
         new_background_color, new_font_color = get_colors_using_ranges(
             value,

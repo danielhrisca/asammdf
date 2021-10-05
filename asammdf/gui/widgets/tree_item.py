@@ -71,24 +71,25 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
     def __del__(self):
         self.entry = self.name = self.mdf_uuid = None
         
-    def check_signal_range(self, value):
-        value = self.text(1).strip()
-        if value:
-            try:
-                value = float(value)
-            except:
-                if value.startswith('0x'):
-                    try:
-                        value = float(int(value, 16))
-                    except:
-                        pass
-                elif value.startswith('0b'):
-                    try:
-                        value = float(int(value, 2))
-                    except:
-                        pass
-        else:
-            value = None
+    def check_signal_range(self, value=None):
+        if value is None:
+            value = self.text(1).strip()
+            if value:
+                try:
+                    value = float(value)
+                except:
+                    if value.startswith('0x'):
+                        try:
+                            value = float(int(value, 16))
+                        except:
+                            pass
+                    elif value.startswith('0b'):
+                        try:
+                            value = float(int(value, 2))
+                        except:
+                            pass
+            else:
+                value = None
 
         new_background_color, new_font_color = get_colors_using_ranges(
             value,

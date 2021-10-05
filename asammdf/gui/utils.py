@@ -534,7 +534,7 @@ def get_colors_using_ranges(value, ranges, default_background_color, default_fon
 
     if ranges:
 
-        for base_class in (float, str):
+        for base_class in (float, str, int):
             if isinstance(value, base_class):
                 for range_info in ranges:
                     background_color, font_color, op1, op2, value1, value2 = range_info.values()
