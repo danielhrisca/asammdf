@@ -14,6 +14,7 @@ from pathlib import Path
 import re
 from shutil import copy, move
 from struct import unpack
+import sys
 from tempfile import gettempdir, mkdtemp
 from traceback import format_exc
 import xml.etree.ElementTree as ET
@@ -63,6 +64,9 @@ from .version import __version__
 
 logger = logging.getLogger("asammdf")
 LOCAL_TIMEZONE = datetime.now(timezone.utc).astimezone().tzinfo
+
+
+target_byte_order = '<=' if sys.byteorder == 'little' else '>='
 
 
 __all__ = ["MDF", "SUPPORTED_VERSIONS"]
@@ -3513,6 +3517,10 @@ class MDF:
 
                 if signals:
                     diffs = np.diff(group_master, prepend=-np.inf) > 0
+
+                    if group_master.dtype.byteorder not in target_byte_order:
+                        group_master = group_master.byteswap().newbyteorder()
+
                     if np.all(diffs):
                         index = pd.Index(group_master, tupleize_cols=False)
 
@@ -3528,6 +3536,10 @@ class MDF:
 
                 size = len(index)
                 for k, sig in enumerate(signals):
+
+                    if sig.timestamps.dtype.byteorder not in target_byte_order:
+                        sig.timestamps = sig.timestamps.byteswap().newbyteorder()
+
                     sig_index = (
                         index
                         if len(sig) == size
@@ -3543,6 +3555,9 @@ class MDF:
                             channel_name = sig.name
 
                         channel_name = used_names.get_unique_name(channel_name)
+
+                        if sig.samples.dtype.byteorder not in target_byte_order:
+                            sig.samples = sig.samples.byteswap().newbyteorder()
 
                         df[channel_name] = pd.Series(
                             list(sig.samples),
@@ -3571,6 +3586,10 @@ class MDF:
 
                         if reduce_memory_usage and sig.samples.dtype.kind in "SU":
                             unique = np.unique(sig.samples)
+
+                            if sig.samples.dtype.byteorder not in target_byte_order:
+                                sig.samples = sig.samples.byteswap().newbyteorder()
+
                             if len(sig.samples) / len(unique) >= 2:
                                 df[channel_name] = pd.Series(
                                     sig.samples,
@@ -3586,6 +3605,10 @@ class MDF:
                         else:
                             if reduce_memory_usage:
                                 sig.samples = downcast(sig.samples)
+
+                            if sig.samples.dtype.byteorder not in target_byte_order:
+                                sig.samples = sig.samples.byteswap().newbyteorder()
+
                             df[channel_name] = pd.Series(
                                 sig.samples,
                                 index=sig_index,
@@ -3737,6 +3760,8 @@ class MDF:
             mdf.close()
             return result
 
+        target_byte_order = '<=' if sys.byteorder == 'little' else '>='
+
         df = {}
 
         self._set_temporary_master(None)
@@ -3868,7 +3893,11 @@ class MDF:
 
             signals = [sig for sig in signals if len(sig)]
 
+            if group_master.dtype.byteorder not in target_byte_order:
+                group_master = group_master.byteswap().newbyteorder()
+
             if signals:
+
                 diffs = np.diff(group_master, prepend=-np.inf) > 0
                 if np.all(diffs):
                     index = pd.Index(group_master, tupleize_cols=False)
@@ -3887,6 +3916,9 @@ class MDF:
 
             size = len(index)
             for k, sig in enumerate(signals):
+                if sig.timestamps.dtype.byteorder not in target_byte_order:
+                    sig.timestamps = sig.timestamps.byteswap().newbyteorder()
+
                 sig_index = (
                     index
                     if len(sig) == size
@@ -3902,6 +3934,9 @@ class MDF:
                         channel_name = sig.name
 
                     channel_name = used_names.get_unique_name(channel_name)
+
+                    if sig.samples.dtype.byteorder not in target_byte_order:
+                        sig.samples = sig.samples.byteswap().newbyteorder()
 
                     df[channel_name] = pd.Series(
                         list(sig.samples),
@@ -3930,6 +3965,9 @@ class MDF:
 
                     if reduce_memory_usage and sig.samples.dtype.kind not in "SU":
                         sig.samples = downcast(sig.samples)
+
+                    if sig.samples.dtype.byteorder not in target_byte_order:
+                        sig.samples = sig.samples.byteswap().newbyteorder()
 
                     df[channel_name] = pd.Series(
                         sig.samples, index=sig_index, fastpath=True

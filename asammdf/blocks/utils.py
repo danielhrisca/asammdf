@@ -15,6 +15,8 @@ import sys
 from tempfile import TemporaryDirectory
 import xml.etree.ElementTree as ET
 
+target_byte_order = '<=' if sys.byteorder == 'little' else '>='
+
 try:
     from cchardet import detect
 except:
@@ -1173,7 +1175,11 @@ def components(
             name_ = unique_names.get_unique_name(name)
 
         values = channel[name]
+        if values.dtype.byteorder not in target_byte_order:
+            values = values.byteswap().newbyteorder()
+
         if len(values.shape) > 1:
+
             values = Series(
                 list(values),
                 index=master,
@@ -1188,6 +1194,10 @@ def components(
 
         for name in names[1:]:
             values = channel[name]
+
+            if values.dtype.byteorder not in target_byte_order:
+                values = values.byteswap().newbyteorder()
+
             if not only_basenames:
                 axis_name = unique_names.get_unique_name(f"{name_}.{name}")
             else:
@@ -1222,6 +1232,10 @@ def components(
                 )
 
             else:
+
+                if values.dtype.byteorder not in target_byte_order:
+                    values = values.byteswap().newbyteorder()
+
                 if not only_basenames:
                     name_ = unique_names.get_unique_name(
                         f"{prefix}.{channel_name}.{name}"

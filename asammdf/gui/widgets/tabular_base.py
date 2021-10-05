@@ -456,7 +456,8 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
 
         self.tree.setSortingEnabled(self.sort.checkState() == QtCore.Qt.Checked)
 
-        self.timestamp_changed_signal.emit(self, float(self._filtered_ts_series.iloc[max(0, position * 10 - 50)]))
+        if items:
+            self.timestamp_changed_signal.emit(self, float(self._filtered_ts_series.iloc[max(0, position * 10 - 50)]))
 
     def add_new_channels(self, signals, mime_data=None):
         index = pd.Series(np.arange(len(signals), dtype="u8"), index=signals.index)
@@ -764,6 +765,8 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         self.tree.setHeaderLabels(names)
 
     def set_timestamp(self, stamp):
+        if not len(self._filtered_ts_series):
+            return
 
         if not (self._filtered_ts_series.iloc[0] <= stamp <= self._filtered_ts_series.iloc[-1]):
             return
