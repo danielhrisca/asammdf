@@ -1975,6 +1975,8 @@ class WithMDIArea:
 
     def load_window(self, window_info):
 
+        print('load', window_info["type"] )
+
         uuid = self.uuid
         geometry = window_info.get("geometry", None)
 
@@ -2363,9 +2365,6 @@ class WithMDIArea:
                 and not sig.samples.dtype.names
                 and not len(sig.samples.shape) > 1
             ]
-
-            if not signals:
-                return
 
             if hasattr(self, "mdf"):
                 events = []
