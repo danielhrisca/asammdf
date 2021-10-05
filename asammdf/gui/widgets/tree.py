@@ -395,11 +395,13 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             deleted = get_data(selected_items, uuids_only=True)
 
             root = self.invisibleRootItem()
-            for item in self.selectedItems():
+            for item in selected_items:
                 item_widget = self.itemWidget(item, 1)
                 if hasattr(item_widget, "disconnect_slots"):
                     item_widget.disconnect_slots()
                 (item.parent() or root).removeChild(item)
+
+            self.refresh()
 
             if deleted:
                 self.itemsDeleted.emit(list(deleted))
@@ -450,6 +452,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 self.setItemWidget(group, 1, widget)
                 self.pattern_group_added.emit(group)
 
+                self.refresh()
+
         elif key == QtCore.Qt.Key_Insert and modifiers == QtCore.Qt.ShiftModifier:
             text, ok = QtWidgets.QInputDialog.getText(self, 'Channel group name', 'New channel group name:')
             if ok:
@@ -470,6 +474,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                         self.insertTopLevelItem(index, group)
 
                 self.setItemWidget(group, 1, widget)
+                self.refresh()
 
         elif key == QtCore.Qt.Key_Space:
             selected_items = self.selectedItems()
@@ -1015,6 +1020,14 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             item.setHidden(hidden)
 
             iterator += 1
+
+    def refresh(self):
+        top_level_items = self.topLevelItemCount()
+        for i in range(top_level_items):
+            item = self.topLevelItem(i)
+            if not item.isHidden():
+                item.setHidden(True)
+                item.setHidden(False)
 
 
 class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):

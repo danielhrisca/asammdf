@@ -1721,6 +1721,7 @@ class Plot(QtWidgets.QWidget):
                     self.channel_selection.setItemWidget(item, 1, widget)
 
         self.channel_selection.update_channel_groups_count()
+        self.channel_selection.refresh()
 
     def to_config(self):
 
