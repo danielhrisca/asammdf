@@ -1428,9 +1428,6 @@ class WithMDIArea:
 
             computed = [entry[0] for entry in flatten_entries if tuple(entry[1:3]) == (-1, -1)]
 
-        if not signals_:
-            return
-
         if window_type == "Tabular":
             uuids = set(entry[3] for entry in signals_)
 
@@ -1974,8 +1971,6 @@ class WithMDIArea:
             return None
 
     def load_window(self, window_info):
-
-        print('load', window_info["type"] )
 
         uuid = self.uuid
         geometry = window_info.get("geometry", None)

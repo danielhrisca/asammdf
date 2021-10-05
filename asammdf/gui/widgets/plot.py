@@ -1628,11 +1628,12 @@ class Plot(QtWidgets.QWidget):
         while iterator.value():
             item = iterator.value()
             widget = self.channel_selection.itemWidget(item, 1)
-            if isinstance(widget, ChannelDisplay) and widget.ylink.checkState() == QtCore.Qt.Unchecked:
-                enforce_y_axis = False
-                break
-            else:
-                enforce_y_axis = True
+            if isinstance(widget, ChannelDisplay):
+                if widget.ylink.checkState() == QtCore.Qt.Unchecked:
+                    enforce_y_axis = False
+                    break
+                else:
+                    enforce_y_axis = True
 
             iterator += 1
 
@@ -1788,7 +1789,7 @@ class Plot(QtWidgets.QWidget):
 
                     channel = {
                         'type': 'group',
-                        'name': widget.name.text().rsplit('[')[0],
+                        'name': widget.name.text().rsplit('\t[')[0],
                         'channels': item_to_config(tree, item) if item.pattern is None else [],
                         "enabled": item.checkState(0) == QtCore.Qt.Checked,
                         'pattern': pattern,

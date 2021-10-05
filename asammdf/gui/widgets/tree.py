@@ -495,6 +495,21 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     item.setCheckState(0, checked)
                     if self.hide_disabled_channels and checked == QtCore.Qt.Unchecked:
                         item.setHidden(True)
+
+        elif modifiers == QtCore.Qt.ControlModifier and key == QtCore.Qt.Key_C:
+            selected_items = self.selectedItems()
+            if not selected_items:
+                return
+            self.itemWidget(selected_items[0], 1).keyPressEvent(event)
+
+        elif modifiers == (
+            QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier
+        ) and key in (QtCore.Qt.Key_C, QtCore.Qt.Key_P):
+            selected_items = self.selectedItems()
+            if not selected_items:
+                return
+            self.itemWidget(selected_items[0], 1).keyPressEvent(event)
+
         else:
             super().keyPressEvent(event)
 
@@ -682,6 +697,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addAction(self.tr("Toggle details"))
         if isinstance(item, ChannelsTreeItem):
             menu.addAction(self.tr("File/Computation properties"))
+        else:
+            menu.addAction(self.tr("Group properties"))
 
         action = menu.exec_(self.viewport().mapToGlobal(position))
 
@@ -914,12 +931,14 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 sizes[1] += 1
             self.parent().parent().setSizes(sizes)
 
-        elif action.text() == "File/Computation properties":
+        elif action.text() in ("File/Computation properties", "Group properties"):
             selected_items = self.selectedItems()
             if len(selected_items) == 1:
                 item = selected_items[0]
                 if isinstance(item, ChannelsTreeItem):
                     self.show_properties.emit(self.itemWidget(item, 1).uuid)
+                elif isinstance(item, ChannelsGroupTreeItem):
+                    item.show_info()
 
         elif action.text() == "Insert computation using this channel":
             selected_items = self.selectedItems()
@@ -1053,7 +1072,7 @@ class ChannelsGroupTreeItem(QtWidgets.QTreeWidgetItem):
 
     def __init__(self, name="", pattern=None):
         super().__init__(["", ""])
-        self.name = name
+        self.name = name.split('\t[')[0]
         self.pattern = pattern
 
         self.setFlags(self.flags() | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsTristate)
@@ -1065,8 +1084,14 @@ class ChannelsGroupTreeItem(QtWidgets.QTreeWidgetItem):
         return x
 
     def show_info(self):
-        if self.pattern:
-            ChannnelGroupPatternDialog(self.pattern, self.treeWidget()).show()
+        widget = self.treeWidget().itemWidget(self, 1)
+        if widget:
+            ranges = widget.ranges
+            name = widget._name or self.name
+        else:
+            ranges = []
+            name = self.name
+        ChannnelGroupDialog(name, self.pattern, ranges, self.treeWidget()).show()
 
     def get_ranges(self, tree=None):
         tree = tree or self.treeWidget()
@@ -1091,8 +1116,8 @@ class ChannelsGroupTreeItem(QtWidgets.QTreeWidgetItem):
             item.update_child_values(tree)
 
 
-class ChannnelGroupPatternDialog(QtWidgets.QDialog):
-    def __init__(self, pattern, *args, **kwargs):
+class ChannnelGroupDialog(QtWidgets.QDialog):
+    def __init__(self, name, pattern, ranges, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.setWindowFlags(QtCore.Qt.Window)
@@ -1102,18 +1127,23 @@ class ChannnelGroupPatternDialog(QtWidgets.QDialog):
         layout.setColumnStretch(1, 1)
         self.setLayout(layout)
 
-        self.setWindowTitle(f'<{pattern["name"]}> pattern group details')
+        if pattern:
+            self.setWindowTitle(f'<{name}> pattern group details')
 
-        for i, key in enumerate(("name", "pattern", "match_type", "filter_type", "filter_value", "raw")):
-            widget = QtWidgets.QLabel(str(pattern[key]))
+            for i, key in enumerate(("name", "pattern", "match_type", "filter_type", "filter_value", "raw")):
+                widget = QtWidgets.QLabel(str(pattern[key]))
 
-            if key == "raw":
-                key = "Use raw values"
-            label = QtWidgets.QLabel(key.replace("_", " ").capitalize())
-            label.setStyleSheet("color:rgb(97, 190, 226);")
+                if key == "raw":
+                    key = "Use raw values"
+                label = QtWidgets.QLabel(key.replace("_", " ").capitalize())
+                label.setStyleSheet("color:rgb(97, 190, 226);")
 
-            layout.addWidget(label, i, 0)
-            layout.addWidget(widget, i, 1)
+                layout.addWidget(label, i, 0)
+                layout.addWidget(widget, i, 1)
+        else:
+            self.setWindowTitle(f'<{name}> group details')
+
+
 
         # self.setStyleSheet('font: 8pt "Consolas";}')
 
@@ -1126,6 +1156,8 @@ class ChannnelGroupPatternDialog(QtWidgets.QDialog):
 
         screen = QtWidgets.QApplication.desktop().screenGeometry()
         self.move((screen.width() - 1200) // 2, (screen.height() - 600) // 2)
+
+
 
 if __name__ == "__main__":
     pass

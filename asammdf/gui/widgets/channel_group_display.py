@@ -24,7 +24,7 @@ class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
-        self._name = name
+        self._name = name.split('\t[')[0]
         self.pattern = None
         font = self.name.font()
         font.setPointSize(font.pointSize() + 2)
@@ -32,7 +32,7 @@ class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
         self.name.setFont(font)
         self.set_pattern(pattern)
         self.count = count
-        self.set_ranges(ranges or [])
+        self.set_ranges(ranges or [] if not pattern else pattern.get('ranges', []))
         self.item = item
 
     def set_pattern(self, pattern):
