@@ -9,7 +9,7 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
     add_channels_request = QtCore.pyqtSignal(list)
     timestamp_changed_signal = QtCore.pyqtSignal(object, float)
 
-    def __init__(self, name, value1="", op1='==', value2="", op2="==", font_color="#000000", background_color="#000000", brush=False, *args, **kwargs):
+    def __init__(self, name, value1="", op1='==', value2="", op2="==", font_color="#ff0000", background_color="#00ff00", brush=False, *args, **kwargs):
         super(QtWidgets.QWidget, self).__init__(*args, **kwargs)
         self.setupUi(self)
         self._settings = QtCore.QSettings()
@@ -48,6 +48,10 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
         elif isinstance(background_color, QtGui.QBrush):
             background_color = background_color.color().name()
 
+        self.font_color = font_color
+        self.background_color = background_color
+
+        self.name.setStyleSheet(f"background-color: {background_color}; color: {font_color};")
         self.background_color_btn.setStyleSheet(f"background-color: {background_color};")
         self.font_color_btn.setStyleSheet(f"background-color: {font_color};")
 
@@ -68,14 +72,18 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
         color = QtWidgets.QColorDialog.getColor(color)
         if color.isValid():
             color = color.name()
+            self.background_color = color
             self.background_color_btn.setStyleSheet(f"background-color: {color};")
+            self.name.setStyleSheet(f"background-color: {self.background_color}; color: {self.font_color};")
 
     def select_font_color(self, event=None):
         color = self.font_color_btn.palette().button().color()
         color = QtWidgets.QColorDialog.getColor(color)
         if color.isValid():
             color = color.name()
+            self.font_color = color
             self.font_color_btn.setStyleSheet(f"background-color: {color};")
+            self.name.setStyleSheet(f"background-color: {self.background_color}; color: {self.font_color};")
 
     def to_dict(self, brush=False):
         value1 = self.value1.text().strip()
