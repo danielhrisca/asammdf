@@ -170,7 +170,17 @@ def load_dsp(file):
                                 c = c << 8
                                 c += color_ & 0xFF
                                 color_ = color_ >> 8
-                            ranges[(min_, max_)] = f"#{c:06X}"
+                            color = QtGui.QColor(f"#{c:06X}")
+                            ranges.append(
+                                {
+                                    "background_color": color,
+                                    "font_color": color,
+                                    "op1": '<=',
+                                    "op2": '<=',
+                                    "value1": min_,
+                                    "value2": max_,
+                                }
+                            )
 
                     info["ranges"] = ranges
 
@@ -180,7 +190,8 @@ def load_dsp(file):
                             "enabled": True,
                             "name": info["pattern"],
                             "pattern": info,
-                            "type": "group"
+                            "type": "group",
+                            "ranges": [],
                         }
                     )
 
