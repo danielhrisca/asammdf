@@ -888,6 +888,8 @@ class WithMDIArea:
 
         self.windows_modified.emit()
 
+        return trace
+
     def _add_flexray_bus_trace_window(self, ranges=None):
         items = []
         groups_count = len(self.mdf.groups)
@@ -1091,6 +1093,8 @@ class WithMDIArea:
                 trace.timestamp_changed_signal.connect(self.set_cursor)
 
         self.windows_modified.emit()
+
+        return trace
 
     def _add_lin_bus_trace_window(self, ranges=None):
         items = []
@@ -1349,6 +1353,8 @@ class WithMDIArea:
                 trace.timestamp_changed_signal.connect(self.set_cursor)
 
         self.windows_modified.emit()
+
+        return trace
 
     def _add_gps_window(self, signals):
 
@@ -2131,6 +2137,15 @@ class WithMDIArea:
             if self.subplots_link:
                 numeric.timestamp_changed_signal.connect(self.set_cursor)
 
+            sections_width = window_info['configuration'].get('header_sections_width', [])
+            if sections_width:
+                sections_width = reversed([(i, width) for i, width in enumerate(sections_width)])
+                for i, width in sections_width:
+                    numeric.channels.header().resizeSection(i, width)
+                scroll = numeric.channels.horizontalScrollBar()
+                if scroll:
+                    scroll.setValue(scroll.minimum())
+
         elif window_info["type"] == "GPS":
             signals_ = [
                 (None, *self.mdf.whereis(name)[0])
@@ -2740,6 +2755,15 @@ class WithMDIArea:
             if self.subplots_link:
                 tabular.timestamp_changed_signal.connect(self.set_cursor)
 
+            sections_width = window_info['configuration'].get('header_sections_width', [])
+            if sections_width:
+                for i, width in enumerate(sections_width):
+                    tabular.tree.header().resizeSection(i, width)
+
+            scroll = tabular.tree.horizontalScrollBar()
+            if scroll:
+                scroll.setValue(scroll.minimum())
+
         elif window_info["type"] in ("CAN Bus Trace", "FlexRay Bus Trace", "LIN Bus Trace"):
 
             ranges = window_info["configuration"].get("ranges", {})
@@ -2749,11 +2773,20 @@ class WithMDIArea:
                     range_info['background_color'] = QtGui.QBrush(QtGui.QColor(range_info['background_color']))
 
             if window_info["type"] == "CAN Bus Trace":
-                self._add_can_bus_trace_window(ranges)
+                widget = self._add_can_bus_trace_window(ranges)
             elif window_info["type"] == "FlexRay Bus Trace":
-                self._add_can_bus_trace_window(ranges)
+                widget = self._add_can_bus_trace_window(ranges)
             elif window_info["type"] == "LIN Bus Trace":
-                self._add_lin_bus_trace_window(ranges)
+                widget = self._add_lin_bus_trace_window(ranges)
+
+            sections_width = window_info['configuration'].get('header_sections_width', [])
+            if sections_width:
+                for i, width in enumerate(sections_width):
+                    widget.tree.header().resizeSection(i, width)
+
+            scroll = widget.tree.horizontalScrollBar()
+            if scroll:
+                scroll.setValue(scroll.minimum())
 
             return
 

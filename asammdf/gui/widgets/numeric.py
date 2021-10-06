@@ -405,6 +405,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             "ranges": list(channels.values()) if not self.pattern else [],
             "pattern": pattern,
             "float_precision": self.float_precision.value(),
+            "header_sections_width": [self.channels.header().sectionSize(i) for i in range(self.channels.header().count())],
         }
 
         return config

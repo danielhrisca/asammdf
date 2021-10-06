@@ -580,6 +580,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             "pattern": pattern,
             "format": self.format,
             "ranges": ranges,
+            "header_sections_width": [self.tree.header().sectionSize(i) for i in range(self.tree.header().count())],
         }
 
         return config
