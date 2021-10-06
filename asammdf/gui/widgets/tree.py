@@ -702,7 +702,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addAction(self.tr("Toggle details"))
         if isinstance(item, ChannelsTreeItem):
             menu.addAction(self.tr("File/Computation properties"))
-        else:
+        elif isinstance(item, ChannelsGroupTreeItem):
+            if item.pattern:
+                menu.addAction(self.tr("Edit pattern"))
             menu.addAction(self.tr("Group properties"))
 
         action = menu.exec_(self.viewport().mapToGlobal(position))
@@ -986,6 +988,43 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 item.name = text
                 self.itemWidget(item, 1).set_name(text)
                 self.itemWidget(item, 1).update_information()
+
+        elif action.text() == "Edit pattern":
+            widget = self.itemWidget(item, 1)
+            pattern = dict(item.pattern)
+            pattern["ranges"] = copy_ranges(widget.ranges)
+            dlg = AdvancedSearch(
+                {},
+                show_add_window=False,
+                show_apply=True,
+                show_search=False,
+                window_title="Add pattern based group",
+                parent=self,
+                pattern=pattern,
+            )
+            dlg.setModal(True)
+            dlg.exec_()
+            pattern = dlg.result
+
+            if pattern:
+                item.pattern = pattern
+                widget.set_ranges(pattern["ranges"])
+                widget.set_pattern(pattern)
+
+                self.clearSelection()
+
+                count = item.childCount()
+                for i in range(count):
+                    child = item.child(i)
+                    child.setSelected(True)
+
+                event = QtGui.QKeyEvent(
+                    QtCore.QEvent.KeyPress, QtCore.Qt.Key_Delete, QtCore.Qt.NoModifier
+                )
+                self.keyPressEvent(event)
+
+                self.pattern_group_added.emit(item)
+                self.refresh()
 
         self.update_channel_groups_count()
 

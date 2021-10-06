@@ -21,6 +21,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         add_window_text="Add window",
         show_search=True,
         window_title="Search & select channels",
+        pattern=None,
         *args,
         **kwargs,
     ):
@@ -72,6 +73,15 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
         if not show_search:
             self.tabs.removeTab(0)
+
+        if pattern:
+            self.pattern.setText(pattern["pattern"])
+            self.filter_type.setCurrentText(pattern["filter_type"])
+            self.filter_value.setValue(pattern["filter_value"])
+            self.pattern_match_type.setCurrentText(pattern["match_type"])
+            self.raw.setCheckState(QtCore.Qt.Checked if pattern['raw'] else QtCore.Qt.Unchecked)
+            self.name.setText(pattern["name"])
+            self.ranges = pattern['ranges']
 
         self.setWindowTitle(window_title)
 
@@ -178,7 +188,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
     def _define_ranges(self, event=None):
         name = self.pattern.text().strip()
-        dlg = RangeEditor(f'Channel of <{name}>', self.ranges)
+        dlg = RangeEditor(f'Channel of <{name}>', ranges=self.ranges, parent=self)
         dlg.exec_()
         if dlg.pressed_button == "apply":
             self.ranges = dlg.result
