@@ -736,7 +736,7 @@ def debug_channel(mdf, group, channel, dependency, file=None):
     print(file=file)
 
 
-def count_channel_groups(stream, include_channels=False):
+def count_channel_groups(stream, include_channels=False, mapped=False):
     """count all channel groups as fast as possible. This is used to provide
     reliable progress information when loading a file using the GUI
 
@@ -769,25 +769,41 @@ def count_channel_groups(stream, include_channels=False):
             raise MdfException(f'"{stream.name}" is not a valid MDF file')
 
     if version >= 4:
-        stream.seek(88, 0)
-        dg_addr = UINT64_u(stream.read(8))[0]
-        while dg_addr:
-            stream.seek(dg_addr + 32)
-            cg_addr = UINT64_u(stream.read(8))[0]
-            while cg_addr:
-                count += 1
-                if include_channels:
-                    stream.seek(cg_addr + 32)
-                    ch_addr = UINT64_u(stream.read(8))[0]
-                    while ch_addr:
-                        ch_count += 1
-                        stream.seek(ch_addr + 24)
-                        ch_addr = UINT64_u(stream.read(8))[0]
-                stream.seek(cg_addr + 24)
-                cg_addr = UINT64_u(stream.read(8))[0]
-
-            stream.seek(dg_addr + 24)
+        if mapped:
+            dg_addr = UINT64_uf(stream, 88)[0]
+            while dg_addr:
+                stream.seek(dg_addr + 32)
+                cg_addr = UINT64_uf(stream, dg_addr + 32)[0]
+                while cg_addr:
+                    count += 1
+                    if include_channels:
+                        ch_addr = UINT64_uf(stream, cg_addr + 32)[0]
+                        while ch_addr:
+                            ch_count += 1
+                            ch_addr = UINT64_uf(stream, ch_addr + 24)[0]
+                    cg_addr = UINT64_uf(stream, cg_addr + 24)[0]
+    
+                dg_addr = UINT64_uf(stream, dg_addr + 24)[0]
+        else:
+            stream.seek(88, 0)
             dg_addr = UINT64_u(stream.read(8))[0]
+            while dg_addr:
+                stream.seek(dg_addr + 32)
+                cg_addr = UINT64_u(stream.read(8))[0]
+                while cg_addr:
+                    count += 1
+                    if include_channels:
+                        stream.seek(cg_addr + 32)
+                        ch_addr = UINT64_u(stream.read(8))[0]
+                        while ch_addr:
+                            ch_count += 1
+                            stream.seek(ch_addr + 24)
+                            ch_addr = UINT64_u(stream.read(8))[0]
+                    stream.seek(cg_addr + 24)
+                    cg_addr = UINT64_u(stream.read(8))[0]
+    
+                stream.seek(dg_addr + 24)
+                dg_addr = UINT64_u(stream.read(8))[0]
 
     else:
         stream.seek(68, 0)

@@ -354,7 +354,7 @@ class MDF4(MDF_Common):
         self._tempfile = TemporaryFile()
         self._file = None
 
-        self._raise_on_multiple_occurrences = True
+        self._raise_on_multiple_occurrences = kwargs.get('raise_on_multiple_occurrences', True)
         self._read_fragment_size = 0 * 2 ** 20
         self._write_fragment_size = 4 * 2 ** 20
         self._use_display_names = kwargs.get("use_display_names", True)

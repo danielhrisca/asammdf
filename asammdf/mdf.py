@@ -149,6 +149,11 @@ class MDF:
         only for bz2.BZ2File and gzip.GzipFile, load the file content into a
         BytesIO before parsing (avoids the huge performance penalty of doing
         random reads from the zipped file); default *True*
+    raise_on_multiple_occurrences (\*\*kwargs) : bool
+        raise exception when there are multiple channel occurrences in the file and
+        the `get` call is ambiguous; default True
+
+        .. versionadded:: 7.0.0
 
     Examples
     --------
