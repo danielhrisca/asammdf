@@ -366,6 +366,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.header().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self.header().setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
         self.itemSelectionChanged.connect(self.item_selection_changed)
+
         # self.header().hideSection(0)
         self._moved = []
 
@@ -1067,6 +1068,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             if not item.isHidden():
                 item.setHidden(True)
                 item.setHidden(False)
+                
+    def is_item_visible(self, item):
+        rect = self.visualItemRect(item)
+        return rect.isValid()
 
 
 class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):

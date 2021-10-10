@@ -971,6 +971,8 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.pattern_group_added.connect(self.pattern_group_added_req)
         self.channel_selection.itemDoubleClicked.connect(self.channel_selection_item_double_clicked)
         self.channel_selection.compute_fft_request.connect(self.compute_fft)
+        self.channel_selection.itemExpanded.connect(self.update_current_values)
+        self.channel_selection.verticalScrollBar().valueChanged.connect(self.update_current_values)
 
         self.keyboard_events = (
             set(
@@ -1127,6 +1129,10 @@ class Plot(QtWidgets.QWidget):
             iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
             while iterator.value():
                 item = iterator.value()
+                iterator += 1
+                if not self.channel_selection.is_item_visible(item):
+                    continue
+
                 widget = self.channel_selection.itemWidget(item, 1)
                 if isinstance(widget, ChannelDisplay):
 
@@ -1138,8 +1144,6 @@ class Plot(QtWidgets.QWidget):
                     widget.set_fmt(fmt)
 
                     widget.set_value(value, update=True)
-
-                iterator += 1
 
         if self.info.isVisible():
             stats = self.plot.get_stats(self.info_uuid)
@@ -1199,6 +1203,11 @@ class Plot(QtWidgets.QWidget):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
         while iterator.value():
             item = iterator.value()
+            iterator += 1
+
+            if not self.channel_selection.is_item_visible(item):
+                continue
+
             widget = self.channel_selection.itemWidget(item, 1)
             if isinstance(widget, ChannelDisplay):
 
@@ -1225,8 +1234,6 @@ class Plot(QtWidgets.QWidget):
                         widget.set_value("n.a.")
                 else:
                     widget.set_value("n.a.")
-
-            iterator += 1
 
         if self.info.isVisible():
             stats = self.plot.get_stats(self.info_uuid)
@@ -1903,6 +1910,12 @@ class Plot(QtWidgets.QWidget):
             QtCore.QEvent.KeyPress, QtCore.Qt.Key_Delete, QtCore.Qt.NoModifier
         )
         self.channel_selection.keyPressEvent(event)
+
+    def update_current_values(self, *args):
+        if self.plot.region:
+            self.range_modified()
+        else:
+            self.cursor_moved()
 
 
 class _Plot(pg.PlotWidget):
