@@ -207,18 +207,25 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
         if self._value == value and update is False:
             return
+        
+        default_background_color = self._current_background_color
+        default_font_color = self._current_font_color
 
         new_background_color, new_font_color = get_colors_using_ranges(
             value,
             ranges=self.get_ranges(),
-            default_background_color=self._current_background_color,
-            default_font_color=self._current_font_color,
+            default_background_color=default_background_color,
+            default_font_color=default_font_color,
         )
 
-        p = self.palette()
-        p.setColor(QtGui.QPalette.Base, new_background_color)
-        p.setColor(QtGui.QPalette.Text, new_font_color)
-        self.setPalette(p)
+        if (
+            new_background_color is not default_background_color
+            or new_font_color is not default_font_color
+        ):
+            p = self.palette()
+            p.setColor(QtGui.QPalette.Base, new_background_color)
+            p.setColor(QtGui.QPalette.Text, new_font_color)
+            self.setPalette(p)
 
         template = "{{}}{}"
         if value not in ("", "n.a."):

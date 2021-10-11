@@ -6178,6 +6178,7 @@ class MDF4(MDF_Common):
         ignore_invalidation_bits=False,
         record_offset=0,
         record_count=None,
+        skip_channel_validation=False,
     ):
         """Gets channel samples. The raw data group samples are not loaded to
         memory so it is advised to use ``filter`` or ``select`` instead of
@@ -6226,6 +6227,12 @@ class MDF4(MDF_Common):
         record_count : int
             number of records to read; default *None* and in this case all
             available records are used
+        skip_channel_validation (False) : bool
+            skip validation of channel name, group index and channel index; defualt
+            *False*. If *True*, the caller has to make sure that the *group* and *index*
+            arguments are provided and are correct.
+            
+            ..versionadded:: 7.0.0
 
 
         Returns
@@ -6310,7 +6317,10 @@ class MDF4(MDF_Common):
 
         """
 
-        gp_nr, ch_nr = self._validate_channel_selection(name, group, index)
+        if skip_channel_validation:
+            gp_nr, ch_nr = group, index
+        else:
+            gp_nr, ch_nr = self._validate_channel_selection(name, group, index)
 
         grp = self.groups[gp_nr]
 
@@ -6365,22 +6375,29 @@ class MDF4(MDF_Common):
                 master_is_required=master_is_required,
             )
 
-        conversion = channel.conversion
-
-        if not raw and conversion:
-            vals = conversion.convert(vals)
-            conversion = None
-
-            if vals.dtype.kind == "S":
-                encoding = "utf-8"
-
-        if not vals.flags.owndata and self.copy_on_get:
-            vals = vals.copy()
-
         if samples_only:
+            if not raw:
+                conversion = channel.conversion
+                if conversion:
+                    vals = conversion.convert(vals)
+
+            if self.copy_on_get and not vals.flags.owndata:
+                vals = vals.copy()
+                        
             res = vals, invalidation_bits
         else:
-            # search for unit in conversion texts
+            conversion = channel.conversion
+            if not raw and conversion:
+                    vals = conversion.convert(vals)
+                    conversion = None
+
+                    if vals.dtype.kind == "S":
+                        encoding = "utf-8"
+            else:
+                conversion = None
+
+            if self.copy_on_get and not vals.flags.owndata:
+                vals = vals.copy()
 
             channel_type = channel.channel_type
 
@@ -6967,7 +6984,6 @@ class MDF4(MDF_Common):
             )
             one_piece = False
         else:
-            data = (data,)
             one_piece = True
 
         channel_invalidation_present = channel.flags & (
@@ -7003,6 +7019,8 @@ class MDF4(MDF_Common):
             record_size += channel_group.invalidation_bytes_nr
 
             count = 0
+            if one_piece:
+                data = (data,)
             for fragment in data:
                 data_bytes, offset, _count, invalidation_bytes = fragment
                 offset = offset // record_size
@@ -7090,7 +7108,7 @@ class MDF4(MDF_Common):
 
             if one_piece:
 
-                fragment = data[0]
+                fragment = data
                 data_bytes, record_start, record_count, invalidation_bytes = fragment
 
                 try:
@@ -7108,7 +7126,6 @@ class MDF4(MDF_Common):
                         record = grp.record
                         if record is None:
                             record = fromstring(data_bytes, dtype=dtypes)
-
                         vals = record[parent]
 
                     dtype_ = vals.dtype
@@ -7119,7 +7136,6 @@ class MDF4(MDF_Common):
 
                     kind_ = dtype_.kind
 
-                    vals_dtype = vals.dtype.kind
                     if kind_ == "b":
                         pass
                     elif len(shape_) > 1 and data_type not in (
@@ -7128,13 +7144,11 @@ class MDF4(MDF_Common):
                         v4c.DATA_TYPE_MIME_STREAM,
                     ):
                         vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
-                    elif vals_dtype not in "ui" and (
+                    elif kind_ not in "ui" and (
                         bit_offset or not bit_count == size * 8
                     ):
                         vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
                     else:
-                        dtype_ = vals.dtype
-                        kind_ = dtype_.kind
 
                         if data_type in v4c.INT_TYPES:
 

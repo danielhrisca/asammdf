@@ -2700,6 +2700,7 @@ class MDF3(MDF_Common):
         ignore_invalidation_bits=False,
         record_offset=0,
         record_count=None,
+        skip_channel_validation=False,
     ):
         """Gets channel samples.
         Channel can be specified in two ways:
@@ -2743,7 +2744,12 @@ class MDF3(MDF_Common):
         record_offset : int
             if *data=None* use this to select the record offset from which the
             group data should be loaded
-
+        skip_channel_validation (False) : bool
+            skip validation of channel name, group index and channel index; defualt
+            *False*. If *True*, the caller has to make sure that the *group* and *index*
+            arguments are provided and are correct.
+            
+            ..versionadded:: 7.0.0
 
         Returns
         -------
@@ -2824,7 +2830,10 @@ class MDF3(MDF_Common):
 
         """
 
-        gp_nr, ch_nr = self._validate_channel_selection(name, group, index)
+        if skip_channel_validation:
+            gp_nr, ch_nr = group, index
+        else:
+            gp_nr, ch_nr = self._validate_channel_selection(name, group, index)
 
         original_data = data
 

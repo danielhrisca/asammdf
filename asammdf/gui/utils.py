@@ -522,18 +522,21 @@ class HelperChannel:
 
 
 def copy_ranges(ranges):
-    new_ranges = []
-    for range_info in ranges:
-        range_info = dict(range_info)
-        for color_name in ('background_color', 'font_color'):
-            color = range_info[color_name]
-            if isinstance(color, QtGui.QBrush):
-                range_info[color_name] = QtGui.QBrush(color)
-            elif isinstance(color, QtGui.QColor):
-                range_info[color_name] = QtGui.QColor(color)
-        new_ranges.append(range_info)
-
-    return new_ranges
+    if ranges:
+        new_ranges = []
+        for range_info in ranges:
+            range_info = dict(range_info)
+            for color_name in ('background_color', 'font_color'):
+                color = range_info[color_name]
+                if isinstance(color, QtGui.QBrush):
+                    range_info[color_name] = QtGui.QBrush(color)
+                elif isinstance(color, QtGui.QColor):
+                    range_info[color_name] = QtGui.QColor(color)
+            new_ranges.append(range_info)
+    
+        return new_ranges
+    else:
+        return ranges
 
 
 def get_colors_using_ranges(value, ranges, default_background_color, default_font_color):

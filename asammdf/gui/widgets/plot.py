@@ -11,6 +11,8 @@ import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
 
+from ...blocks.cutils import positions
+
 def _keys(self, styles):
     def getId(obj):
         try:
@@ -51,6 +53,23 @@ bin_ = bin
 HERE = Path(__file__).resolve().parent
 
 FAKE = -2
+
+
+def simple_min(a, b):
+    if b != b:
+        return a
+    if a <= b:
+        return a
+    return b
+
+
+def simple_max(a, b):
+    if b != b:
+        return a
+    if a <= b:
+        return b
+    return a
+
 
 
 class PlotSignal(Signal):
@@ -660,7 +679,101 @@ class PlotSignal(Signal):
         #        sig._stats["fmt"] = fmt
         return stats
 
-    def trim(self, start=None, stop=None, width=1900):
+    def trim_c(self, start=None, stop=None, width=1900):
+        trim_info = (start, stop, width)
+        if self.trim_info == trim_info:
+            return None
+
+        self.trim_info = trim_info
+        sig = self
+        dim = sig.timestamps.size
+
+        if dim:
+
+            if start is None:
+                start = sig.timestamps[0]
+            if stop is None:
+                stop = sig.timestamps[-1]
+
+            if self.mode == "raw":
+                signal_samples = self.raw_samples
+            else:
+                signal_samples = self.phys_samples
+
+            start_t_sig, stop_t_sig = (
+                sig.timestamps[0],
+                sig.timestamps[-1],
+            )
+            if start > stop_t_sig or stop < start_t_sig:
+                sig.plot_samples = signal_samples[:0]
+                sig.plot_timestamps = sig.timestamps[:0]
+                pos = []
+            else:
+                start_t = simple_max(start, start_t_sig)
+                stop_t = simple_min(stop, stop_t_sig)
+
+                if start_t == start_t_sig:
+                    start_ = 0
+                else:
+                    start_ = np.searchsorted(sig.timestamps, start_t, side="right")
+                if stop_t == stop_t_sig:
+                    stop_ = dim
+                else:
+                    stop_ = np.searchsorted(sig.timestamps, stop_t, side="right")
+
+                try:
+                    visible = abs(int((stop_t - start_t) / (stop - start) * width))
+
+                    if visible:
+                        visible_duplication = abs((stop_ - start_)) // visible
+                    else:
+                        visible_duplication = 0
+                except:
+                    visible_duplication = 0
+
+                if visible_duplication > self.duplication:
+                    samples = signal_samples[start_:]
+                    timestamps = sig.timestamps[start_:]
+                    count, rest = divmod(samples.size, visible_duplication)
+                    if rest:
+                        count += 1
+                    else:
+                        rest = visible_duplication
+                    steps = visible_duplication
+
+                    pos = np.empty(2*count, dtype='i4')
+
+                    # print(samples.shape, pos.shape, steps, count, rest)
+
+                    positions(samples.astype('f8'), pos, steps, count, rest)
+
+                    # print('final', pos)
+
+                    sig.plot_samples = samples[pos]
+                    sig.plot_timestamps = timestamps[pos]
+
+                else:
+                    start_ = simple_min(simple_max(0, start_ - 2), dim - 1)
+                    stop_ = simple_min(stop_ + 2, dim)
+
+                    if start_ == 0 and stop_ == dim:
+                        sig.plot_samples = signal_samples
+                        sig.plot_timestamps = sig.timestamps
+
+                        pos = None
+                    else:
+
+                        sig.plot_samples = signal_samples[start_:stop_]
+                        sig.plot_timestamps = sig.timestamps[start_:stop_]
+
+                        pos = np.arange(start_, stop_)
+
+        else:
+            pos = None
+
+        return pos
+
+    def trim_python(self, start=None, stop=None, width=1900):
         trim_info = (start, stop, width)
         if self.trim_info == trim_info:
             return None
@@ -1110,7 +1223,11 @@ class Plot(QtWidgets.QWidget):
         self.plot.cursor_hint.hide()
 
     def cursor_moved(self):
-        if not self._accept_cursor_update and perf_counter() - self._last_cursor_update < 0.030:
+        if (
+            self.plot.cursor1 is None
+            or not self._accept_cursor_update
+            or perf_counter() - self._last_cursor_update < 0.030
+        ):
             return
         
         position = self.plot.cursor1.value()
@@ -2148,7 +2265,7 @@ class _Plot(pg.PlotWidget):
 
             self.view_boxes[signal_index].addItem(curve)
         else:
-            if self.with_dots or self.line_interconnect != curve.opts['stepMode'] or not len(t):
+            if self.with_dots or self.line_interconnect != curve.opts['stepMode'] or not t.size:
                 curve.setData(
                     x=t, y=sig.plot_samples, stepMode=self.line_interconnect,
                     symbolBrush=color,
@@ -2734,7 +2851,11 @@ class _Plot(pg.PlotWidget):
 
         for sig in signals:
             if sig.enable:
-                sig.trim(start, stop, width)
+                # sig.trim_orig(start, stop, width)
+                try:
+                    sig.trim(start, stop, width)
+                except:
+                    sig.trim_python(start, stop, width)
 
     def xrange_changed_handle(self):
         self.trim()
@@ -2975,8 +3096,6 @@ class _Plot(pg.PlotWidget):
 
     def signal_by_uuid(self, uuid):
         return self._uuid_map[uuid]
-
-        raise Exception("Signal not found")
 
     def signal_by_name(self, name):
         for i, sig in enumerate(self.signals):

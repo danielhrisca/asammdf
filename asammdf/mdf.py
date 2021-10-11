@@ -1781,7 +1781,7 @@ class MDF:
             the time stamps from the next file will be added right after the last
             time stamp from the previous file; default False
 
-            .. versionadded:: 6.0.0
+            ..versionadded:: 6.0.0
 
         kwargs :
 

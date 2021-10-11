@@ -90,18 +90,24 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
                             pass
             else:
                 value = None
+                
+        default_background_color = self._back_ground_color
+        default_font_color = self._font_color
 
         new_background_color, new_font_color = get_colors_using_ranges(
             value,
             ranges=self.ranges,
-            default_background_color=self._back_ground_color,
-            default_font_color=self._font_color,
+            default_background_color=default_background_color,
+            default_font_color=default_font_color,
         )
+        
+        if new_background_color is not default_background_color:
 
-        self.setBackground(0, new_background_color)
-        self.setBackground(1, new_background_color)
-        self.setBackground(2, new_background_color)
+            self.setBackground(0, new_background_color)
+            self.setBackground(1, new_background_color)
+            self.setBackground(2, new_background_color)
 
-        self.setForeground(0, new_font_color)
-        self.setForeground(1, new_font_color)
-        self.setForeground(2, new_font_color)
+        if new_font_color is not default_font_color:
+            self.setForeground(0, new_font_color)
+            self.setForeground(1, new_font_color)
+            self.setForeground(2, new_font_color)

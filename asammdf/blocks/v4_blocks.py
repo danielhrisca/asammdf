@@ -3361,7 +3361,7 @@ class ChannelConversion(_ChannelConversionBase):
 
                 if not all_bytes:
                     try:
-                        ret = ret.astype("<f8")
+                        ret = ret.astype("f8")
                     except:
                         ret = np.array(
                             [np.nan if isinstance(v, bytes) else v for v in ret]
@@ -3381,20 +3381,20 @@ class ChannelConversion(_ChannelConversionBase):
                 )
             else:
 
-                ret = np.array([None] * len(values), dtype="O")
+                ret = np.array([None] * values.size, dtype="O")
 
                 idx1 = np.searchsorted(raw_vals, values, side="right") - 1
                 idx2 = np.searchsorted(raw_vals, values, side="left")
 
-                idx = np.argwhere(idx1 != idx2).flatten()
+                idx = np.argwhere(idx1 != idx2).ravel()
 
                 if isinstance(default, bytes):
                     ret[idx] = default
                 else:
                     ret[idx] = default.convert(values[idx])
 
-                idx = np.argwhere(idx1 == idx2).flatten()
-                if len(idx):
+                idx = np.argwhere(idx1 == idx2).ravel()
+                if idx.size:
                     indexes = idx1[idx]
                     unique = np.unique(indexes)
                     for val in unique:

@@ -105,11 +105,11 @@ class MDF_Common:
                         ch_nr = index
                     else:
                         if index is None:
-                            entries = [
+                            entries = tuple(
                                 (gp_nr, ch_nr)
                                 for gp_nr, ch_nr in self.channels_db[name]
                                 if gp_nr == group
-                            ]
+                            )
                             count = len(entries)
 
                             if count == 1:
