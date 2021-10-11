@@ -11,7 +11,10 @@ import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
 
-from ...blocks.cutils import positions
+try:
+    from ...blocks.cutils import positions
+except:
+    pass
 
 def _keys(self, styles):
     def getId(obj):
