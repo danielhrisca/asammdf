@@ -339,6 +339,71 @@ static PyObject* get_vlsd_offsets(PyObject* self, PyObject* args)
     return result;
 }
 
+static PyObject *positions(PyObject *self, PyObject *args)
+{
+	long count, step, last;
+    double min, max, *indata, value;
+    long *outdata;
+    int pos_min, pos_max;
+
+	PyObject *samples, *result, *step_obj, *count_obj, *last_obj;
+
+	if (!PyArg_ParseTuple(args, "OOOOO",
+			      &samples, &result, &step_obj, &count_obj, &last_obj
+)) {
+		PyErr_SetString(PyExc_ValueError, "check_timestamp was called with wring parameters\n");
+		return NULL;
+	} else {
+        
+        indata = (double *) PyArray_GETPTR1(samples, 0);
+        outdata = (long *) PyArray_GETPTR1(result, 0);
+        
+        count = PyLong_AsLong(count_obj);
+        step = PyLong_AsLong(step_obj);
+        last = PyLong_AsLong(last_obj);
+        
+        printf("Size of long %d\n", sizeof(long));
+
+        int current_pos = 0;
+        for (int i=0; i< (int) count; i++) {
+            for (int j=0; j< step; j++, indata++) {
+                if (j==0) {
+                    pos_min = current_pos;
+                    pos_max = current_pos;
+                    min = *indata;
+                    max = *indata;
+                }
+                else {
+                   if (*indata < min) {
+                        min = *indata;
+                        pos_min = current_pos;
+                   }
+                   else if (*indata > max) {
+                        max = *indata;
+                        pos_max = current_pos;
+                   } 
+                }
+                
+                current_pos++;
+                
+                if ((i == count -1) && (j == last -1)) break;
+            }
+            
+            if (pos_min < pos_max) {
+                *outdata++ = pos_min;
+                *outdata++ = pos_max;
+            }
+            else {
+                *outdata++ = pos_max;
+                *outdata++ = pos_min;
+            }
+        }
+        
+        Py_INCREF(Py_None);
+        return Py_None;
+    }     
+}
+
 
 // Our Module's Function Definition struct
 // We require this `NULL` to signal the end of our method
@@ -349,6 +414,7 @@ static PyMethodDef myMethods[] =
     { "lengths", lengths, METH_VARARGS, "lengths" },
     { "get_vlsd_offsets", get_vlsd_offsets, METH_VARARGS, "get_vlsd_offsets" },
     { "sort_data_block", sort_data_block, METH_VARARGS, "sort raw data group block" },
+    { "positions", positions, METH_VARARGS, "positions" },
     
     { NULL, NULL, 0, NULL }
 };
