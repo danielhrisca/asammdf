@@ -920,6 +920,12 @@ class PlotSignal(Signal):
 
         return pos
 
+    def trim(self, start=None, stop=None, width=1900):
+        try:
+            return self.trim_c(start, stop, width)
+        except:
+            return self.trim_python(start, stop, width)
+
     def value_at_timestamp(self, stamp):
         if len(self.timestamps) and self.timestamps[-1] < stamp:
             values = self.samples[-1:]

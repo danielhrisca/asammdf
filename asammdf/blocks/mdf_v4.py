@@ -6387,14 +6387,13 @@ class MDF4(MDF_Common):
             res = vals, invalidation_bits
         else:
             conversion = channel.conversion
-            if not raw and conversion:
+            if not raw:
+                if conversion:
                     vals = conversion.convert(vals)
                     conversion = None
 
-                    if vals.dtype.kind == "S":
-                        encoding = "utf-8"
-            else:
-                conversion = None
+                if vals.dtype.kind == "S":
+                    encoding = "utf-8"
 
             if self.copy_on_get and not vals.flags.owndata:
                 vals = vals.copy()

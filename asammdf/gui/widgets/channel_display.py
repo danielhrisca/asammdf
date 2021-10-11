@@ -171,11 +171,11 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         if on:
             self._current_background_color = self._selected_color
             self._current_font_color = self._selected_font_color
-            self.set_value(update=True)
+            self.set_value(update=True, force=True)
         else:
             self._current_background_color = self._back_ground_color
             self._current_font_color = self._font_color
-            self.set_value(update=True)
+            self.set_value(update=True, force=True)
 
     def set_name(self, text=""):
         self.setToolTip(self._tooltip or text)
@@ -199,7 +199,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             )
         self.set_value(update=True)
             
-    def set_value(self, value=None, update=False):
+    def set_value(self, value=None, update=False, force=False):
         if value is not None:
             self._value = value
         else:
@@ -219,7 +219,8 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         )
 
         if (
-            new_background_color is not default_background_color
+            force
+            or new_background_color is not default_background_color
             or new_font_color is not default_font_color
         ):
             p = self.palette()
