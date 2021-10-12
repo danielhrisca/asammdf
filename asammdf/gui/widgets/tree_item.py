@@ -2,6 +2,8 @@
 
 from PyQt5 import QtWidgets, QtGui, QtCore
 from ..utils import get_colors_using_ranges
+from traceback import format_exc
+from time import perf_counter
 
 
 class TreeItem(QtWidgets.QTreeWidgetItem):
@@ -23,50 +25,36 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
 
         self._current_background_color = self._back_ground_color
         self._current_font_color = self._font_color
+        self._value = None
+        self._sorting_column = 0
 
-    def __lt__(self, otherItem):
-        column = self.treeWidget().sortColumn()
+        self._t = perf_counter()
 
-        if column == 1:
-            val1 = self.text(column)
-            try:
-                val1 = float(val1)
-            except:
-                if val1.startswith('0x'):
-                    try:
-                        val1 = int(val1, 16)
-                    except:
-                        pass
-                elif val1.startswith('0b'):
-                    try:
-                        val1 = int(val1, 2)
-                    except:
-                        pass
+    def __lt__(self, other):
+        if self._sorting_column == 1:
+            self_value = self._value
+            if self_value is None:
+                return True
 
-            val2 = otherItem.text(column)
-            try:
-                val2 = float(val2)
-            except:
-                if val2.startswith('0x'):
-                    try:
-                        val2 = int(val2, 16)
-                    except:
-                        pass
-                elif val2.startswith('0b'):
-                    try:
-                        val2 = int(val2, 2)
-                    except:
-                        pass
+            other_value = other._value
+            if other_value is None:
+                return False
 
-            try:
-                return val1 < val2
-            except:
-                if isinstance(val1, float):
-                    return True
+            if self_value.dtype.kind in 'fui':
+
+                if other_value.dtype.kind in 'fui':
+                    return self_value < other_value
                 else:
+                    return True
+
+            else:
+                if other_value.dtype.kind in 'fui':
                     return False
+                else:
+                    return super().__lt__(other)
+
         else:
-            return self.text(column) < otherItem.text(column)
+            return super().__lt__(other)
 
     def __del__(self):
         self.entry = self.name = self.mdf_uuid = None

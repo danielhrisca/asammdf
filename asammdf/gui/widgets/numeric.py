@@ -178,12 +178,16 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     else:
                         value = sig.phys_samples[idx]
 
-                    if value.dtype.kind == "f":
+                    kind = value.dtype.kind
+
+                    if kind == "f":
                         item.setText(1, float_format.format(value))
-                    elif value.dtype.kind in "ui":
+                    elif kind in "ui":
                         item.setText(1, bin(value))
                     else:
                         item.setText(1, str(value))
+
+                    item._value = value
 
                     item.check_signal_range(value)
 
@@ -211,12 +215,16 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     else:
                         value = sig.phys_samples[idx]
 
-                    if value.dtype.kind == "f":
+                    kind = value.dtype.kind
+
+                    if kind == "f":
                         item.setText(1, float_format.format(value))
-                    elif value.dtype.kind in "ui":
+                    elif kind in "ui":
                         item.setText(1, f"0x{value:X}")
                     else:
                         item.setText(1, str(value))
+
+                    item._value = value
 
                     item.check_signal_range(value)
 
@@ -242,10 +250,14 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                     else:
                         value = sig.phys_samples[idx]
 
-                    if value.dtype.kind == "f":
+                    kind = value.dtype.kind
+
+                    if kind == "f":
                         item.setText(1, float_format.format(value))
                     else:
                         item.setText(1, str(value))
+
+                    item._value = value
 
                     item.check_signal_range(value)
 

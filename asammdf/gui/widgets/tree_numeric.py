@@ -23,6 +23,7 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
         self.setEditTriggers(QtWidgets.QAbstractItemView.DoubleClicked)
 
         self.itemDoubleClicked.connect(self.handle_item_double_click)
+        self.header().sortIndicatorChanged.connect(self.handle_sorting_changed)
 
     def keyPressEvent(self, event):
         key = event.key()
@@ -113,3 +114,11 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
         if dlg.pressed_button == "apply":
             item.ranges = dlg.result
             item.check_signal_range()
+
+    def handle_sorting_changed(self, index, order):
+        iterator = QtWidgets.QTreeWidgetItemIterator(self)
+        while iterator.value():
+            item = iterator.value()
+            iterator += 1
+
+            item._sorting_column = index
