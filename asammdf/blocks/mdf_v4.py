@@ -2368,7 +2368,6 @@ class MDF4(MDF_Common):
                         inval_total_size,
                     )
 
-
     def _get_signal_data_blocks_info(
         self,
         address,
@@ -10070,10 +10069,11 @@ class MDF4(MDF_Common):
             if group.sorted:
                 continue
 
-            if group.data_blocks:
-                address = group.data_blocks[0].address
-
-                common[address].append((i, group.channel_group.record_id))
+            try:
+                data_block = next(group.get_data_blocks())
+                common[data_block.address].append((i, group.channel_group.record_id))
+            except:
+                continue
 
         read = self._file.read
         seek = self._file.seek
@@ -10114,7 +10114,7 @@ class MDF4(MDF_Common):
                 raise MdfException(message)
 
             rem = b""
-            for info in group.data_blocks:
+            for info in group.get_data_blocks():
                 dtblock_address, dtblock_raw_size, dtblock_size, block_type, param = (
                     info.address,
                     info.original_size,
@@ -10301,7 +10301,7 @@ class MDF4(MDF_Common):
                         + channel_group.invalidation_bytes_nr
                     )
 
-                total_size = sum(blk.original_size for blk in group.data_blocks)
+                total_size = sum(blk.original_size for blk in group.get_data_blocks())
 
                 cycles_nr = total_size // samples_size
                 virtual_channel_group = self.virtual_groups[index]

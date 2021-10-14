@@ -60,6 +60,8 @@ TWO_UINT64_uf = Struct("<2Q").unpack_from
 BLK_COMMON_uf = Struct("<4s4xQ").unpack_from
 BLK_COMMON_u = Struct("<4s4xQ8x").unpack
 
+EMPTY_TUPLE = tuple()
+
 _xmlns_pattern = re.compile(' xmlns="[^"]*"')
 
 logger = logging.getLogger("asammdf")
@@ -1095,7 +1097,7 @@ class Group:
         self.uses_ld = False
         self.read_split_count = 0
         self.data_info_loaded = False
-        self.data_blocks_info_generator = None
+        self.data_blocks_info_generator = iter(EMPTY_TUPLE)
 
     def __getitem__(self, item):
         return self.__getattribute__(item)
@@ -1117,6 +1119,18 @@ class Group:
         self.channel_dependencies.clear()
         self.signal_data.clear()
         self.data_blocks_info_generator = None
+
+    def get_data_blocks(self):
+        blocks = iter(self.data_blocks)
+        try:
+            yield from blocks
+        except StopIteration:
+            try:
+                info = next(self.data_blocks_info_generator)
+                self.data_blocks.append(info)
+                yield info
+            except StopIteration:
+                raise
 
 
 class VirtualChannelGroup:
