@@ -4227,14 +4227,14 @@ class DataZippedBlock(object):
                         data = (
                             np.frombuffer(data[: lines * cols], dtype="B")
                             .reshape((lines, cols))
-                            .T.tobytes()
+                            .T.ravel().tobytes()
                         ) + data[lines * cols :]
 
                     else:
                         data = (
                             np.frombuffer(data, dtype=np.uint8)
                             .reshape((lines, cols))
-                            .T.tobytes()
+                            .T.ravel().tobytes()
                         )
                 data = compress(data, 1)
 
@@ -4262,13 +4262,13 @@ class DataZippedBlock(object):
                         data = (
                             np.frombuffer(data[: lines * cols], dtype=np.uint8)
                             .reshape((cols, lines))
-                            .T.tobytes()
+                            .T.ravel().tobytes()
                         ) + data[lines * cols :]
                     else:
                         data = (
                             np.frombuffer(data, dtype=np.uint8)
                             .reshape((cols, lines))
-                            .T.tobytes()
+                            .T.ravel().tobytes()
                         )
             else:
                 data = DataZippedBlock.__dict__[item].__get__(self)

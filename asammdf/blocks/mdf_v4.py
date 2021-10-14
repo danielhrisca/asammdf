@@ -1187,7 +1187,7 @@ class MDF4(MDF_Common):
 
                             nd = frombuffer(new_data[: lines * cols], dtype=uint8)
                             nd = nd.reshape((cols, lines))
-                            new_data = nd.T.tobytes() + new_data[lines * cols :]
+                            new_data = nd.T.ravel().tobytes() + new_data[lines * cols :]
                         elif block_type == v4c.DZ_BLOCK_LZ:
                             new_data = lz_decompress(new_data)
 
@@ -1230,7 +1230,7 @@ class MDF4(MDF_Common):
 
                             nd = frombuffer(new_data[: lines * cols], dtype=uint8)
                             nd = nd.reshape((cols, lines))
-                            new_data = nd.T.tobytes() + new_data[lines * cols :]
+                            new_data = nd.T.ravel().tobytes() + new_data[lines * cols :]
                         elif block_type == v4c.DZ_BLOCK_LZ:
                             new_data = lz_decompress(new_data)
 
