@@ -1067,6 +1067,7 @@ class Group:
         "data_location",
         "data_info_loaded",
         "data_blocks",
+        "data_blocks_info_generator",
         "record_size",
         "record",
         "parents",
@@ -1094,6 +1095,7 @@ class Group:
         self.uses_ld = False
         self.read_split_count = 0
         self.data_info_loaded = False
+        self.data_blocks_info_generator = None
 
     def __getitem__(self, item):
         return self.__getattribute__(item)
@@ -1114,6 +1116,7 @@ class Group:
         self.channels.clear()
         self.channel_dependencies.clear()
         self.signal_data.clear()
+        self.data_blocks_info_generator = None
 
 
 class VirtualChannelGroup:

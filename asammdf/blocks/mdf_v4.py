@@ -418,10 +418,10 @@ class MDF4(MDF_Common):
                         self._from_filelike = False
                         self._read(mapped=True)
 
-                        self._file.close()
-                        x.close()
-
-                        self._file = open(self.name, "rb")
+                        # self._file.close()
+                        # x.close()
+                        #
+                        # self._file = open(self.name, "rb")
 
         else:
             self._from_filelike = False
@@ -677,7 +677,7 @@ class MDF4(MDF_Common):
                 total_size = int(10 ** 12)
                 inval_total_size = int(10 ** 12)
 
-            info, uses_ld = self._get_data_blocks_info(
+            data_blocks_info = self._get_data_blocks_info(
                 address=address,
                 stream=stream,
                 block_type=block_type,
@@ -685,10 +685,18 @@ class MDF4(MDF_Common):
                 total_size=total_size,
                 inval_total_size=inval_total_size,
             )
+            data_blocks = []
+            uses_ld = self._uses_ld(
+                address=address,
+                stream=stream,
+                block_type=block_type,
+                mapped=mapped,
+            )
 
             for grp in new_groups:
                 grp.data_location = v4c.LOCATION_ORIGINAL_FILE
-                grp.set_blocks_info(info)
+                grp.data_blocks_info_generator = data_blocks_info
+                grp.data_blocks = data_blocks
                 grp.uses_ld = uses_ld
 
             self.groups.extend(new_groups)
@@ -1267,6 +1275,7 @@ class MDF4(MDF_Common):
         has_yielded = False
         _count = 0
         data_group = group.data_group
+        data_blocks_info_generator = group.data_blocks_info_generator
         channel_group = group.channel_group
 
         if group.data_location == v4c.LOCATION_ORIGINAL_FILE:
@@ -1336,17 +1345,38 @@ class MDF4(MDF_Common):
 
             blocks = iter(group.data_blocks)
 
-            if group.data_blocks:
+            cur_size = 0
+            data = []
 
-                cur_size = 0
-                data = []
+            cur_invalidation_size = 0
+            invalidation_data = []
 
-                cur_invalidation_size = 0
-                invalidation_data = []
+            while True:
+                try:
+                    info = next(blocks)
+                    (
+                        address,
+                        original_size,
+                        compressed_size,
+                        block_type,
+                        param,
+                        block_limit,
+                    ) = (
+                        info.address,
+                        info.original_size,
+                        info.compressed_size,
+                        info.block_type,
+                        info.param,
+                        info.block_limit,
+                    )
 
-                while True:
+                    if rm and invalidation_size:
+                        invalidation_info = info.invalidation_block
+                    else:
+                        invalidation_info = None
+                except StopIteration:
                     try:
-                        info = next(blocks)
+                        info = next(data_blocks_info_generator)
                         (
                             address,
                             original_size,
@@ -1367,243 +1397,239 @@ class MDF4(MDF_Common):
                             invalidation_info = info.invalidation_block
                         else:
                             invalidation_info = None
+                        group.data_blocks.append(info)
                     except StopIteration:
                         break
 
-                    if offset + original_size < record_offset + 1:
-                        offset += original_size
-                        if rm and invalidation_size:
-                            if invalidation_info.all_valid:
-                                count = original_size // samples_size
-                                invalidation_offset += count * invalidation_size
-                            else:
-                                invalidation_offset += invalidation_info.original_size
-                        continue
-
-                    seek(address)
-                    new_data = read(compressed_size)
-
-                    if block_type == v4c.DZ_BLOCK_DEFLATE:
-                        new_data = decompress(new_data, 0, original_size)
-                    elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
-                        new_data = decompress(new_data, 0, original_size)
-                        cols = param
-                        lines = original_size // cols
-
-                        nd = frombuffer(new_data[: lines * cols], dtype=uint8)
-                        nd = nd.reshape((cols, lines))
-                        new_data = nd.T.tobytes() + new_data[lines * cols :]
-                    elif block_type == v4c.DZ_BLOCK_LZ:
-                        new_data = lz_decompress(new_data)
-
-                    if block_limit is not None:
-                        new_data = new_data[:block_limit]
-
-                    if len(data) > split_size - cur_size:
-                        new_data = memoryview(new_data)
-
+                if offset + original_size < record_offset + 1:
+                    offset += original_size
                     if rm and invalidation_size:
-
                         if invalidation_info.all_valid:
                             count = original_size // samples_size
-                            new_invalidation_data = bytes(count * invalidation_size)
-
+                            invalidation_offset += count * invalidation_size
                         else:
-                            seek(invalidation_info.address)
-                            new_invalidation_data = read(invalidation_info.size)
-                            if invalidation_info.block_type == v4c.DZ_BLOCK_DEFLATE:
-                                new_invalidation_data = decompress(
-                                    new_invalidation_data,
-                                    0,
-                                    invalidation_info.original_size,
-                                )
-                            elif (
-                                invalidation_info.block_type == v4c.DZ_BLOCK_TRANSPOSED
-                            ):
-                                new_invalidation_data = decompress(
-                                    new_invalidation_data,
-                                    0,
-                                    invalidation_info.original_size,
-                                )
-                                cols = invalidation_info.param
-                                lines = invalidation_info.original_size // cols
+                            invalidation_offset += invalidation_info.original_size
+                    continue
 
-                                nd = frombuffer(
-                                    new_invalidation_data[: lines * cols], dtype=uint8
-                                )
-                                nd = nd.reshape((cols, lines))
-                                new_invalidation_data = (
-                                    nd.T.tobytes()
-                                    + new_invalidation_data[lines * cols :]
-                                )
-                            if invalidation_info.block_limit is not None:
-                                new_invalidation_data = new_invalidation_data[
-                                    : invalidation_info.block_limit
-                                ]
+                seek(address)
+                new_data = read(compressed_size)
 
-                        inv_size = len(new_invalidation_data)
+                if block_type == v4c.DZ_BLOCK_DEFLATE:
+                    new_data = decompress(new_data, 0, original_size)
+                elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
+                    new_data = decompress(new_data, 0, original_size)
+                    cols = param
+                    lines = original_size // cols
 
-                    if offset < record_offset:
-                        delta = record_offset - offset
-                        new_data = new_data[delta:]
-                        original_size -= delta
-                        offset = record_offset
+                    nd = frombuffer(new_data[: lines * cols], dtype=uint8)
+                    nd = nd.reshape((cols, lines))
+                    new_data = nd.T.ravel().tobytes() + new_data[lines * cols :]
+                elif block_type == v4c.DZ_BLOCK_LZ:
+                    new_data = lz_decompress(new_data)
 
-                        if rm and invalidation_size:
-                            delta = invalidation_record_offset - invalidation_offset
-                            new_invalidation_data = new_invalidation_data[delta:]
-                            inv_size -= delta
-                            invalidation_offset = invalidation_record_offset
+                if block_limit is not None:
+                    new_data = new_data[:block_limit]
 
-                    while original_size >= split_size - cur_size:
-                        if data:
-                            data.append(new_data[: split_size - cur_size])
-                            new_data = new_data[split_size - cur_size :]
-                            data_ = b"".join(data)
+                if len(data) > split_size - cur_size:
+                    new_data = memoryview(new_data)
 
-                            if rm and invalidation_size:
-                                invalidation_data.append(
-                                    new_invalidation_data[
-                                        : invalidation_split_size
-                                        - cur_invalidation_size
-                                    ]
-                                )
-                                new_invalidation_data = new_invalidation_data[
-                                    invalidation_split_size - cur_invalidation_size :
-                                ]
-                                invalidation_data_ = b"".join(invalidation_data)
-
-                            if record_count is not None:
-                                if rm and invalidation_size:
-                                    __data = data_[:record_count]
-                                    _count = len(__data) // samples_size
-                                    yield __data, offset // samples_size, _count, invalidation_data_[
-                                        :invalidation_record_count
-                                    ]
-                                    invalidation_record_count -= len(invalidation_data_)
-                                else:
-                                    __data = data_[:record_count]
-                                    _count = len(__data) // samples_size
-                                    yield __data, offset // samples_size, _count, None
-                                has_yielded = True
-                                record_count -= len(data_)
-                                if record_count <= 0:
-                                    finished = True
-                                    break
-                            else:
-                                if rm and invalidation_size:
-                                    _count = len(data_) // samples_size
-                                    yield data_, offset // samples_size, _count, invalidation_data_
-                                else:
-                                    _count = len(data_) // samples_size
-                                    yield data_, offset // samples_size, _count, None
-                                has_yielded = True
-
-                            data = []
-
-                        else:
-                            data_, new_data = (
-                                new_data[:split_size],
-                                new_data[split_size:],
-                            )
-                            if rm and invalidation_size:
-                                invalidation_data_ = new_invalidation_data[
-                                    :invalidation_split_size
-                                ]
-                                new_invalidation_data = new_invalidation_data[
-                                    invalidation_split_size:
-                                ]
-
-                            if record_count is not None:
-                                if rm and invalidation_size:
-                                    yield data_[
-                                        :record_count
-                                    ], offset // samples_size, _count, invalidation_data_[
-                                        :invalidation_record_count
-                                    ]
-                                    invalidation_record_count -= len(invalidation_data_)
-                                else:
-                                    __data = data_[:record_count]
-                                    _count = len(__data) // samples_size
-                                    yield __data, offset // samples_size, _count, None
-                                has_yielded = True
-                                record_count -= len(data_)
-                                if record_count <= 0:
-                                    finished = True
-                                    break
-                            else:
-                                if rm and invalidation_size:
-                                    _count = len(data_) // samples_size
-                                    yield data_, offset // samples_size, _count, invalidation_data_
-                                else:
-                                    _count = len(data_) // samples_size
-                                    yield data_, offset // samples_size, _count, None
-                                has_yielded = True
-
-                        offset += split_size
-                        original_size -= split_size - cur_size
-                        data = []
-                        cur_size = 0
-
-                        if rm and invalidation_size:
-                            invalidation_offset += invalidation_split_size
-                            invalidation_data = []
-                            cur_invalidation_size = 0
-                            inv_size -= invalidation_split_size - cur_invalidation_size
-
-                    if finished:
-                        data = []
-                        if rm and invalidation_size:
-                            invalidation_data = []
-                        break
-
-                    if original_size:
-                        data.append(new_data)
-                        cur_size += original_size
-                        original_size = 0
-
-                        if rm and invalidation_size:
-                            invalidation_data.append(new_invalidation_data)
-                            cur_invalidation_size += inv_size
-
-                if data:
-                    data_ = b"".join(data)
-                    if rm and invalidation_size:
-                        invalidation_data_ = b"".join(invalidation_data)
-                    if record_count is not None:
-                        if rm and invalidation_size:
-                            __data = data_[:record_count]
-                            _count = len(__data) // samples_size
-                            yield __data, offset // samples_size, _count, invalidation_data_[
-                                :invalidation_record_count
-                            ]
-                            invalidation_record_count -= len(invalidation_data_)
-                        else:
-                            __data = data_[:record_count]
-                            _count = len(__data) // samples_size
-                            yield __data, offset // samples_size, _count, None
-                        has_yielded = True
-                        record_count -= len(data_)
-                    else:
-                        if rm and invalidation_size:
-                            _count = len(data_) // samples_size
-                            yield data_, offset // samples_size, _count, invalidation_data_
-                        else:
-                            _count = len(data_) // samples_size
-                            yield data_, offset // samples_size, _count, None
-                        has_yielded = True
-                    data = []
-
-                if not has_yielded:
-                    if rm and invalidation_size:
-                        yield b"", 0, 0, b""
-                    else:
-                        yield b"", 0, 0, None
-            else:
                 if rm and invalidation_size:
-                    yield b"", offset, 0, b""
+
+                    if invalidation_info.all_valid:
+                        count = original_size // samples_size
+                        new_invalidation_data = bytes(count * invalidation_size)
+
+                    else:
+                        seek(invalidation_info.address)
+                        new_invalidation_data = read(invalidation_info.size)
+                        if invalidation_info.block_type == v4c.DZ_BLOCK_DEFLATE:
+                            new_invalidation_data = decompress(
+                                new_invalidation_data,
+                                0,
+                                invalidation_info.original_size,
+                            )
+                        elif (
+                            invalidation_info.block_type == v4c.DZ_BLOCK_TRANSPOSED
+                        ):
+                            new_invalidation_data = decompress(
+                                new_invalidation_data,
+                                0,
+                                invalidation_info.original_size,
+                            )
+                            cols = invalidation_info.param
+                            lines = invalidation_info.original_size // cols
+
+                            nd = frombuffer(
+                                new_invalidation_data[: lines * cols], dtype=uint8
+                            )
+                            nd = nd.reshape((cols, lines))
+                            new_invalidation_data = (
+                                nd.T.ravel().tobytes()
+                                + new_invalidation_data[lines * cols :]
+                            )
+                        if invalidation_info.block_limit is not None:
+                            new_invalidation_data = new_invalidation_data[
+                                : invalidation_info.block_limit
+                            ]
+
+                    inv_size = len(new_invalidation_data)
+
+                if offset < record_offset:
+                    delta = record_offset - offset
+                    new_data = new_data[delta:]
+                    original_size -= delta
+                    offset = record_offset
+
+                    if rm and invalidation_size:
+                        delta = invalidation_record_offset - invalidation_offset
+                        new_invalidation_data = new_invalidation_data[delta:]
+                        inv_size -= delta
+                        invalidation_offset = invalidation_record_offset
+
+                while original_size >= split_size - cur_size:
+                    if data:
+                        data.append(new_data[: split_size - cur_size])
+                        new_data = new_data[split_size - cur_size :]
+                        data_ = b"".join(data)
+
+                        if rm and invalidation_size:
+                            invalidation_data.append(
+                                new_invalidation_data[
+                                    : invalidation_split_size
+                                    - cur_invalidation_size
+                                ]
+                            )
+                            new_invalidation_data = new_invalidation_data[
+                                invalidation_split_size - cur_invalidation_size :
+                            ]
+                            invalidation_data_ = b"".join(invalidation_data)
+
+                        if record_count is not None:
+                            if rm and invalidation_size:
+                                __data = data_[:record_count]
+                                _count = len(__data) // samples_size
+                                yield __data, offset // samples_size, _count, invalidation_data_[
+                                    :invalidation_record_count
+                                ]
+                                invalidation_record_count -= len(invalidation_data_)
+                            else:
+                                __data = data_[:record_count]
+                                _count = len(__data) // samples_size
+                                yield __data, offset // samples_size, _count, None
+                            has_yielded = True
+                            record_count -= len(data_)
+                            if record_count <= 0:
+                                finished = True
+                                break
+                        else:
+                            if rm and invalidation_size:
+                                _count = len(data_) // samples_size
+                                yield data_, offset // samples_size, _count, invalidation_data_
+                            else:
+                                _count = len(data_) // samples_size
+                                yield data_, offset // samples_size, _count, None
+                            has_yielded = True
+
+                        data = []
+
+                    else:
+                        data_, new_data = (
+                            new_data[:split_size],
+                            new_data[split_size:],
+                        )
+                        if rm and invalidation_size:
+                            invalidation_data_ = new_invalidation_data[
+                                :invalidation_split_size
+                            ]
+                            new_invalidation_data = new_invalidation_data[
+                                invalidation_split_size:
+                            ]
+
+                        if record_count is not None:
+                            if rm and invalidation_size:
+                                yield data_[
+                                    :record_count
+                                ], offset // samples_size, _count, invalidation_data_[
+                                    :invalidation_record_count
+                                ]
+                                invalidation_record_count -= len(invalidation_data_)
+                            else:
+                                __data = data_[:record_count]
+                                _count = len(__data) // samples_size
+                                yield __data, offset // samples_size, _count, None
+                            has_yielded = True
+                            record_count -= len(data_)
+                            if record_count <= 0:
+                                finished = True
+                                break
+                        else:
+                            if rm and invalidation_size:
+                                _count = len(data_) // samples_size
+                                yield data_, offset // samples_size, _count, invalidation_data_
+                            else:
+                                _count = len(data_) // samples_size
+                                yield data_, offset // samples_size, _count, None
+                            has_yielded = True
+
+                    offset += split_size
+                    original_size -= split_size - cur_size
+                    data = []
+                    cur_size = 0
+
+                    if rm and invalidation_size:
+                        invalidation_offset += invalidation_split_size
+                        invalidation_data = []
+                        cur_invalidation_size = 0
+                        inv_size -= invalidation_split_size - cur_invalidation_size
+
+                if finished:
+                    data = []
+                    if rm and invalidation_size:
+                        invalidation_data = []
+                    break
+
+                if original_size:
+                    data.append(new_data)
+                    cur_size += original_size
+                    original_size = 0
+
+                    if rm and invalidation_size:
+                        invalidation_data.append(new_invalidation_data)
+                        cur_invalidation_size += inv_size
+
+            if data:
+                data_ = b"".join(data)
+                if rm and invalidation_size:
+                    invalidation_data_ = b"".join(invalidation_data)
+                if record_count is not None:
+                    if rm and invalidation_size:
+                        __data = data_[:record_count]
+                        _count = len(__data) // samples_size
+                        yield __data, offset // samples_size, _count, invalidation_data_[
+                            :invalidation_record_count
+                        ]
+                        invalidation_record_count -= len(invalidation_data_)
+                    else:
+                        __data = data_[:record_count]
+                        _count = len(__data) // samples_size
+                        yield __data, offset // samples_size, _count, None
+                    has_yielded = True
+                    record_count -= len(data_)
                 else:
-                    yield b"", offset, 0, None
+                    if rm and invalidation_size:
+                        _count = len(data_) // samples_size
+                        yield data_, offset // samples_size, _count, invalidation_data_
+                    else:
+                        _count = len(data_) // samples_size
+                        yield data_, offset // samples_size, _count, None
+                    has_yielded = True
+                data = []
+
+            if not has_yielded:
+                if rm and invalidation_size:
+                    yield b"", 0, 0, b""
+                else:
+                    yield b"", 0, 0, None
 
     def _prepare_record(self, group):
         """compute record dtype and parents dict for this group
@@ -1769,6 +1795,58 @@ class MDF4(MDF_Common):
 
         return parents, dtypes
 
+    def _uses_ld(
+        self,
+        address,
+        stream,
+        block_type=b"##DT",
+        mapped=False,
+    ):
+        info = []
+        mapped = mapped or not is_file_like(stream)
+        uses_ld = False
+
+        if mapped:
+            if address:
+                id_string, block_len = COMMON_SHORT_uf(stream, address)
+
+                if id_string == b"##LD":
+                    uses_ld = True
+                # or a header list
+                elif id_string == b"##HL":
+                    hl = HeaderList(address=address, stream=stream, mapped=mapped)
+                    address = hl.first_dl_addr
+
+                    uses_ld = self._uses_ld(
+                        address,
+                        stream,
+                        block_type,
+                        mapped,
+                    )
+        else:
+
+            if address:
+                stream.seek(address)
+                id_string, block_len = COMMON_SHORT_u(stream.read(COMMON_SHORT_SIZE))
+
+                # can be a DataBlock
+                if id_string == b"##LD":
+                    uses_ld = True
+
+                # or a header list
+                elif id_string == b"##HL":
+                    hl = HeaderList(address=address, stream=stream)
+                    address = hl.first_dl_addr
+
+                    uses_ld = self._uses_ld(
+                        address,
+                        stream,
+                        block_type,
+                        mapped,
+                    )
+
+        return uses_ld
+
     def _get_data_blocks_info(
         self,
         address,
@@ -1780,7 +1858,6 @@ class MDF4(MDF_Common):
     ):
         info = []
         mapped = mapped or not is_file_like(stream)
-        uses_ld = False
 
         if mapped:
             if address:
@@ -1795,16 +1872,15 @@ class MDF4(MDF_Common):
                         else:
                             block_limit = None
                         total_size -= size
-                        info.append(
-                            DataBlockInfo(
-                                address=address + COMMON_SIZE,
-                                block_type=v4c.DT_BLOCK,
-                                original_size=size,
-                                compressed_size=size,
-                                param=0,
-                                block_limit=block_limit,
-                            )
+                        yield DataBlockInfo(
+                            address=address + COMMON_SIZE,
+                            block_type=v4c.DT_BLOCK,
+                            original_size=size,
+                            compressed_size=size,
+                            param=0,
+                            block_limit=block_limit,
                         )
+
                 # or a DataZippedBlock
                 elif id_string == b"##DZ":
                     (
@@ -1826,15 +1902,13 @@ class MDF4(MDF_Common):
                         else:
                             block_limit = None
                         total_size -= original_size
-                        info.append(
-                            DataBlockInfo(
-                                address=address + v4c.DZ_COMMON_SIZE,
-                                block_type=block_type_,
-                                original_size=original_size,
-                                compressed_size=zip_size,
-                                param=param,
-                                block_limit=block_limit,
-                            )
+                        yield DataBlockInfo(
+                            address=address + v4c.DZ_COMMON_SIZE,
+                            block_type=block_type_,
+                            original_size=original_size,
+                            compressed_size=zip_size,
+                            param=param,
+                            block_limit=block_limit,
                         )
 
                 # or a DataList
@@ -1854,16 +1928,15 @@ class MDF4(MDF_Common):
                                     else:
                                         block_limit = None
                                     total_size -= size
-                                    info.append(
-                                        DataBlockInfo(
-                                            address=addr + COMMON_SIZE,
-                                            block_type=v4c.DT_BLOCK,
-                                            original_size=size,
-                                            compressed_size=size,
-                                            param=0,
-                                            block_limit=block_limit,
-                                        )
+                                    yield DataBlockInfo(
+                                        address=addr + COMMON_SIZE,
+                                        block_type=v4c.DT_BLOCK,
+                                        original_size=size,
+                                        compressed_size=size,
+                                        param=0,
+                                        block_limit=block_limit,
                                     )
+
                             # or a DataZippedBlock
                             elif id_string == b"##DZ":
                                 (
@@ -1885,15 +1958,13 @@ class MDF4(MDF_Common):
                                     else:
                                         block_limit = None
                                     total_size -= original_size
-                                    info.append(
-                                        DataBlockInfo(
-                                            address=addr + v4c.DZ_COMMON_SIZE,
-                                            block_type=block_type_,
-                                            original_size=original_size,
-                                            compressed_size=zip_size,
-                                            param=param,
-                                            block_limit=block_limit,
-                                        )
+                                    yield DataBlockInfo(
+                                        address=addr + v4c.DZ_COMMON_SIZE,
+                                        block_type=block_type_,
+                                        original_size=original_size,
+                                        compressed_size=zip_size,
+                                        param=param,
+                                        block_limit=block_limit,
                                     )
                         address = dl.next_dl_addr
 
@@ -1916,16 +1987,15 @@ class MDF4(MDF_Common):
                                     else:
                                         block_limit = None
                                     total_size -= size
-                                    info.append(
-                                        DataBlockInfo(
-                                            address=addr + COMMON_SIZE,
-                                            block_type=v4c.DT_BLOCK,
-                                            original_size=size,
-                                            compressed_size=size,
-                                            param=0,
-                                            block_limit=block_limit,
-                                        )
+                                    data_info = DataBlockInfo(
+                                        address=addr + COMMON_SIZE,
+                                        block_type=v4c.DT_BLOCK,
+                                        original_size=size,
+                                        compressed_size=size,
+                                        param=0,
+                                        block_limit=block_limit,
                                     )
+
                             # or a DataZippedBlock
                             elif id_string == b"##DZ":
                                 (
@@ -1947,15 +2017,13 @@ class MDF4(MDF_Common):
                                     else:
                                         block_limit = None
                                     total_size -= original_size
-                                    info.append(
-                                        DataBlockInfo(
-                                            address=addr + v4c.DZ_COMMON_SIZE,
-                                            block_type=block_type_,
-                                            original_size=original_size,
-                                            compressed_size=zip_size,
-                                            param=param,
-                                            block_limit=block_limit,
-                                        )
+                                    data_info = DataBlockInfo(
+                                        address=addr + v4c.DZ_COMMON_SIZE,
+                                        block_type=block_type_,
+                                        original_size=original_size,
+                                        compressed_size=zip_size,
+                                        param=param,
+                                        block_limit=block_limit,
                                     )
 
                             if has_invalidation:
@@ -1972,9 +2040,7 @@ class MDF4(MDF_Common):
                                             else:
                                                 block_limit = None
                                             inval_total_size -= size
-                                            info[
-                                                -1
-                                            ].invalidation_block = InvalidationBlockInfo(
+                                            data_info.invalidation_block = InvalidationBlockInfo(
                                                 address=inval_addr + COMMON_SIZE,
                                                 block_type=v4c.DT_BLOCK,
                                                 original_size=size,
@@ -2002,9 +2068,7 @@ class MDF4(MDF_Common):
                                             else:
                                                 block_limit = None
                                             inval_total_size -= original_size
-                                            info[
-                                                -1
-                                            ].invalidation_block = InvalidationBlockInfo(
+                                            data_info.invalidation_block = InvalidationBlockInfo(
                                                 address=inval_addr + v4c.DZ_COMMON_SIZE,
                                                 block_type=block_type_,
                                                 original_size=original_size,
@@ -2013,7 +2077,7 @@ class MDF4(MDF_Common):
                                                 block_limit=block_limit,
                                             )
                                 else:
-                                    info[-1].invalidation_block = InvalidationBlockInfo(
+                                    data_info.invalidation_block = InvalidationBlockInfo(
                                         address=0,
                                         block_type=v4c.DT_BLOCK,
                                         original_size=None,
@@ -2022,6 +2086,8 @@ class MDF4(MDF_Common):
                                         all_valid=True,
                                     )
 
+                            yield data_info
+
                         address = ld.next_ld_addr
 
                 # or a header list
@@ -2029,7 +2095,7 @@ class MDF4(MDF_Common):
                     hl = HeaderList(address=address, stream=stream, mapped=mapped)
                     address = hl.first_dl_addr
 
-                    info, uses_ld = self._get_data_blocks_info(
+                    yield from self._get_data_blocks_info(
                         address,
                         stream,
                         block_type,
@@ -2052,16 +2118,15 @@ class MDF4(MDF_Common):
                         else:
                             block_limit = None
                         total_size -= size
-                        info.append(
-                            DataBlockInfo(
-                                address=address + COMMON_SIZE,
-                                block_type=v4c.DT_BLOCK,
-                                original_size=size,
-                                compressed_size=size,
-                                param=0,
-                                block_limit=block_limit,
-                            )
+                        yield  DataBlockInfo(
+                            address=address + COMMON_SIZE,
+                            block_type=v4c.DT_BLOCK,
+                            original_size=size,
+                            compressed_size=size,
+                            param=0,
+                            block_limit=block_limit,
                         )
+
                 # or a DataZippedBlock
                 elif id_string == b"##DZ":
                     stream.seek(address)
@@ -2084,15 +2149,13 @@ class MDF4(MDF_Common):
                         else:
                             block_limit = None
                         total_size -= original_size
-                        info.append(
-                            DataBlockInfo(
-                                address=address + v4c.DZ_COMMON_SIZE,
-                                block_type=block_type_,
-                                original_size=original_size,
-                                compressed_size=zip_size,
-                                param=param,
-                                block_limit=block_limit,
-                            )
+                        yield DataBlockInfo(
+                            address=address + v4c.DZ_COMMON_SIZE,
+                            block_type=block_type_,
+                            original_size=original_size,
+                            compressed_size=zip_size,
+                            param=param,
+                            block_limit=block_limit,
                         )
 
                 # or a DataList
@@ -2117,16 +2180,15 @@ class MDF4(MDF_Common):
                                     else:
                                         block_limit = None
                                     total_size -= size
-                                    info.append(
-                                        DataBlockInfo(
-                                            address=addr + COMMON_SIZE,
-                                            block_type=v4c.DT_BLOCK,
-                                            original_size=size,
-                                            compressed_size=size,
-                                            param=0,
-                                            block_limit=block_limit,
-                                        )
+                                    yield DataBlockInfo(
+                                        address=addr + COMMON_SIZE,
+                                        block_type=v4c.DT_BLOCK,
+                                        original_size=size,
+                                        compressed_size=size,
+                                        param=0,
+                                        block_limit=block_limit,
                                     )
+
                             # or a DataZippedBlock
                             elif id_string == b"##DZ":
                                 stream.seek(addr)
@@ -2151,16 +2213,15 @@ class MDF4(MDF_Common):
                                     else:
                                         block_limit = None
                                     total_size -= original_size
-                                    info.append(
-                                        DataBlockInfo(
-                                            address=addr + v4c.DZ_COMMON_SIZE,
-                                            block_type=block_type_,
-                                            original_size=original_size,
-                                            compressed_size=zip_size,
-                                            param=param,
-                                            block_limit=block_limit,
-                                        )
+                                    yield DataBlockInfo(
+                                        address=addr + v4c.DZ_COMMON_SIZE,
+                                        block_type=block_type_,
+                                        original_size=original_size,
+                                        compressed_size=zip_size,
+                                        param=param,
+                                        block_limit=block_limit,
                                     )
+
                         address = dl.next_dl_addr
 
                 # or a DataList
@@ -2185,16 +2246,15 @@ class MDF4(MDF_Common):
                                     else:
                                         block_limit = None
                                     total_size -= size
-                                    info.append(
-                                        DataBlockInfo(
-                                            address=addr + COMMON_SIZE,
-                                            block_type=v4c.DT_BLOCK,
-                                            original_size=size,
-                                            compressed_size=size,
-                                            param=0,
-                                            block_limit=block_limit,
-                                        )
+                                    data_info = DataBlockInfo(
+                                        address=addr + COMMON_SIZE,
+                                        block_type=v4c.DT_BLOCK,
+                                        original_size=size,
+                                        compressed_size=size,
+                                        param=0,
+                                        block_limit=block_limit,
                                     )
+
                             # or a DataZippedBlock
                             elif id_string == b"##DZ":
                                 stream.seek(addr)
@@ -2219,15 +2279,13 @@ class MDF4(MDF_Common):
                                     else:
                                         block_limit = None
                                     total_size -= original_size
-                                    info.append(
-                                        DataBlockInfo(
-                                            address=addr + v4c.DZ_COMMON_SIZE,
-                                            block_type=block_type_,
-                                            original_size=original_size,
-                                            compressed_size=zip_size,
-                                            param=param,
-                                            block_limit=block_limit,
-                                        )
+                                    data_info = DataBlockInfo(
+                                        address=addr + v4c.DZ_COMMON_SIZE,
+                                        block_type=block_type_,
+                                        original_size=original_size,
+                                        compressed_size=zip_size,
+                                        param=param,
+                                        block_limit=block_limit,
                                     )
 
                             if has_invalidation:
@@ -2245,9 +2303,7 @@ class MDF4(MDF_Common):
                                             else:
                                                 block_limit = None
                                             inval_total_size -= size
-                                            info[
-                                                -1
-                                            ].invalidation_block = InvalidationBlockInfo(
+                                            data_info.invalidation_block = InvalidationBlockInfo(
                                                 address=inval_addr + COMMON_SIZE,
                                                 block_type=v4c.DT_BLOCK,
                                                 original_size=size,
@@ -2277,9 +2333,7 @@ class MDF4(MDF_Common):
                                             else:
                                                 block_limit = None
                                             inval_total_size -= original_size
-                                            info[
-                                                -1
-                                            ].invalidation_block = InvalidationBlockInfo(
+                                            data_info.invalidation_block = InvalidationBlockInfo(
                                                 address=inval_addr + v4c.DZ_COMMON_SIZE,
                                                 block_type=block_type_,
                                                 original_size=original_size,
@@ -2288,7 +2342,7 @@ class MDF4(MDF_Common):
                                                 block_limit=block_limit,
                                             )
                                 else:
-                                    info[-1].invalidation_block = InvalidationBlockInfo(
+                                    data_info.invalidation_block = InvalidationBlockInfo(
                                         address=0,
                                         block_type=v4c.DT_BLOCK,
                                         original_size=0,
@@ -2296,6 +2350,8 @@ class MDF4(MDF_Common):
                                         param=0,
                                         all_valid=True,
                                     )
+
+                            yield data_info
                         address = ld.next_ld_addr
 
                 # or a header list
@@ -2303,7 +2359,7 @@ class MDF4(MDF_Common):
                     hl = HeaderList(address=address, stream=stream)
                     address = hl.first_dl_addr
 
-                    info, uses_ld = self._get_data_blocks_info(
+                    yield from self._get_data_blocks_info(
                         address,
                         stream,
                         block_type,
@@ -2312,7 +2368,6 @@ class MDF4(MDF_Common):
                         inval_total_size,
                     )
 
-        return info, uses_ld
 
     def _get_signal_data_blocks_info(
         self,
