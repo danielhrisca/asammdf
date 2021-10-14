@@ -1120,12 +1120,28 @@ class Group:
         for blk in self.data_blocks:
             yield blk
 
-        try:
-            info = next(self.data_blocks_info_generator)
-            self.data_blocks.append(info)
-            yield info
-        except StopIteration:
-            pass
+        while True:
+            try:
+                info = next(self.data_blocks_info_generator)
+                self.data_blocks.append(info)
+                yield info
+            except StopIteration:
+                break
+
+    def get_signal_data_blocks(self, index):
+        signal_data = self.signal_data[index]
+        if signal_data is not None:
+            signal_data, signal_generator = signal_data
+            for blk in signal_data:
+                yield blk
+
+            while True:
+                try:
+                    info = next(signal_generator)
+                    signal_data.append(info)
+                    yield info
+                except StopIteration:
+                    break
 
 
 class VirtualChannelGroup:
@@ -1394,6 +1410,7 @@ class SignalDataBlockInfo:
         return (
             f"SignalDataBlockInfo(address=0x{self.address:X}, "
             f"original_size={self.original_size}, "
+            f"compressed_size={self.compressed_size}, "
             f"block_type={self.block_type})"
         )
 
