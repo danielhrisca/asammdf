@@ -1067,7 +1067,6 @@ class Group:
         "sorted",
         "data_group",
         "data_location",
-        "data_info_loaded",
         "data_blocks",
         "data_blocks_info_generator",
         "record_size",
@@ -1092,11 +1091,10 @@ class Group:
         self.record = None
         self.trigger = None
         self.string_dtypes = None
-        self.data_blocks = None
+        self.data_blocks = []
         self.single_channel_dtype = None
         self.uses_ld = False
         self.read_split_count = 0
-        self.data_info_loaded = False
         self.data_blocks_info_generator = iter(EMPTY_TUPLE)
 
     def __getitem__(self, item):
@@ -1112,9 +1110,7 @@ class Group:
         return hasattr(self, item)
 
     def clear(self):
-        if self.data_info_loaded:
-            self.data_blocks.clear()
-            self.data_blocks = None
+        self.data_blocks.clear()
         self.channels.clear()
         self.channel_dependencies.clear()
         self.signal_data.clear()
