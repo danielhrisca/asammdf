@@ -1856,7 +1856,6 @@ class MDF4(MDF_Common):
         total_size=0,
         inval_total_size=0,
     ):
-        info = []
         mapped = mapped or not is_file_like(stream)
 
         if mapped:
@@ -7603,16 +7602,6 @@ class MDF4(MDF_Common):
                 types = dtype([("ms", "<u4"), ("days", "<u2")])
                 vals = vals.view(types)
 
-                # print(vals)
-                #
-                # arrays = []
-                # # bits 28 to 31 are reserverd for ms
-                # arrays.append(vals["ms"] & 0xFFFFFFF)
-                # arrays.append(vals["days"] & 0x3F)
-                #
-                # names = ["ms", "days"]
-                # vals = fromarrays(arrays, names=names)
-
         return vals, timestamps, invalidation_bits, encoding
 
     def _get_not_byte_aligned_data(self, data, group, ch_nr):
@@ -10138,7 +10127,7 @@ class MDF4(MDF_Common):
 
                         nd = fromstring(new_data[: lines * cols], dtype=uint8)
                         nd = nd.reshape((cols, lines))
-                        new_data = nd.T.tobytes() + new_data[lines * cols :]
+                        new_data = nd.T.ravel().tobytes() + new_data[lines * cols :]
 
                     new_data = rem + new_data
 

@@ -1117,16 +1117,15 @@ class Group:
         self.data_blocks_info_generator = None
 
     def get_data_blocks(self):
-        blocks = iter(self.data_blocks)
+        for blk in self.data_blocks:
+            yield blk
+
         try:
-            yield from blocks
+            info = next(self.data_blocks_info_generator)
+            self.data_blocks.append(info)
+            yield info
         except StopIteration:
-            try:
-                info = next(self.data_blocks_info_generator)
-                self.data_blocks.append(info)
-                yield info
-            except StopIteration:
-                raise
+            pass
 
 
 class VirtualChannelGroup:
