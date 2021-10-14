@@ -22,8 +22,15 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
         self.setEditTriggers(QtWidgets.QAbstractItemView.DoubleClicked)
 
-        self.itemDoubleClicked.connect(self.handle_item_double_click)
         self.header().sortIndicatorChanged.connect(self.handle_sorting_changed)
+
+        self.set_double_clicked_enabled(True)
+
+    def set_double_clicked_enabled(self, state):
+        if state:
+            self.itemDoubleClicked.connect(self.handle_item_double_click)
+        else:
+            self.itemDoubleClicked.disconnect(self.handle_item_double_click)
 
     def keyPressEvent(self, event):
         key = event.key()

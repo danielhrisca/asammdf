@@ -7,6 +7,7 @@ from ..dialogs.range_editor import RangeEditor
 from ..ui import resource_rc as resource_rc
 from ..ui.channel_display_widget import Ui_ChannelDiplay
 from ..utils import copy_ranges, get_colors_using_ranges
+from .. import utils
 
 
 class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
@@ -38,8 +39,9 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
         self.color = "#ff0000"
         self._value_prefix = ""
-        self._value = ""
+        self._value = "n.a."
         self._name = ""
+        self.double_clicked_enabled = True
 
         self.details.setText(details or "\tSource not available")
 
@@ -47,6 +49,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
         self.uuid = uuid
         self.set_ranges(ranges or [])
+        self.resolved_ranges = None
         self._unit = unit.strip()
         self.kind = kind
         self.precision = precision
@@ -78,6 +81,9 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self._current_font_color = self._font_color = QtGui.QColor(self.color)
 
         self.exists = True
+
+    def set_double_clicked_enabled(self, state):
+        self.double_clicked_enabled = state
 
     def set_unit(self, unit):
         unit = str(unit)
@@ -124,11 +130,12 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self.ylink_changed.emit(self.uuid, state)
 
     def mouseDoubleClickEvent(self, event):
-        dlg = RangeEditor(self._name, self._unit, self.ranges, parent=self)
-        dlg.exec_()
-        if dlg.pressed_button == "apply":
-            self.set_ranges(dlg.result)
-            self.set_value(self._value, update=True)
+        if self.double_clicked_enabled:
+            dlg = RangeEditor(self._name, self._unit, self.ranges, parent=self)
+            dlg.exec_()
+            if dlg.pressed_button == "apply":
+                self.set_ranges(dlg.result)
+                self.set_value(self._value, update=True)
 
     def select_color(self):
         color = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.color))
@@ -334,10 +341,17 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
     def does_not_exist(self, exists=False):
         if not exists:
-            icon = QtGui.QIcon()
-            icon.addPixmap(
-                QtGui.QPixmap(":/error.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-            )
+            icon = utils.ERROR_ICON
+            if icon is None:
+                utils.ERROR_ICON = QtGui.QIcon()
+                utils.ERROR_ICON.addPixmap(
+                    QtGui.QPixmap(":/error.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                )
+
+                utils.NO_ERROR_ICON = QtGui.QIcon()
+
+                icon = utils.ERROR_ICON
+
             self.color_btn.setIcon(icon)
             self.color_btn.setFlat(True)
             try:
@@ -345,7 +359,17 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             except:
                 pass
         else:
-            icon = QtGui.QIcon()
+            icon = utils.NO_ERROR_ICON
+            if icon is None:
+                utils.ERROR_ICON = QtGui.QIcon()
+                utils.ERROR_ICON.addPixmap(
+                    QtGui.QPixmap(":/error.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                )
+
+                utils.NO_ERROR_ICON = QtGui.QIcon()
+
+                icon = utils.NO_ERROR_ICON
+
             self.color_btn.setIcon(icon)
             self.color_btn.setFlat(False)
             self.color_btn.clicked.connect(self.select_color)
@@ -364,10 +388,13 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self.individual_axis_changed.disconnect()
 
     def get_ranges(self):
-        if self.item is None:
-            return self.ranges
+        if self.resolved_ranges is None:
+            if self.item is None:
+                return self.ranges
+            else:
+                return self.item.get_ranges()
         else:
-            return self.item.get_ranges()
+            return self.resolved_ranges
 
     def set_ranges(self, ranges):
         if ranges:

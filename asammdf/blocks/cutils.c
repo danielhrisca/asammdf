@@ -361,8 +361,6 @@ static PyObject *positions(PyObject *self, PyObject *args)
         count = PyLong_AsLong(count_obj);
         step = PyLong_AsLong(step_obj);
         last = PyLong_AsLong(last_obj);
-        
-        printf("Size of long %d\n", sizeof(long));
 
         int current_pos = 0;
         for (int i=0; i< (int) count; i++) {

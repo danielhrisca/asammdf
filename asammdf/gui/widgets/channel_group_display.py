@@ -24,6 +24,8 @@ class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
+        self.double_clicked_enabled = True
+
         self._name = name.split('\t[')[0]
         self.pattern = None
         font = self.name.font()
@@ -34,6 +36,9 @@ class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
         self.count = count
         self.set_ranges(ranges or [] if not pattern else pattern.get('ranges', []))
         self.item = item
+
+    def set_double_clicked_enabled(self, state):
+        self.double_clicked_enabled = state
 
     def set_pattern(self, pattern):
         if pattern:
@@ -73,11 +78,12 @@ class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
             self.name.setText(f'{self._name}\t[{value} items]')
 
     def mouseDoubleClickEvent(self, event):
-        dlg = RangeEditor(f"channels from <{self._name}>", ranges=self.ranges, parent=self)
-        dlg.exec_()
-        if dlg.pressed_button == "apply":
-            self.set_ranges(dlg.result)
-            self.item.update_child_values()
+        if self.double_clicked_enabled:
+            dlg = RangeEditor(f"channels from <{self._name}>", ranges=self.ranges, parent=self)
+            dlg.exec_()
+            if dlg.pressed_button == "apply":
+                self.set_ranges(dlg.result)
+                self.item.update_child_values()
 
     def set_ranges(self, ranges):
         if ranges:

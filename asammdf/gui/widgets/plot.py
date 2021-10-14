@@ -1234,8 +1234,10 @@ class Plot(QtWidgets.QWidget):
     def cursor_moved(self):
         if (
             self.plot.cursor1 is None
-            or not self._accept_cursor_update
-            or perf_counter() - self._last_cursor_update < 0.030
+            or (
+                perf_counter() - self._last_cursor_update < 0.030
+                and not self._accept_cursor_update
+            )
         ):
             return
         
@@ -1300,8 +1302,15 @@ class Plot(QtWidgets.QWidget):
         self.cursor_removed_signal.emit(self)
 
     def range_modified(self):
-        if not self.plot.region:
+        if (
+                self.plot.region is None
+                or (
+                    perf_counter() - self._last_cursor_update < 0.030
+                    and not self._accept_cursor_update
+            )
+        ):
             return
+
         start, stop = self.plot.region.getRegion()
 
         fmt = self.plot.x_axis.format
@@ -1365,6 +1374,9 @@ class Plot(QtWidgets.QWidget):
             stats = self.plot.get_stats(self.info_uuid)
             self.info.set_stats(stats)
 
+        self._last_cursor_update = perf_counter()
+        self._accept_cursor_update = False
+
         self.region_moved_signal.emit(self, [start, stop])
 
     def xrange_changed(self):
@@ -1405,11 +1417,13 @@ class Plot(QtWidgets.QWidget):
                     next_pos = timebase[right]
             stop = next_pos
 
+            self._accept_cursor_update = True
             self.plot.region.setRegion((start, stop))
 
     def keyPressEvent(self, event):
         key = event.key()
         modifiers = event.modifiers()
+
         if key == QtCore.Qt.Key_M and modifiers == QtCore.Qt.NoModifier:
             ch_size, plt_size, info_size = self.splitter.sizes()
 
@@ -1811,7 +1825,6 @@ class Plot(QtWidgets.QWidget):
                 it.name.setFont(font)
 
             it.set_name(sig.name)
-            it.set_value("")
             it.set_color(sig.color)
             item.setSizeHint(1, it.sizeHint())
 
@@ -2191,6 +2204,7 @@ class _Plot(pg.PlotWidget):
             [
                 (QtCore.Qt.Key_C, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_F, QtCore.Qt.NoModifier),
+                (QtCore.Qt.Key_F, QtCore.Qt.ShiftModifier),
                 (QtCore.Qt.Key_G, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_I, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_O, QtCore.Qt.NoModifier),
@@ -2198,6 +2212,7 @@ class _Plot(pg.PlotWidget):
                 (QtCore.Qt.Key_R, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_S, QtCore.Qt.ControlModifier),
                 (QtCore.Qt.Key_S, QtCore.Qt.NoModifier),
+                (QtCore.Qt.Key_S, QtCore.Qt.ShiftModifier),
                 (QtCore.Qt.Key_Y, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_Left, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_Right, QtCore.Qt.NoModifier),
@@ -2472,10 +2487,9 @@ class _Plot(pg.PlotWidget):
         key = event.key()
         modifier = event.modifiers()
 
-        if key in self.disabled_keys:
+        if (key, modifier) in self.disabled_keys:
             super().keyPressEvent(event)
         else:
-
             if key == QtCore.Qt.Key_C and modifier == QtCore.Qt.NoModifier:
                 if self.cursor1 is None:
                     start, stop = self.viewbox.viewRange()[0]
@@ -2566,6 +2580,46 @@ class _Plot(pg.PlotWidget):
                                 )
                             else:
                                 min_, max_ = 0, 1
+                        if min_ != min_:
+                            min_ = 0
+                        if max_ != max_:
+                            max_ = 1
+
+                        viewbox.setYRange(min_, max_, padding=0)
+
+                if self.cursor1:
+                    self.cursor_moved.emit()
+
+            elif key == QtCore.Qt.Key_F and modifier == QtCore.Qt.ShiftModifier:
+                parent = self.parent().parent()
+                uuids = [
+                    parent.channel_selection.itemWidget(item, 1).uuid
+                    for item in parent.channel_selection.selectedItems()
+                    if isinstance(item, ChannelsTreeItem)
+                ]
+                uuids = set(uuids)
+
+                if not uuids:
+                    return
+
+                for i, (viewbox, signal) in enumerate(
+                    zip(self.view_boxes, self.signals)
+                ):
+                    if signal.uuid not in uuids:
+                        continue
+
+                    if len(signal.plot_samples):
+                        samples = signal.plot_samples[
+                            np.isfinite(signal.plot_samples)
+                        ]
+                        if len(samples):
+                            min_, max_ = (
+                                np.nanmin(samples),
+                                np.nanmax(samples),
+                            )
+                        else:
+                            min_, max_ = 0, 1
+
                         if min_ != min_:
                             min_ = 0
                         if max_ != max_:
@@ -2783,6 +2837,73 @@ class _Plot(pg.PlotWidget):
                 if self.cursor1:
                     self.cursor_moved.emit()
 
+            elif key == QtCore.Qt.Key_S and modifier == QtCore.Qt.ShiftModifier:
+
+                parent = self.parent().parent()
+                uuids = [
+                    parent.channel_selection.itemWidget(item, 1).uuid
+                    for item in parent.channel_selection.selectedItems()
+                    if isinstance(item, ChannelsTreeItem)
+                ]
+                uuids = list(reversed(uuids))
+                uuids_set = set(uuids)
+
+                if not uuids:
+                    return
+
+                count = sum(
+                    1
+                    for i, (sig, curve) in enumerate(zip(self.signals, self.curves))
+                    if sig.uuid in uuids_set
+                    and sig.min != "n.a."
+                    and curve.isVisible()
+                )
+
+                if count:
+
+                    position = 0
+                    for uuid in uuids:
+                        signal, index = self.signal_by_uuid(uuid)
+                        viewbox = self.view_boxes[index]
+
+                        if not signal.empty and signal.enable:
+
+                            min_ = signal.min
+                            max_ = signal.max
+
+                            if min_ == -float("inf") and max_ == float("inf"):
+                                min_ = 0
+                                max_ = 1
+                            elif min_ == -float("inf"):
+                                min_ = max_ - 1
+                            elif max_ == float("inf"):
+                                max_ = min_ + 1
+
+                            if min_ == max_:
+                                min_, max_ = min_ - 1, max_ + 1
+
+                            dim = (float(max_) - min_) * 1.1
+
+                            max_ = min_ + dim * count - 0.05 * dim
+                            min_ = min_ - 0.05 * dim
+
+                            min_, max_ = (
+                                min_ - dim * position,
+                                max_ - dim * position,
+                            )
+
+                            viewbox.setYRange(min_, max_, padding=0)
+
+                            position += 1
+
+                else:
+                    xrange, _ = self.viewbox.viewRange()
+                    self.viewbox.autoRange(padding=0)
+                    self.viewbox.setXRange(*xrange, padding=0)
+                    self.viewbox.disableAutoRange()
+                if self.cursor1:
+                    self.cursor_moved.emit()
+
             elif (
                 key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right)
                 and modifier == QtCore.Qt.NoModifier
@@ -2938,7 +3059,7 @@ class _Plot(pg.PlotWidget):
     def _clicked(self, event):
         modifiers = QtWidgets.QApplication.keyboardModifiers()
 
-        if QtCore.Qt.Key_C not in self.disabled_keys:
+        if (QtCore.Qt.Key_C, QtCore.Qt.NoModifier) not in self.disabled_keys:
 
             if self.region is None:
                 pos = self.plot_item.vb.mapSceneToView(event.scenePos())

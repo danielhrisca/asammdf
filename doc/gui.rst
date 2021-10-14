@@ -130,7 +130,8 @@ There are several keyboard shortcuts for handling the plots:
 Shortcut     Action                 Description
 ============ ====================== ================================================================================================================
 C            Cursor                 Displays a movable cursor that will trigger the display of the current value for all plot channels
-F            Fit                    Y-axis fit all active channels on the screen, keeping the current X-axis range
+F            Fit all                Y-axis fit all active channels on the screen, keeping the current X-axis range
+Shift+F      Fit selected           Y-axis fit all active selected channels on the screen; unselected channels are not fitted
 G            Grid                   Toggle grid lines
 H            Home                   XY-axis fit all active channels
 I            Zoom-in                X-axis zoom-in [1]_
@@ -138,7 +139,8 @@ O            Zoom-out               X-axis zoom-out [1]_
 X            Zoom to range          If the region is enabled, it will zoom to it
 M            Statistics             Toggle the display of the statistic panel
 R            Range                  Display a movable range that will trigger the display of the delta values for all plot channels [2]_
-S            Stack                  Y Stack all active channels so that they don't overlap, keeping the X-axis range
+S            Stack all              Y Stack all active channels so that they don't overlap, keeping the X-axis range
+Shift+S      Stack selected         Y Stack all active selected channels so that they don't overlap; unselected channels are not stacked
 Y            Lock/unlock region     Lock or unlock the left margin of the region
 .            Toggle dots            Toggle the display of signal samples (using dots affects performance)
 ←            Move cursor left       Moves the cursor to the next sample on the left
@@ -155,7 +157,7 @@ Ctrl+P       Physical               Toggle physical representation of integer ch
 Ctrl+S       Save plot channels     Save channels from current active subplot in a new MF4 file
 Ctrl+Shift+S Save all channels      Save all channels from all sub-plots in a new MF4 file
 Shift+C      Cascade sub-plots      Cascade the sub plots    
-Shift+F      Toggle frames          Will toggle the sub plots MDI window frames
+Shift+Alt+F  Toggle frames          Will toggle the sub plots MDI window frames
 Shift+L      Toggle channel list    Will toggle the channel tree for the current opened file
 Shift+T      Tile sub-plots         Tiles sub-plots in a grid
 Shift+V      Tile vertically        Tiles sub-plots vertically [3]_

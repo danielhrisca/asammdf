@@ -21,6 +21,11 @@ from ..mdf import MDF, MDF2, MDF3, MDF4
 from ..signal import Signal
 from .dialogs.error_dialog import ErrorDialog
 
+
+ERROR_ICON = None
+NO_ERROR_ICON = None
+
+
 COLORS = [
     "#1f77b4",
     "#ff7f0e",

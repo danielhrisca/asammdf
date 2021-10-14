@@ -316,9 +316,16 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/fit.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        action = QtWidgets.QAction(icon, f"{'Fit trace': <20}\tF", menu)
+        action = QtWidgets.QAction(icon, f"{'Fit all': <20}\tF", menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_F))
         action.setShortcut(QtCore.Qt.Key_F)
+        plot_actions.addAction(action)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/fit.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtWidgets.QAction(icon, f"{'Fit selected': <20}\tShift+F", menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_F, modifier=QtCore.Qt.ShiftModifier))
+        action.setShortcut(QtGui.QKeySequence("Shift+F"))
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
@@ -339,9 +346,18 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         icon.addPixmap(
             QtGui.QPixmap(":/list2.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
         )
-        action = QtWidgets.QAction(icon, "{: <20}\tS".format("Stack"), menu)
+        action = QtWidgets.QAction(icon, "{: <20}\tS".format("Stack all"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_S))
         action.setShortcut(QtCore.Qt.Key_S)
+        plot_actions.addAction(action)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/list2.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        action = QtWidgets.QAction(icon, "{: <20}\tShift+S".format("Stack selected"), menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_S, modifier=QtCore.Qt.ShiftModifier))
+        action.setShortcut(QtGui.QKeySequence("Shift+S"))
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
@@ -508,10 +524,10 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         subs.addAction(action)
 
         action = QtWidgets.QAction(
-            "{: <20}\tShift+F".format("Toggle sub-plots frames"), menu
+            "{: <20}\tShift+Alt+F".format("Toggle sub-plots frames"), menu
         )
         action.triggered.connect(self.toggle_frames)
-        action.setShortcut(QtGui.QKeySequence("Shift+F"))
+        action.setShortcut(QtGui.QKeySequence("Shift+Alt+F"))
         subs.addAction(action)
 
         action = QtWidgets.QAction(
@@ -650,6 +666,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
     def plot_action(self, key, modifier=QtCore.Qt.NoModifier):
         event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, key, modifier)
+
         if self.stackedWidget.currentIndex() == 0:
             widget = self.files.currentWidget()
             if widget and widget.get_current_widget():
