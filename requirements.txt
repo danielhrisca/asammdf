@@ -1,5 +1,6 @@
 canmatrix[arxml,dbc]>=0.8
 lz4
 numexpr
-numpy>=1.17.5
+numpy>=1.21
 pandas
+typing_extensions
