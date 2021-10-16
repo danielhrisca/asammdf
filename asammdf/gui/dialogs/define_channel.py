@@ -337,7 +337,9 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                     self.result.computation["operand2"] = operand2.name
         except:
             print(format_exc())
-            QtWidgets.QMessageBox.critical(self, "Simple computation apply error", format_exc())
+            QtWidgets.QMessageBox.critical(
+                self, "Simple computation apply error", format_exc()
+            )
             self.result = None
 
         self.pressed_button = "apply"
@@ -545,7 +547,9 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
             except:
                 print(format_exc())
-                QtWidgets.QMessageBox.critical(self, "Function apply error", format_exc())
+                QtWidgets.QMessageBox.critical(
+                    self, "Function apply error", format_exc()
+                )
                 self.result = None
 
         else:

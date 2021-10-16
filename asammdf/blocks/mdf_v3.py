@@ -178,7 +178,9 @@ class MDF3(MDF_Common):
         self._single_bit_uint_as_bool = False
         self._integer_interpolation = 0
         self._float_interpolation = 1
-        self._raise_on_multiple_occurrences = kwargs.get('raise_on_multiple_occurrences', True)
+        self._raise_on_multiple_occurrences = kwargs.get(
+            "raise_on_multiple_occurrences", True
+        )
         self._use_display_names = False
         self.copy_on_get = False
 
@@ -243,7 +245,7 @@ class MDF3(MDF_Common):
         self.close()
 
     def _load_data(self, group, record_offset=0, record_count=None, optimize_read=True):
-        """ get group's data block bytes"""
+        """get group's data block bytes"""
         has_yielded = False
         offset = 0
         _count = record_count
@@ -843,7 +845,11 @@ class MDF3(MDF_Common):
                         if (
                             channel_type == v23c.CHANNEL_TYPE_MASTER
                             or name in self.load_filter
-                            or (any(_name in self.load_filter for _name in display_names))
+                            or (
+                                any(
+                                    _name in self.load_filter for _name in display_names
+                                )
+                            )
                         ):
                             new_ch = Channel(
                                 address=ch_addr,
@@ -1614,7 +1620,9 @@ class MDF3(MDF_Common):
 
                     # compute additional byte offset for large records size
                     if new_offset > v23c.MAX_UINT16:
-                        additional_byte_offset = ceil((new_offset - v23c.MAX_UINT16) / 8)
+                        additional_byte_offset = ceil(
+                            (new_offset - v23c.MAX_UINT16) / 8
+                        )
                         start_bit_offset = new_offset - additional_byte_offset * 8
                     else:
                         start_bit_offset = new_offset
@@ -1987,7 +1995,9 @@ class MDF3(MDF_Common):
 
                         # compute additional byte offset for large records size
                         if offset > v23c.MAX_UINT16:
-                            additional_byte_offset = ceil((offset - v23c.MAX_UINT16) / 8)
+                            additional_byte_offset = ceil(
+                                (offset - v23c.MAX_UINT16) / 8
+                            )
                             start_bit_offset = offset - additional_byte_offset * 8
                         else:
                             start_bit_offset = offset
@@ -2351,7 +2361,12 @@ class MDF3(MDF_Common):
             self._file.close()
 
         if self.original_name is not None:
-            if Path(self.original_name).suffix.lower() in (".bz2", ".gzip", ".mf4z", ".zip"):
+            if Path(self.original_name).suffix.lower() in (
+                ".bz2",
+                ".gzip",
+                ".mf4z",
+                ".zip",
+            ):
                 try:
                     os.remove(self.name)
                 except:
@@ -2430,7 +2445,7 @@ class MDF3(MDF_Common):
         string_counter = 0
 
         for k_i, ((signal, invalidation_bits), sig_type) in enumerate(
-                zip(signals, gp.signal_types)
+            zip(signals, gp.signal_types)
         ):
             sig = signal
             names = sig.dtype.names
@@ -2748,7 +2763,7 @@ class MDF3(MDF_Common):
             skip validation of channel name, group index and channel index; defualt
             *False*. If *True*, the caller has to make sure that the *group* and *index*
             arguments are provided and are correct.
-            
+
             ..versionadded:: 7.0.0
 
         Returns

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 from pathlib import Path
 
@@ -8,22 +8,17 @@ import psutil
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ...blocks.utils import extract_cncomment_xml
-from ...mdf import MDF, SUPPORTED_VERSIONS
-from ...blocks.v4_blocks import HeaderBlock as HeaderBlockV4
 from ...blocks.v2_v3_blocks import HeaderBlock as HeaderBlockV3
+from ...blocks.v4_blocks import HeaderBlock as HeaderBlockV4
+from ...mdf import MDF, SUPPORTED_VERSIONS
 from ..dialogs.advanced_search import AdvancedSearch
 from ..ui import resource_rc as resource_rc
 from ..ui.batch_widget import Ui_batch_widget
-from ..utils import (
-    HelperChannel,
-    run_thread_with_progress,
-    setup_progress,
-    TERMINATED,
-)
+from ..utils import HelperChannel, run_thread_with_progress, setup_progress, TERMINATED
 from .database_item import DatabaseItem
 from .list import MinimalListWidget
-from .tree_item import TreeItem
 from .tree import add_children
+from .tree_item import TreeItem
 
 
 class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
@@ -870,7 +865,10 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         channels = self.mdf.channels_db
         mdf.close()
         dlg = AdvancedSearch(
-            channels, show_add_window=False, show_pattern=False, parent=self,
+            channels,
+            show_add_window=False,
+            show_pattern=False,
+            parent=self,
             return_names=True,
         )
         dlg.setModal(True)
@@ -1655,15 +1653,15 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         if not count:
             return
 
-        source_files = natsorted([self.files_list.item(row).text() for row in range(count)])
+        source_files = natsorted(
+            [self.files_list.item(row).text() for row in range(count)]
+        )
 
         self.files_list.clear()
         self.files_list.addItems(source_files)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         for row in range(count):
             self.files_list.item(row).setIcon(icon)
 
@@ -1678,10 +1676,10 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         start_times = []
 
         for file_name in source_files:
-            with open(file_name, 'rb') as f:
+            with open(file_name, "rb") as f:
                 f.seek(64)
                 blk_id = f.read(2)
-                block_type = HeaderBlockV4 if blk_id == b'##' else HeaderBlockV3
+                block_type = HeaderBlockV4 if blk_id == b"##" else HeaderBlockV3
                 header = block_type(stream=f, address=64)
                 start_times.append((header.start_time, file_name))
 
@@ -1689,8 +1687,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             start_times = sorted(start_times)
         except TypeError:
             start_times = [
-                (st.replace(tzinfo=timezone.utc), name)
-                for (st, name) in start_times
+                (st.replace(tzinfo=timezone.utc), name) for (st, name) in start_times
             ]
             start_times = sorted(start_times)
 
@@ -1698,8 +1695,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.files_list.addItems([item[1] for item in start_times])
 
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         for row in range(count):
             self.files_list.item(row).setIcon(icon)

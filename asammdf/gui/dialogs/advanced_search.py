@@ -79,9 +79,11 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             self.filter_type.setCurrentText(pattern["filter_type"])
             self.filter_value.setValue(pattern["filter_value"])
             self.pattern_match_type.setCurrentText(pattern["match_type"])
-            self.raw.setCheckState(QtCore.Qt.Checked if pattern['raw'] else QtCore.Qt.Unchecked)
+            self.raw.setCheckState(
+                QtCore.Qt.Checked if pattern["raw"] else QtCore.Qt.Unchecked
+            )
             self.name.setText(pattern["name"])
-            self.ranges = pattern['ranges']
+            self.ranges = pattern["ranges"]
 
         self.setWindowTitle(window_title)
 
@@ -144,19 +146,15 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             "name": self.name.text().strip(),
         }
 
-        if not self.result['pattern']:
+        if not self.result["pattern"]:
             QtWidgets.QMessageBox.warning(
-                self,
-                "Cannot apply pattern",
-                "The pattern cannot be empty"
+                self, "Cannot apply pattern", "The pattern cannot be empty"
             )
             return
 
-        if not self.result['name']:
+        if not self.result["name"]:
             QtWidgets.QMessageBox.warning(
-                self,
-                "Cannot apply pattern",
-                "The name cannot be empty"
+                self, "Cannot apply pattern", "The name cannot be empty"
             )
             return
 
@@ -188,7 +186,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
     def _define_ranges(self, event=None):
         name = self.pattern.text().strip()
-        dlg = RangeEditor(f'Channel of <{name}>', ranges=self.ranges, parent=self)
+        dlg = RangeEditor(f"Channel of <{name}>", ranges=self.ranges, parent=self)
         dlg.exec_()
         if dlg.pressed_button == "apply":
             self.ranges = dlg.result

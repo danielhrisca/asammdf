@@ -15,7 +15,7 @@ import sys
 from tempfile import TemporaryDirectory
 import xml.etree.ElementTree as ET
 
-target_byte_order = '<=' if sys.byteorder == 'little' else '>='
+target_byte_order = "<=" if sys.byteorder == "little" else ">="
 
 try:
     from cchardet import detect
@@ -290,7 +290,7 @@ def extract_display_names(comment):
                 for i, elem in enumerate(names.iter()):
                     if i == 0:
                         continue
-                    display_names[elem.text.strip(' \t\r\n\v\0')] = elem.tag
+                    display_names[elem.text.strip(" \t\r\n\v\0")] = elem.tag
 
         except:
             pass
@@ -784,7 +784,7 @@ def count_channel_groups(stream, include_channels=False, mapped=False):
                             ch_count += 1
                             ch_addr = UINT64_uf(stream, ch_addr + 24)[0]
                     cg_addr = UINT64_uf(stream, cg_addr + 24)[0]
-    
+
                 dg_addr = UINT64_uf(stream, dg_addr + 24)[0]
         else:
             stream.seek(88, 0)
@@ -803,7 +803,7 @@ def count_channel_groups(stream, include_channels=False, mapped=False):
                             ch_addr = UINT64_u(stream.read(8))[0]
                     stream.seek(cg_addr + 24)
                     cg_addr = UINT64_u(stream.read(8))[0]
-    
+
                 stream.seek(dg_addr + 24)
                 dg_addr = UINT64_u(stream.read(8))[0]
 
@@ -1562,7 +1562,7 @@ csv_bytearray2hex = np.vectorize(csv_bytearray2hex, otypes=[str])
 
 
 def pandas_query_compatible(name):
-    """ adjust column name for usage in dataframe query string """
+    """adjust column name for usage in dataframe query string"""
 
     for c in ".$[]: ":
         name = name.replace(c, "_")

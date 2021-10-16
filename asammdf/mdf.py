@@ -66,7 +66,7 @@ logger = logging.getLogger("asammdf")
 LOCAL_TIMEZONE = datetime.now(timezone.utc).astimezone().tzinfo
 
 
-target_byte_order = '<=' if sys.byteorder == 'little' else '>='
+target_byte_order = "<=" if sys.byteorder == "little" else ">="
 
 
 __all__ = ["MDF", "SUPPORTED_VERSIONS"]
@@ -526,7 +526,7 @@ class MDF:
         self._transfer_header_data(other, message)
 
     def __contains__(self, channel):
-        """ if *'channel name'* in *'mdf file'* """
+        """if *'channel name'* in *'mdf file'*"""
         return channel in self.channels_db
 
     def __iter__(self):
@@ -1099,7 +1099,9 @@ class MDF:
                 for ch in grp.channels:
 
                     if use_display_names:
-                        channel_name = list(ch.display_names)[0] if ch.display_names else ch.name
+                        channel_name = (
+                            list(ch.display_names)[0] if ch.display_names else ch.name
+                        )
                     else:
                         channel_name = ch.name
 
@@ -1225,7 +1227,11 @@ class MDF:
 
                         for j, sig in enumerate(channels):
                             if use_display_names:
-                                name = list(sig.display_names)[0] if sig.display_names else sig.name
+                                name = (
+                                    list(sig.display_names)[0]
+                                    if sig.display_names
+                                    else sig.name
+                                )
                             else:
                                 name = sig.name
                             name = name.replace("\\", "_").replace("/", "_")
@@ -1477,7 +1483,11 @@ class MDF:
                         else:
 
                             if use_display_names:
-                                channel_name = list(sig.display_names)[0] if sig.display_names else sig.name
+                                channel_name = (
+                                    list(sig.display_names)[0]
+                                    if sig.display_names
+                                    else sig.name
+                                )
                             else:
                                 channel_name = sig.name
                             channel_name = channel_name_template.format(i, channel_name)
@@ -3555,7 +3565,11 @@ class MDF:
                     if len(sig.samples.shape) > 1:
 
                         if use_display_names:
-                            channel_name = list(sig.display_names)[0] if sig.display_names else sig.name
+                            channel_name = (
+                                list(sig.display_names)[0]
+                                if sig.display_names
+                                else sig.name
+                            )
                         else:
                             channel_name = sig.name
 
@@ -3583,7 +3597,11 @@ class MDF:
                     # scalars
                     else:
                         if use_display_names:
-                            channel_name = list(sig.display_names)[0] if sig.display_names else sig.name
+                            channel_name = (
+                                list(sig.display_names)[0]
+                                if sig.display_names
+                                else sig.name
+                            )
                         else:
                             channel_name = sig.name
 
@@ -3765,7 +3783,7 @@ class MDF:
             mdf.close()
             return result
 
-        target_byte_order = '<=' if sys.byteorder == 'little' else '>='
+        target_byte_order = "<=" if sys.byteorder == "little" else ">="
 
         df = {}
 
@@ -3934,7 +3952,11 @@ class MDF:
                 if len(sig.samples.shape) > 1:
 
                     if use_display_names:
-                        channel_name = list(sig.display_names)[0] if sig.display_names else sig.name
+                        channel_name = (
+                            list(sig.display_names)[0]
+                            if sig.display_names
+                            else sig.name
+                        )
                     else:
                         channel_name = sig.name
 
@@ -3962,7 +3984,11 @@ class MDF:
                 # scalars
                 else:
                     if use_display_names:
-                        channel_name = list(sig.display_names)[0] if sig.display_names else sig.name
+                        channel_name = (
+                            list(sig.display_names)[0]
+                            if sig.display_names
+                            else sig.name
+                        )
                     else:
                         channel_name = sig.name
 
@@ -3993,7 +4019,7 @@ class MDF:
             nonstrings = {
                 col: series
                 for col, series in nonstrings.items()
-                if series.dtype.kind in 'uif'
+                if series.dtype.kind in "uif"
             }
             strings = {}
 
@@ -4006,7 +4032,11 @@ class MDF:
 
         if time_as_date:
             new_index = np.array(df.index) + self.header.start_time.timestamp()
-            new_index = pd.to_datetime(new_index, unit="s").tz_localize("UTC").tz_convert(LOCAL_TIMEZONE)
+            new_index = (
+                pd.to_datetime(new_index, unit="s")
+                .tz_localize("UTC")
+                .tz_convert(LOCAL_TIMEZONE)
+            )
 
             df.set_index(new_index, inplace=True)
         elif time_from_zero and len(master):

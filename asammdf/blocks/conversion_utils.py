@@ -126,14 +126,26 @@ def conversion_transfer(conversion, version=3):
                     for i in range(nr):
                         kargs[f"lower_{i}"] = conversion[f"val_{i}"]
                         kargs[f"upper_{i}"] = conversion[f"val_{i}"]
-                        if isinstance(conversion.referenced_blocks[f"text_{i}"], v4b.ChannelConversion):
-                            kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"].name.encode('latin-1')
+                        if isinstance(
+                            conversion.referenced_blocks[f"text_{i}"],
+                            v4b.ChannelConversion,
+                        ):
+                            kargs[f"text_{i}"] = conversion.referenced_blocks[
+                                f"text_{i}"
+                            ].name.encode("latin-1")
                         else:
-                            kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"]
+                            kargs[f"text_{i}"] = conversion.referenced_blocks[
+                                f"text_{i}"
+                            ]
 
                     new_conversion = v3b.ChannelConversion(**kargs)
-                    if isinstance(conversion.referenced_blocks["default_addr"], v4b.ChannelConversion):
-                        default_addr = conversion.referenced_blocks[f"default_addr"].name.encode('latin-1')
+                    if isinstance(
+                        conversion.referenced_blocks["default_addr"],
+                        v4b.ChannelConversion,
+                    ):
+                        default_addr = conversion.referenced_blocks[
+                            f"default_addr"
+                        ].name.encode("latin-1")
                     else:
                         default_addr = conversion.referenced_blocks["default_addr"]
                     new_conversion.referenced_blocks["default_addr"] = default_addr
@@ -150,14 +162,26 @@ def conversion_transfer(conversion, version=3):
                     for i in range(nr):
                         kargs[f"lower_{i}"] = conversion[f"lower_{i}"]
                         kargs[f"upper_{i}"] = conversion[f"upper_{i}"]
-                        if isinstance(conversion.referenced_blocks[f"text_{i}"], v4b.ChannelConversion):
-                            kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"].name.encode('latin-1')
+                        if isinstance(
+                            conversion.referenced_blocks[f"text_{i}"],
+                            v4b.ChannelConversion,
+                        ):
+                            kargs[f"text_{i}"] = conversion.referenced_blocks[
+                                f"text_{i}"
+                            ].name.encode("latin-1")
                         else:
-                            kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"]
+                            kargs[f"text_{i}"] = conversion.referenced_blocks[
+                                f"text_{i}"
+                            ]
 
                     new_conversion = v3b.ChannelConversion(**kargs)
-                    if isinstance(conversion.referenced_blocks["default_addr"], v4b.ChannelConversion):
-                        default_addr = conversion.referenced_blocks[f"default_addr"].name.encode('latin-1')
+                    if isinstance(
+                        conversion.referenced_blocks["default_addr"],
+                        v4b.ChannelConversion,
+                    ):
+                        default_addr = conversion.referenced_blocks[
+                            f"default_addr"
+                        ].name.encode("latin-1")
                     else:
                         default_addr = conversion.referenced_blocks["default_addr"]
                     new_conversion.referenced_blocks["default_addr"] = default_addr

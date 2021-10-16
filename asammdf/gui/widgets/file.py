@@ -24,10 +24,10 @@ from ...blocks.v4_constants import (
     FLAG_CG_BUS_EVENT,
 )
 from ...mdf import MDF, SUPPORTED_VERSIONS
-from ..dialogs.gps_dialog import GPSDialog
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_group_info import ChannelGroupInfoDialog
 from ..dialogs.channel_info import ChannelInfoDialog
+from ..dialogs.gps_dialog import GPSDialog
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
 from ..ui import resource_rc as resource_rc
 from ..ui.file_widget import Ui_file_widget
@@ -49,8 +49,8 @@ from .mdi_area import MdiAreaWidget, WithMDIArea
 from .numeric import Numeric
 from .plot import Plot
 from .tabular import Tabular
-from .tree_item import TreeItem
 from .tree import add_children
+from .tree_item import TreeItem
 
 
 class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
@@ -168,7 +168,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 if file_name.suffix.lower() == ".dl3":
                     progress.setLabelText("Converting from dl3 to mdf")
                     datalyser_active = any(
-                        proc.name() == "Datalyser3.exe" for proc in psutil.process_iter()
+                        proc.name() == "Datalyser3.exe"
+                        for proc in psutil.process_iter()
                     )
 
                     out_file = Path(gettempdir()) / file_name.name
@@ -184,7 +185,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             break
 
                     try:
-                        datalyser = win32com.client.Dispatch("Datalyser3.Datalyser3_COM")
+                        datalyser = win32com.client.Dispatch(
+                            "Datalyser3.Datalyser3_COM"
+                        )
                     except:
                         raise Exception(
                             "Datalyser must be installed if you want to open DL3 files"
@@ -785,7 +788,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             apply_text = "Check channels"
             widget = self.filter_tree
             view = self.filter_view
-            
+
         dlg = AdvancedSearch(
             self.mdf.channels_db,
             show_add_window=show_add_window,
@@ -826,7 +829,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                 "type": "Numeric",
                                 "title": result["pattern"],
                                 "configuration": {
-                                    "channels": [], "pattern": result,
+                                    "channels": [],
+                                    "pattern": result,
                                     "format": "phys",
                                 },
                             }
@@ -863,7 +867,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             dg_cntr += 1
                             ch_cntr = 0
                             continue
-                            
+
                         entry = (dg_cntr, ch_cntr)
 
                         if entry in result:
@@ -884,10 +888,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         iterator += 1
 
-                    names = set(
-                        (_name, *entry)
-                        for entry, _name in result.items()
-                    )
+                    names = set((_name, *entry) for entry, _name in result.items())
 
                     signals = signals | names
 
@@ -938,7 +939,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         window_type = dialog.selected_type()
 
                         signals = [
-                            (name, dg_cntr, ch_cntr, self.uuid, 'channel', [])
+                            (name, dg_cntr, ch_cntr, self.uuid, "channel", [])
                             for name, dg_cntr, ch_cntr in names
                         ]
 
@@ -1120,13 +1121,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     message=f"",
                     icon_name="window",
                 )
-                progress.setRange(0, count-1)
+                progress.setRange(0, count - 1)
                 progress.resize(500, progress.height())
 
                 try:
                     for i, window in enumerate(windows, 1):
-                        window_type = window['type']
-                        window_title = window['title']
+                        window_type = window["type"]
+                        window_title = window["title"]
                         progress.setLabelText(
                             f"Loading {window_type} window <{window_title}>"
                         )
@@ -1451,7 +1452,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             group, index = item.entry
                             ch = self.mdf.groups[group].channels[index]
                             if not ch.component_addr:
-                                signals.append((ch.name, group, index, self.uuid, "channel", []))
+                                signals.append(
+                                    (ch.name, group, index, self.uuid, "channel", [])
+                                )
 
                         iterator += 1
                 else:
@@ -1462,7 +1465,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             group, index = item.entry
                             ch = self.mdf.groups[group].channels[index]
                             if not ch.component_addr:
-                                signals.append((ch.name, group, index, self.uuid, "channel", []))
+                                signals.append(
+                                    (ch.name, group, index, self.uuid, "channel", [])
+                                )
 
                         iterator += 1
 

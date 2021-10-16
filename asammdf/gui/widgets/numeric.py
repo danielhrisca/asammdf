@@ -26,7 +26,9 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
     add_channels_request = QtCore.pyqtSignal(list)
     timestamp_changed_signal = QtCore.pyqtSignal(object, float)
 
-    def __init__(self, signals, format=None, mode=None, float_precision=None, *args, **kwargs):
+    def __init__(
+        self, signals, format=None, mode=None, float_precision=None, *args, **kwargs
+    ):
         super(QtWidgets.QWidget, self).__init__(*args, **kwargs)
         self.setupUi(self)
         self._settings = QtCore.QSettings()
@@ -88,7 +90,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         mode = self.mode
 
-        float_format = f'{{:.{self.float_precision.value()}f}}'
+        float_format = f"{{:.{self.float_precision.value()}f}}"
 
         for sig in self.signals.values():
             if mode == "raw values":
@@ -152,7 +154,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         idx_cache = {}
 
-        float_format = f'{{:.{self.float_precision.value()}f}}'
+        float_format = f"{{:.{self.float_precision.value()}f}}"
 
         mode = self.mode
 
@@ -272,11 +274,15 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
 
         selection = self.channels.selectedItems()
         if selection:
-            self.channels.setCurrentItem(selection[0], 1, QtCore.QItemSelectionModel.SelectCurrent)
+            self.channels.setCurrentItem(
+                selection[0], 1, QtCore.QItemSelectionModel.SelectCurrent
+            )
         else:
             item = self.channels.itemAt(10, 10)
             if item:
-                self.channels.setCurrentItem(item, 1, QtCore.QItemSelectionModel.SelectCurrent)
+                self.channels.setCurrentItem(
+                    item, 1, QtCore.QItemSelectionModel.SelectCurrent
+                )
             self.channels.clearSelection()
 
         self._inhibit = True
@@ -305,7 +311,7 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
                 sig.ranges = getattr(sig, "ranges", [])
 
         if invalid:
-            errors = ', '.join(invalid)
+            errors = ", ".join(invalid)
             try:
                 mdi_title = self.parent().windowTitle()
                 title = f"numeric <{mdi_title}>"
@@ -394,8 +400,10 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             ranges = copy_ranges(item.ranges)
 
             for range_info in ranges:
-                range_info['font_color'] = range_info['font_color'].color().name()
-                range_info['background_color'] = range_info['background_color'].color().name()
+                range_info["font_color"] = range_info["font_color"].color().name()
+                range_info["background_color"] = (
+                    range_info["background_color"].color().name()
+                )
 
             channels[item.name] = ranges
             iterator += 1
@@ -405,8 +413,10 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             ranges = copy_ranges(pattern["ranges"])
 
             for range_info in ranges:
-                range_info['font_color'] = range_info['font_color'].color().name()
-                range_info['background_color'] = range_info['background_color'].color().name()
+                range_info["font_color"] = range_info["font_color"].color().name()
+                range_info["background_color"] = (
+                    range_info["background_color"].color().name()
+                )
 
             pattern["ranges"] = ranges
 
@@ -417,7 +427,10 @@ class Numeric(Ui_NumericDisplay, QtWidgets.QWidget):
             "ranges": list(channels.values()) if not self.pattern else [],
             "pattern": pattern,
             "float_precision": self.float_precision.value(),
-            "header_sections_width": [self.channels.header().sectionSize(i) for i in range(self.channels.header().count())],
+            "header_sections_width": [
+                self.channels.header().sectionSize(i)
+                for i in range(self.channels.header().count())
+            ],
         }
 
         return config
