@@ -12,7 +12,7 @@ from typing_extensions import Literal
 from .blocks import v2_v3_blocks, v4_blocks
 from .blocks.source_utils import Source
 
-StrOrBytesPath = Union[str, bytes, PathLike[str], PathLike[bytes]]
+StrOrBytesPath = Union[str, bytes, "PathLike[str]", "PathLike[bytes]"]
 
 # asammdf specific types
 
