@@ -6,7 +6,7 @@ from ..ui.channel_stats import Ui_ChannelStats
 
 
 class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
-    def __init__(self, xunit='s', *args, **kwargs):
+    def __init__(self, xunit="s", *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
         self.xunit = xunit.strip()

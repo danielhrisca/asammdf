@@ -72,7 +72,7 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
             ranges = [dict(e) for e in item.ranges]
 
             for range_info in ranges:
-                range_info['color'] = range_info['color'].color().name()
+                range_info["color"] = range_info["color"].color().name()
 
             data.append(
                 (
@@ -84,11 +84,9 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
                 )
             )
 
-        data = json.dumps(data).encode('utf-8')
+        data = json.dumps(data).encode("utf-8")
 
-        mimeData.setData(
-            "application/octet-stream-asammdf", QtCore.QByteArray(data)
-        )
+        mimeData.setData("application/octet-stream-asammdf", QtCore.QByteArray(data))
 
         drag = QtGui.QDrag(self)
         drag.setMimeData(mimeData)

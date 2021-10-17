@@ -67,7 +67,9 @@ class TestCANBusLogging(unittest.TestCase):
             target = np.load(signal)
             sig = out.get(name)
 
-            self.assertTrue(np.array_equal(sig.samples, target), f'{name} {sig} {target}')
+            self.assertTrue(
+                np.array_equal(sig.samples, target), f"{name} {sig} {target}"
+            )
 
     def test_j1939_extract(self):
         print("J1939 extract")

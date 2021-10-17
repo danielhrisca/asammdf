@@ -557,7 +557,9 @@ class Signal(object):
                             samples = np.append(
                                 self.samples[:stop], interpolated.samples, axis=0
                             )
-                            timestamps = np.append(self.timestamps[:stop], interpolated.timestamps)
+                            timestamps = np.append(
+                                self.timestamps[:stop], interpolated.timestamps
+                            )
                             if self.invalidation_bits is not None:
                                 invalidation_bits = np.append(
                                     self.invalidation_bits[:stop],
@@ -630,7 +632,9 @@ class Signal(object):
                             samples = np.append(
                                 interpolated.samples, self.samples[start:], axis=0
                             )
-                            timestamps = np.append(interpolated.timestamps, self.timestamps[start:])
+                            timestamps = np.append(
+                                interpolated.timestamps, self.timestamps[start:]
+                            )
                             if self.invalidation_bits is not None:
                                 invalidation_bits = np.append(
                                     interpolated.invalidation_bits,
@@ -693,10 +697,15 @@ class Signal(object):
                     if start == stop:
                         if include_ends:
                             if original_start == original_stop:
-                                ends = np.array([original_start], dtype=self.timestamps.dtype)
+                                ends = np.array(
+                                    [original_start], dtype=self.timestamps.dtype
+                                )
                             else:
-                                ends = np.array([original_start, original_stop], dtype=self.timestamps.dtype)
-                                
+                                ends = np.array(
+                                    [original_start, original_stop],
+                                    dtype=self.timestamps.dtype,
+                                )
+
                             interpolated = self.interp(
                                 ends,
                                 integer_interpolation_mode=integer_interpolation_mode,
@@ -734,11 +743,16 @@ class Signal(object):
                             )
 
                             if len(interpolated):
-                                samples = np.append(samples, interpolated.samples, axis=0)
-                                timestamps = np.append(timestamps, interpolated.timestamps)
+                                samples = np.append(
+                                    samples, interpolated.samples, axis=0
+                                )
+                                timestamps = np.append(
+                                    timestamps, interpolated.timestamps
+                                )
                                 if invalidation_bits is not None:
                                     invalidation_bits = np.append(
-                                        invalidation_bits, interpolated.invalidation_bits
+                                        invalidation_bits,
+                                        interpolated.invalidation_bits,
                                     )
 
                         if (
@@ -753,12 +767,17 @@ class Signal(object):
                             )
 
                             if len(interpolated):
-                                samples = np.append(interpolated.samples, samples, axis=0)
-                                timestamps = np.append(interpolated.timestamps, timestamps)
+                                samples = np.append(
+                                    interpolated.samples, samples, axis=0
+                                )
+                                timestamps = np.append(
+                                    interpolated.timestamps, timestamps
+                                )
 
                                 if invalidation_bits is not None:
                                     invalidation_bits = np.append(
-                                        interpolated.invalidation_bits, invalidation_bits
+                                        interpolated.invalidation_bits,
+                                        invalidation_bits,
                                     )
 
                     result = Signal(
@@ -960,7 +979,9 @@ class Signal(object):
                     display_names=self.display_names,
                     attachment=self.attachment,
                     stream_sync=self.stream_sync,
-                    invalidation_bits=None if invalidation_bits is None else np.array([], dtype=bool),
+                    invalidation_bits=None
+                    if invalidation_bits is None
+                    else np.array([], dtype=bool),
                     encoding=self.encoding,
                     group_index=self.group_index,
                     channel_index=self.channel_index,
@@ -969,7 +990,7 @@ class Signal(object):
             if len(signal.samples.shape) > 1:
                 idx = np.searchsorted(signal.timestamps, new_timestamps, side="right")
                 idx -= 1
-                idx[idx<0] = 0
+                idx[idx < 0] = 0
                 s = signal.samples[idx]
                 if invalidation_bits is not None:
                     invalidation_bits = invalidation_bits[idx]
@@ -984,7 +1005,7 @@ class Signal(object):
                             signal.timestamps, new_timestamps, side="right"
                         )
                         idx -= 1
-                        idx[idx<0] = 0
+                        idx[idx < 0] = 0
                         s = signal.samples[idx]
 
                         if invalidation_bits is not None:
@@ -998,7 +1019,7 @@ class Signal(object):
                                 signal.timestamps, new_timestamps, side="right"
                             )
                             idx -= 1
-                            idx[idx<0] = 0
+                            idx[idx < 0] = 0
                             invalidation_bits = invalidation_bits[idx]
 
                 elif kind in "ui":
@@ -1023,7 +1044,7 @@ class Signal(object):
                                 signal.timestamps, new_timestamps, side="right"
                             )
                             idx -= 1
-                            idx[idx<0] = 0
+                            idx[idx < 0] = 0
                             invalidation_bits = invalidation_bits[idx]
 
                     elif integer_interpolation_mode == 0:
@@ -1031,7 +1052,7 @@ class Signal(object):
                             signal.timestamps, new_timestamps, side="right"
                         )
                         idx -= 1
-                        idx[idx<0] = 0
+                        idx[idx < 0] = 0
 
                         s = signal.samples[idx]
 
@@ -1043,7 +1064,7 @@ class Signal(object):
                         signal.timestamps, new_timestamps, side="right"
                     )
                     idx -= 1
-                    idx[idx<0] = 0
+                    idx[idx < 0] = 0
                     s = signal.samples[idx]
 
                     if invalidation_bits is not None:
@@ -1399,7 +1420,7 @@ class Signal(object):
         return signal
 
     def copy(self):
-        """ copy all attributes to a new Signal """
+        """copy all attributes to a new Signal"""
         return Signal(
             self.samples.copy(),
             self.timestamps.copy(),

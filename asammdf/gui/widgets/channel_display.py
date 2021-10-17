@@ -3,11 +3,11 @@ import json
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+from .. import utils
 from ..dialogs.range_editor import RangeEditor
 from ..ui import resource_rc as resource_rc
 from ..ui.channel_display_widget import Ui_ChannelDiplay
 from ..utils import copy_ranges, get_colors_using_ranges
-from .. import utils
 
 
 class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
@@ -70,7 +70,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             self.fmt = "{}"
         else:
             self.fmt = f"{{:.{self.precision}f}}"
-            
+
         self.setAutoFillBackground(True)
         self._back_ground_color = self.palette().color(QtGui.QPalette.Base)
         self._selected_color = self.palette().color(QtGui.QPalette.Highlight)
@@ -205,7 +205,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
                 self.fm.elidedText(self._name, QtCore.Qt.ElideMiddle, width)
             )
         self.set_value(update=True)
-            
+
     def set_value(self, value=None, update=False, force=False):
         if value is not None:
             self._value = value
@@ -214,7 +214,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
         if self._value == value and update is False:
             return
-        
+
         default_background_color = self._current_background_color
         default_font_color = self._current_font_color
 

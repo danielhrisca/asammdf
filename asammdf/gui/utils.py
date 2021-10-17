@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
+from functools import reduce
 from io import StringIO
 import json
 from pathlib import Path
 import re
-from functools import reduce
 from struct import unpack
 from threading import Thread
 from time import sleep
@@ -12,15 +12,14 @@ import traceback
 
 import lxml
 import natsort
+from numexpr import evaluate
 import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
-from numexpr import evaluate
 
 from ..blocks.conversion_utils import from_dict
 from ..mdf import MDF, MDF2, MDF3, MDF4
 from ..signal import Signal
 from .dialogs.error_dialog import ErrorDialog
-
 
 ERROR_ICON = None
 NO_ERROR_ICON = None
@@ -40,7 +39,7 @@ COLORS = [
 ]
 
 COMPARISON_NAME = re.compile(r"(\s*\d+:)?(?P<name>.+)")
-SIG_RE = re.compile(r'\{\{(?!\}\})(?P<name>.*?)\}\}')
+SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
 
 TERMINATED = object()
 
@@ -81,18 +80,25 @@ def excepthook(exc_type, exc_value, tracebackobj):
 
 
 def extract_mime_names(data):
-
     def fix_comparison_name(data):
-        for i, (name, group_index, channel_index, mdf_uuid, item_type, ranges) in enumerate(data):
+        for i, (
+            name,
+            group_index,
+            channel_index,
+            mdf_uuid,
+            item_type,
+            ranges,
+        ) in enumerate(data):
             if item_type == "channel":
                 if (group_index, channel_index) != (-1, -1):
                     name = COMPARISON_NAME.match(name).group("name").strip()
                     data[i][0] = name
             else:
                 fix_comparison_name(channel_index)
+
     names = []
     if data.hasFormat("application/octet-stream-asammdf"):
-        data = bytes(data.data("application/octet-stream-asammdf")).decode('utf-8')
+        data = bytes(data.data("application/octet-stream-asammdf")).decode("utf-8")
         data = json.loads(data)
         fix_comparison_name(data)
         names = data
@@ -104,7 +110,7 @@ def load_dsp(file):
     def parse_channels(display):
         channels = []
         for elem in display.iterchildren():
-            if elem.tag == 'CHANNEL':
+            if elem.tag == "CHANNEL":
                 color_ = int(elem.get("color"))
                 c = 0
                 for i in range(3):
@@ -132,9 +138,9 @@ def load_dsp(file):
                         "unit": "",
                         "type": "channel",
                         "y_range": [
-                            - gain * offset,
-                            - gain * offset + 19 * gain,
-                        ]
+                            -gain * offset,
+                            -gain * offset + 19 * gain,
+                        ],
                     }
                 )
 
@@ -180,8 +186,8 @@ def load_dsp(file):
                                 {
                                     "background_color": color,
                                     "font_color": color,
-                                    "op1": '<=',
-                                    "op2": '<=',
+                                    "op1": "<=",
+                                    "op2": "<=",
                                     "value1": min_,
                                     "value2": max_,
                                 }
@@ -228,7 +234,7 @@ def load_dsp(file):
 
                 conv = {}
                 for i, item in enumerate(vtab.findall("tab")):
-                    conv[f'val_{i}'] = float(item.get("min"))
+                    conv[f"val_{i}"] = float(item.get("min"))
                     conv[f"text_{i}"] = item.get("text")
 
                 virtual_channel["vtab"] = conv
@@ -275,7 +281,7 @@ def load_dsp(file):
                         "computed": True,
                         "computation": {
                             "type": "expression",
-                            "expression": "{{" + ch['parent'] + "}}",
+                            "expression": "{{" + ch["parent"] + "}}",
                         },
                         "enabled": True,
                         "fmt": "{}",
@@ -483,11 +489,8 @@ def compute_signal(description, measured_signals, all_timebase):
 
     elif type_ == "expression":
         expression_string = description["expression"]
-        expression_string = ''.join(expression_string.splitlines())
-        names = [
-            match.group('name')
-            for match in SIG_RE.finditer(expression_string)
-        ]
+        expression_string = "".join(expression_string.splitlines())
+        names = [match.group("name") for match in SIG_RE.finditer(expression_string)]
         positions = [
             (i, match.start(), match.end())
             for i, match in enumerate(SIG_RE.finditer(expression_string))
@@ -501,7 +504,7 @@ def compute_signal(description, measured_signals, all_timebase):
         signals = [measured_signals[name] for name in names]
         common_timebase = reduce(np.union1d, [sig.timestamps for sig in signals])
         signals = {
-            f'X_{i}': sig.interp(common_timebase).samples
+            f"X_{i}": sig.interp(common_timebase).samples
             for i, sig in enumerate(signals)
         }
 
@@ -531,20 +534,22 @@ def copy_ranges(ranges):
         new_ranges = []
         for range_info in ranges:
             range_info = dict(range_info)
-            for color_name in ('background_color', 'font_color'):
+            for color_name in ("background_color", "font_color"):
                 color = range_info[color_name]
                 if isinstance(color, QtGui.QBrush):
                     range_info[color_name] = QtGui.QBrush(color)
                 elif isinstance(color, QtGui.QColor):
                     range_info[color_name] = QtGui.QColor(color)
             new_ranges.append(range_info)
-    
+
         return new_ranges
     else:
         return ranges
 
 
-def get_colors_using_ranges(value, ranges, default_background_color, default_font_color):
+def get_colors_using_ranges(
+    value, ranges, default_background_color, default_font_color
+):
     new_background_color = default_background_color
     new_font_color = default_font_color
 
@@ -556,39 +561,46 @@ def get_colors_using_ranges(value, ranges, default_background_color, default_fon
         for base_class in (float, str, int):
             if isinstance(value, base_class):
                 for range_info in ranges:
-                    background_color, font_color, op1, op2, value1, value2 = range_info.values()
+                    (
+                        background_color,
+                        font_color,
+                        op1,
+                        op2,
+                        value1,
+                        value2,
+                    ) = range_info.values()
 
                     result = False
 
                     if isinstance(value1, base_class):
-                        if op1 == '==':
+                        if op1 == "==":
                             result = value1 == value
-                        elif op1 == '!=':
+                        elif op1 == "!=":
                             result = value1 != value
-                        elif op1 == '<=':
+                        elif op1 == "<=":
                             result = value1 <= value
-                        elif op1 == '<':
+                        elif op1 == "<":
                             result = value1 < value
-                        elif op1 == '>=':
+                        elif op1 == ">=":
                             result = value1 >= value
-                        elif op1 == '>':
+                        elif op1 == ">":
                             result = value1 > value
 
                         if not result:
                             continue
 
                     if isinstance(value2, base_class):
-                        if op2 == '==':
+                        if op2 == "==":
                             result = value == value2
-                        elif op2 == '!=':
+                        elif op2 == "!=":
                             result = value != value2
-                        elif op2 == '<=':
+                        elif op2 == "<=":
                             result = value <= value2
-                        elif op2 == '<':
+                        elif op2 == "<":
                             result = value < value2
-                        elif op2 == '>=':
+                        elif op2 == ">=":
                             result = value >= value2
-                        elif op2 == '>':
+                        elif op2 == ">":
                             result = value > value2
 
                         if not result:
@@ -604,6 +616,5 @@ def get_colors_using_ranges(value, ranges, default_background_color, default_fon
     return new_background_color, new_font_color
 
 
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     pass

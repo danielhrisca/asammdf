@@ -3,7 +3,7 @@
 classes that implement the blocks for MDF version 4
 """
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from hashlib import md5
 import logging
@@ -1070,8 +1070,8 @@ class Channel:
             items = []
             for _name, description in display_names.items():
                 description = "display"
-                items.append(f'<{description}>{_name}</{description}>')
-            display_names_tags = '\n'.join(items)
+                items.append(f"<{description}>{_name}</{description}>")
+            display_names_tags = "\n".join(items)
         else:
             display_names_tags = ""
 
@@ -1080,13 +1080,17 @@ class Channel:
 
         elif display_names_tags and comment:
             if not comment.startswith("<CNcomment"):
-                text = v4c.CN_COMMENT_TEMPLATE.format(escape_xml_string(comment), display_names_tags)
+                text = v4c.CN_COMMENT_TEMPLATE.format(
+                    escape_xml_string(comment), display_names_tags
+                )
             else:
                 if any(_name not in comment for _name in display_names):
                     try:
                         CNcomment = ET.fromstring(comment)
-                        text = CNcomment.find('TX').text
-                        text = v4c.CN_COMMENT_TEMPLATE.format(escape_xml_string(text), display_names_tags)
+                        text = CNcomment.find("TX").text
+                        text = v4c.CN_COMMENT_TEMPLATE.format(
+                            escape_xml_string(text), display_names_tags
+                        )
 
                     except UnicodeEncodeError:
                         text = comment
@@ -1718,7 +1722,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
             for size in dim_sizes:
                 data_links_nr *= size
         else:
-            dim_sizes = [] 
+            dim_sizes = []
             data_links_nr = 0
 
         if self.storage == v4c.CA_STORAGE_TYPE_DG_TEMPLATE:
@@ -1785,9 +1789,7 @@ class ChannelArrayBlock(_ChannelArrayBlockBase):
             )
 
             dim_sizes = [
-                1
-                for i in range(dims_nr)
-                for j in range(self[f"dim_size_{i}"])
+                1 for i in range(dims_nr) for j in range(self[f"dim_size_{i}"])
             ]
 
         if self.storage:
@@ -2661,7 +2663,7 @@ class ChannelConversion(_ChannelConversionBase):
                 tx_map[addr] = self.unit
 
             if isinstance(self.unit, bytes):
-                self.unit = self.unit.decode('utf-8', errors='ignore')
+                self.unit = self.unit.decode("utf-8", errors="ignore")
 
             addr = self.comment_addr
             if addr in tx_map:
@@ -4227,14 +4229,16 @@ class DataZippedBlock(object):
                         data = (
                             np.frombuffer(data[: lines * cols], dtype="B")
                             .reshape((lines, cols))
-                            .T.ravel().tobytes()
+                            .T.ravel()
+                            .tobytes()
                         ) + data[lines * cols :]
 
                     else:
                         data = (
                             np.frombuffer(data, dtype=np.uint8)
                             .reshape((lines, cols))
-                            .T.ravel().tobytes()
+                            .T.ravel()
+                            .tobytes()
                         )
                 data = compress(data, 1)
 
@@ -4262,13 +4266,15 @@ class DataZippedBlock(object):
                         data = (
                             np.frombuffer(data[: lines * cols], dtype=np.uint8)
                             .reshape((cols, lines))
-                            .T.ravel().tobytes()
+                            .T.ravel()
+                            .tobytes()
                         ) + data[lines * cols :]
                     else:
                         data = (
                             np.frombuffer(data, dtype=np.uint8)
                             .reshape((cols, lines))
-                            .T.ravel().tobytes()
+                            .T.ravel()
+                            .tobytes()
                         )
             else:
                 data = DataZippedBlock.__dict__[item].__get__(self)
@@ -5333,7 +5339,9 @@ class HeaderBlock:
             try:
                 timestamp = datetime.fromtimestamp(timestamp, timezone.utc)
             except OverflowError:
-                timestamp = datetime.fromtimestamp(0, timezone.utc) + timedelta(seconds=timestamp)
+                timestamp = datetime.fromtimestamp(0, timezone.utc) + timedelta(
+                    seconds=timestamp
+                )
         return timestamp
 
     @start_time.setter
@@ -5425,7 +5433,7 @@ class HeaderBlock:
                 escape_xml_string(self.author),
                 escape_xml_string(self.department),
                 escape_xml_string(self.project),
-                escape_xml_string(self.subject)
+                escape_xml_string(self.subject),
             )
 
         tx_block = TextBlock(text=comment, meta=True)

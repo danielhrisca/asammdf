@@ -324,7 +324,11 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/fit.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtWidgets.QAction(icon, f"{'Fit selected': <20}\tShift+F", menu)
-        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_F, modifier=QtCore.Qt.ShiftModifier))
+        action.triggered.connect(
+            partial(
+                self.plot_action, key=QtCore.Qt.Key_F, modifier=QtCore.Qt.ShiftModifier
+            )
+        )
         action.setShortcut(QtGui.QKeySequence("Shift+F"))
         plot_actions.addAction(action)
 
@@ -355,8 +359,14 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         icon.addPixmap(
             QtGui.QPixmap(":/list2.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
         )
-        action = QtWidgets.QAction(icon, "{: <20}\tShift+S".format("Stack selected"), menu)
-        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_S, modifier=QtCore.Qt.ShiftModifier))
+        action = QtWidgets.QAction(
+            icon, "{: <20}\tShift+S".format("Stack selected"), menu
+        )
+        action.triggered.connect(
+            partial(
+                self.plot_action, key=QtCore.Qt.Key_S, modifier=QtCore.Qt.ShiftModifier
+            )
+        )
         action.setShortcut(QtGui.QKeySequence("Shift+S"))
         plot_actions.addAction(action)
 
