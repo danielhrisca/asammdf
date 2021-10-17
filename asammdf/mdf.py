@@ -71,6 +71,7 @@ from .typing import (
     InputType,
     RasterType,
     StrOrBytesPath,
+    StrPath,
 )
 from .version import __version__
 
@@ -903,7 +904,7 @@ class MDF:
     def export(
         self,
         fmt: Literal["csv", "hdf5", "mat", "parquet"],
-        filename: Optional[StrOrBytesPath] = None,
+        filename: Optional[StrPath] = None,
         **kwargs,
     ):
         r"""export *MDF* to other formats. The *MDF* file name is used is
@@ -2859,7 +2860,7 @@ class MDF:
         return signals
 
     @staticmethod
-    def scramble(name: InputType, skip_attachments: bool = False, **kwargs) -> Path:
+    def scramble(name: StrPath, skip_attachments: bool = False, **kwargs) -> Path:
         """scramble text blocks and keep original file structure
 
         Parameters
@@ -3144,7 +3145,7 @@ class MDF:
         return dst
 
     @staticmethod
-    def _fallback_scramble_mf4(name: Path) -> Path:
+    def _fallback_scramble_mf4(name: StrOrBytesPath) -> Dict[int, bytes]:
         """scramble text blocks and keep original file structure
 
         Parameters
