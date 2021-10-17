@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """ common MDF file format module """
 
+from __future__ import annotations
+
 import bz2
 from collections import defaultdict, OrderedDict
 from copy import deepcopy
@@ -17,7 +19,7 @@ from struct import unpack
 import sys
 from tempfile import gettempdir, mkdtemp
 from traceback import format_exc
-from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Iterable, Iterator, Optional, Sequence
 import xml.etree.ElementTree as ET
 import zipfile
 
@@ -85,7 +87,7 @@ target_byte_order = "<=" if sys.byteorder == "little" else ">="
 __all__ = ["MDF", "SUPPORTED_VERSIONS"]
 
 
-def get_measurement_timestamp_and_version(mdf: BytesIO) -> Tuple[datetime, str]:
+def get_measurement_timestamp_and_version(mdf: BytesIO) -> tuple[datetime, str]:
     id_block = FileIdentificationBlock(address=0, stream=mdf)
 
     version = id_block.mdf_version
@@ -185,7 +187,7 @@ class MDF:
         self,
         name: Optional[InputType] = None,
         version: str = "4.10",
-        channels: Optional[List[str]] = None,
+        channels: Optional[list[str]] = None,
         **kwargs,
     ):
         self._mdf = None
@@ -301,7 +303,7 @@ class MDF:
     def __dir__(self):
         return sorted(set(super().__dir__()) | set(dir(self._mdf)))
 
-    def __enter__(self) -> "MDF":
+    def __enter__(self) -> MDF:
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -321,7 +323,7 @@ class MDF:
                 pass
         self._mdf = None
 
-    def __lt__(self, other: "MDF") -> bool:
+    def __lt__(self, other: MDF) -> bool:
         if self.header.start_time < other.header.start_time:
             return True
         elif self.header.start_time > other.header.start_time:
@@ -349,7 +351,7 @@ class MDF:
             else:
                 return min(t_min) < min(other_t_min)
 
-    def _transfer_events(self, other: "MDF"):
+    def _transfer_events(self, other: MDF):
         def get_scopes(event, events):
             if event.scopes:
                 return event.scopes
@@ -509,7 +511,7 @@ class MDF:
                     event.scopes.append(group)
                     self.events.append(event)
 
-    def _transfer_header_data(self, other: "MDF", message: str = ""):
+    def _transfer_header_data(self, other: MDF, message: str = ""):
         self.header.author = other.header.author
         self.header.department = other.header.department
         self.header.project = other.header.project
@@ -542,7 +544,7 @@ class MDF:
             if acq_source:
                 sgroup.acq_source = acq_source.copy()
 
-    def _transfer_metadata(self, other: "MDF", message: str = ""):
+    def _transfer_metadata(self, other: MDF, message: str = ""):
         self._transfer_events(other)
         self._transfer_header_data(other, message)
 
@@ -557,7 +559,7 @@ class MDF:
         """
         yield from self.iter_channels()
 
-    def convert(self, version: str) -> "MDF":
+    def convert(self, version: str) -> MDF:
         """convert *MDF* to other version
 
         Parameters
@@ -634,7 +636,7 @@ class MDF:
         version: Optional[str] = None,
         include_ends: bool = True,
         time_from_zero: bool = False,
-    ) -> "MDF":
+    ) -> MDF:
         """cut *MDF* file. *start* and *stop* limits are absolute values
         or values relative to the first timestamp depending on the *whence*
         argument.
@@ -1591,7 +1593,7 @@ class MDF:
             message.format(fmt)
             logger.warning(message)
 
-    def filter(self, channels: ChannelsType, version: Optional[str] = None) -> "MDF":
+    def filter(self, channels: ChannelsType, version: Optional[str] = None) -> MDF:
         """return new *MDF* object that contains only the channels listed in
         *channels* argument
 
@@ -1735,7 +1737,7 @@ class MDF:
         raster: Optional[float] = None,
         samples_only: bool = False,
         raw: bool = False,
-    ) -> Union[Signal, Tuple[NDArray[Any], Optional[NDArray[Any]]]]:
+    ) -> Signal | tuple[NDArray[Any], Optional[NDArray[Any]]]:
         """iterator over a channel
 
         This is usefull in case of large files with a small number of channels.
@@ -1780,13 +1782,13 @@ class MDF:
 
     @staticmethod
     def concatenate(
-        files: Sequence[Union["MDF", InputType]],
+        files: Sequence[MDF | InputType],
         version: str = "4.10",
         sync: bool = True,
         add_samples_origin: bool = False,
         direct_timestamp_continuation: bool = False,
         **kwargs,
-    ) -> "MDF":
+    ) -> MDF:
         """concatenates several files. The files
         must have the same internal structure (same number of groups, and same
         channels in each group).
@@ -2118,11 +2120,11 @@ class MDF:
 
     @staticmethod
     def stack(
-        files: Sequence[Union["MDF", InputType]],
+        files: Sequence[MDF | InputType],
         version: str = "4.10",
         sync: bool = True,
         **kwargs,
-    ) -> "MDF":
+    ) -> MDF:
         """stack several files and return the stacked *MDF* object
 
         Parameters
@@ -2422,7 +2424,7 @@ class MDF:
         raster: RasterType,
         version: Optional[str] = None,
         time_from_zero: bool = False,
-    ) -> "MDF":
+    ) -> MDF:
         """resample all channels using the given raster. See *configure* to select
         the interpolation method for interger channels
 
@@ -2666,7 +2668,7 @@ class MDF:
         ignore_value2text_conversions: bool = False,
         record_count: Optional[int] = None,
         validate: bool = False,
-    ) -> List[Signal]:
+    ) -> list[Signal]:
         """retrieve the channels listed in *channels* argument as *Signal*
         objects
 
@@ -3145,7 +3147,7 @@ class MDF:
         return dst
 
     @staticmethod
-    def _fallback_scramble_mf4(name: StrOrBytesPath) -> Dict[int, bytes]:
+    def _fallback_scramble_mf4(name: StrOrBytesPath) -> dict[int, bytes]:
         """scramble text blocks and keep original file structure
 
         Parameters
@@ -4081,13 +4083,13 @@ class MDF:
 
     def extract_bus_logging(
         self,
-        database_files: Dict[Literal["CAN", "LIN"], Iterable[DbcFileType]],
+        database_files: dict[Literal["CAN", "LIN"], Iterable[DbcFileType]],
         version: Optional[str] = None,
         ignore_invalid_signals: bool = False,
         consolidated_j1939: bool = True,
         ignore_value2text_conversion: bool = True,
         prefix: str = "",
-    ) -> "MDF":
+    ) -> MDF:
         """extract all possible CAN signal using the provided databases.
 
         Changed in version 6.0.0 from `extract_can_logging`
@@ -4194,13 +4196,13 @@ class MDF:
 
     def _extract_can_logging(
         self,
-        output_file: "MDF",
+        output_file: MDF,
         dbc_files: Iterable[DbcFileType],
         ignore_invalid_signals: bool = False,
         consolidated_j1939: bool = True,
         ignore_value2text_conversion: bool = True,
         prefix: str = "",
-    ) -> "MDF":
+    ) -> MDF:
 
         out = output_file
 
@@ -4504,12 +4506,12 @@ class MDF:
 
     def _extract_lin_logging(
         self,
-        output_file: "MDF",
+        output_file: MDF,
         dbc_files: Iterable[DbcFileType],
         ignore_invalid_signals: bool = False,
         ignore_value2text_conversion: bool = True,
         prefix: str = "",
-    ) -> "MDF":
+    ) -> MDF:
 
         out = output_file
 
@@ -4804,7 +4806,7 @@ class MDF:
         exp_min: int = -15,
         exp_max: int = 15,
         version: Optional[str] = None,
-    ) -> "MDF":
+    ) -> MDF:
         """convert *MDF* to other version
 
         .. versionadded:: 5.22.0
@@ -4919,7 +4921,7 @@ class MDF:
         source_name: Optional[str] = None,
         source_path: Optional[str] = None,
         acq_name: Optional[str] = None,
-    ) -> Tuple[Tuple[int, int], ...]:
+    ) -> tuple[tuple[int, int], ...]:
         """get occurrences of channel name in the file
 
         Parameters

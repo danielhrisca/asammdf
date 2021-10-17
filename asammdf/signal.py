@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 """ asammdf *Signal* class module for time correct signal processing """
 
+from __future__ import annotations
+
 import logging
 from textwrap import fill
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Iterator, Optional
 
 import numpy as np
 from numpy.core.defchararray import encode
@@ -77,12 +79,12 @@ class Signal(object):
         timestamps: Optional[ArrayLike] = None,
         unit: str = "",
         name: str = "",
-        conversion: Optional[Union[Dict[str, Any], ChannelConversionType]] = None,
+        conversion: Optional[dict[str, Any] | ChannelConversionType] = None,
         comment: str = "",
         raw: bool = True,
-        master_metadata: Optional[Tuple[str, SyncType]] = None,
-        display_names: Union[Dict[str, str], str] = "",
-        attachment: Tuple[bytes, Optional[str], Optional[str]] = (),
+        master_metadata: Optional[tuple[str, SyncType]] = None,
+        display_names: dict[str, str] | str = "",
+        attachment: tuple[bytes, Optional[str], Optional[str]] = (),
         source: Optional[SourceType] = None,
         bit_count: Optional[int] = None,
         stream_sync: bool = False,
@@ -406,7 +408,7 @@ class Signal(object):
         interpolation_mode: Optional[IntInterpolationModeType] = None,
         integer_interpolation_mode: Optional[IntInterpolationModeType] = None,
         float_interpolation_mode: FloatInterpolationModeType = 1,
-    ) -> "Signal":
+    ) -> Signal:
         """
         Cuts the signal according to the *start* and *stop* values, by using
         the insertion indexes in the signal's *time* axis.
@@ -811,7 +813,7 @@ class Signal(object):
 
         return result
 
-    def extend(self, other: "Signal") -> "Signal":
+    def extend(self, other: Signal) -> Signal:
         """extend signal with samples from another signal
 
         Parameters
@@ -880,7 +882,7 @@ class Signal(object):
         interpolation_mode: Optional[IntInterpolationModeType] = None,
         integer_interpolation_mode: Optional[IntInterpolationModeType] = None,
         float_interpolation_mode: FloatInterpolationModeType = 1,
-    ) -> "Signal":
+    ) -> Signal:
         """returns a new *Signal* interpolated using the *new_timestamps*
 
         Parameters
@@ -1099,8 +1101,8 @@ class Signal(object):
             )
 
     def __apply_func(
-        self, other: Union["Signal", None, NDArray[Any]], func_name: str
-    ) -> "Signal":
+        self, other: Signal | NDArray[Any] | None, func_name: str
+    ) -> Signal:
         """delegate operations to the *samples* attribute, but in a time
         correct manner by considering the *timestamps*
 
@@ -1148,10 +1150,10 @@ class Signal(object):
             channel_index=self.channel_index,
         )
 
-    def __pos__(self) -> "Signal":
+    def __pos__(self) -> Signal:
         return self
 
-    def __neg__(self) -> "Signal":
+    def __neg__(self) -> Signal:
         return Signal(
             np.negative(self.samples),
             self.timestamps,
@@ -1168,7 +1170,7 @@ class Signal(object):
             encoding=self.encoding,
         )
 
-    def __round__(self, n: int) -> "Signal":
+    def __round__(self, n: int) -> Signal:
         return Signal(
             np.around(self.samples, n),
             self.timestamps,
@@ -1185,67 +1187,67 @@ class Signal(object):
             encoding=self.encoding,
         )
 
-    def __sub__(self, other: Union["Signal", None, NDArray[Any]]) -> "Signal":
+    def __sub__(self, other: Signal | NDArray[Any] | None) -> Signal:
         return self.__apply_func(other, "__sub__")
 
-    def __isub__(self, other: Union["Signal", None, NDArray[Any]]) -> "Signal":
+    def __isub__(self, other: Signal | NDArray[Any] | None) -> Signal:
         return self.__sub__(other)
 
-    def __rsub__(self, other: Union["Signal", None, NDArray[Any]]) -> "Signal":
+    def __rsub__(self, other: Signal | NDArray[Any] | None) -> Signal:
         return -self.__sub__(other)
 
-    def __add__(self, other: Union["Signal", None, NDArray[Any]]) -> "Signal":
+    def __add__(self, other: Signal | NDArray[Any] | None) -> Signal:
         return self.__apply_func(other, "__add__")
 
-    def __iadd__(self, other: Union["Signal", None, NDArray[Any]]) -> "Signal":
+    def __iadd__(self, other: Signal | NDArray[Any] | None) -> Signal:
         return self.__add__(other)
 
-    def __radd__(self, other: Union["Signal", None, NDArray[Any]]) -> "Signal":
+    def __radd__(self, other: Signal | NDArray[Any] | None) -> Signal:
         return self.__add__(other)
 
-    def __truediv__(self, other: Union["Signal", None, NDArray[Any]]) -> "Signal":
+    def __truediv__(self, other: Signal | NDArray[Any] | None) -> Signal:
         return self.__apply_func(other, "__truediv__")
 
-    def __itruediv__(self, other: Union["Signal", None, NDArray[Any]]) -> "Signal":
+    def __itruediv__(self, other: Signal | NDArray[Any] | None) -> Signal:
         return self.__truediv__(other)
 
-    def __rtruediv__(self, other: Union["Signal", None, NDArray[Any]]) -> "Signal":
+    def __rtruediv__(self, other: Signal | NDArray[Any] | None) -> Signal:
         return self.__apply_func(other, "__rtruediv__")
 
-    def __mul__(self, other: Union["Signal", None, NDArray[Any]]) -> "Signal":
+    def __mul__(self, other: Signal | NDArray[Any] | None) -> Signal:
         return self.__apply_func(other, "__mul__")
 
-    def __imul__(self, other: Union["Signal", None, NDArray[Any]]) -> "Signal":
+    def __imul__(self, other: Signal | NDArray[Any] | None) -> Signal:
         return self.__mul__(other)
 
-    def __rmul__(self, other: Union["Signal", None, NDArray[Any]]) -> "Signal":
+    def __rmul__(self, other: Signal | NDArray[Any] | None) -> Signal:
         return self.__mul__(other)
 
-    def __floordiv__(self, other: Union["Signal", None, NDArray[Any]]) -> "Signal":
+    def __floordiv__(self, other: Signal | NDArray[Any] | None) -> Signal:
         return self.__apply_func(other, "__floordiv__")
 
-    def __ifloordiv__(self, other: Union["Signal", None, NDArray[Any]]) -> "Signal":
+    def __ifloordiv__(self, other: Signal | NDArray[Any] | None) -> Signal:
         return self.__truediv__(other)
 
-    def __rfloordiv__(self, other: Union["Signal", None, NDArray[Any]]) -> "Signal":
+    def __rfloordiv__(self, other: Signal | NDArray[Any] | None) -> Signal:
         return 1 / self.__apply_func(other, "__rfloordiv__")
 
-    def __mod__(self, other: Union["Signal", None, NDArray[Any]]) -> "Signal":
+    def __mod__(self, other: Signal | NDArray[Any] | None) -> Signal:
         return self.__apply_func(other, "__mod__")
 
-    def __pow__(self, other: Union["Signal", None, NDArray[Any]]) -> "Signal":
+    def __pow__(self, other: Signal | NDArray[Any] | None) -> Signal:
         return self.__apply_func(other, "__pow__")
 
-    def __and__(self, other: Union["Signal", None, NDArray[Any]]) -> "Signal":
+    def __and__(self, other: Signal | NDArray[Any] | None) -> Signal:
         return self.__apply_func(other, "__and__")
 
-    def __or__(self, other: Union["Signal", None, NDArray[Any]]) -> "Signal":
+    def __or__(self, other: Signal | NDArray[Any] | None) -> Signal:
         return self.__apply_func(other, "__or__")
 
-    def __xor__(self, other: Union["Signal", None, NDArray[Any]]) -> "Signal":
+    def __xor__(self, other: Signal | NDArray[Any] | None) -> Signal:
         return self.__apply_func(other, "__xor__")
 
-    def __invert__(self) -> "Signal":
+    def __invert__(self) -> Signal:
         s = ~self.samples
         time = self.timestamps
         return Signal(
@@ -1264,41 +1266,41 @@ class Signal(object):
             encoding=self.encoding,
         )
 
-    def __lshift__(self, other: Union["Signal", None, NDArray[Any]]) -> "Signal":
+    def __lshift__(self, other: Signal | NDArray[Any] | None) -> Signal:
         return self.__apply_func(other, "__lshift__")
 
-    def __rshift__(self, other: Union["Signal", None, NDArray[Any]]) -> "Signal":
+    def __rshift__(self, other: Signal | NDArray[Any] | None) -> Signal:
         return self.__apply_func(other, "__rshift__")
 
-    def __lt__(self, other: Union["Signal", None, NDArray[Any]]) -> bool:
+    def __lt__(self, other: Signal | NDArray[Any] | None) -> bool:
         return self.__apply_func(other, "__lt__")
 
-    def __le__(self, other: Union["Signal", None, NDArray[Any]]) -> bool:
+    def __le__(self, other: Signal | NDArray[Any] | None) -> bool:
         return self.__apply_func(other, "__le__")
 
-    def __gt__(self, other: Union["Signal", None, NDArray[Any]]) -> bool:
+    def __gt__(self, other: Signal | NDArray[Any] | None) -> bool:
         return self.__apply_func(other, "__gt__")
 
-    def __ge__(self, other: Union["Signal", None, NDArray[Any]]) -> bool:
+    def __ge__(self, other: Signal | NDArray[Any] | None) -> bool:
         return self.__apply_func(other, "__ge__")
 
-    def __eq__(self, other: Union["Signal", None, NDArray[Any]]) -> bool:
+    def __eq__(self, other: Signal | NDArray[Any] | None) -> bool:
         return self.__apply_func(other, "__eq__")
 
-    def __ne__(self, other: Union["Signal", None, NDArray[Any]]) -> bool:
+    def __ne__(self, other: Signal | NDArray[Any] | None) -> bool:
         return self.__apply_func(other, "__ne__")
 
     def __iter__(self) -> Iterator[Any]:
         for item in (self.samples, self.timestamps, self.unit, self.name):
             yield item
 
-    def __reversed__(self) -> Iterator[Tuple[int, Tuple[Any, Any]]]:
+    def __reversed__(self) -> Iterator[tuple[int, tuple[Any, Any]]]:
         return enumerate(zip(reversed(self.samples), reversed(self.timestamps)))
 
     def __len__(self) -> int:
         return len(self.samples)
 
-    def __abs__(self) -> "Signal":
+    def __abs__(self) -> Signal:
         return Signal(
             np.fabs(self.samples),
             self.timestamps,
@@ -1320,7 +1322,7 @@ class Signal(object):
     def __setitem__(self, idx: Any, val: Any):
         self.samples[idx] = val
 
-    def astype(self, np_type: DTypeLike) -> "Signal":
+    def astype(self, np_type: DTypeLike) -> Signal:
         """returns new *Signal* with samples of dtype *np_type*
 
         Parameters
@@ -1350,7 +1352,7 @@ class Signal(object):
             encoding=self.encoding,
         )
 
-    def physical(self) -> "Signal":
+    def physical(self) -> Signal:
         """
         get the physical samples values
 
@@ -1389,7 +1391,7 @@ class Signal(object):
             channel_index=self.channel_index,
         )
 
-    def validate(self, copy: bool = True) -> "Signal":
+    def validate(self, copy: bool = True) -> Signal:
         """appply invalidation bits if they are available for this signal
 
         Parameters
@@ -1430,7 +1432,7 @@ class Signal(object):
 
         return signal
 
-    def copy(self) -> "Signal":
+    def copy(self) -> Signal:
         """copy all attributes to a new Signal"""
         return Signal(
             self.samples.copy(),
