@@ -66,7 +66,7 @@ from .blocks.v4_blocks import EventBlock, FileHistory, FileIdentificationBlock
 from .blocks.v4_blocks import HeaderBlock as HeaderV4
 from .blocks.v4_blocks import SourceInformation
 from .signal import Signal
-from .typing import (
+from .types import (
     ChannelGroupType,
     ChannelsType,
     DbcFileType,

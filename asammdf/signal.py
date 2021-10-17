@@ -16,7 +16,7 @@ from .blocks import v4_blocks as v4b
 from .blocks.conversion_utils import from_dict
 from .blocks.source_utils import Source
 from .blocks.utils import extract_cncomment_xml, MdfException
-from .typing import (
+from .types import (
     ChannelConversionType,
     FloatInterpolationModeType,
     IntInterpolationModeType,
