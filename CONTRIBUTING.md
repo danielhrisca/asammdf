@@ -15,10 +15,9 @@ When submitting PR's please take into account:
 * PEP8 and the style guide below
 
 # Testing
+
 Travis CI is enabled for this project. It is really helpful for quality assurance
-and Python 2 and 3 compatibility check. It is advised to run the tests on both
-Python 3 and 2 before pushing the PR (Python 3.6 64 bit and Python 2.7 32 bit would be 
-a very good combination to test).
+and Python 2 and 3 compatibility check. It is advised to run the tests before pushing the PR.
 
 # Style guide
 
