@@ -19,6 +19,7 @@ from struct import unpack
 import sys
 from tempfile import gettempdir, mkdtemp
 from traceback import format_exc
+from types import TracebackType
 from typing import Any, Iterable, Iterator, Sequence, Type
 import xml.etree.ElementTree as ET
 import zipfile
@@ -189,7 +190,7 @@ class MDF:
         version: str = "4.10",
         channels: list[str] | None = None,
         **kwargs,
-    ):
+    ) -> None:
         self._mdf = None
 
         if name:
@@ -291,22 +292,27 @@ class MDF:
         # MDF(filename).convert('4.10')
         self._mdf._parent = self
 
-    def __setattr__(self, item, value):
+    def __setattr__(self, item: str, value: Any) -> None:
         if item == "_mdf":
             super().__setattr__(item, value)
         else:
             setattr(self._mdf, item, value)
 
-    def __getattr__(self, item):
+    def __getattr__(self, item: str) -> Any:
         return getattr(self._mdf, item)
 
-    def __dir__(self):
+    def __dir__(self) -> list[str]:
         return sorted(set(super().__dir__()) | set(dir(self._mdf)))
 
     def __enter__(self) -> MDF:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> bool | None:
         if self._mdf is not None:
             try:
                 self.close()
@@ -314,8 +320,7 @@ class MDF:
                 pass
         self._mdf = None
 
-    def __del__(self):
-
+    def __del__(self) -> None:
         if self._mdf is not None:
             try:
                 self.close()
@@ -351,7 +356,7 @@ class MDF:
             else:
                 return min(t_min) < min(other_t_min)
 
-    def _transfer_events(self, other: MDF):
+    def _transfer_events(self, other: MDF) -> None:
         def get_scopes(event, events):
             if event.scopes:
                 return event.scopes
@@ -511,7 +516,7 @@ class MDF:
                     event.scopes.append(group)
                     self.events.append(event)
 
-    def _transfer_header_data(self, other: MDF, message: str = ""):
+    def _transfer_header_data(self, other: MDF, message: str = "") -> None:
         self.header.author = other.header.author
         self.header.department = other.header.department
         self.header.project = other.header.project
@@ -531,7 +536,7 @@ class MDF:
     @staticmethod
     def _transfer_channel_group_data(
         sgroup: ChannelGroupType, ogroup: ChannelGroupType
-    ):
+    ) -> None:
         if not hasattr(sgroup, "acq_name") or not hasattr(ogroup, "acq_name"):
             sgroup.comment = ogroup.comment
         else:
@@ -544,7 +549,7 @@ class MDF:
             if acq_source:
                 sgroup.acq_source = acq_source.copy()
 
-    def _transfer_metadata(self, other: MDF, message: str = ""):
+    def _transfer_metadata(self, other: MDF, message: str = "") -> None:
         self._transfer_events(other)
         self._transfer_header_data(other, message)
 
@@ -908,7 +913,7 @@ class MDF:
         fmt: Literal["csv", "hdf5", "mat", "parquet"],
         filename: StrPath | None = None,
         **kwargs,
-    ):
+    ) -> None:
         r"""export *MDF* to other formats. The *MDF* file name is used is
         available, else the *filename* argument must be provided.
 
@@ -4796,7 +4801,7 @@ class MDF:
         return self.header.start_time
 
     @start_time.setter
-    def start_time(self, timestamp: datetime):
+    def start_time(self, timestamp: datetime) -> None:
         self.header.start_time = timestamp
 
     def cleanup_timestamps(

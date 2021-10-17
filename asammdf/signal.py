@@ -92,7 +92,7 @@ class Signal(object):
         encoding: str | None = None,
         group_index: int = -1,
         channel_index: int = -1,
-    ):
+    ) -> None:
 
         if samples is None or timestamps is None or not name:
             message = (
@@ -189,7 +189,7 @@ class Signal(object):
 \tattachment={self.attachment}>
 """
 
-    def plot(self, validate: bool = True, index_only: bool = False):
+    def plot(self, validate: bool = True, index_only: bool = False) -> None:
         """plot Signal samples. Pyqtgraph is used if it is available; in this
         case see the GUI plot documentation to see the available commands
 
@@ -1316,10 +1316,10 @@ class Signal(object):
             source=self.source,
         )
 
-    def __getitem__(self, val: Any) -> Any:
+    def __getitem__(self, val: int) -> Any:
         return self.samples[val]
 
-    def __setitem__(self, idx: Any, val: Any):
+    def __setitem__(self, idx: int, val: Any) -> None:
         self.samples[idx] = val
 
     def astype(self, np_type: DTypeLike) -> Signal:
