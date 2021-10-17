@@ -19,7 +19,7 @@ from struct import unpack
 import sys
 from tempfile import gettempdir, mkdtemp
 from traceback import format_exc
-from typing import Any, Iterable, Iterator, Optional, Sequence
+from typing import Any, Iterable, Iterator, Sequence, Type
 import xml.etree.ElementTree as ET
 import zipfile
 
@@ -185,9 +185,9 @@ class MDF:
 
     def __init__(
         self,
-        name: Optional[InputType] = None,
+        name: InputType | None = None,
         version: str = "4.10",
-        channels: Optional[list[str]] = None,
+        channels: list[str] | None = None,
         **kwargs,
     ):
         self._mdf = None
@@ -630,10 +630,10 @@ class MDF:
 
     def cut(
         self,
-        start: Optional[float] = None,
-        stop: Optional[float] = None,
+        start: float | None = None,
+        stop: float | None = None,
         whence: int = 0,
-        version: Optional[str] = None,
+        version: str | None = None,
         include_ends: bool = True,
         time_from_zero: bool = False,
     ) -> MDF:
@@ -906,7 +906,7 @@ class MDF:
     def export(
         self,
         fmt: Literal["csv", "hdf5", "mat", "parquet"],
-        filename: Optional[StrPath] = None,
+        filename: StrPath | None = None,
         **kwargs,
     ):
         r"""export *MDF* to other formats. The *MDF* file name is used is
@@ -1593,7 +1593,7 @@ class MDF:
             message.format(fmt)
             logger.warning(message)
 
-    def filter(self, channels: ChannelsType, version: Optional[str] = None) -> MDF:
+    def filter(self, channels: ChannelsType, version: str | None = None) -> MDF:
         """return new *MDF* object that contains only the channels listed in
         *channels* argument
 
@@ -1731,13 +1731,13 @@ class MDF:
 
     def iter_get(
         self,
-        name: Optional[str] = None,
-        group: Optional[int] = None,
-        index: Optional[int] = None,
-        raster: Optional[float] = None,
+        name: str | None = None,
+        group: int | None = None,
+        index: int | None = None,
+        raster: float | None = None,
         samples_only: bool = False,
         raw: bool = False,
-    ) -> Signal | tuple[NDArray[Any], Optional[NDArray[Any]]]:
+    ) -> Signal | tuple[NDArray[Any], NDArray[Any] | None]:
         """iterator over a channel
 
         This is usefull in case of large files with a small number of channels.
@@ -2328,7 +2328,7 @@ class MDF:
 
     def iter_groups(
         self,
-        raster: Optional[RasterType] = None,
+        raster: RasterType | None = None,
         time_from_zero: bool = True,
         empty_channels: EmptyChannelsType = "skip",
         keep_arrays: bool = False,
@@ -2422,7 +2422,7 @@ class MDF:
     def resample(
         self,
         raster: RasterType,
-        version: Optional[str] = None,
+        version: str | None = None,
         time_from_zero: bool = False,
     ) -> MDF:
         """resample all channels using the given raster. See *configure* to select
@@ -2666,7 +2666,7 @@ class MDF:
         raw: bool = False,
         copy_master: bool = True,
         ignore_value2text_conversions: bool = False,
-        record_count: Optional[int] = None,
+        record_count: int | None = None,
         validate: bool = False,
     ) -> list[Signal]:
         """retrieve the channels listed in *channels* argument as *Signal*
@@ -3190,7 +3190,7 @@ class MDF:
     def get_group(
         self,
         index: int,
-        raster: Optional[RasterType] = None,
+        raster: RasterType | None = None,
         time_from_zero: bool = True,
         empty_channels: EmptyChannelsType = "skip",
         keep_arrays: bool = False,
@@ -3286,8 +3286,8 @@ class MDF:
 
     def iter_to_dataframe(
         self,
-        channels: Optional[ChannelsType] = None,
-        raster: Optional[RasterType] = None,
+        channels: ChannelsType | None = None,
+        raster: RasterType | None = None,
         time_from_zero: bool = True,
         empty_channels: EmptyChannelsType = "skip",
         keep_arrays: bool = False,
@@ -3705,8 +3705,8 @@ class MDF:
 
     def to_dataframe(
         self,
-        channels: Optional[ChannelsType] = None,
-        raster: Optional[RasterType] = None,
+        channels: ChannelsType | None = None,
+        raster: RasterType | None = None,
         time_from_zero: bool = True,
         empty_channels: EmptyChannelsType = "skip",
         keep_arrays: bool = False,
@@ -4084,7 +4084,7 @@ class MDF:
     def extract_bus_logging(
         self,
         database_files: dict[Literal["CAN", "LIN"], Iterable[DbcFileType]],
-        version: Optional[str] = None,
+        version: str | None = None,
         ignore_invalid_signals: bool = False,
         consolidated_j1939: bool = True,
         ignore_value2text_conversion: bool = True,
@@ -4805,7 +4805,7 @@ class MDF:
         maximum: float,
         exp_min: int = -15,
         exp_max: int = 15,
-        version: Optional[str] = None,
+        version: str | None = None,
     ) -> MDF:
         """convert *MDF* to other version
 
@@ -4918,9 +4918,9 @@ class MDF:
     def whereis(
         self,
         channel: str,
-        source_name: Optional[str] = None,
-        source_path: Optional[str] = None,
-        acq_name: Optional[str] = None,
+        source_name: str | None = None,
+        source_path: str | None = None,
+        acq_name: str | None = None,
     ) -> tuple[tuple[int, int], ...]:
         """get occurrences of channel name in the file
 

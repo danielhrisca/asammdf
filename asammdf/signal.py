@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import logging
 from textwrap import fill
-from typing import Any, Iterator, Optional
+from typing import Any, Iterator
 
 import numpy as np
 from numpy.core.defchararray import encode
@@ -75,21 +75,21 @@ class Signal(object):
 
     def __init__(
         self,
-        samples: Optional[ArrayLike] = None,
-        timestamps: Optional[ArrayLike] = None,
+        samples: ArrayLike | None = None,
+        timestamps: ArrayLike | None = None,
         unit: str = "",
         name: str = "",
-        conversion: Optional[dict[str, Any] | ChannelConversionType] = None,
+        conversion: dict[str, Any] | ChannelConversionType | None = None,
         comment: str = "",
         raw: bool = True,
-        master_metadata: Optional[tuple[str, SyncType]] = None,
+        master_metadata: tuple[str, SyncType] | None = None,
         display_names: dict[str, str] | str = "",
-        attachment: tuple[bytes, Optional[str], Optional[str]] = (),
-        source: Optional[SourceType] = None,
-        bit_count: Optional[int] = None,
+        attachment: tuple[bytes, str | None, str | None] = (),
+        source: SourceType | None = None,
+        bit_count: int | None = None,
         stream_sync: bool = False,
-        invalidation_bits: Optional[ArrayLike] = None,
-        encoding: Optional[str] = None,
+        invalidation_bits: ArrayLike | None = None,
+        encoding: str | None = None,
         group_index: int = -1,
         channel_index: int = -1,
     ):
@@ -402,11 +402,11 @@ class Signal(object):
 
     def cut(
         self,
-        start: Optional[float] = None,
-        stop: Optional[float] = None,
+        start: float | None = None,
+        stop: float | None = None,
         include_ends: bool = True,
-        interpolation_mode: Optional[IntInterpolationModeType] = None,
-        integer_interpolation_mode: Optional[IntInterpolationModeType] = None,
+        interpolation_mode: IntInterpolationModeType | None = None,
+        integer_interpolation_mode: IntInterpolationModeType | None = None,
         float_interpolation_mode: FloatInterpolationModeType = 1,
     ) -> Signal:
         """
@@ -879,8 +879,8 @@ class Signal(object):
     def interp(
         self,
         new_timestamps: NDArray[Any],
-        interpolation_mode: Optional[IntInterpolationModeType] = None,
-        integer_interpolation_mode: Optional[IntInterpolationModeType] = None,
+        interpolation_mode: IntInterpolationModeType | None = None,
+        integer_interpolation_mode: IntInterpolationModeType | None = None,
         float_interpolation_mode: FloatInterpolationModeType = 1,
     ) -> Signal:
         """returns a new *Signal* interpolated using the *new_timestamps*
