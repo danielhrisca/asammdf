@@ -2808,10 +2808,9 @@ class WithMDIArea:
         if with_dots is None:
             with_dots = not self.with_dots
 
-        self.with_dots = with_dots
-
         current_plot = self.get_current_widget()
         if current_plot and isinstance(current_plot, Plot):
+            self.with_dots = with_dots
             current_plot.with_dots = with_dots
             current_plot.plot.with_dots = with_dots
             current_plot.plot.update_lines()

@@ -644,6 +644,8 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.hide_missing_channels = False
         self.hide_disabled_channels = False
 
+        self.allways_accept_dots = False
+
         if files:
             for name in files:
                 self._open_file(name)
@@ -677,15 +679,38 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 widget.get_current_widget().keyPressEvent(event)
 
     def toggle_dots(self, key):
-        self.with_dots = not self.with_dots
-        self._settings.setValue("dots", self.with_dots)
+        file_widget = self.files.currentWidget()
 
-        count = self.files.count()
+        if file_widget:
+            widget = file_widget.get_current_widget()
+            if widget and isinstance(widget, Plot):
+                new_setting_has_dots = not file_widget.with_dots
 
-        for i in range(count):
-            self.files.widget(i).set_line_style(with_dots=self.with_dots)
+                current_plot = widget
+                count = len(current_plot.plot.signals)
+                if new_setting_has_dots and not self.allways_accept_dots and count >= 200:
+                    ret = QtWidgets.QMessageBox.question(
+                        self,
+                        "Continue enabling dots?",
+                        "Enabling dots for plots with large channel count will have a big performance hit.\n\n"
+                        "Do you wish to continue?",
+                    )
 
-        self.set_line_style(with_dots=self.with_dots)
+                    if ret != QtWidgets.QMessageBox.Yes:
+                        return
+                    else:
+                        self.allways_accept_dots = True
+
+                self.with_dots = new_setting_has_dots
+                self._settings.setValue("dots", self.with_dots)
+                file_widget.set_line_style(with_dots=new_setting_has_dots)
+                self.set_line_style(with_dots=self.with_dots)
+        else:
+            widget = self.get_current_widget()
+            if widget and isinstance(widget, Plot):
+                self.with_dots = not self.with_dots
+                self._settings.setValue("dots", self.with_dots)
+                self.set_line_style(with_dots=self.with_dots)
 
     def show_sub_windows(self, mode):
 

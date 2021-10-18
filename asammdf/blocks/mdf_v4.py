@@ -383,6 +383,7 @@ class MDF4(MDF_Common):
         self._callback = kwargs.get("callback", None)
 
         self._delete_on_close = False
+        self._mapped_file = None
 
         if name:
             if is_file_like(name):
@@ -415,8 +416,8 @@ class MDF4(MDF_Common):
                         self._read(mapped=False)
                     else:
                         self.name = Path(name)
-                        x = open(self.name, "rb")
-                        self._file = mmap.mmap(x.fileno(), 0, access=mmap.ACCESS_READ)
+                        self._mapped_file = open(self.name, "rb")
+                        self._file = mmap.mmap(self._mapped_file.fileno(), 0, access=mmap.ACCESS_READ)
                         self._from_filelike = False
                         self._read(mapped=True)
 
@@ -6114,6 +6115,9 @@ class MDF4(MDF_Common):
             self._tempfile.close()
         if not self._from_filelike and self._file is not None:
             self._file.close()
+
+        if self._mapped_file is not None:
+            self._mapped_file.close()
 
         if self._delete_on_close:
             try:
