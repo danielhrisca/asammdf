@@ -3,10 +3,12 @@ import importlib.util
 from pathlib import Path
 from traceback import format_exc
 
+from ..types import StrPath
+
 encrypt = decrypt = None
 
 
-def load_user_encryption_module(path):
+def load_user_encryption_module(path: StrPath) -> None:
     """
     loads a user defined module that must contain an `encrypt` and
     a `decrypt` function. Those functions take a bytes object as input and return a bytes object.
