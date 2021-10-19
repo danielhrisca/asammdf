@@ -19,6 +19,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 from zlib import decompress
 
 import canmatrix
+import numpy as np
 from lz4.frame import compress as lz_compress
 from lz4.frame import decompress as lz_decompress
 from numpy import (
@@ -129,7 +130,7 @@ __all__ = ["MDF4"]
 
 
 try:
-    from .cutils import extract, get_vlsd_offsets, lengths, sort_data_block
+    from .cutils import extract, get_vlsd_offsets, lengths, sort_data_block, get_channel_data
 
 #    for now avoid usign the cextension code
 #    2/0
@@ -701,6 +702,7 @@ class MDF4(MDF_Common):
                 grp.data_blocks_info_generator = data_blocks_info
                 grp.data_blocks = data_blocks
                 grp.uses_ld = uses_ld
+                self._prepare_record(grp)
 
             self.groups.extend(new_groups)
 
@@ -1653,154 +1655,61 @@ class MDF4(MDF_Common):
 
         """
 
-        parents, dtypes = group.parents, group.types
+        record = group.record
 
-        if parents is None:
-            no_parent = None, None
-            channel_group = group.channel_group
+        if record is None:
             channels = group.channels
 
-            record_size = channel_group.samples_byte_nr
-            invalidation_bytes_nr = channel_group.invalidation_bytes_nr
-            next_byte_aligned_position = 0
-            types = []
-            current_parent = ""
-            parent_start_offset = 0
-            parents = {}
-            group_channels = UniqueDB()
+            record = []
 
-            sortedchannels = sorted(enumerate(channels), key=lambda i: i[1])
-            for original_index, new_ch in sortedchannels:
+            for idx, new_ch in enumerate(channels):
                 start_offset = new_ch.byte_offset
                 bit_offset = new_ch.bit_offset
                 data_type = new_ch.data_type
                 bit_count = new_ch.bit_count
                 ch_type = new_ch.channel_type
-                dependency_list = group.channel_dependencies[original_index]
-                name = new_ch.name
+                dependency_list = group.channel_dependencies[idx]
 
-                # handle multiple occurrence of same channel name
-                name = group_channels.get_unique_name(name)
+                if ch_type not in v4c.VIRTUAL_TYPES and not dependency_list:
 
-                if start_offset >= next_byte_aligned_position:
-                    if ch_type not in v4c.VIRTUAL_TYPES:
-                        if not dependency_list:
-                            parent_start_offset = start_offset
+                    if not new_ch.dtype_fmt:
+                        new_ch.dtype_fmt = get_fmt_v4(
+                            data_type, bit_count, ch_type
+                        )
 
-                            # check if there are byte gaps in the record
-                            gap = parent_start_offset - next_byte_aligned_position
-                            if gap:
-                                types.append(("", f"V{gap}"))
+                    # adjust size to 1, 2, 4 or 8 bytes
+                    size = bit_offset + bit_count
 
-                            # adjust size to 1, 2, 4 or 8 bytes
-                            size = bit_offset + bit_count
+                    byte_size, rem = size // 8, size % 8
+                    if rem:
+                        byte_size += 1
+                    bit_size = byte_size * 8
 
-                            byte_size, rem = size // 8, size % 8
-                            if rem:
-                                byte_size += 1
-                            bit_size = byte_size * 8
+                    if data_type in (
+                        v4c.DATA_TYPE_SIGNED_MOTOROLA,
+                        v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                    ):
+                        if size > 32:
+                            bit_offset += 64 - bit_size
+                        elif size > 16:
+                            bit_offset += 32 - bit_size
+                        elif size > 8:
+                            bit_offset += 16 - bit_size
 
-                            if data_type in (
-                                v4c.DATA_TYPE_SIGNED_MOTOROLA,
-                                v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
-                            ):
-                                if size > 32:
-                                    size = 8
-                                    bit_offset += 64 - bit_size
-                                elif size > 16:
-                                    size = 4
-                                    bit_offset += 32 - bit_size
-                                elif size > 8:
-                                    size = 2
-                                    bit_offset += 16 - bit_size
-                                else:
-                                    size = 1
-                            elif data_type not in v4c.NON_SCALAR_TYPES:
-                                if size > 32:
-                                    size = 8
-                                elif size > 16:
-                                    size = 4
-                                elif size > 8:
-                                    size = 2
-                                else:
-                                    size = 1
-                            else:
-                                size = size // 8
-
-                            next_byte_aligned_position = parent_start_offset + size
-                            bit_count = size * 8
-                            if next_byte_aligned_position <= record_size:
-                                if not new_ch.dtype_fmt:
-                                    new_ch.dtype_fmt = get_fmt_v4(
-                                        data_type, bit_count, ch_type
-                                    )
-                                dtype_pair = (name, new_ch.dtype_fmt)
-                                types.append(dtype_pair)
-                                parents[original_index] = name, bit_offset
-                            else:
-                                next_byte_aligned_position = parent_start_offset
-
-                            current_parent = name
-                        else:
-                            parents[original_index] = no_parent
-
-                    # virtual channels do not have bytes in the record
-                    else:
-                        parents[original_index] = no_parent
-
+                    record.append(
+                        (
+                            new_ch.dtype_fmt,
+                            new_ch.dtype_fmt.itemsize,
+                            start_offset,
+                            bit_offset,
+                        )
+                    )
                 else:
-                    if not dependency_list:
-                        size = bit_offset + bit_count
-                        byte_size, rem = size // 8, size % 8
-                        if rem:
-                            byte_size += 1
+                    record.append(None)
 
-                        max_overlapping_size = (
-                            next_byte_aligned_position - start_offset
-                        ) * 8
-                        needed_size = bit_offset + bit_count
+            group.record = record
 
-                        if max_overlapping_size >= needed_size:
-                            if data_type in (
-                                v4c.DATA_TYPE_SIGNED_MOTOROLA,
-                                v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
-                            ):
-                                parents[original_index] = (
-                                    current_parent,
-                                    (
-                                        next_byte_aligned_position
-                                        - start_offset
-                                        - byte_size
-                                    )
-                                    * 8
-                                    + bit_offset,
-                                )
-                            else:
-                                parents[original_index] = (
-                                    current_parent,
-                                    ((start_offset - parent_start_offset) * 8)
-                                    + bit_offset,
-                                )
-                    else:
-                        parents[original_index] = no_parent
-                if next_byte_aligned_position > record_size:
-                    break
-
-            gap = record_size - next_byte_aligned_position
-            if gap > 0:
-                dtype_pair = "", f"V{gap}"
-                types.append(dtype_pair)
-
-            if not group.uses_ld:
-
-                dtype_pair = "invalidation_bytes", "<u1", (invalidation_bytes_nr,)
-                types.append(dtype_pair)
-
-            dtypes = dtype(types)
-
-            group.parents, group.types = parents, dtypes
-
-        return parents, dtypes
+        return record
 
     def _uses_ld(
         self,
@@ -7069,9 +6978,9 @@ class MDF4(MDF_Common):
         gp_nr = group_index
         ch_nr = channel_index
         # get data group record
-        parents, dtypes = group.parents, group.types
-        if parents is None:
-            parents, dtypes = self._prepare_record(grp)
+        record = grp.record
+        if record is None:
+            record = self._prepare_record(grp)
 
         # get group data
         if data is None:
@@ -7201,32 +7110,29 @@ class MDF4(MDF_Common):
 
         else:
             record_size = grp.channel_group.samples_byte_nr
+            channel_group = grp.channel_group
 
             if one_piece:
 
                 fragment = data
                 data_bytes, record_start, record_count, invalidation_bytes = fragment
 
-                try:
-                    parent, bit_offset = parents[ch_nr]
-                except KeyError:
-                    parent, bit_offset = None, None
+                info = grp.record[ch_nr]
 
-                if parent is not None:
+                if info is not None:
+                    dtype_, byte_size, byte_offset, bit_offset = info
                     if (
                         len(grp.channels) == 1
                         and channel.dtype_fmt.itemsize == record_size
                     ):
-                        vals = frombuffer(data_bytes, dtype=channel.dtype_fmt)
+                        buffer = bytearray(data_bytes)
                     else:
-                        record = grp.record
-                        if record is None:
-                            record = fromstring(data_bytes, dtype=dtypes)
-                        vals = record[parent]
+                        buffer = get_channel_data(data_bytes, record_size + channel_group.invalidation_bytes_nr, byte_offset, byte_size)
 
-                    dtype_ = vals.dtype
+                    vals = frombuffer(buffer, dtype=dtype_)
+
                     shape_ = vals.shape
-                    size = dtype_.itemsize
+                    size = byte_size
                     for dim in shape_[1:]:
                         size *= dim
 
@@ -7260,14 +7166,14 @@ class MDF4(MDF_Common):
                                 vals = vals.view(view)
 
                             if bit_offset:
-                                vals = vals >> bit_offset
+                                vals >>= bit_offset
 
                             if bit_count != size * 8:
                                 if data_type in v4c.SIGNED_INT:
                                     vals = as_non_byte_sized_signed_int(vals, bit_count)
                                 else:
                                     mask = (1 << bit_count) - 1
-                                    vals = vals & mask
+                                    vals &= mask
                             elif data_type in v4c.SIGNED_INT:
                                 view = f"{channel_dtype.byteorder}i{vals.itemsize}"
                                 if dtype(view) != vals.dtype:
@@ -7325,23 +7231,21 @@ class MDF4(MDF_Common):
                     if count == 1:
                         record_start = offset
                         record_count = _count
-                    try:
-                        parent, bit_offset = parents[ch_nr]
-                    except KeyError:
-                        parent, bit_offset = None, None
 
-                    if parent is not None:
+                    info = grp.record[ch_nr]
+
+                    if info is not None:
+                        dtype_, byte_size, byte_offset, bit_offset = info
                         if (
-                            len(grp.channels) == 1
-                            and channel.dtype_fmt.itemsize == record_size
+                                len(grp.channels) == 1
+                                and channel.dtype_fmt.itemsize == record_size
                         ):
-                            vals = frombuffer(data_bytes, dtype=channel.dtype_fmt)
+                            buffer = bytearray(data_bytes)
                         else:
-                            record = grp.record
-                            if record is None:
-                                record = fromstring(data_bytes, dtype=dtypes)
+                            buffer = get_channel_data(data_bytes, record_size + channel_group.invalidation_bytes_nr,
+                                                      byte_offset, byte_size)
 
-                            vals = record[parent]
+                        vals = frombuffer(buffer, dtype=dtype_)
 
                         dtype_ = vals.dtype
                         shape_ = vals.shape
@@ -7386,7 +7290,7 @@ class MDF4(MDF_Common):
                                     vals = vals.view(view)
 
                                 if bit_offset:
-                                    vals = vals >> bit_offset
+                                    vals >>= bit_offset
 
                                 if bit_count != size * 8:
                                     if data_type in v4c.SIGNED_INT:
@@ -7395,7 +7299,7 @@ class MDF4(MDF_Common):
                                         )
                                     else:
                                         mask = (1 << bit_count) - 1
-                                        vals = vals & mask
+                                        vals &= mask
                                 elif data_type in v4c.SIGNED_INT:
                                     view = f"{channel_dtype.byteorder}i{vals.itemsize}"
                                     if dtype(view) != vals.dtype:
@@ -8230,31 +8134,15 @@ class MDF4(MDF_Common):
 
                 else:
                     # get data group parents and dtypes
-                    parents, dtypes = group.parents, group.types
-                    if parents is None:
-                        parents, dtypes = self._prepare_record(group)
+                    dtype_, byte_size, byte_offset, bti_count = group.record[time_ch_nr]
 
                     if one_piece:
                         data_bytes, offset, _count, _ = data
-                        try:
-                            parent, _ = parents[time_ch_nr]
-                        except KeyError:
-                            parent = None
-                        if parent is not None:
-                            if group.record is None:
-                                dtypes = group.types
-                                if dtypes.itemsize:
-                                    record = fromstring(data_bytes, dtype=dtypes)
-                                else:
-                                    record = None
-                            else:
-                                record = group.record
 
-                            t = record[parent].copy()
-                        else:
-                            t = self._get_not_byte_aligned_data(
-                                data_bytes, group, time_ch_nr
-                            )
+                        buffer = get_channel_data(data_bytes, record_size + channel_group.invalidation_bytes_nr,
+                                                  byte_offset, byte_size)
+
+                        t = frombuffer(buffer, dtype=dtype_)
 
                     else:
 
@@ -8274,25 +8162,11 @@ class MDF4(MDF_Common):
 
                         for fragment in data:
                             data_bytes, offset, _count, invalidation_bytes = fragment
-                            try:
-                                parent, _ = parents[time_ch_nr]
-                            except KeyError:
-                                parent = None
-                            if parent is not None:
-                                if group.record is None:
-                                    dtypes = group.types
-                                    if dtypes.itemsize:
-                                        record = fromstring(data_bytes, dtype=dtypes)
-                                    else:
-                                        record = None
-                                else:
-                                    record = group.record
 
-                                t = record[parent].copy()
-                            else:
-                                t = self._get_not_byte_aligned_data(
-                                    data_bytes, group, time_ch_nr
-                                )
+                            buffer = get_channel_data(data_bytes, record_size + channel_group.invalidation_bytes_nr,
+                                                      byte_offset, byte_size)
+
+                            t = frombuffer(buffer, dtype=dtype_)
 
                             time_values.append(t)
                             count += 1

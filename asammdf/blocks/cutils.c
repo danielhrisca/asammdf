@@ -165,8 +165,8 @@ static PyObject* extract(PyObject* self, PyObject* args)
 
     if(!PyArg_ParseTuple(args, "OOO", &signal_data, &is_byte_array, &offsets))
     {
-        snprintf(err_string, 1024, "extract was called with wrong parameters");
-        PyErr_SetString(PyExc_ValueError, err_string);
+        //snprintf(err_string, 1024, "extract was called with wrong parameters");
+        //PyErr_SetString(PyExc_ValueError, err_string);
         return 0;
     }
     else
@@ -402,6 +402,40 @@ static PyObject *positions(PyObject *self, PyObject *args)
     }     
 }
 
+static PyObject* get_channel_data(PyObject* self, PyObject* args)
+{
+    Py_ssize_t count, size;
+    PyObject *data_block, *out;
+    
+    Py_ssize_t record_size, byte_offset, byte_count;
+
+    char *inptr, *outptr; 
+
+    if(!PyArg_ParseTuple(args, "Onnn", &data_block, &record_size, &byte_offset, &byte_count))
+    {
+        return 0;
+    }
+    else
+    {
+        size = PyBytes_GET_SIZE(data_block);
+        count = size / record_size;
+        
+        out = PyByteArray_FromStringAndSize(NULL, count * byte_count);
+        outptr = PyByteArray_AsString(out);
+        inptr = PyBytes_AsString(data_block);
+        
+        inptr += byte_offset;
+        
+        for (int i=0; i<count; i++) {
+            memcpy(outptr, inptr, byte_count);
+            inptr += record_size;
+            outptr += byte_count;
+        }
+   
+        return out;
+    }
+}
+
 
 // Our Module's Function Definition struct
 // We require this `NULL` to signal the end of our method
@@ -413,6 +447,7 @@ static PyMethodDef myMethods[] =
     { "get_vlsd_offsets", get_vlsd_offsets, METH_VARARGS, "get_vlsd_offsets" },
     { "sort_data_block", sort_data_block, METH_VARARGS, "sort raw data group block" },
     { "positions", positions, METH_VARARGS, "positions" },
+    { "get_channel_data", get_channel_data, METH_VARARGS, "get_channel_data" },
     
     { NULL, NULL, 0, NULL }
 };

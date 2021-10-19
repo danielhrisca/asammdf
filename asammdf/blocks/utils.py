@@ -1071,8 +1071,6 @@ class Group:
         "data_blocks_info_generator",
         "record_size",
         "record",
-        "parents",
-        "types",
         "signal_types",
         "trigger",
         "string_dtypes",
@@ -1086,8 +1084,6 @@ class Group:
         self.channels = []
         self.channel_dependencies = []
         self.signal_data = []
-        self.parents = None
-        self.types = None
         self.record = None
         self.trigger = None
         self.string_dtypes = None
