@@ -3462,7 +3462,10 @@ class MDF3(MDF_Common):
         return info
 
     def save(
-        self, dst: StrPathType, overwrite: bool = False, compression: CompressionType = 0
+        self,
+        dst: StrPathType,
+        overwrite: bool = False,
+        compression: CompressionType = 0,
     ) -> Path | None:
         """Save MDF to *dst*. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appended with '.<cntr>',

@@ -24,6 +24,7 @@ from zipfile import ZIP_DEFLATED, ZipFile
 from zlib import decompress
 
 import canmatrix
+from canmatrix.canmatrix import CanMatrix
 from lz4.frame import compress as lz_compress
 from lz4.frame import decompress as lz_decompress
 from numpy import (
@@ -68,7 +69,6 @@ from ..types import (
     BusType,
     ChannelsType,
     CompressionType,
-    DbcFileType,
     FloatInterpolationModeType,
     IntInterpolationModeType,
     MDF_v2_v3_v4,
@@ -8444,7 +8444,7 @@ class MDF4(MDF_Common):
         self,
         bus: BusType,
         name: str,
-        database: DbcFileType = None,
+        database: CanMatrix | StrPathType | None = None,
         ignore_invalidation_bits: bool = False,
         data: bytes | None = None,
         raw: bool = False,
@@ -8507,7 +8507,7 @@ class MDF4(MDF_Common):
     def get_can_signal(
         self,
         name: str,
-        database: DbcFileType = None,
+        database: CanMatrix | StrPathType | None = None,
         ignore_invalidation_bits: bool = False,
         data: bytes | Nonw = None,
         raw: bool = False,
@@ -8793,7 +8793,7 @@ class MDF4(MDF_Common):
     def get_lin_signal(
         self,
         name: str,
-        database: DbcFileType = None,
+        database: CanMatrix | StrPathType | None = None,
         ignore_invalidation_bits: bool = False,
         data: bytes | None = None,
         raw: bool = False,
