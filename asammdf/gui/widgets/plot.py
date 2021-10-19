@@ -11,6 +11,7 @@ import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
 
+
 try:
     from ...blocks.cutils import positions
 except:
@@ -2256,10 +2257,11 @@ class _Plot(pg.PlotWidget):
         if signals:
             self.update_views()
 
-    def update_signal_curve(self, signal, signal_index):
+    def update_signal_curve(self, signal, signal_index, bounds=False):
         sig = signal
         color = sig.color
         t = sig.plot_timestamps
+        plot_samples = sig.plot_samples
         pen = sig.pen
 
         curve = self.curves[signal_index]
@@ -2267,7 +2269,7 @@ class _Plot(pg.PlotWidget):
         if not isinstance(curve, self.curvetype):
             curve = self.curvetype(
                 t,
-                sig.plot_samples,
+                plot_samples,
                 pen=pen,
                 symbolBrush=color,
                 symbolPen=color,
@@ -2291,30 +2293,41 @@ class _Plot(pg.PlotWidget):
         else:
             if self.with_dots or self.line_interconnect != curve.opts['stepMode'] or not t.size:
                 curve.setData(
-                    x=t, y=sig.plot_samples, stepMode=self.line_interconnect,
+                    x=t, y=plot_samples, stepMode=self.line_interconnect,
                     symbolBrush=color,
                     symbolPen=color,
                     pen=pen,
+                    skipFiniteCheck=True,
                 )
                 curve.update()
             else:
-                curve.invalidateBounds()
-                curve._boundsCache = [
-                    [(1, None), (t[0], t[-1])],
-                    [(1, None), (sig.min, sig.max)],
-                ]
+                sig_min = sig.min
+                sig_max = sig.max
+
+                if curve._boundsCache[0] is not None:
+                    curve._boundsCache[0][1] = (t[0], t[-1])
+                    curve._boundsCache[1][1] = (sig_min, sig_max)
+
+                else:
+                    curve._boundsCache = [
+                        [(1.0, None), (t[0], t[-1])],
+                        [(1.0, None), (sig_min, sig_max)],
+                    ]
 
                 curve.xData = t
-                curve.yData = sig.plot_samples
+                curve.yData = plot_samples
                 curve.path = None
-                curve.fillPath = None
-                curve._mouseShape = None
-                curve.prepareGeometryChange()
-                curve.informViewBoundsChanged()
+                if bounds:
+                    curve._boundingRect = QtCore.QRectF(
+                        t[0], sig_min, t[-1] - t[0], sig_max - sig_min
+                    )
+                else:
+                    curve._boundingRect = None
                 curve.opts["pen"] = pen
+                curve.prepareGeometryChange()
                 curve.update()
 
-    def update_lines(self):
+    def update_lines(self, bounds=False):
         self.curvetype = pg.PlotDataItem if self.with_dots else pg.PlotCurveItem
 
         if self.curves:
@@ -2324,7 +2337,7 @@ class _Plot(pg.PlotWidget):
                 if not sig.enable:
                     self.curves[signal_index].hide()
                 else:
-                    self.update_signal_curve(sig, signal_index)
+                    self.update_signal_curve(sig, signal_index, bounds=bounds)
                     self.curves[signal_index].show()
 
     def set_color(self, uuid, color):

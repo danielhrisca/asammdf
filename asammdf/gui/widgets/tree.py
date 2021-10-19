@@ -367,6 +367,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.header().setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
         self.itemSelectionChanged.connect(self.item_selection_changed)
 
+        self.itemExpanded.connect(self.update_visibility_status)
+        self.verticalScrollBar().valueChanged.connect(self.update_visibility_status)
+        self.itemsDeleted.connect(self.update_visibility_status)
+
         # self.header().hideSection(0)
         self._moved = []
 
@@ -1068,10 +1072,22 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             if not item.isHidden():
                 item.setHidden(True)
                 item.setHidden(False)
+        self.update_visibility_status()
+
+    def update_visibility_status(self, *args):
+
+        tree_rect = self.viewport().rect()
+
+        iterator = QtWidgets.QTreeWidgetItemIterator(self)
+        while iterator.value():
+            item = iterator.value()
+            rect = self.visualItemRect(item)
+            item._is_visible = rect.intersects(tree_rect)
+
+            iterator += 1
                 
     def is_item_visible(self, item):
-        rect = self.visualItemRect(item)
-        return rect.isValid()
+        return item._is_visible
 
 
 class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
@@ -1089,6 +1105,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         self.computation = computation
         self.mdf_uuid = mdf_uuid
         self.category = category
+        self._is_visible = True
 
         self.setFlags(self.flags() | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
 
@@ -1131,6 +1148,7 @@ class ChannelsGroupTreeItem(QtWidgets.QTreeWidgetItem):
         super().__init__(["", ""])
         self.name = name.split('\t[')[0]
         self.pattern = pattern
+        self._is_visible = True
 
         self.setFlags(self.flags() | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsTristate)
 
