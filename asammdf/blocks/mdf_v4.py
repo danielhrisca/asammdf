@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import bisect
 from collections import defaultdict
-from collections.abc import Callable, Iterable, Sequence, Sized
+from collections.abc import Callable, Iterable, Iterator, Sequence, Sized
 from functools import lru_cache
 from hashlib import md5
 from io import BufferedReader, BytesIO
@@ -347,7 +347,7 @@ class MDF4(MDF_Common):
 
     def __init__(
         self,
-        name: BufferedReader | BytesIO | StrPath | None = None,
+        name: BufferedReader | BytesIO | StrPathType | None = None,
         version: str = "4.10",
         channels: list[str] | None = None,
         **kwargs,

@@ -5,6 +5,7 @@ asammdf utility functions and classes
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from functools import lru_cache
 from io import StringIO
 import logging
