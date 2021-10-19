@@ -72,6 +72,3 @@ class GPSDialog(Ui_GPSDialog, QtWidgets.QDialog):
 
         if result:
             self.longitude.setText(list(result)[0])
-
-
-

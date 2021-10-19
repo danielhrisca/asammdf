@@ -16,11 +16,11 @@ from ...blocks.utils import (
     pandas_query_compatible,
 )
 from ...mdf import MDF
+from ..dialogs.range_editor import RangeEditor
 from ..ui import resource_rc as resource_rc
 from ..ui.tabular import Ui_TabularDisplay
-from ..utils import run_thread_with_progress, copy_ranges, get_colors_using_ranges
+from ..utils import copy_ranges, get_colors_using_ranges, run_thread_with_progress
 from .tabular_filter import TabularFilter
-from ..dialogs.range_editor import RangeEditor
 
 logger = logging.getLogger("asammdf.gui")
 LOCAL_TIMEZONE = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
@@ -126,13 +126,17 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             self.toggle_filters_btn.setText("Hide filters")
             self.filters_group.setHidden(False)
             icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/up.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            icon.addPixmap(
+                QtGui.QPixmap(":/up.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+            )
             self.toggle_filters_btn.setIcon(icon)
         else:
             self.toggle_filters_btn.setText("Show filters")
             self.filters_group.setHidden(True)
             icon = QtGui.QIcon()
-            icon.addPixmap(QtGui.QPixmap(":/down.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+            icon.addPixmap(
+                QtGui.QPixmap(":/down.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+            )
             self.toggle_filters_btn.setIcon(icon)
 
     def _scroll_tree(self, position):
@@ -141,11 +145,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             return
 
         try:
-            row = int(
-                position
-                / self.tree.verticalScrollBar().maximum()
-                * (count - 1)
-            )
+            row = int(position / self.tree.verticalScrollBar().maximum() * (count - 1))
         except:
             row = count - 1
         selected_item = self.tree.topLevelItem(row)
@@ -197,7 +197,9 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             if items:
                 item = items[0]
                 below = self.tree.itemBelow(item)
-                self.tree.scrollToItem(below, QtWidgets.QAbstractItemView.PositionAtBottom)
+                self.tree.scrollToItem(
+                    below, QtWidgets.QAbstractItemView.PositionAtBottom
+                )
                 try:
                     item = self.tree.itemAbove(below)
                     self.tree.setCurrentItem(item)
@@ -449,7 +451,12 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         column_types = ["u", *[df[name].dtype.kind for name in df.columns]]
         int_format = self.format_selection.currentText()
 
-        items = [TabularTreeItem(column_types, int_format, self.ranges, [str(e) for e in row]) for row in zip(*items)]
+        items = [
+            TabularTreeItem(
+                column_types, int_format, self.ranges, [str(e) for e in row]
+            )
+            for row in zip(*items)
+        ]
 
         self.tree.addTopLevelItems(items)
         self.update_header()
@@ -457,7 +464,9 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         self.tree.setSortingEnabled(self.sort.checkState() == QtCore.Qt.Checked)
 
         if items:
-            self.timestamp_changed_signal.emit(self, float(self._filtered_ts_series.iloc[max(0, position * 10 - 50)]))
+            self.timestamp_changed_signal.emit(
+                self, float(self._filtered_ts_series.iloc[max(0, position * 10 - 50)])
+            )
 
     def add_new_channels(self, signals, mime_data=None):
         index = pd.Series(np.arange(len(signals), dtype="u8"), index=signals.index)
@@ -539,7 +548,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         signals = signals[names]
 
         self.signals = pd.concat([self.signals, signals], axis=1)
-        
+
         self.build(self.signals, reset_header_names=True, ranges=ranges)
 
     def to_config(self):
@@ -551,8 +560,10 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             ranges = copy_ranges(pattern["ranges"])
 
             for range_info in ranges:
-                range_info['font_color'] = range_info['font_color'].color().name()
-                range_info['background_color'] = range_info['background_color'].color().name()
+                range_info["font_color"] = range_info["font_color"].color().name()
+                range_info["background_color"] = (
+                    range_info["background_color"].color().name()
+                )
 
             pattern["ranges"] = ranges
 
@@ -561,8 +572,10 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             channel_ranges = copy_ranges(channel_ranges)
 
             for range_info in channel_ranges:
-                range_info['font_color'] = range_info['font_color'].color().name()
-                range_info['background_color'] = range_info['background_color'].color().name()
+                range_info["font_color"] = range_info["font_color"].color().name()
+                range_info["background_color"] = (
+                    range_info["background_color"].color().name()
+                )
 
             ranges[name] = channel_ranges
 
@@ -580,7 +593,10 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             "pattern": pattern,
             "format": self.format,
             "ranges": ranges,
-            "header_sections_width": [self.tree.header().sectionSize(i) for i in range(self.tree.header().count())],
+            "header_sections_width": [
+                self.tree.header().sectionSize(i)
+                for i in range(self.tree.header().count())
+            ],
         }
 
         return config
@@ -769,7 +785,11 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         if not len(self._filtered_ts_series):
             return
 
-        if not (self._filtered_ts_series.iloc[0] <= stamp <= self._filtered_ts_series.iloc[-1]):
+        if not (
+            self._filtered_ts_series.iloc[0]
+            <= stamp
+            <= self._filtered_ts_series.iloc[-1]
+        ):
             return
 
         idx = self._filtered_ts_series.searchsorted(stamp, side="right") - 1
@@ -806,5 +826,3 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
                 ranges = dlg.result
                 self.ranges[index] = ranges
                 self._display()
-
-

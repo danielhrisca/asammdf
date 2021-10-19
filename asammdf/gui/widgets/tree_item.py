@@ -1,16 +1,27 @@
 # -*- coding: utf-8 -*-
 
-from PyQt5 import QtWidgets, QtGui, QtCore
-from ..utils import get_colors_using_ranges
-from traceback import format_exc
 from time import perf_counter
+from traceback import format_exc
+
+from PyQt5 import QtCore, QtGui, QtWidgets
+
+from ..utils import get_colors_using_ranges
 
 
 class TreeItem(QtWidgets.QTreeWidgetItem):
 
     __slots__ = "entry", "name", "mdf_uuid", "ranges"
 
-    def __init__(self, entry, name="", parent=None, strings=None, mdf_uuid=None, computation=None, ranges=None):
+    def __init__(
+        self,
+        entry,
+        name="",
+        parent=None,
+        strings=None,
+        mdf_uuid=None,
+        computation=None,
+        ranges=None,
+    ):
 
         super().__init__(parent, strings)
 
@@ -40,15 +51,15 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
             if other_value is None:
                 return False
 
-            if self_value.dtype.kind in 'fui':
+            if self_value.dtype.kind in "fui":
 
-                if other_value.dtype.kind in 'fui':
+                if other_value.dtype.kind in "fui":
                     return self_value < other_value
                 else:
                     return True
 
             else:
-                if other_value.dtype.kind in 'fui':
+                if other_value.dtype.kind in "fui":
                     return False
                 else:
                     return super().__lt__(other)
@@ -58,7 +69,7 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
 
     def __del__(self):
         self.entry = self.name = self.mdf_uuid = None
-        
+
     def check_signal_range(self, value=None):
         if value is None:
             value = self.text(1).strip()
@@ -66,19 +77,19 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
                 try:
                     value = float(value)
                 except:
-                    if value.startswith('0x'):
+                    if value.startswith("0x"):
                         try:
                             value = float(int(value, 16))
                         except:
                             pass
-                    elif value.startswith('0b'):
+                    elif value.startswith("0b"):
                         try:
                             value = float(int(value, 2))
                         except:
                             pass
             else:
                 value = None
-                
+
         default_background_color = self._back_ground_color
         default_font_color = self._font_color
 
@@ -88,7 +99,7 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
             default_background_color=default_background_color,
             default_font_color=default_font_color,
         )
-        
+
         if new_background_color is not default_background_color:
 
             self.setBackground(0, new_background_color)

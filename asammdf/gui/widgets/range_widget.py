@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtCore, QtWidgets, QtGui
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ..ui import resource_rc as resource_rc
 from ..ui.range_widget import Ui_RangeWidget
@@ -9,7 +9,19 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
     add_channels_request = QtCore.pyqtSignal(list)
     timestamp_changed_signal = QtCore.pyqtSignal(object, float)
 
-    def __init__(self, name, value1="", op1='==', value2="", op2="==", font_color="#ff0000", background_color="#00ff00", brush=False, *args, **kwargs):
+    def __init__(
+        self,
+        name,
+        value1="",
+        op1="==",
+        value2="",
+        op2="==",
+        font_color="#ff0000",
+        background_color="#00ff00",
+        brush=False,
+        *args,
+        **kwargs,
+    ):
         super(QtWidgets.QWidget, self).__init__(*args, **kwargs)
         self.setupUi(self)
         self._settings = QtCore.QSettings()
@@ -37,7 +49,7 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
             font_color = font_color.name()
         elif isinstance(font_color, QtGui.QBrush):
             font_color = font_color.color().name()
-            
+
         if isinstance(background_color, QtGui.QColor):
             background_color = background_color.name()
         elif isinstance(background_color, QtGui.QBrush):
@@ -51,8 +63,12 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
         self.font_color = font_color
         self.background_color = background_color
 
-        self.name.setStyleSheet(f"background-color: {background_color}; color: {font_color};")
-        self.background_color_btn.setStyleSheet(f"background-color: {background_color};")
+        self.name.setStyleSheet(
+            f"background-color: {background_color}; color: {font_color};"
+        )
+        self.background_color_btn.setStyleSheet(
+            f"background-color: {background_color};"
+        )
         self.font_color_btn.setStyleSheet(f"background-color: {font_color};")
 
     def value1_changed(self, text):
@@ -74,7 +90,9 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
             color = color.name()
             self.background_color = color
             self.background_color_btn.setStyleSheet(f"background-color: {color};")
-            self.name.setStyleSheet(f"background-color: {self.background_color}; color: {self.font_color};")
+            self.name.setStyleSheet(
+                f"background-color: {self.background_color}; color: {self.font_color};"
+            )
 
     def select_font_color(self, event=None):
         color = self.font_color_btn.palette().button().color()
@@ -83,7 +101,9 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
             color = color.name()
             self.font_color = color
             self.font_color_btn.setStyleSheet(f"background-color: {color};")
-            self.name.setStyleSheet(f"background-color: {self.background_color}; color: {self.font_color};")
+            self.name.setStyleSheet(
+                f"background-color: {self.background_color}; color: {self.font_color};"
+            )
 
     def to_dict(self, brush=False):
         value1 = self.value1.text().strip()
@@ -91,12 +111,12 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
             try:
                 value1 = float(value1)
             except:
-                if value1.startswith('0x'):
+                if value1.startswith("0x"):
                     try:
                         value1 = float(int(value1, 16))
                     except:
                         pass
-                elif value1.startswith('0b'):
+                elif value1.startswith("0b"):
                     try:
                         value1 = float(int(value1, 2))
                     except:
@@ -110,12 +130,12 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
             try:
                 value2 = float(value2)
             except:
-                if value2.startswith('0x'):
+                if value2.startswith("0x"):
                     try:
                         value2 = float(int(value2, 16))
                     except:
                         pass
-                elif value2.startswith('0b'):
+                elif value2.startswith("0b"):
                     try:
                         value2 = float(int(value2, 2))
                     except:
