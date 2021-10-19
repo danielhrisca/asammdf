@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 """ ASAM MDF version 3 file format module """
 
+from __future__ import annotations
+
 from collections import defaultdict
+from collections.abc import Iterator, Sequence
 from copy import deepcopy
+from io import BufferedReader, BytesIO
 from itertools import product
 import logging
 from math import ceil
@@ -12,6 +16,7 @@ from pathlib import Path
 import sys
 from tempfile import TemporaryFile
 import time
+from typing import Any
 import xml.etree.ElementTree as ET
 
 from numpy import (
@@ -32,10 +37,21 @@ from numpy import (
 )
 from numpy.core.defchararray import decode, encode
 from numpy.core.records import fromarrays, fromstring
+from numpy.typing import NDArray
 from pandas import DataFrame
+from typing_extensions import TypedDict
 
 from . import v2_v3_constants as v23c
 from ..signal import Signal
+from ..types import (
+    ChannelsType,
+    CompressionType,
+    FloatInterpolationModeType,
+    IntInterpolationModeType,
+    MDF_v2_v3_v4,
+    RasterType,
+    StrPathType,
+)
 from ..version import __version__
 from .conversion_utils import conversion_transfer
 from .mdf_common import MDF_Common
@@ -73,6 +89,15 @@ from .v2_v3_blocks import (
 logger = logging.getLogger("asammdf")
 
 __all__ = ["MDF3"]
+
+
+class TriggerInfoDict(TypedDict):
+    comment: str
+    index: int
+    group: int
+    time: float
+    pre_time: float
+    post_time: float
 
 
 class MDF3(MDF_Common):
@@ -146,7 +171,13 @@ class MDF3(MDF_Common):
 
     _terminate = False
 
-    def __init__(self, name=None, version="3.30", channels=None, **kwargs):
+    def __init__(
+        self,
+        name: BufferedReader | BytesIO | StrPathType | None = None,
+        version: str = "3.30",
+        channels: list[str] | None = None,
+        **kwargs,
+    ) -> None:
         self._kwargs = kwargs
         self.original_name = kwargs["original_name"]
         if channels is None:
@@ -241,10 +272,16 @@ class MDF3(MDF_Common):
 
         self._parent = None
 
-    def __del__(self):
+    def __del__(self) -> None:
         self.close()
 
-    def _load_data(self, group, record_offset=0, record_count=None, optimize_read=True):
+    def _load_data(
+        self,
+        group: Group,
+        record_offset: int = 0,
+        record_count: int | None = None,
+        optimize_read: bool = True,
+    ) -> Iterator[tuple[bytes, int, int | None]]:
         """get group's data block bytes"""
         has_yielded = False
         offset = 0
@@ -394,7 +431,9 @@ class MDF3(MDF_Common):
         if not has_yielded:
             yield b"", 0, _count
 
-    def _prepare_record(self, group):
+    def _prepare_record(
+        self, group: Group
+    ) -> tuple[dict[int, tuple[str, int]], dtype[Any]]:
         """compute record dtype and parents dict for this group
 
         Parameters
@@ -578,7 +617,9 @@ class MDF3(MDF_Common):
 
         return parents, dtypes
 
-    def _get_not_byte_aligned_data(self, data, group, ch_nr):
+    def _get_not_byte_aligned_data(
+        self, data: bytes, group: Group, ch_nr: int
+    ) -> NDArray[Any]:
         big_endian_types = (
             v23c.DATA_TYPE_UNSIGNED_MOTOROLA,
             v23c.DATA_TYPE_FLOAT_MOTOROLA,
@@ -677,7 +718,7 @@ class MDF3(MDF_Common):
         else:
             return vals
 
-    def _read(self, mapped=False):
+    def _read(self, mapped: bool = False) -> None:
         stream = self._file
         filter_channels = self.use_load_filter
 
@@ -964,8 +1005,12 @@ class MDF3(MDF_Common):
                         dep.referenced_channels.append(channel)
 
     def _filter_occurrences(
-        self, occurrences, source_name=None, source_path=None, acq_name=None
-    ):
+        self,
+        occurrences: Sequence[tuple[int, int]],
+        source_name: str | None = None,
+        source_path: str | None = None,
+        acq_name: str | None = None,
+    ) -> Iterator[tuple[int, int]]:
         if source_name is not None:
             occurrences = (
                 (gp_idx, cn_idx)
@@ -991,16 +1036,16 @@ class MDF3(MDF_Common):
     def configure(
         self,
         *,
-        from_other=None,
-        read_fragment_size=None,
-        write_fragment_size=None,
-        use_display_names=None,
-        single_bit_uint_as_bool=None,
-        integer_interpolation=None,
-        copy_on_get=None,
-        float_interpolation=None,
-        raise_on_multiple_occurrences=None,
-    ):
+        from_other: MDF_v2_v3_v4 | None = None,
+        read_fragment_size: int | None = None,
+        write_fragment_size: int | None = None,
+        use_display_names: bool | None = None,
+        single_bit_uint_as_bool: bool | None = None,
+        integer_interpolation: IntInterpolationModeType | None = None,
+        copy_on_get: bool | None = None,
+        float_interpolation: FloatInterpolationModeType | None = None,
+        raise_on_multiple_occurrences: bool | None = None,
+    ) -> None:
         """configure MDF parameters
 
         The default values for the options are the following:
@@ -1100,7 +1145,14 @@ class MDF3(MDF_Common):
         if raise_on_multiple_occurrences is not None:
             self._raise_on_multiple_occurrences = bool(raise_on_multiple_occurrences)
 
-    def add_trigger(self, group, timestamp, pre_time=0, post_time=0, comment=""):
+    def add_trigger(
+        self,
+        group: int,
+        timestamp: float,
+        pre_time: float = 0,
+        post_time: float = 0,
+        comment: str = "",
+    ) -> None:
         """add trigger to data group
 
         Parameters
@@ -1179,13 +1231,13 @@ class MDF3(MDF_Common):
 
     def append(
         self,
-        signals,
-        acq_name=None,
-        acq_source=None,
-        comment="Python",
-        common_timebase=False,
-        units=None,
-    ):
+        signals: list[Signal] | Signal | DataFrame,
+        acq_name: str | None = None,
+        acq_source: Source | None = None,
+        comment: str = "Python",
+        common_timebase: bool = False,
+        units: dict[str, str | bytes] | None = None,
+    ) -> int | None:
         """Appends a new data group.
 
         For channel dependencies type Signals, the *samples* attribute must be
@@ -2108,7 +2160,12 @@ class MDF3(MDF_Common):
 
         return dg_cntr
 
-    def _append_dataframe(self, df, comment="", units=None):
+    def _append_dataframe(
+        self,
+        df: DataFrame,
+        comment: str = "",
+        units: dict[str, str | bytes] | None = None,
+    ) -> None:
         """
         Appends a new data group from a Pandas data frame.
         """
@@ -2347,7 +2404,7 @@ class MDF3(MDF_Common):
         # data group trigger
         gp.trigger = None
 
-    def close(self):
+    def close(self) -> None:
         """if the MDF was created with memory='minimum' and new
         channels have been appended, then this must be called just before the
         object is not used anymore to clean-up the temporary file
@@ -2382,7 +2439,7 @@ class MDF3(MDF_Common):
         self._si_map.clear()
         self._cc_map.clear()
 
-    def extend(self, index, signals):
+    def extend(self, index: int, signals: list[tuple[NDArray[Any], None]]) -> None:
         """
         Extend a group with new samples. *signals* contains (values, invalidation_bits)
         pairs for each extended signal. Since MDF3 does not support invalidation
@@ -2560,7 +2617,7 @@ class MDF3(MDF_Common):
         virtual_channel_group = self.virtual_groups[index]
         virtual_channel_group.cycles_nr += cycles_nr
 
-    def get_channel_name(self, group, index):
+    def get_channel_name(self, group: int, index: int) -> str:
         """Gets channel name.
 
         Parameters
@@ -2588,7 +2645,12 @@ class MDF3(MDF_Common):
 
         return channel.name
 
-    def get_channel_metadata(self, name=None, group=None, index=None):
+    def get_channel_metadata(
+        self,
+        name: str | None = None,
+        group: int | None = None,
+        index: int | None = None,
+    ) -> Channel:
         gp_nr, ch_nr = self._validate_channel_selection(name, group, index)
 
         grp = self.groups[gp_nr]
@@ -2603,7 +2665,12 @@ class MDF3(MDF_Common):
 
         return channel
 
-    def get_channel_unit(self, name=None, group=None, index=None):
+    def get_channel_unit(
+        self,
+        name: str | None = None,
+        group: int | None = None,
+        index: int | None = None,
+    ) -> str:
         """Gets channel unit.
 
         Channel can be specified in two ways:
@@ -2656,7 +2723,12 @@ class MDF3(MDF_Common):
 
         return unit
 
-    def get_channel_comment(self, name=None, group=None, index=None):
+    def get_channel_comment(
+        self,
+        name: str | None = None,
+        group: int | None = None,
+        index: int | None = None,
+    ) -> str:
         """Gets channel comment.
         Channel can be specified in two ways:
 
@@ -2705,18 +2777,18 @@ class MDF3(MDF_Common):
 
     def get(
         self,
-        name=None,
-        group=None,
-        index=None,
-        raster=None,
-        samples_only=False,
-        data=None,
-        raw=False,
-        ignore_invalidation_bits=False,
-        record_offset=0,
-        record_count=None,
-        skip_channel_validation=False,
-    ):
+        name: str | None = None,
+        group: int | None = None,
+        index: int | None = None,
+        raster: RasterType | None = None,
+        samples_only: bool = False,
+        data: bytes | None = None,
+        raw: bool = False,
+        ignore_invalidation_bits: bool = False,
+        record_offset: int = 0,
+        record_count: int | None = None,
+        skip_channel_validation: bool = False,
+    ) -> Signal | tuple[NDArray[Any], None]:
         """Gets channel samples.
         Channel can be specified in two ways:
 
@@ -3150,13 +3222,13 @@ class MDF3(MDF_Common):
 
     def get_master(
         self,
-        index,
-        data=None,
-        raster=None,
-        record_offset=0,
-        record_count=None,
-        one_piece=False,
-    ):
+        index: int,
+        data: bytes | None = None,
+        raster: RasterType | None = None,
+        record_offset: int = 0,
+        record_count: int | None = None,
+        one_piece: bool = False,
+    ) -> NDArray[Any]:
         """returns master channel samples for given group
 
         Parameters
@@ -3323,7 +3395,7 @@ class MDF3(MDF_Common):
 
         return timestamps.copy()
 
-    def iter_get_triggers(self):
+    def iter_get_triggers(self) -> TriggerInfoDict:
         """generator that yields triggers
 
         Returns
@@ -3353,7 +3425,7 @@ class MDF3(MDF_Common):
                     }
                     yield trigger_info
 
-    def info(self):
+    def info(self) -> dict[str, Any]:
         """get MDF information as a dict
 
         Examples
@@ -3389,7 +3461,12 @@ class MDF3(MDF_Common):
 
         return info
 
-    def save(self, dst, overwrite=False, compression=0):
+    def save(
+        self,
+        dst: StrPathType,
+        overwrite: bool = False,
+        compression: CompressionType = 0,
+    ) -> Path | None:
         """Save MDF to *dst*. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appended with '.<cntr>',
         were '<cntr>' is the first counter that produces a new file name (that
@@ -3656,7 +3733,7 @@ class MDF3(MDF_Common):
 
         return dst
 
-    def _sort(self):
+    def _sort(self) -> None:
         if self._file is None:
             return
         common = defaultdict(list)
@@ -3736,8 +3813,12 @@ class MDF3(MDF_Common):
                 group.sorted = True
 
     def included_channels(
-        self, index=None, channels=None, skip_master=True, minimal=True
-    ):
+        self,
+        index: int | None = None,
+        channels: ChannelsType | None = None,
+        skip_master: bool = True,
+        minimal: bool = True,
+    ) -> dict[int, dict[int, Sequence[int]]]:
 
         if channels is None:
             group = self.groups[index]
@@ -3813,13 +3894,13 @@ class MDF3(MDF_Common):
 
     def _yield_selected_signals(
         self,
-        index,
-        groups=None,
-        record_offset=0,
-        record_count=None,
-        skip_master=True,
-        version="4.20",
-    ):
+        index: int,
+        groups: dict[int, Sequence[int]] | None = None,
+        record_offset: int = 0,
+        record_count: int | None = None,
+        skip_master: bool = True,
+        version: str = "4.20",
+    ) -> Iterator[Signal | tuple[NDArray[Any], None]]:
 
         if groups is None:
             groups = self.included_channels(index)[index]

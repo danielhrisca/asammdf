@@ -1,8 +1,11 @@
 # -*- coding: utf-8 -*-
 """ common MDF file format module """
 
+from __future__ import annotations
+
 import bz2
 from collections import defaultdict, OrderedDict
+from collections.abc import Iterable, Iterator, Sequence
 from copy import deepcopy
 import csv
 from datetime import datetime, timezone
@@ -17,12 +20,16 @@ from struct import unpack
 import sys
 from tempfile import gettempdir, mkdtemp
 from traceback import format_exc
+from types import TracebackType
+from typing import Any, Type
 import xml.etree.ElementTree as ET
 import zipfile
 
 from canmatrix import CanMatrix
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
+from typing_extensions import Literal
 
 from .blocks import v2_v3_constants as v23c
 from .blocks import v4_constants as v4c
@@ -60,6 +67,18 @@ from .blocks.v4_blocks import EventBlock, FileHistory, FileIdentificationBlock
 from .blocks.v4_blocks import HeaderBlock as HeaderV4
 from .blocks.v4_blocks import SourceInformation
 from .signal import Signal
+from .types import (
+    BusType,
+    ChannelGroupType,
+    ChannelsType,
+    DbcFileType,
+    EmptyChannelsType,
+    InputType,
+    RasterType,
+    ReadableBufferType,
+    StrOrBytesPathType,
+    StrPathType,
+)
 from .version import __version__
 
 logger = logging.getLogger("asammdf")
@@ -72,7 +91,9 @@ target_byte_order = "<=" if sys.byteorder == "little" else ">="
 __all__ = ["MDF", "SUPPORTED_VERSIONS"]
 
 
-def get_measurement_timestamp_and_version(mdf):
+def get_measurement_timestamp_and_version(
+    mdf: ReadableBufferType,
+) -> tuple[datetime, str]:
     id_block = FileIdentificationBlock(address=0, stream=mdf)
 
     version = id_block.mdf_version
@@ -88,18 +109,18 @@ def get_measurement_timestamp_and_version(mdf):
     return header.start_time, version
 
 
-def get_temporary_filename(name="temporary.mf4"):
+def get_temporary_filename(path: Path = Path("temporary.mf4")) -> Path:
     folder = gettempdir()
-    mf4_name = Path(name).with_suffix(".mf4")
+    mf4_path = path.with_suffix(".mf4")
     idx = 0
     while True:
-        tmp_name = (Path(folder) / mf4_name.name).with_suffix(f".{idx}.mf4")
-        if not tmp_name.exists():
+        tmp_path = (Path(folder) / mf4_path.name).with_suffix(f".{idx}.mf4")
+        if not tmp_path.exists():
             break
         else:
             idx += 1
 
-    return tmp_name
+    return tmp_path
 
 
 class MDF:
@@ -168,7 +189,13 @@ class MDF:
 
     _terminate = False
 
-    def __init__(self, name=None, version="4.10", channels=None, **kwargs):
+    def __init__(
+        self,
+        name: InputType | None = None,
+        version: str = "4.10",
+        channels: list[str] | None = None,
+        **kwargs,
+    ) -> None:
         self._mdf = None
 
         if name:
@@ -270,22 +297,27 @@ class MDF:
         # MDF(filename).convert('4.10')
         self._mdf._parent = self
 
-    def __setattr__(self, item, value):
+    def __setattr__(self, item: str, value: Any) -> None:
         if item == "_mdf":
             super().__setattr__(item, value)
         else:
             setattr(self._mdf, item, value)
 
-    def __getattr__(self, item):
+    def __getattr__(self, item: str) -> Any:
         return getattr(self._mdf, item)
 
-    def __dir__(self):
+    def __dir__(self) -> list[str]:
         return sorted(set(super().__dir__()) | set(dir(self._mdf)))
 
-    def __enter__(self):
+    def __enter__(self) -> MDF:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> bool | None:
         if self._mdf is not None:
             try:
                 self.close()
@@ -293,8 +325,7 @@ class MDF:
                 pass
         self._mdf = None
 
-    def __del__(self):
-
+    def __del__(self) -> None:
         if self._mdf is not None:
             try:
                 self.close()
@@ -302,7 +333,7 @@ class MDF:
                 pass
         self._mdf = None
 
-    def __lt__(self, other):
+    def __lt__(self, other: MDF) -> bool:
         if self.header.start_time < other.header.start_time:
             return True
         elif self.header.start_time > other.header.start_time:
@@ -330,7 +361,7 @@ class MDF:
             else:
                 return min(t_min) < min(other_t_min)
 
-    def _transfer_events(self, other):
+    def _transfer_events(self, other: MDF) -> None:
         def get_scopes(event, events):
             if event.scopes:
                 return event.scopes
@@ -490,7 +521,7 @@ class MDF:
                     event.scopes.append(group)
                     self.events.append(event)
 
-    def _transfer_header_data(self, other, message=""):
+    def _transfer_header_data(self, other: MDF, message: str = "") -> None:
         self.header.author = other.header.author
         self.header.department = other.header.department
         self.header.project = other.header.project
@@ -508,7 +539,9 @@ class MDF:
             self.file_history = [fh]
 
     @staticmethod
-    def _transfer_channel_group_data(sgroup, ogroup):
+    def _transfer_channel_group_data(
+        sgroup: ChannelGroupType, ogroup: ChannelGroupType
+    ) -> None:
         if not hasattr(sgroup, "acq_name") or not hasattr(ogroup, "acq_name"):
             sgroup.comment = ogroup.comment
         else:
@@ -521,22 +554,22 @@ class MDF:
             if acq_source:
                 sgroup.acq_source = acq_source.copy()
 
-    def _transfer_metadata(self, other, message=""):
+    def _transfer_metadata(self, other: MDF, message: str = "") -> None:
         self._transfer_events(other)
         self._transfer_header_data(other, message)
 
-    def __contains__(self, channel):
+    def __contains__(self, channel: str) -> bool:
         """if *'channel name'* in *'mdf file'*"""
         return channel in self.channels_db
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Signal]:
         """iterate over all the channels found in the file; master channels
         are skipped from iteration
 
         """
         yield from self.iter_channels()
 
-    def convert(self, version):
+    def convert(self, version: str) -> MDF:
         """convert *MDF* to other version
 
         Parameters
@@ -607,13 +640,13 @@ class MDF:
 
     def cut(
         self,
-        start=None,
-        stop=None,
-        whence=0,
-        version=None,
-        include_ends=True,
-        time_from_zero=False,
-    ):
+        start: float | None = None,
+        stop: float | None = None,
+        whence: int = 0,
+        version: str | None = None,
+        include_ends: bool = True,
+        time_from_zero: bool = False,
+    ) -> MDF:
         """cut *MDF* file. *start* and *stop* limits are absolute values
         or values relative to the first timestamp depending on the *whence*
         argument.
@@ -880,7 +913,12 @@ class MDF:
             out._callback = out._mdf._callback = self._callback
         return out
 
-    def export(self, fmt, filename=None, **kwargs):
+    def export(
+        self,
+        fmt: Literal["csv", "hdf5", "mat", "parquet"],
+        filename: StrPathType | None = None,
+        **kwargs,
+    ) -> None:
         r"""export *MDF* to other formats. The *MDF* file name is used is
         available, else the *filename* argument must be provided.
 
@@ -1565,7 +1603,7 @@ class MDF:
             message.format(fmt)
             logger.warning(message)
 
-    def filter(self, channels, version=None):
+    def filter(self, channels: ChannelsType, version: str | None = None) -> MDF:
         """return new *MDF* object that contains only the channels listed in
         *channels* argument
 
@@ -1703,13 +1741,13 @@ class MDF:
 
     def iter_get(
         self,
-        name=None,
-        group=None,
-        index=None,
-        raster=None,
-        samples_only=False,
-        raw=False,
-    ):
+        name: str | None = None,
+        group: int | None = None,
+        index: int | None = None,
+        raster: float | None = None,
+        samples_only: bool = False,
+        raw: bool = False,
+    ) -> Signal | tuple[NDArray[Any], NDArray[Any] | None]:
         """iterator over a channel
 
         This is usefull in case of large files with a small number of channels.
@@ -1754,13 +1792,13 @@ class MDF:
 
     @staticmethod
     def concatenate(
-        files,
-        version="4.10",
-        sync=True,
-        add_samples_origin=False,
-        direct_timestamp_continuation=False,
+        files: Sequence[MDF | InputType],
+        version: str = "4.10",
+        sync: bool = True,
+        add_samples_origin: bool = False,
+        direct_timestamp_continuation: bool = False,
         **kwargs,
-    ):
+    ) -> MDF:
         """concatenates several files. The files
         must have the same internal structure (same number of groups, and same
         channels in each group).
@@ -2091,7 +2129,12 @@ class MDF:
         return merged
 
     @staticmethod
-    def stack(files, version="4.10", sync=True, **kwargs):
+    def stack(
+        files: Sequence[MDF | InputType],
+        version: str = "4.10",
+        sync: bool = True,
+        **kwargs,
+    ) -> MDF:
         """stack several files and return the stacked *MDF* object
 
         Parameters
@@ -2265,7 +2308,9 @@ class MDF:
 
         return stacked
 
-    def iter_channels(self, skip_master=True, copy_master=True):
+    def iter_channels(
+        self, skip_master: bool = True, copy_master: bool = True
+    ) -> Iterator[Signal]:
         """generator that yields a *Signal* for each non-master channel
 
         Parameters
@@ -2293,17 +2338,17 @@ class MDF:
 
     def iter_groups(
         self,
-        raster=None,
-        time_from_zero=True,
-        empty_channels="skip",
-        keep_arrays=False,
-        use_display_names=False,
-        time_as_date=False,
-        reduce_memory_usage=False,
-        raw=False,
-        ignore_value2text_conversions=False,
-        only_basenames=False,
-    ):
+        raster: RasterType | None = None,
+        time_from_zero: bool = True,
+        empty_channels: EmptyChannelsType = "skip",
+        keep_arrays: bool = False,
+        use_display_names: bool = False,
+        time_as_date: bool = False,
+        reduce_memory_usage: bool = False,
+        raw: bool = False,
+        ignore_value2text_conversions: bool = False,
+        only_basenames: bool = False,
+    ) -> pd.DataFrame:
         """generator that yields channel groups as pandas DataFrames. If there
         are multiple occurrences for the same channel name inside a channel
         group, then a counter will be used to make the names unique
@@ -2384,7 +2429,12 @@ class MDF:
                 only_basenames=only_basenames,
             )
 
-    def resample(self, raster, version=None, time_from_zero=False):
+    def resample(
+        self,
+        raster: RasterType,
+        version: str | None = None,
+        time_from_zero: bool = False,
+    ) -> MDF:
         """resample all channels using the given raster. See *configure* to select
         the interpolation method for interger channels
 
@@ -2621,14 +2671,14 @@ class MDF:
 
     def select(
         self,
-        channels,
-        record_offset=0,
-        raw=False,
-        copy_master=True,
-        ignore_value2text_conversions=False,
-        record_count=None,
-        validate=False,
-    ):
+        channels: ChannelsType,
+        record_offset: int = 0,
+        raw: bool = False,
+        copy_master: bool = True,
+        ignore_value2text_conversions: bool = False,
+        record_count: int | None = None,
+        validate: bool = False,
+    ) -> list[Signal]:
         """retrieve the channels listed in *channels* argument as *Signal*
         objects
 
@@ -2822,7 +2872,7 @@ class MDF:
         return signals
 
     @staticmethod
-    def scramble(name, skip_attachments=False, **kwargs):
+    def scramble(name: StrPathType, skip_attachments: bool = False, **kwargs) -> Path:
         """scramble text blocks and keep original file structure
 
         Parameters
@@ -2836,7 +2886,7 @@ class MDF:
 
         Returns
         -------
-        name : str
+        name : pathlib.Path
             scrambled file name
 
         """
@@ -3107,12 +3157,12 @@ class MDF:
         return dst
 
     @staticmethod
-    def _fallback_scramble_mf4(name):
+    def _fallback_scramble_mf4(name: StrOrBytesPathType) -> dict[int, bytes]:
         """scramble text blocks and keep original file structure
 
         Parameters
         ----------
-        name : str | pathlib.Path
+        name : pathlib.Path
             file name
 
         Returns
@@ -3121,8 +3171,6 @@ class MDF:
             scrambled file name
 
         """
-
-        name = Path(name)
 
         pattern = re.compile(
             rb"(?P<block>##(TX|MD))",
@@ -3151,19 +3199,18 @@ class MDF:
 
     def get_group(
         self,
-        index,
-        channels=None,
-        raster=None,
-        time_from_zero=True,
-        empty_channels="skip",
-        keep_arrays=False,
-        use_display_names=False,
-        time_as_date=False,
-        reduce_memory_usage=False,
-        raw=False,
-        ignore_value2text_conversions=False,
-        only_basenames=False,
-    ):
+        index: int,
+        raster: RasterType | None = None,
+        time_from_zero: bool = True,
+        empty_channels: EmptyChannelsType = "skip",
+        keep_arrays: bool = False,
+        use_display_names: bool = False,
+        time_as_date: bool = False,
+        reduce_memory_usage: bool = False,
+        raw: bool = False,
+        ignore_value2text_conversions: bool = False,
+        only_basenames: bool = False,
+    ) -> pd.DataFrame:
         """get channel group as pandas DataFrames. If there are multiple
         occurrences for the same channel name, then a counter will be used to
         make the names unique (<original_name>_<counter>)
@@ -3249,22 +3296,22 @@ class MDF:
 
     def iter_to_dataframe(
         self,
-        channels=None,
-        raster=None,
-        time_from_zero=True,
-        empty_channels="skip",
-        keep_arrays=False,
-        use_display_names=False,
-        time_as_date=False,
-        reduce_memory_usage=False,
-        raw=False,
-        ignore_value2text_conversions=False,
-        use_interpolation=True,
-        only_basenames=False,
-        chunk_ram_size=200 * 1024 * 1024,
-        interpolate_outwards_with_nan=False,
-        numeric_1D_only=False,
-    ):
+        channels: ChannelsType | None = None,
+        raster: RasterType | None = None,
+        time_from_zero: bool = True,
+        empty_channels: EmptyChannelsType = "skip",
+        keep_arrays: bool = False,
+        use_display_names: bool = False,
+        time_as_date: bool = False,
+        reduce_memory_usage: bool = False,
+        raw: bool = False,
+        ignore_value2text_conversions: bool = False,
+        use_interpolation: bool = True,
+        only_basenames: bool = False,
+        chunk_ram_size: int = 200 * 1024 * 1024,
+        interpolate_outwards_with_nan: bool = False,
+        numeric_1D_only: bool = False,
+    ) -> Iterator[pd.DataFrame]:
         """generator that yields pandas DataFrame's that should not exceed
         200MB of RAM
 
@@ -3668,21 +3715,21 @@ class MDF:
 
     def to_dataframe(
         self,
-        channels=None,
-        raster=None,
-        time_from_zero=True,
-        empty_channels="skip",
-        keep_arrays=False,
-        use_display_names=False,
-        time_as_date=False,
-        reduce_memory_usage=False,
-        raw=False,
-        ignore_value2text_conversions=False,
-        use_interpolation=True,
-        only_basenames=False,
-        interpolate_outwards_with_nan=False,
-        numeric_1D_only=False,
-    ):
+        channels: ChannelsType | None = None,
+        raster: RasterType | None = None,
+        time_from_zero: bool = True,
+        empty_channels: EmptyChannelsType = "skip",
+        keep_arrays: bool = False,
+        use_display_names: bool = False,
+        time_as_date: bool = False,
+        reduce_memory_usage: bool = False,
+        raw: bool = False,
+        ignore_value2text_conversions: bool = False,
+        use_interpolation: bool = True,
+        only_basenames: bool = False,
+        interpolate_outwards_with_nan: bool = False,
+        numeric_1D_only: bool = False,
+    ) -> pd.DataFrame:
         """generate pandas DataFrame
 
         Parameters
@@ -4046,13 +4093,13 @@ class MDF:
 
     def extract_bus_logging(
         self,
-        database_files,
-        version=None,
-        ignore_invalid_signals=False,
-        consolidated_j1939=True,
-        ignore_value2text_conversion=True,
-        prefix="",
-    ):
+        database_files: dict[BusType, Iterable[DbcFileType]],
+        version: str | None = None,
+        ignore_invalid_signals: bool = False,
+        consolidated_j1939: bool = True,
+        ignore_value2text_conversion: bool = True,
+        prefix: str = "",
+    ) -> MDF:
         """extract all possible CAN signal using the provided databases.
 
         Changed in version 6.0.0 from `extract_can_logging`
@@ -4159,13 +4206,13 @@ class MDF:
 
     def _extract_can_logging(
         self,
-        output_file,
-        dbc_files,
-        ignore_invalid_signals=False,
-        consolidated_j1939=True,
-        ignore_value2text_conversion=True,
-        prefix="",
-    ):
+        output_file: MDF,
+        dbc_files: Iterable[DbcFileType],
+        ignore_invalid_signals: bool = False,
+        consolidated_j1939: bool = True,
+        ignore_value2text_conversion: bool = True,
+        prefix: str = "",
+    ) -> MDF:
 
         out = output_file
 
@@ -4469,12 +4516,12 @@ class MDF:
 
     def _extract_lin_logging(
         self,
-        output_file,
-        dbc_files,
-        ignore_invalid_signals=False,
-        ignore_value2text_conversion=True,
-        prefix="",
-    ):
+        output_file: MDF,
+        dbc_files: Iterable[DbcFileType],
+        ignore_invalid_signals: bool = False,
+        ignore_value2text_conversion: bool = True,
+        prefix: str = "",
+    ) -> MDF:
 
         out = output_file
 
@@ -4746,7 +4793,7 @@ class MDF:
         return out
 
     @property
-    def start_time(self):
+    def start_time(self) -> datetime:
         """getter and setter the measurement start timestamp
 
         Returns
@@ -4759,12 +4806,17 @@ class MDF:
         return self.header.start_time
 
     @start_time.setter
-    def start_time(self, timestamp):
+    def start_time(self, timestamp: datetime) -> None:
         self.header.start_time = timestamp
 
     def cleanup_timestamps(
-        self, minimum, maximum, exp_min=-15, exp_max=15, version=None
-    ):
+        self,
+        minimum: float,
+        maximum: float,
+        exp_min: int = -15,
+        exp_max: int = 15,
+        version: str | None = None,
+    ) -> MDF:
         """convert *MDF* to other version
 
         .. versionadded:: 5.22.0
@@ -4873,7 +4925,13 @@ class MDF:
             out._callback = out._mdf._callback = self._callback
         return out
 
-    def whereis(self, channel, source_name=None, source_path=None, acq_name=None):
+    def whereis(
+        self,
+        channel: str,
+        source_name: str | None = None,
+        source_path: str | None = None,
+        acq_name: str | None = None,
+    ) -> tuple[tuple[int, int], ...]:
         """get occurrences of channel name in the file
 
         Parameters

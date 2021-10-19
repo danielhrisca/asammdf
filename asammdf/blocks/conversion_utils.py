@@ -3,15 +3,22 @@
 asammdf utility functions for channel conversions
 """
 
+from __future__ import annotations
+
+from typing import Any
+
 from . import v2_v3_blocks as v3b
 from . import v2_v3_constants as v3c
 from . import v4_blocks as v4b
 from . import v4_constants as v4c
+from ..types import ChannelConversionType
 
 __all__ = ["conversion_transfer", "from_dict"]
 
 
-def conversion_transfer(conversion, version=3):
+def conversion_transfer(
+    conversion: ChannelConversionType, version: int = 3
+) -> ChannelConversionType:
     """convert between mdf4 and mdf3 channel conversions
 
     Parameters
@@ -281,7 +288,7 @@ def conversion_transfer(conversion, version=3):
     return conversion
 
 
-def from_dict(conversion):
+def from_dict(conversion: dict[str, Any]) -> v4b.ChannelConversion:
     if not conversion:
         conversion = None
 
