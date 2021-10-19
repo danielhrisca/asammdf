@@ -989,7 +989,7 @@ def is_file_like(obj: object) -> bool:
 
 
 class UniqueDB(object):
-    def __init__(self):
+    def __init__(self) -> None:
         self._db = {}
 
     def get_unique_name(self, name: str) -> str:
@@ -1136,7 +1136,7 @@ class Group:
     def __getitem__(self, item: str) -> Any:
         return self.__getattribute__(item)
 
-    def __setitem__(self, item: str, value: Any) -> str:
+    def __setitem__(self, item: str, value: Any) -> None:
         self.__setattr__(item, value)
 
     def set_blocks_info(self, info: list[DataBlockInfo]) -> None:
