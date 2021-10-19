@@ -35,10 +35,10 @@ else:
 
 
 class MyList(list):
-    """ list that prints the items that are appended or extended """
+    """list that prints the items that are appended or extended"""
 
     def append(self, item):
-        """ append item and print it to stdout """
+        """append item and print it to stdout"""
         print(item)
         super(MyList, self).append(item)
 

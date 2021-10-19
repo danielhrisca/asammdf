@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from PyQt5 import QtCore, QtGui, QtWidgets
 import numpy as np
+from PyQt5 import QtCore, QtGui, QtWidgets
+import scipy.signal as scipy_signal
 
 from ..ui import resource_rc as resource_rc
 from ..ui.fft_window import Ui_FFTWindow
 from .plot import Plot, PlotSignal, Signal
-import scipy.signal as scipy_signal
 
 
 class FFTWindow(Ui_FFTWindow, QtWidgets.QMainWindow):
@@ -20,7 +20,7 @@ class FFTWindow(Ui_FFTWindow, QtWidgets.QMainWindow):
         self.signal = signal
 
         self.signal_plot = Plot([], self.with_dots)
-        self.fft_plot = Plot([], self.with_dots, x_axis='frequency')
+        self.fft_plot = Plot([], self.with_dots, x_axis="frequency")
 
         layout = self.layout
         layout.addWidget(self.signal_plot)
@@ -35,7 +35,7 @@ class FFTWindow(Ui_FFTWindow, QtWidgets.QMainWindow):
         self.end_frequency.valueChanged.connect(self.update)
         self.frequency_step.valueChanged.connect(self.update)
 
-        self.setWindowTitle(f'{self.signal.name} FFT using Lomb-Scargle periodogram')
+        self.setWindowTitle(f"{self.signal.name} FFT using Lomb-Scargle periodogram")
 
         self.update(initial=True)
 
@@ -59,13 +59,11 @@ class FFTWindow(Ui_FFTWindow, QtWidgets.QMainWindow):
 
         if len(self.signal) and steps:
             f = np.linspace(start_frequency, end_frequency, steps)
-            pgram = scipy_signal.lombscargle(signal.timestamps, signal.samples, f * 2 * np.pi, normalize=True)
-
-            signal = Signal(
-                samples=pgram,
-                timestamps=f,
-                name=f'{self.signal.name}_FFT'
+            pgram = scipy_signal.lombscargle(
+                signal.timestamps, signal.samples, f * 2 * np.pi, normalize=True
             )
+
+            signal = Signal(samples=pgram, timestamps=f, name=f"{self.signal.name}_FFT")
             signal.color = self.signal.color
             signal.computed = False
             signal.computation = {}
@@ -77,4 +75,3 @@ class FFTWindow(Ui_FFTWindow, QtWidgets.QMainWindow):
         if not initial:
             self.fft_plot.plot.viewbox.setXRange(*xrange, padding=0)
             self.fft_plot.plot.viewbox.setYRange(*yrange, padding=0)
-
