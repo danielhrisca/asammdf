@@ -3,6 +3,8 @@
 asammdf utility functions for channel conversions
 """
 
+from __future__ import annotations
+
 from typing import Any
 
 from . import v2_v3_blocks as v3b
