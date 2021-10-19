@@ -3,9 +3,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 import logging
 from textwrap import fill
-from typing import Any, Iterator
+from typing import Any
 
 import numpy as np
 from numpy.core.defchararray import encode

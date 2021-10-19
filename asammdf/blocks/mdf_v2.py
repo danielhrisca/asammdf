@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from io import BufferedReader, BytesIO
 
-from ..types import StrPath
+from ..types import StrPathType
 from .mdf_v3 import MDF3
 from .utils import validate_version_argument
 
@@ -21,7 +21,7 @@ class MDF2(MDF3):
 
     def __init__(
         self,
-        name: BufferedReader | BytesIO | StrPath | None = None,
+        name: BufferedReader | BytesIO | StrPathType | None = None,
         version: str = "2.14",
         **kwargs
     ) -> None:

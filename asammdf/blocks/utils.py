@@ -55,7 +55,7 @@ from ..types import (
     MDF_v2_v3_v4,
     RasterType,
     ReadableBufferType,
-    StrPath,
+    StrPathType,
 )
 
 UINT8_u = Struct("<B").unpack
@@ -1622,7 +1622,7 @@ def pandas_query_compatible(name: str) -> str:
 
 
 def load_can_database(
-    path: StrPath, contents: bytes | str = None, **kwargs
+    path: StrPathType, contents: bytes | str | None = None, **kwargs
 ) -> CanMatrix | None:
     path = Path(path)
     import_type = path.suffix.lstrip(".").lower()

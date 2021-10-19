@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import bz2
 from collections import defaultdict, OrderedDict
+from collections.abc import Iterable, Iterator, Sequence
 from copy import deepcopy
 import csv
 from datetime import datetime, timezone
@@ -20,7 +21,7 @@ import sys
 from tempfile import gettempdir, mkdtemp
 from traceback import format_exc
 from types import TracebackType
-from typing import Any, Iterable, Iterator, Sequence, Type
+from typing import Any, Type
 import xml.etree.ElementTree as ET
 import zipfile
 
@@ -67,6 +68,7 @@ from .blocks.v4_blocks import HeaderBlock as HeaderV4
 from .blocks.v4_blocks import SourceInformation
 from .signal import Signal
 from .types import (
+    BusType,
     ChannelGroupType,
     ChannelsType,
     DbcFileType,
@@ -74,8 +76,8 @@ from .types import (
     InputType,
     RasterType,
     ReadableBufferType,
-    StrOrBytesPath,
-    StrPath,
+    StrOrBytesPathType,
+    StrPathType,
 )
 from .version import __version__
 
@@ -89,7 +91,9 @@ target_byte_order = "<=" if sys.byteorder == "little" else ">="
 __all__ = ["MDF", "SUPPORTED_VERSIONS"]
 
 
-def get_measurement_timestamp_and_version(mdf: ReadableBufferType) -> tuple[datetime, str]:
+def get_measurement_timestamp_and_version(
+    mdf: ReadableBufferType,
+) -> tuple[datetime, str]:
     id_block = FileIdentificationBlock(address=0, stream=mdf)
 
     version = id_block.mdf_version
@@ -912,7 +916,7 @@ class MDF:
     def export(
         self,
         fmt: Literal["csv", "hdf5", "mat", "parquet"],
-        filename: StrPath | None = None,
+        filename: StrPathType | None = None,
         **kwargs,
     ) -> None:
         r"""export *MDF* to other formats. The *MDF* file name is used is
@@ -2868,7 +2872,7 @@ class MDF:
         return signals
 
     @staticmethod
-    def scramble(name: StrPath, skip_attachments: bool = False, **kwargs) -> Path:
+    def scramble(name: StrPathType, skip_attachments: bool = False, **kwargs) -> Path:
         """scramble text blocks and keep original file structure
 
         Parameters
@@ -3153,7 +3157,7 @@ class MDF:
         return dst
 
     @staticmethod
-    def _fallback_scramble_mf4(name: StrOrBytesPath) -> dict[int, bytes]:
+    def _fallback_scramble_mf4(name: StrOrBytesPathType) -> dict[int, bytes]:
         """scramble text blocks and keep original file structure
 
         Parameters
@@ -4089,7 +4093,7 @@ class MDF:
 
     def extract_bus_logging(
         self,
-        database_files: dict[Literal["CAN", "LIN"], Iterable[DbcFileType]],
+        database_files: dict[BusType, Iterable[DbcFileType]],
         version: str | None = None,
         ignore_invalid_signals: bool = False,
         consolidated_j1939: bool = True,

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterator, Sequence
 from copy import deepcopy
 from io import BufferedReader, BytesIO
 from itertools import product
@@ -15,7 +16,7 @@ from pathlib import Path
 import sys
 from tempfile import TemporaryFile
 import time
-from typing import Any, Iterator, Sequence
+from typing import Any
 import xml.etree.ElementTree as ET
 
 from numpy import (
@@ -44,11 +45,12 @@ from . import v2_v3_constants as v23c
 from ..signal import Signal
 from ..types import (
     ChannelsType,
+    CompressionType,
     FloatInterpolationModeType,
     IntInterpolationModeType,
     MDF_v2_v3_v4,
     RasterType,
-    StrPath,
+    StrPathType,
 )
 from ..version import __version__
 from .conversion_utils import conversion_transfer
@@ -171,7 +173,7 @@ class MDF3(MDF_Common):
 
     def __init__(
         self,
-        name: BufferedReader | BytesIO | StrPath | None = None,
+        name: BufferedReader | BytesIO | StrPathType | None = None,
         version: str = "3.30",
         channels: list[str] | None = None,
         **kwargs,
@@ -429,7 +431,9 @@ class MDF3(MDF_Common):
         if not has_yielded:
             yield b"", 0, _count
 
-    def _prepare_record(self, group: Group) -> tuple[dict[int, tuple[str, int]], dtype[Any]]:
+    def _prepare_record(
+        self, group: Group
+    ) -> tuple[dict[int, tuple[str, int]], dtype[Any]]:
         """compute record dtype and parents dict for this group
 
         Parameters
@@ -1229,7 +1233,7 @@ class MDF3(MDF_Common):
         self,
         signals: list[Signal] | Signal | DataFrame,
         acq_name: str | None = None,
-        acq_source: str | None = None,
+        acq_source: Source | None = None,
         comment: str = "Python",
         common_timebase: bool = False,
         units: dict[str, str | bytes] | None = None,
@@ -3458,7 +3462,7 @@ class MDF3(MDF_Common):
         return info
 
     def save(
-        self, dst: StrPath, overwrite: bool = False, compression: int = 0
+        self, dst: StrPathType, overwrite: bool = False, compression: CompressionType = 0
     ) -> Path | None:
         """Save MDF to *dst*. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appended with '.<cntr>',
@@ -3811,7 +3815,7 @@ class MDF3(MDF_Common):
         channels: ChannelsType | None = None,
         skip_master: bool = True,
         minimal: bool = True,
-    ) -> dict[int, dict[int, set[int]]]:
+    ) -> dict[int, dict[int, Sequence[int]]]:
 
         if channels is None:
             group = self.groups[index]
