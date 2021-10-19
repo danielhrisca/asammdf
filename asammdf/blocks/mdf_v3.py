@@ -69,6 +69,7 @@ from .v2_v3_blocks import (
     TextBlock,
     TriggerBlock,
 )
+from .cutils import get_channel_data
 
 logger = logging.getLogger("asammdf")
 
@@ -403,43 +404,19 @@ class MDF3(MDF_Common):
         Returns
         -------
         parents, dtypes : dict, numpy.dtype
-            mapping of channels to records fields, records fiels dtype
+            mapping of channels to records fields, records fields dtype
 
         """
 
-        byte_order = self.identification.byte_order
+        record = group.record
 
-        parents, dtypes = group.parents, group.types
-        if parents is None:
-            grp = group
-            record_size = grp.channel_group.samples_byte_nr << 3
-            next_byte_aligned_position = 0
-            types = []
-            current_parent = ""
-            parent_start_offset = 0
-            parents = {}
-            group_channels = UniqueDB()
+        if record is None:
+            byte_order = self.identification.byte_order
+            channels = group.channels
 
-            # the channels are first sorted ascending (see __lt__ method of Channel
-            # class): a channel with lower start offset is smaller, when two
-            # channels have the same start offset the one with higher bit size is
-            # considered smaller. The reason is that when the numpy record is built
-            # and there are overlapping channels, the parent fields must be bigger
-            # (bit size) than the embedded channels. For each channel the parent
-            # dict will have a (parent name, bit offset) pair: the channel value is
-            # computed using the values from the parent field, and the bit offset,
-            # which is the channel's bit offset within the parent bytes.
-            # This means all parents will have themselves as parent, and bit offset
-            # of 0. Gaps in the records are also considered. Non standard integers
-            # size is adjusted to the first higher standard integer size (eq. uint
-            # of 28bits will be adjusted to 32bits)
+            record = []
 
-            sortedchannels = sorted(enumerate(grp.channels), key=lambda i: i[1])
-            for original_index, new_ch in sortedchannels:
-                # skip channels with channel dependencies from the numpy record
-                if new_ch.component_addr:
-                    continue
-
+            for idx, new_ch in enumerate(channels):
                 start_offset = new_ch.start_offset
                 try:
                     additional_byte_offset = new_ch.additional_byte_offset
@@ -450,131 +427,49 @@ class MDF3(MDF_Common):
                 bit_offset = start_offset % 8
                 data_type = new_ch.data_type
                 bit_count = new_ch.bit_count
-                name = new_ch.name
 
-                # handle multiple occurrence of same channel name
-                name = group_channels.get_unique_name(name)
+                if not new_ch.component_addr:
 
-                if start_offset >= next_byte_aligned_position:
-                    parent_start_offset = (start_offset // 8) * 8
-
-                    # check if there are byte gaps in the record
-                    gap = (parent_start_offset - next_byte_aligned_position) // 8
-                    if gap:
-                        types.append(("", f"V{gap}"))
-
-                    # adjust size to 1, 2, 4 or 8 bytes for nonstandard integers
-                    size = bit_offset + bit_count
-                    if data_type == v23c.DATA_TYPE_STRING:
-                        next_byte_aligned_position = parent_start_offset + size
-                        if next_byte_aligned_position <= record_size:
-                            dtype_pair = (name, get_fmt_v3(data_type, size, byte_order))
-                            types.append(dtype_pair)
-                            parents[original_index] = name, bit_offset
-
-                        else:
-                            next_byte_aligned_position = parent_start_offset
-
-                    elif data_type == v23c.DATA_TYPE_BYTEARRAY:
-                        next_byte_aligned_position = parent_start_offset + size
-                        if next_byte_aligned_position <= record_size:
-                            dtype_pair = (name, get_fmt_v3(data_type, size, byte_order))
-                            types.append(dtype_pair)
-                            parents[original_index] = name, bit_offset
-                        else:
-                            next_byte_aligned_position = parent_start_offset
-
-                    else:
-                        byte_size, rem = divmod(size, 8)
-                        if rem:
-                            byte_size += 1
-                        bit_size = byte_size * 8
-
-                        if (
-                            data_type
-                            in (
-                                v23c.DATA_TYPE_SIGNED_MOTOROLA,
-                                v23c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                    if not new_ch.dtype_fmt:
+                        new_ch.dtype_fmt = dtype(
+                            get_fmt_v3(
+                                data_type, bit_count, byte_order
                             )
-                            or data_type
-                            in (v23c.DATA_TYPE_SIGNED, v23c.DATA_TYPE_UNSIGNED)
-                            and byte_order == v23c.BYTE_ORDER_MOTOROLA
-                        ):
+                        )
 
-                            if size > 32:
-                                next_byte_aligned_position = parent_start_offset + 64
-                                bit_offset += 64 - bit_size
-                            elif size > 16:
-                                next_byte_aligned_position = parent_start_offset + 32
-                                bit_offset += 32 - bit_size
-                            elif size > 8:
-                                next_byte_aligned_position = parent_start_offset + 16
-                                bit_offset += 16 - bit_size
-                            else:
-                                next_byte_aligned_position = parent_start_offset + 8
-
-                        else:
-                            if size > 32:
-                                next_byte_aligned_position = parent_start_offset + 64
-                            elif size > 16:
-                                next_byte_aligned_position = parent_start_offset + 32
-                            elif size > 8:
-                                next_byte_aligned_position = parent_start_offset + 16
-                            else:
-                                next_byte_aligned_position = parent_start_offset + 8
-
-                        if next_byte_aligned_position <= record_size:
-                            dtype_pair = (name, get_fmt_v3(data_type, size, byte_order))
-                            types.append(dtype_pair)
-                            parents[original_index] = name, bit_offset
-                        else:
-                            next_byte_aligned_position = parent_start_offset
-
-                    current_parent = name
-                else:
+                    # adjust size to 1, 2, 4 or 8 bytes
                     size = bit_offset + bit_count
-                    byte_size, rem = divmod(size, 8)
+
+                    byte_size, rem = size // 8, size % 8
                     if rem:
                         byte_size += 1
                     bit_size = byte_size * 8
 
-                    byte_start_offset = (start_offset // 8) * 8
+                    if data_type in (
+                        v23c.DATA_TYPE_SIGNED_MOTOROLA,
+                        v23c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                    ):
+                        if size > 32:
+                            bit_offset += 64 - bit_size
+                        elif size > 16:
+                            bit_offset += 32 - bit_size
+                        elif size > 8:
+                            bit_offset += 16 - bit_size
 
-                    max_overlapping = next_byte_aligned_position - byte_start_offset
-                    if max_overlapping >= bit_size:
-                        if (
-                            data_type
-                            in (
-                                v23c.DATA_TYPE_SIGNED_MOTOROLA,
-                                v23c.DATA_TYPE_UNSIGNED_MOTOROLA,
-                            )
-                            or data_type
-                            in (v23c.DATA_TYPE_SIGNED, v23c.DATA_TYPE_UNSIGNED)
-                            and byte_order == v23c.BYTE_ORDER_MOTOROLA
-                        ):
-                            parents[original_index] = (
-                                current_parent,
-                                bit_offset + max_overlapping - bit_size,
-                            )
-                        else:
-                            parents[original_index] = (
-                                current_parent,
-                                bit_offset + byte_start_offset - parent_start_offset,
-                            )
+                    record.append(
+                        (
+                            new_ch.dtype_fmt,
+                            new_ch.dtype_fmt.itemsize,
+                            start_offset,
+                            bit_offset,
+                        )
+                    )
+                else:
+                    record.append(None)
 
-                if next_byte_aligned_position > record_size:
-                    break
+            group.record = record
 
-            gap = (record_size - next_byte_aligned_position) // 8
-            if gap:
-                dtype_pair = ("", f"V{gap}")
-                types.append(dtype_pair)
-
-            dtypes = dtype(types)
-
-            group.parents, group.types = parents, dtypes
-
-        return parents, dtypes
+        return record
 
     def _get_not_byte_aligned_data(self, data, group, ch_nr):
         big_endian_types = (
@@ -922,6 +817,7 @@ class MDF3(MDF_Common):
                 record_id = grp.channel_group.record_id
                 cycles_nr = grp.channel_group.cycles_nr
                 record_size = grp.channel_group.samples_byte_nr
+                self._prepare_record(grp)
 
                 cg_size[record_id] = record_size
 
@@ -1307,13 +1203,13 @@ class MDF3(MDF_Common):
         gp.channel_dependencies = gp_dep = []
         gp.signal_types = gp_sig_types = []
         gp.string_dtypes = []
+        gp.record = record = []
 
         self.groups.append(gp)
 
         cycles_nr = len(timestamps)
         fields = []
         types = []
-        parents = {}
         ch_cntr = 0
         offset = 0
         field_names = UniqueDB()
@@ -1361,8 +1257,6 @@ class MDF3(MDF_Common):
 
             self.channels_db.add(name, (dg_cntr, ch_cntr))
             self.masters_db[dg_cntr] = 0
-            # data group record parents
-            parents[ch_cntr] = name, 0
 
             # time channel doesn't have channel dependencies
             gp_dep.append(None)
@@ -1374,6 +1268,12 @@ class MDF3(MDF_Common):
             ch_cntr += 1
 
             gp_sig_types.append(0)
+            record.append((
+                timestamps.dtype,
+                timestamps.dtype.itemsize,
+                0,
+                0,
+            ))
 
         for signal in signals:
             sig = signal
@@ -1402,6 +1302,13 @@ class MDF3(MDF_Common):
                 conversion = None
 
             if sig_type == v23c.SIGNAL_TYPE_SCALAR:
+
+                record.append((
+                    signal.samples.dtype,
+                    signal.samples.dtype.itemsize,
+                    offset,
+                    0,
+                ))
 
                 # source for channel
                 if signal.source:
@@ -1475,7 +1382,6 @@ class MDF3(MDF_Common):
 
                 # update the parents as well
                 field_name = field_names.get_unique_name(name)
-                parents[ch_cntr] = field_name, 0
 
                 if signal.samples.dtype.kind == "S":
                     gp.string_dtypes.append(signal.samples.dtype)
@@ -1503,11 +1409,11 @@ class MDF3(MDF_Common):
                 new_gp.channels = new_gp_channels = []
                 new_gp.channel_dependencies = new_gp_dep = []
                 new_gp.signal_types = new_gp_sig_types = []
+                new_gp.record = new_record = []
                 self.groups.append(new_gp)
 
                 new_fields = []
                 new_types = []
-                new_parents = {}
                 new_ch_cntr = 0
                 new_offset = 0
                 new_field_names = UniqueDB()
@@ -1543,11 +1449,16 @@ class MDF3(MDF_Common):
                 channel.conversion = conversion
                 new_gp_channels.append(channel)
 
+                record.append((
+                    timestamps.dtype,
+                    timestamps.dtype.itemsize,
+                    0,
+                    0,
+                ))
+
                 self.channels_db.add(name, (new_dg_cntr, new_ch_cntr))
 
                 self.masters_db[new_dg_cntr] = 0
-                # data group record parents
-                new_parents[new_ch_cntr] = name, 0
 
                 # time channel doesn't have channel dependencies
                 new_gp_dep.append(None)
@@ -1580,6 +1491,13 @@ class MDF3(MDF_Common):
                 for name in names:
 
                     samples = signal.samples[name]
+
+                    record.append((
+                        samples.dtype,
+                        samples.dtype.itemsize,
+                        new_offset,
+                        0,
+                    ))
 
                     # conversions for channel
 
@@ -1646,7 +1564,6 @@ class MDF3(MDF_Common):
 
                     # update the parents as well
                     field_name = new_field_names.get_unique_name(name)
-                    new_parents[new_ch_cntr] = field_name, 0
 
                     new_fields.append(samples)
                     new_types.append((field_name, samples.dtype))
@@ -1675,8 +1592,6 @@ class MDF3(MDF_Common):
                 # data block
                 new_types = dtype(new_types)
 
-                new_gp.types = new_types
-                new_gp.parents = new_parents
                 new_gp.sorted = True
 
                 samples = fromarrays(new_fields, dtype=new_types)
@@ -1779,6 +1694,8 @@ class MDF3(MDF_Common):
                 if s_size < 8:
                     s_size = 8
 
+                record.append(None)
+
                 channel = Channel(**kargs)
                 channel.comment = signal.comment
                 channel.display_names = signal.display_names
@@ -1832,6 +1749,13 @@ class MDF3(MDF_Common):
                         start_bit_offset = offset
                         additional_byte_offset = 0
 
+                    record.append((
+                        samples.dtype,
+                        samples.dtype.itemsize,
+                        offset,
+                        0,
+                    ))
+
                     kargs = {
                         "channel_type": v23c.CHANNEL_TYPE_VALUE,
                         "data_type": s_type,
@@ -1860,7 +1784,6 @@ class MDF3(MDF_Common):
 
                     # update the parents as well
                     field_name = field_names.get_unique_name(name)
-                    parents[ch_cntr] = field_name, 0
 
                     fields.append(samples)
                     types.append((field_name, samples.dtype, shape))
@@ -1939,6 +1862,10 @@ class MDF3(MDF_Common):
                     if s_size < 8:
                         s_size = 8
 
+                    record.append(
+                        None
+                    )
+
                     channel = Channel(**kargs)
                     channel.name = name
                     channel.comment = signal.comment
@@ -2007,6 +1934,13 @@ class MDF3(MDF_Common):
                         if s_size < 8:
                             s_size = 8
 
+                        record.append((
+                            samples.dtype,
+                            samples.dtype.itemsize,
+                            offset,
+                            0,
+                        ))
+
                         channel = Channel(**kargs)
                         channel.name = name
                         channel.source = source
@@ -2021,7 +1955,6 @@ class MDF3(MDF_Common):
 
                         # update the parents as well
                         field_name = field_names.get_unique_name(name)
-                        parents[ch_cntr] = field_name, 0
 
                         fields.append(samples)
                         types.append((field_name, samples.dtype, shape))
@@ -2053,8 +1986,6 @@ class MDF3(MDF_Common):
         # data block
         types = dtype(types)
 
-        gp.types = types
-        gp.parents = parents
         gp.sorted = True
 
         if signals:
@@ -2137,13 +2068,13 @@ class MDF3(MDF_Common):
         gp.channel_dependencies = gp_dep = []
         gp.signal_types = gp_sig_types = []
         gp.string_dtypes = []
+        gp.record = record = []
 
         self.groups.append(gp)
 
         cycles_nr = len(timestamps)
         fields = []
         types = []
-        parents = {}
         ch_cntr = 0
         offset = 0
         field_names = UniqueDB()
@@ -2182,8 +2113,13 @@ class MDF3(MDF_Common):
 
             self.channels_db.add(name, (dg_cntr, ch_cntr))
             self.masters_db[dg_cntr] = 0
-            # data group record parents
-            parents[ch_cntr] = name, 0
+
+            record.append((
+                timestamps.dtype,
+                timestamps.dtype.itemsize,
+                0,
+                0,
+            ))
 
             # time channel doesn't have channel dependencies
             gp_dep.append(None)
@@ -2237,6 +2173,13 @@ class MDF3(MDF_Common):
             channel.name = name
             channel.source = new_source
 
+            record.append((
+                sig.dtype,
+                sig.dtype.itemsize,
+                offset,
+                0,
+            ))
+
             unit = units.get(name, b"")
             if unit:
                 if hasattr(unit, "encode"):
@@ -2259,7 +2202,6 @@ class MDF3(MDF_Common):
 
             # update the parents as well
             field_name = field_names.get_unique_name(name)
-            parents[ch_cntr] = field_name, 0
 
             if sig.dtype.kind == "S":
                 gp.string_dtypes.append(sig.dtype)
@@ -2295,8 +2237,6 @@ class MDF3(MDF_Common):
         # data block
         types = dtype(types)
 
-        gp.types = types
-        gp.parents = parents
         gp.sorted = True
 
         if df.shape[0]:
@@ -2951,27 +2891,17 @@ class MDF3(MDF_Common):
             count = 0
             for fragment in data:
                 data_bytes, _offset, _count = fragment
-                parents, dtypes = self._prepare_record(grp)
-
-                try:
-                    parent, bit_offset = parents[ch_nr]
-                except KeyError:
-                    parent, bit_offset = None, None
+                info = grp.record[ch_nr]
 
                 bits = channel.bit_count
 
-                if parent is not None:
-                    if grp.record is None:
-                        if dtypes.itemsize:
-                            record = fromstring(data_bytes, dtype=dtypes)
-                        else:
-                            record = None
-                    else:
-                        record = grp.record
+                if info is not None:
+                    dtype_, byte_size, byte_offset, bit_offset = info
 
-                    record.setflags(write=False)
+                    buffer = get_channel_data(data_bytes, grp.channel_group.samples_byte_nr,
+                                              byte_offset, byte_size)
 
-                    vals = record[parent]
+                    vals = frombuffer(buffer, dtype=dtype_)
                     data_type = channel.data_type
                     size = vals.dtype.itemsize
                     if data_type == v23c.DATA_TYPE_BYTEARRAY:
@@ -3205,8 +3135,6 @@ class MDF3(MDF_Common):
                     sampling_rate = 1
                 t = arange(cycles_nr, dtype=float64) * sampling_rate
             else:
-                # get data group parents and dtypes
-                parents, dtypes = self._prepare_record(group)
 
                 # get data group record
                 if data is None:
@@ -3221,23 +3149,14 @@ class MDF3(MDF_Common):
                 count = 0
                 for fragment in data:
                     data_bytes, offset, _count = fragment
-                    parent, bit_offset = parents.get(time_ch_nr, (None, None))
-                    if parent is not None:
-                        if group.record is None:
-                            if dtypes.itemsize:
-                                record = fromstring(data_bytes, dtype=dtypes)
-                            else:
-                                record = None
-                        else:
-                            record = group.record
-                        record.setflags(write=False)
-                        t = record[parent]
+                    dtype_, byte_size, byte_offset, bit_offset = group.record[time_ch_nr]
 
-                    else:
-                        t = self._get_not_byte_aligned_data(
-                            data_bytes, group, time_ch_nr
-                        )
-                    time_values.append(t.copy())
+                    buffer = get_channel_data(data_bytes, group.channel_group.samples_byte_nr,
+                                              byte_offset, byte_size)
+
+                    t = frombuffer(buffer, dtype=dtype_)
+
+                    time_values.append(t)
                     count += 1
 
                 if count > 1:
@@ -3265,14 +3184,14 @@ class MDF3(MDF_Common):
                         view = f"{channel_dtype.byteorder}u{t.itemsize}"
 
                     if bit_offset:
-                        t = t >> bit_offset
+                        t >>= bit_offset
 
                     if time_ch.bit_count != t.itemsize * 8:
                         if time_ch.data_type in v23c.SIGNED_INT:
                             t = as_non_byte_sized_signed_int(t, time_ch.bit_count)
                         else:
                             mask = (1 << time_ch.bit_count) - 1
-                            t = t & mask
+                            t &= mask
                     elif time_ch.data_type in v23c.SIGNED_INT:
                         view = f"{channel_dtype.byteorder}i{t.itemsize}"
                         t = t.view(view)
@@ -3827,12 +3746,7 @@ class MDF3(MDF_Common):
 
             self._set_temporary_master(self.get_master(index, data=fragment))
 
-            parents, dtypes = self._prepare_record(group)
-            if dtypes.itemsize:
-                group.record = fromstring(fragment[0], dtype=dtypes)
-            else:
-                group.record = None
-                continue
+            self._prepare_record(group)
 
             # the first fragment triggers and append that will add the
             # metadata for all channels

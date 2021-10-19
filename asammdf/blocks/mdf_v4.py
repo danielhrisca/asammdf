@@ -1641,7 +1641,7 @@ class MDF4(MDF_Common):
                     yield b"", 0, 0, None
 
     def _prepare_record(self, group):
-        """compute record dtype and parents dict for this group
+        """compute record
 
         Parameters
         ----------
@@ -1650,7 +1650,7 @@ class MDF4(MDF_Common):
 
         Returns
         -------
-        parents, dtypes : dict, numpy.dtype
+        record : list
             mapping of channels to records fields, records fields dtype
 
         """
@@ -1673,8 +1673,10 @@ class MDF4(MDF_Common):
                 if ch_type not in v4c.VIRTUAL_TYPES and not dependency_list:
 
                     if not new_ch.dtype_fmt:
-                        new_ch.dtype_fmt = get_fmt_v4(
-                            data_type, bit_count, ch_type
+                        new_ch.dtype_fmt = dtype(
+                            get_fmt_v4(
+                                data_type, bit_count, ch_type
+                            )
                         )
 
                     # adjust size to 1, 2, 4 or 8 bytes
@@ -2735,6 +2737,7 @@ class MDF4(MDF_Common):
         gp.channel_group.acq_name = acq_name
         gp.channel_group.acq_source = source_block
         gp.channel_group.comment = comment
+        gp.record = record = []
 
         if any(sig.invalidation_bits is not None for sig in signals):
             invalidation_bytes_nr = 1
@@ -2751,7 +2754,6 @@ class MDF4(MDF_Common):
 
         fields = []
         types = []
-        parents = {}
         ch_cntr = 0
         offset = 0
         field_names = UniqueDB()
@@ -2813,8 +2815,13 @@ class MDF4(MDF_Common):
             gp_sdata.append(None)
             self.channels_db.add(name, (dg_cntr, ch_cntr))
             self.masters_db[dg_cntr] = 0
-            # data group record parents
-            parents[ch_cntr] = name, 0
+
+            record.append((
+                t.dtype,
+                t.dtype.itemsize,
+                0,
+                0,
+            ))
 
             # time channel doesn't have channel dependencies
             gp_dep.append(None)
@@ -2853,6 +2860,13 @@ class MDF4(MDF_Common):
 
             # first add the signals in the simple signal list
             if sig_type == v4c.SIGNAL_TYPE_SCALAR:
+
+                record.append((
+                    sig_dtype,
+                    sig_dtype.itemsize,
+                    offset,
+                    0,
+                ))
 
                 # compute additional byte offset for large records size
                 s_type, s_size = fmt_to_datatype_v4(sig_dtype, sig_shape)
@@ -2952,7 +2966,6 @@ class MDF4(MDF_Common):
 
                 # update the parents as well
                 field_name = field_names.get_unique_name(name)
-                parents[ch_cntr] = field_name, 0
 
                 fields.append(samples)
                 types.append((field_name, sig_dtype, sig_shape[1:]))
@@ -2967,6 +2980,12 @@ class MDF4(MDF_Common):
                 field_name = field_names.get_unique_name(name)
 
                 if names == v4c.CANOPEN_TIME_FIELDS:
+                    record.append((
+                        dtype("V6"),
+                        6,
+                        offset,
+                        0,
+                    ))
 
                     vals = signal.samples.tobytes()
 
@@ -2977,6 +2996,13 @@ class MDF4(MDF_Common):
                     s_dtype = dtype("V6")
 
                 else:
+                    record.append((
+                        dtype("V7"),
+                        7,
+                        offset,
+                        0,
+                    ))
+
                     vals = []
                     for field in ("ms", "min", "hour", "day", "month", "year"):
                         if field == "hour":
@@ -3052,9 +3078,6 @@ class MDF4(MDF_Common):
                 for _name in ch.display_names:
                     self.channels_db.add(_name, entry)
 
-                # update the parents as well
-                parents[ch_cntr] = field_name, 0
-
                 gp_sdata.append(None)
 
                 ch_cntr += 1
@@ -3075,7 +3098,6 @@ class MDF4(MDF_Common):
                     offset,
                     dg_cntr,
                     ch_cntr,
-                    parents,
                     defined_texts,
                     invalidation_bytes_nr,
                     inval_bits,
@@ -3172,6 +3194,13 @@ class MDF4(MDF_Common):
                 ch.display_names = signal.display_names
                 ch.dtype_fmt = samples.dtype
 
+                record.append((
+                    samples.dtype,
+                    samples.dtype.itemsize,
+                    offset,
+                    0,
+                ))
+
                 # source for channel
                 source = signal.source
                 if source:
@@ -3201,9 +3230,6 @@ class MDF4(MDF_Common):
                 self.channels_db.add(name, entry)
                 for _name in ch.display_names:
                     self.channels_db.add(_name, entry)
-
-                # update the parents as well
-                parents[ch_cntr] = name, 0
 
                 ch_cntr += 1
 
@@ -3252,6 +3278,13 @@ class MDF4(MDF_Common):
                     ch.display_names = signal.display_names
                     ch.dtype_fmt = samples.dtype
 
+                    record.append((
+                        samples.dtype,
+                        samples.dtype.itemsize,
+                        offset,
+                        0,
+                    ))
+
                     gp_channels.append(ch)
 
                     entry = dg_cntr, ch_cntr
@@ -3262,9 +3295,6 @@ class MDF4(MDF_Common):
 
                     gp_sdata.append(None)
                     self.channels_db.add(name, entry)
-
-                    # update the parents as well
-                    parents[ch_cntr] = field_name, 0
 
                     ch_cntr += 1
 
@@ -3423,6 +3453,13 @@ class MDF4(MDF_Common):
 
                 gp_channels.append(ch)
 
+                record.append((
+                    uint64,
+                    8,
+                    offset,
+                    0,
+                ))
+
                 offset += byte_size
 
                 entry = (dg_cntr, ch_cntr)
@@ -3432,7 +3469,6 @@ class MDF4(MDF_Common):
 
                 # update the parents as well
                 field_name = field_names.get_unique_name(name)
-                parents[ch_cntr] = field_name, 0
 
                 fields.append(offsets)
                 types.append((field_name, uint64))
@@ -3483,9 +3519,6 @@ class MDF4(MDF_Common):
         types = dtype(types)
 
         gp.sorted = True
-        if prepare_record:
-            gp.types = types
-            gp.parents = parents
 
         if signals and cycles_nr:
             samples = fromarrays(fields, dtype=types)
@@ -3596,6 +3629,7 @@ class MDF4(MDF_Common):
         gp.uses_ld = True
         gp.data_group = DataGroup()
         gp.sorted = True
+        gp.record = record = []
 
         samples = signals[0].timestamps
 
@@ -3612,7 +3646,6 @@ class MDF4(MDF_Common):
 
         ch_cntr = 0
         types = []
-        parents = {}
         ch_cntr = 0
         offset = 0
 
@@ -3658,8 +3691,13 @@ class MDF4(MDF_Common):
         gp_sdata.append(None)
         self.channels_db.add(name, (dg_cntr, ch_cntr))
         self.masters_db[dg_cntr] = 0
-        # data group record parents
-        parents[ch_cntr] = name, 0
+
+        record.append((
+            samples.dtype,
+            samples.dtype.itemsize,
+            offset,
+            0,
+        ))
 
         # time channel doesn't have channel dependencies
         gp_dep.append(None)
@@ -3680,8 +3718,6 @@ class MDF4(MDF_Common):
         types = dtype(types)
 
         gp.sorted = True
-        gp.types = types
-        gp.parents = parents
 
         size = cycles_nr * samples.itemsize
 
@@ -3741,6 +3777,7 @@ class MDF4(MDF_Common):
             gp.data_group = DataGroup()
             gp.sorted = True
             gp.uses_ld = True
+            gp.record = record = []
 
             # channel group
             kwargs = {
@@ -3757,7 +3794,6 @@ class MDF4(MDF_Common):
             self.groups.append(gp)
 
             types = []
-            parents = {}
             ch_cntr = 0
             offset = 0
             field_names = UniqueDB()
@@ -3785,6 +3821,13 @@ class MDF4(MDF_Common):
 
             # first add the signals in the simple signal list
             if sig_type == v4c.SIGNAL_TYPE_SCALAR:
+
+                record.append((
+                    samples.dtype,
+                    samples.dtype.itemsize,
+                    offset,
+                    0,
+                ))
 
                 # compute additional byte offset for large records size
                 s_type, s_size = fmt_to_datatype_v4(sig_dtype, sig_shape)
@@ -3866,9 +3909,6 @@ class MDF4(MDF_Common):
                 for _name in ch.display_names:
                     self.channels_db.add(_name, entry)
 
-                # update the parents as well
-                parents[ch_cntr] = name, 0
-
                 _shape = sig_shape[1:]
                 types.append((name, sig_dtype, _shape))
                 gp.single_channel_dtype = ch.dtype_fmt = dtype((sig_dtype, _shape))
@@ -3879,6 +3919,12 @@ class MDF4(MDF_Common):
             elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
 
                 if names == v4c.CANOPEN_TIME_FIELDS:
+                    record.append((
+                        dtype("V6"),
+                        6,
+                        offset,
+                        0,
+                    ))
 
                     types.append((name, "V6"))
                     gp.single_channel_dtype = dtype("V6")
@@ -3886,6 +3932,12 @@ class MDF4(MDF_Common):
                     s_type = v4c.DATA_TYPE_CANOPEN_TIME
 
                 else:
+                    record.append((
+                        dtype("V7"),
+                        7,
+                        offset,
+                        0,
+                    ))
                     vals = []
                     for field in ("ms", "min", "hour", "day", "month", "year"):
                         if field == "hour":
@@ -3961,9 +4013,6 @@ class MDF4(MDF_Common):
                 for _name in ch.display_names:
                     self.channels_db.add(_name, entry)
 
-                # update the parents as well
-                parents[ch_cntr] = name, 0
-
                 gp_sdata.append(None)
 
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
@@ -3981,7 +4030,6 @@ class MDF4(MDF_Common):
                     offset,
                     dg_cntr,
                     ch_cntr,
-                    parents,
                     defined_texts,
                 )
 
@@ -4057,6 +4105,13 @@ class MDF4(MDF_Common):
                 dtype_pair = field_name, samples.dtype, shape
                 types.append(dtype_pair)
 
+                record.append((
+                    samples.dtype,
+                    samples.dtype.itemsize,
+                    offset,
+                    0,
+                ))
+
                 # first we add the structure channel
                 s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape, True)
 
@@ -4114,9 +4169,6 @@ class MDF4(MDF_Common):
                 for _name in ch.display_names:
                     self.channels_db.add(_name, entry)
 
-                # update the parents as well
-                parents[ch_cntr] = name, 0
-
                 ch_cntr += 1
 
                 for name in names[1:]:
@@ -4126,6 +4178,13 @@ class MDF4(MDF_Common):
                     shape = samples.shape[1:]
                     fields.append(samples)
                     types.append((field_name, samples.dtype, shape))
+
+                    record.append((
+                        samples.dtype,
+                        samples.dtype.itemsize,
+                        offset,
+                        0,
+                    ))
 
                     # add channel dependency block
                     kwargs = {
@@ -4174,9 +4233,6 @@ class MDF4(MDF_Common):
 
                     gp_sdata.append(None)
                     self.channels_db.add(name, entry)
-
-                    # update the parents as well
-                    parents[ch_cntr] = field_name, 0
 
                     ch_cntr += 1
 
@@ -4285,15 +4341,19 @@ class MDF4(MDF_Common):
 
                 gp_channels.append(ch)
 
+                record.append((
+                    uint64,
+                    8,
+                    offset,
+                    0,
+                ))
+
                 offset = byte_size
 
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
                 for _name in ch.display_names:
                     self.channels_db.add(_name, entry)
-
-                # update the parents as well
-                parents[ch_cntr] = name, 0
 
                 types.append((name, uint64))
                 gp.single_channel_dtype = ch.dtype_fmt = uint64
@@ -4384,6 +4444,7 @@ class MDF4(MDF_Common):
         gp.channels = gp_channels = []
         gp.channel_dependencies = gp_dep = []
         gp.signal_types = gp_sig_types = []
+        gp.record = record = []
 
         cycles_nr = len(t)
 
@@ -4398,7 +4459,6 @@ class MDF4(MDF_Common):
 
         fields = []
         types = []
-        parents = {}
         ch_cntr = 0
         offset = 0
         field_names = UniqueDB()
@@ -4442,8 +4502,13 @@ class MDF4(MDF_Common):
         gp_sdata.append(None)
         self.channels_db.add(name, (dg_cntr, ch_cntr))
         self.masters_db[dg_cntr] = 0
-        # data group record parents
-        parents[ch_cntr] = name, 0
+
+        record.append((
+            t.dtype,
+            t.dtype.itemsize,
+            offset,
+            0,
+        ))
 
         # time channel doesn't have channel dependencies
         gp_dep.append(None)
@@ -4472,6 +4537,13 @@ class MDF4(MDF_Common):
 
             # first add the signals in the simple signal list
             if sig_type == v4c.SIGNAL_TYPE_SCALAR:
+
+                record.append((
+                    sig.dtype,
+                    sig.dtype.itemsize,
+                    offset,
+                    0,
+                ))
 
                 # compute additional byte offset for large records size
                 if sig.dtype.kind == "O":
@@ -4509,7 +4581,6 @@ class MDF4(MDF_Common):
 
                 # update the parents as well
                 field_name = field_names.get_unique_name(name)
-                parents[ch_cntr] = field_name, 0
 
                 fields.append(sig)
                 types.append((field_name, sig.dtype, sig.shape[1:]))
@@ -4576,13 +4647,19 @@ class MDF4(MDF_Common):
 
                 gp_channels.append(ch)
 
+                record.append((
+                    uint64,
+                    8,
+                    offset,
+                    0,
+                ))
+
                 offset += byte_size
 
                 self.channels_db.add(name, (dg_cntr, ch_cntr))
 
                 # update the parents as well
                 field_name = field_names.get_unique_name(name)
-                parents[ch_cntr] = field_name, 0
 
                 fields.append(offsets)
                 types.append((field_name, uint64))
@@ -4605,8 +4682,6 @@ class MDF4(MDF_Common):
         types = dtype(types)
 
         gp.sorted = True
-        gp.types = types
-        gp.parents = parents
 
         if df.shape[0]:
             samples = fromarrays(fields, dtype=types)
@@ -4642,7 +4717,6 @@ class MDF4(MDF_Common):
         offset,
         dg_cntr,
         ch_cntr,
-        parents,
         defined_texts,
         invalidation_bytes_nr,
         inval_bits,
@@ -4661,6 +4735,7 @@ class MDF4(MDF_Common):
         gp_sdata = gp.signal_data
         gp_channels = gp.channels
         gp_dep = gp.channel_dependencies
+        record = gp.record
 
         name = signal.name
         names = signal.samples.dtype.names
@@ -4725,6 +4800,8 @@ class MDF4(MDF_Common):
         ch.attachment = attachment
         ch.dtype_fmt = signal.samples.dtype
 
+        record.append(None)
+
         if source_bus and grp.channel_group.acq_source is None:
             grp.channel_group.acq_source = SourceInformation.from_common_source(
                 signal.source
@@ -4775,9 +4852,6 @@ class MDF4(MDF_Common):
         for _name in ch.display_names:
             self.channels_db.add(_name, entry)
 
-        # update the parents as well
-        parents[ch_cntr] = name, 0
-
         ch_cntr += 1
 
         dep_list = []
@@ -4810,6 +4884,13 @@ class MDF4(MDF_Common):
                 fields.append(samples)
                 types.append((field_name, samples.dtype, samples.shape[1:]))
 
+                record.append((
+                    samples.dtype,
+                    samples.dtype.itemsize,
+                    offset,
+                    0,
+                ))
+
                 # add channel block
                 kwargs = {
                     "channel_type": v4c.CHANNEL_TYPE_VALUE,
@@ -4839,9 +4920,6 @@ class MDF4(MDF_Common):
 
                 gp_sdata.append(None)
                 self.channels_db.add(name, entry)
-
-                # update the parents as well
-                parents[ch_cntr] = field_name, 0
 
                 ch_cntr += 1
                 gp_dep.append(None)
@@ -4909,6 +4987,13 @@ class MDF4(MDF_Common):
                 dtype_pair = field_name, samples.dtype, shape
                 types.append(dtype_pair)
 
+                record.append((
+                    samples.dtype,
+                    samples.dtype.itemsize,
+                    offset,
+                    0,
+                ))
+
                 # first we add the structure channel
                 s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape, True)
 
@@ -4966,9 +5051,6 @@ class MDF4(MDF_Common):
                 for _name in ch.display_names:
                     self.channels_db.add(_name, entry)
 
-                # update the parents as well
-                parents[ch_cntr] = name, 0
-
                 ch_cntr += 1
 
                 for name in names[1:]:
@@ -4978,6 +5060,13 @@ class MDF4(MDF_Common):
                     shape = samples.shape[1:]
                     fields.append(samples)
                     types.append((field_name, samples.dtype, shape))
+
+                    record.append((
+                        samples.dtype,
+                        samples.dtype.itemsize,
+                        offset,
+                        0,
+                    ))
 
                     # add channel dependency block
                     kwargs = {
@@ -5027,9 +5116,6 @@ class MDF4(MDF_Common):
                     gp_sdata.append(None)
                     self.channels_db.add(name, entry)
 
-                    # update the parents as well
-                    parents[ch_cntr] = field_name, 0
-
                     ch_cntr += 1
 
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
@@ -5054,7 +5140,6 @@ class MDF4(MDF_Common):
                     offset,
                     dg_cntr,
                     ch_cntr,
-                    parents,
                     defined_texts,
                     invalidation_bytes_nr,
                     inval_bits,
@@ -5074,7 +5159,6 @@ class MDF4(MDF_Common):
         offset,
         dg_cntr,
         ch_cntr,
-        parents,
         defined_texts,
     ):
         si_map = self._si_map
@@ -5090,6 +5174,7 @@ class MDF4(MDF_Common):
         gp_sdata = gp.signal_data
         gp_channels = gp.channels
         gp_dep = gp.channel_dependencies
+        record = gp.record
 
         name = signal.name
         names = signal.samples.dtype.names
@@ -5187,13 +5272,12 @@ class MDF4(MDF_Common):
         for _name in ch.display_names:
             self.channels_db.add(_name, entry)
 
-        # update the parents as well
-        parents[ch_cntr] = name, 0
-
         ch_cntr += 1
 
         dep_list = []
         gp_dep.append(dep_list)
+
+        record.append(None)
 
         # then we add the fields
 
@@ -5216,6 +5300,13 @@ class MDF4(MDF_Common):
                     sig_type = v4c.SIGNAL_TYPE_ARRAY
 
             if sig_type in (v4c.SIGNAL_TYPE_SCALAR, v4c.SIGNAL_TYPE_STRING):
+
+                record.append((
+                    samples.dtype,
+                    samples.dtype.itemsize,
+                    offset,
+                    0,
+                ))
 
                 s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape)
                 byte_size = s_size // 8 or 1
@@ -5250,9 +5341,6 @@ class MDF4(MDF_Common):
                 gp_sdata.append(None)
                 self.channels_db.add(name, entry)
 
-                # update the parents as well
-                parents[ch_cntr] = field_name, 0
-
                 ch_cntr += 1
                 gp_dep.append(None)
 
@@ -5262,6 +5350,13 @@ class MDF4(MDF_Common):
                 names = samples.dtype.names
                 samples = array_samples[names[0]]
                 shape = samples.shape[1:]
+
+                record.append((
+                    samples.dtype,
+                    samples.dtype.itemsize,
+                    offset,
+                    0,
+                ))
 
                 if len(names) > 1:
                     # add channel dependency block for composed parent channel
@@ -5373,9 +5468,6 @@ class MDF4(MDF_Common):
                 for _name in ch.display_names:
                     self.channels_db.add(_name, entry)
 
-                # update the parents as well
-                parents[ch_cntr] = name, 0
-
                 ch_cntr += 1
 
                 for name in names[1:]:
@@ -5385,6 +5477,13 @@ class MDF4(MDF_Common):
                     shape = samples.shape[1:]
                     fields.append(samples)
                     types.append((field_name, samples.dtype, shape))
+
+                    record.append((
+                        samples.dtype,
+                        samples.dtype.itemsize,
+                        offset,
+                        0,
+                    ))
 
                     # add channel dependency block
                     kwargs = {
@@ -5431,9 +5530,6 @@ class MDF4(MDF_Common):
                     gp_sdata.append(None)
                     self.channels_db.add(name, entry)
 
-                    # update the parents as well
-                    parents[ch_cntr] = field_name, 0
-
                     ch_cntr += 1
 
             elif sig_type == v4c.SIGNAL_TYPE_STRUCTURE_COMPOSITION:
@@ -5457,7 +5553,6 @@ class MDF4(MDF_Common):
                     offset,
                     dg_cntr,
                     ch_cntr,
-                    parents,
                     defined_texts,
                 )
                 dep_list.append(sub_structure)
@@ -6978,9 +7073,8 @@ class MDF4(MDF_Common):
         gp_nr = group_index
         ch_nr = channel_index
         # get data group record
-        record = grp.record
-        if record is None:
-            record = self._prepare_record(grp)
+        if grp.record is None:
+            self._prepare_record(grp)
 
         # get group data
         if data is None:
@@ -7895,12 +7989,7 @@ class MDF4(MDF_Common):
             for fragment, (group_index, channels) in zip(fragments, groups.items()):
                 grp = self.groups[group_index]
                 if not grp.single_channel_dtype:
-                    parents, dtypes = self._prepare_record(grp)
-                    if dtypes.itemsize:
-                        grp.record = fromstring(fragment[0], dtype=dtypes)
-                    else:
-                        grp.record = None
-                        continue
+                    self._prepare_record(grp)
 
                 if idx == 0:
                     for channel_index in channels:
@@ -7988,8 +8077,6 @@ class MDF4(MDF_Common):
                                         )
                                 samples = samples.astype(_dtype)
                                 signals[i] = (samples, sig[1])
-
-                grp.record = None
 
             self._set_temporary_master(None)
             idx += 1
@@ -10331,7 +10418,6 @@ class MDF4(MDF_Common):
                         bus_map[int(msg_id)] = group_index
 
             self._set_temporary_master(None)
-            group.record = None
 
         else:
 
