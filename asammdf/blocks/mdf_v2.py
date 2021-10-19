@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from io import BytesIO
+from io import BufferedReader, BytesIO
 
 from ..types import StrPath
 from .mdf_v3 import MDF3
@@ -20,7 +20,10 @@ class MDF2(MDF3):
     """ shared implementation for mdf version 2 and 3 """
 
     def __init__(
-        self, name: BytesIO | StrPath | None = None, version: str = "2.14", **kwargs
+        self,
+        name: BufferedReader | BytesIO | StrPath | None = None,
+        version: str = "2.14",
+        **kwargs
     ) -> None:
         version = validate_version_argument(version, hint=2)
 

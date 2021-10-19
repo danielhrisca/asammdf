@@ -73,6 +73,7 @@ from .types import (
     EmptyChannelsType,
     InputType,
     RasterType,
+    ReadableBufferType,
     StrOrBytesPath,
     StrPath,
 )
@@ -88,7 +89,7 @@ target_byte_order = "<=" if sys.byteorder == "little" else ">="
 __all__ = ["MDF", "SUPPORTED_VERSIONS"]
 
 
-def get_measurement_timestamp_and_version(mdf: BytesIO) -> tuple[datetime, str]:
+def get_measurement_timestamp_and_version(mdf: ReadableBufferType) -> tuple[datetime, str]:
     id_block = FileIdentificationBlock(address=0, stream=mdf)
 
     version = id_block.mdf_version

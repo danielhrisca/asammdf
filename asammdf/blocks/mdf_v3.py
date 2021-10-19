@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from copy import deepcopy
-from io import BytesIO
+from io import BufferedReader, BytesIO
 from itertools import product
 import logging
 from math import ceil
@@ -171,7 +171,7 @@ class MDF3(MDF_Common):
 
     def __init__(
         self,
-        name: BytesIO | StrPath | None = None,
+        name: BufferedReader | BytesIO | StrPath | None = None,
         version: str = "3.30",
         channels: list[str] | None = None,
         **kwargs,
@@ -429,7 +429,7 @@ class MDF3(MDF_Common):
         if not has_yielded:
             yield b"", 0, _count
 
-    def _prepare_record(self, group: Group) -> tuple[dict[int, tuple[str, int]], dtype]:
+    def _prepare_record(self, group: Group) -> tuple[dict[int, tuple[str, int]], dtype[Any]]:
         """compute record dtype and parents dict for this group
 
         Parameters
