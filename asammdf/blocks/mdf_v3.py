@@ -1425,7 +1425,9 @@ class MDF3(MDF_Common):
                 gp_channels.append(channel)
 
                 if len(signal.samples.shape) > 1:
-                    channel.dtype_fmt = dtype((signal.samples.dtype, signal.samples.shape[1:]))
+                    channel.dtype_fmt = dtype(
+                        (signal.samples.dtype, signal.samples.shape[1:])
+                    )
                 else:
                     channel.dtype_fmt = signal.samples.dtype
 

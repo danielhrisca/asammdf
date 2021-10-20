@@ -150,7 +150,6 @@ logger = logging.getLogger("asammdf")
 __all__ = ["MDF4"]
 
 
-
 from .cutils import (
     extract,
     get_channel_raw_bytes,
@@ -1049,16 +1048,16 @@ class MDF4(MDF_Common):
                         )
                     )
 
-
             else:
                 dependencies.append(None)
 
-                channel.dtype_fmt = dtype(get_fmt_v4(
-                    channel.data_type,
-                    channel.bit_offset + channel.bit_count,
-                    channel.channel_type,
-                ))
-
+                channel.dtype_fmt = dtype(
+                    get_fmt_v4(
+                        channel.data_type,
+                        channel.bit_offset + channel.bit_count,
+                        channel.channel_type,
+                    )
+                )
 
             # go to next channel of the current channel group
             ch_addr = channel.next_ch_addr
@@ -1641,8 +1640,10 @@ class MDF4(MDF_Common):
                             bit_offset += 16 - bit_size
 
                     if (
-                            bit_offset
-                            or new_ch.dtype_fmt.kind in "ui" and size < 64 and size not in (8, 16, 32)
+                        bit_offset
+                        or new_ch.dtype_fmt.kind in "ui"
+                        and size < 64
+                        and size not in (8, 16, 32)
                     ):
                         new_ch.standard_C_size = False
 
@@ -2442,7 +2443,8 @@ class MDF4(MDF_Common):
 
                 invalidation_bytes = get_channel_raw_bytes(
                     data_bytes,
-                    group.channel_group.samples_byte_nr + group.channel_group.invalidation_bytes_nr,
+                    group.channel_group.samples_byte_nr
+                    + group.channel_group.invalidation_bytes_nr,
                     group.channel_group.samples_byte_nr,
                     size,
                 )
@@ -3883,8 +3885,6 @@ class MDF4(MDF_Common):
 
                 gp_channels.append(ch)
 
-
-
                 gp_sdata.append(None)
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
@@ -4820,12 +4820,7 @@ class MDF4(MDF_Common):
         ch.attachment = attachment
         ch.dtype_fmt = signal.samples.dtype
 
-        record.append((
-            ch.dtype_fmt,
-            ch.dtype_fmt.itemsize,
-            offset,
-            0
-        ))
+        record.append((ch.dtype_fmt, ch.dtype_fmt.itemsize, offset, 0))
 
         if source_bus and grp.channel_group.acq_source is None:
             grp.channel_group.acq_source = SourceInformation.from_common_source(
@@ -5315,12 +5310,7 @@ class MDF4(MDF_Common):
         dep_list = []
         gp_dep.append(dep_list)
 
-        record.append((
-            ch.dtype_fmt,
-            ch.dtype_fmt.itemsize,
-            offset,
-            0
-        ))
+        record.append((ch.dtype_fmt, ch.dtype_fmt.itemsize, offset, 0))
 
         # then we add the fields
 
@@ -6669,10 +6659,7 @@ class MDF4(MDF_Common):
                 bts = fragment[0]
 
                 buffer = get_channel_raw_bytes(
-                    bts,
-                    record_size,
-                    byte_offset,
-                    _dtype.itemsize
+                    bts, record_size, byte_offset, _dtype.itemsize
                 )
 
                 channel_values.append(frombuffer(buffer, dtype=_dtype))
@@ -7375,23 +7362,28 @@ class MDF4(MDF_Common):
                     vals = concatenate(channel_values)
                 else:
 
-                    buffer = []
-                    for count, fragment in enumerate(data, 1):
-                        data_bytes, offset, _count, invalidation_bytes = fragment
+                    dtype_, byte_size, byte_offset, bit_offset = info
 
-                        dtype_, byte_size, byte_offset, bit_offset = info
+                    buffer = []
+                    count = 0
+
+                    for count, fragment in enumerate(data, 1):
+                        data_bytes = fragment[0]
+
                         if (
                             len(grp.channels) == 1
                             and channel.dtype_fmt.itemsize == record_size
                         ):
                             buffer.append(data_bytes)
                         else:
-                            buffer.append(get_channel_raw_bytes(
-                                data_bytes,
-                                record_size + channel_group.invalidation_bytes_nr,
-                                byte_offset,
-                                byte_size,
-                            ))
+                            buffer.append(
+                                get_channel_raw_bytes(
+                                    data_bytes,
+                                    record_size + channel_group.invalidation_bytes_nr,
+                                    byte_offset,
+                                    byte_size,
+                                )
+                            )
 
                         if master_is_required:
                             timestamps.append(
@@ -7402,9 +7394,13 @@ class MDF4(MDF_Common):
                                 self.get_invalidation_bits(gp_nr, channel, fragment)
                             )
 
-                    buffer = bytearray().join(buffer)
+                    if count > 1:
+                        buffer = bytearray().join(buffer)
+                    elif count == 1:
+                        buffer = buffer[0]
+                    else:
+                        buffer = bytearray()
 
-                    dtype_ = channel.dtype_fmt
                     vals = frombuffer(buffer, dtype=dtype_)
 
                     if not channel.standard_C_size:
@@ -7412,8 +7408,8 @@ class MDF4(MDF_Common):
                         size = dtype_.itemsize
 
                         if channel_dtype.byteorder == "|" and data_type in (
-                                v4c.DATA_TYPE_SIGNED_MOTOROLA,
-                                v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                            v4c.DATA_TYPE_SIGNED_MOTOROLA,
+                            v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
                         ):
                             view = f">u{vals.itemsize}"
                         else:
@@ -8207,12 +8203,7 @@ class MDF4(MDF_Common):
                         else:
                             data = (fragment,)
 
-                        buffer = bytearray().join(
-                            [
-                                fragment[0]
-                            for fragment in data
-                                ]
-                        )
+                        buffer = bytearray().join([fragment[0] for fragment in data])
 
                         t = frombuffer(buffer, dtype=time_ch.dtype_fmt)
 
