@@ -404,7 +404,7 @@ static PyObject *positions(PyObject *self, PyObject *args)
 
 static PyObject* get_channel_raw_bytes(PyObject* self, PyObject* args)
 {
-    Py_ssize_t count, size;
+    Py_ssize_t count, size, actual_byte_count, delta;
     PyObject *data_block, *out;
     
     Py_ssize_t record_size, byte_offset, byte_count;
@@ -420,6 +420,27 @@ static PyObject* get_channel_raw_bytes(PyObject* self, PyObject* args)
         size = PyBytes_GET_SIZE(data_block);
         if (!record_size) {
             out = PyByteArray_FromStringAndSize(NULL, 0);
+        }
+        else if (record_size < byte_offset + byte_count) {
+            delta = byte_offset + byte_count - record_size;
+            actual_byte_count = record_size - byte_offset;
+            
+            count = size / record_size;
+            
+            out = PyByteArray_FromStringAndSize(NULL, count * byte_count);
+            outptr = PyByteArray_AsString(out);
+            inptr = PyBytes_AsString(data_block);
+            
+            inptr += byte_offset;
+            
+            for (int i=0; i<count; i++) {
+                memcpy(outptr, inptr, actual_byte_count);
+                inptr += actual_byte_count;
+                outptr += byte_count;
+                for (int j=0; j< delta; j++) {
+                    *outptr++ = '\0';
+                }
+            }
         }
         else {
             count = size / record_size;

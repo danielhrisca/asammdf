@@ -1640,6 +1640,12 @@ class MDF4(MDF_Common):
                         elif size > 8:
                             bit_offset += 16 - bit_size
 
+                    if (
+                            bit_offset
+                            or new_ch.dtype_fmt.kind in "ui" and size < 64 and size not in (8, 16, 32)
+                    ):
+                        new_ch.standard_C_size = False
+
                     record.append(
                         (
                             new_ch.dtype_fmt,
@@ -7288,57 +7294,34 @@ class MDF4(MDF_Common):
 
                     vals = frombuffer(buffer, dtype=dtype_)
 
-                    shape_ = vals.shape
-                    size = byte_size
+                    if not channel.standard_C_size:
 
-                    kind_ = dtype_.kind
+                        size = byte_size
 
-                    if kind_ == "b":
-                        pass
-                    elif len(shape_) > 1 and data_type not in (
-                        v4c.DATA_TYPE_BYTEARRAY,
-                        v4c.DATA_TYPE_MIME_SAMPLE,
-                        v4c.DATA_TYPE_MIME_STREAM,
-                    ):
-                        vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
-                    elif kind_ not in "ui" and (
-                        bit_offset or not bit_count == size * 8
-                    ):
-                        vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
-                    else:
+                        if channel_dtype.byteorder == "|" and data_type in (
+                            v4c.DATA_TYPE_SIGNED_MOTOROLA,
+                            v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                        ):
+                            view = f">u{vals.itemsize}"
+                        else:
+                            view = f"{channel_dtype.byteorder}u{vals.itemsize}"
 
-                        if data_type in v4c.INT_TYPES:
+                        if dtype(view) != vals.dtype:
+                            vals = vals.view(view)
 
-                            if channel_dtype.byteorder == "|" and data_type in (
-                                v4c.DATA_TYPE_SIGNED_MOTOROLA,
-                                v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
-                            ):
-                                view = f">u{vals.itemsize}"
+                        if bit_offset:
+                            vals >>= bit_offset
+
+                        if bit_count != size * 8:
+                            if data_type in v4c.SIGNED_INT:
+                                vals = as_non_byte_sized_signed_int(vals, bit_count)
                             else:
-                                view = f"{channel_dtype.byteorder}u{vals.itemsize}"
-
+                                mask = (1 << bit_count) - 1
+                                vals &= mask
+                        elif data_type in v4c.SIGNED_INT:
+                            view = f"{channel_dtype.byteorder}i{vals.itemsize}"
                             if dtype(view) != vals.dtype:
                                 vals = vals.view(view)
-
-                            if bit_offset:
-                                vals >>= bit_offset
-
-                            if bit_count != size * 8:
-                                if data_type in v4c.SIGNED_INT:
-                                    vals = as_non_byte_sized_signed_int(vals, bit_count)
-                                else:
-                                    mask = (1 << bit_count) - 1
-                                    vals &= mask
-                            elif data_type in v4c.SIGNED_INT:
-                                view = f"{channel_dtype.byteorder}i{vals.itemsize}"
-                                if dtype(view) != vals.dtype:
-                                    vals = vals.view(view)
-
-                        else:
-                            if bit_count != size * 8:
-                                vals = self._get_not_byte_aligned_data(
-                                    data_bytes, grp, ch_nr
-                                )
 
                 else:
                     vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
@@ -7424,62 +7407,34 @@ class MDF4(MDF_Common):
                     dtype_ = channel.dtype_fmt
                     vals = frombuffer(buffer, dtype=dtype_)
 
-                    size = dtype_.itemsize
+                    if not channel.standard_C_size:
 
-                    kind_ = dtype_.kind
+                        size = dtype_.itemsize
 
-                    if kind_ == "b":
-                        pass
-                    elif len(vals.shape) > 1 and data_type not in (
-                        v4c.DATA_TYPE_BYTEARRAY,
-                        v4c.DATA_TYPE_MIME_SAMPLE,
-                        v4c.DATA_TYPE_MIME_STREAM,
-                    ):
-                        vals = self._get_not_byte_aligned_data(
-                            data_bytes, grp, ch_nr
-                        )
-                    elif kind_ not in "ui" and (
-                        bit_offset or not bit_count == size * 8
-                    ):
-                        vals = self._get_not_byte_aligned_data(
-                            data_bytes, grp, ch_nr
-                        )
-                    else:
-
-                        if data_type in v4c.INT_TYPES:
-
-                            if channel_dtype.byteorder == "|" and data_type in (
+                        if channel_dtype.byteorder == "|" and data_type in (
                                 v4c.DATA_TYPE_SIGNED_MOTOROLA,
                                 v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
-                            ):
-                                view = f">u{vals.itemsize}"
-                            else:
-                                view = f"{channel_dtype.byteorder}u{vals.itemsize}"
+                        ):
+                            view = f">u{vals.itemsize}"
+                        else:
+                            view = f"{channel_dtype.byteorder}u{vals.itemsize}"
 
+                        if dtype(view) != dtype_:
+                            vals = vals.view(view)
+
+                        if bit_offset:
+                            vals >>= bit_offset
+
+                        if bit_count != size * 8:
+                            if data_type in v4c.SIGNED_INT:
+                                vals = as_non_byte_sized_signed_int(vals, bit_count)
+                            else:
+                                mask = (1 << bit_count) - 1
+                                vals &= mask
+                        elif data_type in v4c.SIGNED_INT:
+                            view = f"{channel_dtype.byteorder}i{vals.itemsize}"
                             if dtype(view) != vals.dtype:
                                 vals = vals.view(view)
-
-                            if bit_offset:
-                                vals >>= bit_offset
-
-                            if bit_count != size * 8:
-                                if data_type in v4c.SIGNED_INT:
-                                    vals = as_non_byte_sized_signed_int(
-                                        vals, bit_count
-                                    )
-                                else:
-                                    mask = (1 << bit_count) - 1
-                                    vals &= mask
-                            elif data_type in v4c.SIGNED_INT:
-                                view = f"{channel_dtype.byteorder}i{vals.itemsize}"
-                                if dtype(view) != vals.dtype:
-                                    vals = vals.view(view)
-
-                        else:
-                            if bit_count != size * 8:
-                                vals = self._get_not_byte_aligned_data(
-                                    data_bytes, grp, ch_nr
-                                )
 
                     if bit_count == 1 and self._single_bit_uint_as_bool:
                         vals = array(vals, dtype=bool)

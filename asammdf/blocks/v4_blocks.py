@@ -481,6 +481,7 @@ class Channel:
         "default_X_cg_addr",
         "default_X_ch_addr",
         "attachment_addr",
+        "standard_C_size",
     )
 
     def __init__(self, **kwargs) -> None:
@@ -1025,6 +1026,8 @@ class Channel:
 
         if self.name in self.display_names:
             del self.display_names[self.name]
+
+        self.standard_C_size = True
 
     def __getitem__(self, item: str) -> Any:
         return self.__getattribute__(item)
