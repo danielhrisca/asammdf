@@ -7424,17 +7424,13 @@ class MDF4(MDF_Common):
                     dtype_ = channel.dtype_fmt
                     vals = frombuffer(buffer, dtype=dtype_)
 
-                    shape_ = vals.shape
                     size = dtype_.itemsize
-                    for dim in shape_[1:]:
-                        size *= dim
 
                     kind_ = dtype_.kind
 
-                    vals_dtype = vals.dtype.kind
                     if kind_ == "b":
                         pass
-                    elif len(shape_) > 1 and data_type not in (
+                    elif len(vals.shape) > 1 and data_type not in (
                         v4c.DATA_TYPE_BYTEARRAY,
                         v4c.DATA_TYPE_MIME_SAMPLE,
                         v4c.DATA_TYPE_MIME_STREAM,
@@ -7442,15 +7438,13 @@ class MDF4(MDF_Common):
                         vals = self._get_not_byte_aligned_data(
                             data_bytes, grp, ch_nr
                         )
-                    elif vals_dtype not in "ui" and (
+                    elif kind_ not in "ui" and (
                         bit_offset or not bit_count == size * 8
                     ):
                         vals = self._get_not_byte_aligned_data(
                             data_bytes, grp, ch_nr
                         )
                     else:
-                        dtype_ = vals.dtype
-                        kind_ = dtype_.kind
 
                         if data_type in v4c.INT_TYPES:
 
