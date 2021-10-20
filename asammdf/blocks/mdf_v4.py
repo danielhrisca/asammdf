@@ -7297,8 +7297,6 @@ class MDF4(MDF_Common):
 
                     shape_ = vals.shape
                     size = byte_size
-                    for dim in shape_[1:]:
-                        size *= dim
 
                     kind_ = dtype_.kind
 

@@ -465,7 +465,7 @@ class MDF3(MDF_Common):
                 except AttributeError:
                     pass
 
-                bit_offset = start_offset % 8
+                byte_offset, bit_offset = divmod(start_offset, 8)
                 data_type = new_ch.data_type
                 bit_count = new_ch.bit_count
 
@@ -499,7 +499,7 @@ class MDF3(MDF_Common):
                         (
                             new_ch.dtype_fmt,
                             new_ch.dtype_fmt.itemsize,
-                            start_offset,
+                            byte_offset,
                             bit_offset,
                         )
                     )
@@ -3007,9 +3007,7 @@ class MDF3(MDF_Common):
 
                     vals = frombuffer(buffer, dtype=dtype_)
                     data_type = channel.data_type
-                    size = vals.dtype.itemsize
-                    if data_type == v23c.DATA_TYPE_BYTEARRAY:
-                        size *= vals.shape[1]
+                    size = byte_size
 
                     vals_dtype = vals.dtype.kind
                     if vals_dtype not in "ui" and (bit_offset or not bits == size * 8):
@@ -3052,13 +3050,6 @@ class MDF3(MDF_Common):
                                 vals = self._get_not_byte_aligned_data(
                                     data_bytes, grp, ch_nr
                                 )
-                            else:
-                                if kind_ in "ui":
-                                    dtype_fmt = get_fmt_v3(
-                                        data_type, bits, self.identification.byte_order
-                                    )
-                                    channel_dtype = dtype(dtype_fmt.split(")")[-1])
-                                    vals = vals.view(channel_dtype)
 
                 else:
                     vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
@@ -3068,21 +3059,8 @@ class MDF3(MDF_Common):
 
                 if bits == 1 and self._single_bit_uint_as_bool:
                     vals = array(vals, dtype=bool)
-                else:
-                    data_type = channel.data_type
-                    channel_dtype = array(
-                        [],
-                        dtype=get_fmt_v3(
-                            data_type, bits, self.identification.byte_order
-                        ),
-                    )
-                    if vals.dtype != channel_dtype.dtype:
-                        try:
-                            vals = vals.astype(channel_dtype.dtype)
-                        except ValueError:
-                            pass
 
-                channel_values.append(vals.copy())
+                channel_values.append(vals)
                 count += 1
 
             if count > 1:
