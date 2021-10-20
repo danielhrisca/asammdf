@@ -7163,8 +7163,8 @@ class MDF4(MDF_Common):
             v4c.CHANNEL_TYPE_VIRTUAL_MASTER,
         }:
             if not channel.dtype_fmt:
-                channel.dtype_fmt = get_fmt_v4(data_type, 64)
-            ch_dtype = dtype(channel.dtype_fmt)
+                channel.dtype_fmt = dtype(get_fmt_v4(data_type, 64))
+            ch_dtype = channel.dtype_fmt
 
             channel_values = []
             timestamps = []
@@ -7260,8 +7260,9 @@ class MDF4(MDF_Common):
                 vals = channel.conversion.convert(vals)
 
         else:
-            record_size = grp.channel_group.samples_byte_nr
             channel_group = grp.channel_group
+
+            record_size = channel_group.samples_byte_nr
 
             if one_piece:
 
