@@ -402,7 +402,7 @@ static PyObject *positions(PyObject *self, PyObject *args)
     }     
 }
 
-static PyObject* get_channel_data(PyObject* self, PyObject* args)
+static PyObject* get_channel_raw_bytes(PyObject* self, PyObject* args)
 {
     Py_ssize_t count, size;
     PyObject *data_block, *out;
@@ -419,7 +419,7 @@ static PyObject* get_channel_data(PyObject* self, PyObject* args)
     {
         size = PyBytes_GET_SIZE(data_block);
         count = size / record_size;
-        
+   
         out = PyByteArray_FromStringAndSize(NULL, count * byte_count);
         outptr = PyByteArray_AsString(out);
         inptr = PyBytes_AsString(data_block);
@@ -447,7 +447,7 @@ static PyMethodDef myMethods[] =
     { "get_vlsd_offsets", get_vlsd_offsets, METH_VARARGS, "get_vlsd_offsets" },
     { "sort_data_block", sort_data_block, METH_VARARGS, "sort raw data group block" },
     { "positions", positions, METH_VARARGS, "positions" },
-    { "get_channel_data", get_channel_data, METH_VARARGS, "get_channel_data" },
+    { "get_channel_raw_bytes", get_channel_raw_bytes, METH_VARARGS, "get_channel_raw_bytes" },
     
     { NULL, NULL, 0, NULL }
 };

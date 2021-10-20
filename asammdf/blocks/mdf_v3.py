@@ -54,7 +54,7 @@ from ..types import (
 )
 from ..version import __version__
 from .conversion_utils import conversion_transfer
-from .cutils import get_channel_data
+from .cutils import get_channel_raw_bytes
 from .mdf_common import MDF_Common
 from .source_utils import Source
 from .utils import (
@@ -435,7 +435,7 @@ class MDF3(MDF_Common):
     def _prepare_record(
         self, group: Group
     ) -> tuple[dict[int, tuple[str, int]], dtype[Any]]:
-        """compute record dtype and parents dict for this group
+        """compute record list
 
         Parameters
         ----------
@@ -444,7 +444,7 @@ class MDF3(MDF_Common):
 
         Returns
         -------
-        parents, dtypes : dict, numpy.dtype
+        record : list
             mapping of channels to records fields, records fields dtype
 
         """
@@ -1361,15 +1361,6 @@ class MDF3(MDF_Common):
 
             if sig_type == v23c.SIGNAL_TYPE_SCALAR:
 
-                record.append(
-                    (
-                        signal.samples.dtype,
-                        signal.samples.dtype.itemsize,
-                        offset,
-                        0,
-                    )
-                )
-
                 # source for channel
                 if signal.source:
                     source = signal.source
@@ -1433,6 +1424,20 @@ class MDF3(MDF_Common):
                 channel.display_names = display_names
                 gp_channels.append(channel)
 
+                if len(signal.samples.shape) > 1:
+                    channel.dtype_fmt = dtype((signal.samples.dtype, signal.samples.shape[1:]))
+                else:
+                    channel.dtype_fmt = signal.samples.dtype
+
+                record.append(
+                    (
+                        channel.dtype_fmt,
+                        channel.dtype_fmt.itemsize,
+                        offset,
+                        0,
+                    )
+                )
+
                 offset += s_size
 
                 entry = (dg_cntr, ch_cntr)
@@ -1440,7 +1445,6 @@ class MDF3(MDF_Common):
                 for _name in display_names:
                     self.channels_db.add(_name, entry)
 
-                # update the parents as well
                 field_name = field_names.get_unique_name(name)
 
                 if signal.samples.dtype.kind == "S":
@@ -1509,7 +1513,7 @@ class MDF3(MDF_Common):
                 channel.conversion = conversion
                 new_gp_channels.append(channel)
 
-                record.append(
+                new_record.append(
                     (
                         timestamps.dtype,
                         timestamps.dtype.itemsize,
@@ -1554,7 +1558,7 @@ class MDF3(MDF_Common):
 
                     samples = signal.samples[name]
 
-                    record.append(
+                    new_record.append(
                         (
                             samples.dtype,
                             samples.dtype.itemsize,
@@ -1628,7 +1632,6 @@ class MDF3(MDF_Common):
 
                     self.channels_db.add(name, (new_dg_cntr, new_ch_cntr))
 
-                    # update the parents as well
                     field_name = new_field_names.get_unique_name(name)
 
                     new_fields.append(samples)
@@ -1760,7 +1763,7 @@ class MDF3(MDF_Common):
                 if s_size < 8:
                     s_size = 8
 
-                record.append(None)
+                new_record.append(None)
 
                 channel = Channel(**kargs)
                 channel.comment = signal.comment
@@ -1815,7 +1818,7 @@ class MDF3(MDF_Common):
                         start_bit_offset = offset
                         additional_byte_offset = 0
 
-                    record.append(
+                    new_record.append(
                         (
                             samples.dtype,
                             samples.dtype.itemsize,
@@ -1850,7 +1853,6 @@ class MDF3(MDF_Common):
 
                     self.channels_db.add(name, (dg_cntr, ch_cntr))
 
-                    # update the parents as well
                     field_name = field_names.get_unique_name(name)
 
                     fields.append(samples)
@@ -1930,7 +1932,7 @@ class MDF3(MDF_Common):
                     if s_size < 8:
                         s_size = 8
 
-                    record.append(None)
+                    new_record.append(None)
 
                     channel = Channel(**kargs)
                     channel.name = name
@@ -2002,7 +2004,7 @@ class MDF3(MDF_Common):
                         if s_size < 8:
                             s_size = 8
 
-                        record.append(
+                        new_record.append(
                             (
                                 samples.dtype,
                                 samples.dtype.itemsize,
@@ -2023,7 +2025,6 @@ class MDF3(MDF_Common):
 
                         self.channels_db.add(name, (dg_cntr, ch_cntr))
 
-                        # update the parents as well
                         field_name = field_names.get_unique_name(name)
 
                         fields.append(samples)
@@ -2249,11 +2250,12 @@ class MDF3(MDF_Common):
             channel = Channel(**kargs)
             channel.name = name
             channel.source = new_source
+            channel.dtype_fmt = dtype((sig.dtype, sig.shape[1:]))
 
             record.append(
                 (
-                    sig.dtype,
-                    sig.dtype.itemsize,
+                    channel.dtype_fmt,
+                    channel.dtype_fmt.itemsize,
                     offset,
                     0,
                 )
@@ -2279,7 +2281,6 @@ class MDF3(MDF_Common):
 
             self.channels_db.add(name, (dg_cntr, ch_cntr))
 
-            # update the parents as well
             field_name = field_names.get_unique_name(name)
 
             if sig.dtype.kind == "S":
@@ -2997,7 +2998,7 @@ class MDF3(MDF_Common):
                 if info is not None:
                     dtype_, byte_size, byte_offset, bit_offset = info
 
-                    buffer = get_channel_data(
+                    buffer = get_channel_raw_bytes(
                         data_bytes,
                         grp.channel_group.samples_byte_nr,
                         byte_offset,
@@ -3256,7 +3257,7 @@ class MDF3(MDF_Common):
                         time_ch_nr
                     ]
 
-                    buffer = get_channel_data(
+                    buffer = get_channel_raw_bytes(
                         data_bytes,
                         group.channel_group.samples_byte_nr,
                         byte_offset,
@@ -3947,7 +3948,6 @@ class MDF3(MDF_Common):
                                     )
                                 signals[i] = (samples, sig[1])
 
-            group.record = None
             self._set_temporary_master(None)
             yield signals
 
