@@ -3313,7 +3313,7 @@ class MDF3(MDF_Common):
         else:
             timestamps = t
 
-        return timestamps.copy()
+        return timestamps
 
     def iter_get_triggers(self) -> TriggerInfoDict:
         """generator that yields triggers
