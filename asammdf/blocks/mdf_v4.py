@@ -7147,10 +7147,7 @@ class MDF4(MDF_Common):
             )
             one_piece = False
         else:
-            data = (data,)
             one_piece = True
-
-        one_piece = False
 
         channel_invalidation_present = channel.flags & (
             v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT

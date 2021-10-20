@@ -1232,8 +1232,8 @@ class Plot(QtWidgets.QWidget):
             self.close_request.emit()
 
     def cursor_move_finished(self):
-        x = self.plot.timebase
-        if x is not None and len(x):
+        x = self.plot.get_current_timebase()
+        if x.size:
             dim = len(x)
             position = self.plot.cursor1.value()
 
@@ -1405,7 +1405,9 @@ class Plot(QtWidgets.QWidget):
             return
         start, stop = self.plot.region.getRegion()
 
-        if self.plot.timebase is not None and len(self.plot.timebase):
+        timebase = self.plot.get_current_timebase()
+
+        if timebase.size:
             timebase = self.plot.timebase
             dim = len(timebase)
 
@@ -2161,6 +2163,7 @@ class _Plot(pg.PlotWidget):
         self.disabled_keys = set()
 
         self._timebase_db = {}
+        self.all_timebase = self.timebase = np.array([])
         for sig in self.signals:
             uuids = self._timebase_db.setdefault(id(sig.timestamps), set())
             uuids.add(sig.uuid)
@@ -2960,15 +2963,16 @@ class _Plot(pg.PlotWidget):
             ):
                 if self.cursor1:
                     prev_pos = pos = self.cursor1.value()
-                    dim = len(self.timebase)
+                    x = self.get_current_timebase()
+                    dim = x.size
                     if dim:
-                        pos = np.searchsorted(self.timebase, pos)
+                        pos = np.searchsorted(x, pos)
                         if key == QtCore.Qt.Key_Right:
                             pos += 1
                         else:
                             pos -= 1
                         pos = np.clip(pos, 0, dim - 1)
-                        pos = self.timebase[pos]
+                        pos = x[pos]
                     else:
                         if key == QtCore.Qt.Key_Right:
                             pos += 1
@@ -3273,6 +3277,17 @@ class _Plot(pg.PlotWidget):
             self.all_timebase = self.timebase = new_timebase
         else:
             self.all_timebase = self.timebase = []
+
+    def get_current_timebase(self):
+        if self.current_uuid:
+            sig, _ = self._uuid_map[self.current_uuid]
+            t = sig.timestamps
+            if t.size:
+                return t
+            else:
+                return self.all_timebase
+        else:
+            return self.all_timebase
 
     def signal_by_uuid(self, uuid):
         return self._uuid_map[uuid]

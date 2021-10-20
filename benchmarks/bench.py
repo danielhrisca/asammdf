@@ -1033,7 +1033,7 @@ def main(text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-        convert_v3_v4,
+        # convert_v3_v4,
         convert_v4_v410,
         convert_v4_v420,
     )
@@ -1050,11 +1050,11 @@ def main(text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-        merge_v3,
+        # merge_v3,
         # merge_reader_v3,
         # merge_reader_v3_nodata,
         # merge_reader_v3_compress,
-        # merge_v4,
+        merge_v4,
         # merge_reader_v4,
         # merge_reader_v4_nodata,
         # merge_reader_v4_compress,
