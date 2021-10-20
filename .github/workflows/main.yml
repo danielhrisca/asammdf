@@ -29,5 +29,4 @@ jobs:
           set -e
           python --version
           python -m pytest -vv --color=yes --disable-pytest-warnings --cov-config=.coveragerc --cov-report xml:coverage.xml --cov=asammdf/ test/
-          python -m sphinx -nW -b html doc doc/_build/html
-          
+          python -m sphinx -W -b html doc doc/_build/html
