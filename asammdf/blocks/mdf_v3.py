@@ -1433,7 +1433,7 @@ class MDF3(MDF_Common):
                     (
                         channel.dtype_fmt,
                         channel.dtype_fmt.itemsize,
-                        offset,
+                        offset // 8,
                         0,
                     )
                 )
@@ -1562,7 +1562,7 @@ class MDF3(MDF_Common):
                         (
                             samples.dtype,
                             samples.dtype.itemsize,
-                            new_offset,
+                            new_offset // 8,
                             0,
                         )
                     )
@@ -1822,7 +1822,7 @@ class MDF3(MDF_Common):
                         (
                             samples.dtype,
                             samples.dtype.itemsize,
-                            offset,
+                            offset // 8,
                             0,
                         )
                     )
@@ -2008,7 +2008,7 @@ class MDF3(MDF_Common):
                             (
                                 samples.dtype,
                                 samples.dtype.itemsize,
-                                offset,
+                                offset // 8,
                                 0,
                             )
                         )
@@ -2256,7 +2256,7 @@ class MDF3(MDF_Common):
                 (
                     channel.dtype_fmt,
                     channel.dtype_fmt.itemsize,
-                    offset,
+                    offset // 8,
                     0,
                 )
             )
