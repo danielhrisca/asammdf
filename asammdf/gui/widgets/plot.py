@@ -248,7 +248,7 @@ class PlotSignal(Signal):
 
     @property
     def min(self):
-        return self._min if self.mode == "phys" else self._min_raw
+        return self._min if self._mode == "phys" else self._min_raw
 
     @min.setter
     def min(self, min):
@@ -256,7 +256,7 @@ class PlotSignal(Signal):
 
     @property
     def max(self):
-        return self._max if self.mode == "phys" else self._max_raw
+        return self._max if self._mode == "phys" else self._max_raw
 
     @max.setter
     def max(self, max):
@@ -264,7 +264,7 @@ class PlotSignal(Signal):
 
     @property
     def avg(self):
-        return self._avg if self.mode == "phys" else self._avg_raw
+        return self._avg if self._mode == "phys" else self._avg_raw
 
     @avg.setter
     def avg(self, avg):
@@ -307,7 +307,7 @@ class PlotSignal(Signal):
 
     @mode.setter
     def mode(self, mode):
-        if mode != self.mode:
+        if mode != self._mode:
             self._mode = mode
             if mode == "raw":
                 self.plot_samples = self.raw_samples
@@ -699,33 +699,38 @@ class PlotSignal(Signal):
         return stats
 
     def trim_c(self, start=None, stop=None, width=1900):
+
         trim_info = (start, stop, width)
         if self.trim_info == trim_info:
             return None
 
         self.trim_info = trim_info
         sig = self
-        dim = sig.timestamps.size
+        sig_timestamps = sig.timestamps
+        dim = sig_timestamps.size
 
         if dim:
 
             if start is None:
-                start = sig.timestamps[0]
+                start = sig_timestamps[0]
             if stop is None:
-                stop = sig.timestamps[-1]
+                stop = sig_timestamps[-1]
 
-            if self.mode == "raw":
+            if start > stop:
+                start, stop = stop, start
+
+            if self._mode == "raw":
                 signal_samples = self.raw_samples
             else:
                 signal_samples = self.phys_samples
 
             start_t_sig, stop_t_sig = (
-                sig.timestamps[0],
-                sig.timestamps[-1],
+                sig_timestamps[0],
+                sig_timestamps[-1],
             )
             if start > stop_t_sig or stop < start_t_sig:
                 sig.plot_samples = signal_samples[:0]
-                sig.plot_timestamps = sig.timestamps[:0]
+                sig.plot_timestamps = sig_timestamps[:0]
                 pos = []
             else:
                 start_t = simple_max(start, start_t_sig)
@@ -734,25 +739,26 @@ class PlotSignal(Signal):
                 if start_t == start_t_sig:
                     start_ = 0
                 else:
-                    start_ = np.searchsorted(sig.timestamps, start_t, side="right")
+                    start_ = np.searchsorted(sig_timestamps, start_t, side="right")
                 if stop_t == stop_t_sig:
                     stop_ = dim
                 else:
-                    stop_ = np.searchsorted(sig.timestamps, stop_t, side="right")
+                    stop_ = np.searchsorted(sig_timestamps, stop_t, side="right")
 
-                try:
-                    visible = abs(int((stop_t - start_t) / (stop - start) * width))
+                if stop == start:
+                    visible_duplication = 0
+                else:
+
+                    visible = int((stop_t - start_t) / (stop - start) * width)
 
                     if visible:
-                        visible_duplication = abs((stop_ - start_)) // visible
+                        visible_duplication = (stop_ - start_) // visible
                     else:
                         visible_duplication = 0
-                except:
-                    visible_duplication = 0
 
                 if visible_duplication > self.duplication:
                     samples = signal_samples[start_:]
-                    timestamps = sig.timestamps[start_:]
+                    timestamps = sig_timestamps[start_:]
                     count, rest = divmod(samples.size, visible_duplication)
                     if rest:
                         count += 1
@@ -762,11 +768,7 @@ class PlotSignal(Signal):
 
                     pos = np.empty(2 * count, dtype="i4")
 
-                    # print(samples.shape, pos.shape, steps, count, rest)
-
                     positions(samples.astype("f8"), pos, steps, count, rest)
-
-                    # print('final', pos)
 
                     sig.plot_samples = samples[pos]
                     sig.plot_timestamps = timestamps[pos]
@@ -777,13 +779,13 @@ class PlotSignal(Signal):
 
                     if start_ == 0 and stop_ == dim:
                         sig.plot_samples = signal_samples
-                        sig.plot_timestamps = sig.timestamps
+                        sig.plot_timestamps = sig_timestamps
 
                         pos = None
                     else:
 
                         sig.plot_samples = signal_samples[start_:stop_]
-                        sig.plot_timestamps = sig.timestamps[start_:stop_]
+                        sig.plot_timestamps = sig_timestamps[start_:stop_]
 
                         pos = np.arange(start_, stop_)
 

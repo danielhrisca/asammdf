@@ -7125,9 +7125,6 @@ class MDF4(MDF_Common):
         grp = group
         gp_nr = group_index
         ch_nr = channel_index
-        # get data group record
-        if grp.record is None:
-            self._prepare_record(grp)
 
         # get group data
         if data is None:
@@ -7260,14 +7257,15 @@ class MDF4(MDF_Common):
             if one_piece:
 
                 fragment = data
-                data_bytes, record_start, record_count, invalidation_bytes = fragment
+                data_bytes = fragment[0]
 
                 info = grp.record[ch_nr]
 
                 if info is not None:
                     dtype_, byte_size, byte_offset, bit_offset = info
                     if (
-                        len(grp.channels) == 1
+                        ch_nr == 0
+                        and len(grp.channels) == 1
                         and channel.dtype_fmt.itemsize == record_size
                     ):
                         buffer = bytearray(data_bytes)
@@ -7313,7 +7311,7 @@ class MDF4(MDF_Common):
                 else:
                     vals = self._get_not_byte_aligned_data(data_bytes, grp, ch_nr)
 
-                if self._single_bit_uint_as_bool and bit_count == 1:
+                if bit_count == 1 and self._single_bit_uint_as_bool:
                     vals = array(vals, dtype=bool)
 
                 if master_is_required:
@@ -7371,7 +7369,8 @@ class MDF4(MDF_Common):
                         data_bytes = fragment[0]
 
                         if (
-                            len(grp.channels) == 1
+                            ch_nr == 0
+                            and len(grp.channels) == 1
                             and channel.dtype_fmt.itemsize == record_size
                         ):
                             buffer.append(data_bytes)
@@ -7557,34 +7556,29 @@ class MDF4(MDF_Common):
                         dtype=get_fmt_v4(data_type, bit_count, v4c.CHANNEL_TYPE_VALUE),
                     )
 
-        elif not (
+        elif (
             v4c.DATA_TYPE_STRING_LATIN_1 <= data_type <= v4c.DATA_TYPE_STRING_UTF_16_BE
         ):
-            pass
+            if channel_type in (v4c.CHANNEL_TYPE_VALUE, v4c.CHANNEL_TYPE_MLSD):
 
-        elif channel_type in {v4c.CHANNEL_TYPE_VALUE, v4c.CHANNEL_TYPE_MLSD}:
+                if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
+                    encoding = "utf-16-be"
 
-            if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
-                encoding = "utf-16-be"
+                elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
+                    encoding = "utf-16-le"
 
-            elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
-                encoding = "utf-16-le"
+                elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
+                    encoding = "utf-8"
 
-            elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
-                encoding = "utf-8"
+                elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
+                    encoding = "latin-1"
 
-            elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
-                encoding = "latin-1"
+                else:
+                    raise MdfException(
+                        f'wrong data type "{data_type}" for string channel'
+                    )
 
-            else:
-                raise MdfException(f'wrong data type "{data_type}" for string channel')
-
-        if (
-            data_type < v4c.DATA_TYPE_CANOPEN_DATE
-            or data_type > v4c.DATA_TYPE_CANOPEN_TIME
-        ):
-            pass
-        else:
+        elif data_type in (v4c.DATA_TYPE_CANOPEN_TIME, v4c.DATA_TYPE_CANOPEN_DATE):
             # CANopen date
             if data_type == v4c.DATA_TYPE_CANOPEN_DATE:
 
@@ -8211,11 +8205,11 @@ class MDF4(MDF_Common):
                     dtype_, byte_size, byte_offset, bti_count = group.record[time_ch_nr]
 
                     if one_piece:
-                        data_bytes, offset, _count, _ = data
+                        data_bytes = data[0]
 
                         buffer = get_channel_raw_bytes(
                             data_bytes,
-                            record_size + channel_group.invalidation_bytes_nr,
+                            record_size,
                             byte_offset,
                             byte_size,
                         )
@@ -8237,12 +8231,12 @@ class MDF4(MDF_Common):
                         buffer = bytearray().join(
                             [
                                 get_channel_raw_bytes(
-                                    data_bytes,
-                                    record_size + channel_group.invalidation_bytes_nr,
+                                    fragment[0],
+                                    record_size,
                                     byte_offset,
                                     byte_size,
                                 )
-                                for data_bytes, offset, _count, invalidation_bytes in data
+                                for fragment in data
                             ]
                         )
 
