@@ -3278,7 +3278,7 @@ class _Plot(pg.PlotWidget):
                 new_timebase = np.array([])
             self.all_timebase = self.timebase = new_timebase
         else:
-            self.all_timebase = self.timebase = []
+            self.all_timebase = self.timebase = np.array([])
 
     def get_current_timebase(self):
         if self.current_uuid:

@@ -1618,7 +1618,9 @@ class MDF4(MDF_Common):
                 if ch_type not in v4c.VIRTUAL_TYPES and not dependency_list:
 
                     if not new_ch.dtype_fmt:
-                        new_ch.dtype_fmt = get_fmt_v4(data_type, bit_count, ch_type)
+                        new_ch.dtype_fmt = dtype(
+                            get_fmt_v4(data_type, bit_count, ch_type)
+                        )
 
                     # adjust size to 1, 2, 4 or 8 bytes
                     size = bit_offset + bit_count
@@ -7166,7 +7168,7 @@ class MDF4(MDF_Common):
 
             count = 0
             if one_piece:
-                data = (data,)
+                data = (data, 0, 0, None)
             for fragment in data:
                 data_bytes, offset, _count, invalidation_bytes = fragment
                 offset = offset // record_size
@@ -7256,8 +7258,7 @@ class MDF4(MDF_Common):
 
             if one_piece:
 
-                fragment = data
-                data_bytes = fragment[0]
+                data_bytes = fragment = data
 
                 info = grp.record[ch_nr]
 

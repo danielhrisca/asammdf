@@ -300,16 +300,16 @@ def sanitize_xml(text: str) -> str:
 
 def extract_display_names(comment: str) -> dict[str, str]:
     display_names = {}
-    if comment.startswith("<CNcomment"):
+    if comment.startswith("<CNcomment") and "<names>" in comment:
 
         try:
-            comment = ET.fromstring(sanitize_xml(comment))
-            names = comment.find(".//names")
-            if names is not None:
-                for i, elem in enumerate(names.iter()):
-                    if i == 0:
-                        continue
-                    display_names[elem.text.strip(" \t\r\n\v\0")] = elem.tag
+            start = comment.index("<names>")
+            end = comment.index("</names>") + 8
+            names = ET.fromstring(comment[start:end])
+            for i, elem in enumerate(names.iter()):
+                if i == 0:
+                    continue
+                display_names[elem.text.strip(" \t\r\n\v\0")] = elem.tag
 
         except:
             pass
