@@ -7167,8 +7167,7 @@ class MDF4(MDF_Common):
             record_size += channel_group.invalidation_bytes_nr
 
             count = 0
-            if one_piece:
-                data = (data, 0, 0, None)
+            
             for fragment in data:
                 data_bytes, offset, _count, invalidation_bytes = fragment
                 offset = offset // record_size
