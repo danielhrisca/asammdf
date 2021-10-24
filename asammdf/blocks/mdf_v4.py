@@ -7258,7 +7258,8 @@ class MDF4(MDF_Common):
 
             if one_piece:
 
-                data_bytes = fragment = data
+                fragment = data
+                data_bytes = fragment[0]
 
                 info = grp.record[ch_nr]
 
