@@ -3427,9 +3427,7 @@ class ChannelConversion(_ChannelConversionBase):
                     else:
                         ret[idx] = default.convert(values[idx])
                         
-                    idx_ = np.ones(values.size, bool)
-                    idx_[idx] = False
-                    idx = idx_
+                    idx = np.argwhere(idx1 == idx2).ravel()
 
                     if idx.size:
                         indexes = idx1[idx]
