@@ -10501,14 +10501,22 @@ class MDF4(MDF_Common):
                     and source.bus_type in (v4c.BUS_TYPE_CAN, v4c.BUS_TYPE_OTHER)
                     and "CAN_DataFrame" in [ch.name for ch in group.channels]
                 ):
-                    self._process_can_logging(index, group)
+                    try:
+                        self._process_can_logging(index, group)
+                    except Exception as e:
+                        message = f"Error during CAN logging processing: {e}"
+                        logger.error(message)
 
                 if (
                     source
                     and source.bus_type in (v4c.BUS_TYPE_LIN, v4c.BUS_TYPE_OTHER)
                     and "LIN_Frame" in [ch.name for ch in group.channels]
                 ):
-                    self._process_lin_logging(index, group)
+                    try:
+                        self._process_lin_logging(index, group)
+                    except Exception as e:
+                        message = f"Error during LIN logging processing: {e}"
+                        logger.error(message)
 
     def _process_can_logging(self, group_index: int, grp: Group) -> None:
 
