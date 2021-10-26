@@ -16,7 +16,15 @@ import time
 from traceback import format_exc
 from typing import Any
 import xml.etree.ElementTree as ET
-from zlib import compress, decompress
+
+try:
+    from isal.isal_zlib import decompress
+    from isal.isal_zlib import compress
+    COMPRESSION_LEVEL = 2
+except ImportError:
+    from zlib import compress, decompress
+    COMPRESSION_LEVEL = 1
+
 
 from numexpr import evaluate
 
@@ -225,7 +233,7 @@ class AttachmentBlock:
                 flags |= v4c.FLAG_AT_EMBEDDED
                 if compression:
                     flags |= v4c.FLAG_AT_COMPRESSED_EMBEDDED
-                    data = compress(data, 1)
+                    data = compress(data, COMPRESSION_LEVEL)
                     embedded_size = len(data)
                 self.file_name = file_name.name
 
@@ -4263,7 +4271,7 @@ class DataZippedBlock(object):
             self.original_size = original_size
 
             if self.zip_type == v4c.FLAG_DZ_DEFLATE:
-                data = compress(data, 1)
+                data = compress(data, COMPRESSION_LEVEL)
             else:
                 if not self._transposed:
                     cols = self.param
@@ -4285,7 +4293,7 @@ class DataZippedBlock(object):
                             .T.ravel()
                             .tobytes()
                         )
-                data = compress(data, 1)
+                data = compress(data, COMPRESSION_LEVEL)
 
             zipped_size = len(data)
             self.zip_size = zipped_size
@@ -4301,7 +4309,7 @@ class DataZippedBlock(object):
             if self.return_unzipped:
                 data = DataZippedBlock.__dict__[item].__get__(self)
                 original_size = self.original_size
-                data = decompress(data, 0, original_size)
+                data = decompress(data)
                 if self.zip_type == v4c.FLAG_DZ_TRANPOSED_DEFLATE:
                     cols = self.param
                     lines = original_size // cols
