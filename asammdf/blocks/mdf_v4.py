@@ -1753,12 +1753,11 @@ class MDF4(MDF_Common):
                 # or a DataZippedBlock
                 elif id_string == b"##DZ":
                     (
-                        original_type,
                         zip_type,
                         param,
                         original_size,
                         zip_size,
-                    ) = v4c.DZ_COMMON_INFO_uf(stream, address)
+                    ) = v4c.DZ_COMMON_INFO_uf(stream, address + v4c.DZ_INFO_COMMON_OFFSET)
 
                     if original_size:
                         if zip_type == v4c.FLAG_DZ_DEFLATE:
@@ -1809,12 +1808,11 @@ class MDF4(MDF_Common):
                             # or a DataZippedBlock
                             elif id_string == b"##DZ":
                                 (
-                                    original_type,
                                     zip_type,
                                     param,
                                     original_size,
                                     zip_size,
-                                ) = v4c.DZ_COMMON_INFO_uf(stream, addr)
+                                ) = v4c.DZ_COMMON_INFO_uf(stream, addr + v4c.DZ_INFO_COMMON_OFFSET)
 
                                 if original_size:
                                     if zip_type == v4c.FLAG_DZ_DEFLATE:
@@ -1868,12 +1866,11 @@ class MDF4(MDF_Common):
                             # or a DataZippedBlock
                             elif id_string == b"##DZ":
                                 (
-                                    original_type,
                                     zip_type,
                                     param,
                                     original_size,
                                     zip_size,
-                                ) = v4c.DZ_COMMON_INFO_uf(stream, addr)
+                                ) = v4c.DZ_COMMON_INFO_uf(stream, addr + v4c.DZ_INFO_COMMON_OFFSET)
 
                                 if original_size:
                                     if zip_type == v4c.FLAG_DZ_DEFLATE:
@@ -1921,12 +1918,11 @@ class MDF4(MDF_Common):
                                             )
                                     else:
                                         (
-                                            original_type,
                                             zip_type,
                                             param,
                                             original_size,
                                             zip_size,
-                                        ) = v4c.DZ_COMMON_INFO_uf(stream, inval_addr)
+                                        ) = v4c.DZ_COMMON_INFO_uf(stream, inval_addr + v4c.DZ_INFO_COMMON_OFFSET)
 
                                         if original_size:
                                             if zip_type == v4c.FLAG_DZ_DEFLATE:
@@ -2005,14 +2001,13 @@ class MDF4(MDF_Common):
 
                 # or a DataZippedBlock
                 elif id_string == b"##DZ":
-                    stream.seek(address)
+                    stream.seek(address + v4c.DZ_INFO_COMMON_OFFSET)
                     (
-                        original_type,
                         zip_type,
                         param,
                         original_size,
                         zip_size,
-                    ) = v4c.DZ_COMMON_INFO_u(stream.read(v4c.DZ_COMMON_SIZE))
+                    ) = v4c.DZ_COMMON_INFO_u(stream.read(v4c.DZ_COMMON_INFO_SIZE))
 
                     if original_size:
                         if zip_type == v4c.FLAG_DZ_DEFLATE:
@@ -2067,15 +2062,14 @@ class MDF4(MDF_Common):
 
                             # or a DataZippedBlock
                             elif id_string == b"##DZ":
-                                stream.seek(addr)
+                                stream.seek(addr + v4c.DZ_INFO_COMMON_OFFSET)
                                 (
-                                    original_type,
                                     zip_type,
                                     param,
                                     original_size,
                                     zip_size,
                                 ) = v4c.DZ_COMMON_INFO_u(
-                                    stream.read(v4c.DZ_COMMON_SIZE)
+                                    stream.read(v4c.DZ_COMMON_INFO_SIZE)
                                 )
 
                                 if original_size:
@@ -2133,15 +2127,14 @@ class MDF4(MDF_Common):
 
                             # or a DataZippedBlock
                             elif id_string == b"##DZ":
-                                stream.seek(addr)
+                                stream.seek(addr + v4c.DZ_INFO_COMMON_OFFSET)
                                 (
-                                    original_type,
                                     zip_type,
                                     param,
                                     original_size,
                                     zip_size,
                                 ) = v4c.DZ_COMMON_INFO_u(
-                                    stream.read(v4c.DZ_COMMON_SIZE)
+                                    stream.read(v4c.DZ_COMMON_INFO_SIZE)
                                 )
 
                                 if original_size:
@@ -2190,14 +2183,14 @@ class MDF4(MDF_Common):
                                                 )
                                             )
                                     else:
+                                        stream.seek(inval_addr + v4c.DZ_INFO_COMMON_OFFSET)
                                         (
-                                            original_type,
                                             zip_type,
                                             param,
                                             original_size,
                                             zip_size,
                                         ) = v4c.DZ_COMMON_INFO_u(
-                                            stream.read(v4c.DZ_COMMON_SIZE)
+                                            stream.read(v4c.DZ_COMMON_INFO_SIZE)
                                         )
 
                                         if original_size:
