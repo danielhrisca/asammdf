@@ -961,7 +961,7 @@ def main(text_output, fmt):
     output.append("    * {} groups".format(v4_groups))
     output.append("    * {} channels\n\n".format(v4_channels))
 
-    OPEN, SAVE, GET, CONVERT, MERGE, FILTER, CUT = 0, 0, 0, 1, 0, 0, 0
+    OPEN, SAVE, GET, CONVERT, MERGE, FILTER, CUT = 0, 0, 0, 1, 1, 0, 0
 
     tests = (
         open_mdf3,
@@ -1050,14 +1050,14 @@ def main(text_output, fmt):
         output.extend(table_end(fmt))
 
     tests = (
-        merge_v3,
-        merge_reader_v3,
-        merge_reader_v3_nodata,
-        merge_reader_v3_compress,
+        # merge_v3,
+        # merge_reader_v3,
+        # merge_reader_v3_nodata,
+        # merge_reader_v3_compress,
         merge_v4,
-        merge_reader_v4,
-        merge_reader_v4_nodata,
-        merge_reader_v4_compress,
+        # merge_reader_v4,
+        # merge_reader_v4_nodata,
+        # merge_reader_v4_compress,
     )
 
     if tests and MERGE:

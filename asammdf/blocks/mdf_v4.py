@@ -5618,7 +5618,6 @@ class MDF4(MDF_Common):
         stream = self._tempfile
 
         fields = []
-        types = []
         inval_bits = []
 
         added_cycles = len(signals[0][0])
@@ -5631,8 +5630,10 @@ class MDF4(MDF_Common):
             # first add the signals in the simple signal list
             if sig_type == v4c.SIGNAL_TYPE_SCALAR:
 
-                fields.append(signal)
-                types.append(("", signal.dtype, signal.shape[1:]))
+                s_type, s_size = fmt_to_datatype_v4(signal.dtype, signal.shape)
+                byte_size = s_size // 8 or 1
+
+                fields.append((signal.tobytes(), byte_size))
 
                 if invalidation_bytes_nr and invalidation_bits is not None:
                     inval_bits.append(invalidation_bits)
@@ -5644,8 +5645,7 @@ class MDF4(MDF_Common):
 
                     vals = signal.tobytes()
 
-                    fields.append(frombuffer(vals, dtype="V6"))
-                    types.append(("", "V6"))
+                    fields.append((vals, 6))
 
                 else:
                     vals = []
@@ -5653,8 +5653,7 @@ class MDF4(MDF_Common):
                         vals.append(signal[field])
                     vals = fromarrays(vals).tobytes()
 
-                    fields.append(frombuffer(vals, dtype="V7"))
-                    types.append(("", "V7"))
+                    fields.append((vals, 7))
 
                 if invalidation_bytes_nr and invalidation_bits is not None:
                     inval_bits.append(invalidation_bits)
@@ -5664,8 +5663,7 @@ class MDF4(MDF_Common):
                 if invalidation_bytes_nr and invalidation_bits is not None:
                     inval_bits.append(invalidation_bits)
 
-                fields.append(signal)
-                types.append(("", signal.dtype))
+                fields.append((signal.tobytes(), signal.dtype.itemsize))
 
             elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
                 names = signal.dtype.names
@@ -5673,9 +5671,12 @@ class MDF4(MDF_Common):
                 samples = signal[names[0]]
 
                 shape = samples.shape[1:]
+                s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape, True)
+                size = s_size // 8
+                for dim in shape:
+                    size *= dim
 
-                fields.append(samples)
-                types.append(("", samples.dtype, shape))
+                fields.append((samples.tobytes(), size))
 
                 if invalidation_bytes_nr and invalidation_bits is not None:
                     inval_bits.append(invalidation_bits)
@@ -5684,8 +5685,12 @@ class MDF4(MDF_Common):
 
                     samples = signal[name]
                     shape = samples.shape[1:]
-                    fields.append(samples)
-                    types.append(("", samples.dtype, shape))
+                    s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
+                    size = s_size // 8
+                    for dim in shape:
+                        size *= dim
+
+                    fields.append((samples.tobytes(), size))
 
                     if invalidation_bytes_nr and invalidation_bits is not None:
                         inval_bits.append(invalidation_bits)
@@ -5734,8 +5739,7 @@ class MDF4(MDF_Common):
                         stream.write(b"".join(data))
 
                     offsets += cur_offset
-                    fields.append(offsets)
-                    types.append(("", uint64))
+                    fields.append((offsets.tobytes(), 8))
 
                 else:
                     cur_offset = sum(
@@ -5764,8 +5768,7 @@ class MDF4(MDF_Common):
                         values.tofile(stream)
 
                     offsets += cur_offset
-                    fields.append(offsets)
-                    types.append(("", uint64))
+                    fields.append((offsets.tobytes(), 8))
 
                 if invalidation_bytes_nr and invalidation_bits is not None:
                     inval_bits.append(invalidation_bits)
@@ -5790,25 +5793,21 @@ class MDF4(MDF_Common):
             )
 
             if self.version < "4.20":
-                fields.append(inval_bits)
-                types.append(
-                    ("invalidation_bytes", inval_bits.dtype, inval_bits.shape[1:])
-                )
+                fields.append((inval_bits.tobytes(), invalidation_bytes_nr))
 
-        samples = fromarrays(fields, dtype=types)
+        samples = data_block_from_arrays(fields, added_cycles)
+        size = len(samples)
 
         del fields
-        del types
 
         stream.seek(0, 2)
         addr = stream.tell()
-        size = len(samples) * samples.itemsize
 
         if size:
 
             if self.version < "4.20":
-                data = samples.tobytes()
-                raw_size = len(data)
+                data = samples
+                raw_size = size
                 data = lz_compress(data)
                 size = len(data)
                 stream.write(data)
@@ -5826,8 +5825,8 @@ class MDF4(MDF_Common):
                 self.virtual_groups[index].cycles_nr += added_cycles
 
             else:
-                data = samples.tobytes()
-                raw_size = len(data)
+                data = samples
+                raw_size = size
                 data = lz_compress(data)
                 size = len(data)
                 stream.write(data)
