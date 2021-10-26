@@ -225,7 +225,7 @@ class AttachmentBlock:
                 flags |= v4c.FLAG_AT_EMBEDDED
                 if compression:
                     flags |= v4c.FLAG_AT_COMPRESSED_EMBEDDED
-                    data = compress(data)
+                    data = compress(data, 1)
                     embedded_size = len(data)
                 self.file_name = file_name.name
 

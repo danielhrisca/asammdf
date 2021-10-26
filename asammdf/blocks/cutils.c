@@ -451,10 +451,74 @@ static PyObject* get_channel_raw_bytes(PyObject* self, PyObject* args)
             
             inptr += byte_offset;
             
+            delta = record_size - byte_count;
+            
             for (int i=0; i<count; i++) {
-                memcpy(outptr, inptr, byte_count);
-                inptr += record_size;
-                outptr += byte_count;
+                for (int j=0; j < byte_count; j++) {
+                    *outptr++ = *inptr++;
+                }
+                inptr += delta;
+            }
+           
+        }
+   
+        return out;
+    }
+}
+
+
+struct dtype {
+    unsigned char * data;
+    long itemsize;
+};
+
+
+static PyObject* data_block_from_arrays(PyObject* self, PyObject* args)
+{
+    Py_ssize_t count, size, actual_byte_count, delta;
+    PyObject *data_blocks, *out, *item, *bytes, *itemsize;
+    
+    Py_ssize_t record_size, byte_offset, byte_count;
+
+    char *inptr, *outptr; 
+    unsigned long long total_size=0, cycles;
+    
+    struct dtype * block_info=NULL;
+
+    if(!PyArg_ParseTuple(args, "OK", &data_blocks, &cycles))
+    {
+        return 0;
+    }
+    else
+    {
+        size = PyList_GET_SIZE(data_blocks);
+        if (!size) {
+            out = PyBytes_FromStringAndSize(NULL, 0);
+        }
+        else {
+            
+            block_info = (struct dtype *) malloc(size * sizeof(struct dtype));
+            
+            for (int i=0; i< size; i++) {
+                item = PyList_GET_ITEM(data_blocks, i);
+                bytes = PyTuple_GET_ITEM(item, 0);
+                itemsize = PyTuple_GET_ITEM(item, 1);
+                block_info[i].data = (unsigned char *) PyBytes_AsString(bytes);
+                block_info[i].itemsize = PyLong_AsLong(itemsize);
+                total_size += (unsigned long long) block_info[i].itemsize;
+            }
+            
+            total_size *= cycles;
+            
+            out = PyByteArray_FromStringAndSize(NULL, total_size);             
+            outptr = PyByteArray_AsString(out);
+       
+            for (int i=0; i<cycles; i++) {
+                for (int j=0; j<size; j++) {
+                    for (int k=0; k<block_info[j].itemsize; k++) {
+                        *outptr++ = *block_info[j].data++;
+                    }
+                }
             }
         }
    
@@ -474,6 +538,7 @@ static PyMethodDef myMethods[] =
     { "sort_data_block", sort_data_block, METH_VARARGS, "sort raw data group block" },
     { "positions", positions, METH_VARARGS, "positions" },
     { "get_channel_raw_bytes", get_channel_raw_bytes, METH_VARARGS, "get_channel_raw_bytes" },
+    { "data_block_from_arrays", data_block_from_arrays, METH_VARARGS, "data_block_from_arrays" },
     
     { NULL, NULL, 0, NULL }
 };

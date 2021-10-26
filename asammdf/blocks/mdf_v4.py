@@ -156,6 +156,7 @@ from .cutils import (
     get_vlsd_offsets,
     lengths,
     sort_data_block,
+    data_block_from_arrays,
 )
 
 
@@ -2803,9 +2804,7 @@ class MDF4(MDF_Common):
             # time channel doesn't have channel dependencies
             gp_dep.append(None)
 
-            fields.append(t)
-            types.append((name, t.dtype))
-            field_names.get_unique_name(name)
+            fields.append((t.tobytes(), t.itemsize))
 
             offset += t_size // 8
             ch_cntr += 1
@@ -2937,16 +2936,13 @@ class MDF4(MDF_Common):
 
                 offset += byte_size
 
+                fields.append((samples.tobytes(), byte_size))
+
                 gp_sdata.append(None)
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
                 for _name in ch.display_names:
                     self.channels_db.add(_name, entry)
-
-                field_name = field_names.get_unique_name(name)
-
-                fields.append(samples)
-                types.append((field_name, sig_dtype, sig_shape[1:]))
 
                 ch_cntr += 1
 
@@ -2954,8 +2950,6 @@ class MDF4(MDF_Common):
                 gp_dep.append(None)
 
             elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
-
-                field_name = field_names.get_unique_name(name)
 
                 if names == v4c.CANOPEN_TIME_FIELDS:
                     record.append(
@@ -2969,8 +2963,7 @@ class MDF4(MDF_Common):
 
                     vals = signal.samples.tobytes()
 
-                    fields.append(frombuffer(vals, dtype="V6"))
-                    types.append((field_name, "V6"))
+                    fields.append((vals, 6))
                     byte_size = 6
                     s_type = v4c.DATA_TYPE_CANOPEN_TIME
                     s_dtype = dtype("V6")
@@ -3001,8 +2994,7 @@ class MDF4(MDF_Common):
                             vals.append(signal.samples[field])
                     vals = fromarrays(vals).tobytes()
 
-                    fields.append(frombuffer(vals, dtype="V7"))
-                    types.append((field_name, "V7"))
+                    fields.append((vals, 7))
                     byte_size = 7
                     s_type = v4c.DATA_TYPE_CANOPEN_DATE
                     s_dtype = dtype("V7")
@@ -3143,12 +3135,6 @@ class MDF4(MDF_Common):
                     parent_dep = ChannelArrayBlock(**kwargs)
                     gp_dep.append([parent_dep])
 
-                field_name = field_names.get_unique_name(name)
-
-                fields.append(samples)
-                dtype_pair = field_name, samples.dtype, shape
-                types.append(dtype_pair)
-
                 # first we add the structure channel
                 s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape, True)
 
@@ -3209,6 +3195,8 @@ class MDF4(MDF_Common):
                     size *= dim
                 offset += size
 
+                fields.append((samples.tobytes(), size))
+
                 gp_sdata.append(None)
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
@@ -3218,12 +3206,9 @@ class MDF4(MDF_Common):
                 ch_cntr += 1
 
                 for name in names[1:]:
-                    field_name = field_names.get_unique_name(name)
 
                     samples = signal.samples[name]
                     shape = samples.shape[1:]
-                    fields.append(samples)
-                    types.append((field_name, samples.dtype, shape))
 
                     # add channel dependency block
                     kwargs = {
@@ -3278,6 +3263,8 @@ class MDF4(MDF_Common):
                     for dim in shape:
                         byte_size *= dim
                     offset += byte_size
+
+                    fields.append((samples.tobytes(), byte_size))
 
                     gp_sdata.append(None)
                     self.channels_db.add(name, entry)
@@ -3455,10 +3442,7 @@ class MDF4(MDF_Common):
                 for _name in ch.display_names:
                     self.channels_db.add(_name, entry)
 
-                field_name = field_names.get_unique_name(name)
-
-                fields.append(offsets)
-                types.append((field_name, uint64))
+                fields.append((offsets.tobytes(), 8))
 
                 ch_cntr += 1
 
@@ -3484,10 +3468,7 @@ class MDF4(MDF_Common):
 
             if self.version < "4.20":
 
-                fields.append(inval_bits)
-                types.append(
-                    ("invalidation_bytes", inval_bits.dtype, inval_bits.shape[1:])
-                )
+                fields.append((inval_bits.tobytes(), invalidation_bytes_nr))
 
         gp.channel_group.cycles_nr = cycles_nr
         gp.channel_group.samples_byte_nr = offset
@@ -3502,31 +3483,31 @@ class MDF4(MDF_Common):
         # data group
         gp.data_group = DataGroup()
 
-        # data block
-        types = dtype(types)
-
         gp.sorted = True
 
-        if signals and cycles_nr:
-            samples = fromarrays(fields, dtype=types)
-        else:
-            samples = array([])
+        # print('what')
+        #
+        # for k, (d, s) in enumerate(fields):
+        #     if len(d) / s != cycles_nr:
+        #         print(k, len(d), s, gp_channels[k])
+        #
+        # print(1)
 
-        del signals
+        samples = data_block_from_arrays(fields, cycles_nr)
+        size = len(samples)
+        samples = memoryview(samples)
+
         del fields
-
-        size = len(samples) * samples.itemsize
 
         if size:
             if self.version < "4.20":
 
                 block_size = self._write_fragment_size or 20 * 1024 * 1024
 
-                chunk = ceil(block_size / samples.itemsize)
-                count = ceil(len(samples) / chunk)
+                count = ceil(size / block_size)
 
                 for i in range(count):
-                    data_ = samples[i * chunk : (i + 1) * chunk].tobytes()
+                    data_ = samples[i * block_size: (i + 1) * block_size]
                     raw_size = len(data_)
                     data_ = lz_compress(data_)
 
@@ -3549,8 +3530,7 @@ class MDF4(MDF_Common):
                 gp.uses_ld = True
                 data_address = tell()
 
-                data = samples.tobytes()
-                del samples
+                data = samples
                 raw_size = len(data)
                 data = lz_compress(data)
 
