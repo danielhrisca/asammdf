@@ -515,9 +515,9 @@ static PyObject* data_block_from_arrays(PyObject* self, PyObject* args)
        
             for (int i=0; i<cycles; i++) {
                 for (int j=0; j<size; j++) {
-                    for (int k=0; k<block_info[j].itemsize; k++) {
-                        *outptr++ = *block_info[j].data++;
-                    }
+                    memcpy(outptr, block_info[j].data, block_info[j].itemsize);
+                    outptr += block_info[j].itemsize;
+                    block_info[j].data += block_info[j].itemsize;
                 }
             }
         }
