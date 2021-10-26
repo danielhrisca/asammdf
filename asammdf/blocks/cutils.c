@@ -96,7 +96,7 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
                     mlist,
                     bts
                 );
-                Py_DECREF(bts);
+                Py_XDECREF(bts);
 
                 buf += rec_size;
 
@@ -113,7 +113,7 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
                 }
                 bts = PyBytes_FromStringAndSize((const char *)buf, (Py_ssize_t) length);
                 PyList_Append(mlist, bts);
-                Py_DECREF(bts);
+                Py_XDECREF(bts);
                 buf += length;
             }
 
@@ -156,7 +156,7 @@ static PyObject* extract(PyObject* self, PyObject* args)
 {
     int i=0, count, max=0, offset, list_count;
     Py_ssize_t pos=0, size=0;
-    PyObject *signal_data, *is_byte_array, *offsets, *offsets_list;
+    PyObject *signal_data, *is_byte_array, *offsets, *offsets_list=NULL;
     char *buf;
     PyArrayObject *vals;
     PyArray_Descr *descr;
@@ -196,7 +196,7 @@ static PyObject* extract(PyObject* self, PyObject* args)
                 size = calc_size(&buf[offset]);
                 if (max < size) max = size;
                 count++;
-            }
+            } 
         }
 
         if (PyObject_IsTrue(is_byte_array))
@@ -261,6 +261,7 @@ static PyObject* extract(PyObject* self, PyObject* args)
                 }
             }
         }
+        Py_XDECREF(offsets_list);
     }
 
     return (PyObject *) vals;
