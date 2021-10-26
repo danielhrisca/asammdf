@@ -2730,10 +2730,9 @@ class MDF4(MDF_Common):
         self.groups.append(gp)
 
         fields = []
-        types = []
+
         ch_cntr = 0
         offset = 0
-        field_names = UniqueDB()
 
         defined_texts = {}
         si_map = self._si_map
@@ -3063,12 +3062,10 @@ class MDF4(MDF_Common):
                     ch_cntr,
                     struct_self,
                     new_fields,
-                    new_types,
                     inval_cntr,
                 ) = self._append_structure_composition(
                     gp,
                     signal,
-                    field_names,
                     offset,
                     dg_cntr,
                     ch_cntr,
@@ -3078,7 +3075,6 @@ class MDF4(MDF_Common):
                     inval_cntr,
                 )
                 fields.extend(new_fields)
-                types.extend(new_types)
 
             elif sig_type == v4c.SIGNAL_TYPE_ARRAY:
                 # here we have channel arrays or mdf v3 channel dependencies
@@ -3486,6 +3482,12 @@ class MDF4(MDF_Common):
         gp.sorted = True
 
         # print('what')
+        #
+        # for m in fields:
+        #     print(len(m))
+        #     if len(m) > 2:
+        #         print(m)
+        #         break
         #
         # for k, (d, s) in enumerate(fields):
         #     if len(d) / s != cycles_nr:
@@ -4707,7 +4709,6 @@ class MDF4(MDF_Common):
         self,
         grp: Group,
         signal: Signal,
-        field_names: UniqueDB,
         offset: int,
         dg_cntr: int,
         ch_cntr: int,
@@ -4727,7 +4728,6 @@ class MDF4(MDF_Common):
         si_map = self._si_map
 
         fields = []
-        types = []
 
         file = self._tempfile
         seek = file.seek
@@ -4741,8 +4741,6 @@ class MDF4(MDF_Common):
 
         name = signal.name
         names = signal.samples.dtype.names
-
-        field_name = field_names.get_unique_name(name)
 
         # first we add the structure channel
 
@@ -4861,7 +4859,6 @@ class MDF4(MDF_Common):
 
         # then we add the fields
         for name in names:
-            field_name = field_names.get_unique_name(name)
 
             samples = signal.samples[name]
             fld_names = samples.dtype.names
@@ -4882,9 +4879,6 @@ class MDF4(MDF_Common):
 
                 s_type, s_size = fmt_to_datatype_v4(samples.dtype, samples.shape)
                 byte_size = s_size // 8 or 1
-
-                fields.append(samples)
-                types.append((field_name, samples.dtype, samples.shape[1:]))
 
                 # add channel block
                 kwargs = {
@@ -4921,6 +4915,8 @@ class MDF4(MDF_Common):
                 dep_list.append(entry)
 
                 offset += byte_size
+
+                fields.append((samples.tobytes(), byte_size))
 
                 gp_sdata.append(None)
                 self.channels_db.add(name, entry)
@@ -4985,12 +4981,6 @@ class MDF4(MDF_Common):
                     parent_dep = ChannelArrayBlock(**kwargs)
                     gp_dep.append([parent_dep])
 
-                field_name = field_names.get_unique_name(name)
-
-                fields.append(samples)
-                dtype_pair = field_name, samples.dtype, shape
-                types.append(dtype_pair)
-
                 record.append(
                     (
                         samples.dtype,
@@ -5051,6 +5041,8 @@ class MDF4(MDF_Common):
                     size *= dim
                 offset += size
 
+                fields.append((samples.tobytes(), size))
+
                 gp_sdata.append(None)
                 entry = (dg_cntr, ch_cntr)
                 self.channels_db.add(name, entry)
@@ -5060,12 +5052,9 @@ class MDF4(MDF_Common):
                 ch_cntr += 1
 
                 for name in names[1:]:
-                    field_name = field_names.get_unique_name(name)
 
                     samples = array_samples[name]
                     shape = samples.shape[1:]
-                    fields.append(samples)
-                    types.append((field_name, samples.dtype, shape))
 
                     record.append(
                         (
@@ -5121,6 +5110,8 @@ class MDF4(MDF_Common):
                         byte_size *= dim
                     offset += byte_size
 
+                    fields.append((samples.tobytes(), byte_size))
+
                     gp_sdata.append(None)
                     self.channels_db.add(name, entry)
 
@@ -5139,12 +5130,10 @@ class MDF4(MDF_Common):
                     ch_cntr,
                     sub_structure,
                     new_fields,
-                    new_types,
                     inval_cntr,
                 ) = self._append_structure_composition(
                     grp,
                     struct,
-                    field_names,
                     offset,
                     dg_cntr,
                     ch_cntr,
@@ -5155,9 +5144,8 @@ class MDF4(MDF_Common):
                 )
                 dep_list.append(sub_structure)
                 fields.extend(new_fields)
-                types.extend(new_types)
 
-        return offset, dg_cntr, ch_cntr, struct_self, fields, types, inval_cntr
+        return offset, dg_cntr, ch_cntr, struct_self, fields, inval_cntr
 
     def _append_structure_composition_column_oriented(
         self,
