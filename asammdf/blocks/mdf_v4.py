@@ -1136,9 +1136,9 @@ class MDF4(MDF_Common):
                         stream.seek(address)
                         new_data = stream.read(compressed_size)
                         if block_type == v4c.DZ_BLOCK_DEFLATE:
-                            new_data = decompress(new_data)
+                            new_data = decompress(new_data, bufsize=original_size)
                         elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
-                            new_data = decompress(new_data)
+                            new_data = decompress(new_data, bufsize=original_size)
                             cols = param
                             lines = original_size // cols
 
@@ -1179,9 +1179,9 @@ class MDF4(MDF_Common):
                         stream.seek(address)
                         new_data = stream.read(compressed_size)
                         if block_type == v4c.DZ_BLOCK_DEFLATE:
-                            new_data = decompress(new_data)
+                            new_data = decompress(new_data, bufsize=original_size)
                         elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
-                            new_data = decompress(new_data)
+                            new_data = decompress(new_data, bufsize=original_size)
                             cols = param
                             lines = original_size // cols
 
@@ -1377,9 +1377,9 @@ class MDF4(MDF_Common):
                 new_data = read(compressed_size)
 
                 if block_type == v4c.DZ_BLOCK_DEFLATE:
-                    new_data = decompress(new_data)
+                    new_data = decompress(new_data, bufsize=original_size)
                 elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
-                    new_data = decompress(new_data)
+                    new_data = decompress(new_data, bufsize=original_size)
                     cols = param
                     lines = original_size // cols
 
@@ -1406,11 +1406,11 @@ class MDF4(MDF_Common):
                         new_invalidation_data = read(invalidation_info.size)
                         if invalidation_info.block_type == v4c.DZ_BLOCK_DEFLATE:
                             new_invalidation_data = decompress(
-                                new_invalidation_data,
+                                new_invalidation_data, bufsize=invalidation_info.original_size
                             )
                         elif invalidation_info.block_type == v4c.DZ_BLOCK_TRANSPOSED:
                             new_invalidation_data = decompress(
-                                new_invalidation_data,
+                                new_invalidation_data, bufsize=invalidation_info.original_size
                             )
                             cols = invalidation_info.param
                             lines = invalidation_info.original_size // cols
@@ -10082,9 +10082,9 @@ class MDF4(MDF_Common):
                     new_data = read(dtblock_size)
 
                     if block_type == v4c.DZ_BLOCK_DEFLATE:
-                        new_data = decompress(new_data)
+                        new_data = decompress(new_data, bufsize=dtblock_raw_size)
                     elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
-                        new_data = decompress(new_data)
+                        new_data = decompress(new_data, bufsize=dtblock_raw_size)
                         cols = param
                         lines = dtblock_raw_size // cols
 

@@ -269,7 +269,7 @@ class AttachmentBlock:
         """
         if self.flags & v4c.FLAG_AT_EMBEDDED:
             if self.flags & v4c.FLAG_AT_COMPRESSED_EMBEDDED:
-                data = decompress(self.embedded_data)
+                data = decompress(self.embedded_data, bufsize=self.original_size)
             else:
                 data = self.embedded_data
             if self.flags & v4c.FLAG_AT_MD5_VALID:
@@ -4309,7 +4309,7 @@ class DataZippedBlock(object):
             if self.return_unzipped:
                 data = DataZippedBlock.__dict__[item].__get__(self)
                 original_size = self.original_size
-                data = decompress(data)
+                data = decompress(data, bufsize=original_size)
                 if self.zip_type == v4c.FLAG_DZ_TRANPOSED_DEFLATE:
                     cols = self.param
                     lines = original_size // cols
