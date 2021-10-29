@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import bisect
 from collections import defaultdict
-from collections.abc import Callable, Iterable, Sequence, Sized
+from collections.abc import Callable, Iterable, Iterator, Sequence, Sized
 from functools import lru_cache
 from hashlib import md5
 from io import BufferedReader, BytesIO
@@ -347,7 +347,7 @@ class MDF4(MDF_Common):
 
     def __init__(
         self,
-        name: BufferedReader | BytesIO | StrPath | None = None,
+        name: BufferedReader | BytesIO | StrPathType | None = None,
         version: str = "4.10",
         channels: list[str] | None = None,
         **kwargs,
@@ -10505,14 +10505,22 @@ class MDF4(MDF_Common):
                     and source.bus_type in (v4c.BUS_TYPE_CAN, v4c.BUS_TYPE_OTHER)
                     and "CAN_DataFrame" in [ch.name for ch in group.channels]
                 ):
-                    self._process_can_logging(index, group)
+                    try:
+                        self._process_can_logging(index, group)
+                    except Exception as e:
+                        message = f"Error during CAN logging processing: {e}"
+                        logger.error(message)
 
                 if (
                     source
                     and source.bus_type in (v4c.BUS_TYPE_LIN, v4c.BUS_TYPE_OTHER)
                     and "LIN_Frame" in [ch.name for ch in group.channels]
                 ):
-                    self._process_lin_logging(index, group)
+                    try:
+                        self._process_lin_logging(index, group)
+                    except Exception as e:
+                        message = f"Error during LIN logging processing: {e}"
+                        logger.error(message)
 
     def _process_can_logging(self, group_index: int, grp: Group) -> None:
 
