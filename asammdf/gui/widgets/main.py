@@ -1238,7 +1238,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                     )
                     if ok:
                         names = [
-                            (None, *entry, self.files.widget(file_index).uuid)
+                            (None, *entry, self.files.widget(file_index).uuid, "channel", [])
                             for file_index, entry in result
                         ]
                         self.add_window((ret, names))

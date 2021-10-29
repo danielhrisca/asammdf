@@ -24,13 +24,18 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
 
         self.header().sortIndicatorChanged.connect(self.handle_sorting_changed)
 
+        self._handles_double_click = False
         self.set_double_clicked_enabled(True)
 
     def set_double_clicked_enabled(self, state):
         if state:
-            self.itemDoubleClicked.connect(self.handle_item_double_click)
+            if not self._handles_double_click:
+                self.itemDoubleClicked.connect(self.handle_item_double_click)
+                self._handles_double_click = True
         else:
-            self.itemDoubleClicked.disconnect(self.handle_item_double_click)
+            if self._handles_double_click:
+                self.itemDoubleClicked.disconnect(self.handle_item_double_click)
+                self._handles_double_click = False
 
     def keyPressEvent(self, event):
         key = event.key()
