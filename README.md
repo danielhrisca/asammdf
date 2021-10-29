@@ -197,6 +197,7 @@ other optional dependencies
 * cChardet : to detect non-standard unicode encodings
 * chardet : to detect non-standard unicode encodings 
 * pyqtlet : for GPS window
+* isal : for faster zlib compression/decompression
 
 # Benchmarks
 

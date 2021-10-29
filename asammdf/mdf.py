@@ -4274,17 +4274,10 @@ class MDF:
                 ):
                     continue
 
-                parents, dtypes = self._prepare_record(group)
+                self._prepare_record(group)
                 data = self._load_data(group, optimize_read=False)
 
                 for fragment_index, fragment in enumerate(data):
-                    if dtypes.itemsize:
-                        group.record = np.core.records.fromstring(
-                            fragment[0], dtype=dtypes
-                        )
-                    else:
-                        group.record = None
-                        continue
 
                     self._set_temporary_master(None)
                     self._set_temporary_master(self.get_master(i, data=fragment))
@@ -4468,7 +4461,7 @@ class MDF:
 
                                     out.extend(index, sigs)
                     self._set_temporary_master(None)
-                    group.record = None
+
                 cntr += 1
                 if self._callback:
                     self._callback(cntr, count)
@@ -4577,17 +4570,10 @@ class MDF:
                 ):
                     continue
 
-                parents, dtypes = self._prepare_record(group)
+                self._prepare_record(group)
                 data = self._load_data(group, optimize_read=False)
 
                 for fragment_index, fragment in enumerate(data):
-                    if dtypes.itemsize:
-                        group.record = np.core.records.fromstring(
-                            fragment[0], dtype=dtypes
-                        )
-                    else:
-                        group.record = None
-                        continue
 
                     self._set_temporary_master(None)
                     self._set_temporary_master(self.get_master(i, data=fragment))
@@ -4749,7 +4735,7 @@ class MDF:
 
                                     out.extend(index, sigs)
                     self._set_temporary_master(None)
-                    group.record = None
+
                 cntr += 1
                 if self._callback:
                     self._callback(cntr, count)

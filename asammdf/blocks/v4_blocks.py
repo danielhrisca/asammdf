@@ -16,7 +16,15 @@ import time
 from traceback import format_exc
 from typing import Any
 import xml.etree.ElementTree as ET
-from zlib import compress, decompress
+
+try:
+    from isal.isal_zlib import decompress
+    from isal.isal_zlib import compress
+    COMPRESSION_LEVEL = 2
+except ImportError:
+    from zlib import compress, decompress
+    COMPRESSION_LEVEL = 1
+
 
 from numexpr import evaluate
 
@@ -225,7 +233,7 @@ class AttachmentBlock:
                 flags |= v4c.FLAG_AT_EMBEDDED
                 if compression:
                     flags |= v4c.FLAG_AT_COMPRESSED_EMBEDDED
-                    data = compress(data)
+                    data = compress(data, COMPRESSION_LEVEL)
                     embedded_size = len(data)
                 self.file_name = file_name.name
 
@@ -261,7 +269,7 @@ class AttachmentBlock:
         """
         if self.flags & v4c.FLAG_AT_EMBEDDED:
             if self.flags & v4c.FLAG_AT_COMPRESSED_EMBEDDED:
-                data = decompress(self.embedded_data)
+                data = decompress(self.embedded_data, bufsize=self.original_size)
             else:
                 data = self.embedded_data
             if self.flags & v4c.FLAG_AT_MD5_VALID:
@@ -481,6 +489,7 @@ class Channel:
         "default_X_cg_addr",
         "default_X_ch_addr",
         "attachment_addr",
+        "standard_C_size",
     )
 
     def __init__(self, **kwargs) -> None:
@@ -1025,6 +1034,8 @@ class Channel:
 
         if self.name in self.display_names:
             del self.display_names[self.name]
+
+        self.standard_C_size = True
 
     def __getitem__(self, item: str) -> Any:
         return self.__getattribute__(item)
@@ -3355,7 +3366,7 @@ class ChannelConversion(_ChannelConversionBase):
                 shape = vals.shape
                 vals = vals.flatten()
 
-                ret = np.array([None] * len(vals), dtype="O")
+                ret = np.full(len(vals), None, "O")
 
                 idx1 = np.searchsorted(raw_vals, vals, side="right") - 1
                 idx2 = np.searchsorted(raw_vals, vals, side="left")
@@ -3367,8 +3378,8 @@ class ChannelConversion(_ChannelConversionBase):
                 else:
                     ret[idx] = default.convert(vals[idx])
 
-                idx = np.argwhere(idx1 == idx2).flatten()
-                if len(idx):
+                idx = np.argwhere(idx1 == idx2).ravel()
+                if idx.size:
                     indexes = idx1[idx]
                     unique = np.unique(indexes)
                     for val in unique:
@@ -3381,7 +3392,7 @@ class ChannelConversion(_ChannelConversionBase):
                             ret[idx[idx_]] = item.convert(vals[idx[idx_]])
 
                 all_bytes = True
-                for v in ret:
+                for v in ret.tolist():
                     if not isinstance(v, bytes):
                         all_bytes = False
                         break
@@ -3408,47 +3419,62 @@ class ChannelConversion(_ChannelConversionBase):
                 )
             else:
 
-                ret = np.array([None] * values.size, dtype="O")
+                ret = np.full(values.size, None, "O")
 
                 idx1 = np.searchsorted(raw_vals, values, side="right") - 1
                 idx2 = np.searchsorted(raw_vals, values, side="left")
 
                 idx = np.argwhere(idx1 != idx2).ravel()
 
-                if isinstance(default, bytes):
-                    ret[idx] = default
-                else:
-                    ret[idx] = default.convert(values[idx])
-
-                idx = np.argwhere(idx1 == idx2).ravel()
                 if idx.size:
-                    indexes = idx1[idx]
-                    unique = np.unique(indexes)
-                    for val in unique:
+                    # some raw values were not found in the conversion table
+                    # so the default physical value must be returned
 
-                        item = phys[val]
-                        idx_ = np.argwhere(indexes == val).flatten()
-                        if isinstance(item, bytes):
-                            ret[idx[idx_]] = item
-                        else:
-                            ret[idx[idx_]] = item.convert(values[idx[idx_]])
+                    if isinstance(default, bytes):
+                        ret[idx] = default
+                    else:
+                        ret[idx] = default.convert(values[idx])
+                        
+                    idx = np.argwhere(idx1 == idx2).ravel()
 
-                all_bytes = True
-                for v in ret:
-                    if not isinstance(v, bytes):
-                        all_bytes = False
-                        break
+                    if idx.size:
+                        indexes = idx1[idx]
+                        unique = np.unique(indexes)
+                        for val in unique.tolist():
 
-                if not all_bytes:
+                            item = phys[val]
+                            idx_ = np.argwhere(indexes == val).ravel()
+                            if isinstance(item, bytes):
+                                ret[idx[idx_]] = item
+                            else:
+                                ret[idx[idx_]] = item.convert(values[idx[idx_]])
+
+                else:
+                    # all the raw values are found in the conversion table
+
+                    if idx1.size:
+                        unique = np.unique(idx1)
+                        for val in unique.tolist():
+
+                            item = phys[val]
+                            idx_ = np.argwhere(idx1 == val).ravel()
+                            if isinstance(item, bytes):
+                                ret[idx_] = item
+                            else:
+                                ret[idx_] = item.convert(values[idx_])
+
+                try:
+                    ret = ret.astype(bytes)
+                except:
                     try:
                         ret = ret.astype("<f8")
                     except:
                         ret = np.array(
-                            [np.nan if isinstance(v, bytes) else v for v in ret]
+                            [
+                                np.nan if isinstance(v, bytes) else v
+                                for v in ret.tolist()
+                            ]
                         )
-
-                else:
-                    ret = ret.astype(bytes)
 
                 values = ret
 
@@ -3467,20 +3493,20 @@ class ChannelConversion(_ChannelConversionBase):
             upper = np.array([e[1] for e in x], dtype="<i8")
             phys = [e[2] for e in x]
 
-            ret = np.array([None] * len(values), dtype="O")
+            ret = np.full(values.size, None, "O")
 
             idx1 = np.searchsorted(lower, values, side="right") - 1
             idx2 = np.searchsorted(upper, values, side="left")
 
-            idx_ne = np.argwhere(idx1 != idx2).flatten()
-            idx_eq = np.argwhere(idx1 == idx2).flatten()
+            idx_ne = np.argwhere(idx1 != idx2).ravel()
+            idx_eq = np.argwhere(idx1 == idx2).ravel()
 
             if isinstance(default, bytes):
                 ret[idx_ne] = default
             else:
                 ret[idx_ne] = default.convert(values[idx_ne])
 
-            if len(idx_eq):
+            if idx_eq.size:
                 indexes = idx1[idx_eq]
                 unique = np.unique(indexes)
                 for val in unique:
@@ -3497,13 +3523,14 @@ class ChannelConversion(_ChannelConversionBase):
                             print(self)
                             raise
 
-            if all(isinstance(v, bytes) for v in ret):
+            try:
                 ret = ret.astype(bytes)
-            else:
+            except:
                 try:
                     ret = ret.astype("<f8")
                 except:
                     ret = np.array([np.nan if isinstance(v, bytes) else v for v in ret])
+
             values = ret
 
         elif conversion_type == v4c.CONVERSION_TYPE_TTAB:
@@ -3785,6 +3812,7 @@ formula: {self.formula}
         return "\n".join(metadata)
 
     def __getitem__(self, item: str) -> Any:
+        return self.__getattribute__(item)
         try:
             return self.__getattribute__(item)
         except:
@@ -4243,7 +4271,7 @@ class DataZippedBlock(object):
             self.original_size = original_size
 
             if self.zip_type == v4c.FLAG_DZ_DEFLATE:
-                data = compress(data, 1)
+                data = compress(data, COMPRESSION_LEVEL)
             else:
                 if not self._transposed:
                     cols = self.param
@@ -4265,7 +4293,7 @@ class DataZippedBlock(object):
                             .T.ravel()
                             .tobytes()
                         )
-                data = compress(data, 1)
+                data = compress(data, COMPRESSION_LEVEL)
 
             zipped_size = len(data)
             self.zip_size = zipped_size
@@ -4281,7 +4309,7 @@ class DataZippedBlock(object):
             if self.return_unzipped:
                 data = DataZippedBlock.__dict__[item].__get__(self)
                 original_size = self.original_size
-                data = decompress(data, 0, original_size)
+                data = decompress(data, bufsize=original_size)
                 if self.zip_type == v4c.FLAG_DZ_TRANPOSED_DEFLATE:
                     cols = self.param
                     lines = original_size // cols

@@ -698,7 +698,11 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
                 current_plot = widget
                 count = len(current_plot.plot.signals)
-                if new_setting_has_dots and not self.allways_accept_dots and count >= 200:
+                if (
+                    new_setting_has_dots
+                    and not self.allways_accept_dots
+                    and count >= 200
+                ):
                     ret = QtWidgets.QMessageBox.question(
                         self,
                         "Continue enabling dots?",
@@ -1234,7 +1238,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                     )
                     if ok:
                         names = [
-                            (None, *entry, self.files.widget(file_index).uuid)
+                            (None, *entry, self.files.widget(file_index).uuid, "channel", [])
                             for file_index, entry in result
                         ]
                         self.add_window((ret, names))

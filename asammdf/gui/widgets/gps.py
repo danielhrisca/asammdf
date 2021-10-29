@@ -3,7 +3,11 @@ import io
 
 import numpy as np
 from PyQt5 import QtCore, QtWidgets
-from pyqtlet import L, MapWidget
+try:
+    from pyqtlet import L, MapWidget
+except:
+    pass
+
 
 from ..ui import resource_rc as resource_rc
 from ..ui.gps import Ui_GPSDisplay

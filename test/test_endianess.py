@@ -8,7 +8,7 @@ import numpy as np
 from asammdf import MDF, Signal
 import asammdf.blocks.v2_v3_constants as v23c
 import asammdf.blocks.v4_constants as v4c
-
+import shutil
 
 class TestEndianess(unittest.TestCase):
     tempdir = None
@@ -38,8 +38,8 @@ class TestEndianess(unittest.TestCase):
             mdf.close()
 
             with MDF(outfile) as mdf:
-                self.assertTrue(np.array_equal(mdf.get("Motorola").samples, [2] * 15))
-                self.assertTrue(np.array_equal(mdf.get("Intel").samples, [4] * 15))
+                assert np.array_equal(mdf.get("Motorola").samples, [2] * 15)
+                assert np.array_equal(mdf.get("Intel").samples, [4] * 15)
 
         for version in ("3.30", "4.10"):
             mdf = MDF(version=version)
@@ -50,8 +50,8 @@ class TestEndianess(unittest.TestCase):
             mdf.close()
 
             with MDF(outfile) as mdf:
-                self.assertTrue(np.array_equal(mdf.get("Motorola").samples, [2] * 15))
-                self.assertTrue(np.array_equal(mdf.get("Intel").samples, [4] * 15))
+                assert np.array_equal(mdf.get("Motorola").samples, [2] * 15)
+                assert np.array_equal(mdf.get("Intel").samples, [4] * 15)
 
     def test_not_aligned_mdf_v3(self):
 
@@ -93,13 +93,8 @@ class TestEndianess(unittest.TestCase):
             )
 
             with MDF(outfile) as mdf:
-                self.assertTrue(
-                    np.array_equal(mdf.get("NotAlignedMotorola").samples, [0x0204] * 15)
-                )
-
-                self.assertTrue(
-                    np.array_equal(mdf.get("NotAlignedIntel").samples, [0x0402] * 15)
-                )
+                assert np.array_equal(mdf.get("NotAlignedMotorola").samples, [0x0204] * 15)
+                assert np.array_equal(mdf.get("NotAlignedIntel").samples, [0x0402] * 15)
 
             ch3 = mdf_source.groups[0].channels[3]
             ch3.start_offset = 16 + t.itemsize * 8
@@ -116,14 +111,12 @@ class TestEndianess(unittest.TestCase):
             )
 
             with MDF(outfile) as mdf:
-                self.assertTrue(
-                    np.array_equal(
+                assert np.array_equal(
                         mdf.get("NotAlignedMotorola").samples, [0x3F0204] * 15
                     )
-                )
-                self.assertTrue(
-                    np.array_equal(mdf.get("NotAlignedIntel").samples, [0x04023F] * 15)
-                )
+
+                assert np.array_equal(mdf.get("NotAlignedIntel").samples, [0x04023F] * 15)
+
 
             ch3 = mdf_source.groups[0].channels[3]
             ch3.start_offset = 16 + t.itemsize * 8 + 5
@@ -140,18 +133,15 @@ class TestEndianess(unittest.TestCase):
             )
 
             with MDF(outfile) as mdf:
-                self.assertTrue(
-                    np.array_equal(
+                assert np.array_equal(
                         mdf.get("NotAlignedMotorola").samples,
                         [(0x3F0204F8 >> 5) & (2 ** 21 - 1)] * 15,
                     )
-                )
-                self.assertTrue(
-                    np.array_equal(
+
+                assert np.array_equal(
                         mdf.get("NotAlignedIntel").samples,
                         [(0xF8040200 >> 6) & (2 ** 21 - 1)] * 15,
                     )
-                )
 
     def test_not_aligned_mdf_v4(self):
 
@@ -193,13 +183,9 @@ class TestEndianess(unittest.TestCase):
             )
 
             with MDF(outfile) as mdf:
-                self.assertTrue(
-                    np.array_equal(mdf.get("NotAlignedMotorola").samples, [0x0204] * 15)
-                )
+                assert np.array_equal(mdf.get("NotAlignedMotorola").samples, [0x0204] * 15)
 
-                self.assertTrue(
-                    np.array_equal(mdf.get("NotAlignedIntel").samples, [0x0402] * 15)
-                )
+                assert np.array_equal(mdf.get("NotAlignedIntel").samples, [0x0402] * 15)
 
             ch3 = mdf_source.groups[0].channels[3]
             ch3.byte_offset = 2 + t.itemsize
@@ -216,14 +202,12 @@ class TestEndianess(unittest.TestCase):
             )
 
             with MDF(outfile) as mdf:
-                self.assertTrue(
-                    np.array_equal(
+                assert np.array_equal(
                         mdf.get("NotAlignedMotorola").samples, [0x3F0204] * 15
                     )
-                )
-                self.assertTrue(
-                    np.array_equal(mdf.get("NotAlignedIntel").samples, [0x04023F] * 15)
-                )
+
+                assert np.array_equal(mdf.get("NotAlignedIntel").samples, [0x04023F] * 15)
+
 
             ch3 = mdf_source.groups[0].channels[3]
             ch3.byte_offset = 2 + t.itemsize
@@ -242,18 +226,16 @@ class TestEndianess(unittest.TestCase):
             )
 
             with MDF(outfile) as mdf:
-                self.assertTrue(
-                    np.array_equal(
+                assert np.array_equal(
                         mdf.get("NotAlignedMotorola").samples,
                         [(0x3F0204F8 >> 5) & (2 ** 21 - 1)] * 15,
                     )
-                )
-                self.assertTrue(
-                    np.array_equal(
+
+                assert np.array_equal(
                         mdf.get("NotAlignedIntel").samples,
                         [(0xF8040200 >> 6) & (2 ** 21 - 1)] * 15,
                     )
-                )
+
 
     def test_overlapping_channels_mdf_v3(self):
 
@@ -306,17 +288,15 @@ class TestEndianess(unittest.TestCase):
                 )
 
                 with MDF(outfile) as mdf:
-                    self.assertTrue(
-                        np.array_equal(
+                    assert np.array_equal(
                             mdf.get("OverlappingMotorola").samples, [0x0204] * 15
                         )
-                    )
 
-                    self.assertTrue(
-                        np.array_equal(
+
+                    assert np.array_equal(
                             mdf.get("OverlappingIntel").samples, [0x0402] * 15
                         )
-                    )
+
 
                 ch3 = mdf_source.groups[0].channels[2]
                 ch3.start_offset = 16 + t.itemsize * 8
@@ -333,16 +313,14 @@ class TestEndianess(unittest.TestCase):
                 )
 
                 with MDF(outfile) as mdf:
-                    self.assertTrue(
-                        np.array_equal(
+                    assert np.array_equal(
                             mdf.get("OverlappingMotorola").samples, [0x3F0204] * 15
                         )
-                    )
-                    self.assertTrue(
-                        np.array_equal(
+
+                    assert np.array_equal(
                             mdf.get("OverlappingIntel").samples, [0x04023F] * 15
                         )
-                    )
+
 
                 ch3 = mdf_source.groups[0].channels[2]
                 ch3.start_offset = 16 + t.itemsize * 8 + 5
@@ -359,18 +337,16 @@ class TestEndianess(unittest.TestCase):
                 )
 
                 with MDF(outfile) as mdf:
-                    self.assertTrue(
-                        np.array_equal(
+                    assert np.array_equal(
                             mdf.get("OverlappingMotorola").samples,
                             [(0x3F0204F8 >> 5) & (2 ** 21 - 1)] * 15,
                         )
-                    )
-                    self.assertTrue(
-                        np.array_equal(
+
+                    assert np.array_equal(
                             mdf.get("OverlappingIntel").samples,
                             [(0xF8040200 >> 6) & (2 ** 21 - 1)] * 15,
                         )
-                    )
+
 
     def test_overlapping_channels_mdf_v4(self):
 
@@ -426,17 +402,15 @@ class TestEndianess(unittest.TestCase):
                 )
 
                 with MDF(outfile) as mdf:
-                    self.assertTrue(
-                        np.array_equal(
+                    assert np.array_equal(
                             mdf.get("OverlappingMotorola").samples, [0x0204] * 15
                         )
-                    )
 
-                    self.assertTrue(
-                        np.array_equal(
+
+                    assert np.array_equal(
                             mdf.get("OverlappingIntel").samples, [0x0402] * 15
                         )
-                    )
+
 
                 ch3 = mdf_source.groups[0].channels[2]
                 ch3.byte_offset = 2 + t.itemsize
@@ -455,16 +429,14 @@ class TestEndianess(unittest.TestCase):
                 )
 
                 with MDF(outfile) as mdf:
-                    self.assertTrue(
-                        np.array_equal(
+                    assert np.array_equal(
                             mdf.get("OverlappingMotorola").samples, [0x3F0204] * 15
                         )
-                    )
-                    self.assertTrue(
-                        np.array_equal(
+
+                    assert np.array_equal(
                             mdf.get("OverlappingIntel").samples, [0x04023F] * 15
-                        )
                     )
+
 
                 ch3 = mdf_source.groups[0].channels[2]
                 ch3.byte_offset = 2 + t.itemsize
@@ -483,18 +455,16 @@ class TestEndianess(unittest.TestCase):
                 )
 
                 with MDF(outfile) as mdf:
-                    self.assertTrue(
-                        np.array_equal(
+                    assert np.array_equal(
                             mdf.get("OverlappingMotorola").samples,
                             [(0x3F0204F8 >> 5) & (2 ** 21 - 1)] * 15,
                         )
-                    )
-                    self.assertTrue(
-                        np.array_equal(
+
+                    assert np.array_equal(
                             mdf.get("OverlappingIntel").samples,
                             [(0xF8040200 >> 6) & (2 ** 21 - 1)] * 15,
                         )
-                    )
+
 
                 ch3 = mdf_source.groups[0].channels[2]
                 ch3.byte_offset = 3 + t.itemsize
@@ -513,14 +483,12 @@ class TestEndianess(unittest.TestCase):
                 )
 
                 with MDF(outfile) as mdf:
-                    self.assertTrue(
-                        np.array_equal(
+                    assert np.array_equal(
                             mdf.get("OverlappingMotorola").samples, [0x1] * 15
                         )
-                    )
-                    self.assertTrue(
-                        np.array_equal(mdf.get("OverlappingIntel").samples, [0x1] * 15)
-                    )
+
+                    assert np.array_equal(mdf.get("OverlappingIntel").samples, [0x1] * 15)
+
 
 
 if __name__ == "__main__":

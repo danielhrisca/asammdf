@@ -23,6 +23,7 @@ jobs:
           pip install -r requirements.txt
           pip install -r test/requirements.txt 
           pip install -r doc/requirements.txt pytest pytest-cov coveralls
+          pip install -e .
           
       - name: Running tests
         run: |

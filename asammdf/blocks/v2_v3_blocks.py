@@ -167,6 +167,7 @@ class Channel:
         "long_name_addr",
         "display_name_addr",
         "additional_byte_offset",
+        "dtype_fmt",
     )
 
     def __init__(self, **kwargs) -> None:
@@ -175,6 +176,7 @@ class Channel:
         self.name = self.comment = ""
         self.display_names = {}
         self.conversion = self.source = None
+        self.dtype_fmt = None
 
         try:
             stream = kwargs["stream"]
