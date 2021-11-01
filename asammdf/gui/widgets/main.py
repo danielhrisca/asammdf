@@ -1237,10 +1237,15 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                         False,
                     )
                     if ok:
-                        names = [
-                            (None, *entry, self.files.widget(file_index).uuid, "channel", [])
-                            for file_index, entry in result
-                        ]
+                        names = []
+                        for file_index, entry in result:
+                            group, ch_index = entry
+                            mdf = self.files.widget(file_index).mdf
+                            uuid = self.files.widget(file_index).uuid
+                            name = mdf.groups[group].channels[ch_index].name
+                            names.append(
+                                (name, *entry, uuid, "channel", [],)
+                            )
                         self.add_window((ret, names))
 
         elif key == QtCore.Qt.Key_F11:

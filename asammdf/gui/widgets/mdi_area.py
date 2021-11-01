@@ -1448,7 +1448,7 @@ class WithMDIArea:
 
         if names and isinstance(names[0], str):
             signals_ = [
-                (None, *self.mdf.whereis(name)[0], self.uuid, "channel")
+                (name, *self.mdf.whereis(name)[0], self.uuid, "channel")
                 for name in names
                 if name in self.mdf
             ]
