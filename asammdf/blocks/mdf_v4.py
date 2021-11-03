@@ -3474,20 +3474,6 @@ class MDF4(MDF_Common):
 
         gp.sorted = True
 
-        # print('what')
-        #
-        # for m in fields:
-        #     print(len(m))
-        #     if len(m) > 2:
-        #         print(m)
-        #         break
-        #
-        # for k, (d, s) in enumerate(fields):
-        #     if len(d) / s != cycles_nr:
-        #         print(k, len(d), s, gp_channels[k])
-        #
-        # print(1)
-
         samples = data_block_from_arrays(fields, cycles_nr)
         size = len(samples)
         samples = memoryview(samples)
@@ -10336,7 +10322,39 @@ class MDF4(MDF_Common):
                         dbc = self._dbc_cache[attachment_addr]
                 break
 
-        if dbc is None:
+        if not group.channel_group.flags & v4c.FLAG_CG_PLAIN_BUS_EVENT:
+            self._prepare_record(group)
+            data = self._load_data(group, record_offset=0, record_count=1)
+
+            for fragment_index, fragment in enumerate(data):
+
+                self._set_temporary_master(None)
+                self._set_temporary_master(self.get_master(group_index, data=fragment))
+
+                bus_ids = self.get(
+                    "CAN_DataFrame.BusChannel",
+                    group=group_index,
+                    data=fragment,
+                    samples_only=True,
+                )[0].astype("<u1")
+
+                msg_ids = (
+                    self.get(
+                        "CAN_DataFrame.ID",
+                        group=group_index,
+                        data=fragment,
+                        samples_only=True,
+                    )[0].astype("<u4")
+                    & 0x1FFFFFFF
+                )
+
+                bus = bus_ids[0]
+                msg_id = msg_ids[0]
+
+                bus_map = self.bus_logging_map["CAN"].setdefault(bus, {})
+                bus_map[int(msg_id)] = group_index
+
+        elif dbc is None:
             self._prepare_record(group)
             data = self._load_data(group, optimize_read=False)
 
@@ -10364,13 +10382,14 @@ class MDF4(MDF_Common):
 
                 if len(bus_ids) == 0:
                     continue
-
+                    
                 buses = unique(bus_ids)
 
                 for bus in buses:
                     bus_msg_ids = msg_ids[bus_ids == bus]
-
-                    unique_ids = sorted(unique(bus_msg_ids).astype("<u8"))
+                    unique_ids = unique(bus_msg_ids)
+                    unique_ids.sort()
+                    unique_ids = unique_ids.tolist()
 
                     bus_map = self.bus_logging_map["CAN"].setdefault(bus, {})
 
