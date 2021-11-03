@@ -295,11 +295,16 @@ class MDF3(MDF_Common):
         else:
             stream = self._tempfile
 
-        record_offset *= channel_group.samples_byte_nr
+        samples_size = channel_group.samples_byte_nr
+
+        record_offset *= samples_size
+        if record_count is not None:
+            record_count *= samples_size
+
+        finished = False
 
         # go to the first data block of the current data group
         if group.sorted:
-            samples_size = channel_group.samples_byte_nr
             if not samples_size:
                 yield b"", 0, _count
                 has_yielded = True
@@ -346,37 +351,90 @@ class MDF3(MDF_Common):
 
                     if offset < record_offset:
                         delta = record_offset - offset
-                        stream.read(delta)
+                        stream.seek(delta, 1)
                         current_address += delta
                         size -= delta
                         offset = record_offset
 
-                    while size >= split_size - cur_size:
-                        stream.seek(current_address)
-                        if data:
-                            data.append(stream.read(split_size - cur_size))
-                            yield b"".join(data), offset, _count
-                            has_yielded = True
-                            current_address += split_size - cur_size
-                        else:
-                            yield stream.read(split_size), offset, _count
-                            has_yielded = True
-                            current_address += split_size
-                        offset += split_size
+                    if record_count:
+                        while size >= split_size - cur_size:
+                            stream.seek(current_address)
+                            if data:
+                                data.append(stream.read(min(record_count, split_size - cur_size)))
 
-                        size -= split_size - cur_size
+                                bts = b"".join(data)[:record_count]
+                                record_count -= len(bts)
+                                __count = len(bts) // samples_size
+                                yield bts, offset // samples_size, __count
+                                has_yielded = True
+                                current_address += split_size - cur_size
+
+                                if record_count <= 0:
+                                    finished = True
+                                    break
+                            else:
+
+                                bts = stream.read(min(split_size, record_count))[:record_count]
+                                record_count -= len(bts)
+                                __count = len(bts) // samples_size
+                                yield bts, offset // samples_size, __count
+                                has_yielded = True
+                                current_address += split_size - cur_size
+
+                                if record_count <= 0:
+                                    finished = True
+                                    break
+
+                            offset += split_size
+
+                            size -= split_size - cur_size
+                            data = []
+                            cur_size = 0
+                    else:
+
+                        while size >= split_size - cur_size:
+                            stream.seek(current_address)
+                            if data:
+                                data.append(stream.read(split_size - cur_size))
+
+                                yield b"".join(data), offset, _count
+                                has_yielded = True
+                                current_address += split_size - cur_size
+                            else:
+                                yield stream.read(split_size), offset, _count
+                                has_yielded = True
+                                current_address += split_size
+
+                            offset += split_size
+
+                            size -= split_size - cur_size
+                            data = []
+                            cur_size = 0
+
+                    if finished:
                         data = []
-                        cur_size = 0
+                        offset = -1
+                        break
 
                     if size:
                         stream.seek(current_address)
-                        data.append(stream.read(size))
+                        if record_count:
+                            data.append(stream.read(min(record_count, size)))
+                        else:
+                            data.append(stream.read(size))
                         cur_size += size
                         offset += size
 
                 if data:
-                    yield b"".join(data), offset, _count
-                    has_yielded = True
+                    data = b"".join(data)
+                    if record_count is not None:
+                        data = data[:record_count]
+                        yield data, offset, len(data) // samples_size
+                        has_yielded = True
+                    else:
+                        yield data, offset, _count
+                        has_yielded = True
+
                 elif not offset:
                     yield b"", 0, _count
                     has_yielded = True
