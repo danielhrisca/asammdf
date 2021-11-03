@@ -4991,7 +4991,7 @@ class MDF:
                     occurrences = ()
 
         elif match_mode in ("pattern", "regex"):
-            if match_mode == "pattern"""
+            if match_mode == "pattern":
                 pattern = channel.replace("*", "_WILDCARD_")
                 pattern = re.escape(pattern)
                 pattern = pattern.replace("_WILDCARD_", ".*")
