@@ -4921,7 +4921,9 @@ class MDF:
         source_name: str | None = None,
         source_path: str | None = None,
         acq_name: str | None = None,
-    ) -> tuple[tuple[int, int], ...]:
+        case_insensitive: bool = False,
+        match_mode: str = "plain",
+    ) -> tuple[tuple[int, int], ...] | tuple[str, tuple[tuple[int, int], ...]]:
         """get occurrences of channel name in the file
 
         Parameters
@@ -4937,6 +4939,23 @@ class MDF:
 
             .. versionadded:: 6.0.0
 
+        case_insensitive (False) : bool
+            case sensitivity for the channel name search
+
+            .. versionadded:: 7.0.0
+
+        match_mode ("plain") : str
+            how the ``channel`` argument will be used for the search:
+
+                * `plain` : normal name search
+                * '`pattern` : pattern based search
+                * `regex` : regular expression based search
+
+            if the match mode is not "plain" then the returned tuple items will be tuples with two
+            elements, the first being the channel name and the second being the occurrences
+
+            .. versionadded:: 7.0.0
+
         Returns
         -------
         occurrences : tuple
@@ -4949,21 +4968,63 @@ class MDF:
         ((1, 2), (2, 4))
         >>> mdf.whereis('VehicleSPD') # "VehicleSPD" doesn't exist in the file
         ()
+        >>> mdf.whereis('*veh*speed*', case_insensitive=True, match_mode='pattern') # case insensitive pattern based search
+        ((1, 2), (2, 4))
+        >>> mdf.whereis('^Vehicle.*speed$', case_insensitive=False, match_mode='regex') # case sensitive regex based search
+        ((1, 2), (2, 4))
 
         """
-        try:
-            occurrences = self.channels_db[channel]
-        except KeyError:
-            occurrences = ()
+        if match_mode == "plain":
+            if case_insensitive:
+                occurrences = []
+                channel = channel.lower()
+                for key, entries in self.channels_db.items():
+                    if key.lower() == channel:
+                        occurrences.append((key, entries))
+
+                occurrences = tuple(occurrences)
+
+            else:
+                try:
+                    occurrences = self.channels_db[channel]
+                except KeyError:
+                    occurrences = ()
+
+        elif match_mode in ("pattern", "regex"):
+            if match_mode == "pattern"""
+                pattern = channel.replace("*", "_WILDCARD_")
+                pattern = re.escape(pattern)
+                pattern = pattern.replace("_WILDCARD_", ".*")
+            else:
+                pattern = channel
+
+            if case_insensitive:
+                pattern = re.compile(f"(?i){pattern}")
+            else:
+                pattern = re.compile(pattern)
+
+            occurrences = []
+            for name, entries in self.channels_db.items():
+                try:
+                    if pattern.search(name):
+                        occurrences.append((name, entries))
+                except:
+                    continue
+
+            occurrences = tuple(occurrences)
+
         else:
-            occurrences = tuple(
-                self._filter_occurrences(
-                    occurrences,
-                    source_name=source_name,
-                    source_path=source_path,
-                    acq_name=acq_name,
-                )
+            raise MdfException(f'whereis match_mode={match_mode} is invalid')
+
+        occurrences = tuple(
+            self._filter_occurrences(
+                occurrences,
+                source_name=source_name,
+                source_path=source_path,
+                acq_name=acq_name,
             )
+        )
+
         return occurrences
 
 
