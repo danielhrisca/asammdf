@@ -3948,7 +3948,11 @@ class MDF:
                 cycles = len(group_master)
 
                 signals = [
-                    signal.interp(master, self._integer_interpolation)
+                    signal.interp(
+                        master,
+                        integer_interpolation_mode = self._integer_interpolation,
+                        float_interpolation_mode = self._float_interpolation
+                    )
                     if not same_master or len(signal) != cycles
                     else signal
                     for signal in signals
