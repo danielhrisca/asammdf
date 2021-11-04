@@ -1638,13 +1638,16 @@ def load_can_database(
 
         encoding = detect(contents)["encoding"]
 
-        dbs = func(
-            arg,
-            import_type=import_type,
-            key="db",
-            encoding=encoding,
-            **kwargs,
-        )
+        try:
+            dbs = func(
+                arg,
+                import_type=import_type,
+                key="db",
+                encoding=encoding,
+                **kwargs,
+            )
+        except:
+            dbs = None
 
     if dbs:
         first_bus = list(dbs)[0]
