@@ -4948,7 +4948,7 @@ class MDF:
             how the ``channel`` argument will be used for the search:
 
                 * `plain` : normal name search
-                * '`pattern` : pattern based search
+                * `wildcard` : wildcard based search
                 * `regex` : regular expression based search
 
             if the match mode is not "plain" then the returned tuple items will be tuples with two
@@ -4968,7 +4968,7 @@ class MDF:
         ((1, 2), (2, 4))
         >>> mdf.whereis('VehicleSPD') # "VehicleSPD" doesn't exist in the file
         ()
-        >>> mdf.whereis('*veh*speed*', case_insensitive=True, match_mode='pattern') # case insensitive pattern based search
+        >>> mdf.whereis('*veh*speed*', case_insensitive=True, match_mode='wildcard') # case insensitive wildcard based search
         ((1, 2), (2, 4))
         >>> mdf.whereis('^Vehicle.*speed$', case_insensitive=False, match_mode='regex') # case sensitive regex based search
         ((1, 2), (2, 4))
@@ -4990,8 +4990,8 @@ class MDF:
                 except KeyError:
                     occurrences = ()
 
-        elif match_mode in ("pattern", "regex"):
-            if match_mode == "pattern":
+        elif match_mode in ("wildcard", "regex"):
+            if match_mode == "wildcard":
                 pattern = channel.replace("*", "_WILDCARD_")
                 pattern = re.escape(pattern)
                 pattern = pattern.replace("_WILDCARD_", ".*")
