@@ -2869,6 +2869,14 @@ class MDF:
         if validate:
             signals = [sig.validate() for sig in signals]
 
+        for signal, channel in zip(signals, channels):
+            if isinstance(channel, str):
+                signal.name = channel
+            else:
+                name = channel[0]
+                if name is not None:
+                    signal.name = name
+
         return signals
 
     @staticmethod
