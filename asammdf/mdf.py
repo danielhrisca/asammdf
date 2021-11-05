@@ -4979,10 +4979,7 @@ class MDF:
     def search(
         self,
         pattern: str,
-        mode: SearchMode
-        | Literal[
-            SearchMode.plain, SearchMode.regex, SearchMode.wildcard
-        ] = SearchMode.plain,
+        mode: Literal["plain", "regex", "wildcard"] | SearchMode = SearchMode.plain,
         case_insensitive: bool = False,
     ) -> list[str]:
         """search channels
