@@ -1,2 +1,6 @@
 [run]
-omit = asammdf/gui/*
+command_line = --module pytest
+source =
+    asammdf
+omit =
+    asammdf/gui/*

@@ -1,33 +1,25 @@
+# Based on https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#running-tests-with-tox
 name: asammdf package
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   build:
-
-    runs-on: ubuntu-latest
+    runs-on: [ubuntu-latest, macos-latest, windows-latest]
     strategy:
       matrix:
-        python-version: [3.7, 3.9]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
 
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
+
+      - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-          
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -r test/requirements.txt 
-          pip install -r doc/requirements.txt pytest pytest-cov coveralls
-          pip install -e .
-          
-      - name: Running tests
-        run: |
-          set -e
-          python --version
-          python -m pytest -vv --color=yes --disable-pytest-warnings --cov-config=.coveragerc --cov-report xml:coverage.xml --cov=asammdf/ test/
-          python -m sphinx -W -b html doc doc/_build/html
+
+      - name: Install tox and any other packages
+        run: pip install tox tox-gh-actions
+
+      - name: Run tox
+        run: tox
