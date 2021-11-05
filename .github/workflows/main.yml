@@ -1,10 +1,9 @@
-# Based on: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#running-tests-with-tox
-name: asammdf package
+name: continuous integration
 
 on: [push, pull_request]
 
 jobs:
-  tests:
+  test_and_build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -19,9 +18,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install tox and any other packages
-        run: pip install tox tox-gh-actions coveralls
+      - name: Install packages
+        run: pip install tox tox-gh-actions coveralls build
 
+      # see: https://github.com/ymyzk/tox-gh-actions
       - name: Run tox
         run: tox
 
@@ -31,3 +31,10 @@ jobs:
         run: coveralls --service=github
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # see: https://docs.github.com/en/actions/advanced-guides/storing-workflow-data-as-artifacts
+      - name: Archive dist artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: dist
+          path: dist/
