@@ -1,4 +1,4 @@
-# Based on https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#running-tests-with-tox
+# Based on: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#running-tests-with-tox
 name: asammdf package
 
 on: [push, pull_request]
@@ -20,7 +20,14 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install tox and any other packages
-        run: pip install tox tox-gh-actions
+        run: pip install tox tox-gh-actions coveralls
 
       - name: Run tox
         run: tox
+
+      # see: https://coveralls-python.readthedocs.io/en/latest/usage/configuration.html#github-actions-support
+      - name: Upload coverage data to coveralls.io
+        if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.7' }}
+        run: coveralls --service=github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
