@@ -1,5 +1,4 @@
 [run]
-command_line = --module pytest
 source =
     asammdf
 omit =
