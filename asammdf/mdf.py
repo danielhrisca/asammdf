@@ -4951,6 +4951,8 @@ class MDF:
         acq_name : str, optional
             filter occurrences on channel group acquisition name, by default None
 
+            .. versionadded:: 6.0.0
+
         Returns
         -------
         tuple[tuple[int, int], ...]
