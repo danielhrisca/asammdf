@@ -9,6 +9,8 @@ from collections.abc import Iterable, Iterator, Sequence
 from copy import deepcopy
 import csv
 from datetime import datetime, timezone
+from enum import Enum
+import fnmatch
 from functools import reduce
 import gzip
 from io import BytesIO
@@ -89,6 +91,12 @@ target_byte_order = "<=" if sys.byteorder == "little" else ">="
 
 
 __all__ = ["MDF", "SUPPORTED_VERSIONS"]
+
+
+class SearchMode(Enum):
+    plain = "plain"
+    regex = "regex"
+    wildcard = "wildcard"
 
 
 def get_measurement_timestamp_and_version(
@@ -3958,8 +3966,8 @@ class MDF:
                 signals = [
                     signal.interp(
                         master,
-                        integer_interpolation_mode = self._integer_interpolation,
-                        float_interpolation_mode = self._float_interpolation
+                        integer_interpolation_mode=self._integer_interpolation,
+                        float_interpolation_mode=self._float_interpolation,
                     )
                     if not same_master or len(signal) != cycles
                     else signal
@@ -4929,9 +4937,7 @@ class MDF:
         source_name: str | None = None,
         source_path: str | None = None,
         acq_name: str | None = None,
-        case_insensitive: bool = False,
-        match_mode: str = "plain",
-    ) -> tuple[tuple[int, int], ...] | tuple[str, tuple[tuple[int, int], ...]]:
+    ) -> tuple[tuple[int, int], ...]:
         """get occurrences of channel name in the file
 
         Parameters
@@ -4947,27 +4953,9 @@ class MDF:
 
             .. versionadded:: 6.0.0
 
-        case_insensitive (False) : bool
-            case sensitivity for the channel name search
-
-            .. versionadded:: 7.0.0
-
-        match_mode ("plain") : str
-            how the ``channel`` argument will be used for the search:
-
-                * `plain` : normal name search
-                * `wildcard` : wildcard based search
-                * `regex` : regular expression based search
-
-            if the match mode is not "plain" then the returned tuple items will be tuples with two
-            elements, the first being the channel name and the second being the occurrences
-
-            .. versionadded:: 7.0.0
-
         Returns
         -------
         occurrences : tuple
-
 
         Examples
         --------
@@ -4976,64 +4964,91 @@ class MDF:
         ((1, 2), (2, 4))
         >>> mdf.whereis('VehicleSPD') # "VehicleSPD" doesn't exist in the file
         ()
-        >>> mdf.whereis('*veh*speed*', case_insensitive=True, match_mode='wildcard') # case insensitive wildcard based search
-        ((1, 2), (2, 4))
-        >>> mdf.whereis('^Vehicle.*speed$', case_insensitive=False, match_mode='regex') # case sensitive regex based search
-        ((1, 2), (2, 4))
-
         """
-        if match_mode == "plain":
-            if case_insensitive:
-                occurrences = []
-                channel = channel.lower()
-                for key, entries in self.channels_db.items():
-                    if key.lower() == channel:
-                        occurrences.append((key, entries))
-
-                occurrences = tuple(occurrences)
-
-            else:
-                try:
-                    occurrences = self.channels_db[channel]
-                except KeyError:
-                    occurrences = ()
-
-        elif match_mode in ("wildcard", "regex"):
-            if match_mode == "wildcard":
-                pattern = channel.replace("*", "_WILDCARD_")
-                pattern = re.escape(pattern)
-                pattern = pattern.replace("_WILDCARD_", ".*")
-            else:
-                pattern = channel
-
-            if case_insensitive:
-                pattern = re.compile(f"(?i){pattern}")
-            else:
-                pattern = re.compile(pattern)
-
-            occurrences = []
-            for name, entries in self.channels_db.items():
-                try:
-                    if pattern.search(name):
-                        occurrences.append((name, entries))
-                except:
-                    continue
-
-            occurrences = tuple(occurrences)
-
-        else:
-            raise MdfException(f'whereis match_mode={match_mode} is invalid')
-
         occurrences = tuple(
             self._filter_occurrences(
-                occurrences,
+                self.channels_db.get(channel, []),
                 source_name=source_name,
                 source_path=source_path,
                 acq_name=acq_name,
             )
         )
-
         return occurrences
+
+    def search(
+        self,
+        pattern: str,
+        mode: SearchMode
+        | Literal[
+            SearchMode.plain, SearchMode.regex, SearchMode.wildcard
+        ] = SearchMode.plain,
+        case_insensitive: bool = False,
+    ) -> list[str]:
+        """search channels
+
+        .. versionadded:: 7.0.0
+
+        Parameters
+        ----------
+        pattern : str
+            search pattern
+
+        mode : SearchMode, optional
+            search mode, by default SearchMode.plain
+
+                * `plain` : normal name search
+                * `wildcard` : wildcard based search
+                * `regex` : regular expression based search
+
+        case_insensitive : bool, optional
+            case sensitivity for the channel name search, by default False
+
+        Returns
+        -------
+        list[str]
+            name of the channels
+
+        Raises
+        ------
+        RuntimeError
+            unsupported search mode
+
+        Examples
+        --------
+        >>> mdf = MDF(file_name)
+        >>> mdf.search('*veh*speed*', case_insensitive=True, mode='wildcard') # case insensitive wildcard based search
+        ['vehicleAverageSpeed', 'vehicleInstantSpeed', 'targetVehicleAverageSpeed', 'targetVehicleInstantSpeed']
+        >>> mdf.search('^vehicle.*Speed$', case_insensitive=False, mode='regex') # case sensitive regex based search
+        ['vehicleAverageSpeed', 'vehicleInstantSpeed']
+        """
+        search_mode = SearchMode(mode)
+
+        if search_mode is SearchMode.plain:
+            pattern = pattern.casefold() if case_insensitive else pattern
+            channels = [
+                name for name in self.channels_db.keys() if pattern in name.casefold()
+            ]
+        elif search_mode is SearchMode.regex:
+            flags = re.IGNORECASE if case_insensitive else 0
+            compiled_pattern = re.compile(pattern, flags=flags)
+            channels = [
+                name
+                for name in self.channels_db.keys()
+                if compiled_pattern.search(name)
+            ]
+        elif search_mode is SearchMode.wildcard:
+            if case_insensitive:
+                channels = fnmatch.filter(self.channels_db.keys(), pattern)
+            else:
+                channels = [
+                    name
+                    for name in self.channels_db.keys()
+                    if fnmatch.fnmatchcase(name, pattern)
+                ]
+        else:
+            raise RuntimeError(f"unsupported mode {search_mode}")
+
+        return channels
 
 
 if __name__ == "__main__":
