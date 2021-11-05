@@ -25,16 +25,10 @@ jobs:
       - name: Run tox
         run: tox
 
-      # see: https://coveralls-python.readthedocs.io/en/latest/usage/configuration.html#github-actions-support
-      - name: Upload coverage data to coveralls.io
-        if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.7' }}
-        run: coveralls --service=github
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       # see: https://docs.github.com/en/actions/advanced-guides/storing-workflow-data-as-artifacts
       - name: Archive dist artifacts
         uses: actions/upload-artifact@v2
         with:
           name: dist
           path: dist/
+          if-no-files-found: error
