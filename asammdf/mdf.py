@@ -4944,18 +4944,17 @@ class MDF:
         ----------
         channel : str
             channel name string
-        source_name (None) : str
-            filter occurrences on source name
-        source_path (None) : str
-            filter occurrences on source path
-        acq_name (None) : str
-            filter occurrences on channel group acquisition name
-
-            .. versionadded:: 6.0.0
+        source_name : str, optional
+            filter occurrences on source name, by default None
+        source_path : str, optional
+            filter occurrences on source path, by default None
+        acq_name : str, optional
+            filter occurrences on channel group acquisition name, by default None
 
         Returns
         -------
-        occurrences : tuple
+        tuple[tuple[int, int], ...]
+            (gp_idx, cn_idx) pairs
 
         Examples
         --------
@@ -4992,14 +4991,12 @@ class MDF:
         ----------
         pattern : str
             search pattern
-
         mode : SearchMode, optional
             search mode, by default SearchMode.plain
 
                 * `plain` : normal name search
                 * `wildcard` : wildcard based search
                 * `regex` : regular expression based search
-
         case_insensitive : bool, optional
             case sensitivity for the channel name search, by default False
 
@@ -5025,28 +5022,24 @@ class MDF:
 
         if search_mode is SearchMode.plain:
             pattern = pattern.casefold() if case_insensitive else pattern
-            channels = [
-                name for name in self.channels_db.keys() if pattern in name.casefold()
-            ]
+            channels = [name for name in self.channels_db if pattern in name.casefold()]
         elif search_mode is SearchMode.regex:
             flags = re.IGNORECASE if case_insensitive else 0
             compiled_pattern = re.compile(pattern, flags=flags)
             channels = [
-                name
-                for name in self.channels_db.keys()
-                if compiled_pattern.search(name)
+                name for name in self.channels_db if compiled_pattern.search(name)
             ]
         elif search_mode is SearchMode.wildcard:
             if case_insensitive:
-                channels = fnmatch.filter(self.channels_db.keys(), pattern)
+                channels = fnmatch.filter(self.channels_db, pattern)
             else:
                 channels = [
                     name
-                    for name in self.channels_db.keys()
+                    for name in self.channels_db
                     if fnmatch.fnmatchcase(name, pattern)
                 ]
         else:
-            raise RuntimeError(f"unsupported mode {search_mode}")
+            raise NotImplementedError(f"unsupported mode {search_mode}")
 
         return channels
 
