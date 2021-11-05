@@ -3,7 +3,7 @@ name: continuous integration
 on: [push, pull_request]
 
 jobs:
-  test_and_build:
+  test-and-build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -19,11 +19,14 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install packages
-        run: pip install tox tox-gh-actions coveralls build
+        run: pip install tox tox-gh-actions build
 
       # see: https://github.com/ymyzk/tox-gh-actions
       - name: Run tox
         run: tox
+
+      - name: Build a binary wheel and a source tarball
+        run: python -m build
 
       # see: https://docs.github.com/en/actions/advanced-guides/storing-workflow-data-as-artifacts
       - name: Archive dist artifacts
