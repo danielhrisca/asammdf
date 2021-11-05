@@ -360,7 +360,11 @@ class MDF3(MDF_Common):
                         while size >= split_size - cur_size:
                             stream.seek(current_address)
                             if data:
-                                data.append(stream.read(min(record_count, split_size - cur_size)))
+                                data.append(
+                                    stream.read(
+                                        min(record_count, split_size - cur_size)
+                                    )
+                                )
 
                                 bts = b"".join(data)[:record_count]
                                 record_count -= len(bts)
@@ -374,7 +378,9 @@ class MDF3(MDF_Common):
                                     break
                             else:
 
-                                bts = stream.read(min(split_size, record_count))[:record_count]
+                                bts = stream.read(min(split_size, record_count))[
+                                    :record_count
+                                ]
                                 record_count -= len(bts)
                                 __count = len(bts) // samples_size
                                 yield bts, offset // samples_size, __count

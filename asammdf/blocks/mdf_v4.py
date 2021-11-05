@@ -157,12 +157,12 @@ __all__ = ["MDF4"]
 
 
 from .cutils import (
+    data_block_from_arrays,
     extract,
     get_channel_raw_bytes,
     get_vlsd_offsets,
     lengths,
     sort_data_block,
-    data_block_from_arrays,
 )
 
 
@@ -1406,11 +1406,13 @@ class MDF4(MDF_Common):
                         new_invalidation_data = read(invalidation_info.size)
                         if invalidation_info.block_type == v4c.DZ_BLOCK_DEFLATE:
                             new_invalidation_data = decompress(
-                                new_invalidation_data, bufsize=invalidation_info.original_size
+                                new_invalidation_data,
+                                bufsize=invalidation_info.original_size,
                             )
                         elif invalidation_info.block_type == v4c.DZ_BLOCK_TRANSPOSED:
                             new_invalidation_data = decompress(
-                                new_invalidation_data, bufsize=invalidation_info.original_size
+                                new_invalidation_data,
+                                bufsize=invalidation_info.original_size,
                             )
                             cols = invalidation_info.param
                             lines = invalidation_info.original_size // cols
@@ -1754,12 +1756,9 @@ class MDF4(MDF_Common):
 
                 # or a DataZippedBlock
                 elif id_string == b"##DZ":
-                    (
-                        zip_type,
-                        param,
-                        original_size,
-                        zip_size,
-                    ) = v4c.DZ_COMMON_INFO_uf(stream, address + v4c.DZ_INFO_COMMON_OFFSET)
+                    (zip_type, param, original_size, zip_size,) = v4c.DZ_COMMON_INFO_uf(
+                        stream, address + v4c.DZ_INFO_COMMON_OFFSET
+                    )
 
                     if original_size:
                         if zip_type == v4c.FLAG_DZ_DEFLATE:
@@ -1814,7 +1813,9 @@ class MDF4(MDF_Common):
                                     param,
                                     original_size,
                                     zip_size,
-                                ) = v4c.DZ_COMMON_INFO_uf(stream, addr + v4c.DZ_INFO_COMMON_OFFSET)
+                                ) = v4c.DZ_COMMON_INFO_uf(
+                                    stream, addr + v4c.DZ_INFO_COMMON_OFFSET
+                                )
 
                                 if original_size:
                                     if zip_type == v4c.FLAG_DZ_DEFLATE:
@@ -1872,7 +1873,9 @@ class MDF4(MDF_Common):
                                     param,
                                     original_size,
                                     zip_size,
-                                ) = v4c.DZ_COMMON_INFO_uf(stream, addr + v4c.DZ_INFO_COMMON_OFFSET)
+                                ) = v4c.DZ_COMMON_INFO_uf(
+                                    stream, addr + v4c.DZ_INFO_COMMON_OFFSET
+                                )
 
                                 if original_size:
                                     if zip_type == v4c.FLAG_DZ_DEFLATE:
@@ -1924,7 +1927,10 @@ class MDF4(MDF_Common):
                                             param,
                                             original_size,
                                             zip_size,
-                                        ) = v4c.DZ_COMMON_INFO_uf(stream, inval_addr + v4c.DZ_INFO_COMMON_OFFSET)
+                                        ) = v4c.DZ_COMMON_INFO_uf(
+                                            stream,
+                                            inval_addr + v4c.DZ_INFO_COMMON_OFFSET,
+                                        )
 
                                         if original_size:
                                             if zip_type == v4c.FLAG_DZ_DEFLATE:
@@ -2185,7 +2191,9 @@ class MDF4(MDF_Common):
                                                 )
                                             )
                                     else:
-                                        stream.seek(inval_addr + v4c.DZ_INFO_COMMON_OFFSET)
+                                        stream.seek(
+                                            inval_addr + v4c.DZ_INFO_COMMON_OFFSET
+                                        )
                                         (
                                             zip_type,
                                             param,
@@ -3488,7 +3496,7 @@ class MDF4(MDF_Common):
                 count = ceil(size / block_size)
 
                 for i in range(count):
-                    data_ = samples[i * block_size: (i + 1) * block_size]
+                    data_ = samples[i * block_size : (i + 1) * block_size]
                     raw_size = len(data_)
                     data_ = lz_compress(data_)
 
@@ -7116,7 +7124,7 @@ class MDF4(MDF_Common):
 
             if one_piece:
                 data = (data,)
-            
+
             for fragment in data:
                 data_bytes, offset, _count, invalidation_bytes = fragment
                 offset = offset // record_size
@@ -10382,7 +10390,7 @@ class MDF4(MDF_Common):
 
                 if len(bus_ids) == 0:
                     continue
-                    
+
                 buses = unique(bus_ids)
 
                 for bus in buses:

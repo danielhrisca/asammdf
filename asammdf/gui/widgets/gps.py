@@ -3,6 +3,7 @@ import io
 
 import numpy as np
 from PyQt5 import QtCore, QtWidgets
+
 try:
     from pyqtlet import L, MapWidget
 except:

@@ -1244,7 +1244,13 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                             uuid = self.files.widget(file_index).uuid
                             name = mdf.groups[group].channels[ch_index].name
                             names.append(
-                                (name, *entry, uuid, "channel", [],)
+                                (
+                                    name,
+                                    *entry,
+                                    uuid,
+                                    "channel",
+                                    [],
+                                )
                             )
                         self.add_window((ret, names))
 
