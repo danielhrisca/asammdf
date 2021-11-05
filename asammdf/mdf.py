@@ -4995,8 +4995,8 @@ class MDF:
             search mode, by default SearchMode.plain
 
                 * `plain` : normal name search
-                * `wildcard` : wildcard based search
                 * `regex` : regular expression based search
+                * `wildcard` : wildcard based search
         case_insensitive : bool, optional
             case sensitivity for the channel name search, by default False
 
@@ -5007,7 +5007,7 @@ class MDF:
 
         Raises
         ------
-        RuntimeError
+        ValueError
             unsupported search mode
 
         Examples
@@ -5039,7 +5039,7 @@ class MDF:
                     if fnmatch.fnmatchcase(name, pattern)
                 ]
         else:
-            raise NotImplementedError(f"unsupported mode {search_mode}")
+            raise ValueError(f"unsupported mode {search_mode}")
 
         return channels
 
