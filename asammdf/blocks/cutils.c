@@ -178,9 +178,11 @@ static PyObject* extract(PyObject* self, PyObject* args)
         pos = 0;
         
         if (offsets == Py_None) {
-            while ((pos + 4) < max_size)
+            while ((pos + 4) <= max_size)
             {
                 size = calc_size(&buf[pos]);
+
+                if ((pos+4+size) > max_size) break;
 
                 if (max < size) max = size;
                 pos += 4 + size;
@@ -192,8 +194,9 @@ static PyObject* extract(PyObject* self, PyObject* args)
             list_count = (int) PyList_Size(offsets_list);
             for (i=0; i<list_count; i++) {
                 offset = (int) PyLong_AsLong(PyList_GET_ITEM(offsets_list, i));
-                if ((offset + 4) >= max_size) break;
+                if ((offset + 4) > max_size) break;
                 size = calc_size(&buf[offset]);
+                if ((offset+4+size) > max_size) break;
                 if (max < size) max = size;
                 count++;
             } 
