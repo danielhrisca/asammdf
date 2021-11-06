@@ -30,7 +30,7 @@ jobs:
 
       - name: Build an executable
         if: ${{ matrix.python-version == '3.9' }}
-        run: pyinstaller --onefile
+        run: pyinstaller asammdf.spec --onefile
 
       # see: https://docs.github.com/en/actions/advanced-guides/storing-workflow-data-as-artifacts
       - name: Archive dist artifacts
