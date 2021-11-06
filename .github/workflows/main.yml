@@ -3,7 +3,7 @@ name: continuous integration
 on: [push, pull_request]
 
 jobs:
-  test-and-build:
+  test:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -19,19 +19,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install packages
-        run: pip install tox tox-gh-actions build
+        run: pip install tox tox-gh-actions
 
       # see: https://github.com/ymyzk/tox-gh-actions
       - name: Run tests
         run: tox
-
-      - name: Build a binary wheel and a source tarball
-        run: python -m build
-
-      # see: https://docs.github.com/en/actions/advanced-guides/storing-workflow-data-as-artifacts
-      - name: Archive dist artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: dist
-          path: dist/
-          if-no-files-found: error
