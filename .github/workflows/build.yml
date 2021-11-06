@@ -23,8 +23,12 @@ jobs:
       - name: Install packages
         run: pip install build pyinstaller
 
-      - name: Build a binary wheel and a source tarball
-        run: python -m build
+      - name: Build a source tarball
+        if: ${{ matrix.python-version == '3.9' and matrix.os == 'ubuntu-latest' }}
+        run: python -m build --sdist
+
+      - name: Build a binary wheel
+        run: python -m build --wheel
 
       - name: Build an executable
         if: ${{ matrix.python-version == '3.9' }}
