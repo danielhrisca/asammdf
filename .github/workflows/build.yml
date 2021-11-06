@@ -35,6 +35,6 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: dist
-          path: dist/
+          path: dist/**/
           if-no-files-found: error
 
