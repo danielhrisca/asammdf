@@ -24,7 +24,7 @@ jobs:
         run: pip install build pyinstaller
 
       - name: Build a source tarball
-        if: ${{ matrix.python-version == '3.9' and matrix.os == 'ubuntu-latest' }}
+        if: ${{ matrix.python-version == '3.9' && matrix.os == 'ubuntu-latest' }}
         run: python -m build --sdist
 
       - name: Build a binary wheel
