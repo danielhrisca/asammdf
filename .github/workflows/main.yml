@@ -22,7 +22,7 @@ jobs:
         run: pip install tox tox-gh-actions build
 
       # see: https://github.com/ymyzk/tox-gh-actions
-      - name: Run tox
+      - name: Run tests
         run: tox
 
       - name: Build a binary wheel and a source tarball
