@@ -3,25 +3,8 @@ requires = ["numpy", "setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.black]
-exclude = '''
-(
-  /(
-      \.direnv
-    | \.eggs
-    | \.git
-    | \.hg
-    | \.mypy_cache
-    | \.nox
-    | \.tox
-    | \.venv
-    | \.svn
-    | _build
-    | buck-out
-    | build
-    | dist
-  )/
-  | asammdf/gui/ui
-)
+extend-exclude = '''
+^/asammdf/gui/ui
 '''
 
 [tool.isort]

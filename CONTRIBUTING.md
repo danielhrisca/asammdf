@@ -16,8 +16,13 @@ When submitting PR's please take into account:
 
 # Testing
 
-Travis CI is enabled for this project. It is really helpful for quality assurance
-and Python 2 and 3 compatibility check. It is advised to run the tests before pushing the PR.
+You can use tox to run tests locally. Example for the unit tests with Python version 3.7:
+
+```console
+tox -e py27
+```
+
+Otherwise, you can just push and the tests will be run by GitHub Actions.
 
 # Style guide
 

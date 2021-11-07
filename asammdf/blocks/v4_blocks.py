@@ -18,11 +18,12 @@ from typing import Any
 import xml.etree.ElementTree as ET
 
 try:
-    from isal.isal_zlib import decompress
-    from isal.isal_zlib import compress
+    from isal.isal_zlib import compress, decompress
+
     COMPRESSION_LEVEL = 2
 except ImportError:
     from zlib import compress, decompress
+
     COMPRESSION_LEVEL = 1
 
 
@@ -3434,7 +3435,7 @@ class ChannelConversion(_ChannelConversionBase):
                         ret[idx] = default
                     else:
                         ret[idx] = default.convert(values[idx])
-                        
+
                     idx = np.argwhere(idx1 == idx2).ravel()
 
                     if idx.size:

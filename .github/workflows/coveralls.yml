@@ -1,0 +1,31 @@
+name: coveralls
+
+on:
+  push:
+    branches: [master, development]
+  pull_request:
+    branches: [master, development]
+
+jobs:
+  coveralls:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.7"
+
+      - name: Install packages
+        run: pip install tox coveralls
+
+      - name: Run coverage
+        run: tox -e py37
+
+      # see: https://coveralls-python.readthedocs.io/en/latest/usage/configuration.html#github-actions-support
+      - name: Upload coverage data to coveralls.io
+        run: coveralls --service=github
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
