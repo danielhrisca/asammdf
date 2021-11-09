@@ -24,7 +24,8 @@ from zipfile import ZIP_DEFLATED, ZipFile
 from zlib import decompress
 
 try:
-    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+    from cryptography.hazmat.primitives.ciphers import algorithms, Cipher, modes
+
     CRYPTOGRAPHY_AVAILABLE = True
 except:
     CRYPTOGRAPHY_AVAILABLE = False
@@ -316,6 +317,9 @@ class MDF4(MDF_Common):
             "remove_source_from_channel_names", False
         )
         self._password = kwargs.get("password", None)
+        self._force_attachment_encryption = kwargs.get(
+            "force_attachment_encryption", False
+        )
         self.copy_on_get = kwargs.get("copy_on_get", True)
         self.compact_vlsd = kwargs.get("compact_vlsd", False)
         self._single_bit_uint_as_bool = False
@@ -6008,7 +6012,7 @@ class MDF4(MDF_Common):
         data: bytes,
         file_name: str | None = None,
         hash_sum: bytes | None = None,
-        comment: str | None = None,
+        comment: str = "",
         compression: bool = True,
         mime: str = r"application/octet-stream",
         embedded: bool = True,
@@ -6043,9 +6047,13 @@ class MDF4(MDF_Common):
             new attachment index
 
         """
+        if self._force_attachment_encryption:
+            password = password or self._password
 
         if password and not CRYPTOGRAPHY_AVAILABLE:
-            raise MdfException("cryptography must be installed for attachment encryption")
+            raise MdfException(
+                "cryptography must be installed for attachment encryption"
+            )
 
         if hash_sum is None:
             worker = md5()
@@ -6057,7 +6065,7 @@ class MDF4(MDF_Common):
 
         if password:
             if isinstance(password, str):
-                password = password.encode('utf-8')
+                password = password.encode("utf-8")
 
             size = len(password)
             if size < 32:
@@ -6073,7 +6081,7 @@ class MDF4(MDF_Common):
 
             rem = original_size % 16
             if rem:
-                data += os.urandom(16-rem)
+                data += os.urandom(16 - rem)
 
             data = iv + encryptor.update(data) + encryptor.finalize()
             worker = md5()
@@ -6246,13 +6254,15 @@ class MDF4(MDF_Common):
                 md5_sum = md5_worker.digest()
 
                 encryption_info = extract_encryption_information(attachment.comment)
-                if encryption_info.get('encrypted', False):
+                if encryption_info.get("encrypted", False):
 
                     if not password:
-                        raise MdfException("the password must be provided for encrypted attachments")
+                        raise MdfException(
+                            "the password must be provided for encrypted attachments"
+                        )
 
                     if isinstance(password, str):
-                        password = password.encode('utf-8')
+                        password = password.encode("utf-8")
 
                     size = len(password)
                     if size < 32:
@@ -6260,24 +6270,28 @@ class MDF4(MDF_Common):
                     else:
                         password = password[:32]
 
-                    if encryption_info['algorithm'] == "aes256":
+                    if encryption_info["algorithm"] == "aes256":
 
                         md5_worker = md5()
                         md5_worker.update(data)
                         md5_sum = md5_worker.hexdigest().lower()
 
-                        if md5_sum != encryption_info['original_md5_sum']:
-                            raise MdfException(f"MD5 sum mismatch for encrypted attachment: original={encryption_info['original_md5_sum']} and computed={md5_sum}")
+                        if md5_sum != encryption_info["original_md5_sum"]:
+                            raise MdfException(
+                                f"MD5 sum mismatch for encrypted attachment: original={encryption_info['original_md5_sum']} and computed={md5_sum}"
+                            )
 
                         iv, data = data[:16], data[16:]
                         cipher = Cipher(algorithms.AES(password), modes.CBC(iv))
                         decryptor = cipher.decryptor()
                         data = decryptor.update(data) + decryptor.finalize()
 
-                        data = data[:encryption_info['original_size']]
+                        data = data[: encryption_info["original_size"]]
 
                     else:
-                        raise MdfException(f"not implemented attachment encryption algorithm <{encryption_info['algorithm']}>")
+                        raise MdfException(
+                            f"not implemented attachment encryption algorithm <{encryption_info['algorithm']}>"
+                        )
 
             else:
 
@@ -6570,7 +6584,6 @@ class MDF4(MDF_Common):
             if channel.attachment is not None:
                 attachment = self.extract_attachment(
                     channel.attachment,
-                    decryption_function=self._decryption_function,
                 )
             else:
                 attachment = None
@@ -10354,7 +10367,6 @@ class MDF4(MDF_Common):
 
                         attachment, at_name, md5_sum = self.extract_attachment(
                             index=attachment_addr,
-                            decryption_function=self._decryption_function,
                         )
                         if at_name.suffix.lower() not in (".arxml", ".dbc"):
                             message = f'Expected .dbc or .arxml file as CAN channel attachment but got "{at_name}"'
@@ -10611,7 +10623,6 @@ class MDF4(MDF_Common):
 
                         attachment, at_name, md5_sum = self.extract_attachment(
                             index=attachment_addr,
-                            decryption_function=self._decryption_function,
                         )
                         if at_name.suffix.lower() not in (".arxml", ".dbc", ".ldf"):
                             message = f'Expected .dbc, .arxml or .ldf file as LIN channel attachment but got "{at_name}"'

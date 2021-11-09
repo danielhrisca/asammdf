@@ -324,15 +324,15 @@ def extract_encryption_information(comment: str) -> dict[str, str]:
         try:
             comment = ET.fromstring(comment)
             for match in comment.findall(".//extensions/extension"):
-                encrypted = match.find('encrypted').text.strip().lower() == "true"
-                algorithm = match.find('algorithm').text.strip().lower()
-                original_md5_sum = match.find('original_md5_sum').text.strip().lower()
-                original_size = int(match.find('original_size').text)
+                encrypted = match.find("encrypted").text.strip().lower() == "true"
+                algorithm = match.find("algorithm").text.strip().lower()
+                original_md5_sum = match.find("original_md5_sum").text.strip().lower()
+                original_size = int(match.find("original_size").text)
 
-                info['encrypted'] = encrypted
-                info['algorithm'] = algorithm
-                info['original_md5_sum'] = original_md5_sum
-                info['original_size'] = original_size
+                info["encrypted"] = encrypted
+                info["algorithm"] = algorithm
+                info["original_md5_sum"] = original_md5_sum
+                info["original_size"] = original_size
                 break
         except:
             pass
