@@ -2660,6 +2660,8 @@ class WithMDIArea:
                     if item.pattern:
                         plot.pattern_group_added.emit(plot, item)
 
+            plot.channel_selection.refresh()
+
         elif window_info["type"] == "Tabular":
             # patterns
             pattern_info = window_info["configuration"].get("pattern", {})
