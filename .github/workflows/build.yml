@@ -2,7 +2,10 @@ name: build
 
 on:
   push:
-    tags: ["[0-9]+.[0-9]+.[0-9]+"]
+    # see: https://docs.github.com/en/actions/learn-github-actions/workflow-syntax-for-github-actions#filter-pattern-cheat-sheet
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+" # stable releases
+      - "[0-9]+.[0-9]+.[0-9]+.dev[0-9]+" # dev releases
 
 jobs:
   build:
