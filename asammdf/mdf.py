@@ -4424,9 +4424,7 @@ class MDF:
 <CNcomment>
 <TX>{sig.comment}</TX>
 <names>
-    <display>
-        CAN{bus}.{message.name}.{signal_name}
-    </display>
+    <display>CAN{bus}.{message.name}.{signal_name}</display>
 </names>
 </CNcomment>"""
                                         sigs.append(sig)
@@ -4697,12 +4695,10 @@ class MDF:
 
                                         sig.comment = f"""\
 <CNcomment>
-<TX>{sig.comment}</TX>
-<names>
-<display>
-    LIN.{message.name}.{signal_name}
-</display>
-</names>
+    <TX>{sig.comment}</TX>
+    <names>
+        <display>LIN.{message.name}.{signal_name}</display>
+    </names>
 </CNcomment>"""
                                         sigs.append(sig)
 
