@@ -4192,8 +4192,7 @@ class MDF:
 
         out = MDF(
             version=version,
-            encryption_function=self._encryption_function,
-            decryption_function=self._decryption_function,
+            password=self._password,
             callback=self._callback,
         )
         out.header.start_time = self.header.start_time

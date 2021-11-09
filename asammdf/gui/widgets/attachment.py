@@ -1,64 +1,40 @@
 # -*- coding: utf-8 -*-
-from hashlib import md5
 from pathlib import Path
 
 from PyQt5 import QtWidgets
 
-from ...blocks import v4_constants as v4c
+from ...blocks.utils import extract_encryption_information
 from ..ui import resource_rc as resource_rc
 from ..ui.attachment import Ui_Attachment
 
 
 class Attachment(Ui_Attachment, QtWidgets.QWidget):
-    def __init__(self, attachment, decryption_function, *args, **kwargs):
+    def __init__(self, index, mdf, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
         self.extract_btn.clicked.connect(self.extract)
-        self.attachment = attachment
-        self.decryption_function = decryption_function
+        self.mdf = mdf
+        self.index = index
 
     def extract(self, event=None):
-        flags = self.attachment.flags
-        file_path = Path(self.attachment.file_name).resolve()
+        attachment = self.mdf.attachments[self.index]
+        encryption_info = extract_encryption_information(attachment.comment)
+        password = None
+        if encryption_info.get("encrypted", False) and self.mdf._password is None:
+            text, ok = QtWidgets.QInputDialog.getText(
+                self,
+                "Attachment password",
+                "The attachment is encrypted. Please provide the password:",
+                QtWidgets.QLineEdit.Password
+            )
+            if ok and text:
+                password = text
 
-        if flags & v4c.FLAG_AT_EMBEDDED:
-            data = self.attachment.extract()
-            if flags & v4c.FLAG_AT_ENCRYPTED and self.decryption_function is not None:
-                try:
-                    data = self.decryption_function(data)
-                except:
-                    pass
-        else:
-            if not file_path.exists():
-                QtWidgets.QMessageBox.warning(
-                    self,
-                    "Can't extract attachment",
-                    f"The attachment <{file_path}> does not exist",
-                )
-                return
-
-            if flags & v4c.FLAG_AT_MD5_VALID:
-                data = file_path.read_bytes()
-
-                md5_worker = md5()
-                md5_worker.update(data)
-                md5_sum = md5_worker.digest()
-
-                if self.attachment.md5_sum != md5_sum:
-                    QtWidgets.QMessageBox.warning(
-                        self,
-                        "Can't extract attachment - wrong checksum",
-                        f'ATBLOCK md5sum="{self.attachment["md5_sum"]}" '
-                        f"and external attachment data <{file_path}> has "
-                        f'md5sum="{md5_sum}"',
-                    )
-                    return
-            else:
-                data = file_path.read_bytes()
+        data, file_path, md5_sum = self.mdf.extract_attachment(self.index, password=password)
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Select extracted file", "", "All files (*.*)", "All files (*.*)"
+            self, "Select extracted file", str(file_path), "All files (*.*)", "All files (*.*)"
         )
         if file_name:
             file_name = Path(file_name)

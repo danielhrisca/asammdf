@@ -66,8 +66,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         subplots_link=False,
         ignore_value2text_conversions=False,
         line_interconnect="line",
-        encryption_function=None,
-        decryption_function=None,
+        password=None,
         hide_missing_channels=False,
         hide_disabled_channels=False,
         *args,
@@ -206,8 +205,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 kwargs = {
                     "name": file_name,
                     "callback": self.update_progress,
-                    "encryption_function": encryption_function,
-                    "decryption_function": decryption_function,
+                    "password": password,
                     "use_display_names": True,
                 }
 
@@ -524,7 +522,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if self.mdf.version >= "4.00" and self.mdf.attachments:
             for i, attachment in enumerate(self.mdf.attachments, 1):
-                att = Attachment(attachment, self.mdf._decryption_function)
+                att = Attachment(i-1, self.mdf)
                 att.number.setText(f"{i}.")
 
                 fields = []

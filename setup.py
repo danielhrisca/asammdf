@@ -112,7 +112,7 @@ setup(
             "pyqtlet",
             "PyQtWebEngine",
         ],
-        "encryption": "cryptography",
+        "encryption": ["cryptography", "keyring"],
         "symbolic_math": "numexpr3",
     },
     # If there are data files included in your packages that need to be

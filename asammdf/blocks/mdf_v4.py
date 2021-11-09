@@ -23,6 +23,12 @@ from typing import Any
 from zipfile import ZIP_DEFLATED, ZipFile
 from zlib import decompress
 
+try:
+    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+    CRYPTOGRAPHY_AVAILABLE = True
+except:
+    CRYPTOGRAPHY_AVAILABLE = False
+
 import canmatrix
 from canmatrix.canmatrix import CanMatrix
 from lz4.frame import compress as lz_compress
@@ -63,7 +69,6 @@ from numpy.core.records import fromarrays, fromstring
 from numpy.typing import NDArray
 from pandas import DataFrame
 
-from . import encryption
 from . import v4_constants as v4c
 from ..signal import Signal
 from ..types import (
@@ -94,6 +99,7 @@ from .utils import (
     debug_channel,
     extract_cncomment_xml,
     extract_display_names,
+    extract_encryption_information,
     fmt_to_datatype_v4,
     get_fmt_v4,
     get_text_v4,
@@ -215,8 +221,8 @@ class MDF4(MDF_Common):
         use slower method to save the exact sample size for VLSD channels
     column_storage (True) : bool
         use column storage for MDF version >= 4.20
-    encryption_key : bytes
-        use this key to decode encrypted attachments
+    password : bytes | str
+        use this password to decode encrypted attachments
 
     Attributes
     ----------
@@ -309,8 +315,7 @@ class MDF4(MDF_Common):
         self._remove_source_from_channel_names = kwargs.get(
             "remove_source_from_channel_names", False
         )
-        self._encryption_function = kwargs.get("encryption_function", None)
-        self._decryption_function = kwargs.get("decryption_function", None)
+        self._password = kwargs.get("password", None)
         self.copy_on_get = kwargs.get("copy_on_get", True)
         self.compact_vlsd = kwargs.get("compact_vlsd", False)
         self._single_bit_uint_as_bool = False
@@ -6007,8 +6012,7 @@ class MDF4(MDF_Common):
         compression: bool = True,
         mime: str = r"application/octet-stream",
         embedded: bool = True,
-        encrypted: bool = False,
-        encryption_function: Callable[[bytes], bytes] | None = None,
+        password: str | bytes | None = None,
     ) -> int:
         """attach embedded attachment as application/octet-stream.
 
@@ -6028,11 +6032,10 @@ class MDF4(MDF_Common):
             mime type string
         embedded : bool
             attachment is embedded in the file
-        encryption_function : bool, default None
-            function used to encrypt the data. The function should only take a single bytes object as
-            argument and return the encrypted bytes object. This is only valid for embedded attachments
+        password : str | bytes | None , default None
+            password used to encrypt the data using AES256 encryption
 
-            .. versionadded:: 6.2.0
+            .. versionadded:: 7.0.0
 
         Returns
         -------
@@ -6041,78 +6044,101 @@ class MDF4(MDF_Common):
 
         """
 
+        if password and not CRYPTOGRAPHY_AVAILABLE:
+            raise MdfException("cryptography must be installed for attachment encryption")
+
         if hash_sum is None:
             worker = md5()
             worker.update(data)
             hash_sum = worker.hexdigest()
-        hash_sum_encrypted = hash_sum
-
-        encryption_function = (
-            encryption_function or self._encryption_function or encryption.encrypt
-        )
 
         if hash_sum in self._attachments_cache:
             return self._attachments_cache[hash_sum]
+
+        if password:
+            if isinstance(password, str):
+                password = password.encode('utf-8')
+
+            size = len(password)
+            if size < 32:
+                password = password + bytes(32 - size)
+            else:
+                password = password[:32]
+
+            iv = os.urandom(16)
+            cipher = Cipher(algorithms.AES(password), modes.CBC(iv))
+            encryptor = cipher.encryptor()
+
+            original_size = len(data)
+
+            rem = original_size % 16
+            if rem:
+                data += os.urandom(16-rem)
+
+            data = iv + encryptor.update(data) + encryptor.finalize()
+            worker = md5()
+            worker.update(data)
+            hash_sum_encrypted = worker.hexdigest()
+
+            comment = f"""<ATcomment>
+    <TX>{comment}</TX>
+    <extensions>
+		<extension>
+			<encrypted>true</encrypted>
+			<algorithm>AES256</algorithm>
+			<original_md5_sum>{hash_sum_encrypted}</original_md5_sum>
+			<original_size>{original_size}</original_size>
+		</extension>
+	</extensions>
+</ATcomment>       
+"""
         else:
-            creator_index = len(self.file_history)
-            fh = FileHistory()
-            fh.comment = """<FHcomment>
+            hash_sum_encrypted = hash_sum
+            comment = comment
+
+        if hash_sum_encrypted in self._attachments_cache:
+            return self._attachments_cache[hash_sum]
+
+        creator_index = len(self.file_history)
+        fh = FileHistory()
+        fh.comment = """<FHcomment>
 <TX>Added new embedded attachment from {}</TX>
 <tool_id>asammdf</tool_id>
 <tool_vendor>asammdf</tool_vendor>
 <tool_version>{}</tool_version>
 </FHcomment>""".format(
-                file_name if file_name else "bin.bin", __version__
-            )
+            file_name if file_name else "bin.bin", __version__
+        )
 
-            self.file_history.append(fh)
+        self.file_history.append(fh)
 
-            file_name = file_name or "bin.bin"
+        file_name = file_name or "bin.bin"
 
-            encrypted = False
-            if encrypted and encryption_function is not None:
-                try:
-                    data = encryption_function(data)
+        at_block = AttachmentBlock(
+            data=data,
+            compression=compression,
+            embedded=embedded,
+            file_name=file_name,
+            comment=comment,
+        )
+        at_block.comment = comment
+        at_block["creator_index"] = creator_index
 
-                    worker = md5()
-                    worker.update(data)
-                    hash_sum_encrypted = worker.hexdigest()
+        self.attachments.append(at_block)
 
-                    if hash_sum_encrypted in self._attachments_cache:
-                        return self._attachments_cache[hash_sum_encrypted]
+        suffix = Path(file_name).suffix.lower().strip(".")
+        if suffix == "a2l":
+            mime = "application/A2L"
+        else:
+            mime = f"application/x-{suffix}"
 
-                    encrypted = True
-                except:
-                    encrypted = False
-            else:
-                encrypted = False
+        at_block.mime = mime
 
-            at_block = AttachmentBlock(
-                data=data,
-                compression=compression,
-                embedded=embedded,
-                file_name=file_name,
-            )
-            at_block["creator_index"] = creator_index
-            if encrypted:
-                at_block.flags |= v4c.FLAG_AT_ENCRYPTED
+        index = len(self.attachments) - 1
+        self._attachments_cache[hash_sum] = index
+        self._attachments_cache[hash_sum_encrypted] = index
 
-            self.attachments.append(at_block)
-
-            suffix = Path(file_name).suffix.lower().strip(".")
-            if suffix == "a2l":
-                mime = "application/A2L"
-            else:
-                mime = f"application/x-{suffix}"
-
-            at_block.mime = mime
-            at_block.comment = comment
-
-            index = len(self.attachments) - 1
-            self._attachments_cache[hash_sum] = index
-            self._attachments_cache[hash_sum_encrypted] = index
-
-            return index
+        return index
 
     def close(self) -> None:
         """if the MDF was created with memory=False and new
@@ -6176,7 +6202,7 @@ class MDF4(MDF_Common):
     def extract_attachment(
         self,
         index: int | None = None,
-        decryption_function: Callable[[bytes], bytes] | None = None,
+        password: str | bytes | None = None,
     ) -> tuple[bytes, Path, bytes]:
         """extract attachment data by index. If it is an embedded attachment,
         then this method creates the new file according to the attachment file
@@ -6187,11 +6213,10 @@ class MDF4(MDF_Common):
         index : int
             attachment index; default *None*
 
-        decryption_function : bool, default None
-            function used to decrypt the data. The function should only take a single bytes object as
-            argument and return the decrypted bytes object. This is only valid for embedded attachments
+        password : str | bytes | None, default None
+            password used to encrypt the data using AES256 encryption
 
-            .. versionadded:: 6.2.0
+            .. versionadded:: 7.0.0
 
         Returns
         -------
@@ -6199,6 +6224,7 @@ class MDF4(MDF_Common):
             tuple of attachment data and path
 
         """
+        password = password or self._password
         if index is None:
             return b"", Path(""), md5().digest()
 
@@ -6206,9 +6232,7 @@ class MDF4(MDF_Common):
 
         current_path = Path.cwd()
         file_path = Path(attachment.file_name or "embedded")
-        decryption_function = (
-            decryption_function or self._decryption_function or encryption.decrypt
-        )
+
         try:
             os.chdir(self.name.resolve().parent)
 
@@ -6221,14 +6245,39 @@ class MDF4(MDF_Common):
                 md5_worker.update(data)
                 md5_sum = md5_worker.digest()
 
-                if (
-                    attachment.flags & v4c.FLAG_AT_ENCRYPTED
-                    and decryption_function is not None
-                ):
-                    try:
-                        data = decryption_function(data)
-                    except:
-                        pass
+                encryption_info = extract_encryption_information(attachment.comment)
+                if encryption_info.get('encrypted', False):
+
+                    if not password:
+                        raise MdfException("the password must be provided for encrypted attachments")
+
+                    if isinstance(password, str):
+                        password = password.encode('utf-8')
+
+                    size = len(password)
+                    if size < 32:
+                        password = password + bytes(32 - size)
+                    else:
+                        password = password[:32]
+
+                    if encryption_info['algorithm'] == "aes256":
+
+                        md5_worker = md5()
+                        md5_worker.update(data)
+                        md5_sum = md5_worker.hexdigest().lower()
+
+                        if md5_sum != encryption_info['original_md5_sum']:
+                            raise MdfException(f"MD5 sum mismatch for encrypted attachment: original={encryption_info['original_md5_sum']} and computed={md5_sum}")
+
+                        iv, data = data[:16], data[16:]
+                        cipher = Cipher(algorithms.AES(password), modes.CBC(iv))
+                        decryptor = cipher.decryptor()
+                        data = decryptor.update(data) + decryptor.finalize()
+
+                        data = data[:encryption_info['original_size']]
+
+                    else:
+                        raise MdfException(f"not implemented attachment encryption algorithm <{encryption_info['algorithm']}>")
 
             else:
 
@@ -6260,15 +6309,6 @@ class MDF4(MDF_Common):
                         md5_worker = md5()
                         md5_worker.update(data)
                         md5_sum = md5_worker.digest()
-
-                if (
-                    attachment.flags & v4c.FLAG_AT_ENCRYPTED
-                    and decryption_function is not None
-                ):
-                    try:
-                        data = decryption_function(data)
-                    except:
-                        pass
 
         except Exception as err:
             os.chdir(current_path)

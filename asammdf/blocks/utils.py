@@ -317,6 +317,29 @@ def extract_display_names(comment: str) -> dict[str, str]:
     return display_names
 
 
+def extract_encryption_information(comment: str) -> dict[str, str]:
+    info = {}
+    if comment.startswith("<ATcomment") and "<encrypted>" in comment:
+
+        try:
+            comment = ET.fromstring(comment)
+            for match in comment.findall(".//extensions/extension"):
+                encrypted = match.find('encrypted').text.strip().lower() == "true"
+                algorithm = match.find('algorithm').text.strip().lower()
+                original_md5_sum = match.find('original_md5_sum').text.strip().lower()
+                original_size = int(match.find('original_size').text)
+
+                info['encrypted'] = encrypted
+                info['algorithm'] = algorithm
+                info['original_md5_sum'] = original_md5_sum
+                info['original_size'] = original_size
+                break
+        except:
+            pass
+
+    return info
+
+
 @lru_cache(maxsize=1024)
 def get_fmt_v3(
     data_type: int, size: int, byte_order: int = v3c.BYTE_ORDER_INTEL
