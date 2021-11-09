@@ -24,7 +24,8 @@ from zipfile import ZIP_DEFLATED, ZipFile
 from zlib import decompress
 
 try:
-    from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+    from cryptography.hazmat.primitives.ciphers import algorithms, Cipher, modes
+
     CRYPTOGRAPHY_AVAILABLE = True
 except:
     CRYPTOGRAPHY_AVAILABLE = False
@@ -6045,7 +6046,9 @@ class MDF4(MDF_Common):
         """
 
         if password and not CRYPTOGRAPHY_AVAILABLE:
-            raise MdfException("cryptography must be installed for attachment encryption")
+            raise MdfException(
+                "cryptography must be installed for attachment encryption"
+            )
 
         if hash_sum is None:
             worker = md5()
@@ -6057,7 +6060,7 @@ class MDF4(MDF_Common):
 
         if password:
             if isinstance(password, str):
-                password = password.encode('utf-8')
+                password = password.encode("utf-8")
 
             size = len(password)
             if size < 32:
@@ -6073,7 +6076,7 @@ class MDF4(MDF_Common):
 
             rem = original_size % 16
             if rem:
-                data += os.urandom(16-rem)
+                data += os.urandom(16 - rem)
 
             data = iv + encryptor.update(data) + encryptor.finalize()
             worker = md5()
@@ -6246,13 +6249,15 @@ class MDF4(MDF_Common):
                 md5_sum = md5_worker.digest()
 
                 encryption_info = extract_encryption_information(attachment.comment)
-                if encryption_info.get('encrypted', False):
+                if encryption_info.get("encrypted", False):
 
                     if not password:
-                        raise MdfException("the password must be provided for encrypted attachments")
+                        raise MdfException(
+                            "the password must be provided for encrypted attachments"
+                        )
 
                     if isinstance(password, str):
-                        password = password.encode('utf-8')
+                        password = password.encode("utf-8")
 
                     size = len(password)
                     if size < 32:
@@ -6260,24 +6265,28 @@ class MDF4(MDF_Common):
                     else:
                         password = password[:32]
 
-                    if encryption_info['algorithm'] == "aes256":
+                    if encryption_info["algorithm"] == "aes256":
 
                         md5_worker = md5()
                         md5_worker.update(data)
                         md5_sum = md5_worker.hexdigest().lower()
 
-                        if md5_sum != encryption_info['original_md5_sum']:
-                            raise MdfException(f"MD5 sum mismatch for encrypted attachment: original={encryption_info['original_md5_sum']} and computed={md5_sum}")
+                        if md5_sum != encryption_info["original_md5_sum"]:
+                            raise MdfException(
+                                f"MD5 sum mismatch for encrypted attachment: original={encryption_info['original_md5_sum']} and computed={md5_sum}"
+                            )
 
                         iv, data = data[:16], data[16:]
                         cipher = Cipher(algorithms.AES(password), modes.CBC(iv))
                         decryptor = cipher.decryptor()
                         data = decryptor.update(data) + decryptor.finalize()
 
-                        data = data[:encryption_info['original_size']]
+                        data = data[: encryption_info["original_size"]]
 
                     else:
-                        raise MdfException(f"not implemented attachment encryption algorithm <{encryption_info['algorithm']}>")
+                        raise MdfException(
+                            f"not implemented attachment encryption algorithm <{encryption_info['algorithm']}>"
+                        )
 
             else:
 

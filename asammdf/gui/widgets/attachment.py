@@ -26,15 +26,21 @@ class Attachment(Ui_Attachment, QtWidgets.QWidget):
                 self,
                 "Attachment password",
                 "The attachment is encrypted. Please provide the password:",
-                QtWidgets.QLineEdit.Password
+                QtWidgets.QLineEdit.Password,
             )
             if ok and text:
                 password = text
 
-        data, file_path, md5_sum = self.mdf.extract_attachment(self.index, password=password)
+        data, file_path, md5_sum = self.mdf.extract_attachment(
+            self.index, password=password
+        )
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Select extracted file", str(file_path), "All files (*.*)", "All files (*.*)"
+            self,
+            "Select extracted file",
+            str(file_path),
+            "All files (*.*)",
+            "All files (*.*)",
         )
         if file_name:
             file_name = Path(file_name)
