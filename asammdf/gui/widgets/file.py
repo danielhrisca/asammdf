@@ -522,7 +522,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if self.mdf.version >= "4.00" and self.mdf.attachments:
             for i, attachment in enumerate(self.mdf.attachments, 1):
-                att = Attachment(i-1, self.mdf)
+                att = Attachment(i - 1, self.mdf)
                 att.number.setText(f"{i}.")
 
                 fields = []
