@@ -4194,6 +4194,7 @@ class MDF:
             version=version,
             password=self._password,
             callback=self._callback,
+            use_display_names=True,
         )
         out.header.start_time = self.header.start_time
 

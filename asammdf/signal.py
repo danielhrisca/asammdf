@@ -84,7 +84,7 @@ class Signal(object):
         comment: str = "",
         raw: bool = True,
         master_metadata: tuple[str, SyncType] | None = None,
-        display_names: dict[str, str] | str = "",
+        display_names: dict[str, str] = None,
         attachment: tuple[bytes, str | None, str | None] = (),
         source: SourceType | None = None,
         bit_count: int | None = None,
@@ -135,7 +135,7 @@ class Signal(object):
             self._plot_axis = None
             self.raw = raw
             self.master_metadata = master_metadata
-            self.display_names = display_names
+            self.display_names = display_names or {}
             self.attachment = attachment
             self.encoding = encoding
             self.group_index = group_index
