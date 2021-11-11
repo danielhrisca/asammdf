@@ -757,8 +757,8 @@ class PlotSignal(Signal):
                         visible_duplication = 0
 
                 if visible_duplication > self.duplication:
-                    samples = signal_samples[start_:]
-                    timestamps = sig_timestamps[start_:]
+                    samples = signal_samples[start_: stop_]
+                    timestamps = sig_timestamps[start_: stop_]
                     count, rest = divmod(samples.size, visible_duplication)
                     if rest:
                         count += 1
