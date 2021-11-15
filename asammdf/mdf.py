@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import bz2
-import os
 from collections import defaultdict, OrderedDict
 from collections.abc import Iterable, Iterator, Sequence
 from copy import deepcopy
@@ -16,6 +15,7 @@ from functools import reduce
 import gzip
 from io import BytesIO
 import logging
+import os
 from pathlib import Path
 import re
 from shutil import copy, move
@@ -118,7 +118,9 @@ def get_measurement_timestamp_and_version(
     return header.start_time, version
 
 
-def get_temporary_filename(path: Path = Path("temporary.mf4"), dir: str | Path | None = None) -> Path:
+def get_temporary_filename(
+    path: Path = Path("temporary.mf4"), dir: str | Path | None = None
+) -> Path:
     if not dir:
         folder = gettempdir()
     else:
