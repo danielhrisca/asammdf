@@ -5036,10 +5036,11 @@ class MDF:
         if search_mode is SearchMode.plain:
             if case_insensitive:
                 pattern = pattern.casefold()
-                names = (name.casefold() for name in self.channels_db)
+                channels = [
+                    name for name in self.channels_db if pattern in name.casefold()
+                ]
             else:
-                names = self.channels_db
-            channels = [name for name in names if pattern in name]
+                channels = [name for name in self.channels_db if pattern in name]
         elif search_mode is SearchMode.regex:
             flags = re.IGNORECASE if case_insensitive else 0
             compiled_pattern = re.compile(pattern, flags=flags)
