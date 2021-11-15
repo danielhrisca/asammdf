@@ -15,6 +15,7 @@ from functools import reduce
 import gzip
 from io import BytesIO
 import logging
+import os
 from pathlib import Path
 import re
 from shutil import copy, move
@@ -117,8 +118,13 @@ def get_measurement_timestamp_and_version(
     return header.start_time, version
 
 
-def get_temporary_filename(path: Path = Path("temporary.mf4")) -> Path:
-    folder = gettempdir()
+def get_temporary_filename(
+    path: Path = Path("temporary.mf4"), dir: str | Path | None = None
+) -> Path:
+    if not dir:
+        folder = gettempdir()
+    else:
+        folder = dir
     mf4_path = path.with_suffix(".mf4")
     idx = 0
     while True:
@@ -184,6 +190,11 @@ class MDF:
 
         .. versionadded:: 7.0.0
 
+    temporary_folder (\*\*kwargs) : str | pathlib.Path
+        folder to use for temporary files
+
+        .. versionadded:: 7.0.0
+
     Examples
     --------
     >>> mdf = MDF(version='3.30') # new MDF object with version 3.30
@@ -206,6 +217,13 @@ class MDF:
     ) -> None:
         self._mdf = None
 
+        temporary_folder = kwargs.get("temporary_folder", None)
+        if temporary_folder:
+            try:
+                os.makedirs(temporary_folder, exist_ok=True)
+            except:
+                kwargs["temporary_folder"] = None
+
         if name:
             if is_file_like(name):
 
@@ -216,14 +234,14 @@ class MDF:
 
                 elif isinstance(name, bz2.BZ2File):
                     original_name = Path(name._fp.name)
-                    name = get_temporary_filename(original_name)
+                    name = get_temporary_filename(original_name, dir=temporary_folder)
                     name.write_bytes(name.read())
                     file_stream = open(name, "rb")
                     do_close = True
                 elif isinstance(name, gzip.GzipFile):
 
                     original_name = Path(name.name)
-                    name = get_temporary_filename(original_name)
+                    name = get_temporary_filename(original_name, dir=temporary_folder)
                     name.write_bytes(name.read())
                     file_stream = open(name, "rb")
                     do_close = True
@@ -234,7 +252,7 @@ class MDF:
                     raise MdfException(f'File "{name}" does not exist')
 
                 if original_name.suffix.lower() in (".mf4z", ".zip"):
-                    name = get_temporary_filename(original_name)
+                    name = get_temporary_filename(original_name, dir=temporary_folder)
                     with zipfile.ZipFile(original_name, allowZip64=True) as archive:
                         files = archive.namelist()
                         if len(files) != 1:

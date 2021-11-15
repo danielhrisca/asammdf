@@ -188,6 +188,8 @@ class MDF3(MDF_Common):
             self.load_filter = set(channels)
             self.use_load_filter = True
 
+        self.temporary_folder = kwargs.get("temporary_folder", None)
+
         self.groups = []
         self.header = None
         self.identification = None
@@ -197,7 +199,7 @@ class MDF3(MDF_Common):
 
         self._master_channel_metadata = {}
 
-        self._tempfile = TemporaryFile()
+        self._tempfile = TemporaryFile(dir=self.temporary_folder)
         self._tempfile.write(b"\0")
         self._file = None
 
@@ -1003,6 +1005,7 @@ class MDF3(MDF_Common):
         copy_on_get: bool | None = None,
         float_interpolation: FloatInterpolationModeType | None = None,
         raise_on_multiple_occurrences: bool | None = None,
+        temporary_folder: str | None = None,
     ) -> None:
         """configure MDF parameters
 
@@ -1015,6 +1018,7 @@ class MDF3(MDF_Common):
         * float_interpolation = 1 (linear interpolation)
         * copy_on_get = False
         * raise_on_multiple_occurrences = True
+        * temporary_folder = ""
 
         Parameters
         ----------
@@ -1065,6 +1069,11 @@ class MDF3(MDF_Common):
 
             .. versionadded:: 6.2.0
 
+        temporary_folder : str
+            default folder for temporary files
+
+            .. versionadded:: 7.0.0
+
         """
 
         if from_other is not None:
@@ -1099,6 +1108,15 @@ class MDF3(MDF_Common):
 
         if float_interpolation in (0, 1):
             self._float_interpolation = int(float_interpolation)
+
+        if temporary_folder is not None:
+            if temporary_folder:
+                try:
+                    os.makedirs(temporary_folder, exist_ok=True)
+                except:
+                    self.temporary_folder = temporary_folder
+            else:
+                self.temporary_folder = temporary_folder
 
         if raise_on_multiple_occurrences is not None:
             self._raise_on_multiple_occurrences = bool(raise_on_multiple_occurrences)
@@ -3707,7 +3725,7 @@ class MDF3(MDF_Common):
             self.channels_db.clear()
             self.masters_db.clear()
 
-            self._tempfile = TemporaryFile()
+            self._tempfile = TemporaryFile(dir=self.temporary_folder)
             self._file = open(self.name, "rb")
             self._read()
 
