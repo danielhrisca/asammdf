@@ -76,7 +76,10 @@ from .types import (
     ChannelsType,
     DbcFileType,
     EmptyChannelsType,
+    FloatInterpolationModeType,
     InputType,
+    IntInterpolationModeType,
+    MDF_v2_v3_v4,
     RasterType,
     ReadableBufferType,
     StrOrBytesPathType,
@@ -595,6 +598,134 @@ class MDF:
         """
         yield from self.iter_channels()
 
+    def configure(
+        self,
+        *,
+        from_other: MDF_v2_v3_v4 | None = None,
+        read_fragment_size: int | None = None,
+        write_fragment_size: int | None = None,
+        use_display_names: bool | None = None,
+        single_bit_uint_as_bool: bool | None = None,
+        integer_interpolation: IntInterpolationModeType | None = None,
+        copy_on_get: bool | None = None,
+        float_interpolation: FloatInterpolationModeType | None = None,
+        raise_on_multiple_occurrences: bool | None = None,
+        temporary_folder: str | None = None,
+    ) -> None:
+        """configure MDF parameters
+
+        The default values for the options are the following:
+        * read_fragment_size = 0
+        * write_fragment_size = 4MB
+        * use_display_names = False
+        * single_bit_uint_as_bool = False
+        * integer_interpolation = 0 (fill - use previous sample)
+        * float_interpolation = 1 (linear interpolation)
+        * copy_on_get = False
+        * raise_on_multiple_occurrences = True
+        * temporary_folder = ""
+
+        Parameters
+        ----------
+        read_fragment_size : int
+            size hint of split data blocks, default 8MB; if the initial size is
+            smaller, then no data list is used. The actual split size depends on
+            the data groups' records size
+        write_fragment_size : int
+            size hint of split data blocks, default 4MB; if the initial size is
+            smaller, then no data list is used. The actual split size depends on
+            the data groups' records size. Maximum size is 4MB to ensure
+            compatibility with CANape
+        use_display_names : bool
+            search for display name in the Channel XML comment
+        single_bit_uint_as_bool : bool
+            return single bit channels are np.bool arrays
+        integer_interpolation : int
+            interpolation mode for integer channels:
+
+                * 0 - repeat previous sample
+                * 1 - use linear interpolation
+                * 2 - hybrid interpolation: channels with integer data type (raw values) that have a
+                  conversion that outputs float values will use linear interpolation, otherwise
+                  the previous sample is used
+
+                .. versionchanged:: 6.2.0
+                    added hybrid mode interpolation
+
+        copy_on_get : bool
+            copy arrays in the get method
+
+        float_interpolation : int
+            interpolation mode for float channels:
+
+                * 0 - repeat previous sample
+                * 1 - use linear interpolation
+
+                .. versionadded:: 6.2.0
+
+        raise_on_multiple_occurrences : bool
+            raise exception when there are multiple channel occurrences in the file and
+            the `get` call is ambiguous; default True
+
+            .. versionadded:: 6.2.0
+
+        from_other : MDF
+            copy configuration options from other MDF
+
+            .. versionadded:: 6.2.0
+
+        temporary_folder : str
+            default folder for temporary files
+
+            .. versionadded:: 7.0.0
+
+        """
+
+        if from_other is not None:
+            self._read_fragment_size = from_other._read_fragment_size
+            self._write_fragment_size = from_other._write_fragment_size
+            self._use_display_names = from_other._use_display_names
+            self._single_bit_uint_as_bool = from_other._single_bit_uint_as_bool
+            self._integer_interpolation = from_other._integer_interpolation
+            self.copy_on_get = from_other.copy_on_get
+            self._float_interpolation = from_other._float_interpolation
+            self._raise_on_multiple_occurrences = (
+                from_other._raise_on_multiple_occurrences
+            )
+
+        if read_fragment_size is not None:
+            self._read_fragment_size = int(read_fragment_size)
+
+        if write_fragment_size:
+            self._write_fragment_size = min(int(write_fragment_size), 4 * 2 ** 20)
+
+        if use_display_names is not None:
+            self._use_display_names = bool(use_display_names)
+
+        if single_bit_uint_as_bool is not None:
+            self._single_bit_uint_as_bool = bool(single_bit_uint_as_bool)
+
+        if integer_interpolation in (0, 1, 2):
+            self._integer_interpolation = int(integer_interpolation)
+
+        if copy_on_get is not None:
+            self.copy_on_get = copy_on_get
+
+        if float_interpolation in (0, 1):
+            self._float_interpolation = int(float_interpolation)
+
+        if temporary_folder is not None:
+            if temporary_folder:
+                try:
+                    os.makedirs(temporary_folder, exist_ok=True)
+                except:
+                    self.temporary_folder = temporary_folder
+            else:
+                self.temporary_folder = temporary_folder
+
+        if raise_on_multiple_occurrences is not None:
+            self._raise_on_multiple_occurrences = bool(raise_on_multiple_occurrences)
+
     def convert(self, version: str) -> MDF:
         """convert *MDF* to other version
 
@@ -614,8 +745,6 @@ class MDF:
 
         out = MDF(version=version, **self._kwargs)
 
-        integer_interpolation_mode = self._integer_interpolation
-        float_interpolation_mode = self._float_interpolation
         out.configure(from_other=self)
 
         out.header.start_time = self.header.start_time
@@ -1977,8 +2106,6 @@ class MDF:
                     **kwargs,
                 )
 
-                integer_interpolation_mode = mdf._integer_interpolation
-                float_interpolation_mode = mdf._float_interpolation
                 merged.configure(from_other=mdf)
 
                 merged.header.start_time = oldest
@@ -2027,7 +2154,6 @@ class MDF:
                 if not included_channels:
                     continue
 
-                idx = 0
                 last_timestamp = last_timestamps[i]
                 first_timestamp = None
                 original_first_timestamp = None
@@ -2259,8 +2385,6 @@ class MDF:
                     **kwargs,
                 )
 
-                integer_interpolation_mode = mdf._integer_interpolation
-                float_interpolation_mode = mdf._float_interpolation
                 stacked.configure(from_other=mdf)
 
                 if sync:

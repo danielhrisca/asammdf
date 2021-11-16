@@ -24,6 +24,7 @@ from .types import (
     SourceType,
     SyncType,
 )
+from .blocks.options import IntegerInterpolation, FloatInterpolation
 from .version import __version__
 
 logger = logging.getLogger("asammdf")
@@ -406,9 +407,8 @@ class Signal(object):
         start: float | None = None,
         stop: float | None = None,
         include_ends: bool = True,
-        interpolation_mode: IntInterpolationModeType | None = None,
-        integer_interpolation_mode: IntInterpolationModeType | None = None,
-        float_interpolation_mode: FloatInterpolationModeType = 1,
+        integer_interpolation_mode: IntInterpolationModeType = IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE,
+        float_interpolation_mode: FloatInterpolationModeType = FloatInterpolation.LINEAR_INTERPOLATION,
     ) -> Signal:
         """
         Cuts the signal according to the *start* and *stop* values, by using
@@ -424,18 +424,6 @@ class Signal(object):
             include the *start* and *stop* timestamps after cutting the signal.
             If *start* and *stop* are found in the original timestamps, then
             the new samples will be computed using interpolation. Default *True*
-        interpolation_mode : int
-            interpolation mode for integer signals; default 0. You should use the new *integer_interpolation_mode*
-            argument since this will be deprecated in a later release
-
-                * 0 - repeat previous samples
-                * 1 - linear interpolation
-                * 2 - hybrid interpolation: channels with integer data type (raw values) that have a
-                  conversion that outputs float values will use linear interpolation, otherwise
-                  the previous sample is used
-
-                .. versionchanged:: 6.2.0
-                    added hybrid mode interpolation
 
         integer_interpolation_mode : int
             interpolation mode for integer signals; default 0
@@ -468,14 +456,6 @@ class Signal(object):
         0.98, 10.48
 
         """
-
-        if integer_interpolation_mode is None:
-            if interpolation_mode is not None:
-                integer_interpolation_mode = interpolation_mode
-            else:
-                integer_interpolation_mode = 0
-        else:
-            integer_interpolation_mode = 0
 
         if integer_interpolation_mode not in (0, 1, 2):
             raise MdfException("Integer interpolation mode should be one of (0, 1, 2)")
@@ -880,9 +860,8 @@ class Signal(object):
     def interp(
         self,
         new_timestamps: NDArray[Any],
-        interpolation_mode: IntInterpolationModeType | None = None,
-        integer_interpolation_mode: IntInterpolationModeType | None = None,
-        float_interpolation_mode: FloatInterpolationModeType = 1,
+        integer_interpolation_mode: IntInterpolationModeType = IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE,
+        float_interpolation_mode: FloatInterpolationModeType = FloatInterpolation.LINEAR_INTERPOLATION,
     ) -> Signal:
         """returns a new *Signal* interpolated using the *new_timestamps*
 
@@ -890,18 +869,6 @@ class Signal(object):
         ----------
         new_timestamps : np.array
             timestamps used for interpolation
-        interpolation_mode : int
-            interpolation mode for integer signals; default 0. You should use the new *integer_interpolation_mode*
-            argument since this will be deprecated in a later release
-
-                * 0 - repeat previous samples
-                * 1 - linear interpolation
-                * 2 - hybrid interpolation: channels with integer data type (raw values) that have a
-                  conversion that outputs float values will use linear interpolation, otherwise
-                  the previous sample is used
-
-                .. versionchanged:: 6.2.0
-                    added hybrid mode interpolation
 
         integer_interpolation_mode : int
             interpolation mode for integer signals; default 0
@@ -928,14 +895,6 @@ class Signal(object):
             new interpolated *Signal*
 
         """
-
-        if integer_interpolation_mode is None:
-            if interpolation_mode is not None:
-                integer_interpolation_mode = interpolation_mode
-            else:
-                integer_interpolation_mode = 0
-        else:
-            integer_interpolation_mode = 0
 
         if integer_interpolation_mode not in (0, 1, 2):
             raise MdfException("Integer interpolation mode should be one of (0, 1, 2)")
@@ -1012,7 +971,10 @@ class Signal(object):
 
                 if kind == "f":
 
-                    if float_interpolation_mode == 0:
+                    if (
+                        float_interpolation_mode
+                        == FloatInterpolation.REPEAT_PREVIOUS_SAMPLE
+                    ):
                         idx = np.searchsorted(
                             signal.timestamps, new_timestamps, side="right"
                         )
@@ -1035,18 +997,31 @@ class Signal(object):
                             invalidation_bits = invalidation_bits[idx]
 
                 elif kind in "ui":
-                    if integer_interpolation_mode == 2:
+                    if (
+                        integer_interpolation_mode
+                        == IntegerInterpolation.HYBRID_INTERPOLATION
+                    ):
                         if signal.raw and signal.conversion:
                             kind = signal.conversion.convert(
                                 signal.samples[:1]
                             ).dtype.kind
                             if kind == "f":
-                                integer_interpolation_mode = 1
+                                integer_interpolation_mode = (
+                                    IntegerInterpolation.LINEAR_INTERPOLATION
+                                )
 
-                    if integer_interpolation_mode == 2:
-                        integer_interpolation_mode = 0
+                    if (
+                        integer_interpolation_mode
+                        == IntegerInterpolation.HYBRID_INTERPOLATION
+                    ):
+                        integer_interpolation_mode = (
+                            IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE
+                        )
 
-                    if integer_interpolation_mode == 1:
+                    if (
+                        integer_interpolation_mode
+                        == IntegerInterpolation.LINEAR_INTERPOLATION
+                    ):
                         s = np.interp(
                             new_timestamps, signal.timestamps, signal.samples
                         ).astype(signal.samples.dtype)
@@ -1059,7 +1034,10 @@ class Signal(object):
                             idx[idx < 0] = 0
                             invalidation_bits = invalidation_bits[idx]
 
-                    elif integer_interpolation_mode == 0:
+                    elif (
+                        integer_interpolation_mode
+                        == IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE
+                    ):
                         idx = np.searchsorted(
                             signal.timestamps, new_timestamps, side="right"
                         )

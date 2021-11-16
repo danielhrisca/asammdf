@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from .blocks.mdf_v4 import MDF4
     from .blocks.source_utils import Source
 
+
 StrPathType = Union[str, "PathLike[str]"]
 StrOrBytesPathType = Union[str, bytes, "PathLike[str]", "PathLike[bytes]"]
 ReadableBufferType = Union[BufferedRandom, BufferedReader, BytesIO, mmap]
