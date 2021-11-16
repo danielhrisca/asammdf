@@ -33,6 +33,7 @@ import numpy as np
 from numpy.typing import NDArray
 import pandas as pd
 from typing_extensions import Literal
+from typing import Union
 
 from .blocks import v2_v3_constants as v23c
 from .blocks import v4_constants as v4c
@@ -84,6 +85,7 @@ from .types import (
     ReadableBufferType,
     StrOrBytesPathType,
     StrPathType,
+    ArgumentNotProvided,
 )
 from .version import __version__
 
@@ -601,16 +603,16 @@ class MDF:
     def configure(
         self,
         *,
-        from_other: MDF_v2_v3_v4 | None = None,
-        read_fragment_size: int | None = None,
-        write_fragment_size: int | None = None,
-        use_display_names: bool | None = None,
-        single_bit_uint_as_bool: bool | None = None,
-        integer_interpolation: IntInterpolationModeType | None = None,
-        copy_on_get: bool | None = None,
-        float_interpolation: FloatInterpolationModeType | None = None,
-        raise_on_multiple_occurrences: bool | None = None,
-        temporary_folder: str | None = None,
+        from_other: Union[MDF_v2_v3_v4, ArgumentNotProvided] = ArgumentNotProvided.no_value,
+        read_fragment_size: Union[int, ArgumentNotProvided] = ArgumentNotProvided.no_value,
+        write_fragment_size: Union[int, ArgumentNotProvided] = ArgumentNotProvided.no_value,
+        use_display_names: Union[bool, ArgumentNotProvided] = ArgumentNotProvided.no_value,
+        single_bit_uint_as_bool: Union[bool, ArgumentNotProvided] = ArgumentNotProvided.no_value,
+        integer_interpolation: Union[IntInterpolationModeType, ArgumentNotProvided] = ArgumentNotProvided.no_value,
+        copy_on_get: Union[bool, ArgumentNotProvided] = ArgumentNotProvided.no_value,
+        float_interpolation: Union[FloatInterpolationModeType, ArgumentNotProvided] = ArgumentNotProvided.no_value,
+        raise_on_multiple_occurrences: Union[bool, ArgumentNotProvided] = ArgumentNotProvided.no_value,
+        temporary_folder: Union[str, ArgumentNotProvided] = ArgumentNotProvided.no_value,
     ) -> None:
         """configure MDF parameters
 
@@ -681,7 +683,7 @@ class MDF:
 
         """
 
-        if from_other is not None:
+        if from_other is not ArgumentNotProvided.no_value:
             self._read_fragment_size = from_other._read_fragment_size
             self._write_fragment_size = from_other._write_fragment_size
             self._use_display_names = from_other._use_display_names
@@ -693,37 +695,35 @@ class MDF:
                 from_other._raise_on_multiple_occurrences
             )
 
-        if read_fragment_size is not None:
+        if read_fragment_size is not ArgumentNotProvided.no_value:
             self._read_fragment_size = int(read_fragment_size)
 
-        if write_fragment_size:
+        if write_fragment_size is not ArgumentNotProvided.no_value:
             self._write_fragment_size = min(int(write_fragment_size), 4 * 2 ** 20)
 
-        if use_display_names is not None:
+        if use_display_names is not ArgumentNotProvided.no_value:
             self._use_display_names = bool(use_display_names)
 
-        if single_bit_uint_as_bool is not None:
+        if single_bit_uint_as_bool is not ArgumentNotProvided.no_value:
             self._single_bit_uint_as_bool = bool(single_bit_uint_as_bool)
 
         if integer_interpolation in (0, 1, 2):
             self._integer_interpolation = int(integer_interpolation)
 
-        if copy_on_get is not None:
+        if copy_on_get is not ArgumentNotProvided.no_value:
             self.copy_on_get = copy_on_get
 
         if float_interpolation in (0, 1):
             self._float_interpolation = int(float_interpolation)
 
-        if temporary_folder is not None:
-            if temporary_folder:
-                try:
-                    os.makedirs(temporary_folder, exist_ok=True)
-                except:
-                    self.temporary_folder = temporary_folder
-            else:
+        if temporary_folder is not ArgumentNotProvided.no_value:
+            try:
+                os.makedirs(temporary_folder, exist_ok=True)
                 self.temporary_folder = temporary_folder
+            except:
+                self.temporary_folder = None
 
-        if raise_on_multiple_occurrences is not None:
+        if raise_on_multiple_occurrences is not ArgumentNotProvided.no_value:
             self._raise_on_multiple_occurrences = bool(raise_on_multiple_occurrences)
 
     def convert(self, version: str) -> MDF:

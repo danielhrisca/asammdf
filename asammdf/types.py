@@ -5,6 +5,7 @@ from mmap import mmap
 from os import PathLike
 from typing import Any, Optional, Sequence, Tuple, TYPE_CHECKING, Union
 from zipfile import ZipFile
+import enum
 
 from canmatrix import CanMatrix
 from numpy.typing import NDArray
@@ -47,3 +48,7 @@ SourceType = Union[
     "v2_v3_blocks.ChannelExtension", "v4_blocks.SourceInformation", "Source"
 ]
 SyncType = Literal[0, 1, 2, 3, 4]
+
+
+class ArgumentNotProvided(enum.Enum):
+    no_value = 0

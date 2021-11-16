@@ -7,14 +7,8 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from . import v2_v3_blocks as v3b
 from . import v2_v3_constants as v3c
-from . import v4_blocks as v4b
 from . import v4_constants as v4c
-from ..types import SourceType
-
-__all__ = ["Source"]
-
 
 class Source:
 
@@ -101,3 +95,10 @@ class Source:
                 source.source_type,
                 source.bus_type,
             )
+
+from . import v2_v3_blocks as v3b
+from . import v4_blocks as v4b
+from ..types import SourceType
+
+__all__ = ["Source"]
+

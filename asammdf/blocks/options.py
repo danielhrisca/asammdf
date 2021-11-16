@@ -46,6 +46,7 @@ def set_global_option(opt, value):
     elif opt == "float_interpolation":
         value = FloatInterpolation(value)
     elif opt == "temporary_folder":
+        value = value or None
         if value is not None:
             os.makedirs(value, exist_ok=True)
 
