@@ -5004,7 +5004,7 @@ class MDF:
         ----------
         pattern : str
             search pattern
-        mode : SearchMode, optional
+        mode : Literal["plain", "regex", "wildcard"] or SearchMode, optional
             search mode, by default SearchMode.plain
 
                 * `plain` : normal name search
@@ -5034,8 +5034,13 @@ class MDF:
         search_mode = SearchMode(mode)
 
         if search_mode is SearchMode.plain:
-            pattern = pattern.casefold() if case_insensitive else pattern
-            channels = [name for name in self.channels_db if pattern in name.casefold()]
+            if case_insensitive:
+                pattern = pattern.casefold()
+                channels = [
+                    name for name in self.channels_db if pattern in name.casefold()
+                ]
+            else:
+                channels = [name for name in self.channels_db if pattern in name]
         elif search_mode is SearchMode.regex:
             flags = re.IGNORECASE if case_insensitive else 0
             compiled_pattern = re.compile(pattern, flags=flags)
