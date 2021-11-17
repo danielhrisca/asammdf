@@ -10,6 +10,7 @@ from functools import lru_cache
 from . import v2_v3_constants as v3c
 from . import v4_constants as v4c
 
+
 class Source:
 
     __slots__ = "name", "path", "comment", "source_type", "bus_type"
@@ -96,9 +97,9 @@ class Source:
                 source.bus_type,
             )
 
+
 from . import v2_v3_blocks as v3b
 from . import v4_blocks as v4b
 from ..types import SourceType
 
 __all__ = ["Source"]
-

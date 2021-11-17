@@ -24,7 +24,7 @@ import sys
 from tempfile import gettempdir, mkdtemp
 from traceback import format_exc
 from types import TracebackType
-from typing import Any, Type
+from typing import Any, Type, Union
 import xml.etree.ElementTree as ET
 import zipfile
 
@@ -33,7 +33,6 @@ import numpy as np
 from numpy.typing import NDArray
 import pandas as pd
 from typing_extensions import Literal
-from typing import Union
 
 from .blocks import v2_v3_constants as v23c
 from .blocks import v4_constants as v4c
@@ -72,6 +71,7 @@ from .blocks.v4_blocks import HeaderBlock as HeaderV4
 from .blocks.v4_blocks import SourceInformation
 from .signal import Signal
 from .types import (
+    ArgumentNotProvided,
     BusType,
     ChannelGroupType,
     ChannelsType,
@@ -85,7 +85,6 @@ from .types import (
     ReadableBufferType,
     StrOrBytesPathType,
     StrPathType,
-    ArgumentNotProvided,
 )
 from .version import __version__
 
@@ -603,16 +602,34 @@ class MDF:
     def configure(
         self,
         *,
-        from_other: Union[MDF_v2_v3_v4, ArgumentNotProvided] = ArgumentNotProvided.no_value,
-        read_fragment_size: Union[int, ArgumentNotProvided] = ArgumentNotProvided.no_value,
-        write_fragment_size: Union[int, ArgumentNotProvided] = ArgumentNotProvided.no_value,
-        use_display_names: Union[bool, ArgumentNotProvided] = ArgumentNotProvided.no_value,
-        single_bit_uint_as_bool: Union[bool, ArgumentNotProvided] = ArgumentNotProvided.no_value,
-        integer_interpolation: Union[IntInterpolationModeType, ArgumentNotProvided] = ArgumentNotProvided.no_value,
+        from_other: Union[
+            MDF_v2_v3_v4, ArgumentNotProvided
+        ] = ArgumentNotProvided.no_value,
+        read_fragment_size: Union[
+            int, ArgumentNotProvided
+        ] = ArgumentNotProvided.no_value,
+        write_fragment_size: Union[
+            int, ArgumentNotProvided
+        ] = ArgumentNotProvided.no_value,
+        use_display_names: Union[
+            bool, ArgumentNotProvided
+        ] = ArgumentNotProvided.no_value,
+        single_bit_uint_as_bool: Union[
+            bool, ArgumentNotProvided
+        ] = ArgumentNotProvided.no_value,
+        integer_interpolation: Union[
+            IntInterpolationModeType, ArgumentNotProvided
+        ] = ArgumentNotProvided.no_value,
         copy_on_get: Union[bool, ArgumentNotProvided] = ArgumentNotProvided.no_value,
-        float_interpolation: Union[FloatInterpolationModeType, ArgumentNotProvided] = ArgumentNotProvided.no_value,
-        raise_on_multiple_occurrences: Union[bool, ArgumentNotProvided] = ArgumentNotProvided.no_value,
-        temporary_folder: Union[str, ArgumentNotProvided] = ArgumentNotProvided.no_value,
+        float_interpolation: Union[
+            FloatInterpolationModeType, ArgumentNotProvided
+        ] = ArgumentNotProvided.no_value,
+        raise_on_multiple_occurrences: Union[
+            bool, ArgumentNotProvided
+        ] = ArgumentNotProvided.no_value,
+        temporary_folder: Union[
+            str, ArgumentNotProvided
+        ] = ArgumentNotProvided.no_value,
     ) -> None:
         """configure MDF parameters
 

@@ -73,11 +73,16 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         **kwargs,
     ):
 
+        self.default_folder = kwargs.get("default_folder", "")
+        if "default_folder" in kwargs:
+            kwargs.pop("default_folder")
+
         super(Ui_file_widget, self).__init__(*args, **kwargs)
         WithMDIArea.__init__(self)
         self.setupUi(self)
         self._settings = QtCore.QSettings()
         self.uuid = os.urandom(6).hex()
+
 
         self.hide_missing_channels = hide_missing_channels
         self.hide_disabled_channels = hide_disabled_channels
@@ -701,7 +706,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     channel_group.setText(0, f"Channel group {i}")
                 channel_group.setFlags(
                     channel_group.flags()
-                    | QtCore.Qt.ItemIsTristate
+                    | QtCore.Qt.ItemIsAutoTristate
                     | QtCore.Qt.ItemIsUserCheckable
                 )
 
@@ -1025,7 +1030,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if file_name is None:
             file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-                self, "Select output channel list file", "", "TXT files (*.txt)"
+                self,
+                "Select output channel list file",
+                self.default_folder,
+                "TXT files (*.txt)",
             )
 
         if file_name:
@@ -1038,7 +1046,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
                 self,
                 "Select channel list file",
-                "",
+                self.default_folder,
                 "Config file (*.cfg);;TXT files (*.txt);;Display files (*.dsp);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.lab *.txt)",
                 "All file types (*.cfg *.dsp *.lab *.txt)",
             )
@@ -1139,7 +1147,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
     def save_filter_list(self):
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Select output filter list file", "", "TXT files (*.txt)"
+            self,
+            "Select output filter list file",
+            self.default_folder,
+            "TXT files (*.txt)",
         )
 
         if file_name:
@@ -1174,7 +1185,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
                 self,
                 "Select channel list file",
-                "",
+                self.default_folder,
                 "Config file (*.cfg);;TXT files (*.txt);;Display files (*.dsp);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.lab *.txt)",
                 "All file types (*.cfg *.dsp *.lab *.txt)",
             )
@@ -1940,7 +1951,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             channel_group.setText(0, f"Channel group {i}")
                         channel_group.setFlags(
                             channel_group.flags()
-                            | QtCore.Qt.ItemIsTristate
+                            | QtCore.Qt.ItemIsAutoTristate
                             | QtCore.Qt.ItemIsUserCheckable
                         )
 
