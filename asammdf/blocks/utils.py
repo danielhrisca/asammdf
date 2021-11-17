@@ -17,8 +17,10 @@ from struct import Struct
 import subprocess
 import sys
 from tempfile import TemporaryDirectory
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, overload, Tuple
 import xml.etree.ElementTree as ET
+
+from typing_extensions import Literal, TypedDict
 
 target_byte_order = "<=" if sys.byteorder == "little" else ">="
 
@@ -29,7 +31,10 @@ except:
         from chardet import detect
     except:
 
-        def detect(text: str) -> dict[str, str | None]:
+        class DetectDict(TypedDict):
+            encoding: str | None
+
+        def detect(text: bytes) -> DetectDict:
             for encoding in ("utf-8", "latin-1", "cp1250", "cp1252"):
                 try:
                     text.decode(encoding)
@@ -191,6 +196,26 @@ def matlab_compatible(name: str) -> str:
     return compatible_name[:60]
 
 
+@overload
+def get_text_v3(
+    address: int,
+    stream: ReadableBufferType,
+    mapped: bool = ...,
+    decode: Literal[True] = ...,
+) -> str:
+    ...
+
+
+@overload
+def get_text_v3(
+    address: int,
+    stream: ReadableBufferType,
+    mapped: bool = ...,
+    decode: Literal[False] = ...,
+) -> bytes:
+    ...
+
+
 def get_text_v3(
     address: int, stream: ReadableBufferType, mapped: bool = False, decode: bool = True
 ) -> str | bytes:
@@ -241,6 +266,26 @@ def get_text_v3(
         text = text_bytes
 
     return text
+
+
+@overload
+def get_text_v4(
+    address: int,
+    stream: ReadableBufferType,
+    mapped: bool = ...,
+    decode: Literal[True] = ...,
+) -> str:
+    ...
+
+
+@overload
+def get_text_v4(
+    address: int,
+    stream: ReadableBufferType,
+    mapped: bool = ...,
+    decode: Literal[False] = ...,
+) -> bytes:
+    ...
 
 
 def get_text_v4(

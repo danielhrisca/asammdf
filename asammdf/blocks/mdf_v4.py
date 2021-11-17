@@ -19,9 +19,11 @@ import shutil
 import sys
 from tempfile import gettempdir, TemporaryFile
 from traceback import format_exc
-from typing import Any
+from typing import Any, overload
 from zipfile import ZIP_DEFLATED, ZipFile
 from zlib import decompress
+
+from typing_extensions import Literal
 
 try:
     from cryptography.hazmat.primitives.ciphers import algorithms, Cipher, modes
@@ -76,9 +78,6 @@ from ..types import (
     BusType,
     ChannelsType,
     CompressionType,
-    FloatInterpolationModeType,
-    IntInterpolationModeType,
-    MDF_v2_v3_v4,
     RasterType,
     ReadableBufferType,
     StrPathType,
@@ -6230,6 +6229,40 @@ class MDF4(MDF_Common):
             os.chdir(current_path)
 
         return data, file_path, md5_sum
+
+    @overload
+    def get(
+        self,
+        name: str | None = ...,
+        group: int | None = ...,
+        index: int | None = ...,
+        raster: RasterType | None = ...,
+        samples_only: Literal[False] = ...,
+        data: bytes | None = ...,
+        raw: bool = ...,
+        ignore_invalidation_bits: bool = ...,
+        record_offset: int = ...,
+        record_count: int | None = ...,
+        skip_channel_validation: bool = ...,
+    ) -> Signal:
+        ...
+
+    @overload
+    def get(
+        self,
+        name: str | None = ...,
+        group: int | None = ...,
+        index: int | None = ...,
+        raster: RasterType | None = ...,
+        samples_only: Literal[True] = ...,
+        data: bytes | None = ...,
+        raw: bool = ...,
+        ignore_invalidation_bits: bool = ...,
+        record_offset: int = ...,
+        record_count: int | None = ...,
+        skip_channel_validation: bool = ...,
+    ) -> tuple[NDArray[Any], NDArray[Any]]:
+        ...
 
     def get(
         self,
