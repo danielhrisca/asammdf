@@ -686,7 +686,7 @@ class MDF:
 
         """
 
-        if from_other:
+        if from_other is not None:
             self._read_fragment_size = from_other._read_fragment_size
             self._write_fragment_size = from_other._write_fragment_size
             self._use_display_names = from_other._use_display_names
@@ -698,35 +698,35 @@ class MDF:
                 from_other._raise_on_multiple_occurrences
             )
 
-        if read_fragment_size:
+        if read_fragment_size is not None:
             self._read_fragment_size = int(read_fragment_size)
 
-        if write_fragment_size:
+        if write_fragment_size is not None:
             self._write_fragment_size = min(int(write_fragment_size), 4 * 2 ** 20)
 
-        if use_display_names:
+        if use_display_names is not None:
             self._use_display_names = bool(use_display_names)
 
-        if single_bit_uint_as_bool:
+        if single_bit_uint_as_bool is not None:
             self._single_bit_uint_as_bool = bool(single_bit_uint_as_bool)
 
-        if integer_interpolation:
+        if integer_interpolation is not None:
             self._integer_interpolation = IntegerInterpolation(integer_interpolation)
 
-        if copy_on_get:
+        if copy_on_get is not None:
             self.copy_on_get = copy_on_get
 
-        if float_interpolation:
+        if float_interpolation is not None:
             self._float_interpolation = FloatInterpolation(float_interpolation)
 
-        if temporary_folder:
+        if temporary_folder is not None:
             try:
                 os.makedirs(temporary_folder, exist_ok=True)
                 self.temporary_folder = temporary_folder
             except:
                 self.temporary_folder = None
 
-        if raise_on_multiple_occurrences:
+        if raise_on_multiple_occurrences is not None:
             self._raise_on_multiple_occurrences = bool(raise_on_multiple_occurrences)
 
     def convert(self, version: str) -> MDF:
