@@ -11,7 +11,7 @@ console.setLevel(logging.DEBUG)
 logger.addHandler(console)
 logger.setLevel(logging.ERROR)
 
-from .blocks.options import set_global_option, get_global_option
+from .blocks.options import get_global_option, set_global_option
 from .blocks.source_utils import Source
 from .gui import plot
 from .mdf import MDF, SUPPORTED_VERSIONS

@@ -607,9 +607,13 @@ class MDF:
         write_fragment_size: int | None = None,
         use_display_names: bool | None = None,
         single_bit_uint_as_bool: bool | None = None,
-        integer_interpolation: IntInterpolationModeType | IntegerInterpolation | None = None,
+        integer_interpolation: IntInterpolationModeType
+        | IntegerInterpolation
+        | None = None,
         copy_on_get: bool | None = None,
-        float_interpolation: FloatInterpolationModeType | FloatInterpolation | None = None,
+        float_interpolation: FloatInterpolationModeType
+        | FloatInterpolation
+        | None = None,
         raise_on_multiple_occurrences: bool | None = None,
         temporary_folder: str | None = None,
     ) -> None:
