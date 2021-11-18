@@ -19,57 +19,6 @@
      <property name="spacing">
       <number>0</number>
      </property>
-     <item>
-      <widget class="QTreeWidget" name="tree">
-       <property name="font">
-        <font>
-         <family>Lucida Console</family>
-        </font>
-       </property>
-       <property name="verticalScrollBarPolicy">
-        <enum>Qt::ScrollBarAlwaysOff</enum>
-       </property>
-       <property name="selectionBehavior">
-        <enum>QAbstractItemView::SelectRows</enum>
-       </property>
-       <property name="uniformRowHeights">
-        <bool>true</bool>
-       </property>
-       <property name="allColumnsShowFocus">
-        <bool>true</bool>
-       </property>
-       <attribute name="headerHighlightSections">
-        <bool>true</bool>
-       </attribute>
-       <attribute name="headerShowSortIndicator" stdset="0">
-        <bool>false</bool>
-       </attribute>
-       <column>
-        <property name="text">
-         <string notr="true">1</string>
-        </property>
-       </column>
-      </widget>
-     </item>
-     <item>
-      <widget class="QScrollBar" name="tree_scroll">
-       <property name="maximum">
-        <number>9999</number>
-       </property>
-       <property name="singleStep">
-        <number>1</number>
-       </property>
-       <property name="pageStep">
-        <number>10</number>
-       </property>
-       <property name="orientation">
-        <enum>Qt::Vertical</enum>
-       </property>
-       <property name="invertedAppearance">
-        <bool>false</bool>
-       </property>
-      </widget>
-     </item>
     </layout>
    </item>
    <item>
@@ -91,13 +40,6 @@
          <string>bin</string>
         </property>
        </item>
-      </widget>
-     </item>
-     <item>
-      <widget class="QCheckBox" name="sort">
-       <property name="text">
-        <string>Enable column sorting</string>
-       </property>
       </widget>
      </item>
      <item>
