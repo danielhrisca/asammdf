@@ -14,7 +14,7 @@ from struct import pack, unpack, unpack_from
 from textwrap import wrap
 import time
 from traceback import format_exc
-from typing import Any
+from typing import Any, TYPE_CHECKING
 import xml.etree.ElementTree as ET
 
 try:
@@ -37,7 +37,6 @@ import numpy as np
 
 from . import v4_constants as v4c
 from ..version import __version__
-from .source_utils import Source
 from .utils import (
     block_fields,
     escape_xml_string,
@@ -51,6 +50,9 @@ from .utils import (
     UINT64_u,
     UINT64_uf,
 )
+
+if TYPE_CHECKING:
+    from .source_utils import Source
 
 SEEK_START = v4c.SEEK_START
 SEEK_END = v4c.SEEK_END

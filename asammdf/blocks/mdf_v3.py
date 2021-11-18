@@ -16,7 +16,7 @@ from pathlib import Path
 import sys
 from tempfile import TemporaryFile
 import time
-from typing import Any
+from typing import Any, overload
 import xml.etree.ElementTree as ET
 
 from numpy import (
@@ -39,19 +39,11 @@ from numpy.core.defchararray import decode, encode
 from numpy.core.records import fromarrays, fromstring
 from numpy.typing import NDArray
 from pandas import DataFrame
-from typing_extensions import TypedDict
+from typing_extensions import Literal, TypedDict
 
 from . import v2_v3_constants as v23c
 from ..signal import Signal
-from ..types import (
-    ChannelsType,
-    CompressionType,
-    FloatInterpolationModeType,
-    IntInterpolationModeType,
-    MDF_v2_v3_v4,
-    RasterType,
-    StrPathType,
-)
+from ..types import ChannelsType, CompressionType, RasterType, StrPathType
 from ..version import __version__
 from .conversion_utils import conversion_transfer
 from .cutils import get_channel_raw_bytes
@@ -2689,6 +2681,40 @@ class MDF3(MDF_Common):
         channel = grp.channels[ch_nr]
 
         return channel.comment
+
+    @overload
+    def get(
+        self,
+        name: str | None = ...,
+        group: int | None = ...,
+        index: int | None = ...,
+        raster: RasterType | None = ...,
+        samples_only: Literal[False] = ...,
+        data: bytes | None = ...,
+        raw: bool = ...,
+        ignore_invalidation_bits: bool = ...,
+        record_offset: int = ...,
+        record_count: int | None = ...,
+        skip_channel_validation: bool = ...,
+    ) -> Signal:
+        ...
+
+    @overload
+    def get(
+        self,
+        name: str | None = ...,
+        group: int | None = ...,
+        index: int | None = ...,
+        raster: RasterType | None = ...,
+        samples_only: Literal[True] = ...,
+        data: bytes | None = ...,
+        raw: bool = ...,
+        ignore_invalidation_bits: bool = ...,
+        record_offset: int = ...,
+        record_count: int | None = ...,
+        skip_channel_validation: bool = ...,
+    ) -> tuple[NDArray[Any], None]:
+        ...
 
     def get(
         self,

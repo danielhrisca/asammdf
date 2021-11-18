@@ -15,6 +15,7 @@ from numpy.typing import ArrayLike, DTypeLike, NDArray
 from .blocks import v2_v3_blocks as v3b
 from .blocks import v4_blocks as v4b
 from .blocks.conversion_utils import from_dict
+from .blocks.options import FloatInterpolation, IntegerInterpolation
 from .blocks.source_utils import Source
 from .blocks.utils import extract_cncomment_xml, MdfException
 from .types import (
@@ -24,7 +25,6 @@ from .types import (
     SourceType,
     SyncType,
 )
-from .blocks.options import IntegerInterpolation, FloatInterpolation
 from .version import __version__
 
 logger = logging.getLogger("asammdf")
@@ -85,8 +85,8 @@ class Signal(object):
         comment: str = "",
         raw: bool = True,
         master_metadata: tuple[str, SyncType] | None = None,
-        display_names: dict[str, str] = None,
-        attachment: tuple[bytes, str | None, str | None] = (),
+        display_names: dict[str, str] | None = None,
+        attachment: tuple[bytes, str | None, str | None] | None = None,
         source: SourceType | None = None,
         bit_count: int | None = None,
         stream_sync: bool = False,
@@ -407,8 +407,10 @@ class Signal(object):
         start: float | None = None,
         stop: float | None = None,
         include_ends: bool = True,
-        integer_interpolation_mode: IntInterpolationModeType = IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE,
-        float_interpolation_mode: FloatInterpolationModeType = FloatInterpolation.LINEAR_INTERPOLATION,
+        integer_interpolation_mode: IntInterpolationModeType
+        | IntegerInterpolation = IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE,
+        float_interpolation_mode: FloatInterpolationModeType
+        | FloatInterpolation = FloatInterpolation.LINEAR_INTERPOLATION,
     ) -> Signal:
         """
         Cuts the signal according to the *start* and *stop* values, by using
@@ -457,11 +459,8 @@ class Signal(object):
 
         """
 
-        if integer_interpolation_mode not in (0, 1, 2):
-            raise MdfException("Integer interpolation mode should be one of (0, 1, 2)")
-
-        if float_interpolation_mode not in (0, 1):
-            raise MdfException("Float interpolation mode should be one of (0, 1)")
+        integer_interpolation_mode = IntegerInterpolation(integer_interpolation_mode)
+        float_interpolation_mode = FloatInterpolation(float_interpolation_mode)
 
         original_start, original_stop = (start, stop)
 
@@ -860,8 +859,10 @@ class Signal(object):
     def interp(
         self,
         new_timestamps: NDArray[Any],
-        integer_interpolation_mode: IntInterpolationModeType = IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE,
-        float_interpolation_mode: FloatInterpolationModeType = FloatInterpolation.LINEAR_INTERPOLATION,
+        integer_interpolation_mode: IntInterpolationModeType
+        | IntegerInterpolation = IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE,
+        float_interpolation_mode: FloatInterpolationModeType
+        | FloatInterpolation = FloatInterpolation.LINEAR_INTERPOLATION,
     ) -> Signal:
         """returns a new *Signal* interpolated using the *new_timestamps*
 
@@ -896,11 +897,8 @@ class Signal(object):
 
         """
 
-        if integer_interpolation_mode not in (0, 1, 2):
-            raise MdfException("Integer interpolation mode should be one of (0, 1, 2)")
-
-        if float_interpolation_mode not in (0, 1):
-            raise MdfException("Float interpolation mode should be one of (0, 1)")
+        integer_interpolation_mode = IntegerInterpolation(integer_interpolation_mode)
+        float_interpolation_mode = FloatInterpolation(float_interpolation_mode)
 
         if not len(self.samples) or not len(new_timestamps):
 
