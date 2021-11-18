@@ -313,6 +313,8 @@ class DataTableModel(QtCore.QAbstractTableModel):
 
         cell = self.pgdf.df.iloc[row, col]
 
+        name = self.pgdf.df_unfiltered.columns[col]
+
         if (
             role == QtCore.Qt.DisplayRole
             or role == QtCore.Qt.EditRole
@@ -350,7 +352,7 @@ class DataTableModel(QtCore.QAbstractTableModel):
 
         elif role == QtCore.Qt.BackgroundRole:
 
-            channel_ranges = self.pgdf.tabular.ranges[col - 1]
+            channel_ranges = self.pgdf.tabular.ranges[name]
 
             try:
                 value = float(cell)
@@ -371,7 +373,7 @@ class DataTableModel(QtCore.QAbstractTableModel):
             )
 
         elif role == QtCore.Qt.ForegroundRole:
-            channel_ranges = self.pgdf.tabular.ranges[col - 1]
+            channel_ranges = self.pgdf.tabular.ranges[name]
 
             try:
                 value = float(cell)
@@ -1267,10 +1269,10 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
-        if ranges:
-            self.ranges = [ranges[name] for name in df.columns]
+        if not ranges:
+            self.ranges = {name: [] for name in df.columns}
         else:
-            self.ranges = [[] for _ in df.columns]
+            self.ranges = ranges
 
         df = DataFrameStorage(df, self)
 
@@ -1549,9 +1551,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             pattern["ranges"] = ranges
 
         ranges = {}
-        for name, channel_ranges in zip(
-            self.tree.pgdf.df_unfiltered.columns, self.ranges
-        ):
+        for name, channel_ranges in self.ranges.items():
             channel_ranges = copy_ranges(channel_ranges)
 
             for range_info in channel_ranges:
@@ -1761,14 +1761,16 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         self.tree.dataView.selectRow(idx)
 
     def edit_ranges(self, index, name):
-        if index >= 1:
-            index -= 1
+        if index >= 0:
+            original_name = self.tree.pgdf.df_unfiltered.columns[index]
 
-            dlg = RangeEditor(name, "", self.ranges[index], parent=self, brush=True)
+            dlg = RangeEditor(
+                name, "", self.ranges[original_name], parent=self, brush=True
+            )
             dlg.exec_()
             if dlg.pressed_button == "apply":
                 ranges = dlg.result
-                self.ranges[index] = ranges
+                self.ranges[original_name] = ranges
 
 
 class DataFrameViewer(QtWidgets.QWidget):
