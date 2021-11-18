@@ -14,7 +14,6 @@ from . import v4_constants as v4c
 from ..types import SourceType
 
 
-
 class Source:
 
     __slots__ = "name", "path", "comment", "source_type", "bus_type"

@@ -83,7 +83,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self._settings = QtCore.QSettings()
         self.uuid = os.urandom(6).hex()
 
-
         self.hide_missing_channels = hide_missing_channels
         self.hide_disabled_channels = hide_disabled_channels
 
