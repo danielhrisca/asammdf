@@ -2805,12 +2805,6 @@ class WithMDIArea:
                 else QtCore.Qt.Unchecked
             )
 
-            tabular.sort.setCheckState(
-                QtCore.Qt.Checked
-                if window_info["configuration"]["sorted"]
-                else QtCore.Qt.Unchecked
-            )
-
             menu = w.systemMenu()
 
             action = QtWidgets.QAction("Set title", menu)
@@ -2826,11 +2820,7 @@ class WithMDIArea:
             )
             if sections_width:
                 for i, width in enumerate(sections_width):
-                    tabular.tree.header().resizeSection(i, width)
-
-            scroll = tabular.tree.horizontalScrollBar()
-            if scroll:
-                scroll.setValue(scroll.minimum())
+                    tabular.tree.columnHeader.horizontalHeader().resizeSection(i, width)
 
         elif window_info["type"] in (
             "CAN Bus Trace",

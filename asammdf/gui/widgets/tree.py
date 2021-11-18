@@ -43,7 +43,7 @@ def add_children(
             if dep and isinstance(dep[0], tuple):
                 child.setFlags(
                     child.flags()
-                    | QtCore.Qt.ItemIsTristate
+                    | QtCore.Qt.ItemIsAutoTristate
                     | QtCore.Qt.ItemIsUserCheckable
                 )
 
@@ -1185,7 +1185,7 @@ class ChannelsGroupTreeItem(QtWidgets.QTreeWidgetItem):
             self.flags()
             | QtCore.Qt.ItemIsUserCheckable
             | QtCore.Qt.ItemIsEnabled
-            | QtCore.Qt.ItemIsTristate
+            | QtCore.Qt.ItemIsAutoTristate
         )
 
         self.setCheckState(0, QtCore.Qt.Checked)

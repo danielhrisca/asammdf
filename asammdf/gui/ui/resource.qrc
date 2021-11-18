@@ -51,5 +51,7 @@
     <file alias="alphabetical_sorting.png">images/alphabetical_sorting.png</file>
     <file alias="globe.png">images/globe.png</file>
     <file alias="paint.png">images/paint.png</file>
+    <file alias="sort-ascending.png">images/sort-ascending.png</file>
+    <file alias="sort-descending.png">images/sort-descending.png</file>
 </qresource>
 </RCC>

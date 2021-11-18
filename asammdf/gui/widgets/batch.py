@@ -1043,7 +1043,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                             channel_group.setText(0, f"Channel group {i}")
                         channel_group.setFlags(
                             channel_group.flags()
-                            | QtCore.Qt.ItemIsTristate
+                            | QtCore.Qt.ItemIsAutoTristate
                             | QtCore.Qt.ItemIsUserCheckable
                         )
 
