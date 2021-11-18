@@ -72,7 +72,6 @@ from .blocks.v4_blocks import HeaderBlock as HeaderV4
 from .blocks.v4_blocks import SourceInformation
 from .signal import Signal
 from .types import (
-    ArgumentNotProvided,
     BusType,
     ChannelGroupType,
     ChannelsType,
