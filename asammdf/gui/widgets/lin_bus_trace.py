@@ -17,7 +17,20 @@ class LINBusTrace(TabularBase):
     def __init__(
         self, signals=None, start=0, format="phys", ranges=None, *args, **kwargs
     ):
-        super().__init__(*args, **kwargs)
+        ranges = ranges or {name: [] for name in signals.columns}
+        if not ranges["Event Type"]:
+            ranges["Event Type"] = [
+                {
+                    "background_color": QtGui.QColor("#ff0000"),
+                    "font_color": QtGui.QColor("#000000"),
+                    "op1": "!=",
+                    "op2": "==",
+                    "value1": "LIN Frame",
+                    "value2": None,
+                },
+            ]
+
+        super().__init__(signals, ranges)
 
         self.signals_descr = {name: 0 for name in signals.columns}
         self.start = start
@@ -25,21 +38,14 @@ class LINBusTrace(TabularBase):
         self.format = format
         self.format_selection.setCurrentText(format)
 
-        if signals is None:
-            self.signals = pd.DataFrame()
-        else:
-            self.signals = signals
-
         self._original_timestamps = signals["timestamps"]
         self._original_ts_series = pd.Series(
             self._original_timestamps,
-            index=self.signals.index,
+            index=signals.index,
         )
 
-        self.build(self.signals, True, ranges=ranges)
-
         prefixes = set()
-        for name in self.signals.columns:
+        for name in signals.columns:
             while "." in name:
                 name = name.rsplit(".", 1)[0]
                 prefixes.add(f"{name}.")
@@ -58,20 +64,3 @@ class LINBusTrace(TabularBase):
         integer_mode = self._settings.value("tabular_format", "phys")
 
         self.format_selection.setCurrentText(integer_mode)
-
-    def _display(self, position=None):
-        super()._display(position)
-        iterator = QtWidgets.QTreeWidgetItemIterator(self.tree)
-        columns = self.tree.columnCount()
-
-        try:
-            event_index = self.signals.columns.get_loc("Event Type") + 1
-        except:
-            event_index = self.signals.columns.get_loc("Event_Type") + 1
-
-        while iterator.value():
-            item = iterator.value()
-            if item.text(event_index) != "LIN Frame":
-                for col in range(columns):
-                    item.setForeground(col, QtGui.QBrush(QtCore.Qt.darkRed))
-            iterator += 1

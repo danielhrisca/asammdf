@@ -17,7 +17,7 @@ class CANBusTrace(TabularBase):
     def __init__(
         self, signals=None, start=0, format="phys", ranges=None, *args, **kwargs
     ):
-        ranges = ranges or {name: [] for name in signals}
+        ranges = ranges or {name: [] for name in signals.columns}
         if not ranges["Event Type"]:
             ranges["Event Type"] = [
                 {
