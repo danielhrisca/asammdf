@@ -329,9 +329,9 @@ class DataTableModel(QtCore.QAbstractTableModel):
             if isinstance(cell, (int, np.integer)):
                 if role == QtCore.Qt.DisplayRole:
                     if self.format == "hex":
-                        return f"0x{cell:X}"
+                        return f"{cell:X}"
                     elif self.format == "bin":
-                        return bin(cell)
+                        return f'{cell:b}'
                     else:
                         return str(cell)
 
