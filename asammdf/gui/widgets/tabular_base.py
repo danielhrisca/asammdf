@@ -122,16 +122,6 @@ class TabularTreeItem(QtWidgets.QTreeWidgetItem):
             self.setForeground(column, new_font_color)
 
 
-from dataclasses import dataclass, field
-
-
-@dataclass
-class Filter:
-    expr: str
-    enabled: bool
-    failed: bool
-
-
 class DataFrameStorage:
     """
     All methods that modify the data should modify self.df_unfiltered, then self.df gets computed from that
@@ -466,8 +456,9 @@ class DataTableView(QtWidgets.QTableView):
         # Height
         height = 2 * self.frameWidth()  # Account for border & padding
         # height += self.horizontalScrollBar().height()  # Dark theme has scrollbars always shown
-        for i in range(self.model().rowCount()):
-            height += self.rowHeight(i)
+        height += 24 * self.model().rowCount()
+        # for i in range(self.model().rowCount()):
+        #     height += self.rowHeight(i)
 
         return QtCore.QSize(width, height)
 
@@ -946,8 +937,9 @@ class HeaderView(QtWidgets.QTableView):
             width = self.table.sizeHint().width() + self.verticalHeader().width()
             # Height
             height = 2 * self.frameWidth()  # Account for border & padding
-            for i in range(self.model().rowCount()):
-                height += self.rowHeight(i)
+            # for i in range(self.model().rowCount()):
+            #     height += self.rowHeight
+            height += 24 * self.model().rowCount()
 
         # Index header
         else:
@@ -1112,10 +1104,17 @@ class ColumnMenu(QtWidgets.QMenu):
             idx, role=QtCore.Qt.DisplayRole
         )
         label = QtWidgets.QLabel(self.name)
+        font = QtGui.QFont()
+        font.setBold(True)
+        label.setFont(font)
         self.add_widget(label)
+
+        self.addSeparator()
 
         ########################
         # Sorting
+
+        self.add_widget(QtWidgets.QLabel("Set sorting"))
 
         def select_button():
             self.sort_b1.setDown(
@@ -1159,6 +1158,8 @@ class ColumnMenu(QtWidgets.QMenu):
         ]
 
         self.add_widget(sort_control)
+
+        self.addSeparator()
 
         button = QtWidgets.QPushButton("Edit ranges")
         button.clicked.connect(self.edit_ranges)
@@ -1872,9 +1873,15 @@ class DataFrameViewer(QtWidgets.QWidget):
         )
 
         # Default row height
-        default_row_height = 28
+        default_row_height = 24
         self.indexHeader.verticalHeader().setDefaultSectionSize(default_row_height)
+        self.indexHeader.verticalHeader().setMinimumSectionSize(default_row_height)
+        self.indexHeader.verticalHeader().setMaximumSectionSize(default_row_height)
+        self.indexHeader.verticalHeader().sectionResizeMode(QtWidgets.QHeaderView.Fixed)
         self.dataView.verticalHeader().setDefaultSectionSize(default_row_height)
+        self.dataView.verticalHeader().setMinimumSectionSize(default_row_height)
+        self.dataView.verticalHeader().setMaximumSectionSize(default_row_height)
+        self.dataView.verticalHeader().sectionResizeMode(QtWidgets.QHeaderView.Fixed)
 
         # Set column widths
         for column_index in range(self.columnHeader.model().columnCount()):

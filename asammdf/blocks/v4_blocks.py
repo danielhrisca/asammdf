@@ -3200,6 +3200,8 @@ class ChannelConversion(_ChannelConversionBase):
         return address
 
     def convert(self, values):
+        if not isinstance(values, np.ndarray):
+            values = np.array(values)
         conversion_type = self.conversion_type
         if conversion_type == v4c.CONVERSION_TYPE_NON:
             pass
