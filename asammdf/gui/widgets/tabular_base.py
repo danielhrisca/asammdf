@@ -1015,6 +1015,7 @@ class HeaderNamesView(QtWidgets.QTableView):
         super().__init__(parent)
         self.dataframe_viewer = parent
         self.pgdf = parent.pgdf
+
         self.setProperty(
             "orientation", "horizontal" if orientation == 1 else "vertical"
         )  # Used in stylesheet
@@ -1630,12 +1631,16 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
 
             self.tree.columnHeaderNames.model().prefix = self.prefix.currentText()
             self.tree.columnHeader.model().prefix = self.prefix.currentText()
+            self.tree.prefix = self.prefix.currentText()
 
         else:
             self.prefix.setEnabled(False)
 
             self.tree.columnHeaderNames.model().prefix = ""
             self.tree.columnHeader.model().prefix = ""
+            self.tree.prefix = ""
+
+        self.tree.auto_size_header()
 
     def prefix_changed(self, index):
         self.remove_prefix_changed(QtCore.Qt.Checked)
@@ -1780,6 +1785,7 @@ class DataFrameViewer(QtWidgets.QWidget):
 
         pgdf.dataframe_viewer = self
         self.pgdf = pgdf
+        self.prefix = ""
 
         # Local state
         # How to color cells
@@ -1902,6 +1908,10 @@ class DataFrameViewer(QtWidgets.QWidget):
         # This is so dataclasses.asdict doesn't complain about this being unpicklable
         return "DataFrameViewer"
 
+    def auto_size_header(self):
+        for i in range(self.columnHeader.model().columnCount()):
+            self.auto_size_column(i)
+
     def auto_size_column(self, column_index):
         """
         Set the size of column at column_index to fit its contents
@@ -1922,10 +1932,11 @@ class DataFrameViewer(QtWidgets.QWidget):
         for i in range(self.columnHeader.model().rowCount()):
             mi = self.columnHeader.model().index(i, column_index)
             text = self.columnHeader.model().data(mi)
+            text = text[len(self.prefix):] if text.startswith(self.prefix) else text
             w = self.columnHeader.fontMetrics().boundingRect(text).width()
             width = max(width, w)
 
-        padding = 30
+        padding = 20
         width += padding
 
         # add maximum allowable column width so column is never too big.
@@ -1942,30 +1953,7 @@ class DataFrameViewer(QtWidgets.QWidget):
         """
         Set the size of row at row_index to fix its contents
         """
-        padding = 20
-
-        self.indexHeader.resizeRowToContents(row_index)
-        height = self.indexHeader.rowHeight(row_index)
-
-        # Iterate over the row's columns and check the width of each to determine the max height for the row
-        # Only check the first N columns for performance.
-        N = 100
-        for i in range(min(N, self.dataView.model().columnCount())):
-            mi = self.dataView.model().index(row_index, i)
-            cell_width = self.columnHeader.columnWidth(i)
-            text = self.dataView.model().data(mi)
-            # Gets row height at a constrained width (the column width).
-            # This constrained width, with the flag of Qt.TextWordWrap
-            # gets the height the cell would have to be to fit the text.
-            constrained_rect = QtCore.QRect(0, 0, cell_width, 0)
-            h = (
-                self.dataView.fontMetrics()
-                .boundingRect(constrained_rect, Qt.TextWordWrap, text)
-                .height()
-            )
-            height = max(height, h)
-
-        height += padding
+        height = 24
 
         self.indexHeader.setRowHeight(row_index, height)
         self.dataView.setRowHeight(row_index, height)
