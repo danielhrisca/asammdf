@@ -1650,20 +1650,38 @@ def csv_int2hex(val) -> str:
 csv_int2hex = np.vectorize(csv_int2hex, otypes=[str])
 
 
-def csv_bytearray2hex(val, size: int | None = None) -> str:
-    """format CAN payload as hex strings
+if sys.version_info.major >= 3 and sys.version_info.minor >= 8:
 
-    b'\xa2\xc3\x08' -> A2 C3 08
+    def csv_bytearray2hex(val, size: int | None = None) -> str:
+        """format CAN payload as hex strings
 
-    """
-    if size is not None:
-        val = val.tobytes()[:size].hex().upper()
-    else:
-        val = val.tobytes().hex().upper()
+        b'\xa2\xc3\x08' -> A2 C3 08
 
-    vals = [val[i : i + 2] for i in range(0, len(val), 2)]
+        """
+        if size is not None:
+            val = val.tobytes()[:size].hex(" ", 2).upper()
+        else:
+            val = val.tobytes().hex(" ", 2).upper()
 
-    return " ".join(vals)
+        return val
+
+
+else:
+
+    def csv_bytearray2hex(val, size: int | None = None) -> str:
+        """format CAN payload as hex strings
+
+        b'\xa2\xc3\x08' -> A2 C3 08
+
+        """
+        if size is not None:
+            val = val.tobytes()[:size].hex().upper()
+        else:
+            val = val.tobytes().hex().upper()
+
+        vals = [val[i : i + 2] for i in range(0, len(val), 2)]
+
+        return " ".join(vals)
 
 
 csv_bytearray2hex = np.vectorize(csv_bytearray2hex, otypes=[str])
