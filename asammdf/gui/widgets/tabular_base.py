@@ -584,7 +584,7 @@ class HeaderView(QtWidgets.QTableView):
         self.selectionModel().selectionChanged.connect(
             lambda x: self.on_selectionChanged()
         )
-        self.set_spans()
+        # self.set_spans()
 
         self.horizontalHeader().hide()
         self.verticalHeader().hide()
@@ -2096,8 +2096,8 @@ class DataFrameViewer(QtWidgets.QWidget):
             model.endResetModel()
 
         # Update multi-index spans
-        for view in [self.columnHeader, self.indexHeader]:
-            view.set_spans()
+        # for view in [self.columnHeader, self.indexHeader]:
+        #     view.set_spans()
 
         # Update sizing
         for view in [self.columnHeader, self.indexHeader, self.dataView]:
