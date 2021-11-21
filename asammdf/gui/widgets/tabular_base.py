@@ -331,7 +331,7 @@ class DataTableModel(QtCore.QAbstractTableModel):
                     if self.format == "hex":
                         return f"{cell:X}"
                     elif self.format == "bin":
-                        return f'{cell:b}'
+                        return f"{cell:b}"
                     else:
                         return str(cell)
 
@@ -378,6 +378,12 @@ class DataTableModel(QtCore.QAbstractTableModel):
             )
 
             return new_font_color if new_font_color != self.font_color else None
+
+        elif role == QtCore.Qt.TextAlignmentRole:
+            if col == 0:
+                return QtCore.Qt.AlignLeft
+            else:
+                return QtCore.Qt.AlignRight
 
     def flags(self, index):
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
@@ -1893,6 +1899,8 @@ class DataFrameViewer(QtWidgets.QWidget):
         for column_index in range(self.columnHeader.model().columnCount()):
             self.auto_size_column(column_index)
 
+        self.columnHeader.horizontalHeader().setStretchLastSection(True)
+
     def set_styles(self):
         for item in [
             self.dataView,
@@ -1932,7 +1940,7 @@ class DataFrameViewer(QtWidgets.QWidget):
         for i in range(self.columnHeader.model().rowCount()):
             mi = self.columnHeader.model().index(i, column_index)
             text = self.columnHeader.model().data(mi)
-            text = text[len(self.prefix):] if text.startswith(self.prefix) else text
+            text = text[len(self.prefix) :] if text.startswith(self.prefix) else text
             w = self.columnHeader.fontMetrics().boundingRect(text).width()
             width = max(width, w)
 
