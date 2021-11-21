@@ -1659,9 +1659,9 @@ if sys.version_info.major >= 3 and sys.version_info.minor >= 8:
 
         """
         if size is not None:
-            val = val.tobytes()[:size].hex(" ", 2).upper()
+            val = val.tobytes()[:size].hex(" ", 1).upper()
         else:
-            val = val.tobytes().hex(" ", 2).upper()
+            val = val.tobytes().hex(" ", 1).upper()
 
         return val
 

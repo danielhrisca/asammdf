@@ -312,6 +312,7 @@ class DataTableModel(QtCore.QAbstractTableModel):
         ):
             # Need to check type since a cell might contain a list or Series, then .isna returns a Series not a bool
             cell_is_na = pd.isna(cell)
+
             if type(cell_is_na) == bool and cell_is_na:
                 if role == QtCore.Qt.DisplayRole:
                     return "●"
@@ -380,7 +381,7 @@ class DataTableModel(QtCore.QAbstractTableModel):
             return new_font_color if new_font_color != self.font_color else None
 
         elif role == QtCore.Qt.TextAlignmentRole:
-            if col == 0:
+            if isinstance(cell, (float, np.floating, str)):
                 return QtCore.Qt.AlignLeft
             else:
                 return QtCore.Qt.AlignRight
@@ -421,6 +422,8 @@ class DataTableView(QtWidgets.QTableView):
         # self.resizeRowsToContents()
         self.setHorizontalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
         self.setVerticalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
+
+        self.setFont(QtGui.QFont("Courier"))
 
     def on_selectionChanged(self):
         """
