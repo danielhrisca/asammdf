@@ -3303,7 +3303,7 @@ class MDF3(MDF_Common):
 
         return timestamps
 
-    def iter_get_triggers(self) -> TriggerInfoDict:
+    def iter_get_triggers(self) -> Iterator[TriggerInfoDict]:
         """generator that yields triggers
 
         Returns
