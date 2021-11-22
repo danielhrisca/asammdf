@@ -305,11 +305,7 @@ class DataTableModel(QtCore.QAbstractTableModel):
 
         name = self.pgdf.df_unfiltered.columns[col]
 
-        if (
-            role == QtCore.Qt.DisplayRole
-            or role == QtCore.Qt.EditRole
-            or role == QtCore.Qt.ToolTipRole
-        ):
+        if role == QtCore.Qt.DisplayRole:
             # Need to check type since a cell might contain a list or Series, then .isna returns a Series not a bool
             cell_is_na = pd.isna(cell)
 
@@ -336,9 +332,6 @@ class DataTableModel(QtCore.QAbstractTableModel):
                     else:
                         return str(cell)
 
-            return str(cell)
-
-        elif role == QtCore.Qt.ToolTipRole:
             return str(cell)
 
         elif role == QtCore.Qt.BackgroundRole:
@@ -687,7 +680,6 @@ class HeaderView(QtWidgets.QTableView):
     # Take the current set of selected cells and make it so that any spanning cell above a selected cell is selected too
     # This should happen after every selection change
     def selectAbove(self):
-
         # Disabling this to allow selecting specific cells in headers
         return
 
@@ -1598,7 +1590,6 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         return config
 
     def time_as_date_changed(self, state):
-        print("start data change")
         count = self.filters.count()
 
         if state == QtCore.Qt.Checked:
@@ -1631,7 +1622,6 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         if self.query.toPlainText():
             self.apply_filters()
 
-        print("time data change")
         self.tree.pgdf.data_changed()
 
     def remove_prefix_changed(self, state):
@@ -1708,6 +1698,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
                 progress.cancel()
 
     def keyPressEvent(self, event):
+
         key = event.key()
         modifier = event.modifiers()
 
@@ -1736,8 +1727,9 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
                 with MDF() as mdf:
                     mdf.append(self.tree.pgdf.df_unfiltered)
                     mdf.save(file_name, overwrite=True)
+
         else:
-            super().keyPressEvent(event)
+            self.tree.dataView.keyPressEvent(event)
 
     def set_format(self, fmt):
         self.format = fmt
@@ -1872,8 +1864,12 @@ class DataFrameViewer(QtWidgets.QWidget):
         )
 
         # These expand when the window is enlarged instead of having the grid squares spread out
-        self.gridLayout.setColumnStretch(4, 1)
+        # self.gridLayout.setColumnStretch(4, 1)
+        # self.gridLayout.setRowStretch(5, 1)
+
+        self.gridLayout.setColumnStretch(2, 1)
         self.gridLayout.setRowStretch(5, 1)
+
         #
         # self.gridLayout.addItem(QtWidgets.QSpacerItem(0, 0,
         #                                               QtWidgets.QSizePolicy.Expanding,
@@ -1903,6 +1899,7 @@ class DataFrameViewer(QtWidgets.QWidget):
             self.auto_size_column(column_index)
 
         self.columnHeader.horizontalHeader().setStretchLastSection(True)
+        self.columnHeaderNames.horizontalHeader().setStretchLastSection(True)
 
     def set_styles(self):
         for item in [

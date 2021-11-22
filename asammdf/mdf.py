@@ -4150,7 +4150,8 @@ class MDF:
 
                 group_master = master
 
-            signals = [sig for sig in signals if len(sig)]
+            if any(len(sig) for sig in signals):
+                signals = [sig for sig in signals if len(sig)]
 
             if group_master.dtype.byteorder not in target_byte_order:
                 group_master = group_master.byteswap().newbyteorder()

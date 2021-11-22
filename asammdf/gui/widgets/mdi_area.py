@@ -1489,7 +1489,9 @@ class WithMDIArea:
                     channels=uuids_signals,
                     ignore_value2text_conversions=self.ignore_value2text_conversions,
                     time_from_zero=False,
+                    empty_channels="zeros",
                 )
+
                 if not hasattr(self, "mdf"):
                     # MainWindow => comparison plots
                     columns = {name: f"{file_index+1}: {name}" for name in df.columns}
@@ -2956,7 +2958,8 @@ class WithMDIArea:
             self._cursor_source = widget
             for mdi in self.mdi_area.subWindowList():
                 wid = mdi.widget()
-                wid.set_timestamp(pos)
+                if wid is not widget:
+                    wid.set_timestamp(pos)
 
             self._cursor_source = None
 
