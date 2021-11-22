@@ -464,6 +464,10 @@ class DataTableView(QtWidgets.QTableView):
 
         return QtCore.QSize(width, height)
 
+    def resizeEvent(self, e: QtGui.QResizeEvent) -> None:
+        super().resizeEvent(e)
+        self.dataframe_viewer.auto_size_header()
+
 
 class HeaderModel(QtCore.QAbstractTableModel):
     def __init__(self, parent, orientation):
@@ -1296,6 +1300,8 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
 
         self._timestamps = None
 
+        self.tree.auto_size_header()
+
     def current_changed(self, current, previous):
         if current.isValid():
             row = current.row()
@@ -1623,6 +1629,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             self.apply_filters()
 
         self.tree.pgdf.data_changed()
+        self.tree.auto_size_column(0)
 
     def remove_prefix_changed(self, state):
         if state == QtCore.Qt.Checked:
@@ -1901,6 +1908,8 @@ class DataFrameViewer(QtWidgets.QWidget):
         self.columnHeader.horizontalHeader().setStretchLastSection(True)
         self.columnHeaderNames.horizontalHeader().setStretchLastSection(True)
 
+        self.show()
+
     def set_styles(self):
         for item in [
             self.dataView,
@@ -1917,10 +1926,19 @@ class DataFrameViewer(QtWidgets.QWidget):
         return "DataFrameViewer"
 
     def auto_size_header(self):
+        s = 0
         for i in range(self.columnHeader.model().columnCount()):
-            self.auto_size_column(i)
+            s += self.auto_size_column(i)
 
-    def auto_size_column(self, column_index):
+        delta = int(
+            (self.dataView.viewport().size().width() - s) // len(self.pgdf.df.columns)
+        )
+
+        if delta > 0:
+            for i in range(self.columnHeader.model().columnCount()):
+                self.auto_size_column(i, extra_padding=delta)
+
+    def auto_size_column(self, column_index, extra_padding=0):
         """
         Set the size of column at column_index to fit its contents
         """
@@ -1945,17 +1963,15 @@ class DataFrameViewer(QtWidgets.QWidget):
             width = max(width, w)
 
         padding = 20
-        width += padding
-
-        # add maximum allowable column width so column is never too big.
-        max_allowable_width = 500
-        width = min(width, max_allowable_width)
+        width += padding + extra_padding
 
         self.columnHeader.setColumnWidth(column_index, width)
         self.dataView.setColumnWidth(column_index, width)
 
         self.dataView.updateGeometry()
         self.columnHeader.updateGeometry()
+
+        return width
 
     def auto_size_row(self, row_index):
         """
@@ -1997,6 +2013,13 @@ class DataFrameViewer(QtWidgets.QWidget):
         """
         # Get the bounds using the top left and bottom right selected cells
 
+        print(
+            self.dataView.horizontalScrollBar().minimum(),
+            self.dataView.horizontalScrollBar().maximum(),
+        )
+
+        fmt = self.dataView.model().format
+
         # Copy from data, columns, or index depending which has focus
         if header or self.dataView.hasFocus():
             indexes = self.dataView.selectionModel().selection().indexes()
@@ -2024,6 +2047,15 @@ class DataFrameViewer(QtWidgets.QWidget):
             df = temp_df.iloc[min(rows) : max(rows) + 1, min(cols) : max(cols) + 1]
         else:
             return
+
+        if fmt in ("hex", "bin") and len(df):
+            fmt = "{:X}" if fmt == "hex" else "{:b}"
+
+            for name in df.columns:
+                col = df[name]
+                if isinstance(col.values[0], np.integer):
+                    col = pd.Series([fmt.format(val) for val in col], index=df.index)
+                    df[name] = col
 
         # If I try to use df.to_clipboard without starting new thread, large selections give access denied error
         if df.shape == (1, 1):

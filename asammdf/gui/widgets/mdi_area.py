@@ -910,6 +910,7 @@ class WithMDIArea:
                 trace.timestamp_changed_signal.connect(self.set_cursor)
 
         self.windows_modified.emit()
+        trace.tree.auto_size_header()
 
         return trace
 
@@ -1118,6 +1119,7 @@ class WithMDIArea:
                 trace.timestamp_changed_signal.connect(self.set_cursor)
 
         self.windows_modified.emit()
+        trace.tree.auto_size_header()
 
         return trace
 
@@ -1380,6 +1382,7 @@ class WithMDIArea:
                 trace.timestamp_changed_signal.connect(self.set_cursor)
 
         self.windows_modified.emit()
+        trace.tree.auto_size_header()
 
         return trace
 
@@ -2002,6 +2005,8 @@ class WithMDIArea:
 
             if self.subplots_link:
                 tabular.timestamp_changed_signal.connect(self.set_cursor)
+
+            tabular.tree.auto_size_header()
 
         self.windows_modified.emit()
 
