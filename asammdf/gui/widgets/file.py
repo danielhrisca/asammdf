@@ -657,6 +657,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     entry = i, j
 
                     channel = TreeItem(entry, ch.name, mdf_uuid=self.uuid)
+                    channel.setToolTip(0, f"{ch.name} @ group {i}, index {j}")
                     channel.setText(0, ch.name)
                     if entry in signals:
                         channel.setCheckState(0, QtCore.Qt.Checked)
@@ -731,6 +732,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 gp_index, ch_index = entry
                 ch = self.mdf.groups[gp_index].channels[ch_index]
                 channel = TreeItem(entry, ch.name, mdf_uuid=self.uuid)
+                channel.setToolTip(0, f"{ch.name} @ group {gp_index}, index {ch_index}")
                 channel.setText(0, ch.name)
                 channel.setCheckState(0, QtCore.Qt.Checked)
                 items.append(channel)
