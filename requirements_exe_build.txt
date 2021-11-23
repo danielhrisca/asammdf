@@ -1,0 +1,22 @@
+canmatrix[arxml,dbc]>=0.8
+lz4
+numexpr
+numpy>=1.21
+pandas
+typing_extensions
+pywin32; sys_platform=="windows"
+isal 
+lxml 
+natsort 
+psutil 
+PyQt5>=5.13.1 
+pyqtgraph==0.12.3 
+PyQtWebEngine 
+pyqtlet 
+h5py 
+fastparquet 
+scipy 
+hdf5storage 
+snappy 
+cChardet==2.1.5 chardet
+cryptography
