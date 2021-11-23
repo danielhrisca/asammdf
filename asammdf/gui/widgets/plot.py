@@ -6,6 +6,7 @@ import logging
 import os
 from pathlib import Path
 from time import perf_counter, sleep
+from traceback import format_exc
 
 import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
@@ -38,9 +39,39 @@ def _keys(self, styles):
     return res
 
 
+# fixes https://github.com/pyqtgraph/pyqtgraph/issues/2117
+def mouseReleaseEvent(self, ev):
+    if self.mouseGrabberItem() is None:
+        if ev.button() in self.dragButtons:
+            if self.sendDragEvent(ev, final=True):
+                # print "sent drag event"
+                ev.accept()
+            self.dragButtons.remove(ev.button())
+        else:
+            cev = [e for e in self.clickEvents if e.button() == ev.button()]
+            if cev:
+                if self.sendClickEvent(cev[0]):
+                    # print "sent click event"
+                    ev.accept()
+                try:
+                    self.clickEvents.remove(cev[0])
+                except:
+                    pass
+
+    if not ev.buttons():
+        self.dragItem = None
+        self.dragButtons = []
+        self.clickEvents = []
+        self.lastDrag = None
+    QtWidgets.QGraphicsScene.mouseReleaseEvent(self, ev)
+    self.sendHoverEvents(ev)
+
+
 # speed-up monkey patches
 pg.graphicsItems.ScatterPlotItem.SymbolAtlas._keys = _keys
 pg.graphicsItems.ScatterPlotItem._USE_QRECT = False
+pg.GraphicsScene.mouseReleaseEvent = mouseReleaseEvent
+
 
 from ...blocks import v4_constants as v4c
 from ...mdf import MDF
