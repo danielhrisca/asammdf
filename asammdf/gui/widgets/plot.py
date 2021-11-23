@@ -1683,7 +1683,7 @@ class Plot(QtWidgets.QWidget):
         item = ChannelsTreeItem((-1, -1), name, sig.computation)
         tooltip = getattr(sig, "tooltip", "")
         it = ChannelDisplay(
-            sig.uuid, unit, sig.samples.dtype.kind, 3, tooltip, "", self
+            sig.uuid, unit, sig.samples.dtype.kind, 3, tooltip, "", item=item, parent=self
         )
         it.setAttribute(QtCore.Qt.WA_StyledBackground)
 

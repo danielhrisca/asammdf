@@ -24,7 +24,13 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install packages
-        run: pip install build pyinstaller==4.5.1
+        run: |
+            pip install build pyinstaller numpy wheel 
+            pip install -r test/requirements.txt
+            pip install pywin32 isal lxml natsort psutil PyQt5>=5.13.1 pyqtgraph==0.12.3 PyQtWebEngine pyqtlet h5py fastparquet scipy hdf5storage snappy cChardet==2.1.5 chardet
+            pip install -r requirements.txt
+            pip install .
+            pip install cmerg cryptography
 
       - name: Build a source tarball
         if: ${{ matrix.python-version == '3.9' && matrix.os == 'ubuntu-latest' }}
