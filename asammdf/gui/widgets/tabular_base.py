@@ -466,7 +466,8 @@ class DataTableView(QtWidgets.QTableView):
 
     def resizeEvent(self, e: QtGui.QResizeEvent) -> None:
         super().resizeEvent(e)
-        self.dataframe_viewer.auto_size_header()
+        if e.oldSize().width() != e.size().width():
+            self.dataframe_viewer.auto_size_header()
 
 
 class HeaderModel(QtCore.QAbstractTableModel):
@@ -511,7 +512,7 @@ class HeaderModel(QtCore.QAbstractTableModel):
                 else:
                     return str(self.pgdf.df.index[row])
 
-        if role == QtCore.Qt.DecorationRole:
+        elif role == QtCore.Qt.DecorationRole:
             if self.pgdf.sort_state == "Asc":
                 icon = QtGui.QIcon(":/sort-ascending.png")
             elif self.pgdf.sort_state == "Desc":
@@ -525,6 +526,15 @@ class HeaderModel(QtCore.QAbstractTableModel):
                 and self.orientation == Qt.Horizontal
             ):
                 return icon
+
+        elif role == QtCore.Qt.TextAlignmentRole:
+            name = self.pgdf.df_unfiltered.columns[col]
+            dtype = self.pgdf.df_unfiltered[name].values.dtype
+
+            if np.issubdtype(dtype, np.integer):
+                return QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
+            else:
+                return QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
 
     # The headers of this table will show the level names of the MultiIndex
     def headerData(self, section, orientation, role=None):
@@ -941,10 +951,10 @@ class HeaderView(QtWidgets.QTableView):
             # Width of DataTableView
             width = self.table.sizeHint().width() + self.verticalHeader().width()
             # Height
-            height = 2 * self.frameWidth()  # Account for border & padding
+            # height = 2 * self.frameWidth()  # Account for border & padding
             # for i in range(self.model().rowCount()):
             #     height += self.rowHeight
-            height += 24 * self.model().rowCount()
+            height = 24 * self.model().rowCount()
 
         # Index header
         else:
@@ -1003,7 +1013,7 @@ class HeaderNamesModel(QtCore.QAbstractTableModel):
                     val = "Index"
                 return str(val)
 
-        if role == QtCore.Qt.DecorationRole:
+        elif role == QtCore.Qt.DecorationRole:
             if self.pgdf.sort_state == "Asc":
                 icon = QtGui.QIcon(":/sort-ascending.png")
             elif self.pgdf.sort_state == "Desc":
@@ -1013,6 +1023,9 @@ class HeaderNamesModel(QtCore.QAbstractTableModel):
 
             if col == self.pgdf.sorted_index_level and self.orientation == Qt.Vertical:
                 return icon
+
+        elif role == QtCore.Qt.TextAlignmentRole:
+            return QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
 
 
 class HeaderNamesView(QtWidgets.QTableView):
@@ -1073,10 +1086,10 @@ class HeaderNamesView(QtWidgets.QTableView):
     def sizeHint(self):
         if self.orientation == Qt.Horizontal:
             width = self.columnWidth(0)
-            height = self.dataframe_viewer.columnHeader.sizeHint().height()
+            height = 24
         else:  # Vertical
             width = self.dataframe_viewer.indexHeader.sizeHint().width()
-            height = self.rowHeight(0) + 2
+            height = 24
 
         return QtCore.QSize(width, height)
 
@@ -1849,7 +1862,7 @@ class DataFrameViewer(QtWidgets.QWidget):
             )
         )
         # Add items to grid layout
-        self.gridLayout.addWidget(self.corner_widget, 0, 0)
+        # self.gridLayout.addWidget(self.corner_widget, 0, 0)
         self.gridLayout.addWidget(self.columnHeader, 0, 1, 2, 2, Qt.AlignTop)
         self.gridLayout.addWidget(self.columnHeaderNames, 0, 3, 2, 1)
         self.gridLayout.addWidget(self.indexHeader, 2, 0, 2, 2, Qt.AlignLeft)
@@ -1900,6 +1913,12 @@ class DataFrameViewer(QtWidgets.QWidget):
         self.dataView.verticalHeader().setMinimumSectionSize(default_row_height)
         self.dataView.verticalHeader().setMaximumSectionSize(default_row_height)
         self.dataView.verticalHeader().sectionResizeMode(QtWidgets.QHeaderView.Fixed)
+        self.columnHeader.verticalHeader().setDefaultSectionSize(default_row_height)
+        self.columnHeader.verticalHeader().setMinimumSectionSize(default_row_height)
+        self.columnHeader.verticalHeader().setMaximumSectionSize(default_row_height)
+        self.columnHeader.verticalHeader().sectionResizeMode(
+            QtWidgets.QHeaderView.Fixed
+        )
 
         # Set column widths
         for column_index in range(self.columnHeader.model().columnCount()):
@@ -1907,6 +1926,10 @@ class DataFrameViewer(QtWidgets.QWidget):
 
         self.columnHeader.horizontalHeader().setStretchLastSection(True)
         self.columnHeaderNames.horizontalHeader().setStretchLastSection(True)
+
+        self.columnHeader.horizontalHeader().sectionResized.connect(
+            self.update_horizontal_scroll
+        )
 
         self.show()
 
@@ -1937,6 +1960,19 @@ class DataFrameViewer(QtWidgets.QWidget):
         if delta > 0:
             for i in range(self.columnHeader.model().columnCount()):
                 self.auto_size_column(i, extra_padding=delta)
+            self.dataView.horizontalScrollBar().hide()
+        else:
+            self.dataView.horizontalScrollBar().show()
+
+    def update_horizontal_scroll(self, *args):
+        s = 0
+        for i in range(self.columnHeader.model().columnCount()):
+            s += self.dataView.columnWidth(i) + self.dataView.frameWidth()
+
+        if self.dataView.viewport().size().width() < s:
+            self.dataView.horizontalScrollBar().show()
+        else:
+            self.dataView.horizontalScrollBar().hide()
 
     def auto_size_column(self, column_index, extra_padding=0):
         """
