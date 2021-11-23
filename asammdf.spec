@@ -54,6 +54,7 @@ a = Analysis(
         "canmatrix.formats",
         "canmatrix.formats.dbc",
         "canmatrix.formats.arxml",
+        "asammdf.blocks.cutils",
     ],
     hookspath=[],
     runtime_hooks=[],
