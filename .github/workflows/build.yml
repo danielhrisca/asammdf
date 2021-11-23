@@ -25,7 +25,7 @@ jobs:
 
       - name: Install packages
         run: |
-            pip install build pyinstaller==4.5.1 numpy wheel 
+            pip install build pyinstaller numpy wheel 
             pip install -r requirements_exe_build.txt
             pip install .
             pip install cmerg
@@ -38,7 +38,7 @@ jobs:
         run: python -m build --wheel
 
       - name: Build an executable
-        if: ${{ matrix.python-version == '3.9' }}
+        if: ${{ matrix.python-version == '3.8' }}
         run: pyinstaller asammdf.spec --distpath dist/${RUNNER_OS} --onefile
 
       # see: https://docs.github.com/en/actions/advanced-guides/storing-workflow-data-as-artifacts
