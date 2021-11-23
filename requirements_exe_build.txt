@@ -18,5 +18,6 @@ fastparquet
 scipy 
 hdf5storage 
 snappy 
-cChardet==2.1.5 chardet
+cChardet==2.1.5 
+chardet
 cryptography
