@@ -27,7 +27,8 @@ jobs:
         run: |
             pip install build pyinstaller numpy wheel 
             pip install -r requirements_exe_build.txt
-            pip install .
+            python setup.py bdist_wheel
+            pip install asammdf --no-index --find-links dist --no-deps
             pip install cmerg
 
       - name: Build a source tarball
