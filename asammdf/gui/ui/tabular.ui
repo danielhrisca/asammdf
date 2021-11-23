@@ -43,6 +43,9 @@
       </widget>
      </item>
      <item>
+      <widget class="QComboBox" name="float_precision"/>
+     </item>
+     <item>
       <widget class="QCheckBox" name="time_as_date">
        <property name="text">
         <string>Time as date</string>

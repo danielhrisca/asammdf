@@ -283,6 +283,7 @@ class DataTableModel(QtCore.QAbstractTableModel):
         self.dataframe_viewer = parent
         self.pgdf = parent.pgdf
         self.format = "phys"
+        self.float_precision = -1
         self.background_color = background_color
         self.font_color = font_color
 
@@ -320,8 +321,11 @@ class DataTableModel(QtCore.QAbstractTableModel):
             # Float formatting
             if isinstance(cell, (float, np.floating)):
                 if role == QtCore.Qt.DisplayRole:
-                    # return str(round(cell, 3))
-                    return str(cell)
+                    if self.float_precision != -1:
+                        template = f"{{:.{self.float_precision}f}}"
+                        return template.format(cell)
+                    else:
+                        return str(cell)
 
             if isinstance(cell, (int, np.integer)):
                 if role == QtCore.Qt.DisplayRole:
@@ -374,10 +378,15 @@ class DataTableModel(QtCore.QAbstractTableModel):
             return new_font_color if new_font_color != self.font_color else None
 
         elif role == QtCore.Qt.TextAlignmentRole:
-            if isinstance(cell, (float, np.floating, str)):
+            if isinstance(cell, str):
                 return QtCore.Qt.AlignLeft
             else:
-                return QtCore.Qt.AlignRight
+                if self.float_precision == -1 and isinstance(
+                    cell, (float, np.floating)
+                ):
+                    return QtCore.Qt.AlignLeft
+                else:
+                    return QtCore.Qt.AlignRight
 
     def flags(self, index):
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
@@ -1311,9 +1320,19 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         self.toggle_filters_btn.clicked.connect(self.toggle_filters)
         self.filters_group.setHidden(True)
 
+        self.float_precision.addItems(
+            ["Full float precision"] + [f"{i} float decimals" for i in range(16)]
+        )
+        self.float_precision.setCurrentIndex(0)
+        self.float_precision.currentIndexChanged.connect(self.float_precision_changed)
+
         self._timestamps = None
 
         self.tree.auto_size_header()
+
+    def float_precision_changed(self, index):
+        self.tree.dataView.model().float_precision = index - 1
+        self.tree.pgdf.data_changed()
 
     def current_changed(self, current, previous):
         if current.isValid():
@@ -2091,6 +2110,14 @@ class DataFrameViewer(QtWidgets.QWidget):
                 col = df[name]
                 if isinstance(col.values[0], np.integer):
                     col = pd.Series([fmt.format(val) for val in col], index=df.index)
+                    df[name] = col
+
+        if self.dataView.model().float_precision != -1:
+            decimals = self.dataView.model().float_precision
+            for name in df.columns:
+                col = df[name]
+                if isinstance(col.values[0], np.floating):
+                    col = col.round(decimals)
                     df[name] = col
 
         # If I try to use df.to_clipboard without starting new thread, large selections give access denied error
