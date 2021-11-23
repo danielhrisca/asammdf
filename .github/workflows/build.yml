@@ -24,7 +24,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install packages
-        run: pip install build pyinstaller
+        run: pip install build pyinstaller==4.5.1
 
       - name: Build a source tarball
         if: ${{ matrix.python-version == '3.9' && matrix.os == 'ubuntu-latest' }}
