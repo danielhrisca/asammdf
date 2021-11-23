@@ -23,19 +23,13 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
         self.setEditTriggers(QtWidgets.QAbstractItemView.DoubleClicked)
 
         self.header().sortIndicatorChanged.connect(self.handle_sorting_changed)
+        self.itemDoubleClicked.connect(self.handle_item_double_click)
 
-        self._handles_double_click = False
+        self._handles_double_click = True
         self.set_double_clicked_enabled(True)
 
     def set_double_clicked_enabled(self, state):
-        if state:
-            if not self._handles_double_click:
-                self.itemDoubleClicked.connect(self.handle_item_double_click)
-                self._handles_double_click = True
-        else:
-            if self._handles_double_click:
-                self.itemDoubleClicked.disconnect(self.handle_item_double_click)
-                self._handles_double_click = False
+        self._handles_double_click = bool(state)
 
     def keyPressEvent(self, event):
         key = event.key()
@@ -114,16 +108,17 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
                 super().dropEvent(e)
 
     def handle_item_double_click(self, item, column):
-        dlg = RangeEditor(
-            item.name,
-            ranges=item.ranges,
-            parent=self,
-            brush=True,
-        )
-        dlg.exec_()
-        if dlg.pressed_button == "apply":
-            item.ranges = dlg.result
-            item.check_signal_range()
+        if self._handles_double_click:
+            dlg = RangeEditor(
+                item.name,
+                ranges=item.ranges,
+                parent=self,
+                brush=True,
+            )
+            dlg.exec_()
+            if dlg.pressed_button == "apply":
+                item.ranges = dlg.result
+                item.check_signal_range()
 
     def handle_sorting_changed(self, index, order):
         iterator = QtWidgets.QTreeWidgetItemIterator(self)
