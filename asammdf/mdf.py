@@ -1906,7 +1906,7 @@ class MDF:
         raster: float | None = ...,
         samples_only: Literal[False] = ...,
         raw: bool = ...,
-    ) -> Signal:
+    ) -> Iterator[Signal]:
         ...
 
     @overload
@@ -1918,7 +1918,7 @@ class MDF:
         raster: float | None = ...,
         samples_only: Literal[True] = ...,
         raw: bool = ...,
-    ) -> tuple[NDArray[Any], NDArray[Any] | None]:
+    ) -> Iterator[tuple[NDArray[Any], NDArray[Any] | None]]:
         ...
 
     def iter_get(
@@ -1929,7 +1929,7 @@ class MDF:
         raster: float | None = None,
         samples_only: bool = False,
         raw: bool = False,
-    ) -> Signal | tuple[NDArray[Any], NDArray[Any] | None]:
+    ) -> Iterator[Signal] | Iterator[tuple[NDArray[Any], NDArray[Any] | None]]:
         """iterator over a channel
 
         This is usefull in case of large files with a small number of channels.
@@ -2525,7 +2525,7 @@ class MDF:
         raw: bool = False,
         ignore_value2text_conversions: bool = False,
         only_basenames: bool = False,
-    ) -> pd.DataFrame:
+    ) -> Iterator[pd.DataFrame]:
         """generator that yields channel groups as pandas DataFrames. If there
         are multiple occurrences for the same channel name inside a channel
         group, then a counter will be used to make the names unique
