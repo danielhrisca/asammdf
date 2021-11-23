@@ -10,7 +10,7 @@ lxml
 natsort 
 psutil 
 PyQt5>=5.13.1 
-pyqtgraph==0.12.3 
+pyqtgraph==0.12.1
 PyQtWebEngine 
 pyqtlet 
 h5py 
