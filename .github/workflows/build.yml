@@ -25,7 +25,7 @@ jobs:
 
       - name: Install packages
         run: |
-            pip install build pyinstaller numpy wheel 
+            pip install build pyinstaller==4.6 numpy wheel 
             pip install -r requirements_exe_build.txt
             pip install .
             pip install cmerg
