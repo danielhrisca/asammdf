@@ -502,7 +502,7 @@ class HeaderModel(QtCore.QAbstractTableModel):
         row = index.row()
         col = index.column()
 
-        if role == QtCore.Qt.DisplayRole or role == QtCore.Qt.ToolTipRole:
+        if role == QtCore.Qt.DisplayRole:
 
             if self.orientation == Qt.Horizontal:
 
@@ -537,13 +537,22 @@ class HeaderModel(QtCore.QAbstractTableModel):
                 return icon
 
         elif role == QtCore.Qt.TextAlignmentRole:
-            name = self.pgdf.df_unfiltered.columns[col]
-            dtype = self.pgdf.df_unfiltered[name].values.dtype
+            if self.orientation == Qt.Horizontal:
+                name = self.pgdf.df_unfiltered.columns[col]
+                dtype = self.pgdf.df_unfiltered[name].values.dtype
 
-            if np.issubdtype(dtype, np.integer):
-                return QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
+                float_precision = (
+                    self.pgdf.dataframe_viewer.dataView.model().float_precision
+                )
+
+                if np.issubdtype(dtype, np.integer):
+                    return QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
+                elif float_precision != -1 and np.issubdtype(dtype, np.floating):
+                    return QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
+                else:
+                    return QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
             else:
-                return QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
+                return QtCore.Qt.AlignRight  # | QtCore.Qt.AlignVCenter
 
     # The headers of this table will show the level names of the MultiIndex
     def headerData(self, section, orientation, role=None):
@@ -1006,7 +1015,7 @@ class HeaderNamesModel(QtCore.QAbstractTableModel):
         row = index.row()
         col = index.column()
 
-        if role == QtCore.Qt.DisplayRole or role == QtCore.Qt.ToolTipRole:
+        if role == QtCore.Qt.DisplayRole:
 
             if self.orientation == Qt.Horizontal:
                 val = self.pgdf.df.columns.names[row]
@@ -1034,7 +1043,7 @@ class HeaderNamesModel(QtCore.QAbstractTableModel):
                 return icon
 
         elif role == QtCore.Qt.TextAlignmentRole:
-            return QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
+            return QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
 
 
 class HeaderNamesView(QtWidgets.QTableView):
@@ -1340,7 +1349,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             self._filtered_ts_series = self._original_ts_series.reindex(
                 self.tree.pgdf.df.index
             )
-            ts = float(self._filtered_ts_series[row])
+            ts = float(self._filtered_ts_series.iloc[row])
             self.timestamp_changed_signal.emit(self, ts)
 
     def toggle_filters(self, event=None):
@@ -1924,6 +1933,12 @@ class DataFrameViewer(QtWidgets.QWidget):
 
         # Default row height
         default_row_height = 24
+        self.indexHeaderNames.verticalHeader().setDefaultSectionSize(default_row_height)
+        self.indexHeaderNames.verticalHeader().setMinimumSectionSize(default_row_height)
+        self.indexHeaderNames.verticalHeader().setMaximumSectionSize(default_row_height)
+        self.indexHeaderNames.verticalHeader().sectionResizeMode(
+            QtWidgets.QHeaderView.Fixed
+        )
         self.indexHeader.verticalHeader().setDefaultSectionSize(default_row_height)
         self.indexHeader.verticalHeader().setMinimumSectionSize(default_row_height)
         self.indexHeader.verticalHeader().setMaximumSectionSize(default_row_height)
@@ -2067,11 +2082,6 @@ class DataFrameViewer(QtWidgets.QWidget):
         Copy the selected cells to clipboard in an Excel-pasteable format
         """
         # Get the bounds using the top left and bottom right selected cells
-
-        print(
-            self.dataView.horizontalScrollBar().minimum(),
-            self.dataView.horizontalScrollBar().maximum(),
-        )
 
         fmt = self.dataView.model().format
 
