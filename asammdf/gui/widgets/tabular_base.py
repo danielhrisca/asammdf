@@ -2065,7 +2065,9 @@ class DataFrameViewer(QtWidgets.QWidget):
         width += padding + extra_padding
 
         self.columnHeader.setColumnWidth(column_index, width)
-        self.dataView.setColumnWidth(column_index, self.columnHeader.columnWidth(column_index))
+        self.dataView.setColumnWidth(
+            column_index, self.columnHeader.columnWidth(column_index)
+        )
 
         self.dataView.updateGeometry()
         self.columnHeader.updateGeometry()
