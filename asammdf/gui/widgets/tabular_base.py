@@ -30,6 +30,7 @@
 from copy import deepcopy
 import datetime
 import logging
+import sys
 import threading
 from traceback import format_exc
 
@@ -55,6 +56,9 @@ from .tabular_filter import TabularFilter
 
 logger = logging.getLogger("asammdf.gui")
 LOCAL_TIMEZONE = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
+
+
+MONOSPACE_FONT = None
 
 
 class TabularTreeItem(QtWidgets.QTreeWidgetItem):
@@ -379,14 +383,14 @@ class DataTableModel(QtCore.QAbstractTableModel):
 
         elif role == QtCore.Qt.TextAlignmentRole:
             if isinstance(cell, str):
-                return QtCore.Qt.AlignLeft
+                return QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
             else:
                 if self.float_precision == -1 and isinstance(
                     cell, (float, np.floating)
                 ):
-                    return QtCore.Qt.AlignLeft
+                    return QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
                 else:
-                    return QtCore.Qt.AlignRight
+                    return QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
 
     def flags(self, index):
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
@@ -425,7 +429,7 @@ class DataTableView(QtWidgets.QTableView):
         self.setHorizontalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
         self.setVerticalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
 
-        self.setFont(QtGui.QFont("Courier"))
+        self.setFont(QtGui.QFont(MONOSPACE_FONT))
 
     def on_selectionChanged(self):
         """
@@ -552,7 +556,7 @@ class HeaderModel(QtCore.QAbstractTableModel):
                 else:
                     return QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
             else:
-                return QtCore.Qt.AlignRight  # | QtCore.Qt.AlignVCenter
+                return QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
 
     # The headers of this table will show the level names of the MultiIndex
     def headerData(self, section, orientation, role=None):
@@ -624,6 +628,9 @@ class HeaderView(QtWidgets.QTableView):
             self.horizontalHeader().setSectionResizeMode(
                 QtWidgets.QHeaderView.ResizeMode.Stretch
             )
+            font = QtGui.QFont(MONOSPACE_FONT)
+            font.setBold(True)
+            self.setFont(font)
 
         # Set initial size
         self.resize(self.sizeHint())
@@ -1831,6 +1838,24 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
 class DataFrameViewer(QtWidgets.QWidget):
     def __init__(self, pgdf):
         super().__init__()
+
+        global MONOSPACE_FONT
+
+        if MONOSPACE_FONT is None:
+
+            families = QtGui.QFontDatabase().families()
+            for family in (
+                "Consolas",
+                "Liberation Mono",
+                "Droid Mono",
+                "Liveration Mono",
+                "Roboto Mono",
+                "Monaco",
+                "Courier",
+            ):
+                if family in families:
+                    MONOSPACE_FONT = family
+                    break
 
         pgdf.dataframe_viewer = self
         self.pgdf = pgdf

@@ -1,14 +1,38 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtWidgets
+from PyQt5 import QtGui, QtWidgets
 
 from ..ui import resource_rc as resource_rc
 from ..ui.channel_stats import Ui_ChannelStats
+
+MONOSPACE_FONT = None
 
 
 class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
     def __init__(self, xunit="s", *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
+
+        global MONOSPACE_FONT
+
+        if MONOSPACE_FONT is None:
+
+            families = QtGui.QFontDatabase().families()
+            for family in (
+                "Consolas",
+                "Liberation Mono",
+                "Droid Mono",
+                "Liveration Mono",
+                "Roboto Mono",
+                "Monaco",
+                "Courier",
+            ):
+                if family in families:
+                    MONOSPACE_FONT = family
+                    break
+
+        font = QtGui.QFont(MONOSPACE_FONT)
+        self.setFont(font)
+
         self.xunit = xunit.strip()
         self.color = "#000000"
         self.fmt = "phys"

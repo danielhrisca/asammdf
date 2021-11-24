@@ -8,6 +8,10 @@ from pathlib import Path
 from time import perf_counter, sleep
 from traceback import format_exc
 
+import numpy as np
+from PyQt5 import QtCore, QtGui, QtWidgets
+import pyqtgraph as pg
+
 # imports for pyinstaller
 import pyqtgraph.canvas.CanvasTemplate_pyqt5
 import pyqtgraph.canvas.TransformGuiTemplate_pyqt5
@@ -16,11 +20,6 @@ import pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyqt5
 import pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5
 import pyqtgraph.GraphicsScene.exportDialogTemplate_pyqt5
 import pyqtgraph.imageview.ImageViewTemplate_pyqt5
-
-
-import numpy as np
-from PyQt5 import QtCore, QtGui, QtWidgets
-import pyqtgraph as pg
 
 try:
     from ...blocks.cutils import positions
