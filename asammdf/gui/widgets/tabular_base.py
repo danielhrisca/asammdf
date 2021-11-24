@@ -1847,8 +1847,9 @@ class DataFrameViewer(QtWidgets.QWidget):
             for family in (
                 "Consolas",
                 "Liberation Mono",
-                "Droid Mono",
-                "Liveration Mono",
+                "DejaVu Sans Mono",
+                "Droid Sans Mono",
+                "Liberation Mono",
                 "Roboto Mono",
                 "Monaco",
                 "Courier",
