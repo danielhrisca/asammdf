@@ -1497,6 +1497,9 @@ class WithMDIArea:
 
                 dfs.append(df)
 
+            if not dfs:
+                return
+
             signals = pd.concat(dfs, axis=1)
             start = min(start)
 
