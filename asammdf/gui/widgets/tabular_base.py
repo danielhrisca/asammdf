@@ -1991,6 +1991,9 @@ class DataFrameViewer(QtWidgets.QWidget):
             self.update_horizontal_scroll
         )
 
+        self.columnHeader.horizontalHeader().setMinimumSectionSize(1)
+        self.dataView.horizontalHeader().setMinimumSectionSize(1)
+
         self.show()
 
     def set_styles(self):
@@ -2062,7 +2065,9 @@ class DataFrameViewer(QtWidgets.QWidget):
         width += padding + extra_padding
 
         self.columnHeader.setColumnWidth(column_index, width)
-        self.dataView.setColumnWidth(column_index, width)
+        self.dataView.setColumnWidth(
+            column_index, self.columnHeader.columnWidth(column_index)
+        )
 
         self.dataView.updateGeometry()
         self.columnHeader.updateGeometry()
