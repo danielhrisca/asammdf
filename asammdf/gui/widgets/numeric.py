@@ -611,12 +611,13 @@ class TableView(QtWidgets.QTableView):
         mimeData = QtCore.QMimeData()
 
         data = []
+        numeric_mode = self.backend.numeric.mode
 
         for row in sorted(set(selected_items)):
 
             signal = self.backend.signals[row]
 
-            entry = signal.entry
+            entry = signal.entry if numeric_mode == "online" else signal.signal.entry
 
             if entry == (-1, -1):
                 info = {
@@ -626,7 +627,7 @@ class TableView(QtWidgets.QTableView):
             else:
                 info = signal.name
 
-            ranges = copy_ranges(self.ranges[entry])
+            ranges = copy_ranges(self.ranges[signal.entry])
 
             for range_info in ranges:
                 range_info["font_color"] = range_info["font_color"].color().name()
@@ -638,7 +639,9 @@ class TableView(QtWidgets.QTableView):
                 (
                     info,
                     *entry,
-                    str(entry[0]),
+                    str(entry[0])
+                    if numeric_mode == "online"
+                    else signal.signal.mdf_uuid,
                     "channel",
                     ranges,
                 )
@@ -906,6 +909,7 @@ class NumericViewer(QtWidgets.QWidget):
         )
 
         self.gridLayout.setColumnStretch(0, 1)
+        self.gridLayout.setRowStretch(1, 1)
 
         self.set_styles()
 
@@ -1105,7 +1109,7 @@ class Numeric(QtWidgets.QWidget):
             self.backward.clicked.connect(self.search_backward)
             self.op.addItems([">", ">=", "<", "<=", "==", "!="])
 
-    def add_new_channels(self, channels, mime=None):
+    def add_new_channels(self, channels, mime_data=None):
 
         if self.mode == "online":
             others = []
@@ -1131,7 +1135,7 @@ class Numeric(QtWidgets.QWidget):
                     sig.computed = False
                     sig.computation = None
                     sig = PlotSignal(sig)
-                    sig.entry = os.urandom(6).hex(), sig.name
+                    sig.entry = sig.group_index, sig.channel_index
 
                     others.append(
                         SignalOffline(
