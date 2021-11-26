@@ -2,8 +2,6 @@
 import argparse
 import sys
 
-sys.path.append(r'd:\DSUsers\uidn3651\02__PythonWorkspace\asammdf')
-
 from PyQt5 import QtWidgets
 import pyqtgraph
 
