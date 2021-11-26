@@ -13,116 +13,46 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,1,0,0">
+  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0">
    <item>
-    <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,0,1">
+    <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,0">
      <item row="0" column="0">
-      <widget class="QLabel" name="label_4">
-       <property name="text">
-        <string>Samples mode</string>
-       </property>
-      </widget>
-     </item>
-     <item row="1" column="0">
-      <widget class="QComboBox" name="mode_selection">
-       <property name="currentIndex">
-        <number>1</number>
-       </property>
-       <item>
-        <property name="text">
-         <string>raw values</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>scaled values</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-     <item row="0" column="1">
       <widget class="QLabel" name="label_5">
        <property name="text">
         <string>Integer format</string>
        </property>
       </widget>
      </item>
-     <item row="1" column="1">
-      <widget class="QComboBox" name="format_selection">
-       <item>
-        <property name="text">
-         <string>phys</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>hex</string>
-        </property>
-       </item>
-       <item>
-        <property name="text">
-         <string>bin</string>
-        </property>
-       </item>
-      </widget>
-     </item>
-     <item row="0" column="2">
+     <item row="0" column="1">
       <widget class="QLabel" name="label_6">
        <property name="text">
         <string>Float precision</string>
        </property>
       </widget>
      </item>
-     <item row="1" column="2">
-      <widget class="QSpinBox" name="float_precision">
-       <property name="suffix">
-        <string> decimals</string>
-       </property>
-       <property name="prefix">
-        <string/>
-       </property>
-       <property name="maximum">
-        <number>15</number>
-       </property>
-       <property name="value">
-        <number>3</number>
-       </property>
+     <item row="1" column="0">
+      <widget class="QComboBox" name="format_selection">
+       <item>
+        <property name="text">
+         <string>Physical</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Hex</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Binary</string>
+        </property>
+       </item>
       </widget>
      </item>
+     <item row="1" column="1">
+      <widget class="QComboBox" name="float_precision"/>
+     </item>
     </layout>
-   </item>
-   <item>
-    <widget class="NumericTreeWidget" name="channels">
-     <property name="font">
-      <font>
-       <family>Lucida Console</family>
-      </font>
-     </property>
-     <property name="dragDropMode">
-      <enum>QAbstractItemView::InternalMove</enum>
-     </property>
-     <property name="alternatingRowColors">
-      <bool>true</bool>
-     </property>
-     <property name="columnCount">
-      <number>3</number>
-     </property>
-     <column>
-      <property name="text">
-       <string>Name</string>
-      </property>
-     </column>
-     <column>
-      <property name="text">
-       <string>Value</string>
-      </property>
-     </column>
-     <column>
-      <property name="text">
-       <string>Unit</string>
-      </property>
-     </column>
-    </widget>
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,1,0">
@@ -182,15 +112,15 @@
      <property name="title">
       <string>Search for values</string>
      </property>
-     <layout class="QGridLayout" name="gridLayout" columnstretch="1,0,0">
-      <item row="0" column="0">
+     <layout class="QGridLayout" name="gridLayout" columnstretch="0,1,0,0">
+      <item row="0" column="1">
        <widget class="QLineEdit" name="pattern_match">
         <property name="placeholderText">
          <string>pattern</string>
         </property>
        </widget>
       </item>
-      <item row="0" column="1">
+      <item row="0" column="2">
        <widget class="QComboBox" name="op">
         <item>
          <property name="text">
@@ -224,21 +154,14 @@
         </item>
        </widget>
       </item>
-      <item row="0" column="2">
+      <item row="0" column="3">
        <widget class="QLineEdit" name="target">
         <property name="placeholderText">
          <string>target value</string>
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="match">
-        <property name="text">
-         <string/>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="2">
+      <item row="1" column="3">
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
          <widget class="QPushButton" name="backward">
@@ -277,18 +200,32 @@
         </item>
        </layout>
       </item>
+      <item row="0" column="0">
+       <widget class="QComboBox" name="match_mode">
+        <item>
+         <property name="text">
+          <string>Raw</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Scaled</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="1" column="0" colspan="2">
+       <widget class="QLabel" name="match">
+        <property name="text">
+         <string/>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
   </layout>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>NumericTreeWidget</class>
-   <extends>QTreeWidget</extends>
-   <header>asammdf/gui/widgets/tree_numeric.h</header>
-  </customwidget>
- </customwidgets>
  <tabstops>
   <tabstop>timestamp</tabstop>
   <tabstop>pattern_match</tabstop>
@@ -296,7 +233,6 @@
   <tabstop>target</tabstop>
   <tabstop>backward</tabstop>
   <tabstop>forward</tabstop>
-  <tabstop>channels</tabstop>
  </tabstops>
  <resources>
   <include location="resource.qrc"/>

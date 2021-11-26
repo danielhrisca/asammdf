@@ -1681,7 +1681,7 @@ class WithMDIArea:
             signals = natsorted(signals, key=lambda x: x.name)
 
         if window_type == "Numeric":
-            numeric = Numeric([], parent=self)
+            numeric = Numeric([], parent=self, mode="offline")
 
             numeric.show()
             numeric.hide()
@@ -2140,9 +2140,9 @@ class WithMDIArea:
             numeric = Numeric(
                 [],
                 format=window_info["configuration"]["format"],
-                mode=window_info["configuration"].get("mode", "scaled values"),
                 float_precision=window_info["configuration"].get("float_precision", 3),
                 parent=self,
+                mode="offline",
             )
             numeric.pattern = pattern_info
 
@@ -2194,10 +2194,9 @@ class WithMDIArea:
                     [(i, width) for i, width in enumerate(sections_width)]
                 )
                 for i, width in sections_width:
-                    numeric.channels.header().resizeSection(i, width)
-                scroll = numeric.channels.horizontalScrollBar()
-                if scroll:
-                    scroll.setValue(scroll.minimum())
+                    numeric.channels.columnHeader.horizontalHeader().resizeSection(
+                        i, width
+                    )
 
         elif window_info["type"] == "GPS":
             signals_ = [

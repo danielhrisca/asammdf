@@ -355,7 +355,15 @@ def from_dict(conversion: dict[str, Any]) -> v4b.ChannelConversion:
             val = conversion[f"text_{nr}"]
             if isinstance(val, str):
                 conversion[f"text_{nr}"] = val.encode("utf-8")
+            elif isinstance(val, dict):
+                conversion[f"text_{nr}"] = from_dict(val)
             nr += 1
+
+        val = conversion.get("default_addr", b"")
+        if isinstance(val, str):
+            conversion[f"default_addr"] = val.encode("utf-8")
+        elif isinstance(val, dict):
+            conversion[f"default_addr"] = from_dict(val)
 
         conversion["ref_param_nr"] = nr + 1
         conversion = v4b.ChannelConversion(**conversion)
@@ -367,8 +375,17 @@ def from_dict(conversion: dict[str, Any]) -> v4b.ChannelConversion:
             val = conversion[f"text_{nr}"]
             if isinstance(val, str):
                 conversion[f"text_{nr}"] = val.encode("utf-8")
+            elif isinstance(val, dict):
+                conversion[f"text_{nr}"] = from_dict(val)
             nr += 1
+
         conversion["ref_param_nr"] = nr + 1
+
+        val = conversion.get("default_addr", b"")
+        if isinstance(val, str):
+            conversion[f"default_addr"] = val.encode("utf-8")
+        elif isinstance(val, dict):
+            conversion[f"default_addr"] = from_dict(val)
         conversion = v4b.ChannelConversion(**conversion)
 
     else:

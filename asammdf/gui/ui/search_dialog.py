@@ -155,7 +155,7 @@ class Ui_SearchDialog(object):
         self.match_kind.setItemText(0, _translate("SearchDialog", "Wildcard"))
         self.match_kind.setItemText(1, _translate("SearchDialog", "Regex"))
         self.label.setText(_translate("SearchDialog", "Final selection"))
-        self.matches.setSortingEnabled(True)
+        self.matches.setSortingEnabled(False)
         self.cancel_btn.setText(_translate("SearchDialog", "Cancel"))
         self.apply_btn.setText(_translate("SearchDialog", "Apply"))
         self.add_window_btn.setText(_translate("SearchDialog", "Add window"))
