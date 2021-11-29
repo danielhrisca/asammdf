@@ -1959,9 +1959,15 @@ class Plot(QtWidgets.QWidget):
                     channel["name"] = sig.name
                     channel["unit"] = sig.unit
                     channel["enabled"] = item.checkState(0) == QtCore.Qt.Checked
-                    channel["individual_axis"] = (
-                        widget.individual_axis.checkState() == QtCore.Qt.Checked
-                    )
+
+                    if widget.individual_axis.checkState() == QtCore.Qt.Checked:
+                        channel["individual_axis"] = True
+                        channel["individual_axis_width"] = (
+                            self.plot.axes[idx].boundingRect().width()
+                        )
+                    else:
+                        channel["individual_axis"] = False
+
                     channel["common_axis"] = (
                         widget.ylink.checkState() == QtCore.Qt.Checked
                     )
@@ -2058,6 +2064,7 @@ class Plot(QtWidgets.QWidget):
                 0,
             ],
             "x_range": [float(e) for e in self.plot.viewbox.viewRange()[0]],
+            "y_axis_width": self.plot.y_axis.boundingRect().width(),
             "grid": [
                 self.plot.plotItem.ctrl.xGridCheck.isChecked(),
                 self.plot.plotItem.ctrl.yGridCheck.isChecked(),

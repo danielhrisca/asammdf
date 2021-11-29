@@ -2627,6 +2627,14 @@ class WithMDIArea:
                             if description["common_axis"]
                             else QtCore.Qt.Unchecked
                         )
+                        wid.individual_axis.setCheckState(
+                            QtCore.Qt.Checked
+                            if description.get("individual_axis", False)
+                            else QtCore.Qt.Unchecked
+                        )
+                        width = description.get("individual_axis_width", 0)
+                        if width:
+                            plot.plot.axes[_idx].setWidth(width)
                         item.setCheckState(
                             0,
                             QtCore.Qt.Checked
@@ -2646,6 +2654,9 @@ class WithMDIArea:
 
             if "splitter" in window_info["configuration"]:
                 plot.splitter.setSizes(window_info["configuration"]["splitter"])
+
+            if "y_axis_width" in window_info["configuration"]:
+                plot.plot.y_axis.setWidth(window_info["configuration"]["y_axis_width"])
 
             if "grid" in window_info["configuration"]:
                 x_grid, y_grid = window_info["configuration"]["grid"]

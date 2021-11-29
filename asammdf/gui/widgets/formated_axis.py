@@ -11,6 +11,7 @@ LOCAL_TIMEZONE = datetime.now(timezone.utc).astimezone().tzinfo
 import numpy as np
 import pandas as pd
 import pyqtgraph as pg
+import pyqtgraph.functions as fn
 from pyqtgraph.graphicsItems.ButtonItem import ButtonItem
 
 
@@ -42,6 +43,8 @@ class FormatedAxis(pg.AxisItem):
             if self.scene() is not None:
                 self.scene().addItem(self.plus)
                 self.scene().addItem(self.minus)
+
+        self.setPen(self._pen)
 
     def increase_width(self):
         width = self.width() + 10
@@ -197,3 +200,25 @@ class FormatedAxis(pg.AxisItem):
         self.minus = None
 
         super().close()
+
+    def setPen(self, pen=None):
+        pen = fn.mkPen(pen)
+        color = pen.color()
+
+        if self.plus is not None:
+            img = self.plus.pixmap.toImage()
+            for i in range(img.height()):
+                for j in range(img.width()):
+                    if img.pixelColor(i, j).alpha() != 0:
+                        img.setPixelColor(i, j, color)
+            self.plus.setPixmap(QtGui.QPixmap.fromImage(img))
+
+        if self.minus is not None:
+            img = self.minus.pixmap.toImage()
+            for i in range(img.height()):
+                for j in range(img.width()):
+                    if img.pixelColor(i, j).alpha() != 0:
+                        img.setPixelColor(i, j, color)
+            self.minus.setPixmap(QtGui.QPixmap.fromImage(img))
+
+        super().setPen(pen)
