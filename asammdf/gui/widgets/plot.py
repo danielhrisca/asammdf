@@ -2230,9 +2230,14 @@ class _Plot(pg.PlotWidget):
         self.scene_.sigMouseClicked.connect(self._clicked)
         self.viewbox = self.plot_item.vb
 
+        self.viewbox.menu.removeAction(self.viewbox.menu.viewAll)
+        for ax in self.viewbox.menu.axes:
+            self.viewbox.menu.removeAction(ax.menuAction())
+        self.plot_item.setMenuEnabled(False, None)
+
         self.common_axis_items = set()
         self.common_axis_label = ""
-        self.common_viewbox = pg.ViewBox(enableMenu=True)
+        self.common_viewbox = pg.ViewBox(enableMenu=False)
         self.scene_.addItem(self.common_viewbox)
         self.common_viewbox.setXLink(self.viewbox)
 
@@ -2255,6 +2260,7 @@ class _Plot(pg.PlotWidget):
         axis = self.layout.itemAt(2, 0)
         axis.setParent(None)
         self.y_axis = FormatedAxis("left")
+        self.y_axis.setWidth(48)
         self.layout.removeItem(axis)
         self.layout.addItem(self.y_axis, 2, 0)
         self.y_axis.linkToView(axis.linkedView())
@@ -3157,28 +3163,36 @@ class _Plot(pg.PlotWidget):
             axis.update()
 
         self.current_uuid = uuid
-        axis.setWidth()
+        # axis.setWidth()
 
     def _clicked(self, event):
         modifiers = QtWidgets.QApplication.keyboardModifiers()
 
+        pos = self.plot_item.vb.mapSceneToView(event.scenePos()).x()
+        start, stop = self.viewbox.viewRange()[0]
+        if not start <= pos <= stop:
+            return
+
         if (QtCore.Qt.Key_C, QtCore.Qt.NoModifier) not in self.disabled_keys:
 
             if self.region is None:
-                pos = self.plot_item.vb.mapSceneToView(event.scenePos())
+                if event.button() == QtCore.Qt.MouseButton.LeftButton:
+                    pos = self.plot_item.vb.mapSceneToView(event.scenePos())
 
-                if self.cursor1 is not None:
-                    self.plotItem.removeItem(self.cursor1)
-                    self.cursor1.setParent(None)
-                    self.cursor1 = None
+                    if self.cursor1 is not None:
+                        self.plotItem.removeItem(self.cursor1)
+                        self.cursor1.setParent(None)
+                        self.cursor1 = None
 
-                self.cursor1 = Cursor(self.cursor_unit, pos=pos, angle=90, movable=True)
-                self.plotItem.addItem(self.cursor1, ignoreBounds=True)
-                self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
-                self.cursor1.sigPositionChangeFinished.connect(
-                    self.cursor_move_finished.emit
-                )
-                self.cursor_move_finished.emit()
+                    self.cursor1 = Cursor(
+                        self.cursor_unit, pos=pos, angle=90, movable=True
+                    )
+                    self.plotItem.addItem(self.cursor1, ignoreBounds=True)
+                    self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
+                    self.cursor1.sigPositionChangeFinished.connect(
+                        self.cursor_move_finished.emit
+                    )
+                    self.cursor_move_finished.emit()
 
             else:
                 pos = self.plot_item.vb.mapSceneToView(event.scenePos())
@@ -3232,7 +3246,7 @@ class _Plot(pg.PlotWidget):
             color = sig.color
 
             axis = FormatedAxis(
-                "right",
+                "left",  # "right",
                 pen=color,
                 textPen=color,
                 text=sig.name if len(sig.name) <= 32 else "{sig.name[:29]}...",

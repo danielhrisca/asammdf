@@ -579,11 +579,6 @@ class TableView(QtWidgets.QTableView):
 
         return QtCore.QSize(width, height)
 
-    def resizeEvent(self, e: QtGui.QResizeEvent):
-        super().resizeEvent(e)
-        if e.oldSize().width() != e.size().width():
-            self.numeric_viewer.auto_size_header()
-
     def keyPressEvent(self, event):
 
         if (
@@ -765,6 +760,9 @@ class HeaderView(QtWidgets.QTableView):
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
 
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.show_menu)
+
         self.resize(self.sizeHint())
 
     def showEvent(self, a0: QtGui.QShowEvent) -> None:
@@ -779,6 +777,25 @@ class HeaderView(QtWidgets.QTableView):
             self.backend.sort_column(col)
         else:
             super().mouseDoubleClickEvent(event)
+
+    def show_menu(self, position):
+
+        count = len(self.backend)
+
+        menu = QtWidgets.QMenu()
+        menu.addAction(self.tr(f"{count} rows in the numeric window"))
+        menu.addSeparator()
+
+        menu.addAction(self.tr(f"Automatic set columns width"))
+
+        action = menu.exec_(self.viewport().mapToGlobal(position))
+
+        if action is None:
+            return
+
+        if action.text() == "Automatic set columns width":
+
+            self.numeric_viewer.auto_size_header()
 
     def eventFilter(self, object: QtCore.QObject, event: QtCore.QEvent):
         if event.type() in [

@@ -1079,12 +1079,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             iterator += 1
 
     def refresh(self):
-        top_level_items = self.topLevelItemCount()
-        for i in range(top_level_items):
-            item = self.topLevelItem(i)
-            if not item.isHidden():
-                item.setHidden(True)
-                item.setHidden(False)
+        self.updateGeometry()
         self.update_visibility_status()
 
     def update_visibility_status(self, *args):

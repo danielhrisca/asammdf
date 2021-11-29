@@ -1,17 +1,23 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime, timedelta, timezone
+import sys
 from textwrap import wrap
+
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 LOCAL_TIMEZONE = datetime.now(timezone.utc).astimezone().tzinfo
 
 import numpy as np
 import pandas as pd
 import pyqtgraph as pg
+from pyqtgraph.graphicsItems.ButtonItem import ButtonItem
 
 
 class FormatedAxis(pg.AxisItem):
     def __init__(self, *args, **kwargs):
+
+        self.plus = self.minus = None
 
         super().__init__(*args, **kwargs)
 
@@ -19,6 +25,36 @@ class FormatedAxis(pg.AxisItem):
         self.mode = "phys"
         self.text_conversion = None
         self.origin = None
+
+        self.setStyle(autoExpandTextSpace=False, autoReduceTextSpace=False)
+        self.adjuster = None
+
+        self.geometryChanged.connect(self.handle_geometry_changed)
+
+        if self.orientation in ("left", "right"):
+
+            self.plus = ButtonItem(":/plus.png", 12, parentItem=self)
+            self.minus = ButtonItem(":/minus.png", 12, parentItem=self)
+
+            self.plus.clicked.connect(self.increase_width)
+            self.minus.clicked.connect(self.decrease_width)
+
+            if self.scene() is not None:
+                self.scene().addItem(self.plus)
+                self.scene().addItem(self.minus)
+
+    def increase_width(self):
+        width = self.width() + 10
+        self.setWidth(width)
+
+    def decrease_width(self):
+        width = max(self.width() - 10, 48)
+        self.setWidth(width)
+
+    def handle_geometry_changed(self):
+        if self.adjuster is not None:
+            self.adjuster.setRect(self.boundingRect())
+            self.adjuster.setPos(self.pos())
 
     def tickStrings(self, values, scale, spacing):
         strns = []
@@ -111,3 +147,53 @@ class FormatedAxis(pg.AxisItem):
             return self.linkedView().mouseDragEvent(event)
         else:
             return self.linkedView().mouseDragEvent(event)
+
+    def mouseClickEvent(self, event):
+        if event.button() == QtCore.Qt.MouseButton.RightButton:
+            event.accept()
+            self.raiseContextMenu(event)
+        else:
+            lv = self.linkedView()
+            if lv is None:
+                return
+            return lv.mouseClickEvent(event)
+
+    def resizeEvent(self, ev=None):
+        if self.orientation in ("left", "right"):
+            nudge = 5
+
+            if self.minus is not None:
+                br = self.minus.boundingRect()
+                p = QtCore.QPointF(0, 0)
+                if self.orientation == "left":
+                    p.setY(5)
+                    p.setX(nudge)
+                elif self.orientation == "right":
+                    p.setY(5)
+                    p.setX(int(self.size().width() - br.height() + nudge))
+
+                self.minus.setPos(p)
+
+            if self.plus is not None:
+                br = self.plus.boundingRect()
+                p = QtCore.QPointF(0, 0)
+                if self.orientation == "left":
+                    p.setY(26)
+                    p.setX(nudge)
+                elif self.orientation == "right":
+                    p.setY(26)
+                    p.setX(int(self.size().width() - br.height() + nudge))
+
+                self.plus.setPos(p)
+
+        super().resizeEvent(ev)
+
+    def close(self):
+        if self.plus is not None:
+            self.scene().removeItem(self.plus)
+        if self.minus is not None:
+            self.scene().removeItem(self.minus)
+        self.plus = None
+        self.minus = None
+
+        super().close()
