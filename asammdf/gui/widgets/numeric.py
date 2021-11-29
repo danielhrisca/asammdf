@@ -300,12 +300,18 @@ class OfflineBackEnd:
         self.sort_reversed = False
         self.numeric_viewer = None
 
+        self.timebase = np.array([])
+
     def update(self, others=()):
         self.map = {signal.entry: signal for signal in self.signals}
         for signal in others:
             if signal.entry not in self.map:
                 self.map[signal.entry] = signal
                 self.signals.append(signal)
+
+        self.timebase = np.unique(
+            np.concatenate([signal.signal.timestamps for signal in self.signals])
+        )
 
         self.sort()
 
@@ -370,6 +376,17 @@ class OfflineBackEnd:
             )
 
         self.data_changed()
+
+    def get_timestamp(self, stamp):
+        max_idx = len(self.timebase) - 1
+        if max_idx == -1:
+            return stamp
+
+        idx = np.searchsorted(self.timebase, stamp)
+        if idx > max_idx:
+            idx = max_idx
+
+        return self.timebase[idx]
 
     def set_timestamp(self, stamp):
         self.timestamp = stamp
@@ -593,7 +610,7 @@ class TableView(QtWidgets.QTableView):
                 signal = self.backend.signals.pop(row)
                 del self.backend.map[signal.entry]
 
-            self.backend.data_changed()
+            self.backend.update()
 
         else:
             super().keyPressEvent(event)
@@ -1317,7 +1334,8 @@ class Numeric(QtWidgets.QWidget):
         if not self._inhibit:
             factor = stamp / 99999
             stamp = (self._max - self._min) * factor + self._min
-            self.set_timestamp(stamp)
+            actual_stamp = self.channels.backend.get_timestamp(stamp)
+            self.set_timestamp(actual_stamp)
 
     def set_timestamp(self, stamp=None):
         if stamp is None:

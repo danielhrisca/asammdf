@@ -2129,7 +2129,9 @@ class Plot(QtWidgets.QWidget):
                 QtCore.Qt.NoModifier,
             )
             self.plot.keyPressEvent(event)
+
         self.plot.cursor1.setPos(stamp)
+        self.cursor_move_finished()
 
     def compute_fft(self, uuid):
         signal, index = self.plot.signal_by_uuid(uuid)
