@@ -678,7 +678,6 @@ class TableView(QtWidgets.QTableView):
             data = e.mimeData()
             if data.hasFormat("application/octet-stream-asammdf"):
                 names = extract_mime_names(data)
-                print(names)
                 self.add_channels_request.emit(names)
             else:
                 return
