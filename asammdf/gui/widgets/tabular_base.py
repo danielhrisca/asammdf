@@ -27,10 +27,8 @@
 #
 #
 
-from copy import deepcopy
 import datetime
 import logging
-import sys
 import threading
 from traceback import format_exc
 
@@ -43,15 +41,18 @@ Qt = QtCore.Qt
 
 from ...blocks.utils import (
     csv_bytearray2hex,
-    csv_int2bin,
-    csv_int2hex,
     pandas_query_compatible,
 )
 from ...mdf import MDF
 from ..dialogs.range_editor import RangeEditor
 from ..ui import resource_rc as resource_rc
 from ..ui.tabular import Ui_TabularDisplay
-from ..utils import copy_ranges, get_colors_using_ranges, run_thread_with_progress
+from ..utils import (
+    copy_ranges,
+    get_colors_using_ranges,
+    run_thread_with_progress,
+    extract_mime_names,
+)
 from .tabular_filter import TabularFilter
 
 logger = logging.getLogger("asammdf.gui")
@@ -400,9 +401,7 @@ class DataTableModel(QtCore.QAbstractTableModel):
 
 
 class DataTableView(QtWidgets.QTableView):
-    """
-    Displays the DataFrame data as a table
-    """
+    add_channels_request = QtCore.pyqtSignal(list)
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -481,6 +480,22 @@ class DataTableView(QtWidgets.QTableView):
         super().resizeEvent(e)
         if e.oldSize().width() != e.size().width():
             self.dataframe_viewer.auto_size_header()
+
+    def dragEnterEvent(self, e):
+        e.accept()
+
+    def dropEvent(self, e):
+
+        if e.source() is self:
+            return
+        else:
+            data = e.mimeData()
+            if data.hasFormat("application/octet-stream-asammdf"):
+                names = extract_mime_names(data)
+                print(names)
+                self.add_channels_request.emit(names)
+            else:
+                return
 
 
 class HeaderModel(QtCore.QAbstractTableModel):
@@ -1324,6 +1339,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         self.tree = DataFrameViewer(df)
 
         self.tree.dataView.selectionModel().currentChanged.connect(self.current_changed)
+        self.tree.dataView.add_channels_request.connect(self.add_channels_request)
 
         self.horizontalLayout.insertWidget(0, self.tree)
 
