@@ -144,3 +144,8 @@ class Tabular(TabularBase):
         integer_mode = self._settings.value("tabular_format", "phys")
 
         self.format_selection.setCurrentText(integer_mode)
+
+        self.tree.dataView.setAcceptDrops(True)
+        self.tree.dataView.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
+        self.tree.dataView.setDropIndicatorShown(True)
+        self.tree.dataView.setDefaultDropAction(QtCore.Qt.MoveAction)
