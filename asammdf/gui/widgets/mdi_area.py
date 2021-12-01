@@ -2004,6 +2004,10 @@ class WithMDIArea:
             if self.subplots_link:
                 tabular.timestamp_changed_signal.connect(self.set_cursor)
 
+            tabular.add_channels_request.connect(
+                partial(self.add_new_channels, widget=tabular)
+            )
+
             tabular.tree.auto_size_header()
 
         self.windows_modified.emit()
@@ -2746,6 +2750,7 @@ class WithMDIArea:
 
             signals = self.mdf.to_dataframe(
                 channels=signals_,
+                time_from_zero=False,
                 ignore_value2text_conversions=self.ignore_value2text_conversions,
             )
 
@@ -2819,6 +2824,9 @@ class WithMDIArea:
                 if window_info["configuration"]["time_as_date"]
                 else QtCore.Qt.Unchecked
             )
+            tabular.add_channels_request.connect(
+                partial(self.add_new_channels, widget=tabular)
+            )
 
             menu = w.systemMenu()
 
@@ -2835,7 +2843,12 @@ class WithMDIArea:
             )
             if sections_width:
                 for i, width in enumerate(sections_width):
-                    tabular.tree.columnHeader.horizontalHeader().resizeSection(i, width)
+
+                    tabular.tree.columnHeader.setColumnWidth(i, width)
+                    tabular.tree.dataView.setColumnWidth(i, width)
+
+                tabular.tree.dataView.updateGeometry()
+                tabular.tree.columnHeader.updateGeometry()
 
         elif window_info["type"] in (
             "CAN Bus Trace",

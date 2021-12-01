@@ -577,7 +577,6 @@ class TableView(QtWidgets.QTableView):
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.setDragEnabled(True)
         self.setDropIndicatorShown(True)
-        self.setDragDropMode(QtWidgets.QAbstractItemView.DragDrop)
 
         self.doubleClicked.connect(self.edit_ranges)
 

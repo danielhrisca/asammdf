@@ -39,19 +39,16 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 Qt = QtCore.Qt
 
-from ...blocks.utils import (
-    csv_bytearray2hex,
-    pandas_query_compatible,
-)
+from ...blocks.utils import csv_bytearray2hex, pandas_query_compatible
 from ...mdf import MDF
 from ..dialogs.range_editor import RangeEditor
 from ..ui import resource_rc as resource_rc
 from ..ui.tabular import Ui_TabularDisplay
 from ..utils import (
     copy_ranges,
+    extract_mime_names,
     get_colors_using_ranges,
     run_thread_with_progress,
-    extract_mime_names,
 )
 from .tabular_filter import TabularFilter
 
@@ -430,6 +427,11 @@ class DataTableView(QtWidgets.QTableView):
 
         self.setFont(QtGui.QFont(MONOSPACE_FONT))
 
+        self.setAcceptDrops(True)
+        self.setDragDropMode(self.InternalMove)
+        self.setDropIndicatorShown(True)
+        self.setDefaultDropAction(QtCore.Qt.MoveAction)
+
     def on_selectionChanged(self):
         """
         Runs when cells are selected in the main table. This logic highlights the correct cells in the vertical and
@@ -476,11 +478,6 @@ class DataTableView(QtWidgets.QTableView):
 
         return QtCore.QSize(width, height)
 
-    def resizeEvent(self, e: QtGui.QResizeEvent) -> None:
-        super().resizeEvent(e)
-        if e.oldSize().width() != e.size().width():
-            self.dataframe_viewer.auto_size_header()
-
     def dragEnterEvent(self, e):
         e.accept()
 
@@ -492,7 +489,6 @@ class DataTableView(QtWidgets.QTableView):
             data = e.mimeData()
             if data.hasFormat("application/octet-stream-asammdf"):
                 names = extract_mime_names(data)
-                print(names)
                 self.add_channels_request.emit(names)
             else:
                 return
@@ -1224,6 +1220,11 @@ class ColumnMenu(QtWidgets.QMenu):
         button.clicked.connect(self.edit_ranges)
         self.add_widget(button)
 
+        self.addSeparator()
+
+        action = self.addAction("Automatic set columns width")
+        action.triggered.connect(self.automatic_columns_width)
+
         ########################
         # Move
         #
@@ -1320,6 +1321,9 @@ class ColumnMenu(QtWidgets.QMenu):
         self.move(point)
         self.show()
 
+    def automatic_columns_width(self, *args):
+        self.pgdf.dataframe_viewer.auto_size_header()
+
 
 class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
     add_channels_request = QtCore.pyqtSignal(list)
@@ -1359,6 +1363,8 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         self.float_precision.currentIndexChanged.connect(self.float_precision_changed)
 
         self._timestamps = None
+
+        self.show()
 
         self.tree.auto_size_header()
 
@@ -1521,6 +1527,11 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         self.tree.pgdf.df_unfiltered.rename(columns=original_names, inplace=True)
 
     def add_new_channels(self, signals, mime_data=None):
+        if len(self.tree.pgdf.df_unfiltered) != len(self.tree.pgdf.df):
+            filtered = True
+        else:
+            filtered = False
+
         index = pd.Series(np.arange(len(signals), dtype="u8"), index=signals.index)
         signals["Index"] = index
 
@@ -1530,7 +1541,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         ranges = {
             name: channel_ranges
             for name, channel_ranges in zip(
-                self.tree.pgdf.df_unfiltered.columns, self.ranges
+                self.tree.pgdf.df_unfiltered.columns, self.ranges.values()
             )
         }
 
@@ -1586,6 +1597,8 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
             else:
                 self.signals_descr[name_] = 0
 
+            ranges[name_] = []
+
         signals = signals.drop(columns=["Index", *list(dropped)])
         for name, s in dropped.items():
             signals[name] = s
@@ -1601,11 +1614,18 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         ]
         signals = signals[names]
 
-        self.tree.pgdf.df_unfiltered = pd.concat(
+        self.tree.pgdf.df_unfiltered = self.tree.pgdf.df = pd.concat(
             [self.tree.pgdf.df_unfiltered, signals], axis=1
         )
+        self.ranges = ranges
 
-        self.tree.pgdf.data_changed()
+        if filtered:
+            self.apply_filters()
+        else:
+            self.tree.pgdf.data_changed()
+
+        self.tree.auto_size_header()
+        self.tree.update_horizontal_scroll()
 
     def to_config(self):
 
@@ -1903,6 +1923,9 @@ class DataFrameViewer(QtWidgets.QWidget):
         self.dataView.horizontalScrollBar().valueChanged.connect(
             self.columnHeader.horizontalScrollBar().setValue
         )
+        self.dataView.horizontalScrollBar().valueChanged.connect(
+            self.columnHeaderNames.horizontalScrollBar().setValue
+        )
         self.dataView.verticalScrollBar().valueChanged.connect(
             self.indexHeader.verticalScrollBar().setValue
         )
@@ -2012,6 +2035,8 @@ class DataFrameViewer(QtWidgets.QWidget):
 
         self.show()
 
+        self.auto_size_header()
+
     def set_styles(self):
         for item in [
             self.dataView,
@@ -2032,9 +2057,7 @@ class DataFrameViewer(QtWidgets.QWidget):
         for i in range(self.columnHeader.model().columnCount()):
             s += self.auto_size_column(i)
 
-        delta = int(
-            (self.dataView.viewport().size().width() - s) // len(self.pgdf.df.columns)
-        )
+        delta = int((self.dataView.size().width() - s) // len(self.pgdf.df.columns))
 
         if delta > 0:
             for i in range(self.columnHeader.model().columnCount()):
@@ -2046,9 +2069,9 @@ class DataFrameViewer(QtWidgets.QWidget):
     def update_horizontal_scroll(self, *args):
         s = 0
         for i in range(self.columnHeader.model().columnCount()):
-            s += self.dataView.columnWidth(i) + self.dataView.frameWidth()
+            s += self.columnHeader.columnWidth(i) + self.columnHeader.frameWidth()
 
-        if self.dataView.viewport().size().width() < s:
+        if self.dataView.size().width() < s:
             self.dataView.horizontalScrollBar().show()
         else:
             self.dataView.horizontalScrollBar().hide()
@@ -2081,9 +2104,7 @@ class DataFrameViewer(QtWidgets.QWidget):
         width += padding + extra_padding
 
         self.columnHeader.setColumnWidth(column_index, width)
-        self.dataView.setColumnWidth(
-            column_index, self.columnHeader.columnWidth(column_index)
-        )
+        self.dataView.setColumnWidth(column_index, width)
 
         self.dataView.updateGeometry()
         self.columnHeader.updateGeometry()
@@ -2231,11 +2252,13 @@ class DataFrameViewer(QtWidgets.QWidget):
         if refresh:
             self.refresh_ui()
 
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.update_horizontal_scroll()
+
     def refresh_ui(self):
 
-        # Update models
-        self.models = []
-        self.models += [
+        self.models = [
             self.dataView.model(),
             self.columnHeader.model(),
             self.indexHeader.model(),
@@ -2246,10 +2269,6 @@ class DataFrameViewer(QtWidgets.QWidget):
         for model in self.models:
             model.beginResetModel()
             model.endResetModel()
-
-        # Update multi-index spans
-        # for view in [self.columnHeader, self.indexHeader]:
-        #     view.set_spans()
 
         # Update sizing
         for view in [self.columnHeader, self.indexHeader, self.dataView]:
