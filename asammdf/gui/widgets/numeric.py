@@ -18,7 +18,6 @@ from asammdf.gui import utils
 from asammdf.gui.dialogs.range_editor import RangeEditor
 from asammdf.gui.utils import copy_ranges, extract_mime_names, get_colors_using_ranges
 from asammdf.gui.widgets.plot import PlotSignal
-from asammdf.gui.widgets.tree_item import TreeItem
 
 from ..ui import resource_rc
 
