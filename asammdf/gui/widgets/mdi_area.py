@@ -2670,6 +2670,11 @@ class WithMDIArea:
             plot.splitter.setContentsMargins(1, 1, 1, 1)
             plot.setContentsMargins(1, 1, 1, 1)
 
+            if "cursor_precision" in window_info["configuration"]:
+                plot.cursor_info.set_precision(
+                    window_info["configuration"]["cursor_precision"]
+                )
+
             iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
             while iterator.value():
                 item = iterator.value()

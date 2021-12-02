@@ -202,23 +202,22 @@ class FormatedAxis(pg.AxisItem):
         super().close()
 
     def setPen(self, pen=None):
-        pen = fn.mkPen(pen)
+
+        if pen is None:
+            pen = fn.mkPen(pen)
+
         color = pen.color()
 
-        if self.plus is not None:
-            img = self.plus.pixmap.toImage()
-            for i in range(img.height()):
-                for j in range(img.width()):
-                    if img.pixelColor(i, j).alpha() != 0:
-                        img.setPixelColor(i, j, color)
-            self.plus.setPixmap(QtGui.QPixmap.fromImage(img))
-
         if self.minus is not None:
-            img = self.minus.pixmap.toImage()
-            for i in range(img.height()):
-                for j in range(img.width()):
-                    if img.pixelColor(i, j).alpha() != 0:
-                        img.setPixelColor(i, j, color)
-            self.minus.setPixmap(QtGui.QPixmap.fromImage(img))
+            p = QtGui.QPainter(self.minus.pixmap)
+            p.setBrush(color)
+            p.drawRect(QtCore.QRect(0, 24, 64, 15))
 
-        super().setPen(pen)
+        if self.plus is not None:
+            p = QtGui.QPainter(self.plus.pixmap)
+            p.setBrush(color)
+            p.drawRect(QtCore.QRect(0, 24, 64, 15))
+            p.drawRect(QtCore.QRect(24, 0, 15, 64))
+
+        if pen is not getattr(self, "_pen", 0):
+            super().setPen(pen)

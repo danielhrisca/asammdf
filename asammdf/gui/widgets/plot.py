@@ -2444,12 +2444,12 @@ class _Plot(pg.PlotWidget):
             curve.scatter.setBrush(color)
 
             if sig.individual_axis:
-                self.axes[index].setPen(color)
-                self.axes[index].setTextPen(color)
+                self.axes[index].setPen(sig.pen)
+                self.axes[index].setTextPen(sig.pen)
 
         if uuid == self.current_uuid:
-            self.y_axis.setPen(color)
-            self.y_axis.setTextPen(color)
+            self.y_axis.setPen(sig.pen)
+            self.y_axis.setTextPen(sig.pen)
 
     def set_unit(self, uuid, unit):
         sig, index = self.signal_by_uuid(uuid)
@@ -3140,8 +3140,8 @@ class _Plot(pg.PlotWidget):
                 else:
                     axis.setLabel(f"{sig.name[:29]}...")
 
-            axis.setPen(sig.color)
-            axis.setTextPen(sig.color)
+            axis.setPen(sig.pen)
+            axis.setTextPen(sig.pen)
             axis.update()
 
         self.current_uuid = uuid
@@ -3225,12 +3225,11 @@ class _Plot(pg.PlotWidget):
         axis_uuid = None
 
         for index, sig in enumerate(channels, initial_index):
-            color = sig.color
 
             axis = FormatedAxis(
                 "left",  # "right",
-                pen=color,
-                textPen=color,
+                pen=sig.pen,
+                textPen=sig.pen,
                 text=sig.name if len(sig.name) <= 32 else "{sig.name[:29]}...",
                 units=sig.unit,
             )
@@ -3262,9 +3261,9 @@ class _Plot(pg.PlotWidget):
             curve = self.curvetype(
                 t,
                 sig.plot_samples,
-                pen=color,
-                symbolBrush=color,
-                symbolPen=color,
+                pen=sig.pen,
+                symbolBrush=sig.pen,
+                symbolPen=sig.pen,
                 symbol="o",
                 symbolSize=4,
                 clickable=True,
@@ -3510,17 +3509,8 @@ class CursorInfo(QtWidgets.QLabel):
             )
 
             if ok:
-
-                self.precision = precision
+                self.set_precision(precision)
                 QtCore.QSettings().setValue("plot_cursor_precision", precision)
-                self.update_value()
-
-                if precision == -1:
-                    self.setToolTip(f"Cursor information uses maximum precision")
-                else:
-                    self.setToolTip(
-                        f"Cursor information precision is set to {self.precision} decimals"
-                    )
 
     def update_value(self):
 
@@ -3578,6 +3568,16 @@ class CursorInfo(QtWidgets.QLabel):
                 f"<p>Δ{self.name} = {delta_info}</p> "
                 "</body></html>"
             )
+
+    def set_precision(self, precision):
+        self.precision = precision
+        if precision == -1:
+            self.setToolTip(f"Cursor information uses maximum precision")
+        else:
+            self.setToolTip(
+                f"Cursor information precision is set to {precision} decimals"
+            )
+        self.update_value()
 
 
 from .fft_window import FFTWindow
