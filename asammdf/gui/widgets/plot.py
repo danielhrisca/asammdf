@@ -733,7 +733,7 @@ class PlotSignal(Signal):
             stats["visible_std"] = "n.a."
             stats["visible_delta"] = "n.a."
             stats["visible_gradient"] = "n.a."
-            stats["v_integral"] = "n.a."
+            stats["visible_integral"] = "n.a."
 
         #        sig._stats["fmt"] = fmt
         return stats
@@ -1065,7 +1065,6 @@ class Plot(QtWidgets.QWidget):
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setSpacing(1)
         main_layout.setContentsMargins(1, 1, 1, 1)
-        # self.setLayout(main_layout)
 
         vbox = QtWidgets.QVBoxLayout()
         vbox.setSpacing(1)
@@ -1075,18 +1074,7 @@ class Plot(QtWidgets.QWidget):
             hide_missing_channels=hide_missing_channels,
             hide_disabled_channels=hide_disabled_channels,
             parent=self,
-        )  # self
-        # self.channel_selection.setUniformItemSizes(True)
-        # self.channel_selection.setAlternatingRowColors(False)
-        # self.channel_selection.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
-        self.cursor_info = QtWidgets.QLabel("")
-        self.cursor_info.setTextFormat(QtCore.Qt.RichText)
-        self.cursor_info.setAlignment(
-            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
         )
-
-        vbox.addWidget(self.channel_selection)
-        vbox.addWidget(self.cursor_info)
 
         widget.setLayout(vbox)
 
@@ -1103,6 +1091,16 @@ class Plot(QtWidgets.QWidget):
             mdf=self.mdf,
             x_axis=x_axis,
         )
+
+        self.cursor_info = CursorInfo(
+            precision=QtCore.QSettings().value("plot_cursor_precision", 6),
+            unit=self.x_unit,
+            name=self.x_name,
+            plot=self.plot,
+        )
+
+        vbox.addWidget(self.channel_selection)
+        vbox.addWidget(self.cursor_info)
 
         self.plot.range_modified.connect(self.range_modified)
         self.plot.range_removed.connect(self.range_removed)
@@ -1305,15 +1303,8 @@ class Plot(QtWidgets.QWidget):
         position = self.plot.cursor1.value()
 
         if not self.plot.region:
-            fmt = self.plot.x_axis.format
-            if fmt == "phys":
-                cursor_info_text = f"{self.x_name} = {position:.9f}{self.x_unit}"
-            elif fmt == "time":
-                cursor_info_text = f"{self.x_name} = {timedelta(seconds=position)}"
-            elif fmt == "date":
-                position_date = self.plot.x_axis.origin + timedelta(seconds=position)
-                cursor_info_text = f"{self.x_name} = {position_date}"
-            self.cursor_info.setText(cursor_info_text)
+
+            self.cursor_info.update_value()
 
             iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
             while iterator.value():
@@ -1350,7 +1341,7 @@ class Plot(QtWidgets.QWidget):
             widget = self.channel_selection.itemWidget(item, 1)
 
             if isinstance(widget, ChannelDisplay) and not self.plot.region:
-                self.cursor_info.setText("")
+                self.cursor_info.update_value()
                 widget.set_prefix("")
                 widget.set_value("")
 
@@ -1371,27 +1362,7 @@ class Plot(QtWidgets.QWidget):
 
         start, stop = self.plot.region.getRegion()
 
-        fmt = self.plot.x_axis.format
-        if fmt == "phys":
-            start_info = f"{start:.9f}{self.x_unit}"
-            stop_info = f"{stop:.9f}{self.x_unit}"
-            delta_info = f"{stop - start:.9f}{self.x_unit}"
-        elif fmt == "time":
-            start_info = f"{timedelta(seconds=start)}"
-            stop_info = f"{timedelta(seconds=stop)}"
-            delta_info = f"{timedelta(seconds=(stop - start))}"
-        elif fmt == "date":
-            start_info = self.plot.x_axis.origin + timedelta(seconds=start)
-            stop_info = self.plot.x_axis.origin + timedelta(seconds=stop)
-
-            delta_info = f"{timedelta(seconds=(stop - start))}"
-
-        self.cursor_info.setText(
-            "<html><head/><body>"
-            f"<p>{self.x_name}1 = {start_info}, {self.x_name}2 = {stop_info}</p>"
-            f"<p>Δ{self.x_name} = {delta_info}</p> "
-            "</body></html>"
-        )
+        self.cursor_info.update_value()
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
         while iterator.value():
@@ -1670,12 +1641,13 @@ class Plot(QtWidgets.QWidget):
             if isinstance(widget, ChannelDisplay):
                 widget.set_prefix("")
                 widget.set_value("")
-                self.cursor_info.setText("")
 
             iterator += 1
 
         self._range_start = None
         self._range_stop = None
+
+        self.cursor_info.update_value()
 
         if self.plot.cursor1:
             self.plot.cursor_moved.emit()
@@ -2069,6 +2041,7 @@ class Plot(QtWidgets.QWidget):
                 self.plot.plotItem.ctrl.xGridCheck.isChecked(),
                 self.plot.plotItem.ctrl.yGridCheck.isChecked(),
             ],
+            "cursor_precision": self.cursor_info.precision,
         }
 
         return config
@@ -3498,6 +3471,113 @@ class _Plot(pg.PlotWidget):
             sig.mdf_uuid = os.urandom(6).hex()
             self.add_new_channels([sig], computed=True)
             self.computation_channel_inserted.emit()
+
+
+class CursorInfo(QtWidgets.QLabel):
+    def __init__(self, precision, name="t", unit="s", plot=None, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.precision = precision
+        self.name = name
+        self.unit = unit
+        self.plot = plot
+
+        self.setTextFormat(QtCore.Qt.RichText)
+        self.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing | QtCore.Qt.AlignVCenter
+        )
+
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.open_menu)
+
+        if precision == -1:
+            self.setToolTip(f"Cursor information uses maximum precision")
+        else:
+            self.setToolTip(
+                f"Cursor information precision is set to {self.precision} decimals"
+            )
+
+    def open_menu(self, point):
+        menu = QtWidgets.QMenu(self)
+        menu.addAction("Set precision")
+        action = menu.exec_(self.mapToGlobal(point))
+
+        if action is None:
+            return
+
+        if action.text() == "Set precision":
+            precision, ok = QtWidgets.QInputDialog.getInt(
+                self, "Set new precision (float decimals)", "Precision:", 6, -1, 15, 1
+            )
+
+            if ok:
+
+                self.precision = precision
+                QtCore.QSettings().setValue("plot_cursor_precision", precision)
+                self.update_value()
+
+                if precision == -1:
+                    self.setToolTip(f"Cursor information uses maximum precision")
+                else:
+                    self.setToolTip(
+                        f"Cursor information precision is set to {self.precision} decimals"
+                    )
+
+    def update_value(self):
+
+        if not self.plot.region:
+
+            if self.plot.cursor1 is not None:
+                position = self.plot.cursor1.value()
+                fmt = self.plot.x_axis.format
+                if fmt == "phys":
+                    if self.precision == -1:
+                        cursor_info_text = f"{self.name} = {position}{self.unit}"
+                    else:
+                        template = f"{self.name} = {{:.{self.precision}f}}{self.unit}"
+                        cursor_info_text = template.format(position)
+                elif fmt == "time":
+                    cursor_info_text = f"{self.name} = {timedelta(seconds=position)}"
+                elif fmt == "date":
+                    position_date = self.plot.x_axis.origin + timedelta(
+                        seconds=position
+                    )
+                    cursor_info_text = f"{self.name} = {position_date}"
+                self.setText(cursor_info_text)
+            else:
+                self.setText("")
+
+        else:
+
+            start, stop = self.plot.region.getRegion()
+
+            fmt = self.plot.x_axis.format
+            if fmt == "phys":
+                if self.precision == -1:
+                    start_info = f"{start}{self.unit}"
+                    stop_info = f"{stop}{self.unit}"
+                    delta_info = f"{stop - start}{self.unit}"
+                else:
+                    template = f"{{:.{self.precision}f}}{self.unit}"
+                    start_info = template.format(start)
+                    stop_info = template.format(stop)
+                    delta_info = template.format(stop - start)
+
+            elif fmt == "time":
+                start_info = f"{timedelta(seconds=start)}"
+                stop_info = f"{timedelta(seconds=stop)}"
+                delta_info = f"{timedelta(seconds=(stop - start))}"
+            elif fmt == "date":
+                start_info = self.plot.x_axis.origin + timedelta(seconds=start)
+                stop_info = self.plot.x_axis.origin + timedelta(seconds=stop)
+
+                delta_info = f"{timedelta(seconds=(stop - start))}"
+
+            self.setText(
+                "<html><head/><body>"
+                f"<p>{self.name}1 = {start_info}, {self.name}2 = {stop_info}</p>"
+                f"<p>Δ{self.name} = {delta_info}</p> "
+                "</body></html>"
+            )
 
 
 from .fft_window import FFTWindow

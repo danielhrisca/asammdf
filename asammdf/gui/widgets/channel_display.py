@@ -66,7 +66,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
         self.setToolTip(self._tooltip or self._name)
 
-        if kind in "SUVui":
+        if kind in "SUVui" or self.precision == -1:
             self.fmt = "{}"
         else:
             self.fmt = f"{{:.{self.precision}f}}"
@@ -113,13 +113,11 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         return new
 
     def set_precision(self, precision):
-        if self.kind == "f":
-            self.precision = precision
+        self.precision = precision
+        if self.kind == "f" and precision >= 0:
             self.fmt = f"{{:.{self.precision}f}}"
-
-    # def display_changed(self, state):
-    #     state = self.display.checkState()
-    #     self.enable_changed.emit(self.uuid, state)
+        else:
+            self.fmt = "{}"
 
     def _individual_axis(self, state):
         state = self.individual_axis.checkState()

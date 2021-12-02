@@ -868,10 +868,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             selected_items = self.selectedItems()
 
             precision, ok = QtWidgets.QInputDialog.getInt(
-                None, "Set new precision (float decimals)", "Precision:"
+                self, "Set new precision (float decimals)", "Precision:", 3, -1, 15, 1
             )
 
-            if ok and 0 <= precision <= 15:
+            if ok:
 
                 iterator = QtWidgets.QTreeWidgetItemIterator(self)
                 while iterator.value():
