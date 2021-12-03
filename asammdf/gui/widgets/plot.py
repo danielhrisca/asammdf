@@ -3262,7 +3262,7 @@ class _Plot(pg.PlotWidget):
                 t,
                 sig.plot_samples,
                 pen=sig.pen,
-                symbolBrush=sig.pen,
+                symbolBrush=sig.color,
                 symbolPen=sig.pen,
                 symbol="o",
                 symbolSize=4,
