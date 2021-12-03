@@ -2444,11 +2444,11 @@ class _Plot(pg.PlotWidget):
             curve.scatter.setBrush(color)
 
             if sig.individual_axis:
-                self.axes[index].setPen(sig.pen)
+                self.axes[index].set_pen(sig.pen)
                 self.axes[index].setTextPen(sig.pen)
 
         if uuid == self.current_uuid:
-            self.y_axis.setPen(sig.pen)
+            self.y_axis.set_pen(sig.pen)
             self.y_axis.setTextPen(sig.pen)
 
     def set_unit(self, uuid, unit):
@@ -3114,10 +3114,10 @@ class _Plot(pg.PlotWidget):
                 self.common_viewbox.setYLink(viewbox)
 
                 if self._settings.value("plot_background") == "Black":
-                    axis.setPen("#FFFFFF")
+                    axis.set_pen("#FFFFFF")
                     axis.setTextPen("#FFFFFF")
                 else:
-                    axis.setPen("#000000")
+                    axis.set_pen("#000000")
                     axis.setTextPen("#000000")
                 axis.setLabel(self.common_axis_label)
 
@@ -3140,7 +3140,7 @@ class _Plot(pg.PlotWidget):
                 else:
                     axis.setLabel(f"{sig.name[:29]}...")
 
-            axis.setPen(sig.pen)
+            axis.set_pen(sig.pen)
             axis.setTextPen(sig.pen)
             axis.update()
 

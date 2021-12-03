@@ -201,7 +201,7 @@ class FormatedAxis(pg.AxisItem):
 
         super().close()
 
-    def setPen(self, pen=None):
+    def set_pen(self, pen=None):
 
         if pen is None:
             pen = fn.mkPen(pen)
@@ -219,5 +219,5 @@ class FormatedAxis(pg.AxisItem):
             p.drawRect(QtCore.QRect(0, 24, 64, 15))
             p.drawRect(QtCore.QRect(24, 0, 15, 64))
 
-        if pen is not getattr(self, "_pen", 0):
-            super().setPen(pen)
+        if pen is not self._pen:
+            self.setPen(pen)
