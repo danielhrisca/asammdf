@@ -1545,7 +1545,7 @@ class WithMDIArea:
                     sig.computed = False
                     sig.computation = {}
                     sig.mdf_uuid = uuid
-                    sig.name = sig_[0]
+                    sig.name = sig_[0] or sig.name
 
                     if not hasattr(self, "mdf"):
                         # MainWindow => comparison plots

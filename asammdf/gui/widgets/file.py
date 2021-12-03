@@ -138,6 +138,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     cls(file_name).export_mdf().save(out_file.with_suffix(".tmp.mf4"))
                 )
                 self.mdf = MDF(mdf_path)
+                self.mdf.original_name = file_name
 
             elif file_name.suffix.lower() == ".csv":
                 try:
@@ -168,6 +169,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             else:
 
+                original_name = file_name
                 if file_name.suffix.lower() == ".dl3":
                     progress.setLabelText("Converting from dl3 to mdf")
                     datalyser_active = any(
@@ -203,6 +205,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     datalyser.DCOM_convert_file_mdf_dl3(file_name, str(mdf_name), 0)
                     if not datalyser_active:
                         datalyser.DCOM_TerminateDAS()
+
                     file_name = mdf_name
 
                 target = MDF
@@ -224,6 +227,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 if self.mdf is TERMINATED:
                     return
+
+                self.mdf.original_name = original_name
 
             self.mdf.configure(raise_on_multiple_occurrences=False)
 
@@ -1904,7 +1909,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.set_line_style()
 
         else:
-            super().keyPressEvent(event)
+            widget = self.get_current_widget()
+            if widget:
+                widget.keyPressEvent(event)
+            else:
+                super().keyPressEvent(event)
 
     def aspect_changed(self, index):
 

@@ -1691,7 +1691,6 @@ class Plot(QtWidgets.QWidget):
         it.ylink_changed.connect(self.plot.set_common_axis)
         it.individual_axis_changed.connect(self.plot.set_individual_axis)
         it.unit_changed.connect(self.plot.set_unit)
-        it.name_changed.connect(self.plot.set_name)
 
         it.enable_changed.emit(sig.uuid, 1)
         it.enable_changed.emit(sig.uuid, 0)
