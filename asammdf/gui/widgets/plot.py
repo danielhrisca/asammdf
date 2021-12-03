@@ -502,7 +502,6 @@ class PlotSignal(Signal):
                 if region:
                     start, stop = region
 
-                    #                     if sig._stats["range"] != (start, stop) or sig._stats["fmt"] != fmt:
                     new_stats = {}
                     new_stats["selected_start"] = start
                     new_stats["selected_stop"] = stop
@@ -592,7 +591,6 @@ class PlotSignal(Signal):
 
                 start, stop = view_region
 
-                #                if sig._stats["visible"] != (start, stop) or sig._stats["fmt"] != fmt:
                 new_stats = {}
                 new_stats["visible_start"] = start
                 new_stats["visible_stop"] = stop
