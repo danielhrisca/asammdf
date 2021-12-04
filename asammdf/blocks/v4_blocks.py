@@ -1106,7 +1106,7 @@ class Channel:
             text = v4c.CN_COMMENT_TEMPLATE.format("", display_names_tags)
 
         elif display_names_tags and comment:
-            if not comment.startswith("<CNcomment"):
+            if not comment.startswith("<CN"):
                 text = v4c.CN_COMMENT_TEMPLATE.format(
                     escape_xml_string(comment), display_names_tags
                 )
@@ -1130,7 +1130,7 @@ class Channel:
             if text in defined_texts:
                 self.comment_addr = defined_texts[text]
             else:
-                meta = text.startswith("<CNcomment")
+                meta = text.startswith("<CN")
                 tx_block = TextBlock(
                     text=text.encode("utf-8", "replace"),
                     meta=meta,
@@ -3092,6 +3092,9 @@ class ChannelConversion(_ChannelConversionBase):
         defined_texts: dict[str, int],
         cc_map: dict[bytes, int],
     ) -> int:
+        if id(self) in cc_map:
+            return address
+
         text = self.name
         if text:
             if text in defined_texts:
@@ -3194,7 +3197,7 @@ class ChannelConversion(_ChannelConversionBase):
         else:
             blocks.append(bts)
             self.address = address
-            cc_map[bts] = address
+            cc_map[bts] = cc_map[id(self)] = address
             address += self.block_len
 
         return address
@@ -6057,6 +6060,11 @@ comment: {self.comment}
         defined_texts: dict[str, int],
         si_map: dict[bytes, int],
     ) -> int:
+
+        id_ = id(self)
+        if id_ in si_map:
+            return address
+
         text = self.name
         if text:
             if text in defined_texts:
@@ -6098,7 +6106,7 @@ comment: {self.comment}
             if text in defined_texts:
                 self.comment_addr = defined_texts[text]
             else:
-                meta = text.startswith("<SIcomment")
+                meta = text.startswith("<SI")
                 tx_block = TextBlock(
                     text=text.encode("utf-8", "replace"),
                     meta=meta,
@@ -6117,7 +6125,7 @@ comment: {self.comment}
             self.address = si_map[bts]
         else:
             blocks.append(bts)
-            si_map[bts] = address
+            si_map[bts] = si_map[id(self)] = address
             self.address = address
             address += self.block_len
 
@@ -6190,7 +6198,6 @@ class TextBlock:
     __slots__ = ("address", "id", "reserved0", "block_len", "links_nr", "text")
 
     def __init__(self, **kwargs) -> None:
-        super().__init__()
 
         if "safe" in kwargs:
             self.address = 0
@@ -6274,9 +6281,14 @@ class TextBlock:
         self.__setattr__(item, value)
 
     def __bytes__(self) -> bytes:
-        return v4c.COMMON_p(
-            self.id, self.reserved0, self.block_len, self.links_nr
-        ) + pack(f"{self.block_len - COMMON_SIZE}s", self.text)
+        return pack(
+            f"<4sI2Q{self.block_len - COMMON_SIZE}s",
+            self.id,
+            self.reserved0,
+            self.block_len,
+            self.links_nr,
+            self.text,
+        )
 
     def __repr__(self) -> str:
         return (

@@ -18,6 +18,7 @@ from pathlib import Path
 import shutil
 import sys
 from tempfile import gettempdir, TemporaryFile
+from time import sleep
 from traceback import format_exc
 from typing import Any, overload
 from zipfile import ZIP_DEFLATED, ZipFile
@@ -2566,8 +2567,6 @@ class MDF4(MDF_Common):
         if not signals:
             return
 
-        prepare_record = True
-
         # check if the signals have a common timebase
         # if not interpolate the signals using the union of all timebases
         if signals:
@@ -2716,6 +2715,7 @@ class MDF4(MDF_Common):
             gp_sig_types.append(0)
 
         for signal in signals:
+
             sig = signal
             samples = sig.samples
             sig_dtype = samples.dtype
