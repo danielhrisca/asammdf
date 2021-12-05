@@ -11,7 +11,7 @@ will be merged to the _master_ branch and a new release will be issued.
 PR's that deal with documentation, and other adjacent files (README for example) can be pushed to the _master_ branch.
 
 When submitting PR's please take into account:
-* the project's gloals
+* the project's goals
 * PEP8 and the style guide below
 
 # Testing
