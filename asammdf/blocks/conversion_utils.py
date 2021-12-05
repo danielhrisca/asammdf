@@ -3,15 +3,22 @@
 asammdf utility functions for channel conversions
 """
 
+from __future__ import annotations
+
+from typing import Any
+
 from . import v2_v3_blocks as v3b
 from . import v2_v3_constants as v3c
 from . import v4_blocks as v4b
 from . import v4_constants as v4c
+from ..types import ChannelConversionType
 
 __all__ = ["conversion_transfer", "from_dict"]
 
 
-def conversion_transfer(conversion, version=3):
+def conversion_transfer(
+    conversion: ChannelConversionType, version: int = 3
+) -> ChannelConversionType:
     """convert between mdf4 and mdf3 channel conversions
 
     Parameters
@@ -126,14 +133,26 @@ def conversion_transfer(conversion, version=3):
                     for i in range(nr):
                         kargs[f"lower_{i}"] = conversion[f"val_{i}"]
                         kargs[f"upper_{i}"] = conversion[f"val_{i}"]
-                        if isinstance(conversion.referenced_blocks[f"text_{i}"], v4b.ChannelConversion):
-                            kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"].name.encode('latin-1')
+                        if isinstance(
+                            conversion.referenced_blocks[f"text_{i}"],
+                            v4b.ChannelConversion,
+                        ):
+                            kargs[f"text_{i}"] = conversion.referenced_blocks[
+                                f"text_{i}"
+                            ].name.encode("latin-1")
                         else:
-                            kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"]
+                            kargs[f"text_{i}"] = conversion.referenced_blocks[
+                                f"text_{i}"
+                            ]
 
                     new_conversion = v3b.ChannelConversion(**kargs)
-                    if isinstance(conversion.referenced_blocks["default_addr"], v4b.ChannelConversion):
-                        default_addr = conversion.referenced_blocks[f"default_addr"].name.encode('latin-1')
+                    if isinstance(
+                        conversion.referenced_blocks["default_addr"],
+                        v4b.ChannelConversion,
+                    ):
+                        default_addr = conversion.referenced_blocks[
+                            f"default_addr"
+                        ].name.encode("latin-1")
                     else:
                         default_addr = conversion.referenced_blocks["default_addr"]
                     new_conversion.referenced_blocks["default_addr"] = default_addr
@@ -150,14 +169,26 @@ def conversion_transfer(conversion, version=3):
                     for i in range(nr):
                         kargs[f"lower_{i}"] = conversion[f"lower_{i}"]
                         kargs[f"upper_{i}"] = conversion[f"upper_{i}"]
-                        if isinstance(conversion.referenced_blocks[f"text_{i}"], v4b.ChannelConversion):
-                            kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"].name.encode('latin-1')
+                        if isinstance(
+                            conversion.referenced_blocks[f"text_{i}"],
+                            v4b.ChannelConversion,
+                        ):
+                            kargs[f"text_{i}"] = conversion.referenced_blocks[
+                                f"text_{i}"
+                            ].name.encode("latin-1")
                         else:
-                            kargs[f"text_{i}"] = conversion.referenced_blocks[f"text_{i}"]
+                            kargs[f"text_{i}"] = conversion.referenced_blocks[
+                                f"text_{i}"
+                            ]
 
                     new_conversion = v3b.ChannelConversion(**kargs)
-                    if isinstance(conversion.referenced_blocks["default_addr"], v4b.ChannelConversion):
-                        default_addr = conversion.referenced_blocks[f"default_addr"].name.encode('latin-1')
+                    if isinstance(
+                        conversion.referenced_blocks["default_addr"],
+                        v4b.ChannelConversion,
+                    ):
+                        default_addr = conversion.referenced_blocks[
+                            f"default_addr"
+                        ].name.encode("latin-1")
                     else:
                         default_addr = conversion.referenced_blocks["default_addr"]
                     new_conversion.referenced_blocks["default_addr"] = default_addr
@@ -257,7 +288,7 @@ def conversion_transfer(conversion, version=3):
     return conversion
 
 
-def from_dict(conversion):
+def from_dict(conversion: dict[str, Any]) -> v4b.ChannelConversion:
     if not conversion:
         conversion = None
 
@@ -291,9 +322,9 @@ def from_dict(conversion):
         nr = 0
         while f"text_{nr}" in conversion:
             val = conversion[f"text_{nr}"]
-            if not isinstance(conversion[f"text_{nr}"], (bytes, str)):
+            if isinstance(val, (bytes, str)):
                 partial_conversion = {
-                    "conversion_type": v4c.CONCONVERSION_TYPE_RTABX,
+                    "conversion_type": v4c.CONVERSION_TYPE_RTABX,
                     "upper_0": conversion[f"upper_{nr}"],
                     "lower_0": conversion[f"lower_{nr}"],
                     "text_0": conversion[f"text_{nr}"]
@@ -324,7 +355,15 @@ def from_dict(conversion):
             val = conversion[f"text_{nr}"]
             if isinstance(val, str):
                 conversion[f"text_{nr}"] = val.encode("utf-8")
+            elif isinstance(val, dict):
+                conversion[f"text_{nr}"] = from_dict(val)
             nr += 1
+
+        val = conversion.get("default_addr", b"")
+        if isinstance(val, str):
+            conversion[f"default_addr"] = val.encode("utf-8")
+        elif isinstance(val, dict):
+            conversion[f"default_addr"] = from_dict(val)
 
         conversion["ref_param_nr"] = nr + 1
         conversion = v4b.ChannelConversion(**conversion)
@@ -336,8 +375,17 @@ def from_dict(conversion):
             val = conversion[f"text_{nr}"]
             if isinstance(val, str):
                 conversion[f"text_{nr}"] = val.encode("utf-8")
+            elif isinstance(val, dict):
+                conversion[f"text_{nr}"] = from_dict(val)
             nr += 1
+
         conversion["ref_param_nr"] = nr + 1
+
+        val = conversion.get("default_addr", b"")
+        if isinstance(val, str):
+            conversion[f"default_addr"] = val.encode("utf-8")
+        elif isinstance(val, dict):
+            conversion[f"default_addr"] = from_dict(val)
         conversion = v4b.ChannelConversion(**conversion)
 
     else:

@@ -25,10 +25,11 @@ from ...mdf import MDF
 from ...signal import Signal
 from ..dialogs.channel_info import ChannelInfoDialog
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
-from ..utils import compute_signal, extract_mime_names
+from ..utils import compute_signal, copy_ranges, extract_mime_names
 from .bar import Bar
 from .can_bus_trace import CANBusTrace
 from .channel_display import ChannelDisplay
+from .flexray_bus_trace import FlexRayBusTrace
 from .gps import GPS
 from .lin_bus_trace import LINBusTrace
 from .numeric import Numeric
@@ -37,53 +38,60 @@ from .tabular import Tabular
 from .tree import ChannelsGroupTreeItem
 
 COMPONENT = re.compile(r"\[(?P<index>\d+)\]$")
-SIG_RE = re.compile(r'\{\{(?!\}\})(?P<name>.*?)\}\}')
-NOT_FOUND = 2**32 - 1
+SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
+NOT_FOUND = 2 ** 32 - 1
 
 
 def build_mime_from_config(channels, mdf=None, uuid=None, default_index=-1):
     mime = []
     for channel in channels:
-        if channel.get('type', 'channel') == 'group':
+        if channel.get("type", "channel") == "group":
             if channel.get("pattern", None) is None:
                 mime.append(
                     (
-                        channel['name'],
+                        channel["name"],
                         None,
-                        build_mime_from_config(channel['channels'], mdf, uuid, default_index),
+                        build_mime_from_config(
+                            channel["channels"], mdf, uuid, default_index
+                        ),
                         None,
                         "group",
+                        channel.get("ranges", []),
                     )
                 )
             else:
                 mime.append(
                     (
-                        channel['name'],
-                        channel['pattern'],
+                        channel["name"],
+                        channel["pattern"],
                         [],
                         None,
                         "group",
+                        channel.get("ranges", []),
                     )
                 )
         else:
-            occurrences = mdf.whereis(channel['name']) if mdf else None
+            occurrences = mdf.whereis(channel["name"]) if mdf else None
             if occurrences:
                 group_index, channel_index = occurrences[0]
             else:
                 group_index, channel_index = default_index, default_index
             mime.append(
                 (
-                    channel['name'],
+                    channel["name"],
                     group_index,
                     channel_index,
-                    uuid or channel['mdf_uuid'],
+                    uuid or channel["mdf_uuid"],
                     "channel",
+                    channel.get("ranges", []),
                 )
             )
     return mime
 
 
-def extract_signals_using_pattern(mdf, pattern_info, ignore_value2text_conversions, uuid):
+def extract_signals_using_pattern(
+    mdf, pattern_info, ignore_value2text_conversions, uuid
+):
     pattern = pattern_info["pattern"]
     match_type = pattern_info["match_type"]
     filter_value = pattern_info["filter_value"]
@@ -182,15 +190,31 @@ def generate_window_title(mdi, window_name="", title=""):
     return name
 
 
+def get_descriptions(channels):
+    descriptions = {}
+    for channel in channels:
+        if channel.get("type", "channel") == "group":
+            new_descriptions = get_descriptions(channel["channels"])
+            descriptions.update(new_descriptions)
+        else:
+            descriptions[channel["name"]] = channel
+
+    return descriptions
+
+
 def get_flatten_entries_from_mime(data, default_index=None):
     entries = []
 
-    for (name, group_index, channel_index, mdf_uuid, type_) in data:
+    for (name, group_index, channel_index, mdf_uuid, type_, ranges) in data:
         if type_ == "channel":
             if default_index is not None:
-                entries.append((name, default_index, default_index, mdf_uuid, 'channel'))
+                entries.append(
+                    (name, default_index, default_index, mdf_uuid, "channel", ranges)
+                )
             else:
-                entries.append((name, group_index, channel_index, mdf_uuid, 'channel'))
+                entries.append(
+                    (name, group_index, channel_index, mdf_uuid, "channel", ranges)
+                )
         else:
             entries.extend(get_flatten_entries_from_mime(channel_index, default_index))
     return entries
@@ -198,10 +222,10 @@ def get_flatten_entries_from_mime(data, default_index=None):
 
 def get_pattern_groups(data):
     groups = []
-    for (name, pattern, channels, mdf_uuid, type_) in data:
+    for (name, pattern, channels, mdf_uuid, type_, ranges) in data:
         if type_ == "group":
             if pattern is not None:
-                groups.append(name, pattern, channels, mdf_uuid, type_)
+                groups.append(name, pattern, channels, mdf_uuid, type_, ranges)
             else:
                 groups.extend(get_pattern_groups(channels))
     return groups
@@ -233,7 +257,7 @@ def get_required_from_computed(channel):
                 expression_string = computation["expression"]
                 names.extend(
                     [
-                        match.group('name')
+                        match.group("name")
                         for match in SIG_RE.finditer(expression_string)
                     ]
                 )
@@ -260,16 +284,21 @@ def get_required_from_computed(channel):
 def get_required_from_config(channels, mdf):
     required, found, not_found, computed = set(), {}, set(), []
     for channel in channels:
-        if channel.get('type', 'channel') == 'group':
-            new_required, new_found, new_not_found, new_computed = get_required_from_config(channel['channels'], mdf)
+        if channel.get("type", "channel") == "group":
+            (
+                new_required,
+                new_found,
+                new_not_found,
+                new_computed,
+            ) = get_required_from_config(channel["channels"], mdf)
             required |= new_required
             found.update(new_found)
             not_found |= new_not_found
             computed.extend(new_computed)
         else:
-            if channel.get('computed', False):
+            if channel.get("computed", False):
                 computed.append(channel)
-            name = channel['name']
+            name = channel["name"]
             required.add(name)
 
             if name in mdf:
@@ -342,7 +371,14 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
 
                 def count(data):
                     s = 0
-                    for (name, group_index, channel_index, mdf_uuid, type_) in data:
+                    for (
+                        name,
+                        group_index,
+                        channel_index,
+                        mdf_uuid,
+                        type_,
+                        ranges,
+                    ) in data:
                         if type_ == "channel":
                             s += 1
                         else:
@@ -382,6 +418,8 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
         ratio = height // len(sub_windows)
 
         for window in sub_windows:
+            if window.isMinimized() or window.isMaximized():
+                window.showNormal()
             rect = QtCore.QRect(0, 0, width, ratio)
 
             window.setGeometry(rect)
@@ -398,6 +436,8 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
         ratio = width // len(sub_windows)
 
         for window in sub_windows:
+            if window.isMinimized() or window.isMaximized():
+                window.showNormal()
             rect = QtCore.QRect(0, 0, ratio, height)
 
             window.setGeometry(rect)
@@ -444,8 +484,8 @@ class WithMDIArea:
             sig
             for sig in signals
             if sig.samples.dtype.kind not in "SU"
-               and not sig.samples.dtype.names
-               and not len(sig.samples.shape) > 1
+            and not sig.samples.dtype.names
+            and not len(sig.samples.shape) > 1
         ]
 
         group.count = len(signals)
@@ -480,7 +520,7 @@ class WithMDIArea:
             names = list(names)
             if names and isinstance(names[0], str):
                 signals_ = [
-                    (name, *self.mdf.whereis(name)[0], self.uuid, 'channel')
+                    (name, *self.mdf.whereis(name)[0], self.uuid, "channel", [])
                     for name in names
                     if name in self.mdf
                 ]
@@ -508,11 +548,7 @@ class WithMDIArea:
 
                 for uuid in uuids:
                     uuids_signals = [
-                        entry[:3]
-                        for entry in signals_
-                        if entry[3] == uuid
-                        and entry
-
+                        entry[:3] for entry in signals_ if entry[3] == uuid and entry
                     ]
 
                     file_info = self.file_by_uuid(uuid)
@@ -533,14 +569,14 @@ class WithMDIArea:
 
                 for name in signals.columns:
                     if name.endswith(
-                            (
-                                    "CAN_DataFrame.ID",
-                                    "FLX_Frame.ID",
-                                    "FlexRay_DataFrame.ID",
-                                    "LIN_Frame.ID",
-                                    "MOST_DataFrame.ID",
-                                    "ETH_Frame.ID",
-                            )
+                        (
+                            "CAN_DataFrame.ID",
+                            "FLX_Frame.ID",
+                            "FlexRay_DataFrame.ID",
+                            "LIN_Frame.ID",
+                            "MOST_DataFrame.ID",
+                            "ETH_Frame.ID",
+                        )
                     ):
                         signals[name] = signals[name].astype("<u4") & 0x1FFFFFFF
 
@@ -551,7 +587,9 @@ class WithMDIArea:
                 signals = []
 
                 for uuid in uuids:
-                    uuids_signals = [entry[:3] for entry in signals_ if entry[3] == uuid]
+                    uuids_signals = [
+                        entry[:3] for entry in signals_ if entry[3] == uuid
+                    ]
 
                     file_info = self.file_by_uuid(uuid)
                     if not file_info:
@@ -573,6 +611,7 @@ class WithMDIArea:
                         sig.computed = False
                         sig.computation = {}
                         sig.mdf_uuid = uuid
+                        sig.name = sig_[0]
 
                         if not hasattr(self, "mdf"):
                             # MainWindow => comparison plots
@@ -594,7 +633,9 @@ class WithMDIArea:
                 for signal in signals:
                     if len(signal.samples.shape) > 1:
 
-                        signal.samples = csv_bytearray2hex(pd.Series(list(signal.samples)))
+                        signal.samples = csv_bytearray2hex(
+                            pd.Series(list(signal.samples))
+                        )
 
                     if signal.name.endswith("CAN_DataFrame.ID"):
                         signal.samples = signal.samples.astype("<u4") & 0x1FFFFFFF
@@ -667,7 +708,7 @@ class WithMDIArea:
         except MdfException:
             print(format_exc())
 
-    def _add_can_bus_trace_window(self):
+    def _add_can_bus_trace_window(self, ranges=None):
         items = []
         groups_count = len(self.mdf.groups)
 
@@ -691,173 +732,394 @@ class WithMDIArea:
                         data = self.mdf.get("CAN_ErrorFrame", index, raw=True)
                         items.append(data)
 
-        if len(items):
+        if not len(items):
+            return
 
-            df_index = np.sort(np.concatenate([item.timestamps for item in items]))
-            count = len(df_index)
+        df_index = np.sort(np.concatenate([item.timestamps for item in items]))
+        count = len(df_index)
 
-            columns = {
-                "timestamps": df_index,
-                "Bus": np.full(count, "Unknown", dtype="O"),
-                "ID": np.full(count, 0xFFFFFFFF, dtype="u4"),
-                "Name": np.full(count, "", dtype="O"),
-                "Event Type": np.full(count, "CAN Frame", dtype="O"),
-                "Details": np.full(count, "", dtype="O"),
-                "DLC": np.zeros(count, dtype="u1"),
-                "Data Length": np.zeros(count, dtype="u1"),
-                "Data Bytes": np.full(count, "", dtype="O"),
-            }
+        columns = {
+            "timestamps": df_index,
+            "Bus": np.full(count, "Unknown", dtype="O"),
+            "ID": np.full(count, 0xFFFFFFFF, dtype="u4"),
+            "Name": np.full(count, "", dtype="O"),
+            "Event Type": np.full(count, "CAN Frame", dtype="O"),
+            "Details": np.full(count, "", dtype="O"),
+            "DLC": np.zeros(count, dtype="u1"),
+            "Data Length": np.zeros(count, dtype="u1"),
+            "Data Bytes": np.full(count, "", dtype="O"),
+        }
 
-            count = len(items)
+        count = len(items)
 
-            for string in v4c.CAN_ERROR_TYPES.values():
-                sys.intern(string)
+        for string in v4c.CAN_ERROR_TYPES.values():
+            sys.intern(string)
 
-            for _ in range(count):
-                item = items.pop()
+        for _ in range(count):
+            item = items.pop()
 
-                frame_map = None
-                if item.attachment and item.attachment[0]:
-                    dbc = load_can_database(item.attachment[1], item.attachment[0])
-                    if dbc:
-                        frame_map = {
-                            frame.arbitration_id.id: frame.name for frame in dbc
-                        }
+            frame_map = None
+            if item.attachment and item.attachment[0]:
+                dbc = load_can_database(item.attachment[1], item.attachment[0])
+                if dbc:
+                    frame_map = {frame.arbitration_id.id: frame.name for frame in dbc}
 
-                        for name in frame_map.values():
-                            sys.intern(name)
+                    for name in frame_map.values():
+                        sys.intern(name)
 
-                if item.name == "CAN_DataFrame":
+            if item.name == "CAN_DataFrame":
 
-                    index = np.searchsorted(df_index, item.timestamps)
+                index = np.searchsorted(df_index, item.timestamps)
 
-                    vals = item["CAN_DataFrame.BusChannel"].astype("u1")
+                vals = item["CAN_DataFrame.BusChannel"].astype("u1")
 
+                vals = [f"CAN {chn}" for chn in vals.tolist()]
+                columns["Bus"][index] = vals
+
+                vals = item["CAN_DataFrame.ID"].astype("u4") & 0x1FFFFFFF
+                columns["ID"][index] = vals
+                if frame_map:
+                    columns["Name"][index] = [frame_map[_id] for _id in vals]
+
+                columns["DLC"][index] = item["CAN_DataFrame.DLC"].astype("u1")
+                data_length = item["CAN_DataFrame.DataLength"].astype("u2").tolist()
+                columns["Data Length"][index] = data_length
+
+                vals = csv_bytearray2hex(
+                    pd.Series(list(item["CAN_DataFrame.DataBytes"])),
+                    data_length,
+                )
+                columns["Data Bytes"][index] = vals
+
+                vals = None
+                data_length = None
+
+            elif item.name == "CAN_RemoteFrame":
+
+                index = np.searchsorted(df_index, item.timestamps)
+
+                vals = item["CAN_RemoteFrame.BusChannel"].astype("u1")
+                vals = [f"CAN {chn}" for chn in vals.tolist()]
+                columns["Bus"][index] = vals
+
+                vals = item["CAN_RemoteFrame.ID"].astype("u4") & 0x1FFFFFFF
+                columns["ID"][index] = vals
+                if frame_map:
+                    columns["Name"][index] = [frame_map[_id] for _id in vals]
+
+                columns["DLC"][index] = item["CAN_RemoteFrame.DLC"].astype("u1")
+                data_length = item["CAN_RemoteFrame.DataLength"].astype("u2").tolist()
+                columns["Data Length"][index] = data_length
+                columns["Event Type"][index] = "Remote Frame"
+
+                vals = None
+                data_length = None
+
+            elif item.name == "CAN_ErrorFrame":
+
+                index = np.searchsorted(df_index, item.timestamps)
+
+                names = set(item.samples.dtype.names)
+
+                if "CAN_ErrorFrame.BusChannel" in names:
+                    vals = item["CAN_ErrorFrame.BusChannel"].astype("u1")
                     vals = [f"CAN {chn}" for chn in vals.tolist()]
                     columns["Bus"][index] = vals
 
-                    vals = item["CAN_DataFrame.ID"].astype("u4") & 0x1FFFFFFF
+                if "CAN_ErrorFrame.ID" in names:
+                    vals = item["CAN_ErrorFrame.ID"].astype("u4") & 0x1FFFFFFF
                     columns["ID"][index] = vals
                     if frame_map:
                         columns["Name"][index] = [frame_map[_id] for _id in vals]
 
-                    columns["DLC"][index] = item["CAN_DataFrame.DLC"].astype("u1")
-                    data_length = item["CAN_DataFrame.DataLength"].astype("u2").tolist()
-                    columns["Data Length"][index] = data_length
+                if "CAN_ErrorFrame.DLC" in names:
+                    columns["DLC"][index] = item["CAN_ErrorFrame.DLC"].astype("u1")
 
-                    vals = csv_bytearray2hex(
-                        pd.Series(list(item["CAN_DataFrame.DataBytes"])),
-                        data_length,
+                if "CAN_ErrorFrame.DataLength" in names:
+                    columns["Data Length"][index] = (
+                        item["CAN_ErrorFrame.DataLength"].astype("u2").tolist()
                     )
-                    columns["Data Bytes"][index] = vals
 
-                    vals = None
-                    data_length = None
+                columns["Event Type"][index] = "Error Frame"
 
-                elif item.name == "CAN_RemoteFrame":
+                if "CAN_ErrorFrame.ErrorType" in names:
+                    vals = item["CAN_ErrorFrame.ErrorType"].astype("u1").tolist()
+                    vals = [v4c.CAN_ERROR_TYPES.get(err, "Other error") for err in vals]
 
-                    index = np.searchsorted(df_index, item.timestamps)
+                    columns["Details"][index] = vals
 
-                    vals = item["CAN_RemoteFrame.BusChannel"].astype("u1")
-                    vals = [f"CAN {chn}" for chn in vals.tolist()]
-                    columns["Bus"][index] = vals
+        signals = pd.DataFrame(columns)
 
-                    vals = item["CAN_RemoteFrame.ID"].astype("u4") & 0x1FFFFFFF
-                    columns["ID"][index] = vals
-                    if frame_map:
-                        columns["Name"][index] = [frame_map[_id] for _id in vals]
+        trace = CANBusTrace(
+            signals, start=self.mdf.header.start_time.timestamp(), ranges=ranges
+        )
 
-                    columns["DLC"][index] = item["CAN_RemoteFrame.DLC"].astype("u1")
-                    data_length = (
-                        item["CAN_RemoteFrame.DataLength"].astype("u2").tolist()
-                    )
-                    columns["Data Length"][index] = data_length
-                    columns["Event Type"][index] = "Remote Frame"
+        sub = MdiSubWindow(parent=self)
+        sub.setWidget(trace)
+        sub.sigClosed.connect(self.window_closed_handler)
+        sub.titleModified.connect(self.window_closed_handler)
 
-                    vals = None
-                    data_length = None
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/bus_can.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        sub.setWindowIcon(icon)
 
-                elif item.name == "CAN_ErrorFrame":
+        if not self.subplots:
+            for mdi in self.mdi_area.subWindowList():
+                mdi.close()
+            w = self.mdi_area.addSubWindow(sub)
 
-                    index = np.searchsorted(df_index, item.timestamps)
+            w.showMaximized()
+        else:
+            w = self.mdi_area.addSubWindow(sub)
 
-                    names = set(item.samples.dtype.names)
-
-                    if "CAN_ErrorFrame.BusChannel" in names:
-                        vals = item["CAN_ErrorFrame.BusChannel"].astype("u1")
-                        vals = [f"CAN {chn}" for chn in vals.tolist()]
-                        columns["Bus"][index] = vals
-
-                    if "CAN_ErrorFrame.ID" in names:
-                        vals = item["CAN_ErrorFrame.ID"].astype("u4") & 0x1FFFFFFF
-                        columns["ID"][index] = vals
-                        if frame_map:
-                            columns["Name"][index] = [frame_map[_id] for _id in vals]
-
-                    if "CAN_ErrorFrame.DLC" in names:
-                        columns["DLC"][index] = item["CAN_ErrorFrame.DLC"].astype("u1")
-
-                    if "CAN_ErrorFrame.DataLength" in names:
-                        columns["Data Length"][index] = (
-                            item["CAN_ErrorFrame.DataLength"].astype("u2").tolist()
-                        )
-
-                    columns["Event Type"][index] = "Error Frame"
-
-                    if "CAN_ErrorFrame.ErrorType" in names:
-                        vals = item["CAN_ErrorFrame.ErrorType"].astype("u1").tolist()
-                        vals = [
-                            v4c.CAN_ERROR_TYPES.get(err, "Other error") for err in vals
-                        ]
-
-                        columns["Details"][index] = vals
-
-            signals = pd.DataFrame(columns)
-
-            numeric = CANBusTrace(signals, start=self.mdf.header.start_time.timestamp())
-
-            sub = MdiSubWindow(parent=self)
-            sub.setWidget(numeric)
-            sub.sigClosed.connect(self.window_closed_handler)
-            sub.titleModified.connect(self.window_closed_handler)
-
-            if not self.subplots:
-                for mdi in self.mdi_area.subWindowList():
-                    mdi.close()
-                w = self.mdi_area.addSubWindow(sub)
-
+            if len(self.mdi_area.subWindowList()) == 1:
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(sub)
+                w.show()
+                self.mdi_area.tileSubWindows()
 
-                if len(self.mdi_area.subWindowList()) == 1:
-                    w.showMaximized()
-                else:
-                    w.show()
-                    self.mdi_area.tileSubWindows()
+        menu = w.systemMenu()
+        if self._frameless_windows:
+            w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
 
-            menu = w.systemMenu()
-            if self._frameless_windows:
-                w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+        w.layout().setSpacing(1)
 
-            w.layout().setSpacing(1)
+        def set_title(mdi):
+            name, ok = QtWidgets.QInputDialog.getText(
+                None, "Set sub-plot title", "Title:"
+            )
+            if ok and name:
+                mdi.setWindowTitle(name)
 
-            def set_title(mdi):
-                name, ok = QtWidgets.QInputDialog.getText(
-                    None, "Set sub-plot title", "Title:"
+        action = QtWidgets.QAction("Set title", menu)
+        action.triggered.connect(partial(set_title, w))
+        before = menu.actions()[0]
+        menu.insertAction(before, action)
+
+        w.setWindowTitle(f"CAN Bus Trace {self._window_counter}")
+        self._window_counter += 1
+
+        if self.subplots_link:
+            trace.timestamp_changed_signal.connect(self.set_cursor)
+
+        self.windows_modified.emit()
+        trace.tree.auto_size_header()
+
+        return trace
+
+    def _add_flexray_bus_trace_window(self, ranges=None):
+        items = []
+        groups_count = len(self.mdf.groups)
+
+        for index in range(groups_count):
+            group = self.mdf.groups[index]
+            if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
+                source = group.channel_group.acq_source
+
+                names = [ch.name for ch in group.channels]
+
+                if source and source.bus_type == v4c.BUS_TYPE_FLEXRAY:
+                    if "FLX_Frame" in names:
+                        data = self.mdf.get("FLX_Frame", index, raw=True)
+                        items.append(data)
+
+                    elif "FLX_NullFrame" in names:
+                        data = self.mdf.get("FLX_NullFrame", index, raw=True)
+                        items.append(data)
+
+                    elif "FLX_StartCycle" in names:
+                        data = self.mdf.get("FLX_StartCycle", index, raw=True)
+                        items.append(data)
+
+                    elif "FLX_Status" in names:
+                        data = self.mdf.get("FLX_Status", index, raw=True)
+                        items.append(data)
+
+        if not len(items):
+            return
+
+        df_index = np.sort(np.concatenate([item.timestamps for item in items]))
+        count = len(df_index)
+
+        columns = {
+            "timestamps": df_index,
+            "Bus": np.full(count, "Unknown", dtype="O"),
+            "ID": np.full(count, 0xFFFF, dtype="u2"),
+            "Cycle": np.full(count, 0xFF, dtype="u1"),
+            "Name": np.full(count, "", dtype="O"),
+            "Event Type": np.full(count, "FlexRay Frame", dtype="O"),
+            "Details": np.full(count, "", dtype="O"),
+            "Data Length": np.zeros(count, dtype="u1"),
+            "Data Bytes": np.full(count, "", dtype="O"),
+            "Header CRC": np.full(count, 0xFFFF, dtype="u2"),
+        }
+
+        count = len(items)
+
+        # TO DO: add flexray error types
+        # for string in v4c.CAN_ERROR_TYPES.values():
+        #     sys.intern(string)
+
+        for _ in range(count):
+            item = items.pop()
+
+            frame_map = None
+
+            # TO DO : add flexray fibex support
+            # if item.attachment and item.attachment[0]:
+            #     dbc = load_can_database(item.attachment[1], item.attachment[0])
+            #     if dbc:
+            #         frame_map = {
+            #             frame.arbitration_id.id: frame.name for frame in dbc
+            #         }
+            #
+            #         for name in frame_map.values():
+            #             sys.intern(name)
+
+            if item.name == "FLX_Frame":
+
+                index = np.searchsorted(df_index, item.timestamps)
+
+                vals = item["FLX_Frame.FlxChannel"].astype("u1")
+
+                vals = [f"FlexRay {chn}" for chn in vals.tolist()]
+                columns["Bus"][index] = vals
+
+                vals = item["FLX_Frame.ID"].astype("u2")
+                columns["ID"][index] = vals
+                if frame_map:
+                    columns["Name"][index] = [frame_map[_id] for _id in vals]
+
+                vals = item["FLX_Frame.Cycle"].astype("u1")
+                columns["Cycle"][index] = vals
+
+                data_length = item["FLX_Frame.PayloadLength"].astype("u1").tolist()
+                columns["Data Length"][index] = data_length
+
+                vals = csv_bytearray2hex(
+                    pd.Series(list(item["FLX_Frame.DataBytes"])),
+                    data_length,
                 )
-                if ok and name:
-                    mdi.setWindowTitle(name)
+                columns["Data Bytes"][index] = vals
 
-            action = QtWidgets.QAction("Set title", menu)
-            action.triggered.connect(partial(set_title, w))
-            before = menu.actions()[0]
-            menu.insertAction(before, action)
+                vals = item["FLX_Frame.HeaderCRC"].astype("u2")
+                columns["Header CRC"][index] = vals
 
-            w.setWindowTitle(f"CAN Bus Trace {self._window_counter}")
-            self._window_counter += 1
+                vals = None
+                data_length = None
 
-    def _add_lin_bus_trace_window(self):
+            elif item.name == "FLX_NullFrame":
+
+                index = np.searchsorted(df_index, item.timestamps)
+
+                vals = item["FLX_NullFrame.FlxChannel"].astype("u1")
+                vals = [f"FlexRay {chn}" for chn in vals.tolist()]
+                columns["Bus"][index] = vals
+
+                vals = item["FLX_NullFrame.ID"].astype("u2")
+                columns["ID"][index] = vals
+                if frame_map:
+                    columns["Name"][index] = [frame_map[_id] for _id in vals]
+
+                vals = item["FLX_NullFrame.Cycle"].astype("u1")
+                columns["Cycle"][index] = vals
+
+                columns["Event Type"][index] = "FlexRay NullFrame"
+
+                vals = item["FLX_NullFrame.HeaderCRC"].astype("u2")
+                columns["Header CRC"][index] = vals
+
+                vals = None
+                data_length = None
+
+            elif item.name == "FLX_StartCycle":
+
+                index = np.searchsorted(df_index, item.timestamps)
+
+                vals = item["FLX_StartCycle.cycleCount"].astype("u1")
+                columns["Cycle"][index] = vals
+
+                columns["Event Type"][index] = "FlexRay StartCycle"
+
+                vals = None
+                data_length = None
+
+            elif item.name == "FLX_Status":
+
+                index = np.searchsorted(df_index, item.timestamps)
+
+                vals = item["FLX_Status.StatusType"].astype("u1")
+                columns["Details"][index] = vals.astype("U").astype("O")
+
+                columns["Event Type"][index] = "FlexRay Status"
+
+                vals = None
+                data_length = None
+
+        signals = pd.DataFrame(columns)
+
+        trace = FlexRayBusTrace(
+            signals, start=self.mdf.header.start_time.timestamp(), ranges=ranges
+        )
+
+        sub = MdiSubWindow(parent=self)
+        sub.setWidget(trace)
+        sub.sigClosed.connect(self.window_closed_handler)
+        sub.titleModified.connect(self.window_closed_handler)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/bus_flx.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        sub.setWindowIcon(icon)
+
+        if not self.subplots:
+            for mdi in self.mdi_area.subWindowList():
+                mdi.close()
+            w = self.mdi_area.addSubWindow(sub)
+
+            w.showMaximized()
+        else:
+            w = self.mdi_area.addSubWindow(sub)
+
+            if len(self.mdi_area.subWindowList()) == 1:
+                w.showMaximized()
+            else:
+                w.show()
+                self.mdi_area.tileSubWindows()
+
+        menu = w.systemMenu()
+        if self._frameless_windows:
+            w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+
+        w.layout().setSpacing(1)
+
+        def set_title(mdi):
+            name, ok = QtWidgets.QInputDialog.getText(
+                None, "Set sub-plot title", "Title:"
+            )
+            if ok and name:
+                mdi.setWindowTitle(name)
+
+        action = QtWidgets.QAction("Set title", menu)
+        action.triggered.connect(partial(set_title, w))
+        before = menu.actions()[0]
+        menu.insertAction(before, action)
+
+        w.setWindowTitle(f"FlexRay Bus Trace {self._window_counter}")
+        self._window_counter += 1
+
+        if self.subplots_link:
+            trace.timestamp_changed_signal.connect(self.set_cursor)
+
+        self.windows_modified.emit()
+        trace.tree.auto_size_header()
+
+        return trace
+
+    def _add_lin_bus_trace_window(self, ranges=None):
         items = []
         groups_count = len(self.mdf.groups)
 
@@ -889,223 +1151,239 @@ class WithMDIArea:
                         data = self.mdf.get("LIN_ReceiveError", index, raw=True)
                         items.append(data)
 
-        if len(items):
+        if not len(items):
+            return
 
-            df_index = np.sort(np.concatenate([item.timestamps for item in items]))
-            count = len(df_index)
+        df_index = np.sort(np.concatenate([item.timestamps for item in items]))
+        count = len(df_index)
 
-            columns = {
-                "timestamps": df_index,
-                "Bus": np.full(count, "Unknown", dtype="O"),
-                "ID": np.full(count, 0xFFFFFFFF, dtype="u4"),
-                "Name": np.full(count, "", dtype="O"),
-                "Event Type": np.full(count, "LIN Frame", dtype="O"),
-                "Details": np.full(count, "", dtype="O"),
-                "Received Byte Count": np.zeros(count, dtype="u1"),
-                "Data Length": np.zeros(count, dtype="u1"),
-                "Data Bytes": np.full(count, "", dtype="O"),
-            }
+        columns = {
+            "timestamps": df_index,
+            "Bus": np.full(count, "Unknown", dtype="O"),
+            "ID": np.full(count, 0xFFFFFFFF, dtype="u4"),
+            "Name": np.full(count, "", dtype="O"),
+            "Event Type": np.full(count, "LIN Frame", dtype="O"),
+            "Details": np.full(count, "", dtype="O"),
+            "Received Byte Count": np.zeros(count, dtype="u1"),
+            "Data Length": np.zeros(count, dtype="u1"),
+            "Data Bytes": np.full(count, "", dtype="O"),
+        }
 
-            count = len(items)
+        count = len(items)
 
-            for _ in range(count):
-                item = items.pop()
+        for _ in range(count):
+            item = items.pop()
 
-                frame_map = None
-                if item.attachment and item.attachment[0]:
-                    dbc = load_can_database(item.attachment[1], item.attachment[0])
-                    if dbc:
-                        frame_map = {
-                            frame.arbitration_id.id: frame.name for frame in dbc
-                        }
+            frame_map = None
+            if item.attachment and item.attachment[0]:
+                dbc = load_can_database(item.attachment[1], item.attachment[0])
+                if dbc:
+                    frame_map = {frame.arbitration_id.id: frame.name for frame in dbc}
 
-                        for name in frame_map.values():
-                            sys.intern(name)
+                    for name in frame_map.values():
+                        sys.intern(name)
 
-                if item.name == "LIN_Frame":
+            if item.name == "LIN_Frame":
 
-                    index = np.searchsorted(df_index, item.timestamps)
+                index = np.searchsorted(df_index, item.timestamps)
 
-                    vals = item["LIN_Frame.BusChannel"].astype("u1")
+                vals = item["LIN_Frame.BusChannel"].astype("u1")
+                vals = [f"LIN {chn}" for chn in vals.tolist()]
+                columns["Bus"][index] = vals
+
+                vals = item["LIN_Frame.ID"].astype("u1") & 0x3F
+                columns["ID"][index] = vals
+                if frame_map:
+                    columns["Name"][index] = [frame_map[_id] for _id in vals]
+
+                columns["Received Byte Count"][index] = item[
+                    "LIN_Frame.ReceivedDataByteCount"
+                ].astype("u1")
+                data_length = item["LIN_Frame.DataLength"].astype("u1").tolist()
+                columns["Data Length"][index] = data_length
+
+                vals = csv_bytearray2hex(
+                    pd.Series(list(item["LIN_Frame.DataBytes"])),
+                    data_length,
+                )
+                columns["Data Bytes"][index] = vals
+
+                vals = None
+                data_length = None
+
+            elif item.name == "LIN_SyncError":
+
+                index = np.searchsorted(df_index, item.timestamps)
+                names = set(item.samples.dtype.names)
+
+                if "LIN_SyncError.BusChannel" in names:
+                    vals = item["LIN_SyncError.BusChannel"].astype("u1")
                     vals = [f"LIN {chn}" for chn in vals.tolist()]
                     columns["Bus"][index] = vals
 
-                    vals = item["LIN_Frame.ID"].astype("u1") & 0x3F
+                if "LIN_SyncError.BaudRate" in names:
+                    vals = item["LIN_SyncError.BaudRate"]
+                    unique = np.unique(vals).tolist()
+                    for val in unique:
+                        sys.intern((f"Baudrate {val}"))
+                    vals = [f"Baudrate {val}" for val in vals.tolist()]
+                    columns["Details"][index] = vals
+
+                columns["Event Type"][index] = "Sync Error Frame"
+
+                vals = None
+                data_length = None
+
+            elif item.name == "LIN_TransmissionError":
+
+                index = np.searchsorted(df_index, item.timestamps)
+
+                names = set(item.samples.dtype.names)
+
+                if "LIN_TransmissionError.BusChannel" in names:
+                    vals = item["LIN_TransmissionError.BusChannel"].astype("u1")
+                    vals = [f"LIN {chn}" for chn in vals.tolist()]
+                    columns["Bus"][index] = vals
+
+                if "LIN_TransmissionError.BaudRate" in names:
+                    vals = item["LIN_TransmissionError.BaudRate"]
+                    unique = np.unique(vals).tolist()
+                    for val in unique:
+                        sys.intern((f"Baudrate {val}"))
+                    vals = [f"Baudrate {val}" for val in vals.tolist()]
+                    columns["Details"][index] = vals
+
+                vals = item["LIN_TransmissionError.ID"].astype("u1") & 0x3F
+                columns["ID"][index] = vals
+                if frame_map:
+                    columns["Name"][index] = [frame_map[_id] for _id in vals]
+
+                columns["Event Type"][index] = "Transmission Error Frame"
+
+                vals = None
+
+            elif item.name == "LIN_ReceiveError":
+
+                index = np.searchsorted(df_index, item.timestamps)
+
+                names = set(item.samples.dtype.names)
+
+                if "LIN_ReceiveError.BusChannel" in names:
+                    vals = item["LIN_ReceiveError.BusChannel"].astype("u1")
+                    vals = [f"LIN {chn}" for chn in vals.tolist()]
+                    columns["Bus"][index] = vals
+
+                if "LIN_ReceiveError.BaudRate" in names:
+                    vals = item["LIN_ReceiveError.BaudRate"]
+                    unique = np.unique(vals).tolist()
+                    for val in unique:
+                        sys.intern((f"Baudrate {val}"))
+                    vals = [f"Baudrate {val}" for val in vals.tolist()]
+                    columns["Details"][index] = vals
+
+                if "LIN_ReceiveError.ID" in names:
+                    vals = item["LIN_ReceiveError.ID"].astype("u1") & 0x3F
                     columns["ID"][index] = vals
                     if frame_map:
                         columns["Name"][index] = [frame_map[_id] for _id in vals]
 
-                    columns["Received Byte Count"][index] = item[
-                        "LIN_Frame.ReceivedDataByteCount"
-                    ].astype("u1")
-                    data_length = item["LIN_Frame.DataLength"].astype("u1").tolist()
-                    columns["Data Length"][index] = data_length
+                columns["Event Type"][index] = "Receive Error Frame"
 
-                    vals = csv_bytearray2hex(
-                        pd.Series(list(item["LIN_Frame.DataBytes"])),
-                        data_length,
-                    )
-                    columns["Data Bytes"][index] = vals
+                vals = None
 
-                    vals = None
-                    data_length = None
+            elif item.name == "LIN_ChecksumError":
 
-                elif item.name == "LIN_SyncError":
+                index = np.searchsorted(df_index, item.timestamps)
 
-                    index = np.searchsorted(df_index, item.timestamps)
-                    names = set(item.samples.dtype.names)
+                names = set(item.samples.dtype.names)
 
-                    if "LIN_SyncError.BusChannel" in names:
-                        vals = item["LIN_SyncError.BusChannel"].astype("u1")
-                        vals = [f"LIN {chn}" for chn in vals.tolist()]
-                        columns["Bus"][index] = vals
+                if "LIN_ChecksumError.BusChannel" in names:
+                    vals = item["LIN_ChecksumError.BusChannel"].astype("u1")
+                    vals = [f"LIN {chn}" for chn in vals.tolist()]
+                    columns["Bus"][index] = vals
 
-                    if "LIN_SyncError.BaudRate" in names:
-                        vals = item["LIN_SyncError.BaudRate"]
-                        unique = np.unique(vals).tolist()
-                        for val in unique:
-                            sys.intern((f"Baudrate {val}"))
-                        vals = [f"Baudrate {val}" for val in vals.tolist()]
-                        columns["Details"][index] = vals
+                if "LIN_ChecksumError.Checksum" in names:
+                    vals = item["LIN_ChecksumError.Checksum"]
+                    unique = np.unique(vals).tolist()
+                    for val in unique:
+                        sys.intern((f"Baudrate {val}"))
+                    vals = [f"Checksum 0x{val:02X}" for val in vals.tolist()]
+                    columns["Details"][index] = vals
 
-                    columns["Event Type"][index] = "Sync Error Frame"
-
-                    vals = None
-                    data_length = None
-
-                elif item.name == "LIN_TransmissionError":
-
-                    index = np.searchsorted(df_index, item.timestamps)
-
-                    names = set(item.samples.dtype.names)
-
-                    if "LIN_TransmissionError.BusChannel" in names:
-                        vals = item["LIN_TransmissionError.BusChannel"].astype("u1")
-                        vals = [f"LIN {chn}" for chn in vals.tolist()]
-                        columns["Bus"][index] = vals
-
-                    if "LIN_TransmissionError.BaudRate" in names:
-                        vals = item["LIN_TransmissionError.BaudRate"]
-                        unique = np.unique(vals).tolist()
-                        for val in unique:
-                            sys.intern((f"Baudrate {val}"))
-                        vals = [f"Baudrate {val}" for val in vals.tolist()]
-                        columns["Details"][index] = vals
-
-                    vals = item["LIN_TransmissionError.ID"].astype("u1") & 0x3F
+                if "LIN_ChecksumError.ID" in names:
+                    vals = item["LIN_ChecksumError.ID"].astype("u1") & 0x3F
                     columns["ID"][index] = vals
                     if frame_map:
                         columns["Name"][index] = [frame_map[_id] for _id in vals]
 
-                    columns["Event Type"][index] = "Transmission Error Frame"
+                columns["Event Type"][index] = "Checksum Error Frame"
 
-                    vals = None
+                vals = None
 
-                elif item.name == "LIN_ReceiveError":
+        signals = pd.DataFrame(columns)
 
-                    index = np.searchsorted(df_index, item.timestamps)
+        trace = LINBusTrace(
+            signals, start=self.mdf.header.start_time.timestamp(), range=ranges
+        )
 
-                    names = set(item.samples.dtype.names)
+        sub = MdiSubWindow(parent=self)
+        sub.setWidget(trace)
+        sub.sigClosed.connect(self.window_closed_handler)
+        sub.titleModified.connect(self.window_closed_handler)
 
-                    if "LIN_ReceiveError.BusChannel" in names:
-                        vals = item["LIN_ReceiveError.BusChannel"].astype("u1")
-                        vals = [f"LIN {chn}" for chn in vals.tolist()]
-                        columns["Bus"][index] = vals
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/bus_lin.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        sub.setWindowIcon(icon)
 
-                    if "LIN_ReceiveError.BaudRate" in names:
-                        vals = item["LIN_ReceiveError.BaudRate"]
-                        unique = np.unique(vals).tolist()
-                        for val in unique:
-                            sys.intern((f"Baudrate {val}"))
-                        vals = [f"Baudrate {val}" for val in vals.tolist()]
-                        columns["Details"][index] = vals
+        if not self.subplots:
+            for mdi in self.mdi_area.subWindowList():
+                mdi.close()
+            w = self.mdi_area.addSubWindow(sub)
 
-                    if "LIN_ReceiveError.ID" in names:
-                        vals = item["LIN_ReceiveError.ID"].astype("u1") & 0x3F
-                        columns["ID"][index] = vals
-                        if frame_map:
-                            columns["Name"][index] = [frame_map[_id] for _id in vals]
+            w.showMaximized()
+        else:
+            w = self.mdi_area.addSubWindow(sub)
 
-                    columns["Event Type"][index] = "Receive Error Frame"
-
-                    vals = None
-
-                elif item.name == "LIN_ChecksumError":
-
-                    index = np.searchsorted(df_index, item.timestamps)
-
-                    names = set(item.samples.dtype.names)
-
-                    if "LIN_ChecksumError.BusChannel" in names:
-                        vals = item["LIN_ChecksumError.BusChannel"].astype("u1")
-                        vals = [f"LIN {chn}" for chn in vals.tolist()]
-                        columns["Bus"][index] = vals
-
-                    if "LIN_ChecksumError.Checksum" in names:
-                        vals = item["LIN_ChecksumError.Checksum"]
-                        unique = np.unique(vals).tolist()
-                        for val in unique:
-                            sys.intern((f"Baudrate {val}"))
-                        vals = [f"Checksum 0x{val:02X}" for val in vals.tolist()]
-                        columns["Details"][index] = vals
-
-                    if "LIN_ChecksumError.ID" in names:
-                        vals = item["LIN_ChecksumError.ID"].astype("u1") & 0x3F
-                        columns["ID"][index] = vals
-                        if frame_map:
-                            columns["Name"][index] = [frame_map[_id] for _id in vals]
-
-                    columns["Event Type"][index] = "Checksum Error Frame"
-
-                    vals = None
-
-            signals = pd.DataFrame(columns)
-
-            numeric = LINBusTrace(signals, start=self.mdf.header.start_time.timestamp())
-
-            sub = MdiSubWindow(parent=self)
-            sub.setWidget(numeric)
-            sub.sigClosed.connect(self.window_closed_handler)
-            sub.titleModified.connect(self.window_closed_handler)
-
-            if not self.subplots:
-                for mdi in self.mdi_area.subWindowList():
-                    mdi.close()
-                w = self.mdi_area.addSubWindow(sub)
-
+            if len(self.mdi_area.subWindowList()) == 1:
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(sub)
+                w.show()
+                self.mdi_area.tileSubWindows()
 
-                if len(self.mdi_area.subWindowList()) == 1:
-                    w.showMaximized()
-                else:
-                    w.show()
-                    self.mdi_area.tileSubWindows()
+        menu = w.systemMenu()
+        if self._frameless_windows:
+            w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
 
-            menu = w.systemMenu()
-            if self._frameless_windows:
-                w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+        w.layout().setSpacing(1)
 
-            w.layout().setSpacing(1)
+        def set_title(mdi):
+            name, ok = QtWidgets.QInputDialog.getText(
+                None, "Set sub-plot title", "Title:"
+            )
+            if ok and name:
+                mdi.setWindowTitle(name)
 
-            def set_title(mdi):
-                name, ok = QtWidgets.QInputDialog.getText(
-                    None, "Set sub-plot title", "Title:"
-                )
-                if ok and name:
-                    mdi.setWindowTitle(name)
+        action = QtWidgets.QAction("Set title", menu)
+        action.triggered.connect(partial(set_title, w))
+        before = menu.actions()[0]
+        menu.insertAction(before, action)
 
-            action = QtWidgets.QAction("Set title", menu)
-            action.triggered.connect(partial(set_title, w))
-            before = menu.actions()[0]
-            menu.insertAction(before, action)
+        w.setWindowTitle(f"LIN Bus Trace {self._window_counter}")
+        self._window_counter += 1
 
-            w.setWindowTitle(f"LIN Bus Trace {self._window_counter}")
-            self._window_counter += 1
+        if self.subplots_link:
+            trace.timestamp_changed_signal.connect(self.set_cursor)
+
+        self.windows_modified.emit()
+        trace.tree.auto_size_header()
+
+        return trace
 
     def _add_gps_window(self, signals):
 
+        signals = [sig[:3] for sig in signals]
         latitude_channel, longitude_channel = self.mdf.select(signals)
 
         gps = GPS(latitude_channel, longitude_channel)
@@ -1113,6 +1391,12 @@ class WithMDIArea:
         sub.setWidget(gps)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/globe.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        sub.setWindowIcon(icon)
 
         w = self.mdi_area.addSubWindow(sub)
 
@@ -1146,11 +1430,15 @@ class WithMDIArea:
         if self.subplots_link:
             gps.timestamp_changed_signal.connect(self.set_cursor)
 
+        self.windows_modified.emit()
+
     def add_window(self, args):
         window_type, names = args
 
         if window_type == "CAN Bus Trace":
             return self._add_can_bus_trace_window()
+        elif window_type == "FlexRay Bus Trace":
+            return self._add_flexray_bus_trace_window()
         elif window_type == "LIN Bus Trace":
             return self._add_lin_bus_trace_window()
         elif window_type == "GPS":
@@ -1158,19 +1446,20 @@ class WithMDIArea:
 
         if names and isinstance(names[0], str):
             signals_ = [
-                (None, *self.mdf.whereis(name)[0], self.uuid, 'channel')
+                (name, *self.mdf.whereis(name)[0], self.uuid, "channel")
                 for name in names
                 if name in self.mdf
             ]
             computed = []
         else:
             flatten_entries = get_flatten_entries_from_mime(names)
-            signals_ = [(None, *entry[1:]) for entry in flatten_entries if tuple(entry[1:3]) != (-1, -1)]
+            signals_ = [
+                entry for entry in flatten_entries if tuple(entry[1:3]) != (-1, -1)
+            ]
 
-            computed = [entry[0] for entry in flatten_entries if tuple(entry[1:3]) == (-1, -1)]
-
-        if not signals_:
-            return
+            computed = [
+                entry[0] for entry in flatten_entries if tuple(entry[1:3]) == (-1, -1)
+            ]
 
         if window_type == "Tabular":
             uuids = set(entry[3] for entry in signals_)
@@ -1198,13 +1487,18 @@ class WithMDIArea:
                     channels=uuids_signals,
                     ignore_value2text_conversions=self.ignore_value2text_conversions,
                     time_from_zero=False,
+                    empty_channels="zeros",
                 )
+
                 if not hasattr(self, "mdf"):
                     # MainWindow => comparison plots
                     columns = {name: f"{file_index+1}: {name}" for name in df.columns}
                     df.rename(columns=columns, inplace=True)
 
                 dfs.append(df)
+
+            if not dfs:
+                return
 
             signals = pd.concat(dfs, axis=1)
             start = min(start)
@@ -1251,6 +1545,7 @@ class WithMDIArea:
                     sig.computed = False
                     sig.computation = {}
                     sig.mdf_uuid = uuid
+                    sig.name = sig_[0] or sig.name
 
                     if not hasattr(self, "mdf"):
                         # MainWindow => comparison plots
@@ -1337,7 +1632,14 @@ class WithMDIArea:
                                 signals.append(new_sig)
 
             elif window_type == "Numeric":
-                for (name, pattern_info, channels, mdf_uuid, type_) in get_pattern_groups(names):
+                for (
+                    name,
+                    pattern_info,
+                    channels,
+                    mdf_uuid,
+                    type_,
+                    ranges,
+                ) in get_pattern_groups(names):
 
                     file_info = self.file_by_uuid(mdf_uuid)
                     if not file_info:
@@ -1379,7 +1681,7 @@ class WithMDIArea:
             signals = natsorted(signals, key=lambda x: x.name)
 
         if window_type == "Numeric":
-            numeric = Numeric([], parent=self)
+            numeric = Numeric([], parent=self, mode="offline")
 
             numeric.show()
             numeric.hide()
@@ -1531,7 +1833,9 @@ class WithMDIArea:
                 line_interconnect=self.line_interconnect,
                 origin=origin,
                 mdf=mdf,
-                parent=self
+                parent=self,
+                hide_missing_channels=self.hide_missing_channels,
+                hide_disabled_channels=self.hide_disabled_channels,
             )
             plot.pattern_group_added.connect(self.add_pattern_group)
             plot.pattern = {}
@@ -1662,10 +1966,10 @@ class WithMDIArea:
                         plot.pattern_group_added.emit(plot, item)
 
         elif window_type == "Tabular":
-            numeric = Tabular(signals, start=start, parent=self)
+            tabular = Tabular(signals, start=start, parent=self)
 
             sub = MdiSubWindow(parent=self)
-            sub.setWidget(numeric)
+            sub.setWidget(tabular)
             sub.sigClosed.connect(self.window_closed_handler)
             sub.titleModified.connect(self.window_closed_handler)
 
@@ -1696,6 +2000,15 @@ class WithMDIArea:
             menu.insertAction(before, action)
 
             w.setWindowTitle(generate_window_title(w, window_type))
+
+            if self.subplots_link:
+                tabular.timestamp_changed_signal.connect(self.set_cursor)
+
+            tabular.add_channels_request.connect(
+                partial(self.add_new_channels, widget=tabular)
+            )
+
+            tabular.tree.auto_size_header()
 
         self.windows_modified.emit()
 
@@ -1728,16 +2041,69 @@ class WithMDIArea:
                     self.uuid,
                 )
 
+                for sig in signals:
+                    sig.mdf_uuid = uuid
+                    sig.computation = None
+
+                try:
+                    ranges = [
+                        {
+                            "font_color": range["color"],
+                            "background_color": range["color"],
+                            "op1": "<=",
+                            "op2": "<=",
+                            "value1": float(range["start"]),
+                            "value2": float(range["stop"]),
+                        }
+                        for range in pattern_info["ranges"]
+                    ]
+                except KeyError:
+                    ranges = pattern_info["ranges"]
+
+                for range in ranges:
+                    range["font_color"] = QtGui.QBrush(
+                        QtGui.QColor(range["font_color"])
+                    )
+                    range["background_color"] = QtGui.QBrush(
+                        QtGui.QColor(range["background_color"])
+                    )
+
+                pattern_info["ranges"] = ranges
+
             else:
 
-                fmt = window_info["configuration"]["format"]
                 required = set(window_info["configuration"]["channels"])
 
                 signals_ = [
-                    (None, *self.mdf.whereis(name)[0])
+                    (name, *self.mdf.whereis(name)[0])
                     for name in window_info["configuration"]["channels"]
                     if name in self.mdf
                 ]
+
+                if window_info["configuration"].get("ranges", []):
+                    ranges = [
+                        range
+                        for name, range in zip(
+                            window_info["configuration"]["channels"],
+                            window_info["configuration"]["ranges"],
+                        )
+                        if name in self.mdf
+                    ]
+
+                    for channel_ranges in ranges:
+                        for range in channel_ranges:
+                            range["font_color"] = QtGui.QBrush(
+                                QtGui.QColor(range["font_color"])
+                            )
+                            range["background_color"] = QtGui.QBrush(
+                                QtGui.QColor(range["background_color"])
+                            )
+                else:
+                    ranges = [
+                        []
+                        for name in window_info["configuration"]["channels"]
+                        if name in self.mdf
+                    ]
 
                 if not signals_:
                     return
@@ -1750,9 +2116,11 @@ class WithMDIArea:
                     raw=True,
                 )
 
-                for sig, sig_ in zip(signals, signals_):
+                for sig, sig_, channel_ranges in zip(signals, signals_, ranges):
                     sig.group_index = sig_[1]
                     sig.mdf_uuid = uuid
+                    sig.computation = None
+                    sig.ranges = channel_ranges
 
                 signals = [
                     sig
@@ -1773,7 +2141,13 @@ class WithMDIArea:
 
                 signals.extend(not_found)
 
-            numeric = Numeric([], parent=self)
+            numeric = Numeric(
+                [],
+                format=window_info["configuration"]["format"],
+                float_precision=window_info["configuration"].get("float_precision", 3),
+                parent=self,
+                mode="offline",
+            )
             numeric.pattern = pattern_info
 
             sub = MdiSubWindow(parent=self)
@@ -1801,8 +2175,6 @@ class WithMDIArea:
             )
 
             numeric.add_new_channels(signals)
-            numeric.format = fmt
-            numeric._update_values()
 
             menu = w.systemMenu()
 
@@ -1817,6 +2189,18 @@ class WithMDIArea:
 
             if self.subplots_link:
                 numeric.timestamp_changed_signal.connect(self.set_cursor)
+
+            sections_width = window_info["configuration"].get(
+                "header_sections_width", []
+            )
+            if sections_width:
+                sections_width = reversed(
+                    [(i, width) for i, width in enumerate(sections_width)]
+                )
+                for i, width in sections_width:
+                    numeric.channels.columnHeader.horizontalHeader().resizeSection(
+                        i, width
+                    )
 
         elif window_info["type"] == "GPS":
             signals_ = [
@@ -1892,26 +2276,40 @@ class WithMDIArea:
 
                 mime_data = None
 
+                found_descriptions = {}
+
             else:
 
-                required, found_signals, not_found, computed_signals_descriptions = get_required_from_config(window_info["configuration"]["channels"], self.mdf)
-                mime_data = build_mime_from_config(window_info["configuration"]["channels"], self.mdf, self.uuid)
+                (
+                    required,
+                    found_signals,
+                    not_found,
+                    computed_signals_descriptions,
+                ) = get_required_from_config(
+                    window_info["configuration"]["channels"], self.mdf
+                )
+                mime_data = build_mime_from_config(
+                    window_info["configuration"]["channels"], self.mdf, self.uuid
+                )
 
                 measured_signals_ = [
-                    (None, *self.mdf.whereis(name)[0])
-                    for name in found_signals
+                    (name, *self.mdf.whereis(name)[0]) for name in found_signals
                 ]
 
+                found_descriptions = found_signals
                 found_signals = list(found_signals.values())
 
                 measured_signals = {
-                    sig.name: sig
-                    for sig in self.mdf.select(
+                    sig_info[0]: sig
+                    for sig, sig_info in zip(
+                        self.mdf.select(
+                            measured_signals_,
+                            ignore_value2text_conversions=self.ignore_value2text_conversions,
+                            copy_master=False,
+                            validate=True,
+                            raw=True,
+                        ),
                         measured_signals_,
-                        ignore_value2text_conversions=self.ignore_value2text_conversions,
-                        copy_master=False,
-                        validate=True,
-                        raw=True,
                     )
                 }
 
@@ -1924,6 +2322,7 @@ class WithMDIArea:
                     signal.group_index = entry_info[1]
                     signal.channel_index = entry_info[2]
                     signal.mdf_uuid = uuid
+                    signal.name = entry_info[0]
 
                 matrix_components = []
                 for name in not_found:
@@ -2041,9 +2440,6 @@ class WithMDIArea:
                 and not len(sig.samples.shape) > 1
             ]
 
-            if not signals:
-                return
-
             if hasattr(self, "mdf"):
                 events = []
                 origin = self.mdf.start_time
@@ -2114,6 +2510,8 @@ class WithMDIArea:
                 origin=origin,
                 mdf=mdf,
                 parent=self,
+                hide_missing_channels=self.hide_missing_channels,
+                hide_disabled_channels=self.hide_disabled_channels,
             )
             plot.pattern_group_added.connect(self.add_pattern_group)
             plot.pattern = pattern_info
@@ -2183,16 +2581,14 @@ class WithMDIArea:
                 partial(self.add_new_channels, widget=plot)
             )
 
-            descriptions = {
-                channel["name"]: channel
-                for channel in window_info["configuration"]["channels"]
-            }
+            descriptions = get_descriptions(window_info["configuration"]["channels"])
 
             iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
             while iterator.value():
                 item = iterator.value()
+                iterator += 1
                 wid = plot.channel_selection.itemWidget(item, 1)
-                try:
+                if isinstance(wid, ChannelDisplay):
                     name = wid._name
 
                     description = descriptions.get(name, None)
@@ -2207,35 +2603,64 @@ class WithMDIArea:
 
                         wid.set_fmt(description["fmt"])
                         wid.set_precision(description["precision"])
-                        wid.ranges = {
-                            (range["start"], range["stop"]): range["color"]
-                            for range in description["ranges"]
-                        }
+                        try:
+                            wid.set_ranges(
+                                [
+                                    {
+                                        "font_color": range["color"],
+                                        "background_color": range["color"],
+                                        "op1": "<=",
+                                        "op2": "<=",
+                                        "value1": float(range["start"]),
+                                        "value2": float(range["stop"]),
+                                    }
+                                    for range in description["ranges"]
+                                ]
+                            )
+                        except KeyError:
+                            wid.set_ranges(description["ranges"])
+
+                        for range in wid.ranges:
+                            range["font_color"] = QtGui.QColor(range["font_color"])
+                            range["background_color"] = QtGui.QColor(
+                                range["background_color"]
+                            )
+
                         wid.ylink.setCheckState(
                             QtCore.Qt.Checked
                             if description["common_axis"]
                             else QtCore.Qt.Unchecked
                         )
+                        wid.individual_axis.setCheckState(
+                            QtCore.Qt.Checked
+                            if description.get("individual_axis", False)
+                            else QtCore.Qt.Unchecked
+                        )
+                        width = description.get("individual_axis_width", 0)
+                        if width:
+                            plot.plot.axes[_idx].setWidth(width)
                         item.setCheckState(
                             0,
                             QtCore.Qt.Checked
                             if description["enabled"]
-                            else QtCore.Qt.Unchecked
+                            else QtCore.Qt.Unchecked,
                         )
-                    elif pattern_info:
-                        wid.ranges = pattern_info["ranges"]
-                except:
-                    pass
 
-                iterator += 1
+                    elif pattern_info:
+                        wid.set_ranges(pattern_info["ranges"])
 
             self.set_subplots_link(self.subplots_link)
 
             if "x_range" in window_info["configuration"]:
-                plot.plot.viewbox.setXRange(*window_info["configuration"]["x_range"], padding=0)
+                plot.plot.viewbox.setXRange(
+                    *window_info["configuration"]["x_range"], padding=0
+                )
 
             if "splitter" in window_info["configuration"]:
                 plot.splitter.setSizes(window_info["configuration"]["splitter"])
+
+            if "y_axis_width" in window_info["configuration"]:
+                plot.plot.y_axis.setWidth(window_info["configuration"]["y_axis_width"])
 
             if "grid" in window_info["configuration"]:
                 x_grid, y_grid = window_info["configuration"]["grid"]
@@ -2245,6 +2670,11 @@ class WithMDIArea:
             plot.splitter.setContentsMargins(1, 1, 1, 1)
             plot.setContentsMargins(1, 1, 1, 1)
 
+            if "cursor_precision" in window_info["configuration"]:
+                plot.cursor_info.set_precision(
+                    window_info["configuration"]["cursor_precision"]
+                )
+
             iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
             while iterator.value():
                 item = iterator.value()
@@ -2253,6 +2683,8 @@ class WithMDIArea:
                 if isinstance(item, ChannelsGroupTreeItem):
                     if item.pattern:
                         plot.pattern_group_added.emit(plot, item)
+
+            plot.channel_selection.refresh()
 
         elif window_info["type"] == "Tabular":
             # patterns
@@ -2268,20 +2700,62 @@ class WithMDIArea:
                     self.uuid,
                 )
 
+                try:
+                    ranges = [
+                        {
+                            "font_color": range["color"],
+                            "background_color": range["color"],
+                            "op1": "<=",
+                            "op2": "<=",
+                            "value1": float(range["start"]),
+                            "value2": float(range["stop"]),
+                        }
+                        for range in pattern_info["ranges"]
+                    ]
+                except KeyError:
+                    ranges = pattern_info["ranges"]
+
+                for range_info in ranges:
+                    range_info["font_color"] = QtGui.QBrush(
+                        QtGui.QColor(range_info["font_color"])
+                    )
+                    range_info["background_color"] = QtGui.QBrush(
+                        QtGui.QColor(range_info["background_color"])
+                    )
+
+                ranges = {sig.name: copy_ranges(ranges) for sig in signals_}
+
+                signals_ = [
+                    (sig.name, sig.group_index, sig.channel_index) for sig in signals_
+                ]
+
+                pattern_info["ranges"] = ranges
+
             else:
                 required = set(window_info["configuration"]["channels"])
 
                 signals_ = [
-                    (None, *self.mdf.whereis(name)[0])
+                    (name, *self.mdf.whereis(name)[0])
                     for name in window_info["configuration"]["channels"]
                     if name in self.mdf
                 ]
+
+                ranges = window_info["configuration"].get("ranges", {})
+                for channel_ranges in ranges.values():
+                    for range_info in channel_ranges:
+                        range_info["font_color"] = QtGui.QBrush(
+                            QtGui.QColor(range_info["font_color"])
+                        )
+                        range_info["background_color"] = QtGui.QBrush(
+                            QtGui.QColor(range_info["background_color"])
+                        )
 
                 if not signals_:
                     return
 
             signals = self.mdf.to_dataframe(
                 channels=signals_,
+                time_from_zero=False,
                 ignore_value2text_conversions=self.ignore_value2text_conversions,
             )
 
@@ -2293,7 +2767,12 @@ class WithMDIArea:
                 vals.fill(np.NaN)
                 signals[name] = pd.Series(vals, index=signals.index)
 
-            tabular = Tabular(signals, start=self.mdf.header.start_time.timestamp(), parent=self)
+            tabular = Tabular(
+                signals,
+                ranges=ranges,
+                start=self.mdf.header.start_time.timestamp(),
+                parent=self,
+            )
             tabular.pattern = pattern_info
 
             sub = MdiSubWindow(parent=self)
@@ -2350,11 +2829,8 @@ class WithMDIArea:
                 if window_info["configuration"]["time_as_date"]
                 else QtCore.Qt.Unchecked
             )
-
-            tabular.sort.setCheckState(
-                QtCore.Qt.Checked
-                if window_info["configuration"]["sorted"]
-                else QtCore.Qt.Unchecked
+            tabular.add_channels_request.connect(
+                partial(self.add_new_channels, widget=tabular)
             )
 
             menu = w.systemMenu()
@@ -2363,6 +2839,57 @@ class WithMDIArea:
             action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
+
+            if self.subplots_link:
+                tabular.timestamp_changed_signal.connect(self.set_cursor)
+
+            sections_width = window_info["configuration"].get(
+                "header_sections_width", []
+            )
+            if sections_width:
+                for i, width in enumerate(sections_width):
+
+                    tabular.tree.columnHeader.setColumnWidth(i, width)
+                    tabular.tree.dataView.setColumnWidth(i, width)
+
+                tabular.tree.dataView.updateGeometry()
+                tabular.tree.columnHeader.updateGeometry()
+
+        elif window_info["type"] in (
+            "CAN Bus Trace",
+            "FlexRay Bus Trace",
+            "LIN Bus Trace",
+        ):
+
+            ranges = window_info["configuration"].get("ranges", {})
+            for channel_ranges in ranges.values():
+                for range_info in channel_ranges:
+                    range_info["font_color"] = QtGui.QBrush(
+                        QtGui.QColor(range_info["font_color"])
+                    )
+                    range_info["background_color"] = QtGui.QBrush(
+                        QtGui.QColor(range_info["background_color"])
+                    )
+
+            if window_info["type"] == "CAN Bus Trace":
+                widget = self._add_can_bus_trace_window(ranges)
+            elif window_info["type"] == "FlexRay Bus Trace":
+                widget = self._add_can_bus_trace_window(ranges)
+            elif window_info["type"] == "LIN Bus Trace":
+                widget = self._add_lin_bus_trace_window(ranges)
+
+            sections_width = window_info["configuration"].get(
+                "header_sections_width", []
+            )
+            if sections_width:
+                for i, width in enumerate(sections_width):
+                    widget.tree.header().resizeSection(i, width)
+
+            scroll = widget.tree.horizontalScrollBar()
+            if scroll:
+                scroll.setValue(scroll.minimum())
+
+            return
 
         if self._frameless_windows:
             w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
@@ -2382,10 +2909,9 @@ class WithMDIArea:
         if with_dots is None:
             with_dots = not self.with_dots
 
-        self.with_dots = with_dots
-
         current_plot = self.get_current_widget()
         if current_plot and isinstance(current_plot, Plot):
+            self.with_dots = with_dots
             current_plot.with_dots = with_dots
             current_plot.plot.with_dots = with_dots
             current_plot.plot.update_lines()
@@ -2463,17 +2989,9 @@ class WithMDIArea:
             self._cursor_source = widget
             for mdi in self.mdi_area.subWindowList():
                 wid = mdi.widget()
-                if isinstance(wid, Plot) and wid is not widget:
-                    if wid.plot.cursor1 is None:
-                        event = QtGui.QKeyEvent(
-                            QtCore.QEvent.KeyPress,
-                            QtCore.Qt.Key_C,
-                            QtCore.Qt.NoModifier,
-                        )
-                        wid.plot.keyPressEvent(event)
-                    wid.plot.cursor1.setPos(pos)
-                elif isinstance(wid, (Numeric, Bar, GPS)) and wid is not widget:
-                    wid.timestamp.setValue(pos)
+                if wid is not widget:
+                    wid.set_timestamp(pos)
+
             self._cursor_source = None
 
     def set_region(self, widget, region):
@@ -2498,7 +3016,6 @@ class WithMDIArea:
     def set_splitter(self, widget, selection_width):
         if not self.subplots_link:
             return
-
 
         if self._splitter_source is None:
             self._splitter_source = widget

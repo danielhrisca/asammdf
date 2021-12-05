@@ -1,10 +1,19 @@
+from __future__ import annotations
+
+from typing import Any
+
+from canmatrix import Frame, Signal
 import numpy as np
+from numpy.typing import NDArray
+from typing_extensions import TypedDict
 
 from .conversion_utils import from_dict
 from .utils import as_non_byte_sized_signed_int, MdfException
 
 
-def apply_conversion(vals, signal, ignore_value2text_conversion):
+def apply_conversion(
+    vals: NDArray[Any], signal: Signal, ignore_value2text_conversion: bool
+) -> NDArray[Any]:
     a, b = float(signal.factor), float(signal.offset)
 
     if signal.values:
@@ -36,7 +45,12 @@ def apply_conversion(vals, signal, ignore_value2text_conversion):
     return vals
 
 
-def extract_signal(signal, payload, raw=False, ignore_value2text_conversion=True):
+def extract_signal(
+    signal: Signal,
+    payload: NDArray[Any],
+    raw: bool = False,
+    ignore_value2text_conversion: bool = True,
+) -> NDArray[Any]:
     vals = payload
 
     big_endian = False if signal.is_little_endian else True
@@ -213,27 +227,46 @@ def extract_signal(signal, payload, raw=False, ignore_value2text_conversion=True
     return vals
 
 
-def extract_can_signal(signal, payload, raw=False, ignore_value2text_conversion=True):
+def extract_can_signal(
+    signal: Signal,
+    payload: NDArray[Any],
+    raw: bool = False,
+    ignore_value2text_conversion: bool = True,
+) -> NDArray[Any]:
     return extract_signal(signal, payload, raw, ignore_value2text_conversion)
 
 
-def extract_lin_signal(signal, payload, raw=False, ignore_value2text_conversion=True):
+def extract_lin_signal(
+    signal: Signal,
+    payload: NDArray[Any],
+    raw: bool = False,
+    ignore_value2text_conversion: bool = True,
+) -> NDArray[Any]:
     return extract_signal(signal, payload, raw, ignore_value2text_conversion)
+
+
+class ExtractedSignal(TypedDict):
+    name: str
+    comment: str
+    unit: str
+    samples: NDArray[Any]
+    t: NDArray[Any]
+    invalidation_bits: NDArray[Any]
 
 
 def extract_mux(
-    payload,
-    message,
-    message_id,
-    bus,
-    t,
-    muxer=None,
-    muxer_values=None,
-    original_message_id=None,
-    raw=False,
-    include_message_name=False,
-    ignore_value2text_conversion=True,
-):
+    payload: NDArray[Any],
+    message: Frame,
+    message_id: int,
+    bus: int,
+    t: NDArray[Any],
+    muxer: str | None = None,
+    muxer_values: NDArray[Any] | None = None,
+    original_message_id: int | None = None,
+    raw: bool = False,
+    include_message_name: bool = False,
+    ignore_value2text_conversion: bool = True,
+) -> dict[tuple[Any, ...], dict[str, ExtractedSignal]]:
     """extract multiplexed CAN signals from the raw payload
 
     Parameters

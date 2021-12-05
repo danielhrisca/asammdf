@@ -21,6 +21,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         add_window_text="Add window",
         show_search=True,
         window_title="Search & select channels",
+        pattern=None,
         *args,
         **kwargs,
     ):
@@ -30,7 +31,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
         self.selection.all_texts = True
 
-        self.result = set()
+        self.result = {}
         self.add_window_request = False
         self.channels_db = channels_db
 
@@ -51,12 +52,15 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.search_box.setFocus()
 
         self._return_names = return_names
-        self.ranges = {}
+        self.ranges = []
 
         self.pattern_window = False
 
         self.apply_btn.setText(apply_text)
         self.add_window_btn.setText(add_window_text)
+
+        self.selection.setUniformItemSizes(True)
+        self.matches.setUniformItemSizes(True)
 
         if not show_add_window:
             self.add_window_btn.hide()
@@ -69,6 +73,17 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
         if not show_search:
             self.tabs.removeTab(0)
+
+        if pattern:
+            self.pattern.setText(pattern["pattern"])
+            self.filter_type.setCurrentText(pattern["filter_type"])
+            self.filter_value.setValue(pattern["filter_value"])
+            self.pattern_match_type.setCurrentText(pattern["match_type"])
+            self.raw.setCheckState(
+                QtCore.Qt.Checked if pattern["raw"] else QtCore.Qt.Unchecked
+            )
+            self.name.setText(pattern["name"])
+            self.ranges = pattern["ranges"]
 
         self.setWindowTitle(window_title)
 
@@ -84,7 +99,10 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
             try:
                 pattern = re.compile(f"(?i){pattern}")
-                matches = [name for name in self.channels_db if pattern.search(name)]
+                matches = natsorted(
+                    [name for name in self.channels_db if pattern.search(name)]
+                )
+
                 self.matches.clear()
                 self.matches.addItems(matches)
                 if matches:
@@ -112,10 +130,11 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         if self._return_names:
             self.result = set(self.selection.item(i).text() for i in range(count))
         else:
-            self.result = set()
+            self.result = {}
             for i in range(count):
-                for entry in self.channels_db[self.selection.item(i).text()]:
-                    self.result.add(entry)
+                name = self.selection.item(i).text()
+                for entry in self.channels_db[name]:
+                    self.result[entry] = name
         self.close()
 
     def _apply_pattern(self, event):
@@ -129,19 +148,15 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             "name": self.name.text().strip(),
         }
 
-        if not self.result['pattern']:
+        if not self.result["pattern"]:
             QtWidgets.QMessageBox.warning(
-                self,
-                "Cannot apply pattern",
-                "The pattern cannot be empty"
+                self, "Cannot apply pattern", "The pattern cannot be empty"
             )
             return
 
-        if not self.result['name']:
+        if not self.result["name"]:
             QtWidgets.QMessageBox.warning(
-                self,
-                "Cannot apply pattern",
-                "The name cannot be empty"
+                self, "Cannot apply pattern", "The name cannot be empty"
             )
             return
 
@@ -154,16 +169,17 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         if self._return_names:
             self.result = set(self.selection.item(i).text() for i in range(count))
         else:
-            self.result = set()
+            self.result = {}
             for i in range(count):
-                for entry in self.channels_db[self.selection.item(i).text()]:
-                    self.result.add(entry)
+                name = self.selection.item(i).text()
+                for entry in self.channels_db[name]:
+                    self.result[entry] = name
 
         self.add_window_request = True
         self.close()
 
     def _cancel(self, event):
-        self.result = set()
+        self.result = {}
         self.close()
 
     def _cancel_pattern(self, event):
@@ -171,7 +187,8 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.close()
 
     def _define_ranges(self, event=None):
-        dlg = RangeEditor("", self.ranges)
+        name = self.pattern.text().strip()
+        dlg = RangeEditor(f"Channel of <{name}>", ranges=self.ranges, parent=self)
         dlg.exec_()
         if dlg.pressed_button == "apply":
             self.ranges = dlg.result

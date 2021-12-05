@@ -5,7 +5,8 @@ import unittest
 
 import numpy as np
 
-from asammdf import MDF, MDF4, Signal
+from asammdf import MDF, Signal
+from asammdf.blocks.mdf_v4 import MDF4
 
 CHANNEL_LEN = 100000
 

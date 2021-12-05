@@ -3,6 +3,7 @@ from functools import partial
 import gc
 import os
 from pathlib import Path
+import platform
 from textwrap import wrap
 import webbrowser
 
@@ -315,9 +316,20 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/fit.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        action = QtWidgets.QAction(icon, f"{'Fit trace': <20}\tF", menu)
+        action = QtWidgets.QAction(icon, f"{'Fit all': <20}\tF", menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_F))
         action.setShortcut(QtCore.Qt.Key_F)
+        plot_actions.addAction(action)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/fit.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtWidgets.QAction(icon, f"{'Fit selected': <20}\tShift+F", menu)
+        action.triggered.connect(
+            partial(
+                self.plot_action, key=QtCore.Qt.Key_F, modifier=QtCore.Qt.ShiftModifier
+            )
+        )
+        action.setShortcut(QtGui.QKeySequence("Shift+F"))
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
@@ -338,9 +350,24 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         icon.addPixmap(
             QtGui.QPixmap(":/list2.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
         )
-        action = QtWidgets.QAction(icon, "{: <20}\tS".format("Stack"), menu)
+        action = QtWidgets.QAction(icon, "{: <20}\tS".format("Stack all"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_S))
         action.setShortcut(QtCore.Qt.Key_S)
+        plot_actions.addAction(action)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/list2.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        action = QtWidgets.QAction(
+            icon, "{: <20}\tShift+S".format("Stack selected"), menu
+        )
+        action.triggered.connect(
+            partial(
+                self.plot_action, key=QtCore.Qt.Key_S, modifier=QtCore.Qt.ShiftModifier
+            )
+        )
+        action.setShortcut(QtGui.QKeySequence("Shift+S"))
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
@@ -507,10 +534,10 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         subs.addAction(action)
 
         action = QtWidgets.QAction(
-            "{: <20}\tShift+F".format("Toggle sub-plots frames"), menu
+            "{: <20}\tShift+Alt+F".format("Toggle sub-plots frames"), menu
         )
         action.triggered.connect(self.toggle_frames)
-        action.setShortcut(QtGui.QKeySequence("Shift+F"))
+        action.setShortcut(QtGui.QKeySequence("Shift+Alt+F"))
         subs.addAction(action)
 
         action = QtWidgets.QAction(
@@ -624,6 +651,10 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         self.set_subplot_option(self._settings.value("subplots", "Disabled"))
         self.set_subplot_link_option(self._settings.value("subplots_link", "Disabled"))
+        self.hide_missing_channels = False
+        self.hide_disabled_channels = False
+
+        self.allways_accept_dots = False
 
         if files:
             for name in files:
@@ -647,6 +678,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
     def plot_action(self, key, modifier=QtCore.Qt.NoModifier):
         event = QtGui.QKeyEvent(QtCore.QEvent.KeyPress, key, modifier)
+
         if self.stackedWidget.currentIndex() == 0:
             widget = self.files.currentWidget()
             if widget and widget.get_current_widget():
@@ -657,15 +689,42 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 widget.get_current_widget().keyPressEvent(event)
 
     def toggle_dots(self, key):
-        self.with_dots = not self.with_dots
-        self._settings.setValue("dots", self.with_dots)
+        file_widget = self.files.currentWidget()
 
-        count = self.files.count()
+        if file_widget:
+            widget = file_widget.get_current_widget()
+            if widget and isinstance(widget, Plot):
+                new_setting_has_dots = not file_widget.with_dots
 
-        for i in range(count):
-            self.files.widget(i).set_line_style(with_dots=self.with_dots)
+                current_plot = widget
+                count = len(current_plot.plot.signals)
+                if (
+                    new_setting_has_dots
+                    and not self.allways_accept_dots
+                    and count >= 200
+                ):
+                    ret = QtWidgets.QMessageBox.question(
+                        self,
+                        "Continue enabling dots?",
+                        "Enabling dots for plots with large channel count will have a big performance hit.\n\n"
+                        "Do you wish to continue?",
+                    )
 
-        self.set_line_style(with_dots=self.with_dots)
+                    if ret != QtWidgets.QMessageBox.Yes:
+                        return
+                    else:
+                        self.allways_accept_dots = True
+
+                self.with_dots = new_setting_has_dots
+                self._settings.setValue("dots", self.with_dots)
+                file_widget.set_line_style(with_dots=new_setting_has_dots)
+                self.set_line_style(with_dots=self.with_dots)
+        else:
+            widget = self.get_current_widget()
+            if widget and isinstance(widget, Plot):
+                self.with_dots = not self.with_dots
+                self._settings.setValue("dots", self.with_dots)
+                self.set_line_style(with_dots=self.with_dots)
 
     def show_sub_windows(self, mode):
 
@@ -1006,13 +1065,26 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             widget.full_screen_toggled.connect(self.toggle_fullscreen)
 
     def open_file(self, event):
-        file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
-            self,
-            "Select measurement file",
-            self._settings.value("last_opened_path", "", str),
-            "CSV (*.csv);;MDF v3 (*.dat *.mdf);;MDF v4(*.mf4 *.mf4z);;DL3/ERG files (*.dl3 *.erg);;All files (*.csv *.dat *.mdf *.mf4 *.mf4z *.dl3 *.erg)",
-            "All files (*.csv *.dat *.mdf *.mf4 *.mf4z *.dl3 *.erg)",
-        )
+        system = platform.system().lower()
+        if system == "linux":
+            # see issue #567
+            # file extension is case sensitive on linux
+            file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
+                self,
+                "Select measurement file",
+                self._settings.value("last_opened_path", "", str),
+                "CSV (*.csv);;MDF v3 (*.dat *.mdf);;MDF v4(*.mf4 *.mf4z);;DL3/ERG files (*.dl3 *.erg);;All files (*.csv *.dat *.mdf *.mf4 *.mf4z *.dl3 *.erg)",
+                "All files (*.csv *.dat *.mdf *.mf4 *.mf4z *.dl3 *.erg)",
+                options=QtWidgets.QFileDialog.DontUseNativeDialog,
+            )
+        else:
+            file_names, _ = QtWidgets.QFileDialog.getOpenFileNames(
+                self,
+                "Select measurement file",
+                self._settings.value("last_opened_path", "", str),
+                "CSV (*.csv);;MDF v3 (*.dat *.mdf);;MDF v4(*.mf4 *.mf4z);;DL3/ERG files (*.dl3 *.erg);;All files (*.csv *.dat *.mdf *.mf4 *.mf4z *.dl3 *.erg)",
+                "All files (*.csv *.dat *.mdf *.mf4 *.mf4z *.dl3 *.erg)",
+            )
 
         if file_names:
             self._settings.setValue("last_opened_path", file_names[0])
@@ -1165,10 +1237,21 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                         False,
                     )
                     if ok:
-                        names = [
-                            (None, *entry, self.files.widget(file_index).uuid)
-                            for file_index, entry in result
-                        ]
+                        names = []
+                        for file_index, entry in result:
+                            group, ch_index = entry
+                            mdf = self.files.widget(file_index).mdf
+                            uuid = self.files.widget(file_index).uuid
+                            name = mdf.groups[group].channels[ch_index].name
+                            names.append(
+                                (
+                                    name,
+                                    *entry,
+                                    uuid,
+                                    "channel",
+                                    [],
+                                )
+                            )
                         self.add_window((ret, names))
 
         elif key == QtCore.Qt.Key_F11:

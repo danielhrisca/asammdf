@@ -1,27 +1,38 @@
 # -*- coding: utf-8 -*-
 """ common MDF file format module """
 
+from __future__ import annotations
+
 import bz2
 from collections import defaultdict, OrderedDict
+from collections.abc import Iterable, Iterator, Sequence
 from copy import deepcopy
 import csv
 from datetime import datetime, timezone
+from enum import Enum
+import fnmatch
 from functools import reduce
 import gzip
 from io import BytesIO
 import logging
+import os
 from pathlib import Path
 import re
 from shutil import copy, move
 from struct import unpack
+import sys
 from tempfile import gettempdir, mkdtemp
 from traceback import format_exc
+from types import TracebackType
+from typing import Any, overload, Type
 import xml.etree.ElementTree as ET
 import zipfile
 
 from canmatrix import CanMatrix
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
+from typing_extensions import Literal
 
 from .blocks import v2_v3_constants as v23c
 from .blocks import v4_constants as v4c
@@ -30,6 +41,7 @@ from .blocks.conversion_utils import from_dict
 from .blocks.mdf_v2 import MDF2
 from .blocks.mdf_v3 import MDF3
 from .blocks.mdf_v4 import MDF4
+from .blocks.options import FloatInterpolation, IntegerInterpolation
 from .blocks.utils import (
     components,
     csv_bytearray2hex,
@@ -59,16 +71,42 @@ from .blocks.v4_blocks import EventBlock, FileHistory, FileIdentificationBlock
 from .blocks.v4_blocks import HeaderBlock as HeaderV4
 from .blocks.v4_blocks import SourceInformation
 from .signal import Signal
+from .types import (
+    BusType,
+    ChannelGroupType,
+    ChannelsType,
+    DbcFileType,
+    EmptyChannelsType,
+    FloatInterpolationModeType,
+    InputType,
+    IntInterpolationModeType,
+    MDF_v2_v3_v4,
+    RasterType,
+    ReadableBufferType,
+    StrOrBytesPathType,
+    StrPathType,
+)
 from .version import __version__
 
 logger = logging.getLogger("asammdf")
 LOCAL_TIMEZONE = datetime.now(timezone.utc).astimezone().tzinfo
 
 
+target_byte_order = "<=" if sys.byteorder == "little" else ">="
+
+
 __all__ = ["MDF", "SUPPORTED_VERSIONS"]
 
 
-def get_measurement_timestamp_and_version(mdf):
+class SearchMode(Enum):
+    plain = "plain"
+    regex = "regex"
+    wildcard = "wildcard"
+
+
+def get_measurement_timestamp_and_version(
+    mdf: ReadableBufferType,
+) -> tuple[datetime, str]:
     id_block = FileIdentificationBlock(address=0, stream=mdf)
 
     version = id_block.mdf_version
@@ -84,18 +122,23 @@ def get_measurement_timestamp_and_version(mdf):
     return header.start_time, version
 
 
-def get_temporary_filename(name="temporary.mf4"):
-    folder = gettempdir()
-    mf4_name = Path(name).with_suffix(".mf4")
+def get_temporary_filename(
+    path: Path = Path("temporary.mf4"), dir: str | Path | None = None
+) -> Path:
+    if not dir:
+        folder = gettempdir()
+    else:
+        folder = dir
+    mf4_path = path.with_suffix(".mf4")
     idx = 0
     while True:
-        tmp_name = (Path(folder) / mf4_name.name).with_suffix(f".{idx}.mf4")
-        if not tmp_name.exists():
+        tmp_path = (Path(folder) / mf4_path.name).with_suffix(f".{idx}.mf4")
+        if not tmp_path.exists():
             break
         else:
             idx += 1
 
-    return tmp_name
+    return tmp_path
 
 
 class MDF:
@@ -145,6 +188,16 @@ class MDF:
         only for bz2.BZ2File and gzip.GzipFile, load the file content into a
         BytesIO before parsing (avoids the huge performance penalty of doing
         random reads from the zipped file); default *True*
+    raise_on_multiple_occurrences (\*\*kwargs) : bool
+        raise exception when there are multiple channel occurrences in the file and
+        the `get` call is ambiguous; default True
+
+        .. versionadded:: 7.0.0
+
+    temporary_folder (\*\*kwargs) : str | pathlib.Path
+        folder to use for temporary files
+
+        .. versionadded:: 7.0.0
 
     Examples
     --------
@@ -159,8 +212,21 @@ class MDF:
 
     _terminate = False
 
-    def __init__(self, name=None, version="4.10", channels=None, **kwargs):
+    def __init__(
+        self,
+        name: InputType | None = None,
+        version: str = "4.10",
+        channels: list[str] | None = None,
+        **kwargs,
+    ) -> None:
         self._mdf = None
+
+        temporary_folder = kwargs.get("temporary_folder", None)
+        if temporary_folder:
+            try:
+                os.makedirs(temporary_folder, exist_ok=True)
+            except:
+                kwargs["temporary_folder"] = None
 
         if name:
             if is_file_like(name):
@@ -172,17 +238,17 @@ class MDF:
 
                 elif isinstance(name, bz2.BZ2File):
                     original_name = Path(name._fp.name)
-                    name = get_temporary_filename(original_name)
+                    name = get_temporary_filename(original_name, dir=temporary_folder)
                     name.write_bytes(name.read())
                     file_stream = open(name, "rb")
-                    do_close = False
+                    do_close = True
                 elif isinstance(name, gzip.GzipFile):
 
                     original_name = Path(name.name)
-                    name = get_temporary_filename(original_name)
+                    name = get_temporary_filename(original_name, dir=temporary_folder)
                     name.write_bytes(name.read())
                     file_stream = open(name, "rb")
-                    do_close = False
+                    do_close = True
 
             else:
                 name = original_name = Path(name)
@@ -190,7 +256,7 @@ class MDF:
                     raise MdfException(f'File "{name}" does not exist')
 
                 if original_name.suffix.lower() in (".mf4z", ".zip"):
-                    name = get_temporary_filename(original_name)
+                    name = get_temporary_filename(original_name, dir=temporary_folder)
                     with zipfile.ZipFile(original_name, allowZip64=True) as archive:
                         files = archive.namelist()
                         if len(files) != 1:
@@ -210,7 +276,7 @@ class MDF:
                         move(output, name)
 
                 file_stream = open(name, "rb")
-                do_close = False
+                do_close = True
 
             file_stream.seek(0)
             magic_header = file_stream.read(8)
@@ -261,22 +327,27 @@ class MDF:
         # MDF(filename).convert('4.10')
         self._mdf._parent = self
 
-    def __setattr__(self, item, value):
+    def __setattr__(self, item: str, value: Any) -> None:
         if item == "_mdf":
             super().__setattr__(item, value)
         else:
             setattr(self._mdf, item, value)
 
-    def __getattr__(self, item):
+    def __getattr__(self, item: str) -> Any:
         return getattr(self._mdf, item)
 
-    def __dir__(self):
+    def __dir__(self) -> list[str]:
         return sorted(set(super().__dir__()) | set(dir(self._mdf)))
 
-    def __enter__(self):
+    def __enter__(self) -> MDF:
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(
+        self,
+        exc_type: Type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> bool | None:
         if self._mdf is not None:
             try:
                 self.close()
@@ -284,8 +355,7 @@ class MDF:
                 pass
         self._mdf = None
 
-    def __del__(self):
-
+    def __del__(self) -> None:
         if self._mdf is not None:
             try:
                 self.close()
@@ -293,7 +363,7 @@ class MDF:
                 pass
         self._mdf = None
 
-    def __lt__(self, other):
+    def __lt__(self, other: MDF) -> bool:
         if self.header.start_time < other.header.start_time:
             return True
         elif self.header.start_time > other.header.start_time:
@@ -321,7 +391,7 @@ class MDF:
             else:
                 return min(t_min) < min(other_t_min)
 
-    def _transfer_events(self, other):
+    def _transfer_events(self, other: MDF) -> None:
         def get_scopes(event, events):
             if event.scopes:
                 return event.scopes
@@ -481,7 +551,7 @@ class MDF:
                     event.scopes.append(group)
                     self.events.append(event)
 
-    def _transfer_header_data(self, other, message=""):
+    def _transfer_header_data(self, other: MDF, message: str = "") -> None:
         self.header.author = other.header.author
         self.header.department = other.header.department
         self.header.project = other.header.project
@@ -499,7 +569,9 @@ class MDF:
             self.file_history = [fh]
 
     @staticmethod
-    def _transfer_channel_group_data(sgroup, ogroup):
+    def _transfer_channel_group_data(
+        sgroup: ChannelGroupType, ogroup: ChannelGroupType
+    ) -> None:
         if not hasattr(sgroup, "acq_name") or not hasattr(ogroup, "acq_name"):
             sgroup.comment = ogroup.comment
         else:
@@ -512,22 +584,152 @@ class MDF:
             if acq_source:
                 sgroup.acq_source = acq_source.copy()
 
-    def _transfer_metadata(self, other, message=""):
+    def _transfer_metadata(self, other: MDF, message: str = "") -> None:
         self._transfer_events(other)
         self._transfer_header_data(other, message)
 
-    def __contains__(self, channel):
-        """ if *'channel name'* in *'mdf file'* """
+    def __contains__(self, channel: str) -> bool:
+        """if *'channel name'* in *'mdf file'*"""
         return channel in self.channels_db
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Signal]:
         """iterate over all the channels found in the file; master channels
         are skipped from iteration
 
         """
         yield from self.iter_channels()
 
-    def convert(self, version):
+    def configure(
+        self,
+        *,
+        from_other: MDF_v2_v3_v4 | None = None,
+        read_fragment_size: int | None = None,
+        write_fragment_size: int | None = None,
+        use_display_names: bool | None = None,
+        single_bit_uint_as_bool: bool | None = None,
+        integer_interpolation: IntInterpolationModeType
+        | IntegerInterpolation
+        | None = None,
+        copy_on_get: bool | None = None,
+        float_interpolation: FloatInterpolationModeType
+        | FloatInterpolation
+        | None = None,
+        raise_on_multiple_occurrences: bool | None = None,
+        temporary_folder: str | None = None,
+    ) -> None:
+        """configure MDF parameters
+
+        The default values for the options are the following:
+        * read_fragment_size = 0
+        * write_fragment_size = 4MB
+        * use_display_names = False
+        * single_bit_uint_as_bool = False
+        * integer_interpolation = 0 (fill - use previous sample)
+        * float_interpolation = 1 (linear interpolation)
+        * copy_on_get = False
+        * raise_on_multiple_occurrences = True
+        * temporary_folder = ""
+
+        Parameters
+        ----------
+        read_fragment_size : int
+            size hint of split data blocks, default 8MB; if the initial size is
+            smaller, then no data list is used. The actual split size depends on
+            the data groups' records size
+        write_fragment_size : int
+            size hint of split data blocks, default 4MB; if the initial size is
+            smaller, then no data list is used. The actual split size depends on
+            the data groups' records size. Maximum size is 4MB to ensure
+            compatibility with CANape
+        use_display_names : bool
+            search for display name in the Channel XML comment
+        single_bit_uint_as_bool : bool
+            return single bit channels are np.bool arrays
+        integer_interpolation : int
+            interpolation mode for integer channels:
+
+                * 0 - repeat previous sample
+                * 1 - use linear interpolation
+                * 2 - hybrid interpolation: channels with integer data type (raw values) that have a
+                  conversion that outputs float values will use linear interpolation, otherwise
+                  the previous sample is used
+
+                .. versionchanged:: 6.2.0
+                    added hybrid mode interpolation
+
+        copy_on_get : bool
+            copy arrays in the get method
+
+        float_interpolation : int
+            interpolation mode for float channels:
+
+                * 0 - repeat previous sample
+                * 1 - use linear interpolation
+
+                .. versionadded:: 6.2.0
+
+        raise_on_multiple_occurrences : bool
+            raise exception when there are multiple channel occurrences in the file and
+            the `get` call is ambiguous; default True
+
+            .. versionadded:: 6.2.0
+
+        from_other : MDF
+            copy configuration options from other MDF
+
+            .. versionadded:: 6.2.0
+
+        temporary_folder : str
+            default folder for temporary files
+
+            .. versionadded:: 7.0.0
+
+        """
+
+        if from_other is not None:
+            self._read_fragment_size = from_other._read_fragment_size
+            self._write_fragment_size = from_other._write_fragment_size
+            self._use_display_names = from_other._use_display_names
+            self._single_bit_uint_as_bool = from_other._single_bit_uint_as_bool
+            self._integer_interpolation = from_other._integer_interpolation
+            self.copy_on_get = from_other.copy_on_get
+            self._float_interpolation = from_other._float_interpolation
+            self._raise_on_multiple_occurrences = (
+                from_other._raise_on_multiple_occurrences
+            )
+
+        if read_fragment_size is not None:
+            self._read_fragment_size = int(read_fragment_size)
+
+        if write_fragment_size is not None:
+            self._write_fragment_size = min(int(write_fragment_size), 4 * 2 ** 20)
+
+        if use_display_names is not None:
+            self._use_display_names = bool(use_display_names)
+
+        if single_bit_uint_as_bool is not None:
+            self._single_bit_uint_as_bool = bool(single_bit_uint_as_bool)
+
+        if integer_interpolation is not None:
+            self._integer_interpolation = IntegerInterpolation(integer_interpolation)
+
+        if copy_on_get is not None:
+            self.copy_on_get = copy_on_get
+
+        if float_interpolation is not None:
+            self._float_interpolation = FloatInterpolation(float_interpolation)
+
+        if temporary_folder is not None:
+            try:
+                os.makedirs(temporary_folder, exist_ok=True)
+                self.temporary_folder = temporary_folder
+            except:
+                self.temporary_folder = None
+
+        if raise_on_multiple_occurrences is not None:
+            self._raise_on_multiple_occurrences = bool(raise_on_multiple_occurrences)
+
+    def convert(self, version: str) -> MDF:
         """convert *MDF* to other version
 
         Parameters
@@ -546,8 +748,6 @@ class MDF:
 
         out = MDF(version=version, **self._kwargs)
 
-        integer_interpolation_mode = self._integer_interpolation
-        float_interpolation_mode = self._float_interpolation
         out.configure(from_other=self)
 
         out.header.start_time = self.header.start_time
@@ -598,13 +798,13 @@ class MDF:
 
     def cut(
         self,
-        start=None,
-        stop=None,
-        whence=0,
-        version=None,
-        include_ends=True,
-        time_from_zero=False,
-    ):
+        start: float | None = None,
+        stop: float | None = None,
+        whence: int = 0,
+        version: str | None = None,
+        include_ends: bool = True,
+        time_from_zero: bool = False,
+    ) -> MDF:
         """cut *MDF* file. *start* and *stop* limits are absolute values
         or values relative to the first timestamp depending on the *whence*
         argument.
@@ -871,7 +1071,12 @@ class MDF:
             out._callback = out._mdf._callback = self._callback
         return out
 
-    def export(self, fmt, filename=None, **kwargs):
+    def export(
+        self,
+        fmt: Literal["csv", "hdf5", "mat", "parquet"],
+        filename: StrPathType | None = None,
+        **kwargs,
+    ) -> None:
         r"""export *MDF* to other formats. The *MDF* file name is used is
         available, else the *filename* argument must be provided.
 
@@ -1074,6 +1279,7 @@ class MDF:
                 reduce_memory_usage=reduce_memory_usage,
                 ignore_value2text_conversions=ignore_value2text_conversions,
                 raw=raw,
+                numeric_1D_only=fmt == "parquet",
             )
             units = OrderedDict()
             comments = OrderedDict()
@@ -1089,7 +1295,9 @@ class MDF:
                 for ch in grp.channels:
 
                     if use_display_names:
-                        channel_name = ch.display_name or ch.name
+                        channel_name = (
+                            list(ch.display_names)[0] if ch.display_names else ch.name
+                        )
                     else:
                         channel_name = ch.name
 
@@ -1215,7 +1423,11 @@ class MDF:
 
                         for j, sig in enumerate(channels):
                             if use_display_names:
-                                name = sig.display_name or sig.name
+                                name = (
+                                    list(sig.display_names)[0]
+                                    if sig.display_names
+                                    else sig.name
+                                )
                             else:
                                 name = sig.name
                             name = name.replace("\\", "_").replace("/", "_")
@@ -1467,7 +1679,11 @@ class MDF:
                         else:
 
                             if use_display_names:
-                                channel_name = sig.display_name or sig.name
+                                channel_name = (
+                                    list(sig.display_names)[0]
+                                    if sig.display_names
+                                    else sig.name
+                                )
                             else:
                                 channel_name = sig.name
                             channel_name = channel_name_template.format(i, channel_name)
@@ -1545,7 +1761,7 @@ class MDF:
             message.format(fmt)
             logger.warning(message)
 
-    def filter(self, channels, version=None):
+    def filter(self, channels: ChannelsType, version: str | None = None) -> MDF:
         """return new *MDF* object that contains only the channels listed in
         *channels* argument
 
@@ -1681,15 +1897,39 @@ class MDF:
             mdf._callback = mdf._mdf._callback = self._callback
         return mdf
 
+    @overload
     def iter_get(
         self,
-        name=None,
-        group=None,
-        index=None,
-        raster=None,
-        samples_only=False,
-        raw=False,
-    ):
+        name: str | None = ...,
+        group: int | None = ...,
+        index: int | None = ...,
+        raster: float | None = ...,
+        samples_only: Literal[False] = ...,
+        raw: bool = ...,
+    ) -> Iterator[Signal]:
+        ...
+
+    @overload
+    def iter_get(
+        self,
+        name: str | None = ...,
+        group: int | None = ...,
+        index: int | None = ...,
+        raster: float | None = ...,
+        samples_only: Literal[True] = ...,
+        raw: bool = ...,
+    ) -> Iterator[tuple[NDArray[Any], NDArray[Any] | None]]:
+        ...
+
+    def iter_get(
+        self,
+        name: str | None = None,
+        group: int | None = None,
+        index: int | None = None,
+        raster: float | None = None,
+        samples_only: bool = False,
+        raw: bool = False,
+    ) -> Iterator[Signal] | Iterator[tuple[NDArray[Any], NDArray[Any] | None]]:
         """iterator over a channel
 
         This is usefull in case of large files with a small number of channels.
@@ -1734,13 +1974,13 @@ class MDF:
 
     @staticmethod
     def concatenate(
-        files,
-        version="4.10",
-        sync=True,
-        add_samples_origin=False,
-        direct_timestamp_continuation=False,
+        files: Sequence[MDF | InputType],
+        version: str = "4.10",
+        sync: bool = True,
+        add_samples_origin: bool = False,
+        direct_timestamp_continuation: bool = False,
         **kwargs,
-    ):
+    ) -> MDF:
         """concatenates several files. The files
         must have the same internal structure (same number of groups, and same
         channels in each group).
@@ -1771,7 +2011,7 @@ class MDF:
             the time stamps from the next file will be added right after the last
             time stamp from the previous file; default False
 
-            .. versionadded:: 6.0.0
+            ..versionadded:: 6.0.0
 
         kwargs :
 
@@ -1893,8 +2133,6 @@ class MDF:
                     **kwargs,
                 )
 
-                integer_interpolation_mode = mdf._integer_interpolation
-                float_interpolation_mode = mdf._float_interpolation
                 merged.configure(from_other=mdf)
 
                 merged.header.start_time = oldest
@@ -1943,7 +2181,6 @@ class MDF:
                 if not included_channels:
                     continue
 
-                idx = 0
                 last_timestamp = last_timestamps[i]
                 first_timestamp = None
                 original_first_timestamp = None
@@ -2071,7 +2308,12 @@ class MDF:
         return merged
 
     @staticmethod
-    def stack(files, version="4.10", sync=True, **kwargs):
+    def stack(
+        files: Sequence[MDF | InputType],
+        version: str = "4.10",
+        sync: bool = True,
+        **kwargs,
+    ) -> MDF:
         """stack several files and return the stacked *MDF* object
 
         Parameters
@@ -2170,8 +2412,6 @@ class MDF:
                     **kwargs,
                 )
 
-                integer_interpolation_mode = mdf._integer_interpolation
-                float_interpolation_mode = mdf._float_interpolation
                 stacked.configure(from_other=mdf)
 
                 if sync:
@@ -2245,7 +2485,9 @@ class MDF:
 
         return stacked
 
-    def iter_channels(self, skip_master=True, copy_master=True):
+    def iter_channels(
+        self, skip_master: bool = True, copy_master: bool = True
+    ) -> Iterator[Signal]:
         """generator that yields a *Signal* for each non-master channel
 
         Parameters
@@ -2273,17 +2515,17 @@ class MDF:
 
     def iter_groups(
         self,
-        raster=None,
-        time_from_zero=True,
-        empty_channels="skip",
-        keep_arrays=False,
-        use_display_names=False,
-        time_as_date=False,
-        reduce_memory_usage=False,
-        raw=False,
-        ignore_value2text_conversions=False,
-        only_basenames=False,
-    ):
+        raster: RasterType | None = None,
+        time_from_zero: bool = True,
+        empty_channels: EmptyChannelsType = "skip",
+        keep_arrays: bool = False,
+        use_display_names: bool = False,
+        time_as_date: bool = False,
+        reduce_memory_usage: bool = False,
+        raw: bool = False,
+        ignore_value2text_conversions: bool = False,
+        only_basenames: bool = False,
+    ) -> Iterator[pd.DataFrame]:
         """generator that yields channel groups as pandas DataFrames. If there
         are multiple occurrences for the same channel name inside a channel
         group, then a counter will be used to make the names unique
@@ -2364,7 +2606,12 @@ class MDF:
                 only_basenames=only_basenames,
             )
 
-    def resample(self, raster, version=None, time_from_zero=False):
+    def resample(
+        self,
+        raster: RasterType,
+        version: str | None = None,
+        time_from_zero: bool = False,
+    ) -> MDF:
         """resample all channels using the given raster. See *configure* to select
         the interpolation method for interger channels
 
@@ -2412,7 +2659,7 @@ class MDF:
                 comment=""
                 mastermeta="('time', 1)"
                 raw=True
-                display_name=
+                display_names={}
                 attachment=()>
         , <Signal S2:
                 samples=[1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 2 2 3 3 4 4]
@@ -2425,7 +2672,7 @@ class MDF:
                 comment=""
                 mastermeta="('time', 1)"
                 raw=True
-                display_name=
+                display_names={}
                 attachment=()>
         ]
         >>> resampled = mdf.resample(raster='S2')
@@ -2440,7 +2687,7 @@ class MDF:
                 comment=""
                 mastermeta="('time', 1)"
                 raw=True
-                display_name=
+                display_names={}
                 attachment=()>
         , <Signal S2:
                 samples=[1 2 3 4]
@@ -2452,7 +2699,7 @@ class MDF:
                 comment=""
                 mastermeta="('time', 1)"
                 raw=True
-                display_name=
+                display_names={}
                 attachment=()>
         ]
         >>> resampled = mdf.resample(raster=[1.9, 2.0, 2.1])
@@ -2467,7 +2714,7 @@ class MDF:
                 comment=""
                 mastermeta="('time', 1)"
                 raw=True
-                display_name=
+                display_names={}
                 attachment=()>
         , <Signal S2:
                 samples=[1 1 1]
@@ -2479,7 +2726,7 @@ class MDF:
                 comment=""
                 mastermeta="('time', 1)"
                 raw=True
-                display_name=
+                display_names={}
                 attachment=()>
         ]
         >>> resampled = mdf.resample(raster='S2', time_from_zero=True)
@@ -2494,7 +2741,7 @@ class MDF:
                 comment=""
                 mastermeta="('time', 1)"
                 raw=True
-                display_name=
+                display_names={}
                 attachment=()>
         , <Signal S2:
                 samples=[1 2 3 4]
@@ -2506,7 +2753,7 @@ class MDF:
                 comment=""
                 mastermeta="('time', 1)"
                 raw=True
-                display_name=
+                display_names={}
                 attachment=()>
         ]
         """
@@ -2601,14 +2848,14 @@ class MDF:
 
     def select(
         self,
-        channels,
-        record_offset=0,
-        raw=False,
-        copy_master=True,
-        ignore_value2text_conversions=False,
-        record_count=None,
-        validate=False,
-    ):
+        channels: ChannelsType,
+        record_offset: int = 0,
+        raw: bool = False,
+        copy_master: bool = True,
+        ignore_value2text_conversions: bool = False,
+        record_count: int | None = None,
+        validate: bool = False,
+    ) -> list[Signal]:
         """retrieve the channels listed in *channels* argument as *Signal*
         objects
 
@@ -2799,10 +3046,18 @@ class MDF:
         if validate:
             signals = [sig.validate() for sig in signals]
 
+        for signal, channel in zip(signals, channels):
+            if isinstance(channel, str):
+                signal.name = channel
+            else:
+                name = channel[0]
+                if name is not None:
+                    signal.name = name
+
         return signals
 
     @staticmethod
-    def scramble(name, skip_attachments=False, **kwargs):
+    def scramble(name: StrPathType, skip_attachments: bool = False, **kwargs) -> Path:
         """scramble text blocks and keep original file structure
 
         Parameters
@@ -2816,7 +3071,7 @@ class MDF:
 
         Returns
         -------
-        name : str
+        name : pathlib.Path
             scrambled file name
 
         """
@@ -3087,12 +3342,12 @@ class MDF:
         return dst
 
     @staticmethod
-    def _fallback_scramble_mf4(name):
+    def _fallback_scramble_mf4(name: StrOrBytesPathType) -> dict[int, bytes]:
         """scramble text blocks and keep original file structure
 
         Parameters
         ----------
-        name : str | pathlib.Path
+        name : pathlib.Path
             file name
 
         Returns
@@ -3101,8 +3356,6 @@ class MDF:
             scrambled file name
 
         """
-
-        name = Path(name)
 
         pattern = re.compile(
             rb"(?P<block>##(TX|MD))",
@@ -3131,19 +3384,18 @@ class MDF:
 
     def get_group(
         self,
-        index,
-        channels=None,
-        raster=None,
-        time_from_zero=True,
-        empty_channels="skip",
-        keep_arrays=False,
-        use_display_names=False,
-        time_as_date=False,
-        reduce_memory_usage=False,
-        raw=False,
-        ignore_value2text_conversions=False,
-        only_basenames=False,
-    ):
+        index: int,
+        raster: RasterType | None = None,
+        time_from_zero: bool = True,
+        empty_channels: EmptyChannelsType = "skip",
+        keep_arrays: bool = False,
+        use_display_names: bool = False,
+        time_as_date: bool = False,
+        reduce_memory_usage: bool = False,
+        raw: bool = False,
+        ignore_value2text_conversions: bool = False,
+        only_basenames: bool = False,
+    ) -> pd.DataFrame:
         """get channel group as pandas DataFrames. If there are multiple
         occurrences for the same channel name, then a counter will be used to
         make the names unique (<original_name>_<counter>)
@@ -3229,21 +3481,22 @@ class MDF:
 
     def iter_to_dataframe(
         self,
-        channels=None,
-        raster=None,
-        time_from_zero=True,
-        empty_channels="skip",
-        keep_arrays=False,
-        use_display_names=False,
-        time_as_date=False,
-        reduce_memory_usage=False,
-        raw=False,
-        ignore_value2text_conversions=False,
-        use_interpolation=True,
-        only_basenames=False,
-        chunk_ram_size=200 * 1024 * 1024,
-        interpolate_outwards_with_nan=False,
-    ):
+        channels: ChannelsType | None = None,
+        raster: RasterType | None = None,
+        time_from_zero: bool = True,
+        empty_channels: EmptyChannelsType = "skip",
+        keep_arrays: bool = False,
+        use_display_names: bool = False,
+        time_as_date: bool = False,
+        reduce_memory_usage: bool = False,
+        raw: bool = False,
+        ignore_value2text_conversions: bool = False,
+        use_interpolation: bool = True,
+        only_basenames: bool = False,
+        chunk_ram_size: int = 200 * 1024 * 1024,
+        interpolate_outwards_with_nan: bool = False,
+        numeric_1D_only: bool = False,
+    ) -> Iterator[pd.DataFrame]:
         """generator that yields pandas DataFrame's that should not exceed
         200MB of RAM
 
@@ -3307,6 +3560,10 @@ class MDF:
             signal's timestamps
         chunk_ram_size : int
             desired data frame RAM usage in bytes; default 200 MB
+        numeric_1D_only (False) : bool
+            only keep the 1D-columns that have numeric values
+
+            .. versionadded:: 7.0.0
 
 
         Returns
@@ -3333,6 +3590,7 @@ class MDF:
                 only_basenames=only_basenames,
                 chunk_ram_size=chunk_ram_size,
                 interpolate_outwards_with_nan=interpolate_outwards_with_nan,
+                numeric_1D_only=numeric_1D_only,
             )
 
             for df in result:
@@ -3506,6 +3764,10 @@ class MDF:
 
                 if signals:
                     diffs = np.diff(group_master, prepend=-np.inf) > 0
+
+                    if group_master.dtype.byteorder not in target_byte_order:
+                        group_master = group_master.byteswap().newbyteorder()
+
                     if np.all(diffs):
                         index = pd.Index(group_master, tupleize_cols=False)
 
@@ -3521,6 +3783,10 @@ class MDF:
 
                 size = len(index)
                 for k, sig in enumerate(signals):
+
+                    if sig.timestamps.dtype.byteorder not in target_byte_order:
+                        sig.timestamps = sig.timestamps.byteswap().newbyteorder()
+
                     sig_index = (
                         index
                         if len(sig) == size
@@ -3531,11 +3797,18 @@ class MDF:
                     if len(sig.samples.shape) > 1:
 
                         if use_display_names:
-                            channel_name = sig.display_name or sig.name
+                            channel_name = (
+                                list(sig.display_names)[0]
+                                if sig.display_names
+                                else sig.name
+                            )
                         else:
                             channel_name = sig.name
 
                         channel_name = used_names.get_unique_name(channel_name)
+
+                        if sig.samples.dtype.byteorder not in target_byte_order:
+                            sig.samples = sig.samples.byteswap().newbyteorder()
 
                         df[channel_name] = pd.Series(
                             list(sig.samples),
@@ -3556,7 +3829,11 @@ class MDF:
                     # scalars
                     else:
                         if use_display_names:
-                            channel_name = sig.display_name or sig.name
+                            channel_name = (
+                                list(sig.display_names)[0]
+                                if sig.display_names
+                                else sig.name
+                            )
                         else:
                             channel_name = sig.name
 
@@ -3564,6 +3841,10 @@ class MDF:
 
                         if reduce_memory_usage and sig.samples.dtype.kind in "SU":
                             unique = np.unique(sig.samples)
+
+                            if sig.samples.dtype.byteorder not in target_byte_order:
+                                sig.samples = sig.samples.byteswap().newbyteorder()
+
                             if len(sig.samples) / len(unique) >= 2:
                                 df[channel_name] = pd.Series(
                                     sig.samples,
@@ -3579,6 +3860,10 @@ class MDF:
                         else:
                             if reduce_memory_usage:
                                 sig.samples = downcast(sig.samples)
+
+                            if sig.samples.dtype.byteorder not in target_byte_order:
+                                sig.samples = sig.samples.byteswap().newbyteorder()
+
                             df[channel_name] = pd.Series(
                                 sig.samples,
                                 index=sig_index,
@@ -3615,20 +3900,21 @@ class MDF:
 
     def to_dataframe(
         self,
-        channels=None,
-        raster=None,
-        time_from_zero=True,
-        empty_channels="skip",
-        keep_arrays=False,
-        use_display_names=False,
-        time_as_date=False,
-        reduce_memory_usage=False,
-        raw=False,
-        ignore_value2text_conversions=False,
-        use_interpolation=True,
-        only_basenames=False,
-        interpolate_outwards_with_nan=False,
-    ):
+        channels: ChannelsType | None = None,
+        raster: RasterType | None = None,
+        time_from_zero: bool = True,
+        empty_channels: EmptyChannelsType = "skip",
+        keep_arrays: bool = False,
+        use_display_names: bool = False,
+        time_as_date: bool = False,
+        reduce_memory_usage: bool = False,
+        raw: bool = False,
+        ignore_value2text_conversions: bool = False,
+        use_interpolation: bool = True,
+        only_basenames: bool = False,
+        interpolate_outwards_with_nan: bool = False,
+        numeric_1D_only: bool = False,
+    ) -> pd.DataFrame:
         """generate pandas DataFrame
 
         Parameters
@@ -3723,10 +4009,13 @@ class MDF:
                 use_interpolation=use_interpolation,
                 only_basenames=only_basenames,
                 interpolate_outwards_with_nan=interpolate_outwards_with_nan,
+                numeric_1D_only=numeric_1D_only,
             )
 
             mdf.close()
             return result
+
+        target_byte_order = "<=" if sys.byteorder == "little" else ">="
 
         df = {}
 
@@ -3844,7 +4133,11 @@ class MDF:
                 cycles = len(group_master)
 
                 signals = [
-                    signal.interp(master, self._integer_interpolation)
+                    signal.interp(
+                        master,
+                        integer_interpolation_mode=self._integer_interpolation,
+                        float_interpolation_mode=self._float_interpolation,
+                    )
                     if not same_master or len(signal) != cycles
                     else signal
                     for signal in signals
@@ -3857,9 +4150,14 @@ class MDF:
 
                 group_master = master
 
-            signals = [sig for sig in signals if len(sig)]
+            if any(len(sig) for sig in signals):
+                signals = [sig for sig in signals if len(sig)]
+
+            if group_master.dtype.byteorder not in target_byte_order:
+                group_master = group_master.byteswap().newbyteorder()
 
             if signals:
+
                 diffs = np.diff(group_master, prepend=-np.inf) > 0
                 if np.all(diffs):
                     index = pd.Index(group_master, tupleize_cols=False)
@@ -3878,6 +4176,9 @@ class MDF:
 
             size = len(index)
             for k, sig in enumerate(signals):
+                if sig.timestamps.dtype.byteorder not in target_byte_order:
+                    sig.timestamps = sig.timestamps.byteswap().newbyteorder()
+
                 sig_index = (
                     index
                     if len(sig) == size
@@ -3888,11 +4189,18 @@ class MDF:
                 if len(sig.samples.shape) > 1:
 
                     if use_display_names:
-                        channel_name = sig.display_name or sig.name
+                        channel_name = (
+                            list(sig.display_names)[0]
+                            if sig.display_names
+                            else sig.name
+                        )
                     else:
                         channel_name = sig.name
 
                     channel_name = used_names.get_unique_name(channel_name)
+
+                    if sig.samples.dtype.byteorder not in target_byte_order:
+                        sig.samples = sig.samples.byteswap().newbyteorder()
 
                     df[channel_name] = pd.Series(
                         list(sig.samples),
@@ -3913,7 +4221,11 @@ class MDF:
                 # scalars
                 else:
                     if use_display_names:
-                        channel_name = sig.display_name or sig.name
+                        channel_name = (
+                            list(sig.display_names)[0]
+                            if sig.display_names
+                            else sig.name
+                        )
                     else:
                         channel_name = sig.name
 
@@ -3921,6 +4233,9 @@ class MDF:
 
                     if reduce_memory_usage and sig.samples.dtype.kind not in "SU":
                         sig.samples = downcast(sig.samples)
+
+                    if sig.samples.dtype.byteorder not in target_byte_order:
+                        sig.samples = sig.samples.byteswap().newbyteorder()
 
                     df[channel_name] = pd.Series(
                         sig.samples, index=sig_index, fastpath=True
@@ -3937,6 +4252,14 @@ class MDF:
             else:
                 nonstrings[col] = series
 
+        if numeric_1D_only:
+            nonstrings = {
+                col: series
+                for col, series in nonstrings.items()
+                if series.dtype.kind in "uif"
+            }
+            strings = {}
+
         df = pd.DataFrame(nonstrings, index=master)
 
         for col, series in strings.items():
@@ -3946,7 +4269,11 @@ class MDF:
 
         if time_as_date:
             new_index = np.array(df.index) + self.header.start_time.timestamp()
-            new_index = pd.to_datetime(new_index, unit="s")
+            new_index = (
+                pd.to_datetime(new_index, unit="s")
+                .tz_localize("UTC")
+                .tz_convert(LOCAL_TIMEZONE)
+            )
 
             df.set_index(new_index, inplace=True)
         elif time_from_zero and len(master):
@@ -3956,13 +4283,13 @@ class MDF:
 
     def extract_bus_logging(
         self,
-        database_files,
-        version=None,
-        ignore_invalid_signals=False,
-        consolidated_j1939=True,
-        ignore_value2text_conversion=True,
-        prefix="",
-    ):
+        database_files: dict[BusType, Iterable[DbcFileType]],
+        version: str | None = None,
+        ignore_invalid_signals: bool = False,
+        consolidated_j1939: bool = True,
+        ignore_value2text_conversion: bool = True,
+        prefix: str = "",
+    ) -> MDF:
         """extract all possible CAN signal using the provided databases.
 
         Changed in version 6.0.0 from `extract_can_logging`
@@ -4035,9 +4362,9 @@ class MDF:
 
         out = MDF(
             version=version,
-            encryption_function=self._encryption_function,
-            decryption_function=self._decryption_function,
+            password=self._password,
             callback=self._callback,
+            use_display_names=True,
         )
         out.header.start_time = self.header.start_time
 
@@ -4069,13 +4396,13 @@ class MDF:
 
     def _extract_can_logging(
         self,
-        output_file,
-        dbc_files,
-        ignore_invalid_signals=False,
-        consolidated_j1939=True,
-        ignore_value2text_conversion=True,
-        prefix="",
-    ):
+        output_file: MDF,
+        dbc_files: Iterable[DbcFileType],
+        ignore_invalid_signals: bool = False,
+        consolidated_j1939: bool = True,
+        ignore_value2text_conversion: bool = True,
+        prefix: str = "",
+    ) -> MDF:
 
         out = output_file
 
@@ -4137,17 +4464,10 @@ class MDF:
                 ):
                     continue
 
-                parents, dtypes = self._prepare_record(group)
+                self._prepare_record(group)
                 data = self._load_data(group, optimize_read=False)
 
                 for fragment_index, fragment in enumerate(data):
-                    if dtypes.itemsize:
-                        group.record = np.core.records.fromstring(
-                            fragment[0], dtype=dtypes
-                        )
-                    else:
-                        group.record = None
-                        continue
 
                     self._set_temporary_master(None)
                     self._set_temporary_master(self.get_master(i, data=fragment))
@@ -4274,9 +4594,7 @@ class MDF:
 <CNcomment>
 <TX>{sig.comment}</TX>
 <names>
-    <display>
-        CAN{bus}.{message.name}.{signal_name}
-    </display>
+    <display>CAN{bus}.{message.name}.{signal_name}</display>
 </names>
 </CNcomment>"""
                                         sigs.append(sig)
@@ -4331,7 +4649,7 @@ class MDF:
 
                                     out.extend(index, sigs)
                     self._set_temporary_master(None)
-                    group.record = None
+
                 cntr += 1
                 if self._callback:
                     self._callback(cntr, count)
@@ -4379,12 +4697,12 @@ class MDF:
 
     def _extract_lin_logging(
         self,
-        output_file,
-        dbc_files,
-        ignore_invalid_signals=False,
-        ignore_value2text_conversion=True,
-        prefix="",
-    ):
+        output_file: MDF,
+        dbc_files: Iterable[DbcFileType],
+        ignore_invalid_signals: bool = False,
+        ignore_value2text_conversion: bool = True,
+        prefix: str = "",
+    ) -> MDF:
 
         out = output_file
 
@@ -4440,17 +4758,10 @@ class MDF:
                 ):
                     continue
 
-                parents, dtypes = self._prepare_record(group)
+                self._prepare_record(group)
                 data = self._load_data(group, optimize_read=False)
 
                 for fragment_index, fragment in enumerate(data):
-                    if dtypes.itemsize:
-                        group.record = np.core.records.fromstring(
-                            fragment[0], dtype=dtypes
-                        )
-                    else:
-                        group.record = None
-                        continue
 
                     self._set_temporary_master(None)
                     self._set_temporary_master(self.get_master(i, data=fragment))
@@ -4554,12 +4865,10 @@ class MDF:
 
                                         sig.comment = f"""\
 <CNcomment>
-<TX>{sig.comment}</TX>
-<names>
-<display>
-    LIN.{message.name}.{signal_name}
-</display>
-</names>
+    <TX>{sig.comment}</TX>
+    <names>
+        <display>LIN.{message.name}.{signal_name}</display>
+    </names>
 </CNcomment>"""
                                         sigs.append(sig)
 
@@ -4612,7 +4921,7 @@ class MDF:
 
                                     out.extend(index, sigs)
                     self._set_temporary_master(None)
-                    group.record = None
+
                 cntr += 1
                 if self._callback:
                     self._callback(cntr, count)
@@ -4656,7 +4965,7 @@ class MDF:
         return out
 
     @property
-    def start_time(self):
+    def start_time(self) -> datetime:
         """getter and setter the measurement start timestamp
 
         Returns
@@ -4669,12 +4978,17 @@ class MDF:
         return self.header.start_time
 
     @start_time.setter
-    def start_time(self, timestamp):
+    def start_time(self, timestamp: datetime) -> None:
         self.header.start_time = timestamp
 
     def cleanup_timestamps(
-        self, minimum, maximum, exp_min=-15, exp_max=15, version=None
-    ):
+        self,
+        minimum: float,
+        maximum: float,
+        exp_min: int = -15,
+        exp_max: int = 15,
+        version: str | None = None,
+    ) -> MDF:
         """convert *MDF* to other version
 
         .. versionadded:: 5.22.0
@@ -4783,26 +5097,32 @@ class MDF:
             out._callback = out._mdf._callback = self._callback
         return out
 
-    def whereis(self, channel, source_name=None, source_path=None, acq_name=None):
+    def whereis(
+        self,
+        channel: str,
+        source_name: str | None = None,
+        source_path: str | None = None,
+        acq_name: str | None = None,
+    ) -> tuple[tuple[int, int], ...]:
         """get occurrences of channel name in the file
 
         Parameters
         ----------
         channel : str
             channel name string
-        source_name (None) : str
-            filter occurrences on source name
-        source_path (None) : str
-            filter occurrences on source path
-        acq_name (None) : str
-            filter occurrences on channel group acquisition name
+        source_name : str, optional
+            filter occurrences on source name, by default None
+        source_path : str, optional
+            filter occurrences on source path, by default None
+        acq_name : str, optional
+            filter occurrences on channel group acquisition name, by default None
 
             .. versionadded:: 6.0.0
 
         Returns
         -------
-        occurrences : tuple
-
+        tuple[tuple[int, int], ...]
+            (gp_idx, cn_idx) pairs
 
         Examples
         --------
@@ -4811,22 +5131,87 @@ class MDF:
         ((1, 2), (2, 4))
         >>> mdf.whereis('VehicleSPD') # "VehicleSPD" doesn't exist in the file
         ()
-
         """
-        try:
-            occurrences = self.channels_db[channel]
-        except KeyError:
-            occurrences = ()
-        else:
-            occurrences = tuple(
-                self._filter_occurrences(
-                    occurrences,
-                    source_name=source_name,
-                    source_path=source_path,
-                    acq_name=acq_name,
-                )
+        occurrences = tuple(
+            self._filter_occurrences(
+                self.channels_db.get(channel, []),
+                source_name=source_name,
+                source_path=source_path,
+                acq_name=acq_name,
             )
+        )
         return occurrences
+
+    def search(
+        self,
+        pattern: str,
+        mode: Literal["plain", "regex", "wildcard"] | SearchMode = SearchMode.plain,
+        case_insensitive: bool = False,
+    ) -> list[str]:
+        """search channels
+
+        .. versionadded:: 7.0.0
+
+        Parameters
+        ----------
+        pattern : str
+            search pattern
+        mode : Literal["plain", "regex", "wildcard"] or SearchMode, optional
+            search mode, by default SearchMode.plain
+
+                * `plain` : normal name search
+                * `regex` : regular expression based search
+                * `wildcard` : wildcard based search
+        case_insensitive : bool, optional
+            case sensitivity for the channel name search, by default False
+
+        Returns
+        -------
+        list[str]
+            name of the channels
+
+        Raises
+        ------
+        ValueError
+            unsupported search mode
+
+        Examples
+        --------
+        >>> mdf = MDF(file_name)
+        >>> mdf.search('*veh*speed*', case_insensitive=True, mode='wildcard') # case insensitive wildcard based search
+        ['vehicleAverageSpeed', 'vehicleInstantSpeed', 'targetVehicleAverageSpeed', 'targetVehicleInstantSpeed']
+        >>> mdf.search('^vehicle.*Speed$', case_insensitive=False, mode='regex') # case sensitive regex based search
+        ['vehicleAverageSpeed', 'vehicleInstantSpeed']
+        """
+        search_mode = SearchMode(mode)
+
+        if search_mode is SearchMode.plain:
+            if case_insensitive:
+                pattern = pattern.casefold()
+                channels = [
+                    name for name in self.channels_db if pattern in name.casefold()
+                ]
+            else:
+                channels = [name for name in self.channels_db if pattern in name]
+        elif search_mode is SearchMode.regex:
+            flags = re.IGNORECASE if case_insensitive else 0
+            compiled_pattern = re.compile(pattern, flags=flags)
+            channels = [
+                name for name in self.channels_db if compiled_pattern.search(name)
+            ]
+        elif search_mode is SearchMode.wildcard:
+            if case_insensitive:
+                channels = fnmatch.filter(self.channels_db, pattern)
+            else:
+                channels = [
+                    name
+                    for name in self.channels_db
+                    if fnmatch.fnmatchcase(name, pattern)
+                ]
+        else:
+            raise ValueError(f"unsupported mode {search_mode}")
+
+        return channels
 
 
 if __name__ == "__main__":

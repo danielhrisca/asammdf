@@ -1,16 +1,70 @@
 # -*- coding: utf-8 -*-
 
-from struct import pack
-from datetime import datetime, date
+from collections import defaultdict
+from datetime import date, datetime
 import json
+from struct import pack
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from ..utils import extract_mime_names
+from ..dialogs.advanced_search import AdvancedSearch
+from ..utils import copy_ranges, extract_mime_names
 from .channel_display import ChannelDisplay
 from .channel_group_display import ChannelGroupDisplay
-from ..dialogs.advanced_search import AdvancedSearch
-from collections import defaultdict
+from .tree_item import TreeItem
+
+
+def add_children(
+    widget,
+    channels,
+    channel_dependencies,
+    signals,
+    entries=None,
+    mdf_uuid=None,
+    version="4.11",
+):
+    children = []
+    if entries is not None:
+        channels_ = [channels[i] for _, i in entries]
+    else:
+        channels_ = channels
+
+    for ch in channels_:
+        if ch.added == True:
+            continue
+
+        entry = ch.entry
+
+        child = TreeItem(entry, ch.name, mdf_uuid=mdf_uuid)
+        child.setText(0, ch.name)
+
+        dep = channel_dependencies[entry[1]]
+        if version >= "4.00":
+            if dep and isinstance(dep[0], tuple):
+                child.setFlags(
+                    child.flags()
+                    | QtCore.Qt.ItemIsAutoTristate
+                    | QtCore.Qt.ItemIsUserCheckable
+                )
+
+                add_children(
+                    child,
+                    channels,
+                    channel_dependencies,
+                    signals,
+                    dep,
+                    mdf_uuid=mdf_uuid,
+                )
+
+        if entry in signals:
+            child.setCheckState(0, QtCore.Qt.Checked)
+        else:
+            child.setCheckState(0, QtCore.Qt.Unchecked)
+
+        ch.added = True
+        children.append(child)
+
+    widget.addChildren(children)
 
 
 def add_new_items(tree, root, items, pos):
@@ -19,6 +73,7 @@ def add_new_items(tree, root, items, pos):
 
         new_item = item.copy()
         new_widget = tree.itemWidget(item, 1).copy()
+        new_widget.item = new_item
 
         if pos is None:
             root.addChild(new_item)
@@ -29,12 +84,10 @@ def add_new_items(tree, root, items, pos):
         tree.setItemWidget(new_item, 1, new_widget)
 
         if isinstance(item, ChannelsGroupTreeItem):
-            child_items = [
-                item.child(i)
-                for i in range(item.childCount())
-            ]
+            child_items = [item.child(i) for i in range(item.childCount())]
 
             add_new_items(tree, new_item, child_items, None)
+
 
 def valid_drop_target(target, item):
     if target is None:
@@ -105,6 +158,7 @@ def get_data(items, uuids_only=False):
                             [],
                             None,
                             "group",
+                            [],
                         )
                     )
                 else:
@@ -115,6 +169,7 @@ def get_data(items, uuids_only=False):
                             get_data(children, uuids_only),
                             None,
                             "group",
+                            [],
                         )
                     )
 
@@ -122,8 +177,8 @@ def get_data(items, uuids_only=False):
             if uuids_only:
                 data.append(tree.itemWidget(item, 1).uuid)
             else:
+                widget = item.treeWidget().itemWidget(item, 1)
                 if item.entry == (-1, -1):
-                    widget = item.treeWidget().itemWidget(item, 1)
                     info = {
                         "name": item.name,
                         "computation": item.computation,
@@ -133,12 +188,22 @@ def get_data(items, uuids_only=False):
                     }
                 else:
                     info = item.name
+
+                ranges = copy_ranges(widget.ranges)
+
+                for range_info in ranges:
+                    range_info["background_color"] = range_info[
+                        "background_color"
+                    ].name()
+                    range_info["font_color"] = range_info["font_color"].name()
+
                 data.append(
                     (
                         info,
                         *item.entry,
                         item.mdf_uuid,
-                        "channel"
+                        "channel",
+                        ranges,
                     )
                 )
     return data
@@ -200,6 +265,7 @@ class TreeWidget(QtWidgets.QTreeWidget):
                                     *child.entry,
                                     child.mdf_uuid,
                                     "channel",
+                                    [],
                                 )
                             )
             else:
@@ -210,6 +276,7 @@ class TreeWidget(QtWidgets.QTreeWidget):
                             *item.entry,
                             item.mdf_uuid,
                             "channel",
+                            [],
                         )
                     )
 
@@ -223,11 +290,9 @@ class TreeWidget(QtWidgets.QTreeWidget):
         for item in selected_items:
             data.extend(get_data(item))
 
-        data = json.dumps(sorted(data)).encode('utf-8')
+        data = json.dumps(sorted(data)).encode("utf-8")
 
-        mimeData.setData(
-            "application/octet-stream-asammdf", QtCore.QByteArray(data)
-        )
+        mimeData.setData("application/octet-stream-asammdf", QtCore.QByteArray(data))
 
         drag = QtGui.QDrag(self)
         drag.setMimeData(mimeData)
@@ -235,7 +300,6 @@ class TreeWidget(QtWidgets.QTreeWidget):
 
 
 class FileTreeItem(QtWidgets.QTreeWidgetItem):
-
     def __init__(self, path, start_time, parent=None):
         if isinstance(start_time, datetime):
             start_time = start_time.isoformat()
@@ -277,8 +341,11 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     show_properties = QtCore.pyqtSignal(object)
     insert_computation = QtCore.pyqtSignal(str)
     pattern_group_added = QtCore.pyqtSignal(object)
+    compute_fft_request = QtCore.pyqtSignal(str)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self, hide_missing_channels=False, hide_disabled_channels=False, *args, **kwargs
+    ):
 
         super().__init__(*args, **kwargs)
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
@@ -289,7 +356,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.open_menu)
         self.details_enabled = False
-        self._has_hidden_items = False
+        self.hide_missing_channels = hide_missing_channels
+        self.hide_disabled_channels = hide_disabled_channels
         self.can_delete_items = True
 
         self.setHeaderHidden(True)
@@ -303,6 +371,11 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.header().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
         self.header().setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
         self.itemSelectionChanged.connect(self.item_selection_changed)
+
+        self.itemExpanded.connect(self.update_visibility_status)
+        self.verticalScrollBar().valueChanged.connect(self.update_visibility_status)
+        self.itemsDeleted.connect(self.update_visibility_status)
+
         # self.header().hideSection(0)
         self._moved = []
 
@@ -332,11 +405,13 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             deleted = get_data(selected_items, uuids_only=True)
 
             root = self.invisibleRootItem()
-            for item in self.selectedItems():
+            for item in selected_items:
                 item_widget = self.itemWidget(item, 1)
                 if hasattr(item_widget, "disconnect_slots"):
                     item_widget.disconnect_slots()
                 (item.parent() or root).removeChild(item)
+
+            self.refresh()
 
             if deleted:
                 self.itemsDeleted.emit(list(deleted))
@@ -357,7 +432,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
             if pattern:
                 group = ChannelsGroupTreeItem(pattern["name"], pattern)
-                widget = ChannelGroupDisplay(pattern["name"], pattern)
+                widget = ChannelGroupDisplay(pattern["name"], pattern, item=group)
 
                 item = self.currentItem()
 
@@ -387,11 +462,15 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 self.setItemWidget(group, 1, widget)
                 self.pattern_group_added.emit(group)
 
+                self.refresh()
+
         elif key == QtCore.Qt.Key_Insert and modifiers == QtCore.Qt.ShiftModifier:
-            text, ok = QtWidgets.QInputDialog.getText(self, 'Channel group name', 'New channel group name:')
+            text, ok = QtWidgets.QInputDialog.getText(
+                self, "Channel group name", "New channel group name:"
+            )
             if ok:
                 group = ChannelsGroupTreeItem(text)
-                widget = ChannelGroupDisplay(text)
+                widget = ChannelGroupDisplay(text, item=group)
 
                 item = self.currentItem()
 
@@ -407,6 +486,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                         self.insertTopLevelItem(index, group)
 
                 self.setItemWidget(group, 1, widget)
+                self.refresh()
 
         elif key == QtCore.Qt.Key_Space:
             selected_items = self.selectedItems()
@@ -417,6 +497,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 checked = item.checkState(0)
                 if checked == QtCore.Qt.Checked:
                     item.setCheckState(0, QtCore.Qt.Unchecked)
+                    if self.hide_disabled_channels:
+                        item.setHidden(True)
                 else:
                     item.setCheckState(0, QtCore.Qt.Checked)
             else:
@@ -428,6 +510,23 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     checked = QtCore.Qt.Unchecked
                 for item in selected_items:
                     item.setCheckState(0, checked)
+                    if self.hide_disabled_channels and checked == QtCore.Qt.Unchecked:
+                        item.setHidden(True)
+
+        elif modifiers == QtCore.Qt.ControlModifier and key == QtCore.Qt.Key_C:
+            selected_items = self.selectedItems()
+            if not selected_items:
+                return
+            self.itemWidget(selected_items[0], 1).keyPressEvent(event)
+
+        elif modifiers == (
+            QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier
+        ) and key in (QtCore.Qt.Key_C, QtCore.Qt.Key_P):
+            selected_items = self.selectedItems()
+            if not selected_items:
+                return
+            self.itemWidget(selected_items[0], 1).keyPressEvent(event)
+
         else:
             super().keyPressEvent(event)
 
@@ -440,11 +539,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         mimeData = QtCore.QMimeData()
 
         data = get_data(selected_items, uuids_only=False)
-        data = json.dumps(data).encode('utf-8')
+        data = json.dumps(data).encode("utf-8")
 
-        mimeData.setData(
-            "application/octet-stream-asammdf", QtCore.QByteArray(data)
-        )
+        mimeData.setData("application/octet-stream-asammdf", QtCore.QByteArray(data))
 
         drag = QtGui.QDrag(self)
         drag.setMimeData(mimeData)
@@ -458,9 +555,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
     def dropEvent(self, e):
         icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/open.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
+        icon.addPixmap(QtGui.QPixmap(":/open.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
 
         if e.source() is self:
 
@@ -476,9 +571,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 current_item = current_item.parent()
 
             selected_items = validate_drag_items(
-                self.invisibleRootItem(),
-                self.selectedItems(),
-                []
+                self.invisibleRootItem(), self.selectedItems(), []
             )
 
             if drop_item is not None:
@@ -584,11 +677,16 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         if item:
             menu.addAction(self.tr("Enable all but this"))
         menu.addSeparator()
-        if self._has_hidden_items:
-            show_hide = "Show disabled items"
+        if self.hide_disabled_channels:
+            show_disabled_channels = "Show disabled items"
         else:
-            show_hide = "Hide disabled items"
-        menu.addAction(self.tr(show_hide))
+            show_disabled_channels = "Hide disabled items"
+        menu.addAction(self.tr(show_disabled_channels))
+        if self.hide_missing_channels:
+            show_missing_channels = "Show missing items"
+        else:
+            show_missing_channels = "Hide missing items"
+        menu.addAction(self.tr(show_missing_channels))
         menu.addSeparator()
 
         if isinstance(item, ChannelsTreeItem):
@@ -602,6 +700,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             menu.addAction(self.tr("Set time base start offset"))
             menu.addSeparator()
             menu.addAction(self.tr("Insert computation using this channel"))
+            menu.addAction(self.tr("Compute FFT"))
             menu.addSeparator()
         if item:
             menu.addAction(self.tr("Delete [Del]"))
@@ -609,6 +708,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addAction(self.tr("Toggle details"))
         if isinstance(item, ChannelsTreeItem):
             menu.addAction(self.tr("File/Computation properties"))
+        elif isinstance(item, ChannelsGroupTreeItem):
+            if item.pattern:
+                menu.addAction(self.tr("Edit pattern"))
+            menu.addAction(self.tr("Group properties"))
 
         action = menu.exec_(self.viewport().mapToGlobal(position))
 
@@ -669,12 +772,21 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
                 iterator += 1
 
-        elif action.text() == show_hide:
-            if self._has_hidden_items:
+        elif action.text() == show_disabled_channels:
+            if self.hide_disabled_channels:
                 iterator = QtWidgets.QTreeWidgetItemIterator(self)
                 while iterator.value():
                     item = iterator.value()
-                    item.setHidden(False)
+                    widget = self.itemWidget(item, 1)
+                    if (
+                        widget
+                        and isinstance(widget, ChannelDisplay)
+                        and self.hide_missing_channels
+                        and not widget.exists
+                    ):
+                        pass
+                    else:
+                        item.setHidden(False)
                     iterator += 1
             else:
                 iterator = QtWidgets.QTreeWidgetItemIterator(self)
@@ -682,9 +794,38 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     item = iterator.value()
                     if item.checkState(0) == QtCore.Qt.Unchecked:
                         item.setHidden(True)
+
                     iterator += 1
 
-            self._has_hidden_items = not self._has_hidden_items
+            self.hide_disabled_channels = not self.hide_disabled_channels
+
+        elif action.text() == show_missing_channels:
+            if self.hide_missing_channels:
+                iterator = QtWidgets.QTreeWidgetItemIterator(self)
+                while iterator.value():
+                    item = iterator.value()
+                    widget = self.itemWidget(item, 1)
+                    if (
+                        widget
+                        and isinstance(widget, ChannelDisplay)
+                        and self.hide_disabled_channels
+                        and item.checkState(0) == QtCore.Qt.Unchecked
+                    ):
+                        pass
+                    else:
+                        item.setHidden(False)
+                    iterator += 1
+            else:
+                iterator = QtWidgets.QTreeWidgetItemIterator(self)
+                while iterator.value():
+                    item = iterator.value()
+                    widget = self.itemWidget(item, 1)
+                    if isinstance(widget, ChannelDisplay) and not widget.exists:
+                        item.setHidden(True)
+
+                    iterator += 1
+
+            self.hide_missing_channels = not self.hide_missing_channels
 
         elif action.text() == "Add to common Y axis":
             selected_items = self.selectedItems()
@@ -727,10 +868,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             selected_items = self.selectedItems()
 
             precision, ok = QtWidgets.QInputDialog.getInt(
-                None, "Set new precision (float decimals)", "Precision:"
+                self, "Set new precision (float decimals)", "Precision:", 3, -1, 15, 1
             )
 
-            if ok and 0 <= precision <= 15:
+            if ok:
 
                 iterator = QtWidgets.QTreeWidgetItemIterator(self)
                 while iterator.value():
@@ -742,8 +883,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     iterator += 1
 
         elif action.text() in (
-                "Relative time base shift",
-                "Set time base start offset",
+            "Relative time base shift",
+            "Set time base start offset",
         ):
             selected_items = self.selectedItems()
             if selected_items:
@@ -767,7 +908,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     iterator = QtWidgets.QTreeWidgetItemIterator(self)
                     while iterator.value():
                         item = iterator.value()
-                        if item in selected_items and isinstance(item, ChannelsTreeItem):
+                        if item in selected_items and isinstance(
+                            item, ChannelsTreeItem
+                        ):
                             widget = self.itemWidget(item, 1)
                             uuids.append(widget.uuid)
                         iterator += 1
@@ -803,12 +946,14 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 sizes[1] += 1
             self.parent().parent().setSizes(sizes)
 
-        elif action.text() == "File/Computation properties":
+        elif action.text() in ("File/Computation properties", "Group properties"):
             selected_items = self.selectedItems()
             if len(selected_items) == 1:
                 item = selected_items[0]
                 if isinstance(item, ChannelsTreeItem):
                     self.show_properties.emit(self.itemWidget(item, 1).uuid)
+                elif isinstance(item, ChannelsGroupTreeItem):
+                    item.show_info()
 
         elif action.text() == "Insert computation using this channel":
             selected_items = self.selectedItems()
@@ -816,6 +961,14 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 item = selected_items[0]
                 if isinstance(item, ChannelsTreeItem):
                     self.insert_computation.emit(self.itemWidget(item, 1)._name)
+
+        elif action.text() == "Compute FFT":
+            selected_items = self.selectedItems()
+            if len(selected_items) == 1:
+                item = selected_items[0]
+                if isinstance(item, ChannelsTreeItem):
+                    widget = self.itemWidget(item, 1)
+                    self.compute_fft_request.emit(widget.uuid)
 
         elif action.text() == "Add channel group [Shift+Insert]":
             event = QtGui.QKeyEvent(
@@ -830,19 +983,60 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             self.keyPressEvent(event)
 
         elif action.text() == "Rename group":
-            text, ok = QtWidgets.QInputDialog.getText(self, 'Rename group', 'New channel group name:')
+            text, ok = QtWidgets.QInputDialog.getText(
+                self, "Rename group", "New channel group name:"
+            )
             if ok and text.strip():
                 text = text.strip()
                 item.name = text
                 self.itemWidget(item, 1).name.setText(text)
 
         elif action.text() == "Rename channel":
-            text, ok = QtWidgets.QInputDialog.getText(self, 'Rename channel', 'New channel name:')
+            text, ok = QtWidgets.QInputDialog.getText(
+                self, "Rename channel", "New channel name:"
+            )
             if ok and text.strip():
                 text = text.strip()
                 item.name = text
                 self.itemWidget(item, 1).set_name(text)
                 self.itemWidget(item, 1).update_information()
+
+        elif action.text() == "Edit pattern":
+            widget = self.itemWidget(item, 1)
+            pattern = dict(item.pattern)
+            pattern["ranges"] = copy_ranges(widget.ranges)
+            dlg = AdvancedSearch(
+                {},
+                show_add_window=False,
+                show_apply=True,
+                show_search=False,
+                window_title="Add pattern based group",
+                parent=self,
+                pattern=pattern,
+            )
+            dlg.setModal(True)
+            dlg.exec_()
+            pattern = dlg.result
+
+            if pattern:
+                item.pattern = pattern
+                widget.set_ranges(pattern["ranges"])
+                widget.set_pattern(pattern)
+
+                self.clearSelection()
+
+                count = item.childCount()
+                for i in range(count):
+                    child = item.child(i)
+                    child.setSelected(True)
+
+                event = QtGui.QKeyEvent(
+                    QtCore.QEvent.KeyPress, QtCore.Qt.Key_Delete, QtCore.Qt.NoModifier
+                )
+                self.keyPressEvent(event)
+
+                self.pattern_group_added.emit(item)
+                self.refresh()
 
         self.update_channel_groups_count()
 
@@ -855,6 +1049,54 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 widget.count = item.childCount()
             iterator += 1
 
+    def update_hidden_states(self):
+        hide_missing_channels = self.hide_missing_channels
+        hide_disabled_channels = self.hide_disabled_channels
+
+        iterator = QtWidgets.QTreeWidgetItemIterator(self)
+        while iterator.value():
+            item = iterator.value()
+            widget = self.itemWidget(item, 1)
+            hidden = False
+            if widget:
+                if isinstance(widget, ChannelDisplay):
+                    if hide_missing_channels and not widget.exists:
+                        hidden = True
+                    if (
+                        hide_disabled_channels
+                        and item.checkState(0) == QtCore.Qt.Unchecked
+                    ):
+                        hidden = True
+                else:
+                    if (
+                        hide_disabled_channels
+                        and item.checkState(0) == QtCore.Qt.Unchecked
+                    ):
+                        hidden = True
+
+            item.setHidden(hidden)
+
+            iterator += 1
+
+    def refresh(self):
+        self.updateGeometry()
+        self.update_visibility_status()
+
+    def update_visibility_status(self, *args):
+
+        tree_rect = self.viewport().rect()
+
+        iterator = QtWidgets.QTreeWidgetItemIterator(self)
+        while iterator.value():
+            item = iterator.value()
+            rect = self.visualItemRect(item)
+            item._is_visible = rect.intersects(tree_rect)
+
+            iterator += 1
+
+    def is_item_visible(self, item):
+        return item._is_visible
+
 
 class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
@@ -863,7 +1105,17 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
     ylink_changed = QtCore.pyqtSignal(object, int)
     individual_axis_changed = QtCore.pyqtSignal(object, int)
 
-    def __init__(self, entry, name="", computation=None, parent=None, mdf_uuid=None, category="channel", texts=("",""), check=None):
+    def __init__(
+        self,
+        entry,
+        name="",
+        computation=None,
+        parent=None,
+        mdf_uuid=None,
+        category="channel",
+        texts=("", ""),
+        check=None,
+    ):
         super().__init__(parent, list(texts))
 
         self.entry = entry
@@ -871,8 +1123,11 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         self.computation = computation
         self.mdf_uuid = mdf_uuid
         self.category = category
+        self._is_visible = True
 
-        self.setFlags(self.flags() | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled)
+        self.setFlags(
+            self.flags() | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled
+        )
 
         if check is None:
             self.setCheckState(0, QtCore.Qt.Checked)
@@ -880,18 +1135,53 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.setCheckState(0, check)
 
     def copy(self):
-        x = ChannelsTreeItem(self.entry, self.name, self.computation, mdf_uuid=self.mdf_uuid, category=self.category, check=self.checkState(0))
+        x = ChannelsTreeItem(
+            self.entry,
+            self.name,
+            self.computation,
+            mdf_uuid=self.mdf_uuid,
+            category=self.category,
+            check=self.checkState(0),
+        )
         return x
+
+    def get_ranges(self):
+        tree = self.treeWidget()
+        if tree:
+            widget = tree.itemWidget(self, 1)
+            parent = self.parent()
+            if widget is None:
+                if parent is None:
+                    return []
+                else:
+                    return parent.get_ranges(tree)
+            else:
+                if parent is None:
+                    return widget.ranges
+                else:
+                    return [*widget.ranges, *parent.get_ranges(tree)]
+        else:
+            return []
+
+    def update_child_values(self, tree=None):
+        tree = tree or self.treeWidget()
+        widget = tree.itemWidget(self, 1)
+        widget.set_value(update=True)
 
 
 class ChannelsGroupTreeItem(QtWidgets.QTreeWidgetItem):
-
     def __init__(self, name="", pattern=None):
         super().__init__(["", ""])
-        self.name = name
+        self.name = name.split("\t[")[0]
         self.pattern = pattern
+        self._is_visible = True
 
-        self.setFlags(self.flags() | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsTristate)
+        self.setFlags(
+            self.flags()
+            | QtCore.Qt.ItemIsUserCheckable
+            | QtCore.Qt.ItemIsEnabled
+            | QtCore.Qt.ItemIsAutoTristate
+        )
 
         self.setCheckState(0, QtCore.Qt.Checked)
 
@@ -900,12 +1190,40 @@ class ChannelsGroupTreeItem(QtWidgets.QTreeWidgetItem):
         return x
 
     def show_info(self):
-        if self.pattern:
-            ChannnelGroupPatternDialog(self.pattern, self.treeWidget()).show()
+        widget = self.treeWidget().itemWidget(self, 1)
+        if widget:
+            ranges = widget.ranges
+            name = widget._name or self.name
+        else:
+            ranges = []
+            name = self.name
+        ChannnelGroupDialog(name, self.pattern, ranges, self.treeWidget()).show()
+
+    def get_ranges(self, tree=None):
+        tree = tree or self.treeWidget()
+        widget = tree.itemWidget(self, 1)
+        parent = self.parent()
+        if widget is None:
+            if parent is None:
+                return []
+            else:
+                return parent.get_ranges(tree)
+        else:
+            if parent is None:
+                return widget.ranges
+            else:
+                return [*widget.ranges, *parent.get_ranges(tree)]
+
+    def update_child_values(self, tree=None):
+        tree = tree or self.treeWidget()
+        count = self.childCount()
+        for i in range(count):
+            item = self.child(i)
+            item.update_child_values(tree)
 
 
-class ChannnelGroupPatternDialog(QtWidgets.QDialog):
-    def __init__(self, pattern, *args, **kwargs):
+class ChannnelGroupDialog(QtWidgets.QDialog):
+    def __init__(self, name, pattern, ranges, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.setWindowFlags(QtCore.Qt.Window)
@@ -915,18 +1233,23 @@ class ChannnelGroupPatternDialog(QtWidgets.QDialog):
         layout.setColumnStretch(1, 1)
         self.setLayout(layout)
 
-        self.setWindowTitle(f'<{pattern["name"]}> pattern group details')
+        if pattern:
+            self.setWindowTitle(f"<{name}> pattern group details")
 
-        for i, key in enumerate(("name", "pattern", "match_type", "filter_type", "filter_value", "raw")):
-            widget = QtWidgets.QLabel(str(pattern[key]))
+            for i, key in enumerate(
+                ("name", "pattern", "match_type", "filter_type", "filter_value", "raw")
+            ):
+                widget = QtWidgets.QLabel(str(pattern[key]))
 
-            if key == "raw":
-                key = "Use raw values"
-            label = QtWidgets.QLabel(key.replace("_", " ").capitalize())
-            label.setStyleSheet("color:rgb(97, 190, 226);")
+                if key == "raw":
+                    key = "Use raw values"
+                label = QtWidgets.QLabel(key.replace("_", " ").capitalize())
+                label.setStyleSheet("color:rgb(97, 190, 226);")
 
-            layout.addWidget(label, i, 0)
-            layout.addWidget(widget, i, 1)
+                layout.addWidget(label, i, 0)
+                layout.addWidget(widget, i, 1)
+        else:
+            self.setWindowTitle(f"<{name}> group details")
 
         # self.setStyleSheet('font: 8pt "Consolas";}')
 
@@ -939,6 +1262,7 @@ class ChannnelGroupPatternDialog(QtWidgets.QDialog):
 
         screen = QtWidgets.QApplication.desktop().screenGeometry()
         self.move((screen.width() - 1200) // 2, (screen.height() - 600) // 2)
+
 
 if __name__ == "__main__":
     pass

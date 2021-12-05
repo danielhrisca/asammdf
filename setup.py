@@ -63,7 +63,7 @@ setup(
         #   3 - Alpha
         #   4 - Beta
         #   5 - Production/Stable
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         # Indicate who your project is intended for
         "Intended Audience :: Developers",
         "Topic :: Software Development",
@@ -72,10 +72,10 @@ setup(
         "License :: OSI Approved :: GNU Lesser General Public License v3 or later (LGPLv3+)",
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
     ],
     # What does your project relate to?
     keywords="read reader edit editor parse parser asam mdf measurement",
@@ -107,12 +107,12 @@ setup(
             "lxml",
             "natsort",
             "psutil",
-            "PyQt5>=5.14.0",
+            "PyQt5>=5.15.0",
             "pyqtgraph>=0.12.1",
             "pyqtlet",
             "PyQtWebEngine",
         ],
-        "encryption": "cryptography",
+        "encryption": ["cryptography", "keyring"],
         "symbolic_math": "numexpr3",
     },
     # If there are data files included in your packages that need to be
@@ -128,6 +128,8 @@ setup(
     # To provide executable scripts, use entry points in preference to the
     # "scripts" keyword. Entry points provide cross-platform support and allow
     # pip to create the appropriate form of executable for the target platform.
-    entry_points={"console_scripts": ["asammdf = asammdf.gui.asammdfgui:main [gui,export,decode]"]},
+    entry_points={
+        "console_scripts": ["asammdf = asammdf.gui.asammdfgui:main [gui,export,decode]"]
+    },
     ext_modules=_get_ext_modules(),
 )

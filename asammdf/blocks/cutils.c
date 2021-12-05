@@ -96,7 +96,7 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
                     mlist,
                     bts
                 );
-                Py_DECREF(bts);
+                Py_XDECREF(bts);
 
                 buf += rec_size;
 
@@ -113,7 +113,7 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
                 }
                 bts = PyBytes_FromStringAndSize((const char *)buf, (Py_ssize_t) length);
                 PyList_Append(mlist, bts);
-                Py_DECREF(bts);
+                Py_XDECREF(bts);
                 buf += length;
             }
 
@@ -156,7 +156,7 @@ static PyObject* extract(PyObject* self, PyObject* args)
 {
     int i=0, count, max=0, offset, list_count;
     Py_ssize_t pos=0, size=0;
-    PyObject *signal_data, *is_byte_array, *offsets, *offsets_list;
+    PyObject *signal_data, *is_byte_array, *offsets, *offsets_list=NULL;
     char *buf;
     PyArrayObject *vals;
     PyArray_Descr *descr;
@@ -165,8 +165,8 @@ static PyObject* extract(PyObject* self, PyObject* args)
 
     if(!PyArg_ParseTuple(args, "OOO", &signal_data, &is_byte_array, &offsets))
     {
-        snprintf(err_string, 1024, "extract was called with wrong parameters");
-        PyErr_SetString(PyExc_ValueError, err_string);
+        //snprintf(err_string, 1024, "extract was called with wrong parameters");
+        //PyErr_SetString(PyExc_ValueError, err_string);
         return 0;
     }
     else
@@ -178,9 +178,11 @@ static PyObject* extract(PyObject* self, PyObject* args)
         pos = 0;
         
         if (offsets == Py_None) {
-            while ((pos + 4) < max_size)
+            while ((pos + 4) <= max_size)
             {
                 size = calc_size(&buf[pos]);
+
+                if ((pos+4+size) > max_size) break;
 
                 if (max < size) max = size;
                 pos += 4 + size;
@@ -192,11 +194,12 @@ static PyObject* extract(PyObject* self, PyObject* args)
             list_count = (int) PyList_Size(offsets_list);
             for (i=0; i<list_count; i++) {
                 offset = (int) PyLong_AsLong(PyList_GET_ITEM(offsets_list, i));
-                if ((offset + 4) >= max_size) break;
+                if ((offset + 4) > max_size) break;
                 size = calc_size(&buf[offset]);
+                if ((offset+4+size) > max_size) break;
                 if (max < size) max = size;
                 count++;
-            }
+            } 
         }
 
         if (PyObject_IsTrue(is_byte_array))
@@ -261,6 +264,7 @@ static PyObject* extract(PyObject* self, PyObject* args)
                 }
             }
         }
+        Py_XDECREF(offsets_list);
     }
 
     return (PyObject *) vals;
@@ -339,6 +343,193 @@ static PyObject* get_vlsd_offsets(PyObject* self, PyObject* args)
     return result;
 }
 
+static PyObject *positions(PyObject *self, PyObject *args)
+{
+	long count, step, last;
+    double min, max, *indata, value;
+    long *outdata;
+    int pos_min, pos_max;
+
+	PyObject *samples, *result, *step_obj, *count_obj, *last_obj;
+
+	if (!PyArg_ParseTuple(args, "OOOOO",
+			      &samples, &result, &step_obj, &count_obj, &last_obj
+)) {
+		PyErr_SetString(PyExc_ValueError, "check_timestamp was called with wring parameters\n");
+		return NULL;
+	} else {
+        
+        indata = (double *) PyArray_GETPTR1(samples, 0);
+        outdata = (long *) PyArray_GETPTR1(result, 0);
+        
+        count = PyLong_AsLong(count_obj);
+        step = PyLong_AsLong(step_obj);
+        last = PyLong_AsLong(last_obj);
+
+        int current_pos = 0;
+        for (int i=0; i< (int) count; i++) {
+            for (int j=0; j< step; j++, indata++) {
+                if (j==0) {
+                    pos_min = current_pos;
+                    pos_max = current_pos;
+                    min = *indata;
+                    max = *indata;
+                }
+                else {
+                   if (*indata < min) {
+                        min = *indata;
+                        pos_min = current_pos;
+                   }
+                   else if (*indata > max) {
+                        max = *indata;
+                        pos_max = current_pos;
+                   } 
+                }
+                
+                current_pos++;
+                
+                if ((i == count -1) && (j == last -1)) break;
+            }
+            
+            if (pos_min < pos_max) {
+                *outdata++ = pos_min;
+                *outdata++ = pos_max;
+            }
+            else {
+                *outdata++ = pos_max;
+                *outdata++ = pos_min;
+            }
+        }
+        
+        Py_INCREF(Py_None);
+        return Py_None;
+    }     
+}
+
+static PyObject* get_channel_raw_bytes(PyObject* self, PyObject* args)
+{
+    Py_ssize_t count, size, actual_byte_count, delta;
+    PyObject *data_block, *out;
+    
+    Py_ssize_t record_size, byte_offset, byte_count;
+
+    char *inptr, *outptr; 
+
+    if(!PyArg_ParseTuple(args, "Onnn", &data_block, &record_size, &byte_offset, &byte_count))
+    {
+        return 0;
+    }
+    else
+    {
+        size = PyBytes_GET_SIZE(data_block);
+        if (!record_size) {
+            out = PyByteArray_FromStringAndSize(NULL, 0);
+        }
+        else if (record_size < byte_offset + byte_count) {
+            delta = byte_offset + byte_count - record_size;
+            actual_byte_count = record_size - byte_offset;
+            
+            count = size / record_size;
+            
+            out = PyByteArray_FromStringAndSize(NULL, count * byte_count);
+            outptr = PyByteArray_AsString(out);
+            inptr = PyBytes_AsString(data_block);
+            
+            inptr += byte_offset;
+            
+            for (int i=0; i<count; i++) {
+                memcpy(outptr, inptr, actual_byte_count);
+                inptr += actual_byte_count;
+                outptr += byte_count;
+                for (int j=0; j< delta; j++) {
+                    *outptr++ = '\0';
+                }
+            }
+        }
+        else {
+            count = size / record_size;
+       
+            out = PyByteArray_FromStringAndSize(NULL, count * byte_count);
+            outptr = PyByteArray_AsString(out);
+            inptr = PyBytes_AsString(data_block);
+            
+            inptr += byte_offset;
+            
+            delta = record_size - byte_count;
+            
+            for (int i=0; i<count; i++) {
+                for (int j=0; j < byte_count; j++) {
+                    *outptr++ = *inptr++;
+                }
+                inptr += delta;
+            }
+           
+        }
+   
+        return out;
+    }
+}
+
+
+struct dtype {
+    unsigned char * data;
+    long itemsize;
+};
+
+
+static PyObject* data_block_from_arrays(PyObject* self, PyObject* args)
+{
+    Py_ssize_t count, size, actual_byte_count, delta;
+    PyObject *data_blocks, *out, *item, *bytes, *itemsize;
+    
+    Py_ssize_t record_size, byte_offset, byte_count;
+
+    char *inptr, *outptr; 
+    unsigned long long total_size=0, cycles;
+    
+    struct dtype * block_info=NULL;
+
+    if(!PyArg_ParseTuple(args, "OK", &data_blocks, &cycles))
+    {
+        return 0;
+    }
+    else
+    {
+        size = PyList_GET_SIZE(data_blocks);
+        if (!size) {
+            out = PyBytes_FromStringAndSize(NULL, 0);
+        }
+        else {
+            
+            block_info = (struct dtype *) malloc(size * sizeof(struct dtype));
+            
+            for (int i=0; i< size; i++) {
+                item = PyList_GET_ITEM(data_blocks, i);
+                bytes = PyTuple_GET_ITEM(item, 0);
+                itemsize = PyTuple_GET_ITEM(item, 1);
+                block_info[i].data = (unsigned char *) PyBytes_AsString(bytes);
+                block_info[i].itemsize = PyLong_AsLong(itemsize);
+                total_size += (unsigned long long) block_info[i].itemsize;
+            }
+            
+            total_size *= cycles;
+            
+            out = PyByteArray_FromStringAndSize(NULL, total_size);             
+            outptr = PyByteArray_AsString(out);
+       
+            for (int i=0; i<cycles; i++) {
+                for (int j=0; j<size; j++) {
+                    memcpy(outptr, block_info[j].data, block_info[j].itemsize);
+                    outptr += block_info[j].itemsize;
+                    block_info[j].data += block_info[j].itemsize;
+                }
+            }
+        }
+   
+        return out;
+    }
+}
+
 
 // Our Module's Function Definition struct
 // We require this `NULL` to signal the end of our method
@@ -349,6 +540,9 @@ static PyMethodDef myMethods[] =
     { "lengths", lengths, METH_VARARGS, "lengths" },
     { "get_vlsd_offsets", get_vlsd_offsets, METH_VARARGS, "get_vlsd_offsets" },
     { "sort_data_block", sort_data_block, METH_VARARGS, "sort raw data group block" },
+    { "positions", positions, METH_VARARGS, "positions" },
+    { "get_channel_raw_bytes", get_channel_raw_bytes, METH_VARARGS, "get_channel_raw_bytes" },
+    { "data_block_from_arrays", data_block_from_arrays, METH_VARARGS, "data_block_from_arrays" },
     
     { NULL, NULL, 0, NULL }
 };

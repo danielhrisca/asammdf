@@ -3,7 +3,11 @@
 asammdf utility functions and classes
 """
 
+from __future__ import annotations
+
+from collections.abc import Iterator
 from functools import lru_cache
+from io import StringIO
 import logging
 from pathlib import Path
 from random import randint
@@ -13,7 +17,12 @@ from struct import Struct
 import subprocess
 import sys
 from tempfile import TemporaryDirectory
+from typing import Any, Dict, overload, Tuple
 import xml.etree.ElementTree as ET
+
+from typing_extensions import Literal, TypedDict
+
+target_byte_order = "<=" if sys.byteorder == "little" else ">="
 
 try:
     from cchardet import detect
@@ -22,7 +31,10 @@ except:
         from chardet import detect
     except:
 
-        def detect(text):
+        class DetectDict(TypedDict):
+            encoding: str | None
+
+        def detect(text: bytes) -> DetectDict:
             for encoding in ("utf-8", "latin-1", "cp1250", "cp1252"):
                 try:
                     text.decode(encoding)
@@ -34,13 +46,23 @@ except:
             return {"encoding": encoding}
 
 
+from canmatrix.canmatrix import CanMatrix
 import canmatrix.formats
 import numpy as np
-from numpy import arange, interp, where
+from numpy import arange, bool_, dtype, interp, where
+from numpy.typing import NDArray
 from pandas import Series
 
 from . import v2_v3_constants as v3c
 from . import v4_constants as v4c
+from ..types import (
+    ChannelType,
+    DataGroupType,
+    MDF_v2_v3_v4,
+    RasterType,
+    ReadableBufferType,
+    StrPathType,
+)
 
 UINT8_u = Struct("<B").unpack
 UINT16_u = Struct("<H").unpack
@@ -57,6 +79,8 @@ TWO_UINT64_u = Struct("<2Q").unpack
 TWO_UINT64_uf = Struct("<2Q").unpack_from
 BLK_COMMON_uf = Struct("<4s4xQ").unpack_from
 BLK_COMMON_u = Struct("<4s4xQ8x").unpack
+
+EMPTY_TUPLE = tuple()
 
 _xmlns_pattern = re.compile(' xmlns="[^"]*"')
 
@@ -109,7 +133,7 @@ class MdfException(Exception):
     pass
 
 
-def extract_cncomment_xml(comment):
+def extract_cncomment_xml(comment: str) -> str:
     """extract *TX* tag or otherwise the *common_properties* from a xml comment
 
     Parameters
@@ -146,7 +170,7 @@ def extract_cncomment_xml(comment):
     return comment
 
 
-def matlab_compatible(name):
+def matlab_compatible(name: str) -> str:
     """make a channel name compatible with Matlab variable naming
 
     Parameters
@@ -172,7 +196,29 @@ def matlab_compatible(name):
     return compatible_name[:60]
 
 
-def get_text_v3(address, stream, mapped=False, decode=True):
+@overload
+def get_text_v3(
+    address: int,
+    stream: ReadableBufferType,
+    mapped: bool = ...,
+    decode: Literal[True] = ...,
+) -> str:
+    ...
+
+
+@overload
+def get_text_v3(
+    address: int,
+    stream: ReadableBufferType,
+    mapped: bool = ...,
+    decode: Literal[False] = ...,
+) -> bytes:
+    ...
+
+
+def get_text_v3(
+    address: int, stream: ReadableBufferType, mapped: bool = False, decode: bool = True
+) -> str | bytes:
     """faster way to extract strings from mdf versions 2 and 3 TextBlock
 
     Parameters
@@ -222,7 +268,29 @@ def get_text_v3(address, stream, mapped=False, decode=True):
     return text
 
 
-def get_text_v4(address, stream, mapped=False, decode=True):
+@overload
+def get_text_v4(
+    address: int,
+    stream: ReadableBufferType,
+    mapped: bool = ...,
+    decode: Literal[True] = ...,
+) -> str:
+    ...
+
+
+@overload
+def get_text_v4(
+    address: int,
+    stream: ReadableBufferType,
+    mapped: bool = ...,
+    decode: Literal[False] = ...,
+) -> bytes:
+    ...
+
+
+def get_text_v4(
+    address: int, stream: ReadableBufferType, mapped: bool = False, decode: bool = True
+) -> str | bytes:
     """faster way to extract strings from mdf version 4 TextBlock
 
     Parameters
@@ -271,34 +339,56 @@ def get_text_v4(address, stream, mapped=False, decode=True):
     return text
 
 
-def sanitize_xml(text):
+def sanitize_xml(text: str) -> str:
     return re.sub(_xmlns_pattern, "", text)
 
 
-def extract_display_name(comment):
-    if not comment.startswith("<CNcomment"):
-        return ""
+def extract_display_names(comment: str) -> dict[str, str]:
+    display_names = {}
+    if comment.startswith("<CNcomment") and "<names>" in comment:
 
-    try:
-        comment = ET.fromstring(sanitize_xml(comment))
-        display_name = comment.find(".//names/display")
-        if display_name is not None:
-            display_name = display_name.text or ""
-        else:
-            display_name = comment.find(".//names/name")
-            if display_name is not None:
-                display_name = display_name.text or ""
-            else:
-                display_name = ""
+        try:
+            start = comment.index("<names>")
+            end = comment.index("</names>") + 8
+            names = ET.fromstring(comment[start:end])
+            for i, elem in enumerate(names.iter()):
+                if i == 0:
+                    continue
+                display_names[elem.text.strip(" \t\r\n\v\0")] = elem.tag
 
-    except:
-        display_name = ""
+        except:
+            pass
 
-    return display_name
+    return display_names
+
+
+def extract_encryption_information(comment: str) -> dict[str, str]:
+    info = {}
+    if comment.startswith("<ATcomment") and "<encrypted>" in comment:
+
+        try:
+            comment = ET.fromstring(comment)
+            for match in comment.findall(".//extensions/extension"):
+                encrypted = match.find("encrypted").text.strip().lower() == "true"
+                algorithm = match.find("algorithm").text.strip().lower()
+                original_md5_sum = match.find("original_md5_sum").text.strip().lower()
+                original_size = int(match.find("original_size").text)
+
+                info["encrypted"] = encrypted
+                info["algorithm"] = algorithm
+                info["original_md5_sum"] = original_md5_sum
+                info["original_size"] = original_size
+                break
+        except:
+            pass
+
+    return info
 
 
 @lru_cache(maxsize=1024)
-def get_fmt_v3(data_type, size, byte_order=v3c.BYTE_ORDER_INTEL):
+def get_fmt_v3(
+    data_type: int, size: int, byte_order: int = v3c.BYTE_ORDER_INTEL
+) -> str:
     """convert mdf versions 2 and 3 channel data type to numpy dtype format
     string
 
@@ -382,7 +472,9 @@ def get_fmt_v3(data_type, size, byte_order=v3c.BYTE_ORDER_INTEL):
 
 
 @lru_cache(maxsize=1024)
-def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
+def get_fmt_v4(
+    data_type: int, size: int, channel_type: int = v4c.CHANNEL_TYPE_VALUE
+) -> str:
     """convert mdf version 4 channel data type to numpy dtype format string
 
     Parameters
@@ -492,7 +584,9 @@ def get_fmt_v4(data_type, size, channel_type=v4c.CHANNEL_TYPE_VALUE):
 
 
 @lru_cache(maxsize=1024)
-def fmt_to_datatype_v3(fmt, shape, array=False):
+def fmt_to_datatype_v3(
+    fmt: dtype[Any], shape: tuple[int, ...], array: bool = False
+) -> tuple[int, int]:
     """convert numpy dtype format string to mdf versions 2 and 3
     channel data type and size
 
@@ -557,7 +651,7 @@ def fmt_to_datatype_v3(fmt, shape, array=False):
 
 
 @lru_cache(maxsize=1024)
-def info_to_datatype_v4(signed, little_endian):
+def info_to_datatype_v4(signed: bool, little_endian: bool) -> int:
     """map CAN signal to MDF integer types
 
     Parameters
@@ -589,7 +683,9 @@ def info_to_datatype_v4(signed, little_endian):
 
 
 @lru_cache(maxsize=1024)
-def fmt_to_datatype_v4(fmt, shape, array=False):
+def fmt_to_datatype_v4(
+    fmt: dtype[Any], shape: tuple[int, ...], array: bool = False
+) -> tuple[int, int]:
     """convert numpy dtype format string to mdf version 4 channel data
     type and size
 
@@ -653,7 +749,9 @@ def fmt_to_datatype_v4(fmt, shape, array=False):
     return data_type, size
 
 
-def as_non_byte_sized_signed_int(integer_array, bit_length):
+def as_non_byte_sized_signed_int(
+    integer_array: NDArray[Any], bit_length: int
+) -> NDArray[Any]:
     """
     The MDF spec allows values to be encoded as integers that aren't
     byte-sized. Numpy only knows how to do two's complement on byte-sized
@@ -691,7 +789,13 @@ def as_non_byte_sized_signed_int(integer_array, bit_length):
     )
 
 
-def debug_channel(mdf, group, channel, dependency, file=None):
+def debug_channel(
+    mdf: MDF_v2_v3_v4,
+    group: Group,
+    channel: ChannelType,
+    dependency: list[tuple[int, int]],
+    file: StringIO | None = None,
+) -> None:
     """use this to print debug information in case of errors
 
     Parameters
@@ -737,7 +841,9 @@ def debug_channel(mdf, group, channel, dependency, file=None):
     print(file=file)
 
 
-def count_channel_groups(stream, include_channels=False):
+def count_channel_groups(
+    stream: ReadableBufferType, include_channels: bool = False, mapped: bool = False
+) -> tuple[int, int]:
     """count all channel groups as fast as possible. This is used to provide
     reliable progress information when loading a file using the GUI
 
@@ -770,25 +876,41 @@ def count_channel_groups(stream, include_channels=False):
             raise MdfException(f'"{stream.name}" is not a valid MDF file')
 
     if version >= 4:
-        stream.seek(88, 0)
-        dg_addr = UINT64_u(stream.read(8))[0]
-        while dg_addr:
-            stream.seek(dg_addr + 32)
-            cg_addr = UINT64_u(stream.read(8))[0]
-            while cg_addr:
-                count += 1
-                if include_channels:
-                    stream.seek(cg_addr + 32)
-                    ch_addr = UINT64_u(stream.read(8))[0]
-                    while ch_addr:
-                        ch_count += 1
-                        stream.seek(ch_addr + 24)
-                        ch_addr = UINT64_u(stream.read(8))[0]
-                stream.seek(cg_addr + 24)
-                cg_addr = UINT64_u(stream.read(8))[0]
+        if mapped:
+            dg_addr = UINT64_uf(stream, 88)[0]
+            while dg_addr:
+                stream.seek(dg_addr + 32)
+                cg_addr = UINT64_uf(stream, dg_addr + 32)[0]
+                while cg_addr:
+                    count += 1
+                    if include_channels:
+                        ch_addr = UINT64_uf(stream, cg_addr + 32)[0]
+                        while ch_addr:
+                            ch_count += 1
+                            ch_addr = UINT64_uf(stream, ch_addr + 24)[0]
+                    cg_addr = UINT64_uf(stream, cg_addr + 24)[0]
 
-            stream.seek(dg_addr + 24)
+                dg_addr = UINT64_uf(stream, dg_addr + 24)[0]
+        else:
+            stream.seek(88, 0)
             dg_addr = UINT64_u(stream.read(8))[0]
+            while dg_addr:
+                stream.seek(dg_addr + 32)
+                cg_addr = UINT64_u(stream.read(8))[0]
+                while cg_addr:
+                    count += 1
+                    if include_channels:
+                        stream.seek(cg_addr + 32)
+                        ch_addr = UINT64_u(stream.read(8))[0]
+                        while ch_addr:
+                            ch_count += 1
+                            stream.seek(ch_addr + 24)
+                            ch_addr = UINT64_u(stream.read(8))[0]
+                    stream.seek(cg_addr + 24)
+                    cg_addr = UINT64_u(stream.read(8))[0]
+
+                stream.seek(dg_addr + 24)
+                dg_addr = UINT64_u(stream.read(8))[0]
 
     else:
         stream.seek(68, 0)
@@ -814,7 +936,7 @@ def count_channel_groups(stream, include_channels=False):
     return count, ch_count
 
 
-def validate_version_argument(version, hint=4):
+def validate_version_argument(version: str, hint: int = 4) -> str:
     """validate the version argument against the supported MDF versions. The
     default version used depends on the hint MDF major revision
 
@@ -850,11 +972,11 @@ def validate_version_argument(version, hint=4):
     return valid_version
 
 
-class ChannelsDB(dict):
-    def __init__(self):
+class ChannelsDB(Dict[str, Tuple[Tuple[int, int], ...]]):
+    def __init__(self) -> None:
         super().__init__()
 
-    def add(self, channel_name, entry):
+    def add(self, channel_name: str, entry: tuple[int, int]) -> None:
         """add name to channels database and check if it contains a source
         path
 
@@ -881,7 +1003,7 @@ class ChannelsDB(dict):
                     self[channel_name] += (entry,)
 
 
-def randomized_string(size):
+def randomized_string(size: int) -> bytes:
     """get a \0 terminated string of size length
 
     Parameters
@@ -898,7 +1020,7 @@ def randomized_string(size):
     return bytes(randint(65, 90) for _ in range(size - 1)) + b"\0"
 
 
-def is_file_like(obj):
+def is_file_like(obj: object) -> bool:
     """
     Check if the object is a file-like object.
 
@@ -936,10 +1058,10 @@ def is_file_like(obj):
 
 
 class UniqueDB(object):
-    def __init__(self):
+    def __init__(self) -> None:
         self._db = {}
 
-    def get_unique_name(self, name):
+    def get_unique_name(self, name: str) -> str:
         """returns an available unique name
 
         Parameters
@@ -963,7 +1085,7 @@ class UniqueDB(object):
             return f"{name}_{index}"
 
 
-def cut_video_stream(stream, start, end, fmt):
+def cut_video_stream(stream: bytes, start: float, end: float, fmt: str) -> bytes:
     """cut video stream from `start` to `end` time
 
     Parameters
@@ -1014,7 +1136,7 @@ def cut_video_stream(stream, start, end, fmt):
     return result
 
 
-def get_video_stream_duration(stream):
+def get_video_stream_duration(stream: bytes) -> float | None:
     with TemporaryDirectory() as tmp:
         in_file = Path(tmp) / "in"
         in_file.write_bytes(stream)
@@ -1051,10 +1173,9 @@ class Group:
         "data_group",
         "data_location",
         "data_blocks",
+        "data_blocks_info_generator",
         "record_size",
         "record",
-        "parents",
-        "types",
         "signal_types",
         "trigger",
         "string_dtypes",
@@ -1063,13 +1184,11 @@ class Group:
         "read_split_count",
     )
 
-    def __init__(self, data_group):
+    def __init__(self, data_group: DataGroupType) -> None:
         self.data_group = data_group
         self.channels = []
         self.channel_dependencies = []
         self.signal_data = []
-        self.parents = None
-        self.types = None
         self.record = None
         self.trigger = None
         self.string_dtypes = None
@@ -1077,24 +1196,53 @@ class Group:
         self.single_channel_dtype = None
         self.uses_ld = False
         self.read_split_count = 0
+        self.data_blocks_info_generator = iter(EMPTY_TUPLE)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> Any:
         return self.__getattribute__(item)
 
-    def __setitem__(self, item, value):
+    def __setitem__(self, item: str, value: Any) -> None:
         self.__setattr__(item, value)
 
-    def set_blocks_info(self, info):
+    def set_blocks_info(self, info: list[DataBlockInfo]) -> None:
         self.data_blocks = info
 
-    def __contains__(self, item):
+    def __contains__(self, item: str) -> bool:
         return hasattr(self, item)
 
-    def clear(self):
+    def clear(self) -> None:
         self.data_blocks.clear()
         self.channels.clear()
         self.channel_dependencies.clear()
         self.signal_data.clear()
+        self.data_blocks_info_generator = None
+
+    def get_data_blocks(self) -> Iterator[DataBlockInfo]:
+        for blk in self.data_blocks:
+            yield blk
+
+        while True:
+            try:
+                info = next(self.data_blocks_info_generator)
+                self.data_blocks.append(info)
+                yield info
+            except StopIteration:
+                break
+
+    def get_signal_data_blocks(self, index: int) -> Iterator[SignalDataBlockInfo]:
+        signal_data = self.signal_data[index]
+        if signal_data is not None:
+            signal_data, signal_generator = signal_data
+            for blk in signal_data:
+                yield blk
+
+            while True:
+                try:
+                    info = next(signal_generator)
+                    signal_data.append(info)
+                    yield info
+                except StopIteration:
+                    break
 
 
 class VirtualChannelGroup:
@@ -1109,16 +1257,16 @@ class VirtualChannelGroup:
         "cycles_nr",
     )
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.groups = []
         self.record_size = 0
         self.cycles_nr = 0
 
-    def __repr__(self):
+    def __repr__(self) -> None:
         return f"VirtualChannelGroup(groups={self.groups}, records_size={self.record_size}, cycles_nr={self.cycles_nr})"
 
 
-def block_fields(obj):
+def block_fields(obj: object) -> list[str]:
     fields = []
     for attr in dir(obj):
         if attr[:2] + attr[-2:] == "____":
@@ -1134,8 +1282,13 @@ def block_fields(obj):
 
 
 def components(
-    channel, channel_name, unique_names, prefix="", master=None, only_basenames=False
-):
+    channel: NDArray[Any],
+    channel_name: str,
+    unique_names: UniqueDB,
+    prefix: str = "",
+    master: NDArray[Any] | None = None,
+    only_basenames: bool = False,
+) -> tuple[str, Series[Any]]:
     """yield pandas Series and unique name based on the ndarray object
 
     Parameters
@@ -1176,7 +1329,11 @@ def components(
             name_ = unique_names.get_unique_name(name)
 
         values = channel[name]
+        if values.dtype.byteorder not in target_byte_order:
+            values = values.byteswap().newbyteorder()
+
         if len(values.shape) > 1:
+
             values = Series(
                 list(values),
                 index=master,
@@ -1191,6 +1348,10 @@ def components(
 
         for name in names[1:]:
             values = channel[name]
+
+            if values.dtype.byteorder not in target_byte_order:
+                values = values.byteswap().newbyteorder()
+
             if not only_basenames:
                 axis_name = unique_names.get_unique_name(f"{name_}.{name}")
             else:
@@ -1225,6 +1386,10 @@ def components(
                 )
 
             else:
+
+                if values.dtype.byteorder not in target_byte_order:
+                    values = values.byteswap().newbyteorder()
+
                 if not only_basenames:
                     name_ = unique_names.get_unique_name(
                         f"{prefix}.{channel_name}.{name}"
@@ -1261,14 +1426,14 @@ class DataBlockInfo:
 
     def __init__(
         self,
-        address,
-        block_type,
-        original_size,
-        compressed_size,
-        param,
+        address: int,
+        block_type: int,
+        original_size: int,
+        compressed_size: int,
+        param: int,
         invalidation_block=None,
-        block_limit=None,
-    ):
+        block_limit: int | None = None,
+    ) -> None:
         self.address = address
         self.block_type = block_type
         self.original_size = original_size
@@ -1277,7 +1442,7 @@ class DataBlockInfo:
         self.invalidation_block = invalidation_block
         self.block_limit = block_limit
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"DataBlockInfo(address=0x{self.address:X}, "
             f"block_type={self.block_type}, "
@@ -1295,20 +1460,20 @@ class InvalidationBlockInfo(DataBlockInfo):
 
     def __init__(
         self,
-        address,
-        block_type,
-        original_size,
-        compressed_size,
-        param,
-        all_valid=False,
-        block_limit=None,
-    ):
+        address: int,
+        block_type: int,
+        original_size: int,
+        compressed_size: int,
+        param: int,
+        all_valid: bool = False,
+        block_limit: int | None = None,
+    ) -> None:
         super().__init__(
             address, block_type, original_size, compressed_size, param, block_limit
         )
         self.all_valid = all_valid
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"InvalidationBlockInfo(address=0x{self.address:X}, "
             f"block_type={self.block_type}, "
@@ -1333,13 +1498,13 @@ class SignalDataBlockInfo:
 
     def __init__(
         self,
-        address,
-        original_size,
-        block_type=v4c.DT_BLOCK,
-        param=0,
-        compressed_size=None,
-        location=v4c.LOCATION_ORIGINAL_FILE,
-    ):
+        address: int,
+        original_size: int,
+        block_type: int = v4c.DT_BLOCK,
+        param: int = 0,
+        compressed_size: int | None = None,
+        location: int = v4c.LOCATION_ORIGINAL_FILE,
+    ) -> None:
         self.address = address
         self.compressed_size = compressed_size or original_size
         self.block_type = block_type
@@ -1347,15 +1512,16 @@ class SignalDataBlockInfo:
         self.param = param
         self.location = location
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"SignalDataBlockInfo(address=0x{self.address:X}, "
             f"original_size={self.original_size}, "
+            f"compressed_size={self.compressed_size}, "
             f"block_type={self.block_type})"
         )
 
 
-def get_fields(obj):
+def get_fields(obj: object) -> list[Any]:
     fields = []
     for attr in dir(obj):
         if attr[:2] + attr[-2:] == "____":
@@ -1370,7 +1536,7 @@ def get_fields(obj):
 
 
 # code snippet taken from https://www.kaggle.com/arjanso/reducing-dataframe-memory-size-by-65
-def downcast(array):
+def downcast(array: NDArray[Any]) -> NDArray[Any]:
     kind = array.dtype.kind
     if kind == "f":
         array = array.astype(np.float32)
@@ -1399,7 +1565,9 @@ def downcast(array):
     return array
 
 
-def master_using_raster(mdf, raster, endpoint=False):
+def master_using_raster(
+    mdf: MDF_v2_v3_v4, raster: RasterType, endpoint: bool = False
+) -> NDArray[Any]:
     """get single master based on the raster
 
     Parameters
@@ -1456,7 +1624,7 @@ def master_using_raster(mdf, raster, endpoint=False):
     return master
 
 
-def csv_int2bin(val):
+def csv_int2bin(val) -> str:
     """format CAN id as bin
 
     100 -> 1100100
@@ -1469,7 +1637,7 @@ def csv_int2bin(val):
 csv_int2bin = np.vectorize(csv_int2bin, otypes=[str])
 
 
-def csv_int2hex(val):
+def csv_int2hex(val) -> str:
     """format CAN id as hex
 
     100 -> 64
@@ -1482,27 +1650,45 @@ def csv_int2hex(val):
 csv_int2hex = np.vectorize(csv_int2hex, otypes=[str])
 
 
-def csv_bytearray2hex(val, size=None):
-    """format CAN payload as hex strings
+if sys.version_info.major >= 3 and sys.version_info.minor >= 8:
 
-    b'\xa2\xc3\x08' -> A2 C3 08
+    def csv_bytearray2hex(val, size: int | None = None) -> str:
+        """format CAN payload as hex strings
 
-    """
-    if size is not None:
-        val = val.tobytes()[:size].hex().upper()
-    else:
-        val = val.tobytes().hex().upper()
+        b'\xa2\xc3\x08' -> A2 C3 08
 
-    vals = [val[i : i + 2] for i in range(0, len(val), 2)]
+        """
+        if size is not None:
+            val = val.tobytes()[:size].hex(" ", 1).upper()
+        else:
+            val = val.tobytes().hex(" ", 1).upper()
 
-    return " ".join(vals)
+        return val
+
+
+else:
+
+    def csv_bytearray2hex(val, size: int | None = None) -> str:
+        """format CAN payload as hex strings
+
+        b'\xa2\xc3\x08' -> A2 C3 08
+
+        """
+        if size is not None:
+            val = val.tobytes()[:size].hex().upper()
+        else:
+            val = val.tobytes().hex().upper()
+
+        vals = [val[i : i + 2] for i in range(0, len(val), 2)]
+
+        return " ".join(vals)
 
 
 csv_bytearray2hex = np.vectorize(csv_bytearray2hex, otypes=[str])
 
 
-def pandas_query_compatible(name):
-    """ adjust column name for usage in dataframe query string """
+def pandas_query_compatible(name: str) -> str:
+    """adjust column name for usage in dataframe query string"""
 
     for c in ".$[]: ":
         name = name.replace(c, "_")
@@ -1518,7 +1704,9 @@ def pandas_query_compatible(name):
     return name
 
 
-def load_can_database(path, contents=None, **kwargs):
+def load_can_database(
+    path: StrPathType, contents: bytes | str | None = None, **kwargs
+) -> CanMatrix | None:
     path = Path(path)
     import_type = path.suffix.lstrip(".").lower()
     if contents is None:
@@ -1536,13 +1724,16 @@ def load_can_database(path, contents=None, **kwargs):
 
         encoding = detect(contents)["encoding"]
 
-        dbs = func(
-            arg,
-            import_type=import_type,
-            key="db",
-            encoding=encoding,
-            **kwargs,
-        )
+        try:
+            dbs = func(
+                arg,
+                import_type=import_type,
+                key="db",
+                encoding=encoding,
+                **kwargs,
+            )
+        except:
+            dbs = None
 
     if dbs:
         first_bus = list(dbs)[0]
@@ -1553,9 +1744,9 @@ def load_can_database(path, contents=None, **kwargs):
     return can_matrix
 
 
-def all_blocks_addresses(obj):
+def all_blocks_addresses(obj: ReadableBufferType):
     pattern = re.compile(
-        rb"(?P<block>##(D[GVTZIL]|AT|C[AGHNC]|EV|FH|HL|LD|MD|R[DVI]|S[IRD]|TX))",
+        rb"(?P<block>##(D[GVTZIL]|AT|C[AGHNC]|EV|FH|HL|LD|MD|R[DVI]|S[IRD]|TX)\x00\x00)",
         re.DOTALL | re.MULTILINE,
     )
 
@@ -1578,6 +1769,9 @@ def all_blocks_addresses(obj):
         btype = match.group("block")
         start = match.start()
 
+        if start % 8:
+            continue
+
         btype_addresses = block_groups.setdefault(btype, [])
         btype_addresses.append(start)
         addresses.append(start)
@@ -1586,7 +1780,13 @@ def all_blocks_addresses(obj):
     return blocks, block_groups, addresses
 
 
-def plausible_timestamps(t, minimum, maximum, exp_min=-15, exp_max=15):
+def plausible_timestamps(
+    t: NDArray[Any],
+    minimum: float,
+    maximum: float,
+    exp_min: int = -15,
+    exp_max: int = 15,
+) -> tuple[bool, NDArray[bool_]]:
     """check if the time stamps are plausible
 
     Parameters
@@ -1624,3 +1824,18 @@ def plausible_timestamps(t, minimum, maximum, exp_min=-15, exp_max=15):
     else:
         all_ok = True
         return all_ok, idx
+
+
+table = str.maketrans(
+    {
+        "<": "&lt;",
+        ">": "&gt;",
+        "&": "&amp;",
+        "'": "&apos;",
+        '"': "&quot;",
+    }
+)
+
+
+def escape_xml_string(string: str) -> str:
+    return string.translate(table)

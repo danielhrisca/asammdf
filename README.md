@@ -7,24 +7,21 @@
 
 *asammdf* supports MDF versions 2 (.dat), 3 (.mdf) and 4 (.mf4).
 
-*asammdf* works on Python >= 3.6 (for Python 2.7, 3.4 and 3.5 see the 4.x.y releases)
-
+*asammdf* works on Python >= 3.7 (for Python 2.7, 3.4 and 3.5 see the 4.x.y releases)
 
 </p>
 
 <img align=left src="https://raw.githubusercontent.com/danielhrisca/asammdf/master/gui.png"/>
 
-
 # Status
 
-! | Travis CI  | Appveyor | CoverAlls  |  Codacy  | ReadTheDocs 
---|--|--|--|--|--
-master | [![Build Status](https://travis-ci.org/danielhrisca/asammdf.svg?branch=)](https://travis-ci.org/danielhrisca/asammdf) | [![Build status](https://ci.appveyor.com/api/projects/status/racx048r4cnwa2lg/branch/master?svg=true)](https://ci.appveyor.com/project/danielhrisca/asammdf/branch/master) | [![Coverage Status](https://coveralls.io/repos/github/danielhrisca/asammdf/badge.svg?branch=master)](https://coveralls.io/github/danielhrisca/asammdf?branch=master) | [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99?branch=master)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger) |  [![Documentation Status](http://readthedocs.org/projects/asammdf/badge/?version=master)](http://asammdf.readthedocs.io/en/master/?badge=stable) | 
+| Continuous Integration                                                                                                                                                                      | Coveralls                                                                                                                                                            | Codacy                                                                                                                                                                                                                                                       | ReadTheDocs                                                                                                                                     |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| [![continuous integration](https://github.com/danielhrisca/asammdf/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/danielhrisca/asammdf/actions/workflows/main.yml) | [![Coverage Status](https://coveralls.io/repos/github/danielhrisca/asammdf/badge.svg?branch=master)](https://coveralls.io/github/danielhrisca/asammdf?branch=master) | [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a3da21da90ca43a5b72fc24b56880c99?branch=master)](https://www.codacy.com/app/danielhrisca/asammdf?utm_source=github.com&utm_medium=referral&utm_content=danielhrisca/asammdf&utm_campaign=badger) | [![Documentation Status](http://readthedocs.org/projects/asammdf/badge/?version=master)](http://asammdf.readthedocs.io/en/master/?badge=stable) |
 
-PyPI| conda-forge
---|--
-[![PyPI version](https://badge.fury.io/py/asammdf.svg)](https://badge.fury.io/py/asammdf)  | [![conda-forge version](https://anaconda.org/conda-forge/asammdf/badges/version.svg)](https://anaconda.org/conda-forge/asammdf)
-
+| PyPI                                                                                      | conda-forge                                                                                                                     |
+| ----------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| [![PyPI version](https://badge.fury.io/py/asammdf.svg)](https://badge.fury.io/py/asammdf) | [![conda-forge version](https://anaconda.org/conda-forge/asammdf/badges/version.svg)](https://anaconda.org/conda-forge/asammdf) |
 
 # Project goals
 The main goals for this library are:
@@ -198,6 +195,7 @@ other optional dependencies
 * cChardet : to detect non-standard Unicode encodings
 * chardet : to detect non-standard Unicode encodings 
 * pyqtlet : for GPS window
+* isal : for faster zlib compression/decompression
 
 # Benchmarks
 

@@ -13,68 +13,49 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,1,0,0,0,0">
+  <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0">
    <item>
-    <widget class="QComboBox" name="format_selection">
-     <item>
-      <property name="text">
-       <string>phys</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>hex</string>
-      </property>
-     </item>
-     <item>
-      <property name="text">
-       <string>bin</string>
-      </property>
-     </item>
-    </widget>
-   </item>
-   <item>
-    <widget class="NumericTreeWidget" name="channels">
-     <property name="font">
-      <font>
-       <family>Lucida Console</family>
-      </font>
-     </property>
-     <property name="dragDropMode">
-      <enum>QAbstractItemView::InternalMove</enum>
-     </property>
-     <property name="alternatingRowColors">
-      <bool>true</bool>
-     </property>
-     <property name="columnCount">
-      <number>3</number>
-     </property>
-     <column>
-      <property name="text">
-       <string>Name</string>
-      </property>
-     </column>
-     <column>
-      <property name="text">
-       <string>Value</string>
-      </property>
-     </column>
-     <column>
-      <property name="text">
-       <string>Unit</string>
-      </property>
-     </column>
-    </widget>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
-      <widget class="QLabel" name="label">
+    <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,0">
+     <item row="0" column="0">
+      <widget class="QLabel" name="label_5">
        <property name="text">
-        <string>Time</string>
+        <string>Integer format</string>
        </property>
       </widget>
      </item>
+     <item row="0" column="1">
+      <widget class="QLabel" name="label_6">
+       <property name="text">
+        <string>Float precision</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QComboBox" name="format_selection">
+       <item>
+        <property name="text">
+         <string>Physical</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Hex</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>Binary</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item row="1" column="1">
+      <widget class="QComboBox" name="float_precision"/>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,1,0">
      <item>
       <widget class="QDoubleSpinBox" name="timestamp">
        <property name="suffix">
@@ -88,10 +69,6 @@
        </property>
       </widget>
      </item>
-    </layout>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
       <widget class="QLabel" name="min_t">
        <property name="text">
@@ -100,17 +77,26 @@
       </widget>
      </item>
      <item>
-      <spacer name="horizontalSpacer">
+      <widget class="QSlider" name="timestamp_slider">
+       <property name="maximum">
+        <number>99999</number>
+       </property>
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
        </property>
-       <property name="sizeHint" stdset="0">
-        <size>
-         <width>40</width>
-         <height>20</height>
-        </size>
+       <property name="invertedAppearance">
+        <bool>false</bool>
        </property>
-      </spacer>
+       <property name="invertedControls">
+        <bool>false</bool>
+       </property>
+       <property name="tickPosition">
+        <enum>QSlider::NoTicks</enum>
+       </property>
+       <property name="tickInterval">
+        <number>1</number>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QLabel" name="max_t">
@@ -122,57 +108,60 @@
     </layout>
    </item>
    <item>
-    <widget class="QSlider" name="timestamp_slider">
-     <property name="maximum">
-      <number>9999</number>
-     </property>
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="invertedAppearance">
-      <bool>false</bool>
-     </property>
-     <property name="invertedControls">
-      <bool>false</bool>
-     </property>
-     <property name="tickPosition">
-      <enum>QSlider::NoTicks</enum>
-     </property>
-     <property name="tickInterval">
-      <number>1</number>
-     </property>
-    </widget>
-   </item>
-   <item>
     <widget class="QGroupBox" name="groupBox">
      <property name="title">
       <string>Search for values</string>
      </property>
-     <layout class="QGridLayout" name="gridLayout" columnstretch="1,0,0">
-      <item row="0" column="0">
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>Pattern</string>
+     <layout class="QGridLayout" name="gridLayout" columnstretch="0,1,0,0">
+      <item row="0" column="1">
+       <widget class="QLineEdit" name="pattern_match">
+        <property name="placeholderText">
+         <string>pattern</string>
         </property>
        </widget>
       </item>
       <item row="0" column="2">
-       <widget class="QLabel" name="label_3">
-        <property name="text">
+       <widget class="QComboBox" name="op">
+        <item>
+         <property name="text">
+          <string>==</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>!=</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>&lt;</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>&lt;=</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>&gt;</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>&gt;=</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="0" column="3">
+       <widget class="QLineEdit" name="target">
+        <property name="placeholderText">
          <string>target value</string>
         </property>
        </widget>
       </item>
-      <item row="1" column="0">
-       <widget class="QLineEdit" name="pattern_match"/>
-      </item>
-      <item row="1" column="1">
-       <widget class="QComboBox" name="op"/>
-      </item>
-      <item row="1" column="2">
-       <widget class="QLineEdit" name="target"/>
-      </item>
-      <item row="2" column="2">
+      <item row="1" column="3">
        <layout class="QHBoxLayout" name="horizontalLayout_3">
         <item>
          <widget class="QPushButton" name="backward">
@@ -211,7 +200,21 @@
         </item>
        </layout>
       </item>
-      <item row="2" column="0">
+      <item row="0" column="0">
+       <widget class="QComboBox" name="match_mode">
+        <item>
+         <property name="text">
+          <string>Raw</string>
+         </property>
+        </item>
+        <item>
+         <property name="text">
+          <string>Scaled</string>
+         </property>
+        </item>
+       </widget>
+      </item>
+      <item row="1" column="0" colspan="2">
        <widget class="QLabel" name="match">
         <property name="text">
          <string/>
@@ -223,22 +226,13 @@
    </item>
   </layout>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>NumericTreeWidget</class>
-   <extends>QTreeWidget</extends>
-   <header>asammdf/gui/widgets/tree_numeric.h</header>
-  </customwidget>
- </customwidgets>
  <tabstops>
   <tabstop>timestamp</tabstop>
-  <tabstop>timestamp_slider</tabstop>
   <tabstop>pattern_match</tabstop>
   <tabstop>op</tabstop>
   <tabstop>target</tabstop>
   <tabstop>backward</tabstop>
   <tabstop>forward</tabstop>
-  <tabstop>channels</tabstop>
  </tabstops>
  <resources>
   <include location="resource.qrc"/>

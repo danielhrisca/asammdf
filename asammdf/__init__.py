@@ -11,9 +11,7 @@ console.setLevel(logging.DEBUG)
 logger.addHandler(console)
 logger.setLevel(logging.ERROR)
 
-from .blocks.mdf_v2 import MDF2
-from .blocks.mdf_v3 import MDF3
-from .blocks.mdf_v4 import MDF4
+from .blocks.options import get_global_option, set_global_option
 from .blocks.source_utils import Source
 from .gui import plot
 from .mdf import MDF, SUPPORTED_VERSIONS
@@ -30,10 +28,9 @@ except ImportError:
 __all__ = [
     "__cextension__",
     "__version__",
+    "get_global_option",
+    "set_global_option",
     "MDF",
-    "MDF2",
-    "MDF3",
-    "MDF4",
     "plot",
     "Signal",
     "Source",

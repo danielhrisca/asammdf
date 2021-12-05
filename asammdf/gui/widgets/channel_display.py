@@ -3,9 +3,11 @@ import json
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+from .. import utils
 from ..dialogs.range_editor import RangeEditor
 from ..ui import resource_rc as resource_rc
 from ..ui.channel_display_widget import Ui_ChannelDiplay
+from ..utils import copy_ranges, get_colors_using_ranges
 
 
 class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
@@ -25,23 +27,29 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         precision=3,
         tooltip="",
         details="",
+        ranges=None,
+        item=None,
         *args,
         **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
+        self.item = item
+
         self.color = "#ff0000"
         self._value_prefix = ""
-        self._value = ""
+        self._value = "n.a."
         self._name = ""
+        self.double_clicked_enabled = True
 
         self.details.setText(details or "\tSource not available")
 
         self.details.setVisible(False)
 
         self.uuid = uuid
-        self.ranges = {}
+        self.set_ranges(ranges or [])
+        self.resolved_ranges = None
         self._unit = unit.strip()
         self.kind = kind
         self.precision = precision
@@ -58,10 +66,24 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
         self.setToolTip(self._tooltip or self._name)
 
-        if kind in "SUVui":
+        if kind in "SUVui" or self.precision == -1:
             self.fmt = "{}"
         else:
             self.fmt = f"{{:.{self.precision}f}}"
+
+        self.setAutoFillBackground(True)
+        self._back_ground_color = self.palette().color(QtGui.QPalette.Base)
+        self._selected_color = self.palette().color(QtGui.QPalette.Highlight)
+        self._selected_font_color = self.palette().color(QtGui.QPalette.HighlightedText)
+        self._font_color = QtGui.QColor(self.color)
+
+        self._current_background_color = self._back_ground_color
+        self._current_font_color = self._font_color = QtGui.QColor(self.color)
+
+        self.exists = True
+
+    def set_double_clicked_enabled(self, state):
+        self.double_clicked_enabled = state
 
     def set_unit(self, unit):
         unit = str(unit)
@@ -77,6 +99,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             self.precision,
             self._tooltip,
             self.details.text(),
+            ranges=copy_ranges(self.ranges),
         )
 
         new._value_prefix = self._value_prefix
@@ -90,13 +113,11 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         return new
 
     def set_precision(self, precision):
-        if self.kind == "f":
-            self.precision = precision
+        self.precision = precision
+        if self.kind == "f" and precision >= 0:
             self.fmt = f"{{:.{self.precision}f}}"
-
-    # def display_changed(self, state):
-    #     state = self.display.checkState()
-    #     self.enable_changed.emit(self.uuid, state)
+        else:
+            self.fmt = "{}"
 
     def _individual_axis(self, state):
         state = self.individual_axis.checkState()
@@ -107,16 +128,17 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self.ylink_changed.emit(self.uuid, state)
 
     def mouseDoubleClickEvent(self, event):
-        dlg = RangeEditor(self._unit, self.ranges)
-        dlg.exec_()
-        if dlg.pressed_button == "apply":
-            self.ranges = dlg.result
+        if self.double_clicked_enabled:
+            dlg = RangeEditor(self._name, self._unit, self.ranges, parent=self)
+            dlg.exec_()
+            if dlg.pressed_button == "apply":
+                self.set_ranges(dlg.result)
+                self.set_value(self._value, update=True)
 
     def select_color(self):
         color = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.color))
         if color.isValid():
             self.set_color(color.name())
-
             self.color_changed.emit(self.uuid, color.name())
 
     def set_fmt(self, fmt):
@@ -134,30 +156,31 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
     def set_color(self, color):
         self.color = color
-        self.set_name(self._name)
-        self.set_value(self._value)
         self.color_btn.setStyleSheet(f"background-color: {color};")
 
-        palette = self.name.palette()
+        self._font_color = QtGui.QColor(self.color)
 
-        brush = QtGui.QBrush(QtGui.QColor(color))
-        brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Text, brush)
+        if self._current_font_color.name() != self._selected_font_color.name():
+            self._current_font_color = self._font_color
 
-        self.name.setPalette(palette)
+        palette = self.palette()
+        palette.setColor(QtGui.QPalette.Text, self._current_font_color)
+
+        self.setPalette(palette)
+
+        self.set_name(self._name)
+        if self.item is not None:
+            self.set_value(update=True)
 
     def set_selected(self, on):
-        palette = self.name.palette()
         if on:
-            brush = QtGui.QBrush(QtGui.QColor(0, 0, 0))
-            brush.setStyle(QtCore.Qt.SolidPattern)
-            palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Text, brush)
+            self._current_background_color = self._selected_color
+            self._current_font_color = self._selected_font_color
+            self.set_value(update=True, force=True)
         else:
-            brush = QtGui.QBrush(QtGui.QColor(self.color))
-            brush.setStyle(QtCore.Qt.SolidPattern)
-            palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Text, brush)
-
-        self.name.setPalette(palette)
+            self._current_background_color = self._back_ground_color
+            self._current_font_color = self._font_color
+            self.set_value(update=True, force=True)
 
     def set_name(self, text=""):
         self.setToolTip(self._tooltip or text)
@@ -179,22 +202,37 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             self.name.setText(
                 self.fm.elidedText(self._name, QtCore.Qt.ElideMiddle, width)
             )
-        self.set_value(self._value, update=True)
+        self.set_value(update=True)
 
-    def set_value(self, value, update=False):
+    def set_value(self, value=None, update=False, force=False):
+        if value is not None:
+            self._value = value
+        else:
+            value = self._value
+
         if self._value == value and update is False:
             return
 
-        self._value = value
-        if self.ranges and value not in ("", "n.a."):
-            for (start, stop), color in self.ranges.items():
-                if start <= value <= stop:
-                    self.setStyleSheet(f"background-color: {color};")
-                    break
-            else:
-                self.setStyleSheet("background-color: transparent;")
-        elif not self._transparent:
-            self.setStyleSheet("background-color: transparent;")
+        default_background_color = self._current_background_color
+        default_font_color = self._current_font_color
+
+        new_background_color, new_font_color = get_colors_using_ranges(
+            value,
+            ranges=self.get_ranges(),
+            default_background_color=default_background_color,
+            default_font_color=default_font_color,
+        )
+
+        if (
+            force
+            or new_background_color is not default_background_color
+            or new_font_color is not default_font_color
+        ):
+            p = self.palette()
+            p.setColor(QtGui.QPalette.Base, new_background_color)
+            p.setColor(QtGui.QPalette.Text, new_font_color)
+            self.setPalette(p)
+
         template = "{{}}{}"
         if value not in ("", "n.a."):
             template = template.format(self.fmt)
@@ -249,11 +287,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
                 #     QtCore.Qt.Checked if info["display"] else QtCore.Qt.Unchecked
                 # )
 
-                self.ranges = {}
-
-                for key, val in info["ranges"].items():
-                    start, stop = [float(e) for e in key.split("|")]
-                    self.ranges[(start, stop)] = val
+                self.set_ranges(info["ranges"])
 
             except:
                 pass
@@ -289,9 +323,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             if self.fmt.startswith("0b")
             else "phys",
             # "display": self.display.checkState() == QtCore.Qt.Checked,
-            "ranges": {
-                f"{start}|{stop}": val for (start, stop), val in self.ranges.items()
-            },
+            "ranges": self.ranges,
         }
 
         parent = self.parent().parent().parent().parent().parent()
@@ -305,17 +337,66 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
         return json.dumps(info)
 
-    def does_not_exist(self):
-        icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/error.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
-        self.color_btn.setIcon(icon)
-        self.color_btn.setFlat(True)
-        self.color_btn.clicked.disconnect()
+    def does_not_exist(self, exists=False):
+        if not exists:
+            icon = utils.ERROR_ICON
+            if icon is None:
+                utils.ERROR_ICON = QtGui.QIcon()
+                utils.ERROR_ICON.addPixmap(
+                    QtGui.QPixmap(":/error.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                )
+
+                utils.NO_ERROR_ICON = QtGui.QIcon()
+
+                icon = utils.ERROR_ICON
+
+            self.color_btn.setIcon(icon)
+            self.color_btn.setFlat(True)
+            try:
+                self.color_btn.clicked.disconnect()
+            except:
+                pass
+        else:
+            icon = utils.NO_ERROR_ICON
+            if icon is None:
+                utils.ERROR_ICON = QtGui.QIcon()
+                utils.ERROR_ICON.addPixmap(
+                    QtGui.QPixmap(":/error.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                )
+
+                utils.NO_ERROR_ICON = QtGui.QIcon()
+
+                icon = utils.NO_ERROR_ICON
+
+            self.color_btn.setIcon(icon)
+            self.color_btn.setFlat(False)
+            self.color_btn.clicked.connect(self.select_color)
+
+        self.exists = exists
+
+        if self.item:
+            tree = self.item.treeWidget()
+            if tree:
+                tree.update_hidden_states()
 
     def disconnect_slots(self):
         self.color_changed.disconnect()
         self.enable_changed.disconnect()
         self.ylink_changed.disconnect()
         self.individual_axis_changed.disconnect()
+
+    def get_ranges(self):
+        if self.resolved_ranges is None:
+            if self.item is None:
+                return self.ranges
+            else:
+                return self.item.get_ranges()
+        else:
+            return self.resolved_ranges
+
+    def set_ranges(self, ranges):
+        if ranges:
+            self.range_indicator.setHidden(False)
+        else:
+            self.range_indicator.setHidden(True)
+        self.ranges = ranges

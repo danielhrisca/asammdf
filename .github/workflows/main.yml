@@ -1,32 +1,26 @@
-name: asammdf package
+name: continuous integration
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
-  build:
-
-    runs-on: ubuntu-latest
+  test:
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: [3.6, 3.9]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
 
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python ${{ matrix.python-version }}
+
+      - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-          
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r test/requirements.txt 
-          pip install -r doc/requirements.txt pytest pytest-cov coveralls
-          
-      - name: Running tests
-        run: |
-          set -e
-          python --version
-          python -m pytest -vv --color=yes --disable-pytest-warnings --cov-config=.coveragerc --cov-report xml:coverage.xml --cov=asammdf/ test/
-          python -m sphinx -nW -b html doc doc/_build/html
-          
+
+      - name: Install packages
+        run: pip install tox tox-gh-actions
+
+      # see: https://github.com/ymyzk/tox-gh-actions
+      - name: Run tests
+        run: tox

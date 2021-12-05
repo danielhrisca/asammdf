@@ -25,17 +25,18 @@ LOCAL_TIMEZONE = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinf
 class Tabular(TabularBase):
     add_channels_request = QtCore.pyqtSignal(list)
 
-    def __init__(self, signals=None, start=0, format="phys", *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self, signals=None, start=0, format="phys", ranges=None, *args, **kwargs
+    ):
+        # super().__init__(*args, **kwargs)
 
         self.signals_descr = {}
         self.start = start
         self.pattern = {}
         self.format = format
-        self.format_selection.setCurrentText(format)
 
         if signals is None:
-            self.signals = pd.DataFrame()
+            signals = pd.DataFrame()
         else:
             index = pd.Series(np.arange(len(signals), dtype="u8"), index=signals.index)
             signals["Index"] = index
@@ -110,14 +111,21 @@ class Tabular(TabularBase):
                     if name != "timestamps" and not name.endswith((".ID", ".DataBytes"))
                 ],
             ]
-            self.signals = signals[names]
+            signals = signals[names]
+
+        super().__init__(signals, ranges)
+        self.format_selection.setCurrentText(format)
 
         self._original_timestamps = signals["timestamps"]
+        self._original_ts_series = pd.Series(
+            self._original_timestamps,
+            index=index,
+        )
 
-        self.build(self.signals, True)
+        # self.build(self.signals, True, ranges=ranges)
 
         prefixes = set()
-        for name in self.signals.columns:
+        for name in signals.columns:
             while "." in name:
                 name = name.rsplit(".", 1)[0]
                 prefixes.add(f"{name}.")
@@ -136,3 +144,8 @@ class Tabular(TabularBase):
         integer_mode = self._settings.value("tabular_format", "phys")
 
         self.format_selection.setCurrentText(integer_mode)
+
+        self.tree.dataView.setAcceptDrops(True)
+        self.tree.dataView.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
+        self.tree.dataView.setDropIndicatorShown(True)
+        self.tree.dataView.setDefaultDropAction(QtCore.Qt.MoveAction)

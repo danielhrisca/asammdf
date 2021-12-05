@@ -4,6 +4,7 @@ from struct import pack
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
+from ..dialogs.range_editor import RangeEditor
 from ..utils import extract_mime_names
 
 
@@ -21,29 +22,18 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
         self.setEditTriggers(QtWidgets.QAbstractItemView.DoubleClicked)
 
+        self.header().sortIndicatorChanged.connect(self.handle_sorting_changed)
+        self.itemDoubleClicked.connect(self.handle_item_double_click)
+
+        self._handles_double_click = True
+        self.set_double_clicked_enabled(True)
+
+    def set_double_clicked_enabled(self, state):
+        self._handles_double_click = bool(state)
+
     def keyPressEvent(self, event):
         key = event.key()
-        if key == QtCore.Qt.Key_Space:
-            selected_items = self.selectedItems()
-            if not selected_items:
-                return
-            elif len(selected_items) == 1:
-                item = selected_items[0]
-                checked = item.checkState(0)
-                if checked == QtCore.Qt.Checked:
-                    item.setCheckState(0, QtCore.Qt.Unchecked)
-                else:
-                    item.setCheckState(0, QtCore.Qt.Checked)
-            else:
-                if any(
-                    item.checkState(0) == QtCore.Qt.Unchecked for item in selected_items
-                ):
-                    checked = QtCore.Qt.Checked
-                else:
-                    checked = QtCore.Qt.Unchecked
-                for item in selected_items:
-                    item.setCheckState(0, checked)
-        elif (
+        if (
             event.key() == QtCore.Qt.Key_Delete
             and event.modifiers() == QtCore.Qt.NoModifier
         ):
@@ -78,20 +68,24 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
             else:
                 info = item.name
 
+            ranges = [dict(e) for e in item.ranges]
+
+            for range_info in ranges:
+                range_info["color"] = range_info["color"].color().name()
+
             data.append(
                 (
                     info,
                     *item.entry,
                     str(item.mdf_uuid),
-                    "channel"
+                    "channel",
+                    ranges,
                 )
             )
 
-        data = json.dumps(data).encode('utf-8')
+        data = json.dumps(data).encode("utf-8")
 
-        mimeData.setData(
-            "application/octet-stream-asammdf", QtCore.QByteArray(data)
-        )
+        mimeData.setData("application/octet-stream-asammdf", QtCore.QByteArray(data))
 
         drag = QtGui.QDrag(self)
         drag.setMimeData(mimeData)
@@ -112,3 +106,24 @@ class NumericTreeWidget(QtWidgets.QTreeWidget):
                 self.add_channels_request.emit(names)
             else:
                 super().dropEvent(e)
+
+    def handle_item_double_click(self, item, column):
+        if self._handles_double_click:
+            dlg = RangeEditor(
+                item.name,
+                ranges=item.ranges,
+                parent=self,
+                brush=True,
+            )
+            dlg.exec_()
+            if dlg.pressed_button == "apply":
+                item.ranges = dlg.result
+                item.check_signal_range()
+
+    def handle_sorting_changed(self, index, order):
+        iterator = QtWidgets.QTreeWidgetItemIterator(self)
+        while iterator.value():
+            item = iterator.value()
+            iterator += 1
+
+            item._sorting_column = index

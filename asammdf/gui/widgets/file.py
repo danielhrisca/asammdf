@@ -27,11 +27,11 @@ from ...mdf import MDF, SUPPORTED_VERSIONS
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.channel_group_info import ChannelGroupInfoDialog
 from ..dialogs.channel_info import ChannelInfoDialog
+from ..dialogs.gps_dialog import GPSDialog
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
 from ..ui import resource_rc as resource_rc
 from ..ui.file_widget import Ui_file_widget
 from ..utils import (
-    add_children,
     HelperChannel,
     load_dsp,
     load_lab,
@@ -42,11 +42,14 @@ from ..utils import (
 from .attachment import Attachment
 from .can_bus_trace import CANBusTrace
 from .database_item import DatabaseItem
+from .flexray_bus_trace import FlexRayBusTrace
 from .gps import GPS
+from .lin_bus_trace import LINBusTrace
 from .mdi_area import MdiAreaWidget, WithMDIArea
 from .numeric import Numeric
 from .plot import Plot
 from .tabular import Tabular
+from .tree import add_children
 from .tree_item import TreeItem
 
 
@@ -63,17 +66,25 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         subplots_link=False,
         ignore_value2text_conversions=False,
         line_interconnect="line",
-        encryption_function=None,
-        decryption_function=None,
+        password=None,
+        hide_missing_channels=False,
+        hide_disabled_channels=False,
         *args,
         **kwargs,
     ):
+
+        self.default_folder = kwargs.get("default_folder", "")
+        if "default_folder" in kwargs:
+            kwargs.pop("default_folder")
 
         super(Ui_file_widget, self).__init__(*args, **kwargs)
         WithMDIArea.__init__(self)
         self.setupUi(self)
         self._settings = QtCore.QSettings()
         self.uuid = os.urandom(6).hex()
+
+        self.hide_missing_channels = hide_missing_channels
+        self.hide_disabled_channels = hide_disabled_channels
 
         file_name = Path(file_name)
         self.subplots = subplots
@@ -127,6 +138,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     cls(file_name).export_mdf().save(out_file.with_suffix(".tmp.mf4"))
                 )
                 self.mdf = MDF(mdf_path)
+                self.mdf.original_name = file_name
 
             elif file_name.suffix.lower() == ".csv":
                 try:
@@ -157,10 +169,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             else:
 
+                original_name = file_name
                 if file_name.suffix.lower() == ".dl3":
                     progress.setLabelText("Converting from dl3 to mdf")
                     datalyser_active = any(
-                        proc.name() == "Datalyser3.exe" for proc in psutil.process_iter()
+                        proc.name() == "Datalyser3.exe"
+                        for proc in psutil.process_iter()
                     )
 
                     out_file = Path(gettempdir()) / file_name.name
@@ -176,7 +190,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             break
 
                     try:
-                        datalyser = win32com.client.Dispatch("Datalyser3.Datalyser3_COM")
+                        datalyser = win32com.client.Dispatch(
+                            "Datalyser3.Datalyser3_COM"
+                        )
                     except:
                         raise Exception(
                             "Datalyser must be installed if you want to open DL3 files"
@@ -189,14 +205,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     datalyser.DCOM_convert_file_mdf_dl3(file_name, str(mdf_name), 0)
                     if not datalyser_active:
                         datalyser.DCOM_TerminateDAS()
+
                     file_name = mdf_name
 
                 target = MDF
                 kwargs = {
                     "name": file_name,
                     "callback": self.update_progress,
-                    "encryption_function": encryption_function,
-                    "decryption_function": decryption_function,
+                    "password": password,
                     "use_display_names": True,
                 }
 
@@ -211,6 +227,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 if self.mdf is TERMINATED:
                     return
+
+                self.mdf.original_name = original_name
 
             self.mdf.configure(raise_on_multiple_occurrences=False)
 
@@ -513,7 +531,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if self.mdf.version >= "4.00" and self.mdf.attachments:
             for i, attachment in enumerate(self.mdf.attachments, 1):
-                att = Attachment(attachment, self.mdf._decryption_function)
+                att = Attachment(i - 1, self.mdf)
                 att.number.setText(f"{i}.")
 
                 fields = []
@@ -644,6 +662,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     entry = i, j
 
                     channel = TreeItem(entry, ch.name, mdf_uuid=self.uuid)
+                    channel.setToolTip(0, f"{ch.name} @ group {i}, index {j}")
                     channel.setText(0, ch.name)
                     if entry in signals:
                         channel.setCheckState(0, QtCore.Qt.Checked)
@@ -692,7 +711,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     channel_group.setText(0, f"Channel group {i}")
                 channel_group.setFlags(
                     channel_group.flags()
-                    | QtCore.Qt.ItemIsTristate
+                    | QtCore.Qt.ItemIsAutoTristate
                     | QtCore.Qt.ItemIsUserCheckable
                 )
 
@@ -718,6 +737,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 gp_index, ch_index = entry
                 ch = self.mdf.groups[gp_index].channels[ch_index]
                 channel = TreeItem(entry, ch.name, mdf_uuid=self.uuid)
+                channel.setToolTip(0, f"{ch.name} @ group {gp_index}, index {ch_index}")
                 channel.setText(0, ch.name)
                 channel.setCheckState(0, QtCore.Qt.Checked)
                 items.append(channel)
@@ -777,6 +797,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             apply_text = "Check channels"
             widget = self.filter_tree
             view = self.filter_view
+
         dlg = AdvancedSearch(
             self.mdf.channels_db,
             show_add_window=show_add_window,
@@ -816,7 +837,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             {
                                 "type": "Numeric",
                                 "title": result["pattern"],
-                                "configuration": {"channels": [], "pattern": result},
+                                "configuration": {
+                                    "channels": [],
+                                    "pattern": result,
+                                    "format": "phys",
+                                },
                             }
                         )
                     elif window_type == "New pattern based tabular window":
@@ -852,9 +877,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             ch_cntr = 0
                             continue
 
-                        if (dg_cntr, ch_cntr) in result:
+                        entry = (dg_cntr, ch_cntr)
+
+                        if entry in result:
                             item.setCheckState(0, QtCore.Qt.Checked)
-                            names.add((item.name, dg_cntr, ch_cntr))
+                            names.add((result[entry], dg_cntr, ch_cntr))
 
                         iterator += 1
                         ch_cntr += 1
@@ -870,13 +897,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         iterator += 1
 
-                    result = {
-                        (self.mdf.groups[dg_cntr].channels[ch_cntr].name, dg_cntr, ch_cntr)
-                        for (dg_cntr, ch_cntr) in result
-                    }
+                    names = set((_name, *entry) for entry, _name in result.items())
 
-                    signals = signals | result
-                    names = result
+                    signals = signals | names
 
                     widget.clear()
 
@@ -902,7 +925,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         if item.entry in result:
                             item.setCheckState(0, QtCore.Qt.Checked)
-                            names.add((item.name, *item.entry))
+                            names.add((result[item.entry], *item.entry))
 
                         iterator += 1
 
@@ -925,10 +948,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         window_type = dialog.selected_type()
 
                         signals = [
-                            (name, *self.mdf.whereis(name)[0], self.uuid, 'channel')
-                            if isinstance(name, str)
-                            else (*name, self.uuid, 'channel')
-                            for name in names
+                            (name, dg_cntr, ch_cntr, self.uuid, "channel", [])
+                            for name, dg_cntr, ch_cntr in names
                         ]
 
                         if window_type == "New plot window":
@@ -997,6 +1018,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             elif isinstance(wid, GPS):
                 window_config["type"] = "GPS"
             elif isinstance(wid, CANBusTrace):
+                window_config["type"] = "CAN Bus Trace"
+            elif isinstance(wid, FlexRayBusTrace):
+                window_config["type"] = "FlexRay Bus Trace"
+            elif isinstance(wid, LINBusTrace):
+                window_config["type"] = "LIN Bus Trace"
+            else:
                 continue
 
             windows.append(window_config)
@@ -1009,7 +1036,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if file_name is None:
             file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-                self, "Select output channel list file", "", "TXT files (*.txt)"
+                self,
+                "Select output channel list file",
+                self.default_folder,
+                "TXT files (*.txt)",
             )
 
         if file_name:
@@ -1022,7 +1052,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
                 self,
                 "Select channel list file",
-                "",
+                self.default_folder,
                 "Config file (*.cfg);;TXT files (*.txt);;Display files (*.dsp);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.lab *.txt)",
                 "All file types (*.cfg *.dsp *.lab *.txt)",
             )
@@ -1103,13 +1133,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     message=f"",
                     icon_name="window",
                 )
-                progress.setRange(0, count-1)
+                progress.setRange(0, count - 1)
                 progress.resize(500, progress.height())
 
                 try:
                     for i, window in enumerate(windows, 1):
-                        window_type = window['type']
-                        window_title = window['title']
+                        window_type = window["type"]
+                        window_title = window["title"]
                         progress.setLabelText(
                             f"Loading {window_type} window <{window_title}>"
                         )
@@ -1123,7 +1153,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
     def save_filter_list(self):
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self, "Select output filter list file", "", "TXT files (*.txt)"
+            self,
+            "Select output filter list file",
+            self.default_folder,
+            "TXT files (*.txt)",
         )
 
         if file_name:
@@ -1158,7 +1191,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
                 self,
                 "Select channel list file",
-                "",
+                self.default_folder,
                 "Config file (*.cfg);;TXT files (*.txt);;Display files (*.dsp);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.lab *.txt)",
                 "All file types (*.cfg *.dsp *.lab *.txt)",
             )
@@ -1372,7 +1405,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     "Numeric",
                     "Tabular",
                     "CAN Bus Trace",
+                    "FlexRay Bus Trace",
                     "LIN Bus Trace",
+                    "GPS",
                 ),
                 parent=self,
             )
@@ -1386,33 +1421,30 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if window_type is None:
             return
-        elif window_type in ("CAN Bus Trace", "LIN Bus Trace"):
+        elif window_type in ("CAN Bus Trace", "FlexRay Bus Trace", "LIN Bus Trace"):
             signals = []
         elif window_type == "GPS":
-            names = sorted(self.mdf.channels_db)
-            latitude, ok = QtWidgets.QInputDialog.getItem(
-                self,
-                "Select the Latitude signals",
-                "Latitude signal name:",
-                names,
-                editable=False,
-            )
-            if not ok:
-                return
 
-            longitude, ok = QtWidgets.QInputDialog.getItem(
-                self,
-                "Select the Longitude signals",
-                "Longitude signal name:",
-                names,
-                editable=False,
+            dlg = GPSDialog(
+                self.mdf.channels_db,
+                parent=self,
             )
-            if not ok:
-                return
+            dlg.setModal(True)
+            dlg.exec_()
 
-            signals = [
-                (name, *self.mdf.whereis(name)[0], self.uuid, "channel") for name in [latitude, longitude]
-            ]
+            if dlg.valid:
+                latitude = dlg.latitude.text().strip()
+                longitude = dlg.longitude.text().strip()
+
+                signals = [
+                    (name, *self.mdf.whereis(name)[0], self.uuid, "channel")
+                    for name in [latitude, longitude]
+                    if name in self.mdf
+                ]
+                if len(signals) != 2:
+                    return
+            else:
+                return
         else:
 
             try:
@@ -1435,7 +1467,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             group, index = item.entry
                             ch = self.mdf.groups[group].channels[index]
                             if not ch.component_addr:
-                                signals.append((ch.name, group, index, self.uuid, "channel"))
+                                signals.append(
+                                    (ch.name, group, index, self.uuid, "channel", [])
+                                )
 
                         iterator += 1
                 else:
@@ -1446,7 +1480,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             group, index = item.entry
                             ch = self.mdf.groups[group].channels[index]
                             if not ch.component_addr:
-                                signals.append((ch.name, group, index, self.uuid, "channel"))
+                                signals.append(
+                                    (ch.name, group, index, self.uuid, "channel", [])
+                                )
 
                         iterator += 1
 
@@ -1502,7 +1538,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             database_files["LIN"] = []
             for i in range(count):
                 item = self.lin_database_list.item(i)
-                widget = self.can_database_list.itemWidget(item)
+                widget = self.lin_database_list.itemWidget(item)
                 database_files["LIN"].append(
                     (widget.database.text(), widget.bus.currentIndex())
                 )
@@ -1650,7 +1686,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             database_files["LIN"] = []
             for i in range(count):
                 item = self.lin_database_list.item(i)
-                widget = self.can_database_list.itemWidget(item)
+                widget = self.lin_database_list.itemWidget(item)
                 database_files["LIN"].append(
                     (widget.database.text(), widget.bus.currentIndex())
                 )
@@ -1873,7 +1909,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.set_line_style()
 
         else:
-            super().keyPressEvent(event)
+            widget = self.get_current_widget()
+            if widget:
+                widget.keyPressEvent(event)
+            else:
+                super().keyPressEvent(event)
 
     def aspect_changed(self, index):
 
@@ -1921,7 +1961,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             channel_group.setText(0, f"Channel group {i}")
                         channel_group.setFlags(
                             channel_group.flags()
-                            | QtCore.Qt.ItemIsTristate
+                            | QtCore.Qt.ItemIsAutoTristate
                             | QtCore.Qt.ItemIsUserCheckable
                         )
 
@@ -2509,16 +2549,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             show_apply=True,
             apply_text="Set raster channel",
             show_pattern=False,
+            return_names=True,
             parent=self,
         )
         dlg.setModal(True)
         dlg.exec_()
         result = dlg.result
         if result:
-            dg_cntr, ch_cntr = next(iter(result))
-
-            name = self.mdf.groups[dg_cntr].channels[ch_cntr].name
-
+            name = list(result)[0]
             self.raster_channel.setCurrentText(name)
 
     def filter_changed(self, item, column):

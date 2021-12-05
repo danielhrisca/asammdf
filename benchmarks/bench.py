@@ -35,10 +35,10 @@ else:
 
 
 class MyList(list):
-    """ list that prints the items that are appended or extended """
+    """list that prints the items that are appended or extended"""
 
     def append(self, item):
-        """ append item and print it to stdout """
+        """append item and print it to stdout"""
         print(item)
         super(MyList, self).append(item)
 
@@ -961,18 +961,18 @@ def main(text_output, fmt):
     output.append("    * {} groups".format(v4_groups))
     output.append("    * {} channels\n\n".format(v4_channels))
 
-    OPEN, SAVE, GET, CONVERT, MERGE, FILTER, CUT = 1, 0, 0, 0, 0, 0, 0
+    OPEN, SAVE, GET, CONVERT, MERGE, FILTER, CUT = 1, 1, 1, 1, 1, 0, 0
 
     tests = (
         open_mdf3,
-        # open_reader3,
-        # open_reader3_nodata,
-        # open_reader3_compression,
+        open_reader3,
+        open_reader3_nodata,
+        open_reader3_compression,
         open_mdf4,
         # open_mdf4_column,
-        # open_reader4,
-        # open_reader4_nodata,
-        # open_reader4_compression,
+        open_reader4,
+        open_reader4_nodata,
+        open_reader4_compression,
     )
 
     if tests and OPEN:

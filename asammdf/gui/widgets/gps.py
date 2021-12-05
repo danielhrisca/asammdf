@@ -3,7 +3,12 @@ import io
 
 import numpy as np
 from PyQt5 import QtCore, QtWidgets
-# from pyqtlet import L, MapWidget
+
+try:
+    from pyqtlet import L, MapWidget
+except:
+    pass
+
 
 from ..ui import resource_rc as resource_rc
 from ..ui.gps import Ui_GPSDisplay
@@ -41,6 +46,8 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
         if self._min == float("inf"):
             self._min = self._max = 0
 
+        self._timestamp = self._min
+
         self.timestamp.setRange(self._min, self._max)
         self.timestamp.setValue(self._min)
         self.min_t.setText(f"{self._min:.3f}s")
@@ -65,7 +72,6 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
             line.addTo(self.map)
 
             self.map.setView([self.latitude, self.longitude], zoom)
-            print([self.latitude, abs(self.longitude)])
             self.marker = L.marker([self.latitude, self.longitude])
             self.map.addLayer(self.marker)
         else:
@@ -73,35 +79,26 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
 
         self.timestamp.valueChanged.connect(self._timestamp_changed)
         self.timestamp_slider.valueChanged.connect(self._timestamp_slider_changed)
-        self._update_values(self.timestamp.value())
+        self.set_timestamp()
 
         self.show()
 
     def _timestamp_changed(self, stamp):
-        val = int((stamp - self._min) / (self._max - self._min) * 9999)
-
         if not self._inhibit:
-            self._inhibit = True
-            self.timestamp_slider.setValue(val)
-        else:
-            self._inhibit = False
-
-        self._update_values(stamp)
-        self.timestamp_changed_signal.emit(self, stamp)
+            self.set_timestamp(stamp)
 
     def _timestamp_slider_changed(self, stamp):
-        factor = stamp / 9999
-        val = (self._max - self._min) * factor + self._min
-
         if not self._inhibit:
-            self._inhibit = True
-            self.timestamp.setValue(val)
-        else:
-            self._inhibit = False
+            factor = stamp / 99999
+            stamp = (self._max - self._min) * factor + self._min
+            self.set_timestamp(stamp)
 
-    def _update_values(self, stamp=None):
+    def set_timestamp(self, stamp=None):
         if stamp is None:
-            stamp = self.timestamp.value()
+            stamp = self._timestamp
+
+        if not (self._min <= stamp <= self._max):
+            return
 
         try:
             self.latitude = self.latitude_signal.cut(stamp, stamp).samples[0]
@@ -113,12 +110,20 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
             app = QtWidgets.QApplication.instance()
             app.processEvents()
 
+        self._inhibit = True
+        if self._min != self._max:
+            val = int((stamp - self._min) / (self._max - self._min) * 99999)
+            self.timestamp_slider.setValue(val)
+        self.timestamp.setValue(stamp)
+        self._inhibit = False
+        self.timestamp_changed_signal.emit(self, stamp)
+
     def to_config(self):
 
         config = {
             "latitude_channel": self.latitude_signal.name,
             "longitude_channel": self.longitude_signal.name,
-            "zoom": self.map.getZoom(),
+            "zoom": 5,
         }
 
         return config

@@ -41,7 +41,8 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
         self.timestamp.valueChanged.connect(self._timestamp_changed)
         self.timestamp_slider.valueChanged.connect(self._timestamp_slider_changed)
 
-        self._update_values(self.timestamp.value())
+        self._timestamp = self._min
+        self.set_timestamp()
 
         self._inhibit = False
 
@@ -51,30 +52,21 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
         self.build()
 
     def _timestamp_changed(self, stamp):
-        val = int((stamp - self._min) / (self._max - self._min) * 9999)
-
         if not self._inhibit:
-            self._inhibit = True
-            self.timestamp_slider.setValue(val)
-        else:
-            self._inhibit = False
-
-        self._update_values(stamp)
-        self.timestamp_changed_signal.emit(self, stamp)
+            self.set_timestamp(stamp)
 
     def _timestamp_slider_changed(self, stamp):
-        factor = stamp / 9999
-        val = (self._max - self._min) * factor + self._min
-
         if not self._inhibit:
-            self._inhibit = True
-            self.timestamp.setValue(val)
-        else:
-            self._inhibit = False
+            factor = stamp / 99999
+            stamp = (self._max - self._min) * factor + self._min
+            self.set_timestamp(stamp)
 
-    def _update_values(self, stamp=None):
+    def set_timestamp(self, stamp=None):
         if stamp is None:
-            stamp = self.timestamp.value()
+            stamp = self._timestamp
+
+        if not (self._min <= stamp <= self._max):
+            return
 
         idx_cache = {}
 
@@ -94,6 +86,14 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
 
                 widget.set_value(value)
                 widget.bar.update()
+
+        self._inhibit = True
+        if self._min != self._max:
+            val = int((stamp - self._min) / (self._max - self._min) * 99999)
+            self.timestamp_slider.setValue(val)
+        self.timestamp.setValue(stamp)
+        self._inhibit = False
+        self.timestamp_changed_signal.emit(self, stamp)
 
     def add_new_channels(self, channels):
         for index, sig in enumerate(channels):

@@ -2,7 +2,12 @@
 ASAM MDF version 4 file format module
 """
 
+from __future__ import annotations
+
 import logging
+from typing import Any
+
+from numpy.typing import NDArray
 
 from .utils import MdfException
 
@@ -14,11 +19,16 @@ __all__ = ["MDF_Common"]
 class MDF_Common:
     """common methods for MDF objects"""
 
-    def _set_temporary_master(self, master):
+    def _set_temporary_master(self, master: NDArray[Any] | None) -> None:
         self._master = master
 
     # @lru_cache(maxsize=1024)
-    def _validate_channel_selection(self, name=None, group=None, index=None):
+    def _validate_channel_selection(
+        self,
+        name: str | None = None,
+        group: int | None = None,
+        index: int | None = None,
+    ) -> tuple[int, int]:
         """Gets channel comment.
         Channel can be specified in two ways:
 
@@ -105,11 +115,11 @@ class MDF_Common:
                         ch_nr = index
                     else:
                         if index is None:
-                            entries = [
+                            entries = tuple(
                                 (gp_nr, ch_nr)
                                 for gp_nr, ch_nr in self.channels_db[name]
                                 if gp_nr == group
-                            ]
+                            )
                             count = len(entries)
 
                             if count == 1:

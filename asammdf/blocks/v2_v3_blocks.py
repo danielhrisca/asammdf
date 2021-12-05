@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """ classes that implement the blocks for MDF versions 2 and 3 """
 
+from __future__ import annotations
+
+from collections.abc import Iterator
 from datetime import datetime
 from getpass import getuser
 import logging
@@ -8,6 +11,7 @@ from struct import pack, unpack, unpack_from
 import sys
 from textwrap import wrap
 from traceback import format_exc
+from typing import Any
 
 from numexpr import evaluate
 
@@ -103,7 +107,12 @@ class Channel:
     * ``comment`` - str : channel comment
     * ``conversion`` - ChannelConversion : channel conversion; *None* if the channel has
       no conversion
-    * ``display_name`` - str : channel display name
+    * ``display_names`` - dict : channel display names
+
+        ..versionchanged:: 7.0.0
+
+            changed from str to dict
+
     * ``name`` - str : full channel name
     * ``source`` - SourceInformation : channel source information; *None* if the channel
       has no source information
@@ -115,7 +124,7 @@ class Channel:
     stream : handle
         file handle; to be used for objects created from file
     load_metadata : bool
-        option to load conversion, source and display_name; default *True*
+        option to load conversion, source and display_names; default *True*
     for dynamically created objects :
         see the key-value pairs
 
@@ -133,7 +142,7 @@ class Channel:
 
     __slots__ = (
         "name",
-        "display_name",
+        "display_names",
         "comment",
         "conversion",
         "source",
@@ -158,13 +167,16 @@ class Channel:
         "long_name_addr",
         "display_name_addr",
         "additional_byte_offset",
+        "dtype_fmt",
     )
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__()
 
-        self.name = self.display_name = self.comment = ""
+        self.name = self.comment = ""
+        self.display_names = {}
         self.conversion = self.source = None
+        self.dtype_fmt = None
 
         try:
             stream = kwargs["stream"]
@@ -214,12 +226,14 @@ class Channel:
 
                         addr = self.display_name_addr
                         if addr:
-                            self.display_name = get_text_v3(
-                                address=addr, stream=stream, mapped=mapped
-                            )
+                            self.display_names = {
+                                get_text_v3(
+                                    address=addr, stream=stream, mapped=mapped
+                                ): "display_name",
+                            }
 
                     else:
-                        self.name, self.display_name = parsed_strings
+                        self.name, self.display_names = parsed_strings
 
                 elif size == v23c.CN_LONGNAME_BLOCK_SIZE:
                     (
@@ -258,7 +272,7 @@ class Channel:
                             )
 
                     else:
-                        self.name, self.display_name = parsed_strings
+                        self.name, self.display_names = parsed_strings
 
                 else:
                     (
@@ -387,12 +401,14 @@ class Channel:
 
                         addr = self.display_name_addr
                         if addr:
-                            self.display_name = get_text_v3(
-                                address=addr, stream=stream, mapped=mapped
-                            )
+                            self.display_names = {
+                                get_text_v3(
+                                    address=addr, stream=stream, mapped=mapped
+                                ): "display_name",
+                            }
 
                     else:
-                        self.name, self.display_name = parsed_strings
+                        self.name, self.display_names = parsed_strings
 
                 elif size == v23c.CN_LONGNAME_BLOCK_SIZE:
                     (
@@ -431,7 +447,7 @@ class Channel:
                             )
 
                     else:
-                        self.name, self.display_name = parsed_strings
+                        self.name, self.display_names = parsed_strings
 
                 else:
                     (
@@ -549,10 +565,17 @@ class Channel:
                 self.display_name_addr = kwargs.get("display_name_addr", 0)
                 self.additional_byte_offset = kwargs.get("additional_byte_offset", 0)
 
-        if self.display_name == self.name:
-            self.display_name = ""
+        if self.name in self.display_names:
+            del self.display_names[self.name]
 
-    def to_blocks(self, address, blocks, defined_texts, cc_map, si_map):
+    def to_blocks(
+        self,
+        address: int,
+        blocks: list[Any],
+        defined_texts: dict[str, int],
+        cc_map: dict[bytes, int],
+        si_map: dict[bytes, int],
+    ) -> int:
         key = "long_name_addr"
         text = self.name
         if self.block_len >= v23c.CN_LONGNAME_BLOCK_SIZE:
@@ -572,7 +595,7 @@ class Channel:
         self.short_name = text.encode("latin-1", "backslashreplace")[:31]
 
         key = "display_name_addr"
-        text = self.display_name
+        text = list(self.display_names)[0] if self.display_names else ""
         if self.block_len >= v23c.CN_DISPLAYNAME_BLOCK_SIZE:
             if text:
                 if text in defined_texts:
@@ -627,14 +650,14 @@ class Channel:
 
         return address
 
-    def metadata(self):
+    def metadata(self) -> str:
         max_len = max(len(key) for key in self)
         template = f"{{: <{max_len}}}: {{}}"
 
         metadata = []
         lines = f"""
 name: {self.name}
-display name: {self.display_name}
+display names: {self.display_names}
 address: {hex(self.address)}
 comment: {self.comment}
 
@@ -693,7 +716,7 @@ comment: {self.comment}
 
         return "\n".join(metadata)
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
 
         block_len = self.block_len
         if block_len == v23c.CN_DISPLAYNAME_BLOCK_SIZE:
@@ -761,16 +784,16 @@ comment: {self.comment}
                 self.sampling_rate,
             )
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> Any:
         return self.__getattribute__(item)
 
-    def __setitem__(self, item, value):
+    def __setitem__(self, item: str, value: Any) -> None:
         self.__setattr__(item, value)
 
-    def __contains__(self, item):
+    def __contains__(self, item: str) -> bool:
         return hasattr(self, item)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Any]:
         for attr in dir(self):
             if attr[:2] + attr[-2:] == "____":
                 continue
@@ -781,7 +804,7 @@ comment: {self.comment}
             except AttributeError:
                 continue
 
-    def __lt__(self, other):
+    def __lt__(self, other: Channel) -> bool:
         self_start = self.start_offset
         other_start = other.start_offset
         try:
@@ -805,7 +828,7 @@ comment: {self.comment}
             result = 0
         return result
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         fields = []
         for attr in dir(self):
             if attr[:2] + attr[-2:] == "____":
@@ -816,7 +839,7 @@ comment: {self.comment}
                 fields.append(f"{attr}:{getattr(self, attr)}")
             except AttributeError:
                 continue
-        return f"Channel (name: {self.name}, display name: {self.display_name,}, comment: {self.comment}, address: {hex(self.address)}, fields: {fields})"
+        return f"Channel (name: {self.name}, display names: {self.display_names}, comment: {self.comment}, address: {hex(self.address)}, fields: {fields})"
 
 
 class _ChannelConversionBase:
@@ -933,7 +956,7 @@ class ChannelConversion(_ChannelConversionBase):
 
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__()
 
         self.unit = self.formula = ""
@@ -1287,7 +1310,13 @@ class ChannelConversion(_ChannelConversionBase):
                 logger.exception(message)
                 raise MdfException(message)
 
-    def to_blocks(self, address, blocks, defined_texts, cc_map):
+    def to_blocks(
+        self,
+        address: int,
+        blocks: list[Any],
+        defined_texts: dict[str, int],
+        cc_map: dict[bytes, int],
+    ) -> int:
         self.unit_field = self.unit.encode("latin-1", "ignore")[:19]
 
         if self.conversion_type == v23c.CONVERSION_TYPE_FORMULA:
@@ -1327,7 +1356,7 @@ class ChannelConversion(_ChannelConversionBase):
 
         return address
 
-    def metadata(self, indent=""):
+    def metadata(self, indent: str = "") -> str:
         conv = self.conversion_type
         if conv == v23c.CONVERSION_TYPE_NONE:
             keys = v23c.KEYS_CONVERSION_NONE
@@ -1634,13 +1663,13 @@ address: {hex(self.address)}
 
         return values
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> Any:
         return self.__getattribute__(item)
 
-    def __setitem__(self, item, value):
+    def __setitem__(self, item: str, value: Any) -> None:
         self.__setattr__(item, value)
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         conv = self.conversion_type
 
         # compute the fmt
@@ -1706,7 +1735,7 @@ address: {hex(self.address)}
         result = pack(fmt, *[self[key] for key in keys])
         return result
 
-    def __str__(self):
+    def __str__(self) -> str:
         fields = []
         for attr in dir(self):
             if attr[:2] + attr[-2:] == "____":
@@ -1755,7 +1784,7 @@ class ChannelDependency:
 
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__()
 
         self.referenced_channels = []
@@ -1812,13 +1841,13 @@ class ChannelDependency:
                 self.dependency_type = 256 + i
                 self.block_len += 2 * i
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> Any:
         return self.__getattribute__(item)
 
-    def __setitem__(self, item, value):
+    def __setitem__(self, item: str, value: Any) -> None:
         self.__setattr__(item, value)
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         fmt = f"<2s3H{self.sd_nr * 3}I"
         keys = ("id", "block_len", "dependency_type", "sd_nr")
         for i in range(self.sd_nr):
@@ -1896,7 +1925,7 @@ class ChannelExtension:
         "sender_name",
     )
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__()
 
         self.name = self.path = self.comment = ""
@@ -2011,7 +2040,13 @@ class ChannelExtension:
                 f"Message ID={hex(self.CAN_id)} on CAN bus {self.CAN_ch_index}"
             )
 
-    def to_blocks(self, address, blocks, defined_texts, cc_map):
+    def to_blocks(
+        self,
+        address: int,
+        blocks: list[Any],
+        defined_texts: dict[str, int],
+        cc_map: dict[bytes, int],
+    ) -> int:
 
         if self.type == v23c.SOURCE_ECU:
             self.ECU_identification = self.path.encode("latin-1")[:31]
@@ -2031,13 +2066,13 @@ class ChannelExtension:
 
         return address
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> Any:
         return self.__getattribute__(item)
 
-    def __setitem__(self, item, value):
+    def __setitem__(self, item: str, value: Any) -> None:
         self.__setattr__(item, value)
 
-    def metadata(self):
+    def metadata(self) -> str:
         if self.type == v23c.SOURCE_ECU:
             keys = (
                 "id",
@@ -2097,7 +2132,7 @@ address: {hex(self.address)}
 
         return "\n".join(metadata)
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         typ = self.type
         if typ == v23c.SOURCE_ECU:
             return v23c.SOURCE_ECU_p(
@@ -2122,7 +2157,7 @@ address: {hex(self.address)}
                 self.reserved0,
             )
 
-    def __str__(self):
+    def __str__(self) -> str:
         fields = []
         for attr in dir(self):
             if attr[:2] + attr[-2:] == "____":
@@ -2199,7 +2234,7 @@ class ChannelGroup:
         "sample_reduction_addr",
     )
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__()
         self.comment = ""
 
@@ -2263,7 +2298,13 @@ class ChannelGroup:
             if self.block_len == v23c.CG_POST_330_BLOCK_SIZE:
                 self.sample_reduction_addr = 0
 
-    def to_blocks(self, address, blocks, defined_texts, si_map):
+    def to_blocks(
+        self,
+        address: int,
+        blocks: list[Any],
+        defined_texts: dict[str, int],
+        si_map: dict[bytes, int],
+    ) -> int:
         key = "comment_addr"
         text = self.comment
         if text:
@@ -2285,13 +2326,13 @@ class ChannelGroup:
 
         return address
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> Any:
         return self.__getattribute__(item)
 
-    def __setitem__(self, item, value):
+    def __setitem__(self, item: str, value: Any) -> None:
         self.__setattr__(item, value)
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         if self.block_len == v23c.CG_POST_330_BLOCK_SIZE:
             return (
                 v23c.CHANNEL_GROUP_p(
@@ -2320,7 +2361,7 @@ class ChannelGroup:
                 self.cycles_nr,
             )
 
-    def metadata(self):
+    def metadata(self) -> str:
         keys = (
             "id",
             "block_len",
@@ -2390,7 +2431,7 @@ class DataBlock:
 
     __slots__ = "address", "data"
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__()
 
         try:
@@ -2405,13 +2446,13 @@ class DataBlock:
             self.address = 0
             self.data = kwargs.get("data", b"")
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> Any:
         return self.__getattribute__(item)
 
-    def __setitem__(self, item, value):
+    def __setitem__(self, item: str, value: Any) -> None:
         self.__setattr__(item, value)
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         return self.data
 
 
@@ -2459,7 +2500,7 @@ class DataGroup:
         "reserved0",
     )
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__()
 
         try:
@@ -2523,13 +2564,13 @@ class DataGroup:
             if self.block_len == v23c.DG_POST_320_BLOCK_SIZE:
                 self.reserved0 = b"\0\0\0\0"
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> Any:
         return self.__getattribute__(item)
 
-    def __setitem__(self, item, value):
+    def __setitem__(self, item: str, value: Any) -> None:
         self.__setattr__(item, value)
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         if self.block_len == v23c.DG_POST_320_BLOCK_SIZE:
             fmt = v23c.FMT_DATA_GROUP_POST_320
             keys = v23c.KEYS_DATA_GROUP_POST_320
@@ -2586,7 +2627,7 @@ class FileIdentificationBlock:
         "unfinalized_custom_flags",
     )
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__()
 
         self.address = 0
@@ -2628,13 +2669,13 @@ class FileIdentificationBlock:
             self.unfinalized_standard_flags = 0
             self.unfinalized_custom_flags = 0
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> Any:
         return self.__getattribute__(item)
 
-    def __setitem__(self, item, value):
+    def __setitem__(self, item: str, value: Any) -> None:
         self.__setattr__(item, value)
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         result = pack(v23c.ID_FMT, *[self[key] for key in v23c.ID_KEYS])
         return result
 
@@ -2713,7 +2754,7 @@ class HeaderBlock:
         "subject_field",
     )
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__()
 
         self.address = 64
@@ -2771,7 +2812,11 @@ class HeaderBlock:
             self.comment_addr = 0
             self.program_addr = 0
             self.dg_nr = 0
-            self.author_field = "{:\0<32}".format(getuser()).encode("latin-1")
+            try:
+                user = getuser()
+            except ModuleNotFoundError:
+                user = ""
+            self.author_field = "{:\0<32}".format(user).encode("latin-1")
             self.department_field = "{:\0<32}".format("").encode("latin-1")
             self.project_field = "{:\0<32}".format("").encode("latin-1")
             self.subject_field = "{:\0<32}".format("").encode("latin-1")
@@ -2789,7 +2834,13 @@ class HeaderBlock:
         self.project = self.project_field.strip(b" \r\n\t\0").decode("latin-1")
         self.subject = self.subject_field.strip(b" \r\n\t\0").decode("latin-1")
 
-    def to_blocks(self, address, blocks, defined_texts, si_map):
+    def to_blocks(
+        self,
+        address: int,
+        blocks: list[Any],
+        defined_texts: dict[str, int],
+        si_map: dict[bytes, int],
+    ) -> int:
         blocks.append(self)
         self.address = address
         address += self.block_len
@@ -2826,7 +2877,7 @@ class HeaderBlock:
         return address
 
     @property
-    def start_time(self):
+    def start_time(self) -> datetime:
         """getter and setter the measurement start timestamp
 
         Returns
@@ -2860,7 +2911,7 @@ class HeaderBlock:
         return timestamp
 
     @start_time.setter
-    def start_time(self, timestamp):
+    def start_time(self, timestamp: datetime) -> None:
         self.date = timestamp.strftime("%d:%m:%Y").encode("ascii")
         self.time = timestamp.strftime("%H:%M:%S").encode("ascii")
         if self.block_len > v23c.HEADER_COMMON_SIZE:
@@ -2868,13 +2919,13 @@ class HeaderBlock:
             self.abs_time = timestamp
             self.tz_offset = 0
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> Any:
         return self.__getattribute__(item)
 
-    def __setitem__(self, item, value):
+    def __setitem__(self, item: str, value: Any) -> None:
         self.__setattr__(item, value)
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         fmt = v23c.HEADER_COMMON_FMT
         keys = v23c.HEADER_COMMON_KEYS
         if self.block_len > v23c.HEADER_COMMON_SIZE:
@@ -2907,7 +2958,7 @@ class ProgramBlock:
 
     __slots__ = ("address", "id", "block_len", "data")
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__()
 
         try:
@@ -2929,13 +2980,13 @@ class ProgramBlock:
             self.block_len = len(kwargs["data"]) + 6
             self.data = kwargs["data"]
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> Any:
         return self.__getattribute__(item)
 
-    def __setitem__(self, item, value):
+    def __setitem__(self, item: str, value: Any) -> None:
         self.__setattr__(item, value)
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         fmt = v23c.FMT_PROGRAM_BLOCK.format(self.block_len - 4)
         result = pack(fmt, *[self[key] for key in v23c.KEYS_PROGRAM_BLOCK])
         return result
@@ -2976,7 +3027,7 @@ class TextBlock:
 
     __slots__ = ("address", "id", "block_len", "text")
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__()
         try:
             stream = kwargs["stream"]
@@ -3022,16 +3073,16 @@ class TextBlock:
                 self.block_len = 65000 + 5
                 self.text = self.text[:65000] + b"\0"
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> Any:
         return self.__getattribute__(item)
 
-    def __setitem__(self, item, value):
+    def __setitem__(self, item: str, value: Any) -> None:
         self.__setattr__(item, value)
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         return v23c.COMMON_p(self.id, self.block_len) + self.text
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"TextBlock(id={self.id},"
             f"block_len={self.block_len}, "
@@ -3070,7 +3121,7 @@ class TriggerBlock:
 
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs) -> None:
         super().__init__()
 
         self.comment = ""
@@ -3126,7 +3177,7 @@ class TriggerBlock:
                 key = "trigger_{}_posttime".format(i)
                 self[key] = kwargs[key]
 
-    def to_blocks(self, address, blocks):
+    def to_blocks(self, address: int, blocks: list[Any]) -> int:
         key = "text_addr"
         text = self.comment
         if text:
@@ -3143,13 +3194,13 @@ class TriggerBlock:
 
         return address
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> Any:
         return self.__getattribute__(item)
 
-    def __setitem__(self, item, value):
+    def __setitem__(self, item: str, value: Any) -> None:
         self.__setattr__(item, value)
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         triggers_nr = self.trigger_events_nr
         fmt = "<2sHIH{}d".format(triggers_nr * 3)
         keys = ("id", "block_len", "text_addr", "trigger_events_nr")
