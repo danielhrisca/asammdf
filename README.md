@@ -3,7 +3,7 @@
 
 <p align=center>
 
-*asammdf* is a fast parser and editor for ASAM (Associtation for Standardisation of Automation and Measuring Systems) MDF (Measurement Data Format) files.
+*asammdf* is a fast parser and editor for ASAM (Association for Standardization of Automation and Measuring Systems) MDF (Measurement Data Format) files.
 
 *asammdf* supports MDF versions 2 (.dat), 3 (.mdf) and 4 (.mf4).
 
@@ -77,7 +77,7 @@ The main goals for this library are:
 
 * for version 4
 
-    * experiemental support for MDF v4.20 column oriented storage
+    * experimental support for MDF v4.20 column oriented storage
     * functionality related to sample reduction block: the samples reduction blocks are simply ignored
     * handling of channel hierarchy: channel hierarchy is ignored
     * full handling of bus logging measurements: currently only CAN and LIN bus logging are implemented with the
@@ -87,9 +87,9 @@ The main goals for this library are:
       not all the finalization steps are supported
     * full support for remaining mdf 4 channel arrays types
     * xml schema for MDBLOCK: most metadata stored in the comment blocks will not be available
-    * full handling of event blocks: events are transfered to the new files (in case of calling methods
+    * full handling of event blocks: events are transferred to the new files (in case of calling methods
       that return new *MDF* objects) but no new events can be created
-    * channels with default X axis: the defaukt X axis is ignored and the channel group's master channel
+    * channels with default X axis: the default X axis is ignored and the channel group's master channel
       is used
     * attachment encryption/decryption using user provided encryption/decryption functions; this is not 
       part of the MDF v4 spec and is only supported by this library
@@ -168,7 +168,7 @@ conda install -c conda-forge asammdf
 
 In case a wheel is not present for you OS/Python versions and you
 lack the proper compiler setup to compile the c-extension code, then
-you can simply copy-paste the pacakge code to your site-packages. In this 
+you can simply copy-paste the package code to your site-packages. In this 
 way the python fallback code will be used instead of the compiled c-extension code.
 
 # Dependencies
@@ -181,7 +181,7 @@ asammdf uses the following libraries
 * canmatrix : to handle CAN/LIN bus logging measurements
 * natsort
 * lxml : for canmatrix arxml support
-* lz4 : to speed up the disk IO peformance
+* lz4 : to speed up the disk IO performance
 
 optional dependencies needed for exports
 
@@ -195,8 +195,8 @@ other optional dependencies
 * PyQt5 : for GUI tool
 * pyqtgraph : for GUI tool and Signal plotting
 * matplotlib : as fallback for Signal plotting
-* cChardet : to detect non-standard unicode encodings
-* chardet : to detect non-standard unicode encodings 
+* cChardet : to detect non-standard Unicode encodings
+* chardet : to detect non-standard Unicode encodings 
 * pyqtlet : for GPS window
 
 # Benchmarks
