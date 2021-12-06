@@ -1665,7 +1665,6 @@ if sys.version_info.major >= 3 and sys.version_info.minor >= 8:
 
         return val
 
-
 else:
 
     def csv_bytearray2hex(val, size: int | None = None) -> str:
