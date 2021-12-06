@@ -405,7 +405,7 @@ class MinimalListWidget(QtWidgets.QListWidget):
 
         super().__init__(*args, **kwargs)
 
-        self.setDragDropMode(QtWidgets.QAbstractItemView.DragDrop)
+        self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 
         self.setAlternatingRowColors(True)

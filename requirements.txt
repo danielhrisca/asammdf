@@ -4,3 +4,4 @@ numexpr
 numpy>=1.21
 pandas
 typing_extensions
+isal

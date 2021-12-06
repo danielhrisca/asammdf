@@ -108,7 +108,7 @@ setup(
             "natsort",
             "psutil",
             "PyQt5>=5.15.0",
-            "pyqtgraph>=0.12.1",
+            "pyqtgraph>=0.12.3",
             "pyqtlet",
             "PyQtWebEngine",
         ],
