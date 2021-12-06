@@ -44,6 +44,18 @@ for root, dirs, files in os.walk(asammdf_path.parent / "ui"):
                 (os.path.join(root, file), os.path.join("asammdf", "gui", "ui"))
             )
 
+import pyqtlet
+
+pyqtlet_path = Path(pyqtlet.__path__[0]).resolve()
+site_packages = pyqtlet_path.parent
+site_packages_str = os.path.join(str(site_packages), "")
+for root, dirs, files in os.walk(pyqtlet_path):
+    for file in files:
+        if not file.lower().endswith(("py", "pyw")):
+            file_name = os.path.join(root, file)
+            dest = root.replace(site_packages_str, "")
+            added_files.append((file_name, dest))
+
 a = Analysis(
     [asammdf_path],
     pathex=[],
