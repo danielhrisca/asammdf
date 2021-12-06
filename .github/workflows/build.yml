@@ -39,7 +39,7 @@ jobs:
         run: python -m build --wheel
 
       - name: Build an executable
-        if: ${{ matrix.python-version == '3.8' }}
+        if: ${{ matrix.python-version == '3.7' }}
         run: pyinstaller asammdf.spec --distpath dist/${RUNNER_OS} --onefile
 
       # see: https://docs.github.com/en/actions/advanced-guides/storing-workflow-data-as-artifacts

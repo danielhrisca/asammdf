@@ -580,8 +580,7 @@ class Channel:
                         stream, address + COMMON_SIZE
                     )
 
-                    at_map = kwargs.get("at_map", {})
-                    self.attachment = at_map.get(self.attachment_addr, 0)
+                    self.attachment = kwargs["at_map"].get(self.attachment_addr, 0)
 
                 else:
 
@@ -1055,40 +1054,33 @@ class Channel:
         si_map: dict[bytes, int],
     ) -> int:
         text = self.name
-        if text:
-            if text in defined_texts:
-                self.name_addr = defined_texts[text]
-            else:
-                tx_block = TextBlock(
-                    text=text.encode("utf-8", "replace"),
-                    meta=False,
-                    safe=True,
-                )
-                self.name_addr = address
-                defined_texts[text] = address
-                tx_block.address = address
-                address += tx_block.block_len
-                blocks.append(tx_block)
+        if text in defined_texts:
+            self.name_addr = defined_texts[text]
         else:
-            self.name_addr = 0
+            tx_block = TextBlock(
+                text=text.encode("utf-8", "replace"),
+                meta=False,
+                safe=True,
+            )
+            self.name_addr = defined_texts[text] = address
+            tx_block.address = address
+            address += tx_block.block_len
+            blocks.append(tx_block)
 
         text = self.unit
-        if text:
-            if text in defined_texts:
-                self.unit_addr = defined_texts[text]
-            else:
-                tx_block = TextBlock(
-                    text=text.encode("utf-8", "replace"),
-                    meta=False,
-                    safe=True,
-                )
-                self.unit_addr = address
-                defined_texts[text] = address
-                tx_block.address = address
-                address += tx_block.block_len
-                blocks.append(tx_block)
+        if text in defined_texts:
+            self.unit_addr = defined_texts[text]
         else:
-            self.unit_addr = 0
+            tx_block = TextBlock(
+                text=text.encode("utf-8", "replace"),
+                meta=False,
+                safe=True,
+            )
+            self.unit_addr = address
+            defined_texts[text] = address
+            tx_block.address = address
+            address += tx_block.block_len
+            blocks.append(tx_block)
 
         comment = self.comment
         display_names = self.display_names
@@ -1126,23 +1118,20 @@ class Channel:
         else:
             text = comment
 
-        if text:
-            if text in defined_texts:
-                self.comment_addr = defined_texts[text]
-            else:
-                meta = text.startswith("<CN")
-                tx_block = TextBlock(
-                    text=text.encode("utf-8", "replace"),
-                    meta=meta,
-                    safe=True,
-                )
-                self.comment_addr = address
-                defined_texts[text] = address
-                tx_block.address = address
-                address += tx_block.block_len
-                blocks.append(tx_block)
+        if text in defined_texts:
+            self.comment_addr = defined_texts[text]
         else:
-            self.comment_addr = 0
+            meta = text.startswith("<CN")
+            tx_block = TextBlock(
+                text=text.encode("utf-8", "replace"),
+                meta=meta,
+                safe=True,
+            )
+            self.comment_addr = address
+            defined_texts[text] = address
+            tx_block.address = address
+            address += tx_block.block_len
+            blocks.append(tx_block)
 
         conversion = self.conversion
         if conversion:
@@ -2882,8 +2871,8 @@ class ChannelConversion(_ChannelConversionBase):
                 self.val_param_nr = 2
                 self.min_phy_value = kwargs.get("min_phy_value", 0)
                 self.max_phy_value = kwargs.get("max_phy_value", 0)
-                self.b = kwargs["b"]
-                self.a = kwargs["a"]
+                self.b = float(kwargs["b"])
+                self.a = float(kwargs["a"])
 
             elif kwargs["conversion_type"] == v4c.CONVERSION_TYPE_ALG:
                 self.block_len = v4c.CC_ALG_BLOCK_SIZE

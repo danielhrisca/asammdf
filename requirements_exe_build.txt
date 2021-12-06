@@ -9,8 +9,8 @@ isal
 lxml 
 natsort 
 psutil 
-PyQt5>=5.13.1 
-pyqtgraph==0.12.1
+PyQt5==5.15.2 
+pyqtgraph==0.12.3
 PyQtWebEngine 
 pyqtlet 
 h5py 
@@ -21,3 +21,4 @@ snappy
 cChardet==2.1.5 
 chardet
 cryptography
+keyring

@@ -345,7 +345,7 @@ def sanitize_xml(text: str) -> str:
 
 def extract_display_names(comment: str) -> dict[str, str]:
     display_names = {}
-    if comment.startswith("<CNcomment") and "<names>" in comment:
+    if comment.startswith("<CN") and "<names>" in comment:
 
         try:
             start = comment.index("<names>")

@@ -8856,7 +8856,7 @@ class MDF4(MDF_Common):
         cg_map = {}
 
         try:
-            defined_texts = {}
+            defined_texts = {"": 0, b"": 0}
             cc_map = {}
             si_map = {}
 
@@ -10266,7 +10266,7 @@ class MDF4(MDF_Common):
                     try:
                         self._process_can_logging(index, group)
                     except Exception as e:
-                        message = f"Error during CAN logging processing: {e}"
+                        message = f"Error during CAN logging processing: {format_exc()}"
                         logger.error(message)
 
                 if (
@@ -10336,6 +10336,9 @@ class MDF4(MDF_Common):
                     )[0].astype("<u4")
                     & 0x1FFFFFFF
                 )
+
+                if len(bus_ids) == 0:
+                    continue
 
                 bus = bus_ids[0]
                 msg_id = msg_ids[0]
