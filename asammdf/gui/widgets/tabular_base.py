@@ -1365,7 +1365,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
 
         self._timestamps = None
 
-        self.show()
+        # self.show()
 
         self.tree.auto_size_header()
 
@@ -2034,7 +2034,7 @@ class DataFrameViewer(QtWidgets.QWidget):
         self.columnHeader.horizontalHeader().setMinimumSectionSize(1)
         self.dataView.horizontalHeader().setMinimumSectionSize(1)
 
-        self.show()
+        # self.show()
 
         self.auto_size_header()
 
