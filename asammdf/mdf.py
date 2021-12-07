@@ -4612,21 +4612,21 @@ class MDF:
                                             if prefix:
                                                 acq_name = (
                                                     comment
-                                                ) = f"{prefix}: CAN{bus} consolidated PGN=0x{msg_id:X}"
+                                                ) = f'{prefix}: CAN{bus} consolidated PGN=0x{msg_id:X} "{message}"'
                                             else:
                                                 acq_name = (
                                                     comment
-                                                ) = f"CAN{bus} consolidated PGN=0x{msg_id:X}"
+                                                ) = f'CAN{bus} consolidated PGN=0x{msg_id:X} "{message}"'
 
                                         else:
                                             if prefix:
                                                 acq_name = (
                                                     comment
-                                                ) = f"{prefix}: CAN{bus} PGN=0x{msg_id:X} from ID=0x{original_msg_id:X}"
+                                                ) = f'{prefix}: CAN{bus} PGN=0x{msg_id:X} "{message}" from ID=0x{original_msg_id:X}'
                                             else:
                                                 acq_name = (
                                                     comment
-                                                ) = f'CAN{bus} PGN=0x{msg_id:X} from message "{message}" ID=0x{original_msg_id:X}'
+                                                ) = f'CAN{bus} PGN=0x{msg_id:X} "{message}" from ID=0x{original_msg_id:X}'
                                     else:
 
                                         if prefix:
