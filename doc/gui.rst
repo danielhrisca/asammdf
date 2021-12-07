@@ -253,6 +253,7 @@ a numeric window to see the channel values at certain time stamps, and to search
 .. image:: images/numeric.png
 
 1. display area: here we can see the instantaneous signal values. The raw and scaled values are shown for each signal.
+   Double clicking a column header will toggle the sorting on that column.
 2. integer format: choose between physical, hex and binary format.
 3. float decimals: choose the precision used for float dislay
 4. timestamp selection: use the input box or the slider to adjust the timestamp
@@ -327,20 +328,54 @@ apply a function on one of the plot channels, or to specify a simple expression 
 
 .. image:: images/compute_channel_dialog.png
 
-.. image:: images/compute_channel_plot.png
-
 The currently active plot's channels can be saved to a new file by pressing *Ctrl+S*.
 The channels from all sub-windows can be saved to a new file by pressing *Ctrl+Shift+S*.
 
 The sub-windows can be tiled as a grid, vertically or horizontally (see the keyboard shortcuts).
 
 
-8. Plot window
-^^^^^^^^^^^^^^
+8. Tabular window
+^^^^^^^^^^^^^^^^^
+
+The tabular window is very simialr to an Excel/CSV sheet.
+The most powerfull feature of this window is that multiple filters can be defined for the signals values.
 
 
-Drag & Drop
------------
+.. image:: images/tabular1.png
+.. image:: images/tabular2.png
+
+
+The tabular window has the following elements:
+
+1. display area: here we can see the signal values. The raw and scaled values are shown for each signal.
+   Right clicking a column header will show a pop-up window for controling the sorting, defining signal ranges and
+   adjusting the columns width.
+2. integer format: choose between physical, hex and binary format.
+3. float decimals: choose the precision used for float dislay
+4. timestamp format: use the input box or the slider to adjust the timestamp display as float value or as
+   datetime value
+5. remove prefix: remove column names prefix; avoids unnecessary large cokumn widths
+6. toggle filters view: toggle the visibility of the filters (better vertical space if filters are not used)
+7. filter enable
+8. filter logical relation
+9. filterig signal
+10. filter operator
+11. target value for filtering
+12. apply filters: the actual filtering is done only after pressing the button.
+    The user can modify the exisiting filters without changing the tabular view.
+13. query: the Tabular window used a pandas dataframe as backend. The filtering is
+    done by performing a query on the dataframe.
+
+
+9. CAN/LIN/FelxRay Bus Trace
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+This window types can only be created by pressing the ``Create window`` button. If the measurement
+does not contain bus logging of the selected kind, then no window will be generated.
+
+The filtering and signal ranges definition is done similar to the Tabular window.
+
+10. Drag & Drop
+^^^^^^^^^^^^^^^
 Channels can be dragged and dropped between sub-windows for easier configuration. Draga nd drop in the free MDI can be used to create new windows.
 
 .. image:: images/drag_and_drop.gif
