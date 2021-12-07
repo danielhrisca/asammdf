@@ -1200,6 +1200,8 @@ class Numeric(QtWidgets.QWidget):
             numeric.max_t.setText(f"{numeric._max:.9f}s")
             numeric.set_timestamp(numeric._min)
 
+        self.channels.auto_size_header()
+
     def reset(self):
         self.channels.backend.reset()
         self.channels.dataView.double_clicked_enabled = True

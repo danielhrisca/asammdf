@@ -1860,6 +1860,9 @@ class Plot(QtWidgets.QWidget):
                 it.details.setVisible(True)
             it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
+            if len(sig):
+                it.set_value(sig.samples[0])
+
             if sig.computed:
                 font = QtGui.QFont()
                 font.setItalic(True)

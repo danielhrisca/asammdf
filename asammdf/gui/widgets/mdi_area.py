@@ -2197,9 +2197,11 @@ class WithMDIArea:
                 sections_width = reversed(
                     [(i, width) for i, width in enumerate(sections_width)]
                 )
-                for i, width in sections_width:
-                    numeric.channels.columnHeader.horizontalHeader().resizeSection(
-                        i, width
+                for column_index, width in sections_width:
+                    numeric.channels.columnHeader.setColumnWidth(column_index, width)
+                    numeric.channels.dataView.setColumnWidth(
+                        column_index,
+                        numeric.channels.columnHeader.columnWidth(column_index),
                     )
 
         elif window_info["type"] == "GPS":
