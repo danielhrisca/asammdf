@@ -4513,12 +4513,20 @@ class MDF:
                         bus_data_bytes = data_bytes[idx]
                         original_msg_ids = original_ids[idx]
 
-                        if is_j1939 and not consolidated_j1939:
-                            unique_ids = np.unique(
-                                np.core.records.fromarrays(
-                                    [bus_msg_ids, original_msg_ids]
+                        if is_j1939:
+
+                            if consolidated_j1939:
+                                unique_ids = np.unique(
+                                    np.core.records.fromarrays(
+                                        [bus_msg_ids, bus_msg_ids]
+                                    )
                                 )
-                            )
+                            else:
+                                unique_ids = np.unique(
+                                    np.core.records.fromarrays(
+                                        [bus_msg_ids, original_msg_ids]
+                                    )
+                                )
                         else:
                             unique_ids = np.unique(
                                 np.core.records.fromarrays([bus_msg_ids, bus_msg_ids])
@@ -4599,13 +4607,26 @@ class MDF:
 </CNcomment>"""
                                         sigs.append(sig)
 
-                                    if is_j1939 and not consolidated_j1939:
-                                        if prefix:
-                                            acq_name = f"{prefix}: CAN{bus} message ID=0x{msg_id:X} from 0x{original_msg_id:X}"
-                                            comment = f'{prefix}: CAN{bus} - message "{message}" 0x{msg_id:X} from 0x{original_msg_id:X}'
+                                    if is_j1939:
+                                        if consolidated_j1939:
+                                            if prefix:
+                                                acq_name = (
+                                                    comment
+                                                ) = f"{prefix}: CAN{bus} consolidated PGN=0x{msg_id:X}"
+                                            else:
+                                                acq_name = (
+                                                    comment
+                                                ) = f"CAN{bus} consolidated PGN=0x{msg_id:X}"
+
                                         else:
-                                            acq_name = f"CAN{bus} message ID=0x{msg_id:X} from 0x{original_msg_id:X}"
-                                            comment = f'CAN{bus} - message "{message}" 0x{msg_id:X} from 0x{original_msg_id:X}'
+                                            if prefix:
+                                                acq_name = (
+                                                    comment
+                                                ) = f"{prefix}: CAN{bus} PGN=0x{msg_id:X} from ID=0x{original_msg_id:X}"
+                                            else:
+                                                acq_name = (
+                                                    comment
+                                                ) = f'CAN{bus} PGN=0x{msg_id:X} from message "{message}" ID=0x{original_msg_id:X}'
                                     else:
 
                                         if prefix:
