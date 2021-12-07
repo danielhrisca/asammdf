@@ -382,6 +382,8 @@ class DataTableModel(QtCore.QAbstractTableModel):
         elif role == QtCore.Qt.TextAlignmentRole:
             if isinstance(cell, str):
                 return QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
+            elif isinstance(cell, pd.Timestamp):
+                return QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
             else:
                 if self.float_precision == -1 and isinstance(
                     cell, (float, np.floating)

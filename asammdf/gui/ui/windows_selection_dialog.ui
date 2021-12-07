@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>552</width>
-    <height>240</height>
+    <width>306</width>
+    <height>300</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -25,6 +25,12 @@
      <layout class="QVBoxLayout" name="lay">
       <item>
        <widget class="QScrollArea" name="scrollArea">
+        <property name="frameShape">
+         <enum>QFrame::NoFrame</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Plain</enum>
+        </property>
         <property name="widgetResizable">
          <bool>true</bool>
         </property>
@@ -33,11 +39,23 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>504</width>
-           <height>141</height>
+           <width>268</width>
+           <height>220</height>
           </rect>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_3">
+          <property name="leftMargin">
+           <number>1</number>
+          </property>
+          <property name="topMargin">
+           <number>1</number>
+          </property>
+          <property name="rightMargin">
+           <number>1</number>
+          </property>
+          <property name="bottomMargin">
+           <number>1</number>
+          </property>
           <item>
            <layout class="QVBoxLayout" name="selection_layout"/>
           </item>

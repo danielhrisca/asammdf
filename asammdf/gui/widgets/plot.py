@@ -16,6 +16,7 @@ import pyqtgraph as pg
 import pyqtgraph.canvas.CanvasTemplate_pyqt5
 import pyqtgraph.canvas.TransformGuiTemplate_pyqt5
 import pyqtgraph.console.template_pyqt5
+import pyqtgraph.functions as fn
 import pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyqt5
 import pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5
 import pyqtgraph.GraphicsScene.exportDialogTemplate_pyqt5
@@ -3114,10 +3115,10 @@ class _Plot(pg.PlotWidget):
                 self.common_viewbox.setYLink(viewbox)
 
                 if self._settings.value("plot_background") == "Black":
-                    axis.set_pen("#FFFFFF")
+                    axis.set_pen(fn.mkPen("#FFFFFF"))
                     axis.setTextPen("#FFFFFF")
                 else:
-                    axis.set_pen("#000000")
+                    axis.set_pen(fn.mkPen("#000000"))
                     axis.setTextPen("#000000")
                 axis.setLabel(self.common_axis_label)
 
