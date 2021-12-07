@@ -73,20 +73,18 @@ Mode
 * *Batch processing* : allows processing multiple files 
 * *Comparison* : show channels from all the opened files
 
-.. image:: images/open_files.gif
-
 
 Settings
 --------
 
 The following settings are available
       
-* **Sub-plots**: controls if multiple subplots will be created when the plot button is pressed
+* **Sub-windows**: controls if multiple subplots will be created when the plot button is pressed
 
       * ``Disabled``: a single plot is used that is overwritten 
       * ``Enabled``: a new subplot is added 
       
-* **Link sub-plots X-axis**: controls the subplots are linked on the X axis (zooming will affect all sub-plots)
+* **Link sub-windows X-axis**: controls the subplots are linked on the X axis (zooming will affect all sub-windows)
 
       * ``Disabled``
       * ``Enabled``
@@ -112,11 +110,19 @@ The following settings are available
       * ``Dark``
       * ``Light``
       
+* **Step mode**: controls how the signal samples are are interconencted visually in the Plot
+      
 * **Integer interpolation**: selects the way integer channels are interpolated
 
       * ``0 - repeat previous sample``
       * ``1 - linear interpolation``
       * ``2 - hybrid interpolation``
+      
+* **Float interpolation**: selects the way float channels are interpolated
+
+      * ``0 - repeat previous sample``
+      * ``1 - linear interpolation``
+      
       
 The seetings are saved and restored each time the GUI is started.
 
@@ -155,13 +161,13 @@ Ctrl+H       Hex                    Toggle hex representation of integer channel
 Ctrl+I       Insert cursor comment  Insert a visual vertical line and comment at the current cursor position [6]_
 Ctrl+P       Physical               Toggle physical representation of integer channels
 Ctrl+S       Save plot channels     Save channels from current active subplot in a new MF4 file
-Ctrl+Shift+S Save all channels      Save all channels from all sub-plots in a new MF4 file
-Shift+C      Cascade sub-plots      Cascade the sub plots    
+Ctrl+Shift+S Save all channels      Save all channels from all sub-windows in a new MF4 file
+Shift+C      Cascade sub-windows      Cascade the sub plots    
 Shift+Alt+F  Toggle frames          Will toggle the sub plots MDI window frames
 Shift+L      Toggle channel list    Will toggle the channel tree for the current opened file
-Shift+T      Tile sub-plots         Tiles sub-plots in a grid
-Shift+V      Tile vertically        Tiles sub-plots vertically [3]_
-Shift+H      Tile horizontally      Tiles sub-plots horizontally [3]_
+Shift+T      Tile sub-windows         Tiles sub-windows in a grid
+Shift+V      Tile vertically        Tiles sub-windows vertically [3]_
+Shift+H      Tile horizontally      Tiles sub-windows horizontally [3]_
 ============ ====================== ================================================================================================================
 
 
@@ -179,13 +185,11 @@ Layout elements
 2. Channel tree display mode
 3. Complete channels tree
 4. Command buttons
-5. Plot/Sub-plots area
+5. Windows area
 6. Numeric window
 7. Plot window
-8. Sub-plot channel selection list
-9. Sub-plot graphics area
-10. Sub-plot channels statistics panel
-11. File operations  
+8. Tabular window
+9. File operations  
 
 1. Opened files tabs
 ^^^^^^^^^^^^^^^^^^^^
@@ -196,10 +200,11 @@ There is no restriction, so the same file can be opened several times.
 
 2. Channel tree display mode
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-The channel tree can be displayed in two ways
+The channel tree can be displayed in three ways
 
 * as a naturally sorted list
 * grouped using the internal file structure
+* only the selected channels
 
 3. Complete channels tree
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -209,15 +214,15 @@ Double clicking a channel name will display a pop-up window with the channel inf
 
 .. image:: images/channel_info.png
    
-Only the channels that are checked in the channels tree will be selected for plotting when the *Plot* button is pressed.
-Checking or unchecking channels will not affect the current plot or sub-plots.
+Only the channels that are checked in the channels tree will be selected for plotting when the *Create window* button is pressed.
+Checking or unchecking channels will not affect the current plot or sub-windows.
 
 4. Command buttons
 ^^^^^^^^^^^^^^^^^^
 From left to right the buttons have the following functionality
 
 * **Load configuration**: restores channels tree and all sub-plot windows from a saved configuration file
-* **Save configuration**: saves all sub-plots (channels, colors, common axis and enable state) and channel tree
+* **Save configuration**: saves all sub-windows (channels, colors, common axis and enable state) and channel tree
 * **Select all channels**: checks all channels in the channels tree
 * **Reset selection**: unchecks all channels in the channels tree
 * **Advanced search & select**: will open an advanced search dialog 
@@ -230,42 +235,54 @@ From left to right the buttons have the following functionality
      
     .. image:: images/advanced_search.png
  
-* **Add window**: generates a new window (Numeric, Plot or Tabular) based on the current checked channels from the channels tree. 
-  If sub-plots are disabled in the settings then the current window is replaced by the new plot. 
-  If sub-plots are enabled then a new sub-plot will be added, and the already existing sub-plots will not be affected. 
-  The same channel can be used in multiple sub-plots.
+* **Create window**: generates a new window (Numeric, Plot, Tabular, GPS, CAN/LIN/FlexRay Bus Trace) based on the current checked channels from the channels tree. 
+  If sub-windows are disabled in the settings then the current window is replaced by the new plot. 
+  If sub-windows are enabled then a new sub-plot will be added, and the already existing sub-windows will not be affected. 
+  The same channel can be used in multiple sub-windows.
 
 
-5. Plot/Sub-plots area
-^^^^^^^^^^^^^^^^^^^^^^
-If sub-plots are enabled then multiple plots can be used. The sub-plots can be re-aranged using drag & drop.
+5. Windows area
+^^^^^^^^^^^^^^^
+If sub-windows are enabled then multiple plots can be used. The sub-windows can be re-aranged using drag & drop.
 
 6. Numeric window
 ^^^^^^^^^^^^^^^^^
 Numeric windows can handle a lot more channels than plot windows. You can use
-a numeric window to see the channel values at certain time stamps.
-The time stamps can be selected using the spin box or the slider.
+a numeric window to see the channel values at certain time stamps, and to search for certain channel values.
+
+.. image:: images/numeric.png
+
+1. display area: here we can see the instantaneous signal values. The raw and scaled values are shown for each signal.
+2. integer format: choose between physical, hex and binary format.
+3. float decimals: choose the precision used for float dislay
+4. timestamp selection: use the input box or the slider to adjust the timestamp
+5. signal values search mode: choose between raw and scaled signal samples when searching for a certain value
+6. signal name pattern: use a wildcard pattern to select the signals that will be used for value searching
+7. operator: operator that will be used for the search
+8. targe value: search target value
+9. direction: timebase direction for searching the values
+
+Double clicking a row will bring up the range editor for associated signal. 
+
+.. image:: images/numeric_range_editor.gif
 
 7. Plot window
 ^^^^^^^^^^^^^^
 Plot windows are used to graphically display the channel samples.
-`pyqtgraph` is used for the plots; to get the best performance consider the following tips
+
+.. image:: images/plot.png
+
+`pyqtgraph` is used for the plots; to get the best performance consider the following tips.
 
 * limit the number of channels: plotting hundreds of channels can get really slow
 * disabling dots will make the plots a lot more responsive
 
-8. Sub-plot channel selection list
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-When the *Plot* button is pressed the checked channels will populate the *Selected channels list*.
-
-Selecting items from the *Selected channels list* will display their Y-axis on the left side of the plot. Individual axis for each 
-signal can also be toggled and they will show on the right side of the plot.
-
-It is also necessary to select a single item when the *Statistics* panel is active to compute the statistics for the item's channel.
-
-.. image:: images/display_list.png
+The Plot window has three section
+1. signal selection tree
+2. graphical area
+3. signal statistics panel (toggled using the ``M`` keyboard shortcut)
    
-Each item has five elements
+Each signal item from the signal selection tree has five elements
 
 1. display enable checkbox
 2. color select button
@@ -275,59 +292,56 @@ Each item has five elements
 6. individual axis checkbox [5]_
    
 
-.. image:: images/individual_axis.gif
+The user can also create channel groups in the selection tree. Simple channel groups are only used for grouping signals. Pattern based channel groups
+can be used to filter signals based on the name or samples values.
         
-The channel name can be copied to the clipboard using Ctrl+C.
-      
-Double clicking an item will open a range editor dialog
+The selection tree has an extended context menu accesible using the right mouse click.
 
-.. image:: images/range_editor.png
-   
-Here we can specify a range value visual alert. When the cursor is active and the current channel value is within the specified range, the item background will change to the
-selected color.
+Double clicking an item will open a range editor dialog, similar to the Numeric window range editor.
 
-.. image:: images/range_visual_alert.png
 
-9. Sub-plot graphics area
-^^^^^^^^^^^^^^^^^^^^^^^^^
-The initial plot will have all channels homed (see the *H* keyboard shortcut)
+The initial graphics are view will have all the signal homed-in (see the *H* keyboard shortcut). The user is free to use the mouse to interact with the graphics area (zoom, pan).
 
-The cursor is toggled using the *C* keyboard shortcut, and with it the channel values will be displayed for each item in the *Selected channels list*. The cursor can also be invoked by clicking the plot area.
-
-The *Ctrl+H* and *Ctrl+B* keyboard shortcuts will
-
-* change the axis values for integer channels to hex and bin mode
-* change the channel value display mode for each integer channel item in the *Selected channels list*
-
-.. image:: images/cursor_hex.png
-.. image:: images/cursor_bin.png
+The cursor is toggled using the *C* keyboard shortcut, and with it the channel values will be displayed for each item in the *Selected channels list*. 
+The cursor can also be invoked by clicking the plot area.
 
 Using the *R* keyboard shortcut will toggle the range, and with it the channel values will be displayed for each item in the *Selected channels list*. When the range is
 enabled, using the *H* keyboard shortcut will not home to the whole time range, but instead will use the range time interval. 
 
-.. image:: images/range.png
+The *Ctrl+H*, *Ctrl+B* and *Ctrl+P* keyboard shortcuts will
 
-The *Statistics* panel is toggle using the *M* keyboard shortcut
+* change the axis values for integer channels to hex, bin or physical mode
+* change the channel value display mode for each integer channel item in the *Signal selection tree*
 
-.. image:: images/range.png
+The *Alt+R* and *Alt+S* keyboard shortcuts will switch between the rawe and scaled signal samples.
 
-You can insert new computed channels by pressing the *insert* key. This will allow either to compute basic operations using the plot channels, or to 
-apply a function on one of the plot channels.
+Each vartical axis width can be modified using the + and - buttons.
+
+
+.. image:: images/plot.gif
+
+
+
+You can insert new computed channels by pressing the *insert* key. This will allow either to compute basic operations using the plot channels, to 
+apply a function on one of the plot channels, or to specify a simple expression than uses multiple signals from the Plot window.
 
 .. image:: images/compute_channel_dialog.png
 
 .. image:: images/compute_channel_plot.png
 
 The currently active plot's channels can be saved to a new file by pressing *Ctrl+S*.
-The channels from all sub-plots can be saved to a new file by pressing *Ctrl+Shift+S*.
+The channels from all sub-windows can be saved to a new file by pressing *Ctrl+Shift+S*.
 
-The sub-plots can be tiled as a grid, vertically or horizontally
+The sub-windows can be tiled as a grid, vertically or horizontally (see the keyboard shortcuts).
 
-.. image:: images/tile.gif
+
+8. Plot window
+^^^^^^^^^^^^^^
+
 
 Drag & Drop
 -----------
-Channels can be dragged and dropped between sub-plots for easier configuration.
+Channels can be dragged and dropped between sub-windows for easier configuration. Draga nd drop in the free MDI can be used to create new windows.
 
 .. image:: images/drag_and_drop.gif
 

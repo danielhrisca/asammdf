@@ -148,7 +148,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.menubar.addMenu(menu)
 
         # sub plots
-        subplot_action = QtWidgets.QAction("Sub-plots", menu)
+        subplot_action = QtWidgets.QAction("Sub-windows", menu)
         subplot_action.setCheckable(True)
 
         state = self._settings.value("subplots", False, type=bool)
@@ -157,15 +157,15 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         subplot_action.setChecked(state)
         menu.addAction(subplot_action)
 
-        # Link sub-plots X-axis
-        subplot_action = QtWidgets.QAction("Link sub-plots X-axis", menu)
+        # Link sub-windows X-axis
+        subplot_action = QtWidgets.QAction("Link sub-windows X-axis", menu)
         subplot_action.setCheckable(True)
         state = self._settings.value("subplots_link", False, type=bool)
         subplot_action.toggled.connect(self.set_subplot_link_option)
         subplot_action.setChecked(state)
         menu.addAction(subplot_action)
 
-        # Link sub-plots X-axis
+        # Link sub-windows X-axis
         subplot_action = QtWidgets.QAction("Ignore value2text conversions", menu)
         subplot_action.setCheckable(True)
         subplot_action.toggled.connect(self.set_ignore_value2text_conversions_option)
@@ -505,27 +505,29 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         subs = QtWidgets.QActionGroup(self)
 
-        action = QtWidgets.QAction("{: <20}\tShift+C".format("Cascade sub-plots"), menu)
+        action = QtWidgets.QAction(
+            "{: <20}\tShift+C".format("Cascade sub-windows"), menu
+        )
         action.triggered.connect(partial(self.show_sub_windows, mode="cascade"))
         action.setShortcut(QtGui.QKeySequence("Shift+C"))
         subs.addAction(action)
 
         action = QtWidgets.QAction(
-            "{: <20}\tShift+T".format("Tile sub-plots in a grid"), menu
+            "{: <20}\tShift+T".format("Tile sub-windows in a grid"), menu
         )
         action.triggered.connect(partial(self.show_sub_windows, mode="tile"))
         action.setShortcut(QtGui.QKeySequence("Shift+T"))
         subs.addAction(action)
 
         action = QtWidgets.QAction(
-            "{: <20}\tShift+V".format("Tile sub-plots vertically"), menu
+            "{: <20}\tShift+V".format("Tile sub-windows vertically"), menu
         )
         action.triggered.connect(partial(self.show_sub_windows, mode="tile vertically"))
         action.setShortcut(QtGui.QKeySequence("Shift+V"))
         subs.addAction(action)
 
         action = QtWidgets.QAction(
-            "{: <20}\tShift+H".format("Tile sub-plots horizontally"), menu
+            "{: <20}\tShift+H".format("Tile sub-windows horizontally"), menu
         )
         action.triggered.connect(
             partial(self.show_sub_windows, mode="tile horizontally")
@@ -534,7 +536,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         subs.addAction(action)
 
         action = QtWidgets.QAction(
-            "{: <20}\tShift+Alt+F".format("Toggle sub-plots frames"), menu
+            "{: <20}\tShift+Alt+F".format("Toggle sub-windows frames"), menu
         )
         action.triggered.connect(self.toggle_frames)
         action.setShortcut(QtGui.QKeySequence("Shift+Alt+F"))
