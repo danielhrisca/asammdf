@@ -4599,15 +4599,28 @@ class MDF:
 </CNcomment>"""
                                         sigs.append(sig)
 
-                                    if prefix:
-                                        acq_name = f"{prefix}: CAN{bus} message ID=0x{msg_id:X} from 0x{original_msg_id:X}"
+                                    if is_j1939 and not consolidated_j1939:
+                                        if prefix:
+                                            acq_name = f"{prefix}: CAN{bus} message ID=0x{msg_id:X} from 0x{original_msg_id:X}"
+                                            comment = f'{prefix}: CAN{bus} - message "{message}" 0x{msg_id:X} from 0x{original_msg_id:X}'
+                                        else:
+                                            acq_name = f"CAN{bus} message ID=0x{msg_id:X} from 0x{original_msg_id:X}"
+                                            comment = f'CAN{bus} - message "{message}" 0x{msg_id:X} from 0x{original_msg_id:X}'
                                     else:
-                                        acq_name = f"CAN{bus} message ID=0x{msg_id:X} from 0x{original_msg_id:X}"
+
+                                        if prefix:
+                                            acq_name = f"{prefix}: CAN{bus} message ID=0x{msg_id:X}"
+                                            comment = f'{prefix}: CAN{bus} - message "{message}" 0x{msg_id:X}'
+                                        else:
+                                            acq_name = (
+                                                f"CAN{bus} message ID=0x{msg_id:X}"
+                                            )
+                                            comment = f'CAN{bus} - message "{message}" 0x{msg_id:X}'
 
                                     cg_nr = out.append(
                                         sigs,
                                         acq_name=acq_name,
-                                        comment=f'CAN{bus} - message "{message}" 0x{msg_id:X} from 0x{original_msg_id:X}',
+                                        comment=comment,
                                         common_timebase=True,
                                     )
 
