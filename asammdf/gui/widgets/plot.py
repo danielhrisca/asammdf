@@ -1119,11 +1119,9 @@ class Plot(QtWidgets.QWidget):
         self.info.hide()
         self.splitter.addWidget(self.info)
 
-        self.splitter.setStretchFactor(0, 1)
-        self.splitter.setStretchFactor(1, 2)
+        self.splitter.setStretchFactor(0, 0)
+        self.splitter.setStretchFactor(1, 1)
         self.splitter.setStretchFactor(2, 0)
-
-        self.splitter.splitterMoved.connect(self.set_splitter)
 
         self.plot.add_channels_request.connect(self.add_channels_request)
         self.setAcceptDrops(True)
@@ -1168,6 +1166,8 @@ class Plot(QtWidgets.QWidget):
             )
             | self.plot.keyboard_events
         )
+
+        self.splitter.splitterMoved.connect(self.set_splitter)
 
     def curve_clicked(self, uuid):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
@@ -1702,6 +1702,13 @@ class Plot(QtWidgets.QWidget):
         self.plot.set_current_uuid(self.info_uuid, True)
 
     def add_new_channels(self, channels, mime_data=None, destination=None):
+
+        size = sum(self.splitter.sizes())
+        if size >= 600:
+            self.splitter.setSizes([500, size - 500, 0])
+        else:
+            self.splitter.setSizes([size - 100, 100, 0])
+
         def add_new_items(tree, root, items, items_pool):
             for (name, group_index, channel_index, mdf_uuid, type_, ranges) in items:
 
