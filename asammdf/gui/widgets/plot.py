@@ -1702,13 +1702,6 @@ class Plot(QtWidgets.QWidget):
         self.plot.set_current_uuid(self.info_uuid, True)
 
     def add_new_channels(self, channels, mime_data=None, destination=None):
-
-        size = sum(self.splitter.sizes())
-        if size >= 600:
-            self.splitter.setSizes([500, size - 500, 0])
-        else:
-            self.splitter.setSizes([size - 100, 100, 0])
-
         def add_new_items(tree, root, items, items_pool):
             for (name, group_index, channel_index, mdf_uuid, type_, ranges) in items:
 
@@ -1819,6 +1812,21 @@ class Plot(QtWidgets.QWidget):
 
         channels = valid
 
+        size = sum(self.splitter.sizes())
+
+        width = 0
+        for ch in channels:
+            width = max(width, self.channel_selection.fontMetrics().boundingRect(ch.name).width())
+        width += 170
+
+        if size - width >= 300:
+            self.splitter.setSizes([width, size - width, 0])
+        else:
+            if size >= 350:
+                self.splitter.setSizes([size - 300, 300, 0])
+            elif size >= 100:
+                self.splitter.setSizes([50, size - 50, 0])
+
         channels = self.plot.add_new_channels(channels)
 
         enforce_y_axis = False
@@ -1837,6 +1845,7 @@ class Plot(QtWidgets.QWidget):
 
         new_items = {}
         for sig in channels:
+            print(sig.name)
 
             item = ChannelsTreeItem(
                 (sig.group_index, sig.channel_index),
@@ -2212,8 +2221,8 @@ class _Plot(pg.PlotWidget):
         self.showGrid(x=True, y=True)
 
         self.plot_item = self.plotItem
-        self.plot_item.hideAxis("left")
-        self.plot_item.hideAxis("bottom")
+        # self.plot_item.hideAxis("left")
+        # self.plot_item.hideAxis("bottom")
         self.plotItem.showGrid(x=False, y=False)
         self.layout = self.plot_item.layout
         self.scene_ = self.plot_item.scene()
@@ -2231,13 +2240,22 @@ class _Plot(pg.PlotWidget):
         self.scene_.addItem(self.common_viewbox)
         self.common_viewbox.setXLink(self.viewbox)
 
-        axis = self.layout.itemAt(3, 1)
-        axis.setParent(None)
+        # axis = self.layout.itemAt(3, 1)
+        # axis.setParent(None)
+
+        # oldAxis = self.plot_item.axes["bottom"]["item"]
+        # self.layout.removeItem(oldAxis)
+        # oldAxis.scene().removeItem(oldAxis)
+
+
         self.x_axis = FormatedAxis("bottom")
-        self.layout.removeItem(self.x_axis)
-        self.layout.addItem(self.x_axis, 3, 1)
-        self.x_axis.linkToView(axis.linkedView())
-        self.plot_item.axes["bottom"]["item"] = self.x_axis
+        # self.layout.removeItem(self.x_axis)
+        # self.layout.addItem(self.x_axis, 3, 1)
+        # self.x_axis.linkToView(oldAxis.linkedView())
+        # self.plot_item.axes["bottom"]["item"] = self.x_axis
+
+        # oldAxis.unlinkFromView()
+
         if x_axis == "time":
             fmt = self._settings.value("plot_xaxis")
             if fmt == "seconds":
@@ -2247,14 +2265,23 @@ class _Plot(pg.PlotWidget):
         self.x_axis.format = fmt
         self.x_axis.origin = origin
 
-        axis = self.layout.itemAt(2, 0)
-        axis.setParent(None)
+        # axis = self.layout.itemAt(2, 0)
+        # axis.setParent(None)
+
+        # oldAxis = self.plot_item.axes["left"]["item"]
+        # self.layout.removeItem(oldAxis)
+        # oldAxis.scene().removeItem(oldAxis)
+
         self.y_axis = FormatedAxis("left")
         self.y_axis.setWidth(48)
-        self.layout.removeItem(axis)
-        self.layout.addItem(self.y_axis, 2, 0)
-        self.y_axis.linkToView(axis.linkedView())
-        self.plot_item.axes["left"]["item"] = self.y_axis
+        # self.layout.removeItem(axis)
+        # self.layout.addItem(self.y_axis, 2, 0)
+        # self.y_axis.linkToView(oldAxis.linkedView())
+        # self.plot_item.axes["left"]["item"] = self.y_axis
+
+        # oldAxis.unlinkFromView()
+
+        self.plot_item.setAxisItems({"left": self.y_axis, "bottom": self.x_axis})
 
         self.cursor_hint = pg.PlotDataItem(
             [],
@@ -3212,27 +3239,43 @@ class _Plot(pg.PlotWidget):
         width = self.width() - self.y_axis.width()
         trim_info = start, stop, width
 
+        print(1)
+
         channels = [
             PlotSignal(sig, i, trim_info=trim_info)
             for i, sig in enumerate(channels, len(self.signals))
         ]
+
+        print(2)
 
         for sig in channels:
             uuids = self._timebase_db.setdefault(id(sig.timestamps), set())
             uuids.add(sig.uuid)
         self.signals.extend(channels)
 
+        print(3)
+
         self._uuid_map = {sig.uuid: (sig, i) for i, sig in enumerate(self.signals)}
+
+        print(4)
 
         self._compute_all_timebase()
 
+        print(5)
+
         if initial_index == 0 and len(self.all_timebase):
+            print('a')
             start_t, stop_t = np.amin(self.all_timebase), np.amax(self.all_timebase)
-            self.viewbox.setXRange(start_t, stop_t)
+            print('b', start_t, stop_t)
+            self.viewbox.setXRange(start_t, stop_t, update=False)
+            print('c')
+
+        print(6)
 
         axis_uuid = None
 
         for index, sig in enumerate(channels, initial_index):
+            print(sig.name)
 
             axis = FormatedAxis(
                 "left",  # "right",
@@ -3243,6 +3286,8 @@ class _Plot(pg.PlotWidget):
             )
             if sig.conversion and hasattr(sig.conversion, "text_0"):
                 axis.text_conversion = sig.conversion
+
+            print('ax')
 
             view_box = pg.ViewBox(enableMenu=False)
             view_box.setGeometry(geometry)
@@ -3257,6 +3302,8 @@ class _Plot(pg.PlotWidget):
             #            axis.labelStyle = {"color": color}
             #
             #            axis.setLabel(axis.labelText, sig.unit, color=color)
+
+            print('vb')
 
             self.layout.addItem(axis, 2, self._axes_layout_pos)
             self._axes_layout_pos += 1
