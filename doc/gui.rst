@@ -232,6 +232,7 @@ From left to right the buttons have the following functionality
       * in the "Pattern based window" tab the user can define a pattern that will be used to filter out the channels from the 
         measurement file, and as a second filtering step some condition can be used based on the channels values. This information
         will be saved in the window configuration. The pattern based windows can be easily recognized by the title bar icon
+      * the keyboard shortcut ``Ctrl+F`` can also be used to bring up the search dialog
      
     .. image:: images/advanced_search.png
  
@@ -239,6 +240,7 @@ From left to right the buttons have the following functionality
   If sub-windows are disabled in the settings then the current window is replaced by the new plot. 
   If sub-windows are enabled then a new sub-plot will be added, and the already existing sub-windows will not be affected. 
   The same channel can be used in multiple sub-windows.
+  
 
 
 5. Windows area
@@ -365,27 +367,53 @@ The tabular window has the following elements:
     The user can modify the exisiting filters without changing the tabular view.
 13. query: the Tabular window used a pandas dataframe as backend. The filtering is
     done by performing a query on the dataframe.
+    
+    
+9. File operations
+^^^^^^^^^^^^^^^^^^
+There are five aspects related to the measurement file that can be accesed using the tabs:
 
+1. channels: here the user can visualize the signals using the available window types
+2. modify & export: this tab contains the tools needed for processing the measurement file. 
+   The use can filter signals, cut and resample the measurement, or export it to other file formats.
+3. bus logging: this tab is only visible for the measurements that contain CAN or LIN bus logging. 
+   The user can decode the raw bus logging using database files (.dbc, .ldf, .arxml)
+4. attachments: this tab is only visible is the measurement contains attachments.
+   The user can extract the attachment and save it to a new file.
+5. info: this tab contains an overview of the measurement file content (channel groups, file header comments, total number of channels)
 
-9. CAN/LIN/FelxRay Bus Trace
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 
+
+10. CAN/LIN/FelxRay Bus Trace
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 This window types can only be created by pressing the ``Create window`` button. If the measurement
 does not contain bus logging of the selected kind, then no window will be generated.
 
 The filtering and signal ranges definition is done similar to the Tabular window.
 
-10. Drag & Drop
+11. Drag & Drop
 ^^^^^^^^^^^^^^^
 Channels can be dragged and dropped between sub-windows for easier configuration. Draga nd drop in the free MDI can be used to create new windows.
 
 .. image:: images/drag_and_drop.gif
 
-Multiple files
-==============
-The *Multiple files* toolbox page is used to concatenate or stack multiple files. 
+Batch processing
+================
+The *Batch processing* view is used to concatenate or stack multiple files, or to perform the same processing steps on multiple files. 
 Keep in mind that the order of the input files is always preserved, only the samples timestamps are influenced by the ``Sync using measurements timestamps`` checkbox.
 
 .. image:: images/multiple_files.png
+
+#. file list
+#. file list sorting buttons
+#. batch operations
+
+    a. concatenate requires input files with matching internal structure (same number of channel groups and the same set of channels in each n-th group). Each signal in the output file
+       will be the result of concatenation of the samples from the input files
+    b. modify & export: similar to the single files view
+    c. stack will create a single measurement that will contain all the channel groups from the input files. Identically named channels will not be concatenated, they will just appear
+       multiple times in the output file
+    d. bus logging: similat to the single files view
 
 The files list can be rearranged in the list (1) by drag and dropping lines. Unwanted files can be deleted by
 selecting them and pressing the *DEL* key. The files order is considered from top to bottom. 
