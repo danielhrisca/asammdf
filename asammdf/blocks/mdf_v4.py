@@ -8910,12 +8910,13 @@ class MDF4(MDF_Common):
                                 split_size = samples_size
                             chunks = float(total_size) / split_size
                             chunks = int(ceil(chunks))
+
+                            self._read_fragment_size = split_size
                         else:
                             chunks = 1
                     else:
                         chunks = 1
 
-                    self._read_fragment_size = split_size
                     data = self._load_data(gp)
 
                     if chunks == 1:
