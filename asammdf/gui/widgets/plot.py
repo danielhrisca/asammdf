@@ -2306,6 +2306,8 @@ class _Plot(pg.PlotWidget):
                 (QtCore.Qt.Key_Right, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_Left, QtCore.Qt.ShiftModifier),
                 (QtCore.Qt.Key_Right, QtCore.Qt.ShiftModifier),
+                (QtCore.Qt.Key_Up, QtCore.Qt.ShiftModifier),
+                (QtCore.Qt.Key_Down, QtCore.Qt.ShiftModifier),
                 (QtCore.Qt.Key_H, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_Insert, QtCore.Qt.NoModifier),
             ]
@@ -3070,6 +3072,45 @@ class _Plot(pg.PlotWidget):
 
                 self.set_time_offset([False, offset, *uuids])
 
+            elif (
+                key in (QtCore.Qt.Key_Up, QtCore.Qt.Key_Down)
+                and modifier == QtCore.Qt.ShiftModifier
+            ):
+                parent = self.parent().parent()
+                uuids = list(
+                    set(
+                        parent.channel_selection.itemWidget(item, 1).uuid
+                        for item in parent.channel_selection.selectedItems()
+                        if isinstance(item, ChannelsTreeItem)
+                    )
+                )
+
+                if not uuids:
+                    return
+
+                common_axis_modified = False
+
+                for uuid in uuids:
+                    signal, index = self.signal_by_uuid(uuid)
+
+                    if uuid in self.common_axis_items:
+                        if common_axis_modified:
+                            continue
+                        else:
+                            viewbox = self.common_viewbox
+
+                            common_axis_modified = True
+                    else:
+                        viewbox = self.view_boxes[index]
+
+                    bottom, top = viewbox.viewRange()[1]
+                    step = (top - bottom) / 100
+
+                    if key == QtCore.Qt.Key_Up:
+                        step = -step
+
+                    viewbox.setYRange(bottom + step, top + step, padding=0)
+
             elif key == QtCore.Qt.Key_H and modifier == QtCore.Qt.NoModifier:
                 if len(self.all_timebase):
                     start_ts = np.amin(self.all_timebase)
@@ -3443,7 +3484,6 @@ class _Plot(pg.PlotWidget):
             self._compute_all_timebase()
 
     def set_time_offset(self, info):
-        print("set time", info)
         absolute, offset, *uuids = info
 
         signals = [sig for sig in self.signals if sig.uuid in uuids]

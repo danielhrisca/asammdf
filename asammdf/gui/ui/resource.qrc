@@ -54,5 +54,9 @@
     <file alias="sort-ascending.png">images/sort-ascending.png</file>
     <file alias="sort-descending.png">images/sort-descending.png</file>
     <file alias="minus.png">images/minus.png</file>
+    <file alias="shift_left.png">images/shift_left.png</file>
+    <file alias="shift_up.png">images/shift_up.png</file>
+    <file alias="shift_down.png">images/shift_down.png</file>
+    <file alias="shift_right.png">images/shift_right.png</file>
 </qresource>
 </RCC>

@@ -221,3 +221,9 @@ class FormatedAxis(pg.AxisItem):
 
         if pen is not self._pen:
             self.setPen(pen)
+
+    def raiseContextMenu(self, ev):
+        menu = self.getMenu(ev)
+        if menu is not None:
+            self.scene().addParentContextMenus(self, menu, ev)
+            menu.popup(ev.screenPos().toPoint())

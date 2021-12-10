@@ -444,7 +444,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         icon = QtGui.QIcon()
         icon.addPixmap(
-            QtGui.QPixmap(":/right.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+            QtGui.QPixmap(":/shift_left.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
         )
         action = QtWidgets.QAction(
             icon, "{: <20}\tShift+←".format("Shift channels left"), menu
@@ -456,11 +456,15 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 modifier=QtCore.Qt.ShiftModifier,
             )
         )
-        action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+S"))
+        action.setShortcut(
+            QtGui.QKeySequence(QtCore.Qt.Key_Left, QtCore.Qt.ShiftModifier)
+        )
         channel_shift_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/left.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        icon.addPixmap(
+            QtGui.QPixmap(":/shift_right.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
         action = QtWidgets.QAction(
             icon, "{: <20}\tShift+→".format("Shift channels right"), menu
         )
@@ -471,7 +475,47 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 modifier=QtCore.Qt.ShiftModifier,
             )
         )
-        action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+S"))
+        action.setShortcut(
+            QtGui.QKeySequence(QtCore.Qt.Key_Right, QtCore.Qt.ShiftModifier)
+        )
+        channel_shift_actions.addAction(action)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/shift_up.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        action = QtWidgets.QAction(
+            icon, "{: <20}\tShift+↑".format("Shift channels up"), menu
+        )
+        action.triggered.connect(
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key_Up,
+                modifier=QtCore.Qt.ShiftModifier,
+            )
+        )
+        action.setShortcut(
+            QtGui.QKeySequence(QtCore.Qt.Key_Up, QtCore.Qt.ShiftModifier)
+        )
+        channel_shift_actions.addAction(action)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/shift_down.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        action = QtWidgets.QAction(
+            icon, "{: <20}\tShift+↓".format("Shift channels down"), menu
+        )
+        action.triggered.connect(
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key_Down,
+                modifier=QtCore.Qt.ShiftModifier,
+            )
+        )
+        action.setShortcut(
+            QtGui.QKeySequence(QtCore.Qt.Key_Down, QtCore.Qt.ShiftModifier)
+        )
         channel_shift_actions.addAction(action)
 
         # values display
@@ -734,6 +778,8 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             widget = self
             if widget and widget.get_current_widget():
                 widget.get_current_widget().keyPressEvent(event)
+
+        event.accept()
 
     def toggle_dots(self, key):
         file_widget = self.files.currentWidget()
