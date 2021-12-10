@@ -735,10 +735,10 @@ class PlotSignal(Signal):
         #        sig._stats["fmt"] = fmt
         return stats
 
-    def trim_c(self, start=None, stop=None, width=1900):
+    def trim_c(self, start=None, stop=None, width=1900, force=False):
 
         trim_info = (start, stop, width)
-        if self.trim_info == trim_info:
+        if not force and self.trim_info == trim_info:
             return None
 
         self.trim_info = trim_info
@@ -831,9 +831,9 @@ class PlotSignal(Signal):
 
         return pos
 
-    def trim_python(self, start=None, stop=None, width=1900):
+    def trim_python(self, start=None, stop=None, width=1900, force=False):
         trim_info = (start, stop, width)
-        if self.trim_info == trim_info:
+        if not force and self.trim_info == trim_info:
             return None
 
         self.trim_info = trim_info
@@ -975,11 +975,11 @@ class PlotSignal(Signal):
 
         return pos
 
-    def trim(self, start=None, stop=None, width=1900):
+    def trim(self, start=None, stop=None, width=1900, force=False):
         try:
-            return self.trim_c(start, stop, width)
+            return self.trim_c(start, stop, width, force)
         except:
-            return self.trim_python(start, stop, width)
+            return self.trim_python(start, stop, width, force)
 
     def value_at_timestamp(self, stamp):
         if len(self.timestamps) and self.timestamps[-1] < stamp:
@@ -1816,7 +1816,9 @@ class Plot(QtWidgets.QWidget):
         for ch in channels:
             width = max(
                 width,
-                self.channel_selection.fontMetrics().boundingRect(f'{ch.name} ({ch.unit})').width(),
+                self.channel_selection.fontMetrics()
+                .boundingRect(f"{ch.name} ({ch.unit})")
+                .width(),
             )
         width += 170
 
@@ -2302,6 +2304,8 @@ class _Plot(pg.PlotWidget):
                 (QtCore.Qt.Key_Y, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_Left, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_Right, QtCore.Qt.NoModifier),
+                (QtCore.Qt.Key_Left, QtCore.Qt.ShiftModifier),
+                (QtCore.Qt.Key_Right, QtCore.Qt.ShiftModifier),
                 (QtCore.Qt.Key_H, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_Insert, QtCore.Qt.NoModifier),
             ]
@@ -3041,6 +3045,31 @@ class _Plot(pg.PlotWidget):
 
                     self.cursor1.set_value(pos)
 
+            elif (
+                key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right)
+                and modifier == QtCore.Qt.ShiftModifier
+            ):
+                parent = self.parent().parent()
+                uuids = list(
+                    set(
+                        parent.channel_selection.itemWidget(item, 1).uuid
+                        for item in parent.channel_selection.selectedItems()
+                        if isinstance(item, ChannelsTreeItem)
+                    )
+                )
+
+                if not uuids:
+                    return
+
+                start, stop = self.viewbox.viewRange()[0]
+
+                offset = (stop - start) / 100
+
+                if key == QtCore.Qt.Key_Left:
+                    offset = -offset
+
+                self.set_time_offset([False, offset, *uuids])
+
             elif key == QtCore.Qt.Key_H and modifier == QtCore.Qt.NoModifier:
                 if len(self.all_timebase):
                     start_ts = np.amin(self.all_timebase)
@@ -3070,7 +3099,7 @@ class _Plot(pg.PlotWidget):
                     self.region.lines[i].pen.setStyle(QtCore.Qt.SolidLine)
         self.range_modified_finished.emit()
 
-    def trim(self, signals=None):
+    def trim(self, signals=None, force=False):
         signals = signals or self.signals
         if not self._can_trim:
             return
@@ -3082,12 +3111,12 @@ class _Plot(pg.PlotWidget):
             if sig.enable:
                 # sig.trim_orig(start, stop, width)
                 try:
-                    sig.trim(start, stop, width)
+                    sig.trim(start, stop, width, force)
                 except:
                     sig.trim_python(start, stop, width)
 
-    def xrange_changed_handle(self):
-        self.trim()
+    def xrange_changed_handle(self, force=False):
+        self.trim(force=force)
         self.update_lines()
 
     def _resizeEvent(self, ev):
@@ -3414,6 +3443,7 @@ class _Plot(pg.PlotWidget):
             self._compute_all_timebase()
 
     def set_time_offset(self, info):
+        print("set time", info)
         absolute, offset, *uuids = info
 
         signals = [sig for sig in self.signals if sig.uuid in uuids]
@@ -3447,11 +3477,9 @@ class _Plot(pg.PlotWidget):
                 if len(self._timebase_db[id_]) == 0:
                     del self._timebase_db[id_]
 
-        self.xrange_changed_handle()
-
         self._compute_all_timebase()
 
-        self.xrange_changed_handle()
+        self.xrange_changed_handle(force=True)
 
     def insert_computation(self, name=""):
         dlg = DefineChannel(self.signals, self.all_timebase, name, self.mdf, self)

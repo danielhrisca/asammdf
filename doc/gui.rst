@@ -162,12 +162,14 @@ Ctrl+I       Insert cursor comment  Insert a visual vertical line and comment at
 Ctrl+P       Physical               Toggle physical representation of integer channels
 Ctrl+S       Save plot channels     Save channels from current active subplot in a new MF4 file
 Ctrl+Shift+S Save all channels      Save all channels from all sub-windows in a new MF4 file
-Shift+C      Cascade sub-windows      Cascade the sub plots    
+Shift+C      Cascade sub-windows    Cascade the sub plots    
 Shift+Alt+F  Toggle frames          Will toggle the sub plots MDI window frames
 Shift+L      Toggle channel list    Will toggle the channel tree for the current opened file
-Shift+T      Tile sub-windows         Tiles sub-windows in a grid
+Shift+T      Tile sub-windows       Tiles sub-windows in a grid
 Shift+V      Tile vertically        Tiles sub-windows vertically [3]_
 Shift+H      Tile horizontally      Tiles sub-windows horizontally [3]_
+Shift+←      Shift channels left    Shifts the selected channels to the left in the time domain
+Shift+→      Shift channels right   Shifts the selected channels to the right in the time domain
 ============ ====================== ================================================================================================================
 
 

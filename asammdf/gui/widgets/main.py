@@ -431,6 +431,49 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+S"))
         plot_actions.addAction(action)
 
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtWidgets.QAction(
+            icon, "{: <20}\tCtrl+Shift+S".format("Save all subplot channels"), menu
+        )
+        action.triggered.connect(self.save_all_subplots)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+S"))
+        plot_actions.addAction(action)
+
+        channel_shift_actions = QtWidgets.QActionGroup(self)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/right.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        action = QtWidgets.QAction(
+            icon, "{: <20}\tShift+←".format("Shift channels left"), menu
+        )
+        action.triggered.connect(
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key_Left,
+                modifier=QtCore.Qt.ShiftModifier,
+            )
+        )
+        action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+S"))
+        channel_shift_actions.addAction(action)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/left.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtWidgets.QAction(
+            icon, "{: <20}\tShift+→".format("Shift channels right"), menu
+        )
+        action.triggered.connect(
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key_Right,
+                modifier=QtCore.Qt.ShiftModifier,
+            )
+        )
+        action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+S"))
+        channel_shift_actions.addAction(action)
+
         # values display
 
         display_format_actions = QtWidgets.QActionGroup(self)
@@ -628,6 +671,8 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.plot_menu.addAction(fullscreen)
         self.plot_menu.addSeparator()
         self.plot_menu.addActions(plot_actions.actions())
+        self.plot_menu.addSeparator()
+        self.plot_menu.addActions(channel_shift_actions.actions())
         self.plot_menu.addSeparator()
         self.plot_menu.addActions(cursors_actions.actions())
         self.plot_menu.addSeparator()
