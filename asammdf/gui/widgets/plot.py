@@ -54,14 +54,12 @@ def mouseReleaseEvent(self, ev):
     if self.mouseGrabberItem() is None:
         if ev.button() in self.dragButtons:
             if self.sendDragEvent(ev, final=True):
-                # print "sent drag event"
                 ev.accept()
             self.dragButtons.remove(ev.button())
         else:
             cev = [e for e in self.clickEvents if e.button() == ev.button()]
             if cev:
                 if self.sendClickEvent(cev[0]):
-                    # print "sent click event"
                     ev.accept()
                 try:
                     self.clickEvents.remove(cev[0])
@@ -1816,16 +1814,21 @@ class Plot(QtWidgets.QWidget):
 
         width = 0
         for ch in channels:
-            width = max(width, self.channel_selection.fontMetrics().boundingRect(ch.name).width())
+            width = max(
+                width,
+                self.channel_selection.fontMetrics().boundingRect(f'{ch.name} ({ch.unit})').width(),
+            )
         width += 170
 
-        if size - width >= 300:
-            self.splitter.setSizes([width, size - width, 0])
-        else:
-            if size >= 350:
-                self.splitter.setSizes([size - 300, 300, 0])
-            elif size >= 100:
-                self.splitter.setSizes([50, size - 50, 0])
+        if width > self.splitter.sizes()[0]:
+
+            if size - width >= 300:
+                self.splitter.setSizes([width, size - width, 0])
+            else:
+                if size >= 350:
+                    self.splitter.setSizes([size - 300, 300, 0])
+                elif size >= 100:
+                    self.splitter.setSizes([50, size - 50, 0])
 
         channels = self.plot.add_new_channels(channels)
 
@@ -1845,7 +1848,6 @@ class Plot(QtWidgets.QWidget):
 
         new_items = {}
         for sig in channels:
-            print(sig.name)
 
             item = ChannelsTreeItem(
                 (sig.group_index, sig.channel_index),
@@ -2221,8 +2223,6 @@ class _Plot(pg.PlotWidget):
         self.showGrid(x=True, y=True)
 
         self.plot_item = self.plotItem
-        # self.plot_item.hideAxis("left")
-        # self.plot_item.hideAxis("bottom")
         self.plotItem.showGrid(x=False, y=False)
         self.layout = self.plot_item.layout
         self.scene_ = self.plot_item.scene()
@@ -2240,21 +2240,7 @@ class _Plot(pg.PlotWidget):
         self.scene_.addItem(self.common_viewbox)
         self.common_viewbox.setXLink(self.viewbox)
 
-        # axis = self.layout.itemAt(3, 1)
-        # axis.setParent(None)
-
-        # oldAxis = self.plot_item.axes["bottom"]["item"]
-        # self.layout.removeItem(oldAxis)
-        # oldAxis.scene().removeItem(oldAxis)
-
-
         self.x_axis = FormatedAxis("bottom")
-        # self.layout.removeItem(self.x_axis)
-        # self.layout.addItem(self.x_axis, 3, 1)
-        # self.x_axis.linkToView(oldAxis.linkedView())
-        # self.plot_item.axes["bottom"]["item"] = self.x_axis
-
-        # oldAxis.unlinkFromView()
 
         if x_axis == "time":
             fmt = self._settings.value("plot_xaxis")
@@ -2265,21 +2251,8 @@ class _Plot(pg.PlotWidget):
         self.x_axis.format = fmt
         self.x_axis.origin = origin
 
-        # axis = self.layout.itemAt(2, 0)
-        # axis.setParent(None)
-
-        # oldAxis = self.plot_item.axes["left"]["item"]
-        # self.layout.removeItem(oldAxis)
-        # oldAxis.scene().removeItem(oldAxis)
-
         self.y_axis = FormatedAxis("left")
         self.y_axis.setWidth(48)
-        # self.layout.removeItem(axis)
-        # self.layout.addItem(self.y_axis, 2, 0)
-        # self.y_axis.linkToView(oldAxis.linkedView())
-        # self.plot_item.axes["left"]["item"] = self.y_axis
-
-        # oldAxis.unlinkFromView()
 
         self.plot_item.setAxisItems({"left": self.y_axis, "bottom": self.x_axis})
 
@@ -3239,43 +3212,27 @@ class _Plot(pg.PlotWidget):
         width = self.width() - self.y_axis.width()
         trim_info = start, stop, width
 
-        print(1)
-
         channels = [
             PlotSignal(sig, i, trim_info=trim_info)
             for i, sig in enumerate(channels, len(self.signals))
         ]
-
-        print(2)
 
         for sig in channels:
             uuids = self._timebase_db.setdefault(id(sig.timestamps), set())
             uuids.add(sig.uuid)
         self.signals.extend(channels)
 
-        print(3)
-
         self._uuid_map = {sig.uuid: (sig, i) for i, sig in enumerate(self.signals)}
-
-        print(4)
 
         self._compute_all_timebase()
 
-        print(5)
-
         if initial_index == 0 and len(self.all_timebase):
-            print('a')
             start_t, stop_t = np.amin(self.all_timebase), np.amax(self.all_timebase)
-            print('b', start_t, stop_t)
             self.viewbox.setXRange(start_t, stop_t, update=False)
-            print('c')
-
-        print(6)
 
         axis_uuid = None
 
         for index, sig in enumerate(channels, initial_index):
-            print(sig.name)
 
             axis = FormatedAxis(
                 "left",  # "right",
@@ -3287,28 +3244,15 @@ class _Plot(pg.PlotWidget):
             if sig.conversion and hasattr(sig.conversion, "text_0"):
                 axis.text_conversion = sig.conversion
 
-            print('ax')
-
             view_box = pg.ViewBox(enableMenu=False)
             view_box.setGeometry(geometry)
             view_box.disableAutoRange()
 
             axis.linkToView(view_box)
-            #            if len(sig.name) <= 32:
-            #                axis.labelText = sig.name
-            #            else:
-            #                axis.labelText = f"{sig.name[:29]}..."
-            #            axis.labelUnits = sig.unit
-            #            axis.labelStyle = {"color": color}
-            #
-            #            axis.setLabel(axis.labelText, sig.unit, color=color)
-
-            print('vb')
 
             self.layout.addItem(axis, 2, self._axes_layout_pos)
             self._axes_layout_pos += 1
 
-            # self.layout.addItem(view_box, 2, 1)
             self.scene_.addItem(view_box)
 
             t = sig.plot_timestamps
@@ -3337,9 +3281,6 @@ class _Plot(pg.PlotWidget):
             self.curves.append(curve)
             if not sig.empty:
                 view_box.setYRange(sig.min, sig.max, padding=0, update=True)
-
-            #            (start, stop), _ = self.viewbox.viewRange()
-            #            view_box.setXRange(start, stop, padding=0, update=True)
 
             self.axes.append(axis)
             axis.hide()
