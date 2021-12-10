@@ -170,6 +170,8 @@ Shift+V      Tile vertically        Tiles sub-windows vertically [3]_
 Shift+H      Tile horizontally      Tiles sub-windows horizontally [3]_
 Shift+←      Shift channels left    Shifts the selected channels to the left in the time domain
 Shift+→      Shift channels right   Shifts the selected channels to the right in the time domain
+Shift+↑      Shift channels up      Shifts the selected channels to the up
+Shift+↓      Shift channels down    Shifts the selected channels to the down
 ============ ====================== ================================================================================================================
 
 

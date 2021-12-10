@@ -440,6 +440,8 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+S"))
         plot_actions.addAction(action)
 
+        # channel shifting
+
         channel_shift_actions = QtWidgets.QActionGroup(self)
 
         icon = QtGui.QIcon()
