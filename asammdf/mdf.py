@@ -4572,6 +4572,7 @@ class MDF:
                                 if is_j1939 and not consolidated_j1939
                                 else None,
                                 ignore_value2text_conversion=ignore_value2text_conversion,
+                                is_j1939=is_j1939,
                             )
 
                             for entry, signals in extracted_signals.items():
@@ -4645,7 +4646,7 @@ class MDF:
                                         common_timebase=True,
                                     )
 
-                                    if ignore_invalid_signals_current_dbc:
+                                    if is_j1939:
                                         max_flags.append([False])
                                         for ch_index, sig in enumerate(sigs, 1):
                                             max_flags[cg_nr].append(
@@ -4673,7 +4674,7 @@ class MDF:
 
                                         t = signal["t"]
 
-                                    if ignore_invalid_signals_current_dbc:
+                                    if is_j1939:
                                         for ch_index, sig in enumerate(sigs, 1):
                                             max_flags[index][ch_index] = max_flags[
                                                 index
