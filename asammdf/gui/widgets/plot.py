@@ -1625,8 +1625,22 @@ class Plot(QtWidgets.QWidget):
                 except:
                     pass
 
+        elif key == QtCore.Qt.Key_R and modifiers == QtCore.Qt.NoModifier:
+            iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+            while iterator.value():
+                item = iterator.value()
+                widget = self.channel_selection.itemWidget(item, 1)
+                if isinstance(widget, ChannelDisplay):
+                    widget.set_prefix("")
+                    widget.set_value("")
+
+                iterator += 1
+
+            self.plot.keyPressEvent(event)
+
         elif (key, modifiers) in self.plot.keyboard_events:
             self.plot.keyPressEvent(event)
+
         else:
             event.ignore()
 
