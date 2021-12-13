@@ -1502,11 +1502,18 @@ class Plot(QtWidgets.QWidget):
                     widget = self.widget_by_uuid(signal.uuid)
                     widget.kind = kind
                     widget.set_fmt(fmt)
+                    widget.set_value(update=True)
 
                     if self.plot.current_uuid == signal.uuid:
                         self.plot.y_axis.format = fmt
-                        self.plot.y_axis.hide()
-                        self.plot.y_axis.show()
+                        self.plot.y_axis.picture = None
+                        self.plot.y_axis.update()
+
+                    axis = self.plot.axes[idx]
+                    axis.format = fmt
+                    axis.picture = None
+                    axis.update()
+
             if self.plot.cursor1:
                 self.plot.cursor_moved.emit()
 
