@@ -219,9 +219,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 )
 
         compression = self.extract_bus_compression.currentIndex()
-        ignore_invalid_signals = (
-            self.ignore_invalid_signals_mdf.checkState() == QtCore.Qt.Checked
-        )
 
         count = self.files_list.count()
 
@@ -269,8 +266,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             kwargs = {
                 "database_files": database_files,
                 "version": version,
-                "ignore_invalid_signals": ignore_invalid_signals,
                 "prefix": self.prefix.text().strip(),
+                "consolidated_j1939": self.consolidated_j1939.checkState()
+                == QtCore.Qt.Checked
             }
 
             mdf_ = run_thread_with_progress(
@@ -374,9 +372,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     (widget.database.text(), widget.bus.currentIndex())
                 )
 
-        ignore_invalid_signals = (
-            self.ignore_invalid_signals_csv.checkState() == QtCore.Qt.Checked
-        )
         single_time_base = self.single_time_base_bus.checkState() == QtCore.Qt.Checked
         time_from_zero = self.time_from_zero_bus.checkState() == QtCore.Qt.Checked
         empty_channels = self.empty_channels_bus.currentText()
@@ -437,8 +432,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             kwargs = {
                 "database_files": database_files,
                 "version": version,
-                "ignore_invalid_signals": ignore_invalid_signals,
                 "prefix": self.prefix.text().strip(),
+                "consolidated_j1939": self.consolidated_j1939.checkState()
+                == QtCore.Qt.Checked
             }
 
             mdf_ = run_thread_with_progress(

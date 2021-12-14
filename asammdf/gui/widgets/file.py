@@ -1544,9 +1544,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 )
 
         compression = self.extract_bus_compression.currentIndex()
-        ignore_invalid_signals = (
-            self.ignore_invalid_signals_mdf.checkState() == QtCore.Qt.Checked
-        )
 
         if version < "4.00":
             filter = "MDF version 3 files (*.dat *.mdf)"
@@ -1582,7 +1579,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             kwargs = {
                 "database_files": database_files,
                 "version": version,
-                "ignore_invalid_signals": ignore_invalid_signals,
                 "prefix": self.prefix.text().strip(),
                 "consolidated_j1939": self.consolidated_j1939.checkState()
                 == QtCore.Qt.Checked,
@@ -1691,9 +1687,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     (widget.database.text(), widget.bus.currentIndex())
                 )
 
-        ignore_invalid_signals = (
-            self.ignore_invalid_signals_csv.checkState() == QtCore.Qt.Checked
-        )
         single_time_base = self.single_time_base_bus.checkState() == QtCore.Qt.Checked
         time_from_zero = self.time_from_zero_bus.checkState() == QtCore.Qt.Checked
         empty_channels = self.empty_channels_bus.currentText()
@@ -1730,7 +1723,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             kwargs = {
                 "database_files": database_files,
                 "version": version,
-                "ignore_invalid_signals": ignore_invalid_signals,
                 "prefix": self.prefix.text().strip(),
                 "consolidated_j1939": self.consolidated_j1939.checkState()
                 == QtCore.Qt.Checked,

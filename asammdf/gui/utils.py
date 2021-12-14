@@ -5,18 +5,16 @@ from io import StringIO
 import json
 from pathlib import Path
 import re
-from struct import unpack
 from threading import Thread
+from traceback import format_exc
 from time import sleep
 import traceback
 
 import lxml
-import natsort
 from numexpr import evaluate
 import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from ..blocks.conversion_utils import from_dict
 from ..mdf import MDF, MDF2, MDF3, MDF4
 from ..signal import Signal
 from .dialogs.error_dialog import ErrorDialog
@@ -169,7 +167,7 @@ def load_dsp(file):
 
                     multi_color = elem.find("MULTI_COLOR")
 
-                    ranges = {}
+                    ranges = []
 
                     if multi_color is not None:
                         for color in multi_color.findall("color"):
@@ -207,6 +205,7 @@ def load_dsp(file):
                     )
 
                 except:
+                    print(format_exc())
                     continue
 
         return channels
