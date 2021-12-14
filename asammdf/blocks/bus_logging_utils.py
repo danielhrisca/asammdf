@@ -393,6 +393,7 @@ def extract_mux(
                     if raw
                     else apply_conversion(samples, sig, ignore_value2text_conversion),
                     "t": t_,
+                    "invalidation_bits": None,
                 }
 
                 if is_j1939:

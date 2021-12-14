@@ -268,7 +268,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 "version": version,
                 "prefix": self.prefix.text().strip(),
                 "consolidated_j1939": self.consolidated_j1939.checkState()
-                == QtCore.Qt.Checked
+                == QtCore.Qt.Checked,
             }
 
             mdf_ = run_thread_with_progress(
@@ -434,7 +434,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 "version": version,
                 "prefix": self.prefix.text().strip(),
                 "consolidated_j1939": self.consolidated_j1939.checkState()
-                == QtCore.Qt.Checked
+                == QtCore.Qt.Checked,
             }
 
             mdf_ = run_thread_with_progress(

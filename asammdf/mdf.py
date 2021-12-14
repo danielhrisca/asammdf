@@ -25,6 +25,7 @@ from tempfile import gettempdir, mkdtemp
 from traceback import format_exc
 from types import TracebackType
 from typing import Any, overload, Type
+from warnings import warn
 import xml.etree.ElementTree as ET
 import zipfile
 
@@ -4285,7 +4286,7 @@ class MDF:
         self,
         database_files: dict[BusType, Iterable[DbcFileType]],
         version: str | None = None,
-        ignore_invalid_signals: bool = False,
+        ignore_invalid_signals: bool | None = None,
         consolidated_j1939: bool = True,
         ignore_value2text_conversion: bool = True,
         prefix: str = "",
@@ -4313,6 +4314,9 @@ class MDF:
             ignore signals that have all samples equal to their maximum value
 
             .. versionadded:: 5.7.0
+
+            .. deprecated:: 7.0.2
+                this argument is no longer used and will be removed in the future
 
         consolidated_j1939 (True) : bool
             handle PGNs from all the messages as a single instance
@@ -4354,6 +4358,10 @@ class MDF:
         >>> extracted = mdf.extract_bus_logging(database_files=database_files)
 
         """
+        if ignore_invalid_signals is not None:
+            warn(
+                "The argument `ignore_invalid_signals` from the method `extract_bus_logging` is no longer used and will be removed in the future"
+            )
 
         if version is None:
             version = self.version
@@ -4398,7 +4406,6 @@ class MDF:
         self,
         output_file: MDF,
         dbc_files: Iterable[DbcFileType],
-        ignore_invalid_signals: bool = False,
         consolidated_j1939: bool = True,
         ignore_value2text_conversion: bool = True,
         prefix: str = "",
@@ -4734,7 +4741,6 @@ class MDF:
         self,
         output_file: MDF,
         dbc_files: Iterable[DbcFileType],
-        ignore_invalid_signals: bool = False,
         ignore_value2text_conversion: bool = True,
         prefix: str = "",
     ) -> MDF:

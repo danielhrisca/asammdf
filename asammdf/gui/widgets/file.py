@@ -1063,7 +1063,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 extension = file_name.suffix.lower()
                 if extension == ".dsp":
-                    info = load_dsp(file_name)
+                    palette = self.palette()
+                    info = load_dsp(file_name, palette.color(palette.Base).name())
                     channels = info.get("display", [])
 
                 elif extension == ".lab":
