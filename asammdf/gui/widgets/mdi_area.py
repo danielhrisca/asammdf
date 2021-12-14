@@ -2646,6 +2646,8 @@ class WithMDIArea:
                     elif pattern_info:
                         wid.set_ranges(pattern_info["ranges"])
 
+                    wid.set_value(update=True)
+
             self.set_subplots_link(self.subplots_link)
 
             if "x_range" in window_info["configuration"]:
