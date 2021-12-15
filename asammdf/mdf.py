@@ -4453,8 +4453,6 @@ class MDF:
             else:
                 messages = {message.arbitration_id.id: message for message in dbc}
 
-            ignore_invalid_signals_current_dbc = ignore_invalid_signals and is_j1939
-
             current_not_found_ids = {
                 (msg_id, message.name) for msg_id, message in messages.items()
             }
@@ -4599,9 +4597,7 @@ class MDF:
                                             unit=signal["unit"],
                                             invalidation_bits=signal[
                                                 "invalidation_bits"
-                                            ]
-                                            if ignore_invalid_signals_current_dbc
-                                            else None,
+                                            ],
                                         )
 
                                         sig.comment = f"""\
@@ -4671,9 +4667,7 @@ class MDF:
                                         sigs.append(
                                             (
                                                 signal["samples"],
-                                                signal["invalidation_bits"]
-                                                if ignore_invalid_signals_current_dbc
-                                                else None,
+                                                signal["invalidation_bits"],
                                             )
                                         )
 
@@ -4709,21 +4703,6 @@ class MDF:
             "found_ids": found_ids,
             "unknown_ids": unknown_ids,
         }
-
-        if ignore_invalid_signals:
-            to_keep = []
-            all_channels = []
-
-            for i, group in enumerate(out.groups):
-                for j, channel in enumerate(group.channels[1:], 1):
-                    if not max_flags[i][j]:
-                        to_keep.append((None, i, j))
-                    all_channels.append((None, i, j))
-
-            if to_keep != all_channels:
-                tmp = out.filter(to_keep, out.version)
-                out.close()
-                out = tmp
 
         if self._callback:
             self._callback(100, 100)
@@ -4897,9 +4876,7 @@ class MDF:
                                             unit=signal["unit"],
                                             invalidation_bits=signal[
                                                 "invalidation_bits"
-                                            ]
-                                            if ignore_invalid_signals
-                                            else None,
+                                            ],
                                         )
 
                                         sig.comment = f"""\
@@ -4925,13 +4902,6 @@ class MDF:
                                         common_timebase=True,
                                     )
 
-                                    if ignore_invalid_signals:
-                                        max_flags.append([False])
-                                        for ch_index, sig in enumerate(sigs, 1):
-                                            max_flags[cg_nr].append(
-                                                np.all(sig.invalidation_bits)
-                                            )
-
                                 else:
 
                                     index = msg_map[entry]
@@ -4942,19 +4912,11 @@ class MDF:
                                         sigs.append(
                                             (
                                                 signal["samples"],
-                                                signal["invalidation_bits"]
-                                                if ignore_invalid_signals
-                                                else None,
+                                                signal["invalidation_bits"],
                                             )
                                         )
 
                                         t = signal["t"]
-
-                                    if ignore_invalid_signals:
-                                        for ch_index, sig in enumerate(sigs, 1):
-                                            max_flags[index][ch_index] = max_flags[
-                                                index
-                                            ][ch_index] or np.all(sig[1])
 
                                     sigs.insert(0, (t, None))
 
@@ -4980,18 +4942,6 @@ class MDF:
             "found_ids": found_ids,
             "unknown_ids": unknown_ids,
         }
-
-        if ignore_invalid_signals:
-            to_keep = []
-
-            for i, group in enumerate(out.groups):
-                for j, channel in enumerate(group.channels[1:], 1):
-                    if not max_flags[i][j]:
-                        to_keep.append((None, i, j))
-
-            tmp = out.filter(to_keep, out.version)
-            out.close()
-            out = tmp
 
         if self._callback:
             self._callback(100, 100)
