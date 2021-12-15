@@ -24,7 +24,7 @@ Tips
 Selective channel loading
 =========================
 Since asammdf 6.1.0 you can use the **channels** argument to perform a selective channel loading. Only the metadata
-of channels found in the selection iterable will be preserved after loading the file. This can yeild a big
+of channels found in the selection iterable will be preserved after loading the file. This can yield a big
 speed improvement for loading the file, but also when performing operations with the MDF object (for example
 ``select``, ``get``, etc.).
 
@@ -58,7 +58,7 @@ Optimized methods
 The *MDF* methods (*cut*, *filter*, *select*) are optimized and should be used instead of calling *get* for several channels.
 
 Each *get* call will read all channel group raw samples from disk. If you need to extract multiple channels it is strongly advised to use the *select* method:
-for each channel group that contains channels submited for selection, the raw samples will only be read once.
+for each channel group that contains channels submitted for selection, the raw samples will only be read once.
 
 
 Faster file loading
