@@ -2246,6 +2246,7 @@ class _Plot(pg.PlotWidget):
         self.showGrid(x=True, y=True)
 
         self.plot_item = self.plotItem
+        self.plot_item.hideButtons()
         self.plotItem.showGrid(x=False, y=False)
         self.layout = self.plot_item.layout
         self.scene_ = self.plot_item.scene()
