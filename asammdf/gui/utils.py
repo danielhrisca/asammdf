@@ -104,7 +104,7 @@ def extract_mime_names(data):
     return names
 
 
-def load_dsp(file, background='#000000'):
+def load_dsp(file, background="#000000"):
     def parse_channels(display):
         channels = []
         for elem in display.iterchildren():
