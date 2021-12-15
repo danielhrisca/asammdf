@@ -4385,7 +4385,6 @@ class MDF:
             out = self._extract_can_logging(
                 out,
                 database_files["CAN"],
-                ignore_invalid_signals,
                 consolidated_j1939,
                 ignore_value2text_conversion,
                 prefix,
@@ -4395,7 +4394,6 @@ class MDF:
             out = self._extract_lin_logging(
                 out,
                 database_files["LIN"],
-                ignore_invalid_signals,
                 ignore_value2text_conversion,
                 prefix,
             )
