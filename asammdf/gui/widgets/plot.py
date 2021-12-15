@@ -54,14 +54,12 @@ def mouseReleaseEvent(self, ev):
     if self.mouseGrabberItem() is None:
         if ev.button() in self.dragButtons:
             if self.sendDragEvent(ev, final=True):
-                # print "sent drag event"
                 ev.accept()
             self.dragButtons.remove(ev.button())
         else:
             cev = [e for e in self.clickEvents if e.button() == ev.button()]
             if cev:
                 if self.sendClickEvent(cev[0]):
-                    # print "sent click event"
                     ev.accept()
                 try:
                     self.clickEvents.remove(cev[0])
@@ -737,10 +735,10 @@ class PlotSignal(Signal):
         #        sig._stats["fmt"] = fmt
         return stats
 
-    def trim_c(self, start=None, stop=None, width=1900):
+    def trim_c(self, start=None, stop=None, width=1900, force=False):
 
         trim_info = (start, stop, width)
-        if self.trim_info == trim_info:
+        if not force and self.trim_info == trim_info:
             return None
 
         self.trim_info = trim_info
@@ -833,9 +831,9 @@ class PlotSignal(Signal):
 
         return pos
 
-    def trim_python(self, start=None, stop=None, width=1900):
+    def trim_python(self, start=None, stop=None, width=1900, force=False):
         trim_info = (start, stop, width)
-        if self.trim_info == trim_info:
+        if not force and self.trim_info == trim_info:
             return None
 
         self.trim_info = trim_info
@@ -977,11 +975,11 @@ class PlotSignal(Signal):
 
         return pos
 
-    def trim(self, start=None, stop=None, width=1900):
+    def trim(self, start=None, stop=None, width=1900, force=False):
         try:
-            return self.trim_c(start, stop, width)
+            return self.trim_c(start, stop, width, force)
         except:
-            return self.trim_python(start, stop, width)
+            return self.trim_python(start, stop, width, force)
 
     def value_at_timestamp(self, stamp):
         if len(self.timestamps) and self.timestamps[-1] < stamp:
@@ -1504,11 +1502,18 @@ class Plot(QtWidgets.QWidget):
                     widget = self.widget_by_uuid(signal.uuid)
                     widget.kind = kind
                     widget.set_fmt(fmt)
+                    widget.set_value(update=True)
 
                     if self.plot.current_uuid == signal.uuid:
                         self.plot.y_axis.format = fmt
-                        self.plot.y_axis.hide()
-                        self.plot.y_axis.show()
+                        self.plot.y_axis.picture = None
+                        self.plot.y_axis.update()
+
+                    axis = self.plot.axes[idx]
+                    axis.format = fmt
+                    axis.picture = None
+                    axis.update()
+
             if self.plot.cursor1:
                 self.plot.cursor_moved.emit()
 
@@ -1627,8 +1632,22 @@ class Plot(QtWidgets.QWidget):
                 except:
                     pass
 
+        elif key == QtCore.Qt.Key_R and modifiers == QtCore.Qt.NoModifier:
+            iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+            while iterator.value():
+                item = iterator.value()
+                widget = self.channel_selection.itemWidget(item, 1)
+                if isinstance(widget, ChannelDisplay):
+                    widget.set_prefix("")
+                    widget.set_value("")
+
+                iterator += 1
+
+            self.plot.keyPressEvent(event)
+
         elif (key, modifiers) in self.plot.keyboard_events:
             self.plot.keyPressEvent(event)
+
         else:
             event.ignore()
 
@@ -1702,13 +1721,6 @@ class Plot(QtWidgets.QWidget):
         self.plot.set_current_uuid(self.info_uuid, True)
 
     def add_new_channels(self, channels, mime_data=None, destination=None):
-
-        size = sum(self.splitter.sizes())
-        if size >= 600:
-            self.splitter.setSizes([500, size - 500, 0])
-        else:
-            self.splitter.setSizes([size - 100, 100, 0])
-
         def add_new_items(tree, root, items, items_pool):
             for (name, group_index, channel_index, mdf_uuid, type_, ranges) in items:
 
@@ -1818,6 +1830,28 @@ class Plot(QtWidgets.QWidget):
             )
 
         channels = valid
+
+        size = sum(self.splitter.sizes())
+
+        width = 0
+        for ch in channels:
+            width = max(
+                width,
+                self.channel_selection.fontMetrics()
+                .boundingRect(f"{ch.name} ({ch.unit})")
+                .width(),
+            )
+        width += 170
+
+        if width > self.splitter.sizes()[0]:
+
+            if size - width >= 300:
+                self.splitter.setSizes([width, size - width, 0])
+            else:
+                if size >= 350:
+                    self.splitter.setSizes([size - 300, 300, 0])
+                elif size >= 100:
+                    self.splitter.setSizes([50, size - 50, 0])
 
         channels = self.plot.add_new_channels(channels)
 
@@ -2212,8 +2246,7 @@ class _Plot(pg.PlotWidget):
         self.showGrid(x=True, y=True)
 
         self.plot_item = self.plotItem
-        self.plot_item.hideAxis("left")
-        self.plot_item.hideAxis("bottom")
+        self.plot_item.hideButtons()
         self.plotItem.showGrid(x=False, y=False)
         self.layout = self.plot_item.layout
         self.scene_ = self.plot_item.scene()
@@ -2231,13 +2264,8 @@ class _Plot(pg.PlotWidget):
         self.scene_.addItem(self.common_viewbox)
         self.common_viewbox.setXLink(self.viewbox)
 
-        axis = self.layout.itemAt(3, 1)
-        axis.setParent(None)
         self.x_axis = FormatedAxis("bottom")
-        self.layout.removeItem(self.x_axis)
-        self.layout.addItem(self.x_axis, 3, 1)
-        self.x_axis.linkToView(axis.linkedView())
-        self.plot_item.axes["bottom"]["item"] = self.x_axis
+
         if x_axis == "time":
             fmt = self._settings.value("plot_xaxis")
             if fmt == "seconds":
@@ -2247,14 +2275,10 @@ class _Plot(pg.PlotWidget):
         self.x_axis.format = fmt
         self.x_axis.origin = origin
 
-        axis = self.layout.itemAt(2, 0)
-        axis.setParent(None)
         self.y_axis = FormatedAxis("left")
         self.y_axis.setWidth(48)
-        self.layout.removeItem(axis)
-        self.layout.addItem(self.y_axis, 2, 0)
-        self.y_axis.linkToView(axis.linkedView())
-        self.plot_item.axes["left"]["item"] = self.y_axis
+
+        self.plot_item.setAxisItems({"left": self.y_axis, "bottom": self.x_axis})
 
         self.cursor_hint = pg.PlotDataItem(
             [],
@@ -2302,6 +2326,10 @@ class _Plot(pg.PlotWidget):
                 (QtCore.Qt.Key_Y, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_Left, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_Right, QtCore.Qt.NoModifier),
+                (QtCore.Qt.Key_Left, QtCore.Qt.ShiftModifier),
+                (QtCore.Qt.Key_Right, QtCore.Qt.ShiftModifier),
+                (QtCore.Qt.Key_Up, QtCore.Qt.ShiftModifier),
+                (QtCore.Qt.Key_Down, QtCore.Qt.ShiftModifier),
                 (QtCore.Qt.Key_H, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_Insert, QtCore.Qt.NoModifier),
             ]
@@ -3041,6 +3069,70 @@ class _Plot(pg.PlotWidget):
 
                     self.cursor1.set_value(pos)
 
+            elif (
+                key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right)
+                and modifier == QtCore.Qt.ShiftModifier
+            ):
+                parent = self.parent().parent()
+                uuids = list(
+                    set(
+                        parent.channel_selection.itemWidget(item, 1).uuid
+                        for item in parent.channel_selection.selectedItems()
+                        if isinstance(item, ChannelsTreeItem)
+                    )
+                )
+
+                if not uuids:
+                    return
+
+                start, stop = self.viewbox.viewRange()[0]
+
+                offset = (stop - start) / 100
+
+                if key == QtCore.Qt.Key_Left:
+                    offset = -offset
+
+                self.set_time_offset([False, offset, *uuids])
+
+            elif (
+                key in (QtCore.Qt.Key_Up, QtCore.Qt.Key_Down)
+                and modifier == QtCore.Qt.ShiftModifier
+            ):
+                parent = self.parent().parent()
+                uuids = list(
+                    set(
+                        parent.channel_selection.itemWidget(item, 1).uuid
+                        for item in parent.channel_selection.selectedItems()
+                        if isinstance(item, ChannelsTreeItem)
+                    )
+                )
+
+                if not uuids:
+                    return
+
+                common_axis_modified = False
+
+                for uuid in uuids:
+                    signal, index = self.signal_by_uuid(uuid)
+
+                    if uuid in self.common_axis_items:
+                        if common_axis_modified:
+                            continue
+                        else:
+                            viewbox = self.common_viewbox
+
+                            common_axis_modified = True
+                    else:
+                        viewbox = self.view_boxes[index]
+
+                    bottom, top = viewbox.viewRange()[1]
+                    step = (top - bottom) / 100
+
+                    if key == QtCore.Qt.Key_Up:
+                        step = -step
+
+                    viewbox.setYRange(bottom + step, top + step, padding=0)
+
             elif key == QtCore.Qt.Key_H and modifier == QtCore.Qt.NoModifier:
                 if len(self.all_timebase):
                     start_ts = np.amin(self.all_timebase)
@@ -3070,7 +3162,7 @@ class _Plot(pg.PlotWidget):
                     self.region.lines[i].pen.setStyle(QtCore.Qt.SolidLine)
         self.range_modified_finished.emit()
 
-    def trim(self, signals=None):
+    def trim(self, signals=None, force=False):
         signals = signals or self.signals
         if not self._can_trim:
             return
@@ -3082,12 +3174,12 @@ class _Plot(pg.PlotWidget):
             if sig.enable:
                 # sig.trim_orig(start, stop, width)
                 try:
-                    sig.trim(start, stop, width)
+                    sig.trim(start, stop, width, force)
                 except:
                     sig.trim_python(start, stop, width)
 
-    def xrange_changed_handle(self):
-        self.trim()
+    def xrange_changed_handle(self, force=False):
+        self.trim(force=force)
         self.update_lines()
 
     def _resizeEvent(self, ev):
@@ -3228,7 +3320,7 @@ class _Plot(pg.PlotWidget):
 
         if initial_index == 0 and len(self.all_timebase):
             start_t, stop_t = np.amin(self.all_timebase), np.amax(self.all_timebase)
-            self.viewbox.setXRange(start_t, stop_t)
+            self.viewbox.setXRange(start_t, stop_t, update=False)
 
         axis_uuid = None
 
@@ -3249,19 +3341,10 @@ class _Plot(pg.PlotWidget):
             view_box.disableAutoRange()
 
             axis.linkToView(view_box)
-            #            if len(sig.name) <= 32:
-            #                axis.labelText = sig.name
-            #            else:
-            #                axis.labelText = f"{sig.name[:29]}..."
-            #            axis.labelUnits = sig.unit
-            #            axis.labelStyle = {"color": color}
-            #
-            #            axis.setLabel(axis.labelText, sig.unit, color=color)
 
             self.layout.addItem(axis, 2, self._axes_layout_pos)
             self._axes_layout_pos += 1
 
-            # self.layout.addItem(view_box, 2, 1)
             self.scene_.addItem(view_box)
 
             t = sig.plot_timestamps
@@ -3290,9 +3373,6 @@ class _Plot(pg.PlotWidget):
             self.curves.append(curve)
             if not sig.empty:
                 view_box.setYRange(sig.min, sig.max, padding=0, update=True)
-
-            #            (start, stop), _ = self.viewbox.viewRange()
-            #            view_box.setXRange(start, stop, padding=0, update=True)
 
             self.axes.append(axis)
             axis.hide()
@@ -3459,11 +3539,9 @@ class _Plot(pg.PlotWidget):
                 if len(self._timebase_db[id_]) == 0:
                     del self._timebase_db[id_]
 
-        self.xrange_changed_handle()
-
         self._compute_all_timebase()
 
-        self.xrange_changed_handle()
+        self.xrange_changed_handle(force=True)
 
     def insert_computation(self, name=""):
         dlg = DefineChannel(self.signals, self.all_timebase, name, self.mdf, self)

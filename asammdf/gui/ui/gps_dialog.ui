@@ -145,10 +145,10 @@
  <tabstops>
   <tabstop>latitude</tabstop>
   <tabstop>longitude</tabstop>
+  <tabstop>apply_btn</tabstop>
   <tabstop>search_latitude_btn</tabstop>
   <tabstop>search_longitude_btn</tabstop>
   <tabstop>cancel_btn</tabstop>
-  <tabstop>apply_btn</tabstop>
  </tabstops>
  <resources>
   <include location="resource.qrc"/>

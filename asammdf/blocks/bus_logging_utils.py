@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from traceback import format_exc
 from typing import Any
 
 from canmatrix import Frame, Signal
@@ -9,6 +10,28 @@ from typing_extensions import TypedDict
 
 from .conversion_utils import from_dict
 from .utils import as_non_byte_sized_signed_int, MdfException
+
+MAX_VALID_J1939 = {
+    2: 1,
+    4: 0xA,
+    8: 0xFA,
+    10: 0x3FA,
+    12: 0xFAF,
+    16: 0xFAFF,
+    20: 0xFAFFF,
+    24: 0xFAFFFF,
+    28: 0xFAFFFFF,
+    32: 0xFAFFFFFF,
+    64: 0xFFFFFFFFFFFFFFFF,
+}
+
+
+def defined_j1939_bit_count(signal):
+    size = signal.size
+    for defined_size in (2, 4, 8, 10, 12, 16, 20, 24, 28, 32):
+        if size <= defined_size:
+            return defined_size
+    return size
 
 
 def apply_conversion(
@@ -266,6 +289,7 @@ def extract_mux(
     raw: bool = False,
     include_message_name: bool = False,
     ignore_value2text_conversion: bool = True,
+    is_j1939: bool = False,
 ) -> dict[tuple[Any, ...], dict[str, ExtractedSignal]]:
     """extract multiplexed CAN signals from the raw payload
 
@@ -355,8 +379,6 @@ def extract_mux(
             if len(samples) == 0 and len(t_):
                 continue
 
-            max_val = np.full(len(samples), float(sig.calc_max()))
-
             if include_message_name:
                 sig_name = f"{message.name}.{sig.name}"
             else:
@@ -371,22 +393,18 @@ def extract_mux(
                     if raw
                     else apply_conversion(samples, sig, ignore_value2text_conversion),
                     "t": t_,
-                    "invalidation_bits": (
-                        np.isclose(
-                            apply_conversion(
-                                samples, sig, ignore_value2text_conversion=True
-                            ),
-                            max_val,
-                        )
-                        if len(samples.shape) == 1
-                        else np.zeros(len(samples), dtype=bool)
-                    ),
+                    "invalidation_bits": None,
                 }
 
+                if is_j1939:
+                    signals[sig_name]["invalidation_bits"] = (
+                        samples > MAX_VALID_J1939[defined_j1939_bit_count(sig)]
+                    )
+
             except:
+                print(format_exc())
                 print(message, sig)
                 print(samples, set(samples), samples.dtype, samples.shape)
-                print(max_val, max_val.dtype, max_val.shape)
                 raise
 
             if sig.multiplex == "Multiplexor":
@@ -402,6 +420,7 @@ def extract_mux(
                         original_message_id=original_message_id,
                         ignore_value2text_conversion=ignore_value2text_conversion,
                         raw=raw,
+                        is_j1939=is_j1939,
                     )
                 )
 

@@ -5,18 +5,16 @@ from io import StringIO
 import json
 from pathlib import Path
 import re
-from struct import unpack
 from threading import Thread
 from time import sleep
 import traceback
+from traceback import format_exc
 
 import lxml
-import natsort
 from numexpr import evaluate
 import numpy as np
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from ..blocks.conversion_utils import from_dict
 from ..mdf import MDF, MDF2, MDF3, MDF4
 from ..signal import Signal
 from .dialogs.error_dialog import ErrorDialog
@@ -106,7 +104,7 @@ def extract_mime_names(data):
     return names
 
 
-def load_dsp(file):
+def load_dsp(file, background="#000000"):
     def parse_channels(display):
         channels = []
         for elem in display.iterchildren():
@@ -124,6 +122,32 @@ def load_dsp(file):
                 gain = float(elem.get("gain"))
                 offset = float(elem.get("offset")) / 100
 
+                multi_color = elem.find("MULTI_COLOR")
+
+                ranges = []
+
+                if multi_color is not None:
+                    for color in multi_color.findall("color"):
+                        min_ = float(color.find("min").get("data"))
+                        max_ = float(color.find("max").get("data"))
+                        color_ = int(color.find("color").get("data"))
+                        c = 0
+                        for i in range(3):
+                            c = c << 8
+                            c += color_ & 0xFF
+                            color_ = color_ >> 8
+                        color = QtGui.QColor(f"#{c:06X}")
+                        ranges.append(
+                            {
+                                "background_color": background,
+                                "font_color": color,
+                                "op1": "<=",
+                                "op2": "<=",
+                                "value1": min_,
+                                "value2": max_,
+                            }
+                        )
+
                 channels.append(
                     {
                         "color": f"#{c:06X}",
@@ -134,7 +158,7 @@ def load_dsp(file):
                         "individual_axis": False,
                         "name": elem.get("name"),
                         "precision": 3,
-                        "ranges": [],
+                        "ranges": ranges,
                         "unit": "",
                         "type": "channel",
                         "y_range": [
@@ -169,7 +193,7 @@ def load_dsp(file):
 
                     multi_color = elem.find("MULTI_COLOR")
 
-                    ranges = {}
+                    ranges = []
 
                     if multi_color is not None:
                         for color in multi_color.findall("color"):
@@ -184,7 +208,7 @@ def load_dsp(file):
                             color = QtGui.QColor(f"#{c:06X}")
                             ranges.append(
                                 {
-                                    "background_color": color,
+                                    "background_color": background,
                                     "font_color": color,
                                     "op1": "<=",
                                     "op2": "<=",
@@ -207,6 +231,7 @@ def load_dsp(file):
                     )
 
                 except:
+                    print(format_exc())
                     continue
 
         return channels
@@ -558,9 +583,10 @@ def get_colors_using_ranges(
 
     if ranges:
 
-        for base_class in (float, str, int):
+        for base_class in (float, int, np.number):
             if isinstance(value, base_class):
                 for range_info in ranges:
+
                     (
                         background_color,
                         font_color,
@@ -572,7 +598,7 @@ def get_colors_using_ranges(
 
                     result = False
 
-                    if isinstance(value1, base_class):
+                    if isinstance(value1, float):
                         if op1 == "==":
                             result = value1 == value
                         elif op1 == "!=":
@@ -589,7 +615,7 @@ def get_colors_using_ranges(
                         if not result:
                             continue
 
-                    if isinstance(value2, base_class):
+                    if isinstance(value2, float):
                         if op2 == "==":
                             result = value == value2
                         elif op2 == "!=":
@@ -612,6 +638,60 @@ def get_colors_using_ranges(
                         new_font_color = font_color
                         break
                 break
+        else:
+            # str here
+
+            for range_info in ranges:
+
+                (
+                    background_color,
+                    font_color,
+                    op1,
+                    op2,
+                    value1,
+                    value2,
+                ) = range_info.values()
+
+                result = False
+
+                if isinstance(value1, str):
+                    if op1 == "==":
+                        result = value1 == value
+                    elif op1 == "!=":
+                        result = value1 != value
+                    elif op1 == "<=":
+                        result = value1 <= value
+                    elif op1 == "<":
+                        result = value1 < value
+                    elif op1 == ">=":
+                        result = value1 >= value
+                    elif op1 == ">":
+                        result = value1 > value
+
+                    if not result:
+                        continue
+
+                if isinstance(value2, str):
+                    if op2 == "==":
+                        result = value == value2
+                    elif op2 == "!=":
+                        result = value != value2
+                    elif op2 == "<=":
+                        result = value <= value2
+                    elif op2 == "<":
+                        result = value < value2
+                    elif op2 == ">=":
+                        result = value >= value2
+                    elif op2 == ">":
+                        result = value > value2
+
+                    if not result:
+                        continue
+
+                if result:
+                    new_background_color = background_color
+                    new_font_color = font_color
+                    break
 
     return new_background_color, new_font_color
 

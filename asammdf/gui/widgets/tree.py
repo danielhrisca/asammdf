@@ -527,6 +527,11 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 return
             self.itemWidget(selected_items[0], 1).keyPressEvent(event)
 
+        elif modifiers == QtCore.Qt.ShiftModifier and key in (
+            QtCore.Qt.Key_Up,
+            QtCore.Qt.Key_Down,
+        ):
+            event.ignore()
         else:
             super().keyPressEvent(event)
 

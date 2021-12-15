@@ -25,6 +25,7 @@ from tempfile import gettempdir, mkdtemp
 from traceback import format_exc
 from types import TracebackType
 from typing import Any, overload, Type
+from warnings import warn
 import xml.etree.ElementTree as ET
 import zipfile
 
@@ -4285,7 +4286,7 @@ class MDF:
         self,
         database_files: dict[BusType, Iterable[DbcFileType]],
         version: str | None = None,
-        ignore_invalid_signals: bool = False,
+        ignore_invalid_signals: bool | None = None,
         consolidated_j1939: bool = True,
         ignore_value2text_conversion: bool = True,
         prefix: str = "",
@@ -4313,6 +4314,9 @@ class MDF:
             ignore signals that have all samples equal to their maximum value
 
             .. versionadded:: 5.7.0
+
+            .. deprecated:: 7.0.2
+                this argument is no longer used and will be removed in the future
 
         consolidated_j1939 (True) : bool
             handle PGNs from all the messages as a single instance
@@ -4354,6 +4358,10 @@ class MDF:
         >>> extracted = mdf.extract_bus_logging(database_files=database_files)
 
         """
+        if ignore_invalid_signals is not None:
+            warn(
+                "The argument `ignore_invalid_signals` from the method `extract_bus_logging` is no longer used and will be removed in the future"
+            )
 
         if version is None:
             version = self.version
@@ -4377,7 +4385,6 @@ class MDF:
             out = self._extract_can_logging(
                 out,
                 database_files["CAN"],
-                ignore_invalid_signals,
                 consolidated_j1939,
                 ignore_value2text_conversion,
                 prefix,
@@ -4387,7 +4394,6 @@ class MDF:
             out = self._extract_lin_logging(
                 out,
                 database_files["LIN"],
-                ignore_invalid_signals,
                 ignore_value2text_conversion,
                 prefix,
             )
@@ -4398,7 +4404,6 @@ class MDF:
         self,
         output_file: MDF,
         dbc_files: Iterable[DbcFileType],
-        ignore_invalid_signals: bool = False,
         consolidated_j1939: bool = True,
         ignore_value2text_conversion: bool = True,
         prefix: str = "",
@@ -4447,8 +4452,6 @@ class MDF:
                 messages = {message.arbitration_id.pgn: message for message in dbc}
             else:
                 messages = {message.arbitration_id.id: message for message in dbc}
-
-            ignore_invalid_signals_current_dbc = ignore_invalid_signals and is_j1939
 
             current_not_found_ids = {
                 (msg_id, message.name) for msg_id, message in messages.items()
@@ -4572,6 +4575,7 @@ class MDF:
                                 if is_j1939 and not consolidated_j1939
                                 else None,
                                 ignore_value2text_conversion=ignore_value2text_conversion,
+                                is_j1939=is_j1939,
                             )
 
                             for entry, signals in extracted_signals.items():
@@ -4593,9 +4597,7 @@ class MDF:
                                             unit=signal["unit"],
                                             invalidation_bits=signal[
                                                 "invalidation_bits"
-                                            ]
-                                            if ignore_invalid_signals_current_dbc
-                                            else None,
+                                            ],
                                         )
 
                                         sig.comment = f"""\
@@ -4645,7 +4647,7 @@ class MDF:
                                         common_timebase=True,
                                     )
 
-                                    if ignore_invalid_signals_current_dbc:
+                                    if is_j1939:
                                         max_flags.append([False])
                                         for ch_index, sig in enumerate(sigs, 1):
                                             max_flags[cg_nr].append(
@@ -4665,15 +4667,13 @@ class MDF:
                                         sigs.append(
                                             (
                                                 signal["samples"],
-                                                signal["invalidation_bits"]
-                                                if ignore_invalid_signals_current_dbc
-                                                else None,
+                                                signal["invalidation_bits"],
                                             )
                                         )
 
                                         t = signal["t"]
 
-                                    if ignore_invalid_signals_current_dbc:
+                                    if is_j1939:
                                         for ch_index, sig in enumerate(sigs, 1):
                                             max_flags[index][ch_index] = max_flags[
                                                 index
@@ -4704,21 +4704,6 @@ class MDF:
             "unknown_ids": unknown_ids,
         }
 
-        if ignore_invalid_signals:
-            to_keep = []
-            all_channels = []
-
-            for i, group in enumerate(out.groups):
-                for j, channel in enumerate(group.channels[1:], 1):
-                    if not max_flags[i][j]:
-                        to_keep.append((None, i, j))
-                    all_channels.append((None, i, j))
-
-            if to_keep != all_channels:
-                tmp = out.filter(to_keep, out.version)
-                out.close()
-                out = tmp
-
         if self._callback:
             self._callback(100, 100)
         if not out.groups:
@@ -4733,7 +4718,6 @@ class MDF:
         self,
         output_file: MDF,
         dbc_files: Iterable[DbcFileType],
-        ignore_invalid_signals: bool = False,
         ignore_value2text_conversion: bool = True,
         prefix: str = "",
     ) -> MDF:
@@ -4892,9 +4876,7 @@ class MDF:
                                             unit=signal["unit"],
                                             invalidation_bits=signal[
                                                 "invalidation_bits"
-                                            ]
-                                            if ignore_invalid_signals
-                                            else None,
+                                            ],
                                         )
 
                                         sig.comment = f"""\
@@ -4920,13 +4902,6 @@ class MDF:
                                         common_timebase=True,
                                     )
 
-                                    if ignore_invalid_signals:
-                                        max_flags.append([False])
-                                        for ch_index, sig in enumerate(sigs, 1):
-                                            max_flags[cg_nr].append(
-                                                np.all(sig.invalidation_bits)
-                                            )
-
                                 else:
 
                                     index = msg_map[entry]
@@ -4937,19 +4912,11 @@ class MDF:
                                         sigs.append(
                                             (
                                                 signal["samples"],
-                                                signal["invalidation_bits"]
-                                                if ignore_invalid_signals
-                                                else None,
+                                                signal["invalidation_bits"],
                                             )
                                         )
 
                                         t = signal["t"]
-
-                                    if ignore_invalid_signals:
-                                        for ch_index, sig in enumerate(sigs, 1):
-                                            max_flags[index][ch_index] = max_flags[
-                                                index
-                                            ][ch_index] or np.all(sig[1])
 
                                     sigs.insert(0, (t, None))
 
@@ -4975,18 +4942,6 @@ class MDF:
             "found_ids": found_ids,
             "unknown_ids": unknown_ids,
         }
-
-        if ignore_invalid_signals:
-            to_keep = []
-
-            for i, group in enumerate(out.groups):
-                for j, channel in enumerate(group.channels[1:], 1):
-                    if not max_flags[i][j]:
-                        to_keep.append((None, i, j))
-
-            tmp = out.filter(to_keep, out.version)
-            out.close()
-            out = tmp
 
         if self._callback:
             self._callback(100, 100)

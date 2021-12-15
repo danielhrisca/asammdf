@@ -17,7 +17,7 @@ from ..ui.gps import Ui_GPSDisplay
 class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
     timestamp_changed_signal = QtCore.pyqtSignal(object, float)
 
-    def __init__(self, latitude_channel, longitude_channel, zoom=5, *args, **kwargs):
+    def __init__(self, latitude_channel, longitude_channel, zoom=15, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
@@ -50,8 +50,8 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
 
         self.timestamp.setRange(self._min, self._max)
         self.timestamp.setValue(self._min)
-        self.min_t.setText(f"{self._min:.3f}s")
-        self.max_t.setText(f"{self._max:.3f}s")
+        self.min_t.setText(f"{self._min:.6f}s")
+        self.max_t.setText(f"{self._max:.6f}s")
 
         self.mapWidget = MapWidget()
         self.map_layout.insertWidget(0, self.mapWidget)

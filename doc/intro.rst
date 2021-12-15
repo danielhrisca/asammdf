@@ -36,7 +36,7 @@ Features
         * 2 - look-up
         
 * add and extract attachments for mdf version 4
-* handle large files (for example merging two fileas, each with 14000 channels and 5GB size, on a RaspberryPi)
+* handle large files (for example merging two files, each with 14000 channels and 5GB size, on a RaspberryPi)
 * extract channel data, master channel and extra channel information as *Signal* objects for unified operations with v3 and v4 files
 * time domain operation using the *Signal* class
 
@@ -81,7 +81,7 @@ asammdf uses the following libraries
 * canmatrix : to handle CAN/LIN bus logging measurements
 * natsort
 * lxml : for canmatrix arxml support
-* lz4 : to speed up the disk IO peformance
+* lz4 : to speed up the disk IO performance
 
 optional dependencies needed for exports
 
@@ -95,8 +95,8 @@ other optional dependencies
 * PyQt5 : for GUI tool
 * pyqtgraph : for GUI tool and Signal plotting (preferably the latest develop branch code)
 * matplotlib : as fallback for Signal plotting
-* cChardet : to detect non-standard unicode encodings
-* chardet : to detect non-standard unicode encodings 
+* cChardet : to detect non-standard Unicode encodings
+* chardet : to detect non-standard Unicode encodings 
 * pyqtlet : for GPS window
 * isal : for faster zlib compression/decompression
 
@@ -117,7 +117,7 @@ Installation
        
 In case a wheel is not present for you OS/Python versions and you
 lack the proper compiler setup to compile the c-extension code, then
-you can simply copy-paste the pacakge code to your site-packages. In this 
+you can simply copy-paste the package code to your site-packages. In this 
 way the python fallback code will be used instead of the compiled c-extension code.
 
 

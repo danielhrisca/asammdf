@@ -422,6 +422,8 @@ class MinimalListWidget(QtWidgets.QListWidget):
         self.all_texts = False
         self.placeholder_text = ""
 
+        self.user_editable = True
+
     def item_selection_changed(self, item=None):
         try:
             selection = list(self.selectedItems())
@@ -437,7 +439,7 @@ class MinimalListWidget(QtWidgets.QListWidget):
     def keyPressEvent(self, event):
         key = event.key()
         modifiers = event.modifiers()
-        if key == QtCore.Qt.Key_Delete:
+        if key == QtCore.Qt.Key_Delete and self.user_editable:
             selected_items = self.selectedItems()
             deleted = []
 
@@ -480,7 +482,11 @@ class MinimalListWidget(QtWidgets.QListWidget):
             except:
                 text = ""
             QtWidgets.QApplication.instance().clipboard().setText(text)
-        elif key == QtCore.Qt.Key_V and modifiers == QtCore.Qt.ControlModifier:
+        elif (
+            key == QtCore.Qt.Key_V
+            and modifiers == QtCore.Qt.ControlModifier
+            and self.user_editable
+        ):
             lines = QtWidgets.QApplication.instance().clipboard().text().splitlines()
             if lines:
                 try:
@@ -505,14 +511,16 @@ class MinimalListWidget(QtWidgets.QListWidget):
             if self.count() == 0:
                 menu.addAction(self.tr(f"{self.count()} items in the list"))
                 menu.addSeparator()
-                menu.addAction(self.tr("Paste names (Ctrl+V)"))
+                if self.user_editable:
+                    menu.addAction(self.tr("Paste names (Ctrl+V)"))
             else:
                 menu.addAction(self.tr(f"{self.count()} items in the list"))
                 menu.addSeparator()
                 menu.addAction(self.tr("Copy names (Ctrl+C)"))
-                menu.addAction(self.tr("Paste names (Ctrl+V)"))
-                menu.addSeparator()
-                menu.addAction(self.tr("Delete (Del)"))
+                if self.user_editable:
+                    menu.addAction(self.tr("Paste names (Ctrl+V)"))
+                    menu.addSeparator()
+                    menu.addAction(self.tr("Delete (Del)"))
 
         action = menu.exec_(self.viewport().mapToGlobal(position))
 

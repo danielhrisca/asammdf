@@ -152,6 +152,7 @@ class FormatedAxis(pg.AxisItem):
             return self.linkedView().mouseDragEvent(event)
 
     def mouseClickEvent(self, event):
+
         if event.button() == QtCore.Qt.MouseButton.RightButton:
             event.accept()
             self.raiseContextMenu(event)
@@ -221,3 +222,57 @@ class FormatedAxis(pg.AxisItem):
 
         if pen is not self._pen:
             self.setPen(pen)
+
+    def raiseContextMenu(self, ev):
+        view = self.linkedView()
+        if self.orientation in ("left", "right"):
+            low, high = view.viewRange()[1]
+        else:
+            low, high = view.viewRange()[0]
+
+        menu = QtWidgets.QMenu()
+        menu.addAction("Apply new axis limits")
+        menu.addSeparator()
+
+        widget = QtWidgets.QWidget()
+        layout = QtWidgets.QHBoxLayout()
+        widget.setLayout(layout)
+        layout.addWidget(QtWidgets.QLabel("max:"))
+
+        upper = QtWidgets.QDoubleSpinBox()
+        upper.setDecimals(9)
+        upper.setMinimum(-1e64)
+        upper.setMaximum(1e35)
+        upper.setValue(high)
+        layout.addWidget(upper)
+
+        a = QtWidgets.QWidgetAction(self)
+        a.setDefaultWidget(widget)
+        menu.addAction(a)
+
+        widget = QtWidgets.QWidget()
+        layout = QtWidgets.QHBoxLayout()
+        widget.setLayout(layout)
+        layout.addWidget(QtWidgets.QLabel("min:"))
+
+        lower = QtWidgets.QDoubleSpinBox()
+        lower.setDecimals(9)
+        lower.setMinimum(-1e64)
+        lower.setMaximum(1e35)
+        lower.setValue(low)
+        layout.addWidget(lower)
+
+        a = QtWidgets.QWidgetAction(self)
+        a.setDefaultWidget(widget)
+        menu.addAction(a)
+
+        action = menu.exec_(ev.screenPos().toPoint())
+
+        if action is None:
+            return
+
+        if action.text() == "Apply new axis limits":
+            if self.orientation in ("left", "right"):
+                view.setYRange(lower.value(), upper.value(), padding=0)
+            else:
+                view.setXRange(lower.value(), upper.value(), padding=0)

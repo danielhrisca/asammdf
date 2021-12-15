@@ -42,7 +42,7 @@ SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
 NOT_FOUND = 2 ** 32 - 1
 
 
-def build_mime_from_config(channels, mdf=None, uuid=None, default_index=-1):
+def build_mime_from_config(channels, mdf=None, uuid=None, default_index=NOT_FOUND):
     mime = []
     for channel in channels:
         if channel.get("type", "channel") == "group":
@@ -2030,9 +2030,6 @@ class WithMDIArea:
             # patterns
             pattern_info = window_info["configuration"].get("pattern", {})
             if pattern_info:
-                required = set()
-                found_signals = []
-                fmt = "phys"
 
                 signals = extract_signals_using_pattern(
                     self.mdf,
@@ -2278,8 +2275,6 @@ class WithMDIArea:
 
                 mime_data = None
 
-                found_descriptions = {}
-
             else:
 
                 (
@@ -2298,7 +2293,6 @@ class WithMDIArea:
                     (name, *self.mdf.whereis(name)[0]) for name in found_signals
                 ]
 
-                found_descriptions = found_signals
                 found_signals = list(found_signals.values())
 
                 measured_signals = {
@@ -2493,10 +2487,11 @@ class WithMDIArea:
 
             found = set(sig.name for sig in signals)
             not_found = [Signal([], [], name=name) for name in sorted(required - found)]
-            uuid = os.urandom(6).hex()
+            # uuid = os.urandom(6).hex()
             for sig in not_found:
                 sig.mdf_uuid = uuid
                 sig.group_index = NOT_FOUND
+                sig.channel_index = NOT_FOUND
 
             signals.extend(not_found)
 
@@ -2650,6 +2645,8 @@ class WithMDIArea:
 
                     elif pattern_info:
                         wid.set_ranges(pattern_info["ranges"])
+
+                    wid.set_value(update=True)
 
             self.set_subplots_link(self.subplots_link)
 

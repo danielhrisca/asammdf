@@ -110,7 +110,7 @@ The following settings are available
       * ``Dark``
       * ``Light``
       
-* **Step mode**: controls how the signal samples are are interconencted visually in the Plot
+* **Step mode**: controls how the signal samples are interconnected visually in the Plot
       
 * **Integer interpolation**: selects the way integer channels are interpolated
 
@@ -124,7 +124,7 @@ The following settings are available
       * ``1 - linear interpolation``
       
       
-The seetings are saved and restored each time the GUI is started.
+The settings are saved and restored each time the GUI is started.
 
       
 Plot
@@ -162,12 +162,16 @@ Ctrl+I       Insert cursor comment  Insert a visual vertical line and comment at
 Ctrl+P       Physical               Toggle physical representation of integer channels
 Ctrl+S       Save plot channels     Save channels from current active subplot in a new MF4 file
 Ctrl+Shift+S Save all channels      Save all channels from all sub-windows in a new MF4 file
-Shift+C      Cascade sub-windows      Cascade the sub plots    
+Shift+C      Cascade sub-windows    Cascade the sub plots    
 Shift+Alt+F  Toggle frames          Will toggle the sub plots MDI window frames
 Shift+L      Toggle channel list    Will toggle the channel tree for the current opened file
-Shift+T      Tile sub-windows         Tiles sub-windows in a grid
+Shift+T      Tile sub-windows       Tiles sub-windows in a grid
 Shift+V      Tile vertically        Tiles sub-windows vertically [3]_
 Shift+H      Tile horizontally      Tiles sub-windows horizontally [3]_
+Shift+←      Shift channels left    Shifts the selected channels to the left in the time domain
+Shift+→      Shift channels right   Shifts the selected channels to the right in the time domain
+Shift+↑      Shift channels up      Shifts the selected channels to the up
+Shift+↓      Shift channels down    Shifts the selected channels to the down
 ============ ====================== ================================================================================================================
 
 
@@ -245,7 +249,7 @@ From left to right the buttons have the following functionality
 
 5. Windows area
 ^^^^^^^^^^^^^^^
-If sub-windows are enabled then multiple plots can be used. The sub-windows can be re-aranged using drag & drop.
+If sub-windows are enabled then multiple plots can be used. The sub-windows can be re-arranged using drag & drop.
 
 6. Numeric window
 ^^^^^^^^^^^^^^^^^
@@ -257,12 +261,12 @@ a numeric window to see the channel values at certain time stamps, and to search
 1. display area: here we can see the instantaneous signal values. The raw and scaled values are shown for each signal.
    Double clicking a column header will toggle the sorting on that column.
 2. integer format: choose between physical, hex and binary format.
-3. float decimals: choose the precision used for float dislay
+3. float decimals: choose the precision used for float display
 4. timestamp selection: use the input box or the slider to adjust the timestamp
 5. signal values search mode: choose between raw and scaled signal samples when searching for a certain value
 6. signal name pattern: use a wildcard pattern to select the signals that will be used for value searching
 7. operator: operator that will be used for the search
-8. targe value: search target value
+8. target value: search target value
 9. direction: timebase direction for searching the values
 
 Double clicking a row will bring up the range editor for associated signal. 
@@ -298,7 +302,7 @@ Each signal item from the signal selection tree has five elements
 The user can also create channel groups in the selection tree. Simple channel groups are only used for grouping signals. Pattern based channel groups
 can be used to filter signals based on the name or samples values.
         
-The selection tree has an extended context menu accesible using the right mouse click.
+The selection tree has an extended context menu accessible using the right mouse click.
 
 Double clicking an item will open a range editor dialog, similar to the Numeric window range editor.
 
@@ -316,9 +320,9 @@ The *Ctrl+H*, *Ctrl+B* and *Ctrl+P* keyboard shortcuts will
 * change the axis values for integer channels to hex, bin or physical mode
 * change the channel value display mode for each integer channel item in the *Signal selection tree*
 
-The *Alt+R* and *Alt+S* keyboard shortcuts will switch between the rawe and scaled signal samples.
+The *Alt+R* and *Alt+S* keyboard shortcuts will switch between the raw and scaled signal samples.
 
-Each vartical axis width can be modified using the + and - buttons.
+Each vertical axis width can be modified using the + and - buttons.
 
 
 .. image:: images/plot.gif
@@ -339,8 +343,8 @@ The sub-windows can be tiled as a grid, vertically or horizontally (see the keyb
 8. Tabular window
 ^^^^^^^^^^^^^^^^^
 
-The tabular window is very simialr to an Excel/CSV sheet.
-The most powerfull feature of this window is that multiple filters can be defined for the signals values.
+The tabular window is very similar to an Excel/CSV sheet.
+The most powerful feature of this window is that multiple filters can be defined for the signals values.
 
 
 .. image:: images/tabular1.png
@@ -350,41 +354,41 @@ The most powerfull feature of this window is that multiple filters can be define
 The tabular window has the following elements:
 
 1. display area: here we can see the signal values. The raw and scaled values are shown for each signal.
-   Right clicking a column header will show a pop-up window for controling the sorting, defining signal ranges and
+   Right clicking a column header will show a pop-up window for controlling the sorting, defining signal ranges and
    adjusting the columns width.
 2. integer format: choose between physical, hex and binary format.
-3. float decimals: choose the precision used for float dislay
+3. float decimals: choose the precision used for float display
 4. timestamp format: use the input box or the slider to adjust the timestamp display as float value or as
    datetime value
-5. remove prefix: remove column names prefix; avoids unnecessary large cokumn widths
+5. remove prefix: remove column names prefix; avoids unnecessary large column widths
 6. toggle filters view: toggle the visibility of the filters (better vertical space if filters are not used)
 7. filter enable
 8. filter logical relation
-9. filterig signal
+9. filtering signal
 10. filter operator
 11. target value for filtering
 12. apply filters: the actual filtering is done only after pressing the button.
-    The user can modify the exisiting filters without changing the tabular view.
+    The user can modify the existing filters without changing the tabular view.
 13. query: the Tabular window used a pandas dataframe as backend. The filtering is
     done by performing a query on the dataframe.
     
     
 9. File operations
 ^^^^^^^^^^^^^^^^^^
-There are five aspects related to the measurement file that can be accesed using the tabs:
+There are five aspects related to the measurement file that can be accessed using the tabs:
 
 1. channels: here the user can visualize the signals using the available window types
 2. modify & export: this tab contains the tools needed for processing the measurement file. 
    The use can filter signals, cut and resample the measurement, or export it to other file formats.
 3. bus logging: this tab is only visible for the measurements that contain CAN or LIN bus logging. 
    The user can decode the raw bus logging using database files (.dbc, .ldf, .arxml)
-4. attachments: this tab is only visible is the measurement contains attachments.
+4. attachments: this tab is only visible if the measurement contains attachments.
    The user can extract the attachment and save it to a new file.
 5. info: this tab contains an overview of the measurement file content (channel groups, file header comments, total number of channels)
 
  
 
-10. CAN/LIN/FelxRay Bus Trace
+10. CAN/LIN/FlexRay Bus Trace
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 This window types can only be created by pressing the ``Create window`` button. If the measurement
 does not contain bus logging of the selected kind, then no window will be generated.
@@ -393,7 +397,7 @@ The filtering and signal ranges definition is done similar to the Tabular window
 
 11. Drag & Drop
 ^^^^^^^^^^^^^^^
-Channels can be dragged and dropped between sub-windows for easier configuration. Draga nd drop in the free MDI can be used to create new windows.
+Channels can be dragged and dropped between sub-windows for easier configuration. Drag and drop in the free MDI can be used to create new windows.
 
 .. image:: images/drag_and_drop.gif
 
@@ -413,7 +417,7 @@ Keep in mind that the order of the input files is always preserved, only the sam
     b. modify & export: similar to the single files view
     c. stack will create a single measurement that will contain all the channel groups from the input files. Identically named channels will not be concatenated, they will just appear
        multiple times in the output file
-    d. bus logging: similat to the single files view
+    d. bus logging: similar to the single files view
 
 The files list can be rearranged in the list (1) by drag and dropping lines. Unwanted files can be deleted by
 selecting them and pressing the *DEL* key. The files order is considered from top to bottom. 

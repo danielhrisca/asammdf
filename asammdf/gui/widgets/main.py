@@ -431,6 +431,95 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+S"))
         plot_actions.addAction(action)
 
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtWidgets.QAction(
+            icon, "{: <20}\tCtrl+Shift+S".format("Save all subplot channels"), menu
+        )
+        action.triggered.connect(self.save_all_subplots)
+        action.setShortcut(QtGui.QKeySequence("Ctrl+Shift+S"))
+        plot_actions.addAction(action)
+
+        # channel shifting
+
+        channel_shift_actions = QtWidgets.QActionGroup(self)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/shift_left.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        action = QtWidgets.QAction(
+            icon, "{: <20}\tShift+←".format("Shift channels left"), menu
+        )
+        action.triggered.connect(
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key_Left,
+                modifier=QtCore.Qt.ShiftModifier,
+            )
+        )
+        action.setShortcut(
+            QtGui.QKeySequence(QtCore.Qt.Key_Left, QtCore.Qt.ShiftModifier)
+        )
+        channel_shift_actions.addAction(action)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/shift_right.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        action = QtWidgets.QAction(
+            icon, "{: <20}\tShift+→".format("Shift channels right"), menu
+        )
+        action.triggered.connect(
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key_Right,
+                modifier=QtCore.Qt.ShiftModifier,
+            )
+        )
+        action.setShortcut(
+            QtGui.QKeySequence(QtCore.Qt.Key_Right, QtCore.Qt.ShiftModifier)
+        )
+        channel_shift_actions.addAction(action)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/shift_up.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        action = QtWidgets.QAction(
+            icon, "{: <20}\tShift+↑".format("Shift channels up"), menu
+        )
+        action.triggered.connect(
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key_Up,
+                modifier=QtCore.Qt.ShiftModifier,
+            )
+        )
+        action.setShortcut(
+            QtGui.QKeySequence(QtCore.Qt.Key_Up, QtCore.Qt.ShiftModifier)
+        )
+        channel_shift_actions.addAction(action)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/shift_down.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        action = QtWidgets.QAction(
+            icon, "{: <20}\tShift+↓".format("Shift channels down"), menu
+        )
+        action.triggered.connect(
+            partial(
+                self.plot_action,
+                key=QtCore.Qt.Key_Down,
+                modifier=QtCore.Qt.ShiftModifier,
+            )
+        )
+        action.setShortcut(
+            QtGui.QKeySequence(QtCore.Qt.Key_Down, QtCore.Qt.ShiftModifier)
+        )
+        channel_shift_actions.addAction(action)
+
         # values display
 
         display_format_actions = QtWidgets.QActionGroup(self)
@@ -629,6 +718,8 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.plot_menu.addSeparator()
         self.plot_menu.addActions(plot_actions.actions())
         self.plot_menu.addSeparator()
+        self.plot_menu.addActions(channel_shift_actions.actions())
+        self.plot_menu.addSeparator()
         self.plot_menu.addActions(cursors_actions.actions())
         self.plot_menu.addSeparator()
         self.plot_menu.addActions(display_format_actions.actions())
@@ -689,6 +780,8 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             widget = self
             if widget and widget.get_current_widget():
                 widget.get_current_widget().keyPressEvent(event)
+
+        event.accept()
 
     def toggle_dots(self, key):
         file_widget = self.files.currentWidget()
