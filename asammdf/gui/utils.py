@@ -6,9 +6,9 @@ import json
 from pathlib import Path
 import re
 from threading import Thread
-from traceback import format_exc
 from time import sleep
 import traceback
+from traceback import format_exc
 
 import lxml
 from numexpr import evaluate

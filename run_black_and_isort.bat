@@ -12,6 +12,6 @@ isort asammdf\mdf.py && ^
 isort asammdf\blocks && ^
 isort asammdf\gui\widgets && ^
 isort asammdf\gui\asammdfgui.py && ^
-isort asammdf\gui\utilss.py && ^
+isort asammdf\gui\utils.py && ^
 isort asammdf.spec && ^
 isort asammdf\gui\dialogs
