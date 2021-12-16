@@ -1427,7 +1427,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         elif window_type == "GPS":
 
             dlg = GPSDialog(
-                self.mdf.channels_db,
+                self.mdf,
                 parent=self,
             )
             dlg.setModal(True)
@@ -2537,7 +2537,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
     def raster_search(self, event):
         dlg = AdvancedSearch(
-            self.mdf.channels_db,
+            self.mdf,
             show_add_window=False,
             show_apply=True,
             apply_text="Set raster channel",

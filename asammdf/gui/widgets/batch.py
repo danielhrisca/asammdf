@@ -857,22 +857,20 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         if not self.files_list.count():
             return
 
-        mdf = MDF(self.files_list.item(0).text())
-        channels = self.mdf.channels_db
-        mdf.close()
-        dlg = AdvancedSearch(
-            channels,
-            show_add_window=False,
-            show_pattern=False,
-            parent=self,
-            return_names=True,
-        )
-        dlg.setModal(True)
-        dlg.exec_()
-        result = dlg.result
-        if result:
-            name = list(result)[0]
-            self.raster_channel.setCurrentText(name)
+        with MDF(self.files_list.item(0).text()) as mdf:
+            dlg = AdvancedSearch(
+                mdf,
+                show_add_window=False,
+                show_pattern=False,
+                parent=self,
+                return_names=True,
+            )
+            dlg.setModal(True)
+            dlg.exec_()
+            result = dlg.result
+            if result:
+                name = list(result)[0]
+                self.raster_channel.setCurrentText(name)
 
     def filter_changed(self, item, column):
         name = item.text(0)
@@ -891,80 +889,78 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         if not self.files_list.count():
             return
 
-        mdf = MDF(self.files_list.item(0).text())
-        channels = self.mdf.channels_db
-        mdf.close()
+        with MDF(self.files_list.item(0).text()) as mdf:
 
-        widget = self.filter_tree
-        view = self.filter_view
+            widget = self.filter_tree
+            view = self.filter_view
 
-        dlg = AdvancedSearch(
-            channels, show_add_window=False, show_pattern=False, parent=self
-        )
-        dlg.setModal(True)
-        dlg.exec_()
-        result = dlg.result
+            dlg = AdvancedSearch(
+                mdf, show_add_window=False, show_pattern=False, parent=self
+            )
+            dlg.setModal(True)
+            dlg.exec_()
+            result = dlg.result
 
-        if result:
-            if view.currentText() == "Internal file structure":
-                iterator = QtWidgets.QTreeWidgetItemIterator(widget)
+            if result:
+                if view.currentText() == "Internal file structure":
+                    iterator = QtWidgets.QTreeWidgetItemIterator(widget)
 
-                dg_cntr = -1
-                ch_cntr = 0
+                    dg_cntr = -1
+                    ch_cntr = 0
 
-                while iterator.value():
-                    item = iterator.value()
-                    if item.parent() is None:
+                    while iterator.value():
+                        item = iterator.value()
+                        if item.parent() is None:
+                            iterator += 1
+                            dg_cntr += 1
+                            ch_cntr = 0
+                            continue
+
+                        if (dg_cntr, ch_cntr) in result:
+                            item.setCheckState(0, QtCore.Qt.Checked)
+
                         iterator += 1
-                        dg_cntr += 1
-                        ch_cntr = 0
-                        continue
+                        ch_cntr += 1
+                elif view.currentText() == "Selected channels only":
+                    iterator = QtWidgets.QTreeWidgetItemIterator(widget)
 
-                    if (dg_cntr, ch_cntr) in result:
-                        item.setCheckState(0, QtCore.Qt.Checked)
+                    signals = set()
+                    while iterator.value():
+                        item = iterator.value()
 
-                    iterator += 1
-                    ch_cntr += 1
-            elif view.currentText() == "Selected channels only":
-                iterator = QtWidgets.QTreeWidgetItemIterator(widget)
+                        if item.checkState(0) == QtCore.Qt.Checked:
+                            signals.add(item.entry)
 
-                signals = set()
-                while iterator.value():
-                    item = iterator.value()
+                        iterator += 1
 
-                    if item.checkState(0) == QtCore.Qt.Checked:
-                        signals.add(item.entry)
+                    signals = signals | set(result)
 
-                    iterator += 1
+                    widget.clear()
 
-                signals = signals | set(result)
+                    items = []
+                    for entry in signals:
+                        gp_index, ch_index = entry
+                        ch = mdf.groups[gp_index].channels[ch_index]
+                        channel = TreeItem(entry, ch.name, mdf_uuid=self.uuid)
+                        channel.setText(0, ch.name)
+                        channel.setCheckState(0, QtCore.Qt.Checked)
+                        items.append(channel)
 
-                widget.clear()
+                    if len(items) < 30000:
+                        items = natsorted(items, key=lambda x: x.name)
+                    else:
+                        items.sort(key=lambda x: x.name)
+                    widget.addTopLevelItems(items)
 
-                items = []
-                for entry in signals:
-                    gp_index, ch_index = entry
-                    ch = self.mdf.groups[gp_index].channels[ch_index]
-                    channel = TreeItem(entry, ch.name, mdf_uuid=self.uuid)
-                    channel.setText(0, ch.name)
-                    channel.setCheckState(0, QtCore.Qt.Checked)
-                    items.append(channel)
-
-                if len(items) < 30000:
-                    items = natsorted(items, key=lambda x: x.name)
                 else:
-                    items.sort(key=lambda x: x.name)
-                widget.addTopLevelItems(items)
+                    iterator = QtWidgets.QTreeWidgetItemIterator(widget)
+                    while iterator.value():
+                        item = iterator.value()
 
-            else:
-                iterator = QtWidgets.QTreeWidgetItemIterator(widget)
-                while iterator.value():
-                    item = iterator.value()
+                        if item.entry in result:
+                            item.setCheckState(0, QtCore.Qt.Checked)
 
-                    if item.entry in result:
-                        item.setCheckState(0, QtCore.Qt.Checked)
-
-                    iterator += 1
+                        iterator += 1
 
     def _update_channel_tree(self, index=None):
         if self.filter_view.currentIndex() == -1:

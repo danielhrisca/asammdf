@@ -442,7 +442,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         elif key == QtCore.Qt.Key_Insert and modifiers == QtCore.Qt.ControlModifier:
 
             dlg = AdvancedSearch(
-                {},
+                None,
                 show_add_window=False,
                 show_apply=True,
                 show_search=False,
@@ -1034,7 +1034,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             pattern = dict(item.pattern)
             pattern["ranges"] = copy_ranges(widget.ranges)
             dlg = AdvancedSearch(
-                {},
+                None,
                 show_add_window=False,
                 show_apply=True,
                 show_search=False,

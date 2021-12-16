@@ -12,7 +12,7 @@ from .advanced_search import AdvancedSearch
 class GPSDialog(Ui_GPSDialog, QtWidgets.QDialog):
     def __init__(
         self,
-        channels_db,
+        mdf,
         *args,
         **kwargs,
     ):
@@ -20,7 +20,7 @@ class GPSDialog(Ui_GPSDialog, QtWidgets.QDialog):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
-        self.channels_db = channels_db
+        self.mdf = mdf
 
         self.apply_btn.clicked.connect(self._apply)
         self.cancel_btn.clicked.connect(self._cancel)
@@ -41,7 +41,7 @@ class GPSDialog(Ui_GPSDialog, QtWidgets.QDialog):
 
     def search_latitude(self, *args):
         dlg = AdvancedSearch(
-            self.channels_db,
+            self.mdf,
             show_add_window=False,
             show_apply=True,
             show_pattern=False,
@@ -58,7 +58,7 @@ class GPSDialog(Ui_GPSDialog, QtWidgets.QDialog):
 
     def search_longitude(self, *args):
         dlg = AdvancedSearch(
-            self.channels_db,
+            self.mdf,
             show_add_window=False,
             show_apply=True,
             show_pattern=False,
