@@ -799,7 +799,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             view = self.filter_view
 
         dlg = AdvancedSearch(
-            self.mdf.channels_db,
+            self.mdf,
             show_add_window=show_add_window,
             show_apply=show_apply,
             apply_text=apply_text,

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>795</width>
-    <height>455</height>
+    <width>1427</width>
+    <height>531</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -58,16 +58,6 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="0" rowspan="2">
-        <widget class="QListWidget" name="matches">
-         <property name="selectionMode">
-          <enum>QAbstractItemView::ExtendedSelection</enum>
-         </property>
-         <property name="sortingEnabled">
-          <bool>false</bool>
-         </property>
-        </widget>
-       </item>
        <item row="2" column="1">
         <widget class="QPushButton" name="add_btn">
          <property name="text">
@@ -78,9 +68,6 @@
            <normaloff>:/left.png</normaloff>:/left.png</iconset>
          </property>
         </widget>
-       </item>
-       <item row="2" column="2" rowspan="2">
-        <widget class="MinimalListWidget" name="selection"/>
        </item>
        <item row="3" column="1">
         <spacer name="verticalSpacer_2">
@@ -151,6 +138,65 @@
          <property name="text">
           <string/>
          </property>
+        </widget>
+       </item>
+       <item row="2" column="0" rowspan="2">
+        <widget class="QTreeWidget" name="matches">
+         <property name="selectionMode">
+          <enum>QAbstractItemView::ExtendedSelection</enum>
+         </property>
+         <property name="uniformRowHeights">
+          <bool>true</bool>
+         </property>
+         <property name="sortingEnabled">
+          <bool>true</bool>
+         </property>
+         <attribute name="headerStretchLastSection">
+          <bool>true</bool>
+         </attribute>
+         <column>
+          <property name="text">
+           <string>Name</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Group</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Index</string>
+          </property>
+         </column>
+        </widget>
+       </item>
+       <item row="2" column="2" rowspan="2">
+        <widget class="QTreeWidget" name="selection">
+         <property name="sortingEnabled">
+          <bool>true</bool>
+         </property>
+         <attribute name="headerMinimumSectionSize">
+          <number>25</number>
+         </attribute>
+         <attribute name="headerShowSortIndicator" stdset="0">
+          <bool>true</bool>
+         </attribute>
+         <column>
+          <property name="text">
+           <string>Name</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Group</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Index</string>
+          </property>
+         </column>
         </widget>
        </item>
       </layout>
@@ -319,13 +365,6 @@
    </item>
   </layout>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>MinimalListWidget</class>
-   <extends>QListWidget</extends>
-   <header>asammdf/gui/widgets/list.h</header>
-  </customwidget>
- </customwidgets>
  <tabstops>
   <tabstop>search_box</tabstop>
   <tabstop>matches</tabstop>

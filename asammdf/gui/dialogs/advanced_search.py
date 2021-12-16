@@ -12,7 +12,7 @@ from .range_editor import RangeEditor
 class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
     def __init__(
         self,
-        channels_db,
+        mdf,
         return_names=False,
         show_add_window=False,
         show_apply=False,
@@ -33,7 +33,8 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
         self.result = {}
         self.add_window_request = False
-        self.channels_db = channels_db
+        self.channels_db = mdf.channels_db
+        self.mdf = mdf
 
         self.apply_btn.clicked.connect(self._apply)
         self.add_btn.clicked.connect(self._add)
@@ -59,8 +60,8 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.apply_btn.setText(apply_text)
         self.add_window_btn.setText(add_window_text)
 
-        self.selection.setUniformItemSizes(True)
-        self.matches.setUniformItemSizes(True)
+        self.selection.can_delete_items = True
+        self.matches.can_delete_items = False
 
         if not show_add_window:
             self.add_window_btn.hide()
@@ -99,42 +100,100 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
             try:
                 pattern = re.compile(f"(?i){pattern}")
-                matches = natsorted(
-                    [name for name in self.channels_db if pattern.search(name)]
-                )
+                found_names = [
+                    name for name in self.channels_db if pattern.search(name)
+                ]
+
+                matches = {}
+                for name in found_names:
+                    for group_index, channel_index in self.channels_db[name]:
+                        name_list = matches.setdefault((group_index, channel_index), [])
+                        ch = self.mdf.groups[group_index].channels[channel_index]
+                        if name == ch.name:
+                            name_list.insert(0, name)
+                        else:
+                            name_list.append(name)
+
+                matches = [
+                    (group_index, channel_index, names)
+                    for (group_index, channel_index), names in matches.items()
+                ]
+                matches.sort(key=lambda x: x[2][0])
 
                 self.matches.clear()
-                self.matches.addItems(matches)
+                for group_index, channel_index, names in matches:
+                    group_index, channel_index = str(group_index), str(channel_index)
+                    item = QtWidgets.QTreeWidgetItem(
+                        [names[0], group_index, channel_index]
+                    )
+                    self.matches.addTopLevelItem(item)
+
+                    children = [
+                        QtWidgets.QTreeWidgetItem([name, group_index, channel_index])
+                        for name in names[1:]
+                    ]
+
+                    if children:
+                        item.addChildren(children)
+
                 if matches:
                     self.status.setText("")
                 else:
                     self.status.setText("No match found")
+
+                self.matches.header().resizeSections(
+                    QtWidgets.QHeaderView.ResizeMode.ResizeToContents
+                )
             except Exception as err:
                 self.status.setText(str(err))
                 self.matches.clear()
 
     def _add(self, event):
-        count = self.selection.count()
-        names = set(self.selection.item(i).text() for i in range(count))
+        selection = set()
 
-        to_add = set(item.text() for item in self.matches.selectedItems())
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
+        while iterator.value():
+            item = iterator.value()
+            data = (item.text(0), item.text(1), item.text(2))
+            selection.add(data)
 
-        names = natsorted(names | to_add)
+            iterator += 1
+
+        for item in self.matches.selectedItems():
+            data = (item.text(0), item.text(1), item.text(2))
+            selection.add(data)
+
+        selection = natsorted(selection)
+
+        items = [QtWidgets.QTreeWidgetItem(texts) for texts in selection]
 
         self.selection.clear()
-        self.selection.addItems(names)
+        self.selection.addTopLevelItems(items)
+        self.selection.header().resizeSections(
+            QtWidgets.QHeaderView.ResizeMode.ResizeToContents
+        )
 
-    def _apply(self, event):
-        count = self.selection.count()
-
+    def _apply(self, event=None):
         if self._return_names:
-            self.result = set(self.selection.item(i).text() for i in range(count))
+            self.result = set()
+
+            iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
+            while iterator.value():
+                item = iterator.value()
+                self.result.add(item.text(0))
+                iterator += 1
         else:
             self.result = {}
-            for i in range(count):
-                name = self.selection.item(i).text()
-                for entry in self.channels_db[name]:
-                    self.result[entry] = name
+
+            iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
+            while iterator.value():
+                item = iterator.value()
+
+                entry = int(item.text(1)), int(item.text(2))
+                name = item.text(0)
+                self.result[entry] = name
+                iterator += 1
+
         self.close()
 
     def _apply_pattern(self, event):
@@ -163,20 +222,9 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.pattern_window = True
         self.close()
 
-    def _add_window(self, event):
-        count = self.selection.count()
-
-        if self._return_names:
-            self.result = set(self.selection.item(i).text() for i in range(count))
-        else:
-            self.result = {}
-            for i in range(count):
-                name = self.selection.item(i).text()
-                for entry in self.channels_db[name]:
-                    self.result[entry] = name
-
+    def _add_window(self, event=None):
         self.add_window_request = True
-        self.close()
+        self._apply()
 
     def _cancel(self, event):
         self.result = {}
@@ -194,23 +242,32 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             self.ranges = dlg.result
 
     def _match_double_clicked(self, item):
-        count = self.selection.count()
-        names = set(self.selection.item(i).text() for i in range(count))
+        selection = set()
+        new_item = item
 
-        new_name = item.text()
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
+        while iterator.value():
+            item = iterator.value()
+            data = (item.text(0), item.text(1), item.text(2))
+            selection.add(data)
 
-        if new_name not in names:
-            names.add(new_name)
+            iterator += 1
 
-        self.selection.clear()
-        self.selection.addItems(sorted(names))
+        new_data = new_item.text(0), new_item.text(1), new_item.text(2)
+
+        if new_data not in selection:
+            selection.add(new_data)
+
+            selection = natsorted(selection)
+
+            items = [QtWidgets.QTreeWidgetItem(texts) for texts in selection]
+
+            self.selection.clear()
+            self.selection.addTopLevelItems(items)
+            self.selection.header().resizeSections(
+                QtWidgets.QHeaderView.ResizeMode.ResizeToContents
+            )
 
     def _selection_double_clicked(self, item):
-        count = self.selection.count()
-        names = set(self.selection.item(i).text() for i in range(count))
-
-        name = item.text()
-        names.remove(name)
-
-        self.selection.clear()
-        self.selection.addItems(sorted(names))
+        root = self.selection.invisibleRootItem()
+        (item.parent() or root).removeChild(item)
