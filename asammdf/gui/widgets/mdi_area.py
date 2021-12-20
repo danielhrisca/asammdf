@@ -105,18 +105,24 @@ def extract_signals_using_pattern(
 
     try:
         pattern = re.compile(f"(?i){pattern}")
-        matches = {
-            name: entries[0]
-            for name, entries in mdf.channels_db.items()
-            if pattern.fullmatch(name)
-        }
+
+        matches = {}
+
+        for name, entries in mdf.channels_db.items():
+            if pattern.fullmatch(name):
+                for entry in entries:
+                    if entry in matches:
+                        continue
+                    matches[entry] = name
+
+        matches = natsorted((name, *entry) for entry, name in matches.items())
     except:
         print(format_exc())
         signals = []
     else:
 
         psignals = mdf.select(
-            list(matches),
+            matches,
             ignore_value2text_conversions=ignore_value2text_conversions,
             copy_master=False,
             validate=True,
@@ -128,10 +134,10 @@ def extract_signals_using_pattern(
         else:
 
             keep = []
-            for i, (name, entry) in enumerate(matches.items()):
+            for i, (name, group_index, channel_index) in enumerate(matches):
                 sig = psignals[i]
                 sig.mdf_uuid = uuid
-                sig.group_index, sig.channel_index = entry
+                sig.group_index, sig.channel_index = group_index, channel_index
 
                 size = len(sig)
                 if not size:

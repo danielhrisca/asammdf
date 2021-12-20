@@ -185,11 +185,14 @@ def load_dsp(file, background="#000000"):
             elif elem.tag == "CHANNEL_PATTERN":
 
                 try:
+                    filter_type = elem.get("filter_type")
+                    if filter_type == "None":
+                        filter_type = "Unspecified"
                     info = {
                         "pattern": elem.get("name_pattern"),
                         "name": elem.get("name_pattern"),
                         "match_type": "Wildcard",
-                        "filter_type": elem.get("filter_type"),
+                        "filter_type": filter_type,
                         "filter_value": float(elem.get("filter_value")),
                         "raw": bool(int(elem.get("filter_use_raw"))),
                     }
