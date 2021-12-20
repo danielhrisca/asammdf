@@ -1370,7 +1370,7 @@ class Numeric(QtWidgets.QWidget):
 
         pattern = re.compile(f"(?i){pattern}")
         matches = [
-            sig for sig in self.channels.backend.signals if pattern.search(sig.name)
+            sig for sig in self.channels.backend.signals if pattern.fullmatch(sig.name)
         ]
 
         mode = self.match_mode.currentText()
@@ -1437,7 +1437,7 @@ class Numeric(QtWidgets.QWidget):
 
         pattern = re.compile(f"(?i){pattern}")
         matches = [
-            sig for sig in self.channels.backend.signals if pattern.search(sig.name)
+            sig for sig in self.channels.backend.signals if pattern.fullmatch(sig.name)
         ]
 
         mode = self.match_mode.currentText()

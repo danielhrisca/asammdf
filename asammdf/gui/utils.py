@@ -105,6 +105,9 @@ def extract_mime_names(data):
 
 
 def load_dsp(file, background="#000000"):
+    if isinstance(background, str):
+        background = QtGui.QColor(background)
+
     def parse_channels(display):
         channels = []
         for elem in display.iterchildren():

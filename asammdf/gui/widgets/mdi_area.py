@@ -108,7 +108,7 @@ def extract_signals_using_pattern(
         matches = {
             name: entries[0]
             for name, entries in mdf.channels_db.items()
-            if pattern.search(name)
+            if pattern.fullmatch(name)
         }
     except:
         print(format_exc())

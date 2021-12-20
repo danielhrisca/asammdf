@@ -101,7 +101,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             try:
                 pattern = re.compile(f"(?i){pattern}")
                 found_names = [
-                    name for name in self.channels_db if pattern.search(name)
+                    name for name in self.channels_db if pattern.fullmatch(name)
                 ]
 
                 matches = {}
@@ -141,9 +141,11 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                 else:
                     self.status.setText("No match found")
 
+                self.matches.expandAll()
                 self.matches.header().resizeSections(
                     QtWidgets.QHeaderView.ResizeMode.ResizeToContents
                 )
+
             except Exception as err:
                 self.status.setText(str(err))
                 self.matches.clear()

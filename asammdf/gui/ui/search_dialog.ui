@@ -149,7 +149,7 @@
           <bool>true</bool>
          </property>
          <property name="sortingEnabled">
-          <bool>true</bool>
+          <bool>false</bool>
          </property>
          <attribute name="headerStretchLastSection">
           <bool>true</bool>
@@ -174,13 +174,13 @@
        <item row="2" column="2" rowspan="2">
         <widget class="QTreeWidget" name="selection">
          <property name="sortingEnabled">
-          <bool>true</bool>
+          <bool>false</bool>
          </property>
          <attribute name="headerMinimumSectionSize">
           <number>25</number>
          </attribute>
          <attribute name="headerShowSortIndicator" stdset="0">
-          <bool>true</bool>
+          <bool>false</bool>
          </attribute>
          <column>
           <property name="text">
