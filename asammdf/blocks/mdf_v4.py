@@ -8976,7 +8976,7 @@ class MDF4(MDF_Common):
                             kwargs = {
                                 "flags": v4c.FLAG_LD_EQUAL_LENGHT,
                                 "data_block_nr": 1,
-                                "data_block_len": len(data_),
+                                "data_block_len": gp.channel_group.cycles_nr,
                                 "data_block_addr_0": data_address,
                             }
                             if inval_:
@@ -9080,7 +9080,8 @@ class MDF4(MDF_Common):
                             kwargs = {
                                 "flags": v4c.FLAG_LD_EQUAL_LENGHT,
                                 "data_block_nr": len(dv_addr),
-                                "data_block_len": block_size,
+                                "data_block_len": block_size
+                                // gp.channel_group.samples_byte_nr,
                             }
                             for i, addr in enumerate(dv_addr):
                                 kwargs[f"data_block_addr_{i}"] = addr
