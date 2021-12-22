@@ -5751,21 +5751,24 @@ class ListData(_ListDataBase):
 
                 if self.flags & v4c.FLAG_LD_TIME_VALUES:
                     values = unpack(
-                        f"<{8 * self.data_block_nr}s", stream.read(self.data_block_nr * 8)
+                        f"<{8 * self.data_block_nr}s",
+                        stream.read(self.data_block_nr * 8),
                     )
                     for i, value in enumerate(values):
                         self[f"time_value_{i}"] = value
 
                 if self.flags & v4c.FLAG_LD_ANGLE_VALUES:
                     values = unpack(
-                        f"<{8 * self.data_block_nr}s", stream.read(self.data_block_nr * 8)
+                        f"<{8 * self.data_block_nr}s",
+                        stream.read(self.data_block_nr * 8),
                     )
                     for i, value in enumerate(values):
                         self[f"angle_value_{i}"] = value
 
                 if self.flags & v4c.FLAG_LD_DISTANCE_VALUES:
                     values = unpack(
-                        f"<{8 * self.data_block_nr}s", stream.read(self.data_block_nr * 8)
+                        f"<{8 * self.data_block_nr}s",
+                        stream.read(self.data_block_nr * 8),
                     )
                     for i, value in enumerate(values):
                         self[f"distance_value_{i}"] = value
