@@ -114,7 +114,11 @@ class FormatedAxis(pg.AxisItem):
                 strns = [str(timedelta(seconds=val)) for val in values]
             elif self.format == "date":
                 strns = (
-                    pd.to_datetime(np.array(values) + self.origin.timestamp(), unit="s")
+                    pd.to_datetime(
+                        np.array(values) + self.origin.timestamp(),
+                        unit="s",
+                        errors="coerce",
+                    )
                     .tz_localize("UTC")
                     .tz_convert(LOCAL_TIMEZONE)
                     .astype(str)
