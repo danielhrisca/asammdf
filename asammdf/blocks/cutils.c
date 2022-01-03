@@ -439,8 +439,8 @@ static PyObject* get_channel_raw_bytes(PyObject* self, PyObject* args)
             
             for (int i=0; i<count; i++) {
                 memcpy(outptr, inptr, actual_byte_count);
-                inptr += actual_byte_count;
-                outptr += byte_count;
+                inptr += record_size;
+                outptr += actual_byte_count;
                 for (int j=0; j< delta; j++) {
                     *outptr++ = '\0';
                 }
