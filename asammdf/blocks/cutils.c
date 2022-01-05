@@ -7,6 +7,8 @@
 #define PY_PRINTF(o) \
     PyObject_Print(o, stdout, 0); printf("\n");
 
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+
 char err_string[1024];
 
 struct rec_info {
@@ -25,7 +27,7 @@ struct node {
 
 static PyObject* sort_data_block(PyObject* self, PyObject* args)
 {
-    unsigned long long id_size=0, position=0, size, tgt=10000;
+    unsigned long long id_size=0, position=0, size;
     unsigned long rec_size, length, rec_id;
     PyObject *signal_data, *partial_records, *record_size, *optional, *mlist;
     PyObject *bts, *key, *value, *rem=NULL;
@@ -160,7 +162,6 @@ static PyObject* extract(PyObject* self, PyObject* args)
     char *buf;
     PyArrayObject *vals;
     PyArray_Descr *descr;
-    void *addr;
     unsigned char * addr2;
 
     if(!PyArg_ParseTuple(args, "OOO", &signal_data, &is_byte_array, &offsets))
@@ -173,6 +174,8 @@ static PyObject* extract(PyObject* self, PyObject* args)
     {
         Py_ssize_t max_size = 0;
         int retval = PyBytes_AsStringAndSize(signal_data, &buf, &max_size);
+
+        if (retval == -1) return NULL;
         
         count = 0;
         pos = 0;
@@ -275,7 +278,6 @@ static PyObject* lengths(PyObject* self, PyObject* args)
 {
     int i=0;
     Py_ssize_t count;
-    int pos=0;
     PyObject *lst, *values, *item;
 
     if(!PyArg_ParseTuple(args, "O", &lst))
@@ -307,7 +309,6 @@ static PyObject* get_vlsd_offsets(PyObject* self, PyObject* args)
 {
     int i=0;
     Py_ssize_t count;
-    int pos=0;
     PyObject *lst, *item, *result;
     npy_intp dim[1];
     PyArrayObject *values;
@@ -346,9 +347,9 @@ static PyObject* get_vlsd_offsets(PyObject* self, PyObject* args)
 static PyObject *positions(PyObject *self, PyObject *args)
 {
 	long count, step, last;
-    double min, max, *indata, value;
+    double min, max, *indata;
     long *outdata;
-    int pos_min, pos_max;
+    int pos_min=0, pos_max=0;
 
 	PyObject *samples, *result, *step_obj, *count_obj, *last_obj;
 
@@ -479,12 +480,10 @@ struct dtype {
 
 static PyObject* data_block_from_arrays(PyObject* self, PyObject* args)
 {
-    Py_ssize_t count, size, actual_byte_count, delta;
+    Py_ssize_t size;
     PyObject *data_blocks, *out, *item, *bytes, *itemsize;
-    
-    Py_ssize_t record_size, byte_offset, byte_count;
 
-    char *inptr, *outptr; 
+    char *outptr; 
     unsigned long long total_size=0, cycles;
     
     struct dtype * block_info=NULL;
