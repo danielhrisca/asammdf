@@ -494,7 +494,7 @@ class MDF4(MDF_Common):
         # read file history
         fh_addr = self.header["file_history_addr"]
         while fh_addr:
-            if fh_addr > self.file_limit:
+            if (fh_addr + v4c.FH_BLOCK_SIZE) > self.file_limit:
                 logger.warning(
                     f"File history address {fh_addr:X} is outside the file size {self.file_limit}"
                 )
@@ -507,7 +507,7 @@ class MDF4(MDF_Common):
         at_addr = self.header["first_attachment_addr"]
         index = 0
         while at_addr:
-            if at_addr > self.file_limit:
+            if (at_addr + v4c.AT_COMMON_SIZE) > self.file_limit:
                 logger.warning(
                     f"Attachment address {at_addr:X} is outside the file size {self.file_limit}"
                 )
@@ -522,7 +522,7 @@ class MDF4(MDF_Common):
         dg_addr = self.header.first_dg_addr
 
         while dg_addr:
-            if dg_addr > self.file_limit:
+            if (dg_addr + v4c.DG_BLOCK_SIZE) > self.file_limit:
                 logger.warning(
                     f"Data group address {dg_addr:X} is outside the file size {self.file_limit}"
                 )
@@ -539,7 +539,7 @@ class MDF4(MDF_Common):
             cg_size = {}
 
             while cg_addr:
-                if cg_addr > self.file_limit:
+                if (cg_addr + v4c.CG_BLOCK_SIZE) > self.file_limit:
                     logger.warning(
                         f"Channel group address {cg_addr:X} is outside the file size {self.file_limit}"
                     )
@@ -785,7 +785,7 @@ class MDF4(MDF_Common):
         ev_map = {}
         event_index = 0
         while addr:
-            if addr > self.file_limit:
+            if (addr + v4c.COMMON_SIZE) > self.file_limit:
                 logger.warning(
                     f"Event address {addr:X} is outside the file size {self.file_limit}"
                 )
@@ -856,7 +856,7 @@ class MDF4(MDF_Common):
         while ch_addr:
             # read channel block and create channel object
 
-            if ch_addr > self.file_limit:
+            if (ch_addr + v4c.COMMON_SIZE) > self.file_limit:
                 logger.warning(
                     f"Channel address {ch_addr:X} is outside the file size {self.file_limit}"
                 )
@@ -936,7 +936,7 @@ class MDF4(MDF_Common):
                     ch_addr = next_ch_addr
                     continue
                 else:
-                    if component_addr > self.file_limit:
+                    if (component_addr + v4c.CC_ALG_BLOCK_SIZE) > self.file_limit:
                         logger.warning(
                             f"Channel component address {component_addr:X} is outside the file size {self.file_limit}"
                         )
@@ -1018,7 +1018,7 @@ class MDF4(MDF_Common):
 
             if component_addr:
 
-                if component_addr > self.file_limit:
+                if (component_addr + 4) > self.file_limit:
                     logger.warning(
                         f"Channel component address {component_addr:X} is outside the file size {self.file_limit}"
                     )
