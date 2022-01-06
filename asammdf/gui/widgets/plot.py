@@ -205,29 +205,6 @@ class PlotSignal(Signal):
 
         if len(self.phys_samples) and not fast:
 
-            if self.phys_samples.dtype.kind in "SUV":
-                self.is_string = True
-                self._min = ""
-                self._max = ""
-                self._avg = ""
-                self._rms = ""
-                self._std = ""
-            else:
-                self.is_string = False
-                samples = self.phys_samples[np.isfinite(self.phys_samples)]
-                if len(samples):
-                    self._min = np.nanmin(samples)
-                    self._max = np.nanmax(samples)
-                    self._avg = np.mean(samples)
-                    self._rms = np.sqrt(np.mean(np.square(samples)))
-                    self._std = np.std(samples)
-                else:
-                    self._min = "n.a."
-                    self._max = "n.a."
-                    self._avg = "n.a."
-                    self._rms = "n.a."
-                    self._std = "n.a."
-
             if self.raw_samples.dtype.kind in "SUV":
                 self._min_raw = ""
                 self._max_raw = ""
@@ -249,6 +226,42 @@ class PlotSignal(Signal):
                     self._avg_raw = "n.a."
                     self._rms_raw = "n.a."
                     self._std_raw = "n.a."
+                    
+            if self.phys_samples is self.raw_samples:
+                if self.phys_samples.dtype.kind in "SUV":
+                    self.is_string = True
+                else:
+                    self.is_string = False
+
+                self._min = self._min_raw
+                self._max = self._max_raw
+                self._avg = self._avg_raw
+                self._rms = self._rms_raw
+                self._std = self._std_raw
+                
+            else:
+                if self.phys_samples.dtype.kind in "SUV":
+                    self.is_string = True
+                    self._min = ""
+                    self._max = ""
+                    self._avg = ""
+                    self._rms = ""
+                    self._std = ""
+                else:
+                    self.is_string = False
+                    samples = self.phys_samples[np.isfinite(self.phys_samples)]
+                    if len(samples):
+                        self._min = np.nanmin(samples)
+                        self._max = np.nanmax(samples)
+                        self._avg = np.mean(samples)
+                        self._rms = np.sqrt(np.mean(np.square(samples)))
+                        self._std = np.std(samples)
+                    else:
+                        self._min = "n.a."
+                        self._max = "n.a."
+                        self._avg = "n.a."
+                        self._rms = "n.a."
+                        self._std = "n.a."
 
             self.empty = False
 

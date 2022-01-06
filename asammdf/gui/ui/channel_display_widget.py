@@ -77,7 +77,6 @@ class Ui_ChannelDiplay(object):
         self.verticalLayout.addWidget(self.details)
 
         self.retranslateUi(ChannelDiplay)
-        QtCore.QMetaObject.connectSlotsByName(ChannelDiplay)
 
     def retranslateUi(self, ChannelDiplay):
         _translate = QtCore.QCoreApplication.translate
