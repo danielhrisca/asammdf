@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime, timedelta, timezone
-import sys
-from textwrap import wrap
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
