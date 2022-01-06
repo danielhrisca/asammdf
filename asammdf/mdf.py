@@ -3045,7 +3045,7 @@ class MDF:
                         )
 
         if validate:
-            signals = [sig.validate() for sig in signals]
+            signals = [sig.validate(copy=False) for sig in signals]
 
         for signal, channel in zip(signals, channels):
             if isinstance(channel, str):

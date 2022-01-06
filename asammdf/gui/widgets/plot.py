@@ -226,7 +226,7 @@ class PlotSignal(Signal):
                     self._avg_raw = "n.a."
                     self._rms_raw = "n.a."
                     self._std_raw = "n.a."
-                    
+
             if self.phys_samples is self.raw_samples:
                 if self.phys_samples.dtype.kind in "SUV":
                     self.is_string = True
@@ -238,7 +238,7 @@ class PlotSignal(Signal):
                 self._avg = self._avg_raw
                 self._rms = self._rms_raw
                 self._std = self._std_raw
-                
+
             else:
                 if self.phys_samples.dtype.kind in "SUV":
                     self.is_string = True
@@ -1024,7 +1024,7 @@ class PlotSignal(Signal):
                 value = int(value)
 
         return value, kind, self.format
-    
+
 
 class Plot(QtWidgets.QWidget):
 
@@ -3393,18 +3393,26 @@ class _Plot(pg.PlotWidget):
 
     def _compute_all_timebase(self):
         if self._timebase_db:
+            stamps = {id(sig.timestamps): sig.timestamps for sig in self.signals}
+
             timebases = [
-                sig.timestamps
-                for sig in self.signals
-                if id(sig.timestamps) in self._timebase_db
+                timestamps
+                for id_, timestamps in stamps.items()
+                if id_ in self._timebase_db
             ]
-            if timebases:
+
+            count = len(timebases)
+
+            if count == 0:
+                new_timebase = np.array([])
+            elif count == 1:
+                new_timebase = timebases[0]
+            else:
                 try:
                     new_timebase = np.unique(np.concatenate(timebases))
                 except MemoryError:
                     new_timebase = reduce(np.union1d, timebases)
-            else:
-                new_timebase = np.array([])
+
             self.all_timebase = self.timebase = new_timebase
         else:
             self.all_timebase = self.timebase = np.array([])
@@ -3555,14 +3563,14 @@ class _Plot(pg.PlotWidget):
             sig.mdf_uuid = os.urandom(6).hex()
             self.add_new_channels([sig], computed=True)
             self.computation_channel_inserted.emit()
-            
+
     def get_axis(self, index):
         axis = self.axes[index]
         if isinstance(axis, int):
             sig = self.signals[index]
             view_box = self.view_boxes[index]
             position = axis
-            
+
             axis = FormatedAxis(
                 "left",
                 pen=sig.pen,
@@ -3572,15 +3580,15 @@ class _Plot(pg.PlotWidget):
             )
             if sig.conversion and hasattr(sig.conversion, "text_0"):
                 axis.text_conversion = sig.conversion
-                
+
             axis.linkToView(view_box)
             self.layout.addItem(axis, 2, position)
-            
+
             self.axes[index] = axis
             axis.hide()
 
             self.update()
-            
+
         return axis
 
 
