@@ -229,7 +229,7 @@ class OnlineBackEnd:
             nones = []
 
             for signal in self.signals:
-                value = signal.item(sorted_column_index)
+                value = signal.get_value(sorted_column_index)
                 if value is None:
                     nones.append(signal)
                 elif isinstance(value, (np.flexible, bytes)):
@@ -240,12 +240,12 @@ class OnlineBackEnd:
             self.signals = [
                 *sorted(
                     numeric,
-                    key=lambda x: x.item(sorted_column_index),
+                    key=lambda x: x.get_value(sorted_column_index),
                     reverse=self.sort_reversed,
                 ),
                 *sorted(
                     string,
-                    key=lambda x: x.item(sorted_column_index),
+                    key=lambda x: x.get_value(sorted_column_index),
                     reverse=self.sort_reversed,
                 ),
                 *natsorted(nones, key=lambda x: x.name, reverse=self.sort_reversed),
