@@ -6,6 +6,7 @@ from PyQt5 import QtCore, QtWidgets
 
 from ..ui import resource_rc as resource_rc
 from ..ui.search_dialog import Ui_SearchDialog
+from ...blocks.utils import extract_cncomment_xml
 from .range_editor import RangeEditor
 
 
@@ -106,30 +107,45 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
                 matches = {}
                 for name in found_names:
-                    for group_index, channel_index in self.channels_db[name]:
-                        name_list = matches.setdefault((group_index, channel_index), [])
-                        ch = self.mdf.groups[group_index].channels[channel_index]
+                    for entry in self.channels_db[name]:
+
+                        if entry not in matches:
+                            (group_index, channel_index) = entry
+                            ch = self.mdf.groups[group_index].channels[channel_index]
+                            cg = self.mdf.groups[group_index].channel_group
+
+                            source = (
+                                ch.source.path if ch.source is not None
+                                else (
+                                    cg.acq_source.path if cg.acq_source else ""
+                                )
+                            )
+                            matches[entry] = {'names': [], 'comment': extract_cncomment_xml(ch.comment), 'source': source}
+
+                        info = matches[entry]
+
                         if name == ch.name:
-                            name_list.insert(0, name)
+                            info['names'].insert(0, name)
                         else:
-                            name_list.append(name)
+                            info['names'].append(name)
 
                 matches = [
-                    (group_index, channel_index, names)
-                    for (group_index, channel_index), names in matches.items()
+                    (group_index, channel_index, info)
+                    for (group_index, channel_index), info in matches.items()
                 ]
-                matches.sort(key=lambda x: x[2][0])
+                matches.sort(key=lambda x: info['names'][0])
 
                 self.matches.clear()
-                for group_index, channel_index, names in matches:
+                for group_index, channel_index, info in matches:
+                    names = info['names']
                     group_index, channel_index = str(group_index), str(channel_index)
                     item = QtWidgets.QTreeWidgetItem(
-                        [names[0], group_index, channel_index]
+                        [names[0], group_index, channel_index, info['source'], info['comment']]
                     )
                     self.matches.addTopLevelItem(item)
 
                     children = [
-                        QtWidgets.QTreeWidgetItem([name, group_index, channel_index])
+                        QtWidgets.QTreeWidgetItem([name, group_index, channel_index, info['source'], info['comment']])
                         for name in names[1:]
                     ]
 
@@ -137,9 +153,9 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                         item.addChildren(children)
 
                 if matches:
-                    self.status.setText("")
+                    self.status.setText(f"{len(found_names)} results")
                 else:
-                    self.status.setText("No match found")
+                    self.status.setText("No results")
 
                 self.matches.expandAll()
                 self.matches.header().resizeSections(
@@ -156,13 +172,13 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
         while iterator.value():
             item = iterator.value()
-            data = (item.text(0), item.text(1), item.text(2))
+            data = (item.text(0), item.text(1), item.text(2), item.text(3), item.text(4))
             selection.add(data)
 
             iterator += 1
 
         for item in self.matches.selectedItems():
-            data = (item.text(0), item.text(1), item.text(2))
+            data = (item.text(0), item.text(1), item.text(2), item.text(3), item.text(4))
             selection.add(data)
 
         selection = natsorted(selection)

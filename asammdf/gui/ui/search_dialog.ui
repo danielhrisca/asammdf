@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1427</width>
-    <height>531</height>
+    <width>1134</width>
+    <height>679</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -23,11 +23,15 @@
       <number>0</number>
      </property>
      <widget class="QWidget" name="tab">
+      <attribute name="icon">
+       <iconset resource="resource.qrc">
+        <normaloff>:/search.png</normaloff>:/search.png</iconset>
+      </attribute>
       <attribute name="title">
        <string>Search</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout">
-       <item row="0" column="0">
+       <item row="0" column="2">
         <widget class="QComboBox" name="match_kind">
          <property name="currentIndex">
           <number>0</number>
@@ -44,50 +48,70 @@
          </item>
         </widget>
        </item>
-       <item row="1" column="0">
+       <item row="0" column="0">
         <widget class="QLineEdit" name="search_box">
+         <property name="focusPolicy">
+          <enum>Qt::StrongFocus</enum>
+         </property>
+         <property name="inputMask">
+          <string/>
+         </property>
          <property name="text">
           <string/>
          </property>
-        </widget>
-       </item>
-       <item row="1" column="2">
-        <widget class="QLabel" name="label">
-         <property name="text">
-          <string>Final selection</string>
+         <property name="placeholderText">
+          <string>channel name pattern</string>
          </property>
         </widget>
        </item>
-       <item row="2" column="1">
-        <widget class="QPushButton" name="add_btn">
-         <property name="text">
-          <string/>
+       <item row="5" column="0" colspan="3">
+        <widget class="QTreeWidget" name="selection">
+         <property name="sortingEnabled">
+          <bool>false</bool>
          </property>
-         <property name="icon">
-          <iconset resource="resource.qrc">
-           <normaloff>:/left.png</normaloff>:/left.png</iconset>
-         </property>
+         <attribute name="headerMinimumSectionSize">
+          <number>25</number>
+         </attribute>
+         <attribute name="headerShowSortIndicator" stdset="0">
+          <bool>false</bool>
+         </attribute>
+         <column>
+          <property name="text">
+           <string>Name</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Group</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Index</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Source</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Comment</string>
+          </property>
+         </column>
         </widget>
        </item>
-       <item row="3" column="1">
-        <spacer name="verticalSpacer_2">
-         <property name="orientation">
-          <enum>Qt::Vertical</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>20</width>
-           <height>40</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item row="4" column="0" colspan="3">
+       <item row="6" column="0" colspan="3">
         <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1,0,0,0">
          <item>
           <widget class="QPushButton" name="cancel_btn">
            <property name="text">
             <string>Cancel</string>
+           </property>
+           <property name="icon">
+            <iconset resource="resource.qrc">
+             <normaloff>:/erase.png</normaloff>:/erase.png</iconset>
            </property>
           </widget>
          </item>
@@ -109,6 +133,10 @@
            <property name="text">
             <string>Apply</string>
            </property>
+           <property name="icon">
+            <iconset resource="resource.qrc">
+             <normaloff>:/checkmark.png</normaloff>:/checkmark.png</iconset>
+           </property>
           </widget>
          </item>
          <item>
@@ -129,18 +157,15 @@
            <property name="text">
             <string>Add window</string>
            </property>
+           <property name="icon">
+            <iconset resource="resource.qrc">
+             <normaloff>:/plus.png</normaloff>:/plus.png</iconset>
+           </property>
           </widget>
          </item>
         </layout>
        </item>
-       <item row="5" column="0">
-        <widget class="QLabel" name="status">
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="0" rowspan="2">
+       <item row="2" column="0" colspan="3">
         <widget class="QTreeWidget" name="matches">
          <property name="selectionMode">
           <enum>QAbstractItemView::ExtendedSelection</enum>
@@ -169,34 +194,87 @@
            <string>Index</string>
           </property>
          </column>
+         <column>
+          <property name="text">
+           <string>Source</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Comment</string>
+          </property>
+         </column>
         </widget>
        </item>
-       <item row="2" column="2" rowspan="2">
-        <widget class="QTreeWidget" name="selection">
-         <property name="sortingEnabled">
-          <bool>false</bool>
+       <item row="3" column="0" colspan="3">
+        <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <item>
+          <spacer name="horizontalSpacer_4">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>358</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="add_btn">
+           <property name="focusPolicy">
+            <enum>Qt::TabFocus</enum>
+           </property>
+           <property name="text">
+            <string>Add to selection</string>
+           </property>
+           <property name="icon">
+            <iconset resource="resource.qrc">
+             <normaloff>:/shift_down.png</normaloff>:/shift_down.png</iconset>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_5">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>358</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>Final selection</string>
          </property>
-         <attribute name="headerMinimumSectionSize">
-          <number>25</number>
-         </attribute>
-         <attribute name="headerShowSortIndicator" stdset="0">
-          <bool>false</bool>
-         </attribute>
-         <column>
-          <property name="text">
-           <string>Name</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Group</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Index</string>
-          </property>
-         </column>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label_7">
+         <property name="text">
+          <string>Search results</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLabel" name="status">
+         <property name="minimumSize">
+          <size>
+           <width>100</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>No results</string>
+         </property>
         </widget>
        </item>
       </layout>
@@ -295,6 +373,10 @@
          <property name="text">
           <string>Define ranges</string>
          </property>
+         <property name="icon">
+          <iconset resource="resource.qrc">
+           <normaloff>:/range.png</normaloff>:/range.png</iconset>
+         </property>
         </widget>
        </item>
        <item row="8" column="4">
@@ -302,12 +384,20 @@
          <property name="text">
           <string>Apply</string>
          </property>
+         <property name="icon">
+          <iconset resource="resource.qrc">
+           <normaloff>:/checkmark.png</normaloff>:/checkmark.png</iconset>
+         </property>
         </widget>
        </item>
        <item row="8" column="1">
         <widget class="QPushButton" name="cancel_pattern_btn">
          <property name="text">
           <string>Cancel</string>
+         </property>
+         <property name="icon">
+          <iconset resource="resource.qrc">
+           <normaloff>:/erase.png</normaloff>:/erase.png</iconset>
          </property>
         </widget>
        </item>
@@ -325,6 +415,9 @@
            <width>300</width>
            <height>0</height>
           </size>
+         </property>
+         <property name="placeholderText">
+          <string>channel name pattern</string>
          </property>
         </widget>
        </item>
@@ -371,7 +464,19 @@
   <tabstop>add_btn</tabstop>
   <tabstop>selection</tabstop>
   <tabstop>cancel_btn</tabstop>
+  <tabstop>apply_btn</tabstop>
+  <tabstop>add_window_btn</tabstop>
   <tabstop>match_kind</tabstop>
+  <tabstop>tabs</tabstop>
+  <tabstop>raw</tabstop>
+  <tabstop>filter_value</tabstop>
+  <tabstop>filter_type</tabstop>
+  <tabstop>define_ranges_btn</tabstop>
+  <tabstop>apply_pattern_btn</tabstop>
+  <tabstop>cancel_pattern_btn</tabstop>
+  <tabstop>pattern</tabstop>
+  <tabstop>pattern_match_type</tabstop>
+  <tabstop>name</tabstop>
  </tabstops>
  <resources>
   <include location="resource.qrc"/>
