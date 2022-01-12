@@ -4,9 +4,9 @@ import re
 from natsort import natsorted
 from PyQt5 import QtCore, QtWidgets
 
+from ...blocks.utils import extract_cncomment_xml
 from ..ui import resource_rc as resource_rc
 from ..ui.search_dialog import Ui_SearchDialog
-from ...blocks.utils import extract_cncomment_xml
 from .range_editor import RangeEditor
 
 
@@ -115,37 +115,54 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                             cg = self.mdf.groups[group_index].channel_group
 
                             source = (
-                                ch.source.path if ch.source is not None
-                                else (
-                                    cg.acq_source.path if cg.acq_source else ""
-                                )
+                                ch.source.path
+                                if ch.source is not None
+                                else (cg.acq_source.path if cg.acq_source else "")
                             )
-                            matches[entry] = {'names': [], 'comment': extract_cncomment_xml(ch.comment), 'source': source}
+                            matches[entry] = {
+                                "names": [],
+                                "comment": extract_cncomment_xml(ch.comment),
+                                "source": source,
+                            }
 
                         info = matches[entry]
 
                         if name == ch.name:
-                            info['names'].insert(0, name)
+                            info["names"].insert(0, name)
                         else:
-                            info['names'].append(name)
+                            info["names"].append(name)
 
                 matches = [
                     (group_index, channel_index, info)
                     for (group_index, channel_index), info in matches.items()
                 ]
-                matches.sort(key=lambda x: info['names'][0])
+                matches.sort(key=lambda x: info["names"][0])
 
                 self.matches.clear()
                 for group_index, channel_index, info in matches:
-                    names = info['names']
+                    names = info["names"]
                     group_index, channel_index = str(group_index), str(channel_index)
                     item = QtWidgets.QTreeWidgetItem(
-                        [names[0], group_index, channel_index, info['source'], info['comment']]
+                        [
+                            names[0],
+                            group_index,
+                            channel_index,
+                            info["source"],
+                            info["comment"],
+                        ]
                     )
                     self.matches.addTopLevelItem(item)
 
                     children = [
-                        QtWidgets.QTreeWidgetItem([name, group_index, channel_index, info['source'], info['comment']])
+                        QtWidgets.QTreeWidgetItem(
+                            [
+                                name,
+                                group_index,
+                                channel_index,
+                                info["source"],
+                                info["comment"],
+                            ]
+                        )
                         for name in names[1:]
                     ]
 
@@ -172,13 +189,25 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
         while iterator.value():
             item = iterator.value()
-            data = (item.text(0), item.text(1), item.text(2), item.text(3), item.text(4))
+            data = (
+                item.text(0),
+                item.text(1),
+                item.text(2),
+                item.text(3),
+                item.text(4),
+            )
             selection.add(data)
 
             iterator += 1
 
         for item in self.matches.selectedItems():
-            data = (item.text(0), item.text(1), item.text(2), item.text(3), item.text(4))
+            data = (
+                item.text(0),
+                item.text(1),
+                item.text(2),
+                item.text(3),
+                item.text(4),
+            )
             selection.add(data)
 
         selection = natsorted(selection)

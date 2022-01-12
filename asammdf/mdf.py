@@ -43,6 +43,7 @@ from .blocks.mdf_v2 import MDF2
 from .blocks.mdf_v3 import MDF3
 from .blocks.mdf_v4 import MDF4
 from .blocks.options import FloatInterpolation, IntegerInterpolation
+from .blocks.source_utils import Source
 from .blocks.utils import (
     components,
     csv_bytearray2hex,
@@ -4640,12 +4641,32 @@ class MDF:
                                             )
                                             comment = f'CAN{bus} - message "{message}" 0x{msg_id:X}'
 
+                                    acq_source = Source(
+                                        name=acq_name,
+                                        path=f"CAN{int(bus)}.CAN_DataFrame.ID=0x{message.arbitration_id.id:X}",
+                                        comment=f"""\
+<SIcomment>
+    <TX>CAN{bus} data frame 0x{message.arbitration_id.id:X} - {message.name}</TX>
+    <bus name="CAN{int(bus)}"/>
+    <common_properties>
+        <e name="ChannelNo" type="integer">{int(bus)}</e>
+    </common_properties>
+</SIcomment>""",
+                                        source_type=v4c.SOURCE_BUS,
+                                        bus_type=v4c.BUS_TYPE_CAN,
+                                    )
+
                                     cg_nr = out.append(
                                         sigs,
                                         acq_name=acq_name,
+                                        acq_source=acq_source,
                                         comment=comment,
                                         common_timebase=True,
                                     )
+
+                                    out.groups[
+                                        cg_nr
+                                    ].channel_group.flags = v4c.FLAG_CG_BUS_EVENT
 
                                     if is_j1939:
                                         max_flags.append([False])
@@ -4895,12 +4916,32 @@ class MDF:
                                             f"from LIN{bus} message ID=0x{msg_id:X}"
                                         )
 
+                                    acq_source = Source(
+                                        name=acq_name,
+                                        path=f"LIN{int(bus)}.LIN_Frame.ID=0x{message.arbitration_id.id:X}",
+                                        comment=f"""\
+<SIcomment>
+    <TX>LIN{bus} data frame 0x{message.arbitration_id.id:X} - {message.name}</TX>
+    <bus name="LIN{int(bus)}"/>
+    <common_properties>
+        <e name="ChannelNo" type="integer">{int(bus)}</e>
+    </common_properties>
+</SIcomment>""",
+                                        source_type=v4c.SOURCE_BUS,
+                                        bus_type=v4c.BUS_TYPE_LIN,
+                                    )
+
                                     cg_nr = out.append(
                                         sigs,
                                         acq_name=acq_name,
+                                        acq_source=acq_source,
                                         comment=f'from LIN{bus} - message "{message}" 0x{msg_id:X}',
                                         common_timebase=True,
                                     )
+
+                                    out.groups[
+                                        cg_nr
+                                    ].channel_group.flags = v4c.FLAG_CG_BUS_EVENT
 
                                 else:
 
