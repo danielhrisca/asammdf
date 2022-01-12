@@ -47,6 +47,9 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.matches.itemDoubleClicked.connect(self._match_double_clicked)
         self.selection.itemDoubleClicked.connect(self._selection_double_clicked)
 
+        self.matches.header().sectionResized.connect(self.section_resized)
+        self.selection.header().sectionResized.connect(self.section_resized)
+
         self.apply_pattern_btn.clicked.connect(self._apply_pattern)
         self.cancel_pattern_btn.clicked.connect(self._cancel_pattern)
         self.define_ranges_btn.clicked.connect(self._define_ranges)
@@ -89,6 +92,11 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
         self.setWindowTitle(window_title)
 
+        self.matches.setColumnWidth(0, 550)
+        self.matches.setColumnWidth(1, 40)
+        self.matches.setColumnWidth(2, 40)
+        self.matches.setColumnWidth(3, 200)
+
     def search_text_changed(self):
         text = self.search_box.text().strip()
         if len(text) >= 2:
@@ -118,10 +126,10 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                 ch.source.path
                                 if ch.source is not None
                                 else (cg.acq_source.path if cg.acq_source else "")
-                            )
+                            ).strip()
                             matches[entry] = {
                                 "names": [],
-                                "comment": extract_cncomment_xml(ch.comment),
+                                "comment": extract_cncomment_xml(ch.comment).strip(),
                                 "source": source,
                             }
 
@@ -175,9 +183,6 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                     self.status.setText("No results")
 
                 self.matches.expandAll()
-                self.matches.header().resizeSections(
-                    QtWidgets.QHeaderView.ResizeMode.ResizeToContents
-                )
 
             except Exception as err:
                 self.status.setText(str(err))
@@ -216,9 +221,6 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
         self.selection.clear()
         self.selection.addTopLevelItems(items)
-        self.selection.header().resizeSections(
-            QtWidgets.QHeaderView.ResizeMode.ResizeToContents
-        )
 
     def _apply(self, event=None):
         if self._return_names:
@@ -311,10 +313,11 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
             self.selection.clear()
             self.selection.addTopLevelItems(items)
-            self.selection.header().resizeSections(
-                QtWidgets.QHeaderView.ResizeMode.ResizeToContents
-            )
 
     def _selection_double_clicked(self, item):
         root = self.selection.invisibleRootItem()
         (item.parent() or root).removeChild(item)
+
+    def section_resized(self, index, old_size, new_size):
+        self.selection.setColumnWidth(index, new_size)
+        self.matches.setColumnWidth(index, new_size)

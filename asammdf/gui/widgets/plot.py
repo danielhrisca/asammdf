@@ -1139,6 +1139,9 @@ class Plot(QtWidgets.QWidget):
 
         main_layout.addWidget(self.splitter)
 
+        self.show()
+        self.hide()
+
         if signals:
             self.add_new_channels(signals)
 
@@ -1179,6 +1182,8 @@ class Plot(QtWidgets.QWidget):
         )
 
         self.splitter.splitterMoved.connect(self.set_splitter)
+
+        self.show()
 
     def curve_clicked(self, uuid):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
@@ -1844,27 +1849,7 @@ class Plot(QtWidgets.QWidget):
 
         channels = valid
 
-        size = sum(self.splitter.sizes())
-
-        width = 0
-        for ch in channels:
-            width = max(
-                width,
-                self.channel_selection.fontMetrics()
-                .boundingRect(f"{ch.name} ({ch.unit})")
-                .width(),
-            )
-        width += 170
-
-        if width > self.splitter.sizes()[0]:
-
-            if size - width >= 300:
-                self.splitter.setSizes([width, size - width, 0])
-            else:
-                if size >= 350:
-                    self.splitter.setSizes([size - 300, 300, 0])
-                elif size >= 100:
-                    self.splitter.setSizes([50, size - 50, 0])
+        self.adjust_splitter(channels)
 
         channels = self.plot.add_new_channels(channels)
 
@@ -2181,6 +2166,31 @@ class Plot(QtWidgets.QWidget):
             self.range_modified()
         else:
             self.cursor_moved()
+
+    def adjust_splitter(self, channels=None):
+        channels = channels or self.plot.signals
+
+        size = sum(self.splitter.sizes())
+
+        width = 0
+        for ch in channels:
+            width = max(
+                width,
+                self.channel_selection.fontMetrics()
+                .boundingRect(f"{ch.name} ({ch.unit})")
+                .width(),
+            )
+        width += 170
+
+        if width > self.splitter.sizes()[0]:
+
+            if size - width >= 300:
+                self.splitter.setSizes([width, size - width, 0])
+            else:
+                if size >= 350:
+                    self.splitter.setSizes([size - 300, 300, 0])
+                elif size >= 100:
+                    self.splitter.setSizes([50, size - 50, 0])
 
 
 class _Plot(pg.PlotWidget):

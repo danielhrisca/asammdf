@@ -395,6 +395,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.header().setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
         self.itemSelectionChanged.connect(self.item_selection_changed)
 
+        self.itemCollapsed.connect(self.update_visibility_status)
         self.itemExpanded.connect(self.update_visibility_status)
         self.verticalScrollBar().valueChanged.connect(self.update_visibility_status)
         self.itemsDeleted.connect(self.update_visibility_status)
@@ -1124,6 +1125,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
     def is_item_visible(self, item):
         return item._is_visible
+
+    def resizeEvent(self, e: QtGui.QResizeEvent) -> None:
+        super().resizeEvent(e)
+        self.update_visibility_status()
 
 
 class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):

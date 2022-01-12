@@ -171,11 +171,14 @@
           <enum>QAbstractItemView::ExtendedSelection</enum>
          </property>
          <property name="uniformRowHeights">
-          <bool>true</bool>
+          <bool>false</bool>
          </property>
          <property name="sortingEnabled">
           <bool>false</bool>
          </property>
+         <attribute name="headerMinimumSectionSize">
+          <number>40</number>
+         </attribute>
          <attribute name="headerStretchLastSection">
           <bool>true</bool>
          </attribute>
