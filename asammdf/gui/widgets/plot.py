@@ -3482,9 +3482,10 @@ class _Plot(pg.PlotWidget):
             self.view_boxes[i].removeItem(item)
 
             item = self.axes.pop(i)
-            self.layout.removeItem(item)
-            item.scene().removeItem(item)
-            item.unlinkFromView()
+            if isinstance(item, FormatedAxis):
+                self.layout.removeItem(item)
+                item.scene().removeItem(item)
+                item.unlinkFromView()
 
             item = self.view_boxes.pop(i)
             item.setXLink(None)
