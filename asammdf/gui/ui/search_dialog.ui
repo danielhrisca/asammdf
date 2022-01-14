@@ -92,7 +92,12 @@
          </column>
          <column>
           <property name="text">
-           <string>Source</string>
+           <string>Source name</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Source path</string>
           </property>
          </column>
          <column>
@@ -199,7 +204,12 @@
          </column>
          <column>
           <property name="text">
-           <string>Source</string>
+           <string>Source name</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Source path</string>
           </property>
          </column>
          <column>
