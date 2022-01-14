@@ -4622,14 +4622,14 @@ class MDF:
                                                 ) = f"CAN{bus} consolidated PGN=0x{msg_id:X} {message}"
 
                                         else:
+                                            source_adddress = original_msg_id & 0xFF
                                             if prefix:
-                                                acq_name = (
-                                                    comment
-                                                ) = f"{prefix}: CAN{bus} PGN=0x{msg_id:X} {message} from ID=0x{original_msg_id:X}"
+                                                comment = f"{prefix}: CAN{bus} PGN=0x{msg_id:X} {message} from ID=0x{original_msg_id:X}"
                                             else:
-                                                acq_name = (
-                                                    comment
-                                                ) = f"CAN{bus} PGN=0x{msg_id:X} {message} from ID=0x{original_msg_id:X}"
+                                                comment = f"CAN{bus} PGN=0x{msg_id:X} {message} from ID=0x{original_msg_id:X}"
+                                            acq_name = (
+                                                f"SourceAddress = 0x{source_adddress}"
+                                            )
                                     else:
 
                                         if prefix:
@@ -4655,6 +4655,9 @@ class MDF:
                                         source_type=v4c.SOURCE_BUS,
                                         bus_type=v4c.BUS_TYPE_CAN,
                                     )
+
+                                    for sig in sigs:
+                                        sig.source = acq_source
 
                                     cg_nr = out.append(
                                         sigs,
@@ -4930,6 +4933,9 @@ class MDF:
                                         source_type=v4c.SOURCE_BUS,
                                         bus_type=v4c.BUS_TYPE_LIN,
                                     )
+
+                                    for sig in sigs:
+                                        sig.source = acq_source
 
                                     cg_nr = out.append(
                                         sigs,

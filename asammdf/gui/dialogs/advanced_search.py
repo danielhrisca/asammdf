@@ -92,10 +92,11 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
         self.setWindowTitle(window_title)
 
-        self.matches.setColumnWidth(0, 550)
+        self.matches.setColumnWidth(0, 450)
         self.matches.setColumnWidth(1, 40)
         self.matches.setColumnWidth(2, 40)
-        self.matches.setColumnWidth(3, 200)
+        self.matches.setColumnWidth(3, 170)
+        self.matches.setColumnWidth(4, 170)
 
     def search_text_changed(self):
         text = self.search_box.text().strip()
@@ -122,15 +123,13 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                             ch = self.mdf.groups[group_index].channels[channel_index]
                             cg = self.mdf.groups[group_index].channel_group
 
-                            source = (
-                                ch.source.path
-                                if ch.source is not None
-                                else (cg.acq_source.path if cg.acq_source else "")
-                            ).strip()
+                            source = ch.source or cg.acq_source
+
                             matches[entry] = {
                                 "names": [],
                                 "comment": extract_cncomment_xml(ch.comment).strip(),
-                                "source": source,
+                                "source_name": source.name if source else "",
+                                "source_path": source.path if source else "",
                             }
 
                         info = matches[entry]
@@ -155,7 +154,8 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                             names[0],
                             group_index,
                             channel_index,
-                            info["source"],
+                            info["source_name"],
+                            info["source_path"],
                             info["comment"],
                         ]
                     )
@@ -167,7 +167,8 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                 name,
                                 group_index,
                                 channel_index,
-                                info["source"],
+                                info["source_name"],
+                                info["source_path"],
                                 info["comment"],
                             ]
                         )
@@ -200,6 +201,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                 item.text(2),
                 item.text(3),
                 item.text(4),
+                item.text(5),
             )
             selection.add(data)
 
@@ -212,6 +214,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                 item.text(2),
                 item.text(3),
                 item.text(4),
+                item.text(5),
             )
             selection.add(data)
 
