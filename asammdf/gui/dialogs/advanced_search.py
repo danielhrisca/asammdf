@@ -300,12 +300,26 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
         while iterator.value():
             item = iterator.value()
-            data = (item.text(0), item.text(1), item.text(2))
+            data = (
+                item.text(0),
+                item.text(1),
+                item.text(2),
+                item.text(3),
+                item.text(4),
+                item.text(5),
+            )
             selection.add(data)
 
             iterator += 1
 
-        new_data = new_item.text(0), new_item.text(1), new_item.text(2)
+        new_data = (
+            new_item.text(0),
+            new_item.text(1),
+            new_item.text(2),
+            new_item.text(3),
+            new_item.text(4),
+            new_item.text(5),
+        )
 
         if new_data not in selection:
             selection.add(new_data)
