@@ -1394,7 +1394,7 @@ class Numeric(QtWidgets.QWidget):
             signal_name = ""
             for sig in matches:
                 sig = sig.signal.cut(start=start)
-                if mode == "Raw" or sig.comversion is None:
+                if mode == "Raw" or sig.conversion is None:
                     samples = sig.raw_samples
                 else:
                     samples = sig.phys_samples
@@ -1461,7 +1461,7 @@ class Numeric(QtWidgets.QWidget):
             signal_name = ""
             for sig in matches:
                 sig = sig.signal.cut(stop=stop)
-                if mode == "raw values" or sig.comversion is None:
+                if mode == "raw values" or sig.conversion is None:
                     samples = sig.raw_samples[:-1]
                 else:
                     samples = sig.phys_samples[:-1]
