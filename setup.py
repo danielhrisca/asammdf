@@ -111,6 +111,7 @@ setup(
             "pyqtgraph>=0.12.3",
             "pyqtlet",
             "PyQtWebEngine",
+            "scipy",
         ],
         "encryption": ["cryptography", "keyring"],
         "symbolic_math": "numexpr3",
