@@ -108,10 +108,17 @@ def load_dsp(file, background="#000000"):
     if isinstance(background, str):
         background = QtGui.QColor(background)
 
-    def parse_channels(display):
+    def parse_channels(display, unique_names=None):
+        unique_names = unique_names or set()
         channels = []
         for elem in display.iterchildren():
             if elem.tag == "CHANNEL":
+                channel_name = elem.get("name")
+                if channel_name in unique_names:
+                    continue
+                else:
+                    unique_names.add(channel_name)
+
                 color_ = int(elem.get("color"))
                 c = 0
                 for i in range(3):
@@ -159,7 +166,7 @@ def load_dsp(file, background="#000000"):
                         "enabled": elem.get("on") == "1",
                         "fmt": "{}",
                         "individual_axis": False,
-                        "name": elem.get("name"),
+                        "name": channel_name,
                         "precision": 3,
                         "ranges": ranges,
                         "unit": "",
@@ -168,6 +175,7 @@ def load_dsp(file, background="#000000"):
                             -gain * offset,
                             -gain * offset + 19 * gain,
                         ],
+                        "mdf_uuid": "000000000000",
                     }
                 )
 
@@ -177,7 +185,7 @@ def load_dsp(file, background="#000000"):
                         "name": elem.get("data"),
                         "enabled": elem.get("on") == "1",
                         "type": "group",
-                        "channels": parse_channels(elem),
+                        "channels": parse_channels(elem, unique_names),
                         "pattern": None,
                     }
                 )
@@ -281,10 +289,7 @@ def load_dsp(file, background="#000000"):
 
     channels = parse_channels(dsp.find("DISPLAY_INFO"))
 
-    info = {}
-    info["selected_channels"] = []
-
-    info["windows"] = windows = []
+    info = {"selected_channels": [], "windows": []}
 
     if channels:
 
@@ -296,14 +301,14 @@ def load_dsp(file, background="#000000"):
             },
         }
 
-        windows.append(plot)
+        info["windows"].append(plot)
 
     channels = parse_virtual_channels(dsp.find("VIRTUAL_CHANNEL"))
 
     if channels:
         plot = {
             "type": "Plot",
-            "title": "Display channels",
+            "title": "Virtual display channels",
             "configuration": {
                 "channels": [
                     {
@@ -323,13 +328,14 @@ def load_dsp(file, background="#000000"):
                         "unit": "",
                         "conversion": ch["vtab"],
                         "user_defined_name": ch["name"],
+                        "mdf_uuid": "000000000000",
                     }
                     for i, ch in enumerate(channels.values())
                 ]
             },
         }
 
-        windows.append(plot)
+        info["windows"].append(plot)
 
     return info
 

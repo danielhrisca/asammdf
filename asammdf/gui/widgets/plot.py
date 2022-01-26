@@ -2021,6 +2021,7 @@ class Plot(QtWidgets.QWidget):
                 elif isinstance(widget, ChannelGroupDisplay):
                     pattern = item.pattern
                     if pattern:
+                        pattern = dict(pattern)
                         ranges = copy_ranges(pattern["ranges"])
 
                         for range_info in ranges:
