@@ -1292,6 +1292,10 @@ class Numeric(QtWidgets.QWidget):
         self.channels.backend.does_not_exist(entry, exists)
 
     def set_format(self, fmt):
+        if fmt == "Phys":
+            fmt = "Physical"
+        elif fmt == "Binary":
+            fmt = "Bin"
         if fmt not in ("Physical", "Hex", "Bin"):
             fmt = "Physical"
 

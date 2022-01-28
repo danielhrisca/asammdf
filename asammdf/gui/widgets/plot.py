@@ -1882,10 +1882,7 @@ class Plot(QtWidgets.QWidget):
             # item.setData(QtCore.Qt.UserRole, sig.name)
             tooltip = getattr(sig, "tooltip", "") or f"{sig.name}\n{sig.comment}"
             if sig.source:
-                src = sig.source
-                source_type = v4c.SOURCE_TYPE_TO_STRING[src.source_type]
-                bus_type = v4c.BUS_TYPE_TO_STRING[src.bus_type]
-                details = f"     {source_type} source on bus {bus_type}: name=[{src.name}] path=[{src.path}]"
+                details = sig.source.get_details()
             else:
                 details = ""
 

@@ -99,3 +99,8 @@ class Source:
                 source.source_type,
                 source.bus_type,
             )
+
+    def get_details(self) -> str:
+        source_type = v4c.SOURCE_TYPE_TO_STRING[self.source_type]
+        bus_type = v4c.BUS_TYPE_TO_STRING[self.bus_type]
+        return f"     {source_type} source on bus {bus_type}: name=[{self.name}] path=[{self.path}]"
