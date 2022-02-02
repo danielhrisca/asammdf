@@ -3255,7 +3255,7 @@ class ChannelConversion(_ChannelConversionBase):
                     try:
                         vals = evaluate(v4c.CONV_RAT_TEXT)
                     except TypeError:
-                        vals = (P1 * X ** 2 + P2 * X + P3) / (P4 * X ** 2 + P5 * X + P6)
+                        vals = (P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)
 
                 values = np.core.records.fromarrays(
                     [vals] + [values[name] for name in names[1:]],
@@ -3282,8 +3282,8 @@ class ChannelConversion(_ChannelConversionBase):
                     try:
                         values = evaluate(v4c.CONV_RAT_TEXT)
                     except TypeError:
-                        values = (P1 * X ** 2 + P2 * X + P3) / (
-                            P4 * X ** 2 + P5 * X + P6
+                        values = (P1 * X**2 + P2 * X + P3) / (
+                            P4 * X**2 + P5 * X + P6
                         )
 
         elif conversion_type == v4c.CONVERSION_TYPE_ALG:
@@ -5168,7 +5168,7 @@ class FileHistory:
             self.links_nr = kwargs.get("links_nr", 2)
             self.next_fh_addr = kwargs.get("next_fh_addr", 0)
             self.comment_addr = kwargs.get("comment_addr", 0)
-            self.abs_time = kwargs.get("abs_time", int(time.time()) * 10 ** 9)
+            self.abs_time = kwargs.get("abs_time", int(time.time()) * 10**9)
             self.tz_offset = kwargs.get("tz_offset", 120)
             self.daylight_save_time = kwargs.get("daylight_save_time", 60)
             self.time_flags = kwargs.get("time_flags", 2)
@@ -5383,7 +5383,7 @@ class HeaderBlock:
 
         """
 
-        timestamp = self.abs_time / 10 ** 9
+        timestamp = self.abs_time / 10**9
         if self.time_flags & v4c.FLAG_HD_LOCAL_TIME:
             try:
                 timestamp = datetime.fromtimestamp(timestamp)
@@ -5407,7 +5407,7 @@ class HeaderBlock:
             self.time_flags = 0
             timestamp = timestamp.astimezone(timezone.utc)
 
-        timestamp = int(timestamp.timestamp() * 10 ** 9)
+        timestamp = int(timestamp.timestamp() * 10**9)
         self.abs_time = timestamp
         self.tz_offset = 0
         self.daylight_save_time = 0
