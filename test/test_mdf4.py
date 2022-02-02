@@ -24,13 +24,13 @@ class TestMDF4(unittest.TestCase):
 
     def test_read_mdf4_00(self):
 
-        seed = np.random.randint(0, 2 ** 31)
+        seed = np.random.randint(0, 2**31)
 
         np.random.seed(seed)
         print("Read 4.00 using seed =", seed)
 
         sig_int = Signal(
-            np.random.randint(-(2 ** 31), 2 ** 31, CHANNEL_LEN),
+            np.random.randint(-(2**31), 2**31, CHANNEL_LEN),
             np.arange(CHANNEL_LEN),
             name="Integer Channel",
             unit="unit1",
@@ -56,13 +56,13 @@ class TestMDF4(unittest.TestCase):
 
     def test_read_mdf4_10(self):
 
-        seed = np.random.randint(0, 2 ** 31)
+        seed = np.random.randint(0, 2**31)
 
         np.random.seed(seed)
         print("Read 4.10 using seed =", seed)
 
         sig_int = Signal(
-            np.random.randint(-(2 ** 31), 2 ** 31, CHANNEL_LEN),
+            np.random.randint(-(2**31), 2**31, CHANNEL_LEN),
             np.arange(CHANNEL_LEN),
             name="Integer Channel",
             unit="unit1",
