@@ -43,7 +43,7 @@ vals = np.linspace(0, 180.0 / np.pi, 100)
 phi = np.ones((len(vals), 50, 50), dtype=np.float64)
 for i, val in enumerate(vals):
     phi[i] *= val
-R = 1 - np.sqrt(X ** 2 + Y ** 2)
+R = 1 - np.sqrt(X**2 + Y**2)
 samples = np.cos(2 * np.pi * X + phi) * R
 
 timestamps = np.arange(0, 2, 0.02)
@@ -59,7 +59,7 @@ prod.name = "Uint8_Signal * Float64_Signal"
 prod.unit = "*"
 prod.plot()
 
-pow2 = s_uint8 ** 2
+pow2 = s_uint8**2
 pow2.name = "Uint8_Signal ^ 2"
 pow2.unit = "u1^2"
 pow2.plot()
