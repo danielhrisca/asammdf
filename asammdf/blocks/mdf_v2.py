@@ -23,7 +23,7 @@ class MDF2(MDF3):
         self,
         name: BufferedReader | BytesIO | StrPathType | None = None,
         version: str = "2.14",
-        **kwargs
+        **kwargs,
     ) -> None:
         version = validate_version_argument(version, hint=2)
 

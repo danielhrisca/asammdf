@@ -34,8 +34,11 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
         self.result = {}
         self.add_window_request = False
-        self.channels_db = mdf.channels_db
-        self.mdf = mdf
+        if mdf:
+            self.channels_db = mdf.channels_db
+            self.mdf = mdf
+        else:
+            self.mdf = self.channels_db = None
 
         self.apply_btn.clicked.connect(self._apply)
         self.add_btn.clicked.connect(self._add)

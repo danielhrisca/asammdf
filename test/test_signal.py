@@ -520,7 +520,7 @@ class TestSignal(unittest.TestCase):
 
         target = np.arange(1, 5, dtype="<f4") ** 3
 
-        res = s ** 3
+        res = s**3
         self.assertTrue(np.array_equal(res.samples, target))
 
 

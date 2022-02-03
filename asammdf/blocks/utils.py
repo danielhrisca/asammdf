@@ -110,10 +110,10 @@ __all__ = [
 CHANNEL_COUNT = (1000, 2000, 10000, 20000)
 _channel_count = arange(0, 20000, 1000, dtype="<u4")
 
-CONVERT = (10 * 2 ** 20, 20 * 2 ** 20, 30 * 2 ** 20, 40 * 2 ** 20)
+CONVERT = (10 * 2**20, 20 * 2**20, 30 * 2**20, 40 * 2**20)
 CONVERT = interp(_channel_count, CHANNEL_COUNT, CONVERT).astype("<u4")
 
-MERGE = (10 * 2 ** 20, 20 * 2 ** 20, 35 * 2 ** 20, 60 * 2 ** 20)
+MERGE = (10 * 2**20, 20 * 2**20, 35 * 2**20, 60 * 2**20)
 MERGE = interp(_channel_count, CHANNEL_COUNT, MERGE).astype("<u4")
 
 CHANNEL_COUNT = _channel_count
@@ -783,7 +783,7 @@ def as_non_byte_sized_signed_int(
     return where(
         truncated_integers
         >> bit_length - 1,  # sign bit as a truth series (True when negative)
-        (2 ** bit_length - truncated_integers)
+        (2**bit_length - truncated_integers)
         * -1,  # when negative, do two's complement
         truncated_integers,  # when positive, return the truncated int
     )
