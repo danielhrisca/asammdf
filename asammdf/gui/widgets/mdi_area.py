@@ -2556,6 +2556,25 @@ class WithMDIArea:
                 generate_window_title(w, window_info["type"], window_info["title"])
             )
 
+            if "x_range" in window_info["configuration"]:
+                plot.plot.viewbox.setXRange(
+                    *window_info["configuration"]["x_range"], padding=0
+                )
+
+            if "splitter" in window_info["configuration"]:
+                plot.splitter.setSizes(window_info["configuration"]["splitter"])
+
+            if "y_axis_width" in window_info["configuration"]:
+                plot.plot.y_axis.setWidth(window_info["configuration"]["y_axis_width"])
+
+            if "grid" in window_info["configuration"]:
+                x_grid, y_grid = window_info["configuration"]["grid"]
+                plot.plot.plotItem.ctrl.xGridCheck.setChecked(x_grid)
+                plot.plot.plotItem.ctrl.yGridCheck.setChecked(y_grid)
+
+            plot.splitter.setContentsMargins(1, 1, 1, 1)
+            plot.setContentsMargins(1, 1, 1, 1)
+
             plot.add_new_channels(signals, mime_data)
 
             iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
@@ -2655,25 +2674,6 @@ class WithMDIArea:
                     wid.set_value(update=True)
 
             self.set_subplots_link(self.subplots_link)
-
-            if "x_range" in window_info["configuration"]:
-                plot.plot.viewbox.setXRange(
-                    *window_info["configuration"]["x_range"], padding=0
-                )
-
-            if "splitter" in window_info["configuration"]:
-                plot.splitter.setSizes(window_info["configuration"]["splitter"])
-
-            if "y_axis_width" in window_info["configuration"]:
-                plot.plot.y_axis.setWidth(window_info["configuration"]["y_axis_width"])
-
-            if "grid" in window_info["configuration"]:
-                x_grid, y_grid = window_info["configuration"]["grid"]
-                plot.plot.plotItem.ctrl.xGridCheck.setChecked(x_grid)
-                plot.plot.plotItem.ctrl.yGridCheck.setChecked(y_grid)
-
-            plot.splitter.setContentsMargins(1, 1, 1, 1)
-            plot.setContentsMargins(1, 1, 1, 1)
 
             if "cursor_precision" in window_info["configuration"]:
                 plot.cursor_info.set_precision(

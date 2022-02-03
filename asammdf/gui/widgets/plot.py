@@ -1740,6 +1740,8 @@ class Plot(QtWidgets.QWidget):
 
     def add_new_channels(self, channels, mime_data=None, destination=None):
         def add_new_items(tree, root, items, items_pool):
+            pairs = []
+            children = []
             for (name, group_index, channel_index, mdf_uuid, type_, ranges) in items:
 
                 ranges = deepcopy(ranges)
@@ -1751,15 +1753,18 @@ class Plot(QtWidgets.QWidget):
 
                 if type_ == "group":
                     pattern = group_index
-                    item = ChannelsGroupTreeItem(name, pattern)
+                    item = ChannelsGroupTreeItem(name, pattern, tree)
                     widget = ChannelGroupDisplay(
                         name, pattern, item=item, ranges=ranges
                     )
                     widget.item = item
-                    root.addChild(item)
-                    tree.setItemWidget(item, 1, widget)
+                    
+                    children.append(item) #root.addChild(item)
+                    pairs.append((item, widget))
+                    
+                    # tree.setItemWidget(item, 1, widget)
 
-                    add_new_items(tree, item, channel_index, items_pool)
+                    pairs.extend(add_new_items(tree, item, channel_index, items_pool))
 
                 else:
 
@@ -1772,8 +1777,9 @@ class Plot(QtWidgets.QWidget):
                             widget.item = item
                             widget.set_ranges(ranges)
 
-                            root.addChild(item)
-                            tree.setItemWidget(item, 1, widget)
+                            children.append(item) #root.addChild(item)
+                            pairs.append((item, widget))
+                            #tree.setItemWidget(item, 1, widget)
 
                             del items_pool[key]
                     else:
@@ -1783,10 +1789,14 @@ class Plot(QtWidgets.QWidget):
                             widget.item = item
                             widget.set_ranges(ranges)
 
-                            root.addChild(item)
-                            tree.setItemWidget(item, 1, widget)
+                            children.append(item) #root.addChild(item)
+                            pairs.append((item, widget))
+                            #tree.setItemWidget(item, 1, widget)
 
                             del items_pool[key]
+            root.addChildren(children)
+
+            return pairs
 
         for sig in channels:
             sig.uuid = os.urandom(6).hex()
@@ -1935,12 +1945,15 @@ class Plot(QtWidgets.QWidget):
             self.info_uuid = sig.uuid
 
         if mime_data:
-            add_new_items(
+            pairs = add_new_items(
                 self.channel_selection,
                 destination or self.channel_selection.invisibleRootItem(),
                 mime_data,
                 new_items,
             )
+            
+            for item, widget in pairs:
+                self.channel_selection.setItemWidget(item, 1, widget)
 
             # still have simple signals to add
             if new_items:
@@ -3208,8 +3221,8 @@ class _Plot(pg.PlotWidget):
         new_size, last_size = self.geometry(), self._last_size
         if new_size != last_size:
             self._last_size = new_size
-            self.xrange_changed_handle()
             super().resizeEvent(ev)
+            self.xrange_changed_handle()
 
     def set_current_uuid(self, uuid, force=False):
         axis = self.y_axis

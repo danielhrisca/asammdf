@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+from time import perf_counter
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -136,10 +137,11 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
                 self.set_value(self._value, update=True)
 
     def select_color(self):
-        color = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.color))
-        if color.isValid():
-            self.set_color(color.name())
-            self.color_changed.emit(self.uuid, color.name())
+        if self.exists:
+            color = QtWidgets.QColorDialog.getColor(QtGui.QColor(self.color))
+            if color.isValid():
+                self.set_color(color.name())
+                self.color_changed.emit(self.uuid, color.name())
 
     def set_fmt(self, fmt):
         if self.kind in "SUV":
@@ -338,6 +340,9 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         return json.dumps(info)
 
     def does_not_exist(self, exists=False):
+        if exists == self.exists:
+            return
+
         if not exists:
             icon = utils.ERROR_ICON
             if icon is None:
@@ -352,10 +357,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
             self.color_btn.setIcon(icon)
             self.color_btn.setFlat(True)
-            try:
-                self.color_btn.clicked.disconnect()
-            except:
-                pass
+
         else:
             icon = utils.NO_ERROR_ICON
             if icon is None:
@@ -370,14 +372,13 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
             self.color_btn.setIcon(icon)
             self.color_btn.setFlat(False)
-            self.color_btn.clicked.connect(self.select_color)
 
         self.exists = exists
 
-        if self.item:
-            tree = self.item.treeWidget()
-            if tree:
-                tree.update_hidden_states()
+        # if self.item:
+        #     tree = self.item.treeWidget()
+        #     if tree:
+        #         tree.update_hidden_states()
 
     def disconnect_slots(self):
         self.color_changed.disconnect()

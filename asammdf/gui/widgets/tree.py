@@ -374,7 +374,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 
-        self.setUniformRowHeights(False)
+        self.setUniformRowHeights(True)
 
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.open_menu)
@@ -1203,8 +1203,8 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
 
 class ChannelsGroupTreeItem(QtWidgets.QTreeWidgetItem):
-    def __init__(self, name="", pattern=None):
-        super().__init__(["", ""])
+    def __init__(self, name="", pattern=None, parent=None):
+        super().__init__(parent, ["", ""])
         self.name = name.split("\t[")[0]
         self.pattern = pattern
         self._is_visible = True
