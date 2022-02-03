@@ -27,13 +27,15 @@ class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
 
         self._name = name.split("\t[")[0]
         self.pattern = None
+
         font = self.name.font()
         font.setPointSize(font.pointSize() + 2)
         font.setBold(True)
         self.name.setFont(font)
         self.set_pattern(pattern)
         self.count = count
-        self.set_ranges(ranges or [] if not pattern else pattern.get("ranges", []))
+        self.set_ranges(ranges or [] if not self.pattern else self.pattern["ranges"])
+
         self.item = item
 
     def set_double_clicked_enabled(self, state):
@@ -42,7 +44,15 @@ class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
     def set_pattern(self, pattern):
         if pattern:
             self._icon.setPixmap(QtGui.QPixmap(":/filter.png"))
-            self.pattern = pattern
+            self.pattern = dict(pattern)
+            self.pattern["ranges"] = copy_ranges(self.pattern["ranges"])
+            for range_info in self.pattern["ranges"]:
+                if isinstance(range_info["font_color"], str):
+                    range_info["font_color"] = QtGui.QColor(range_info["font_color"])
+                if isinstance(range_info["background_color"], str):
+                    range_info["background_color"] = QtGui.QColor(
+                        range_info["background_color"]
+                    )
         else:
             self._icon.setPixmap(QtGui.QPixmap(":/open.png"))
             self.pattern = None
@@ -91,4 +101,13 @@ class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
             self.range_indicator.setHidden(False)
         else:
             self.range_indicator.setHidden(True)
-        self.ranges = ranges
+
+        self.ranges = []
+        for range_info in ranges:
+            if isinstance(range_info["font_color"], str):
+                range_info["font_color"] = QtGui.QColor(range_info["font_color"])
+            if isinstance(range_info["background_color"], str):
+                range_info["background_color"] = QtGui.QColor(
+                    range_info["background_color"]
+                )
+            self.ranges.append(range_info)
