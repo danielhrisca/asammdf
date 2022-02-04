@@ -23,7 +23,6 @@ import pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5
 import pyqtgraph.GraphicsScene.exportDialogTemplate_pyqt5
 import pyqtgraph.imageview.ImageViewTemplate_pyqt5
 
-
 from ..utils import FONT_SIZE
 
 try:
