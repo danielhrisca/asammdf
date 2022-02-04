@@ -3055,7 +3055,8 @@ class _Plot(pg.PlotWidget):
 
             elif (
                 key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right)
-                and modifier == QtCore.Qt.NoModifier or modifier == QtCore.Qt.ControlModifier
+                and modifier == QtCore.Qt.NoModifier
+                or modifier == QtCore.Qt.ControlModifier
             ):
                 if modifier == QtCore.Qt.ControlModifier:
                     increment = 20
