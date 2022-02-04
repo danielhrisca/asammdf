@@ -2572,6 +2572,9 @@ class WithMDIArea:
                 plot.plot.plotItem.ctrl.xGridCheck.setChecked(x_grid)
                 plot.plot.plotItem.ctrl.yGridCheck.setChecked(y_grid)
 
+            if "font_size" in window_info["configuration"]:
+                plot.set_font_size(window_info["configuration"]["font_size"])
+
             plot.splitter.setContentsMargins(1, 1, 1, 1)
             plot.setContentsMargins(1, 1, 1, 1)
 

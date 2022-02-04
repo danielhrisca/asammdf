@@ -278,3 +278,17 @@ class FormatedAxis(pg.AxisItem):
                 view.setYRange(lower.value(), upper.value(), padding=0)
             else:
                 view.setXRange(lower.value(), upper.value(), padding=0)
+
+    def set_font_size(self, size):
+        font = self.font()
+        font.setPointSize(size)
+
+        if self.orientation in ("top", "bottom"):
+            metric = QtGui.QFontMetrics(font)
+            height = metric.height() + 2
+            self.setStyle(tickFont=font, tickTextHeight=height)
+        else:
+            self.setStyle(tickFont=font)
+            self.setFont(font)
+
+        self.label.setFont(font)

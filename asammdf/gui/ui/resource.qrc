@@ -58,5 +58,7 @@
     <file alias="shift_up.png">images/shift_up.png</file>
     <file alias="shift_down.png">images/shift_down.png</file>
     <file alias="shift_right.png">images/shift_right.png</file>
+    <file alias="decrease-font.png">images/decrease-font.png</file>
+    <file alias="increase-font.png">images/increase-font.png</file>
 </qresource>
 </RCC>

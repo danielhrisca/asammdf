@@ -84,4 +84,5 @@ class Ui_ChannelDiplay(object):
         self.name.setText(_translate("ChannelDiplay", "MAIN CLOCK"))
         self.ylink.setToolTip(_translate("ChannelDiplay", "enable common Y axis"))
         self.details.setText(_translate("ChannelDiplay", "details"))
+        
 from . import resource_rc

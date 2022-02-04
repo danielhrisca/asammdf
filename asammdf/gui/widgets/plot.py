@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import bisect
 from copy import deepcopy
 from datetime import timedelta
 from functools import partial, reduce
@@ -21,6 +22,9 @@ import pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyqt5
 import pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5
 import pyqtgraph.GraphicsScene.exportDialogTemplate_pyqt5
 import pyqtgraph.imageview.ImageViewTemplate_pyqt5
+
+
+from ..utils import FONT_SIZE
 
 try:
     from ...blocks.cutils import positions
@@ -1109,6 +1113,120 @@ class Plot(QtWidgets.QWidget):
             plot=self.plot,
         )
 
+        hbox = QtWidgets.QHBoxLayout()
+        hbox.setSpacing(3)
+        hbox.setContentsMargins(1, 1, 1, 1)
+
+        vbox.addLayout(hbox)
+
+        btn = QtWidgets.QPushButton("")
+        btn.clicked.connect(
+            lambda x: self.plot.keyPressEvent(
+                QtGui.QKeyEvent(
+                    QtCore.QEvent.KeyPress,
+                    QtCore.Qt.Key_H,
+                    QtCore.Qt.NoModifier,
+                )
+            )
+        )
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/home.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        btn.setIcon(icon)
+        btn.setToolTip("Home")
+        hbox.addWidget(btn)
+
+        btn = QtWidgets.QPushButton("")
+        btn.clicked.connect(
+            lambda x: self.plot.keyPressEvent(
+                QtGui.QKeyEvent(
+                    QtCore.QEvent.KeyPress,
+                    QtCore.Qt.Key_F,
+                    QtCore.Qt.NoModifier,
+                )
+            )
+        )
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/fit.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        btn.setIcon(icon)
+        btn.setToolTip("Fit")
+        hbox.addWidget(btn)
+
+        btn = QtWidgets.QPushButton("")
+        btn.clicked.connect(
+            lambda x: self.plot.keyPressEvent(
+                QtGui.QKeyEvent(
+                    QtCore.QEvent.KeyPress,
+                    QtCore.Qt.Key_S,
+                    QtCore.Qt.NoModifier,
+                )
+            )
+        )
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/list2.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        btn.setIcon(icon)
+        btn.setToolTip("Stack")
+        hbox.addWidget(btn)
+
+        btn = QtWidgets.QPushButton("")
+        btn.clicked.connect(
+            lambda x: self.plot.keyPressEvent(
+                QtGui.QKeyEvent(
+                    QtCore.QEvent.KeyPress,
+                    QtCore.Qt.Key_I,
+                    QtCore.Qt.NoModifier,
+                )
+            )
+        )
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/zoom-in.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        btn.setIcon(icon)
+        btn.setToolTip("Zoom in")
+        hbox.addWidget(btn)
+
+        btn = QtWidgets.QPushButton("")
+        btn.clicked.connect(
+            lambda x: self.plot.keyPressEvent(
+                QtGui.QKeyEvent(
+                    QtCore.QEvent.KeyPress,
+                    QtCore.Qt.Key_O,
+                    QtCore.Qt.NoModifier,
+                )
+            )
+        )
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/zoom-out.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        btn.setIcon(icon)
+        btn.setToolTip("Zoom out")
+        hbox.addWidget(btn)
+
+        btn = QtWidgets.QPushButton("")
+        btn.clicked.connect(self.increase_font)
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/increase-font.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        btn.setIcon(icon)
+        btn.setToolTip("Increase font")
+        hbox.addWidget(btn)
+
+        btn = QtWidgets.QPushButton("")
+        btn.clicked.connect(self.decrease_font)
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/decrease-font.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        btn.setIcon(icon)
+        btn.setToolTip("Decrease font")
+        hbox.addWidget(btn)
+
+        hbox.addStretch()
+
         vbox.addWidget(self.channel_selection)
         vbox.addWidget(self.cursor_info)
 
@@ -1184,6 +1302,33 @@ class Plot(QtWidgets.QWidget):
         self.splitter.splitterMoved.connect(self.set_splitter)
 
         self.show()
+
+    def increase_font(self):
+        font = self.font()
+        size = font.pointSize()
+        pos = bisect.bisect_right(FONT_SIZE, size)
+        if pos == len(FONT_SIZE):
+            pos -= 1
+        new_size = FONT_SIZE[pos]
+
+        self.set_font_size(new_size)
+
+    def decrease_font(self):
+        font = self.font()
+        size = font.pointSize()
+        pos = bisect.bisect_left(FONT_SIZE, size) - 1
+        if pos < 0:
+            pos = 0
+        new_size = FONT_SIZE[pos]
+
+        self.set_font_size(new_size)
+
+    def set_font_size(self, size):
+        font = self.font()
+        font.setPointSize(size)
+        self.setFont(font)
+        self.plot.y_axis.set_font_size(size)
+        self.plot.x_axis.set_font_size(size)
 
     def curve_clicked(self, uuid):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
@@ -1758,10 +1903,10 @@ class Plot(QtWidgets.QWidget):
                         name, pattern, item=item, ranges=ranges
                     )
                     widget.item = item
-                    
-                    children.append(item) #root.addChild(item)
+
+                    children.append(item)  # root.addChild(item)
                     pairs.append((item, widget))
-                    
+
                     # tree.setItemWidget(item, 1, widget)
 
                     pairs.extend(add_new_items(tree, item, channel_index, items_pool))
@@ -1777,9 +1922,9 @@ class Plot(QtWidgets.QWidget):
                             widget.item = item
                             widget.set_ranges(ranges)
 
-                            children.append(item) #root.addChild(item)
+                            children.append(item)  # root.addChild(item)
                             pairs.append((item, widget))
-                            #tree.setItemWidget(item, 1, widget)
+                            # tree.setItemWidget(item, 1, widget)
 
                             del items_pool[key]
                     else:
@@ -1789,9 +1934,9 @@ class Plot(QtWidgets.QWidget):
                             widget.item = item
                             widget.set_ranges(ranges)
 
-                            children.append(item) #root.addChild(item)
+                            children.append(item)  # root.addChild(item)
                             pairs.append((item, widget))
-                            #tree.setItemWidget(item, 1, widget)
+                            # tree.setItemWidget(item, 1, widget)
 
                             del items_pool[key]
             root.addChildren(children)
@@ -1951,7 +2096,7 @@ class Plot(QtWidgets.QWidget):
                 mime_data,
                 new_items,
             )
-            
+
             for item, widget in pairs:
                 self.channel_selection.setItemWidget(item, 1, widget)
 
@@ -2093,6 +2238,7 @@ class Plot(QtWidgets.QWidget):
                 self.plot.plotItem.ctrl.yGridCheck.isChecked(),
             ],
             "cursor_precision": self.cursor_info.precision,
+            "font_size": self.font().pointSize(),
         }
 
         return config

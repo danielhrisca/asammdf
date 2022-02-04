@@ -41,6 +41,8 @@ SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
 
 TERMINATED = object()
 
+FONT_SIZE = [6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72]
+
 
 def excepthook(exc_type, exc_value, tracebackobj):
     """
