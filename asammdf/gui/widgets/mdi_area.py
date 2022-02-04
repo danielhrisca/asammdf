@@ -39,7 +39,7 @@ from .tree import ChannelsGroupTreeItem
 
 COMPONENT = re.compile(r"\[(?P<index>\d+)\]$")
 SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
-NOT_FOUND = 2 ** 32 - 1
+NOT_FOUND = 2**32 - 1
 
 
 def build_mime_from_config(channels, mdf=None, uuid=None, default_index=NOT_FOUND):

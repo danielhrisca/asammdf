@@ -139,12 +139,12 @@ class TestEndianess(unittest.TestCase):
             with MDF(outfile) as mdf:
                 assert np.array_equal(
                     mdf.get("NotAlignedMotorola").samples,
-                    [(0x3F0204F8 >> 5) & (2 ** 21 - 1)] * 15,
+                    [(0x3F0204F8 >> 5) & (2**21 - 1)] * 15,
                 )
 
                 assert np.array_equal(
                     mdf.get("NotAlignedIntel").samples,
-                    [(0xF8040200 >> 6) & (2 ** 21 - 1)] * 15,
+                    [(0xF8040200 >> 6) & (2**21 - 1)] * 15,
                 )
 
     def test_not_aligned_mdf_v4(self):
@@ -235,12 +235,12 @@ class TestEndianess(unittest.TestCase):
             with MDF(outfile) as mdf:
                 assert np.array_equal(
                     mdf.get("NotAlignedMotorola").samples,
-                    [(0x3F0204F8 >> 5) & (2 ** 21 - 1)] * 15,
+                    [(0x3F0204F8 >> 5) & (2**21 - 1)] * 15,
                 )
 
                 assert np.array_equal(
                     mdf.get("NotAlignedIntel").samples,
-                    [(0xF8040200 >> 6) & (2 ** 21 - 1)] * 15,
+                    [(0xF8040200 >> 6) & (2**21 - 1)] * 15,
                 )
 
     def test_overlapping_channels_mdf_v3(self):
@@ -342,12 +342,12 @@ class TestEndianess(unittest.TestCase):
                 with MDF(outfile) as mdf:
                     assert np.array_equal(
                         mdf.get("OverlappingMotorola").samples,
-                        [(0x3F0204F8 >> 5) & (2 ** 21 - 1)] * 15,
+                        [(0x3F0204F8 >> 5) & (2**21 - 1)] * 15,
                     )
 
                     assert np.array_equal(
                         mdf.get("OverlappingIntel").samples,
-                        [(0xF8040200 >> 6) & (2 ** 21 - 1)] * 15,
+                        [(0xF8040200 >> 6) & (2**21 - 1)] * 15,
                     )
 
     def test_overlapping_channels_mdf_v4(self):
@@ -456,12 +456,12 @@ class TestEndianess(unittest.TestCase):
                 with MDF(outfile) as mdf:
                     assert np.array_equal(
                         mdf.get("OverlappingMotorola").samples,
-                        [(0x3F0204F8 >> 5) & (2 ** 21 - 1)] * 15,
+                        [(0x3F0204F8 >> 5) & (2**21 - 1)] * 15,
                     )
 
                     assert np.array_equal(
                         mdf.get("OverlappingIntel").samples,
-                        [(0xF8040200 >> 6) & (2 ** 21 - 1)] * 15,
+                        [(0xF8040200 >> 6) & (2**21 - 1)] * 15,
                     )
 
                 ch3 = mdf_source.groups[0].channels[2]

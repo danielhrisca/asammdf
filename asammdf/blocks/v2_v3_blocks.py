@@ -1624,7 +1624,7 @@ address: {hex(self.address)}
                 try:
                     values = evaluate(v23c.RAT_CONV_TEXT)
                 except TypeError:
-                    values = (P1 * X ** 2 + P2 * X + P3) / (P4 * X ** 2 + P5 * X + P6)
+                    values = (P1 * X**2 + P2 * X + P3) / (P4 * X**2 + P5 * X + P6)
 
         elif conversion_type == v23c.CONVERSION_TYPE_POLY:
             # pylint: disable=unused-variable,C0103
@@ -2889,7 +2889,7 @@ class HeaderBlock:
 
         if self.block_len > v23c.HEADER_COMMON_SIZE:
             if self.abs_time:
-                timestamp = self.abs_time / 10 ** 9
+                timestamp = self.abs_time / 10**9
                 try:
                     timestamp = datetime.fromtimestamp(timestamp)
                 except OSError:
@@ -2915,7 +2915,7 @@ class HeaderBlock:
         self.date = timestamp.strftime("%d:%m:%Y").encode("ascii")
         self.time = timestamp.strftime("%H:%M:%S").encode("ascii")
         if self.block_len > v23c.HEADER_COMMON_SIZE:
-            timestamp = int(timestamp.timestamp() * 10 ** 9)
+            timestamp = int(timestamp.timestamp() * 10**9)
             self.abs_time = timestamp
             self.tz_offset = 0
 

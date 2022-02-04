@@ -2349,6 +2349,8 @@ class _Plot(pg.PlotWidget):
                 (QtCore.Qt.Key_Right, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_Left, QtCore.Qt.ShiftModifier),
                 (QtCore.Qt.Key_Right, QtCore.Qt.ShiftModifier),
+                (QtCore.Qt.Key_Left, QtCore.Qt.ControlModifier),
+                (QtCore.Qt.Key_Right, QtCore.Qt.ControlModifier),
                 (QtCore.Qt.Key_Up, QtCore.Qt.ShiftModifier),
                 (QtCore.Qt.Key_Down, QtCore.Qt.ShiftModifier),
                 (QtCore.Qt.Key_H, QtCore.Qt.NoModifier),
@@ -3054,7 +3056,12 @@ class _Plot(pg.PlotWidget):
             elif (
                 key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right)
                 and modifier == QtCore.Qt.NoModifier
+                or modifier == QtCore.Qt.ControlModifier
             ):
+                if modifier == QtCore.Qt.ControlModifier:
+                    increment = 20
+                else:
+                    increment = 1
                 if self.cursor1:
                     prev_pos = pos = self.cursor1.value()
                     x = self.get_current_timebase()
@@ -3062,16 +3069,16 @@ class _Plot(pg.PlotWidget):
                     if dim:
                         pos = np.searchsorted(x, pos)
                         if key == QtCore.Qt.Key_Right:
-                            pos += 1
+                            pos += increment
                         else:
-                            pos -= 1
-                        pos = np.clip(pos, 0, dim - 1)
+                            pos -= increment
+                        pos = np.clip(pos, 0, dim - increment)
                         pos = x[pos]
                     else:
                         if key == QtCore.Qt.Key_Right:
-                            pos += 1
+                            pos += increment
                         else:
-                            pos -= 1
+                            pos -= increment
 
                     (left_side, right_side), _ = self.viewbox.viewRange()
 

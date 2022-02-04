@@ -175,7 +175,7 @@ def extract_signal(
 
             if std_size <= 8 and not is_float:
                 vals = vals >> (extra_bytes * 8 + bit_offset)
-                vals &= (2 ** bit_count) - 1
+                vals &= (2**bit_count) - 1
 
         else:
             vals = np.column_stack(
@@ -199,7 +199,7 @@ def extract_signal(
 
             if std_size <= 8 and not is_float:
                 vals = vals >> bit_offset
-                vals &= (2 ** bit_count) - 1
+                vals &= (2**bit_count) - 1
 
     else:
         if big_endian:
@@ -220,7 +220,7 @@ def extract_signal(
 
             if std_size <= 8 and not is_float:
                 vals = vals >> bit_offset
-                vals &= (2 ** bit_count) - 1
+                vals &= (2**bit_count) - 1
         else:
             if std_size > 8:
                 fmt = f"({std_size},)u1"
@@ -239,7 +239,7 @@ def extract_signal(
 
             if std_size <= 8 and not is_float:
                 vals = vals >> bit_offset
-                vals &= (2 ** bit_count) - 1
+                vals &= (2**bit_count) - 1
 
     if signed and not is_float:
         vals = as_non_byte_sized_signed_int(vals, bit_count)

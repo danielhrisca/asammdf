@@ -234,7 +234,7 @@ class MDF3(MDF_Common):
                 self._from_filelike = True
                 self._read(mapped=False)
             else:
-                if sys.maxsize < 2 ** 32:
+                if sys.maxsize < 2**32:
                     self.name = Path(name)
                     self._file = open(self.name, "rb")
                     self._from_filelike = False

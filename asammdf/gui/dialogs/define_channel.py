@@ -186,7 +186,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 self.op1_value = None
             self.op1_value = QtWidgets.QDoubleSpinBox()
             self.op1_value.setDecimals(6)
-            self.op1_value.setRange(-(2 ** 64), 2 ** 64 - 1)
+            self.op1_value.setRange(-(2**64), 2**64 - 1)
             self.computation_grid_layout.addWidget(self.op1_value, 0, 3)
 
     def op2_constant_changed(self, index):
@@ -203,7 +203,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 self.op2_value = None
             self.op2_value = QtWidgets.QDoubleSpinBox()
             self.op2_value.setDecimals(6)
-            self.op2_value.setRange(-(2 ** 64), 2 ** 64 - 1)
+            self.op2_value.setRange(-(2**64), 2**64 - 1)
             self.computation_grid_layout.addWidget(self.op2_value, 2, 3)
 
     def apply_simple_computation(self):
@@ -383,12 +383,12 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             if self.func_arg1 is None:
                 self.func_arg1 = QtWidgets.QDoubleSpinBox()
                 self.func_arg1.setDecimals(6)
-                self.func_arg1.setRange(-(2 ** 64), 2 ** 64 - 1)
+                self.func_arg1.setRange(-(2**64), 2**64 - 1)
                 self.gridLayout_4.addWidget(self.func_arg1, 0, 2)
 
                 self.func_arg2 = QtWidgets.QDoubleSpinBox()
                 self.func_arg2.setDecimals(6)
-                self.func_arg2.setRange(-(2 ** 64), 2 ** 64 - 1)
+                self.func_arg2.setRange(-(2**64), 2**64 - 1)
                 self.gridLayout_4.addWidget(self.func_arg2, 0, 3)
 
             if function == "round":
