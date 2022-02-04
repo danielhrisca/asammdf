@@ -42,13 +42,25 @@
     <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,1">
      <item>
       <widget class="QLabel" name="_icon">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
        <property name="minimumSize">
         <size>
-         <width>16</width>
-         <height>16</height>
+         <width>24</width>
+         <height>24</height>
         </size>
        </property>
        <property name="maximumSize">
+        <size>
+         <width>24</width>
+         <height>24</height>
+        </size>
+       </property>
+       <property name="baseSize">
         <size>
          <width>24</width>
          <height>24</height>

@@ -285,7 +285,7 @@ class FormatedAxis(pg.AxisItem):
 
         if self.orientation in ("top", "bottom"):
             metric = QtGui.QFontMetrics(font)
-            height = metric.height() + 2
+            height = max(metric.height() + 2, 18)
             self.setStyle(tickFont=font, tickTextHeight=height)
         else:
             self.setStyle(tickFont=font)

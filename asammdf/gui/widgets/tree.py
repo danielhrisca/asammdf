@@ -391,7 +391,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         # self.setColumnWidth(3,10)
         self.header().setStretchLastSection(False)
 
-        self.header().setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        self.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
         self.header().setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
         self.itemSelectionChanged.connect(self.item_selection_changed)
 
