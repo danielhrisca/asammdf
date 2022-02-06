@@ -1754,28 +1754,29 @@ class Plot(QtWidgets.QWidget):
         elif key == QtCore.Qt.Key_I and modifiers == QtCore.Qt.ControlModifier:
             if self.plot.cursor1:
                 position = self.plot.cursor1.value()
-                comment, _ = QtWidgets.QInputDialog.getMultiLineText(
+                comment, submit = QtWidgets.QInputDialog.getMultiLineText(
                     self,
                     "Insert comments",
                     f"Enter the comments for cursor position {position:.9f}s:",
                     "",
                 )
-                line = pg.InfiniteLine(
-                    pos=position,
-                    label=f"t = {position}s\n\n{comment}",
-                    pen={"color": "#FF0000", "width": 2, "style": QtCore.Qt.DashLine},
-                    labelOpts={
-                        "border": {
-                            "color": "#FF0000",
-                            "width": 2,
-                            "style": QtCore.Qt.DashLine,
+                if submit:
+                    line = pg.InfiniteLine(
+                        pos=position,
+                        label=f"t = {position}s\n\n{comment}",
+                        pen={"color": "#FF0000", "width": 2, "style": QtCore.Qt.DashLine},
+                        labelOpts={
+                            "border": {
+                                "color": "#FF0000",
+                                "width": 2,
+                                "style": QtCore.Qt.DashLine,
+                            },
+                            "fill": "ff9b37",
+                            "color": "#000000",
+                            "movable": True,
                         },
-                        "fill": "ff9b37",
-                        "color": "#000000",
-                        "movable": True,
-                    },
-                )
-                self.plot.plotItem.addItem(line, ignoreBounds=True)
+                    )
+                    self.plot.plotItem.addItem(line, ignoreBounds=True)
 
         elif key == QtCore.Qt.Key_I and modifiers == QtCore.Qt.AltModifier:
             visible = None
