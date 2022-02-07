@@ -403,7 +403,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             for i, group in enumerate(self.mdf.groups):
                 channel_group = group.channel_group
                 if hasattr(channel_group, "comment"):
-                    comment = channel_group.comment
+                    comment = extract_cncomment_xml(channel_group.comment)
                 else:
                     comment = ""
                 if comment:
@@ -465,7 +465,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 item = QtWidgets.QTreeWidgetItem()
                 item.setText(0, "Raw size")
-                item.setText(1, f"{size / 1024 / 1024:.1f} MB")
+                    item.setText(1, f"{size / 1024 / 1024:.1f} MB")
                 if cycles:
                     item.setForeground(1, QtGui.QBrush(QtCore.Qt.darkGreen))
                 channel_group_item.addChild(item)
@@ -680,8 +680,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             for i, group in enumerate(self.mdf.groups):
                 entry = i, 0xFFFFFFFFFFFFFFFF
                 channel_group = TreeItem(entry, mdf_uuid=self.uuid)
-                comment = group.channel_group.comment
-                comment = extract_cncomment_xml(comment)
+                comment = extract_cncomment_xml(channel_group.comment)
 
                 if self.mdf.version >= "4.00" and group.channel_group.acq_source:
                     source = group.channel_group.acq_source
@@ -1945,8 +1944,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     for i, group in enumerate(self.mdf.groups):
                         entry = i, 0xFFFFFFFFFFFFFFFF
                         channel_group = TreeItem(entry)
-                        comment = group.channel_group.comment
-                        comment = extract_cncomment_xml(comment)
+                        comment = extract_cncomment_xml(group.channel_group.comment)
 
                         if comment:
                             channel_group.setText(0, f"Channel group {i} ({comment})")
