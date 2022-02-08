@@ -1710,6 +1710,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         )
         quotechar = self.quotechar_bus.text() or '"'
         quoting = self.quoting_bus.currentText()
+        add_units = self.add_units_bus.checkState() == QtCore.Qt.Checked
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,
@@ -1775,6 +1776,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "lineterminator": lineterminator,
                 "quotechar": quotechar,
                 "quoting": quoting,
+                "add_units": add_units,
             }
 
             run_thread_with_progress(
@@ -2506,6 +2508,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             )
             quotechar = self.quotechar.text() or '"'
             quoting = self.quoting.currentText()
+            add_units = self.add_units.checkState() == QtCore.Qt.Checked
 
             target = self.mdf.export if mdf is None else mdf.export
             kwargs = {
@@ -2529,6 +2532,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "lineterminator": lineterminator,
                 "quotechar": quotechar,
                 "quoting": quoting,
+                "add_units": add_units,
             }
 
             result = run_thread_with_progress(

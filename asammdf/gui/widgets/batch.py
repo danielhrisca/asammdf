@@ -385,6 +385,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         )
         quotechar = self.quotechar_bus.text() or '"'
         quoting = self.quoting_bus.currentText()
+        add_units = self.add_units_bus.checkState() == QtCore.Qt.Checked
 
         count = self.files_list.count()
 
@@ -513,6 +514,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 "lineterminator": lineterminator,
                 "quotechar": quotechar,
                 "quoting": quoting,
+                "add_units": add_units,
             }
 
             run_thread_with_progress(
@@ -1567,6 +1569,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 )
                 quotechar = self.quotechar.text() or '"'
                 quoting = self.quoting.currentText()
+                add_units = self.add_units.checkState() == QtCore.Qt.Checked
 
                 target = mdf_file.export if mdf is None else mdf.export
                 kwargs = {
@@ -1590,6 +1593,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     "lineterminator": lineterminator,
                     "quotechar": quotechar,
                     "quoting": quoting,
+                    "add_units": add_units,
                 }
 
                 result = run_thread_with_progress(

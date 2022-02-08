@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import bz2
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 from collections.abc import Iterable, Iterator, Sequence
 from copy import deepcopy
 import csv
@@ -1186,6 +1186,11 @@ class MDF:
 
               .. versionadded:: 6.2.0
 
+            * add_units (False) : bool
+              only valid for CSV: add the channel units on the second row of the CSV file
+
+              .. versionadded:: 7.1.0
+
 
         """
 
@@ -1283,11 +1288,9 @@ class MDF:
                 raw=raw,
                 numeric_1D_only=fmt == "parquet",
             )
-            units = OrderedDict()
-            comments = OrderedDict()
+            units = {}
+            comments = {}
             used_names = UniqueDB()
-
-            dropped = {}
 
             groups_nr = len(self.groups)
             for i, grp in enumerate(self.groups):
@@ -1490,6 +1493,10 @@ class MDF:
                     df.index = index
                     df.index.name = "timestamps"
 
+                    units["timestamps"] = ""
+                else:
+                    units["timestamps"] = "s"
+
                 if hasattr(self, "can_logging_db") and self.can_logging_db:
 
                     dropped = {}
@@ -1517,6 +1524,10 @@ class MDF:
                     names_row = [df.index.name, *df.columns]
                     writer.writerow(names_row)
 
+                    if kwargs.get("add_units", False):
+                        units_row = [units[name] for name in names_row]
+                        writer.writerow(units_row)
+
                     if reduce_memory_usage:
                         vals = [df.index, *(df[name] for name in df)]
                     else:
@@ -1536,6 +1547,8 @@ class MDF:
                             self._callback(i + 1 + count, count * 2)
 
             else:
+
+                add_units = kwargs.get("add_units", False)
 
                 filename = filename.with_suffix(".csv")
 
@@ -1579,6 +1592,38 @@ class MDF:
                         raw=raw,
                     )
 
+                    if add_units:
+                        units = {}
+                        used_names = UniqueDB()
+
+                        for gp_index, channel_indexes in self.included_channels(
+                            group_index
+                        )[group_index].items():
+                            for ch_index in channel_indexes:
+                                ch = self.groups[gp_index].channels[ch_index]
+
+                                if use_display_names:
+                                    channel_name = (
+                                        list(ch.display_names)[0]
+                                        if ch.display_names
+                                        else ch.name
+                                    )
+                                else:
+                                    channel_name = ch.name
+
+                                channel_name = used_names.get_unique_name(channel_name)
+
+                                if hasattr(ch, "unit"):
+                                    unit = ch.unit
+                                    if ch.conversion:
+                                        unit = unit or ch.conversion.unit
+                                else:
+                                    unit = ""
+
+                                units[channel_name] = unit
+                    else:
+                        units = {}
+
                     if time_as_date:
                         index = (
                             pd.to_datetime(
@@ -1590,6 +1635,10 @@ class MDF:
                         )
                         df.index = index
                         df.index.name = "timestamps"
+
+                        units["timestamps"] = ""
+                    else:
+                        units["timestamps"] = "s"
 
                     with open(group_csv_name, "w", newline="") as csvfile:
                         writer = csv.writer(csvfile, **fmtparams)
@@ -1616,6 +1665,10 @@ class MDF:
 
                         names_row = [df.index.name, *df.columns]
                         writer.writerow(names_row)
+
+                        if add_units:
+                            units_row = [units[name] for name in names_row]
+                            writer.writerow(units_row)
 
                         if reduce_memory_usage:
                             vals = [df.index, *(df[name] for name in df)]
