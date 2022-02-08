@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>979</width>
+    <width>1002</width>
     <height>840</height>
    </rect>
   </property>
@@ -1673,7 +1673,7 @@
          </widget>
         </item>
         <item row="2" column="0" colspan="2">
-         <widget class="QCheckBox" name="consolidate_j1939">
+         <widget class="QCheckBox" name="consolidated_j1939">
           <property name="text">
            <string>Consolidated J1939 (single group for all messages with common PGN)</string>
           </property>
