@@ -463,9 +463,18 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     item.setForeground(1, QtGui.QBrush(QtCore.Qt.darkGreen))
                 channel_group_item.addChild(item)
 
+                if size <= 1 << 10:
+                    text = f"{size} B"
+                elif size <= 1 << 20:
+                    text = f"{size / 1024:.1f} KB"
+                elif size <= 1 << 30:
+                    text = f"{size / 1024 / 1024:.1f} MB"
+                else:
+                    text = f"{size / 1024 / 1024 / 1024:.1f} GB"
+
                 item = QtWidgets.QTreeWidgetItem()
                 item.setText(0, "Raw size")
-                item.setText(1, f"{size / 1024 / 1024:.1f} MB")
+                item.setText(1, text)
                 if cycles:
                     item.setForeground(1, QtGui.QBrush(QtCore.Qt.darkGreen))
                 channel_group_item.addChild(item)
