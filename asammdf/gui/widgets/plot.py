@@ -1764,7 +1764,11 @@ class Plot(QtWidgets.QWidget):
                     line = pg.InfiniteLine(
                         pos=position,
                         label=f"t = {position}s\n\n{comment}",
-                        pen={"color": "#FF0000", "width": 2, "style": QtCore.Qt.DashLine},
+                        pen={
+                            "color": "#FF0000",
+                            "width": 2,
+                            "style": QtCore.Qt.DashLine,
+                        },
                         labelOpts={
                             "border": {
                                 "color": "#FF0000",
