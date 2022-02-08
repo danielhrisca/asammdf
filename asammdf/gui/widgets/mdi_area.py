@@ -1467,6 +1467,9 @@ class WithMDIArea:
                 entry[0] for entry in flatten_entries if tuple(entry[1:3]) == (-1, -1)
             ]
 
+        signals_ = natsorted(signals_)
+        computed = natsorted(computed)
+
         if window_type == "Tabular":
             uuids = set(entry[3] for entry in signals_)
 
