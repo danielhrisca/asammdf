@@ -955,10 +955,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     if dialog.result():
                         window_type = dialog.selected_type()
 
-                        signals = [
+                        signals = natsorted(
                             (name, dg_cntr, ch_cntr, self.uuid, "channel", [])
                             for name, dg_cntr, ch_cntr in names
-                        ]
+                        )
 
                         if window_type == "New plot window":
                             self.add_window(["Plot", signals])
