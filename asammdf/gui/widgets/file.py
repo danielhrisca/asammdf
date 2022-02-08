@@ -403,7 +403,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             for i, group in enumerate(self.mdf.groups):
                 channel_group = group.channel_group
                 if hasattr(channel_group, "comment"):
-                    comment = channel_group.comment
+                    comment = extract_cncomment_xml(channel_group.comment)
                 else:
                     comment = ""
                 if comment:
@@ -680,8 +680,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             for i, group in enumerate(self.mdf.groups):
                 entry = i, 0xFFFFFFFFFFFFFFFF
                 channel_group = TreeItem(entry, mdf_uuid=self.uuid)
-                comment = group.channel_group.comment
-                comment = extract_cncomment_xml(comment)
+                comment = extract_cncomment_xml(group.channel_group.comment)
 
                 if self.mdf.version >= "4.00" and group.channel_group.acq_source:
                     source = group.channel_group.acq_source
@@ -1945,8 +1944,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     for i, group in enumerate(self.mdf.groups):
                         entry = i, 0xFFFFFFFFFFFFFFFF
                         channel_group = TreeItem(entry)
-                        comment = group.channel_group.comment
-                        comment = extract_cncomment_xml(comment)
+                        comment = extract_cncomment_xml(group.channel_group.comment)
 
                         if comment:
                             channel_group.setText(0, f"Channel group {i} ({comment})")
