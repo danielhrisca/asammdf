@@ -1929,7 +1929,6 @@ class Plot(QtWidgets.QWidget):
         self.plot.set_current_uuid(self.info_uuid, True)
 
     def add_new_channels(self, channels, mime_data=None, destination=None):
-
         def add_new_items(tree, root, items, items_pool):
             pairs = []
             children = []

@@ -187,9 +187,7 @@ def load_dsp(file, background="#000000"):
                         "name": elem.get("data"),
                         "enabled": elem.get("on") == "1",
                         "type": "group",
-                        "channels": parse_channels(
-                            elem, unique_names
-                        ),
+                        "channels": parse_channels(elem, unique_names),
                         "pattern": None,
                     }
                 )
