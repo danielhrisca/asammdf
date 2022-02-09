@@ -2578,6 +2578,9 @@ class WithMDIArea:
             if "font_size" in window_info["configuration"]:
                 plot.set_font_size(window_info["configuration"]["font_size"])
 
+            if "locked" in window_info["configuration"]:
+                plot.set_locked(window_info["configuration"]["locked"])
+
             plot.splitter.setContentsMargins(1, 1, 1, 1)
             plot.setContentsMargins(1, 1, 1, 1)
 

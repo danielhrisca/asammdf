@@ -1224,6 +1224,18 @@ class Plot(QtWidgets.QWidget):
         btn.setToolTip("Decrease font")
         hbox.addWidget(btn)
 
+        self.lock_btn = btn = QtWidgets.QPushButton("")
+        btn.clicked.connect(self.set_locked)
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/unlocked.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        btn.setIcon(icon)
+        btn.setToolTip("The Y axis is unlocked. Press to lock")
+        hbox.addWidget(btn)
+
+        self.locked = False
+
         hbox.addStretch()
 
         vbox.addWidget(self.channel_selection)
@@ -1301,6 +1313,45 @@ class Plot(QtWidgets.QWidget):
         self.splitter.splitterMoved.connect(self.set_splitter)
 
         self.show()
+
+    def set_locked(self, event=None, locked=None):
+        if locked is not None:
+            self.locked = locked
+        else:
+            self.locked = not self.locked
+
+        if self.locked:
+            tooltip = "The Y axis is locked. Press to unlock"
+            png = ":/locked.png"
+
+            iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+            while iterator.value():
+                item = iterator.value()
+                iterator += 1
+
+                if isinstance(item, ChannelsTreeItem):
+                    widget = self.channel_selection.itemWidget(item, 1)
+                    widget.ylink.setEnabled(False)
+
+        else:
+            tooltip = "The Y axis is unlocked. Press to lock"
+            png = ":/unlocked.png"
+
+            iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+            while iterator.value():
+                item = iterator.value()
+                iterator += 1
+
+                if isinstance(item, ChannelsTreeItem):
+                    widget = self.channel_selection.itemWidget(item, 1)
+                    widget.ylink.setEnabled(True)
+
+        self.plot.set_locked(self.locked)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(png), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.lock_btn.setToolTip(tooltip)
+        self.lock_btn.setIcon(icon)
 
     def increase_font(self):
         font = self.font()
@@ -2114,6 +2165,8 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.update_channel_groups_count()
         self.channel_selection.refresh()
 
+        self.set_locked(self.locked)
+
     def to_config(self):
         def item_to_config(tree, root):
             channels = []
@@ -2243,6 +2296,7 @@ class Plot(QtWidgets.QWidget):
             ],
             "cursor_precision": self.cursor_info.precision,
             "font_size": self.font().pointSize(),
+            "locked": self.locked,
         }
 
         return config
@@ -2380,6 +2434,8 @@ class _Plot(pg.PlotWidget):
     ):
         events = kwargs.pop("events", [])
         super().__init__()
+
+        self.locked = False
 
         self.cursor_unit = "s" if x_axis == "time" else "Hz"
 
@@ -2555,6 +2611,13 @@ class _Plot(pg.PlotWidget):
         self.viewbox.sigResized.connect(self.update_views)
         if signals:
             self.update_views()
+
+    def set_locked(self, locked):
+        self.locked = locked
+
+        for view in self.view_boxes:
+            view.setMouseEnabled(y=not self.locked)
+        self.viewbox.setMouseEnabled(y=not self.locked)
 
     def update_signal_curve(self, signal, signal_index, bounds=False):
         sig = signal
@@ -2852,7 +2915,11 @@ class _Plot(pg.PlotWidget):
                     )
                     self.keyPressEvent(event_)
 
-            elif key == QtCore.Qt.Key_F and modifier == QtCore.Qt.NoModifier:
+            elif (
+                key == QtCore.Qt.Key_F
+                and modifier == QtCore.Qt.NoModifier
+                and not self.locked
+            ):
                 if self.common_axis_items:
                     if any(
                         len(self.signal_by_uuid(uuid)[0].plot_samples)
@@ -2910,7 +2977,11 @@ class _Plot(pg.PlotWidget):
                 if self.cursor1:
                     self.cursor_moved.emit()
 
-            elif key == QtCore.Qt.Key_F and modifier == QtCore.Qt.ShiftModifier:
+            elif (
+                key == QtCore.Qt.Key_F
+                and modifier == QtCore.Qt.ShiftModifier
+                and not self.locked
+            ):
                 parent = self.parent().parent()
                 uuids = [
                     parent.channel_selection.itemWidget(item, 1).uuid
@@ -3039,7 +3110,11 @@ class _Plot(pg.PlotWidget):
                                 mdf.append(sigs, common_timebase=True)
                             mdf.save(file_name, overwrite=True)
 
-            elif key == QtCore.Qt.Key_S and modifier == QtCore.Qt.NoModifier:
+            elif (
+                key == QtCore.Qt.Key_S
+                and modifier == QtCore.Qt.NoModifier
+                and not self.locked
+            ):
 
                 parent = self.parent().parent()
                 uuids = []
@@ -3151,7 +3226,11 @@ class _Plot(pg.PlotWidget):
                 if self.cursor1:
                     self.cursor_moved.emit()
 
-            elif key == QtCore.Qt.Key_S and modifier == QtCore.Qt.ShiftModifier:
+            elif (
+                key == QtCore.Qt.Key_S
+                and modifier == QtCore.Qt.ShiftModifier
+                and not self.locked
+            ):
 
                 parent = self.parent().parent()
                 uuids = [
@@ -3216,10 +3295,9 @@ class _Plot(pg.PlotWidget):
                 if self.cursor1:
                     self.cursor_moved.emit()
 
-            elif (
-                key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right)
-                and modifier == QtCore.Qt.NoModifier
-                or modifier == QtCore.Qt.ControlModifier
+            elif key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right) and modifier in (
+                QtCore.Qt.NoModifier,
+                QtCore.Qt.ControlModifier,
             ):
                 if modifier == QtCore.Qt.ControlModifier:
                     increment = 20
@@ -3324,7 +3402,11 @@ class _Plot(pg.PlotWidget):
 
                     viewbox.setYRange(bottom + step, top + step, padding=0)
 
-            elif key == QtCore.Qt.Key_H and modifier == QtCore.Qt.NoModifier:
+            elif (
+                key == QtCore.Qt.Key_H
+                and modifier == QtCore.Qt.NoModifier
+                and not self.locked
+            ):
                 if len(self.all_timebase):
                     start_ts = np.amin(self.all_timebase)
                     stop_ts = np.amax(self.all_timebase)

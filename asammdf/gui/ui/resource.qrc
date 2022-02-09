@@ -60,5 +60,7 @@
     <file alias="shift_right.png">images/shift_right.png</file>
     <file alias="decrease-font.png">images/decrease-font.png</file>
     <file alias="increase-font.png">images/increase-font.png</file>
+    <file alias="locked.png">images/locked.png</file>
+    <file alias="unlocked.png">images/unlocked.png</file>
 </qresource>
 </RCC>
