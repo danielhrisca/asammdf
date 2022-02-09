@@ -1323,28 +1323,18 @@ class Plot(QtWidgets.QWidget):
         if self.locked:
             tooltip = "The Y axis is locked. Press to unlock"
             png = ":/locked.png"
-
-            iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
-            while iterator.value():
-                item = iterator.value()
-                iterator += 1
-
-                if isinstance(item, ChannelsTreeItem):
-                    widget = self.channel_selection.itemWidget(item, 1)
-                    widget.ylink.setEnabled(False)
-
         else:
             tooltip = "The Y axis is unlocked. Press to lock"
             png = ":/unlocked.png"
 
-            iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
-            while iterator.value():
-                item = iterator.value()
-                iterator += 1
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+        while iterator.value():
+            item = iterator.value()
+            iterator += 1
 
-                if isinstance(item, ChannelsTreeItem):
-                    widget = self.channel_selection.itemWidget(item, 1)
-                    widget.ylink.setEnabled(True)
+            if isinstance(item, ChannelsTreeItem):
+                widget = self.channel_selection.itemWidget(item, 1)
+                widget.ylink.setEnabled(not self.locked)
 
         self.plot.set_locked(self.locked)
 
@@ -1939,11 +1929,11 @@ class Plot(QtWidgets.QWidget):
         self.plot.set_current_uuid(self.info_uuid, True)
 
     def add_new_channels(self, channels, mime_data=None, destination=None):
+
         def add_new_items(tree, root, items, items_pool):
             pairs = []
             children = []
             for (name, group_index, channel_index, mdf_uuid, type_, ranges) in items:
-
                 ranges = deepcopy(ranges)
                 for range_info in ranges:
                     range_info["font_color"] = QtGui.QColor(range_info["font_color"])
@@ -1953,16 +1943,14 @@ class Plot(QtWidgets.QWidget):
 
                 if type_ == "group":
                     pattern = group_index
-                    item = ChannelsGroupTreeItem(name, pattern, tree)
+                    item = ChannelsGroupTreeItem(name, pattern, root)
                     widget = ChannelGroupDisplay(
                         name, pattern, item=item, ranges=ranges
                     )
                     widget.item = item
 
-                    children.append(item)  # root.addChild(item)
+                    children.append(item)
                     pairs.append((item, widget))
-
-                    # tree.setItemWidget(item, 1, widget)
 
                     pairs.extend(add_new_items(tree, item, channel_index, items_pool))
 
@@ -1976,6 +1964,7 @@ class Plot(QtWidgets.QWidget):
                             item, widget = items_pool[key]
                             widget.item = item
                             widget.set_ranges(ranges)
+                            widget.ylink.setEnabled(not self.locked)
 
                             children.append(item)  # root.addChild(item)
                             pairs.append((item, widget))
@@ -1988,12 +1977,13 @@ class Plot(QtWidgets.QWidget):
                             item, widget = items_pool[key]
                             widget.item = item
                             widget.set_ranges(ranges)
+                            widget.ylink.setEnabled(not self.locked)
 
-                            children.append(item)  # root.addChild(item)
+                            children.append(item)
                             pairs.append((item, widget))
-                            # tree.setItemWidget(item, 1, widget)
 
                             del items_pool[key]
+
             root.addChildren(children)
 
             return pairs
@@ -2164,8 +2154,6 @@ class Plot(QtWidgets.QWidget):
 
         self.channel_selection.update_channel_groups_count()
         self.channel_selection.refresh()
-
-        self.set_locked(self.locked)
 
     def to_config(self):
         def item_to_config(tree, root):
@@ -3602,6 +3590,7 @@ class _Plot(pg.PlotWidget):
             view_box = pg.ViewBox(enableMenu=False)
             view_box.setGeometry(geometry)
             view_box.disableAutoRange()
+            view_box.setMouseEnabled(y=not self.locked)
 
             self.scene_.addItem(view_box)
 

@@ -187,7 +187,9 @@ def load_dsp(file, background="#000000"):
                         "name": elem.get("data"),
                         "enabled": elem.get("on") == "1",
                         "type": "group",
-                        "channels": parse_channels(elem, unique_names),
+                        "channels": parse_channels(
+                            elem, unique_names
+                        ),
                         "pattern": None,
                     }
                 )
@@ -300,6 +302,7 @@ def load_dsp(file, background="#000000"):
             "title": "Display channels",
             "configuration": {
                 "channels": channels,
+                "locked": True,
             },
         }
 
@@ -333,7 +336,8 @@ def load_dsp(file, background="#000000"):
                         "mdf_uuid": "000000000000",
                     }
                     for i, ch in enumerate(channels.values())
-                ]
+                ],
+                "locked": True,
             },
         }
 
