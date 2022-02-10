@@ -1875,7 +1875,6 @@ class WithMDIArea:
             w.layout().setSpacing(1)
 
             plot.show()
-            plot.hide()
 
             menu = w.systemMenu()
 
@@ -1962,7 +1961,6 @@ class WithMDIArea:
                 signals = list(computed_signals.values())
                 plot.add_new_channels(signals)
 
-            plot.show()
             self.set_subplots_link(self.subplots_link)
 
             iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
@@ -2523,7 +2521,6 @@ class WithMDIArea:
             plot.pattern = pattern_info
 
             plot.show()
-            plot.hide()
 
             sub = MdiSubWindow(parent=self)
             sub.setWidget(plot)
@@ -2545,8 +2542,6 @@ class WithMDIArea:
                     w.setGeometry(*geometry)
                 else:
                     self.mdi_area.tileSubWindows()
-
-            plot.hide()
 
             menu = w.systemMenu()
 
@@ -2584,6 +2579,8 @@ class WithMDIArea:
             plot.splitter.setContentsMargins(1, 1, 1, 1)
             plot.setContentsMargins(1, 1, 1, 1)
 
+            # plot.hide()
+
             plot.add_new_channels(signals, mime_data)
 
             iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
@@ -2606,7 +2603,7 @@ class WithMDIArea:
             if needs_update:
                 plot.plot.update_lines()
 
-            plot.show()
+            # plot.show()
 
             plot.add_channels_request.connect(
                 partial(self.add_new_channels, widget=plot)

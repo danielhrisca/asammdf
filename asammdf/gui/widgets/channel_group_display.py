@@ -28,9 +28,6 @@ class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
         self._name = name.split("\t[")[0]
         self.pattern = None
 
-        # font = self.name.font()
-        # font.setBold(True)
-        # self.name.setFont(font)
         self.set_pattern(pattern)
         self.count = count
         self.set_ranges(ranges or [] if not self.pattern else self.pattern["ranges"])

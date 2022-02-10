@@ -14,6 +14,9 @@ class Cursor(pg.InfiniteLine):
             **kwargs,
         )
 
+        self.pen.setWidth(3)
+        self.hoverPen.setWidth(3)
+
         self.addMarker("^", 0)
         self.addMarker("v", 1)
 

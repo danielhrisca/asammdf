@@ -676,15 +676,18 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         item = self.itemAt(position)
 
         count = 0
+        enabled = 0
         iterator = QtWidgets.QTreeWidgetItemIterator(self)
         while iterator.value():
             cur_item = iterator.value()
             if isinstance(cur_item, ChannelsTreeItem):
                 count += 1
+                if cur_item.checkState(0) == QtCore.Qt.Checked:
+                    enabled += 1
             iterator += 1
 
         menu = QtWidgets.QMenu()
-        menu.addAction(self.tr(f"{count} items in the list"))
+        menu.addAction(self.tr(f"{count} items in the list, {enabled} enabled"))
         menu.addSeparator()
 
         menu.addAction(self.tr(f"Add channel group [Shift+Insert]"))

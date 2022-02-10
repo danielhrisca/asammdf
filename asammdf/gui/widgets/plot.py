@@ -1072,9 +1072,6 @@ class Plot(QtWidgets.QWidget):
 
         self._can_switch_mode = True
 
-        self._accept_cursor_update = False
-        self._last_cursor_update = perf_counter()
-
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setSpacing(1)
         main_layout.setContentsMargins(1, 1, 1, 1)
@@ -1241,11 +1238,18 @@ class Plot(QtWidgets.QWidget):
         vbox.addWidget(self.channel_selection)
         vbox.addWidget(self.cursor_info)
 
-        self.plot.range_modified.connect(self.range_modified)
+        self.range_proxy = pg.SignalProxy(
+            self.plot.range_modified, rateLimit=30, slot=self.range_modified
+        )
+        # self.plot.range_modified.connect(self.range_modified)
         self.plot.range_removed.connect(self.range_removed)
         self.plot.range_modified_finished.connect(self.range_modified_finished)
         self.plot.cursor_removed.connect(self.cursor_removed)
-        self.plot.cursor_moved.connect(self.cursor_moved)
+
+        self.cursor_proxy = pg.SignalProxy(
+            self.plot.cursor_moved, rateLimit=30, slot=self.cursor_moved
+        )
+        # self.plot.cursor_moved.connect(self.cursor_moved)
         self.plot.cursor_move_finished.connect(self.cursor_move_finished)
         self.plot.xrange_changed.connect(self.xrange_changed)
         self.plot.computation_channel_inserted.connect(
@@ -1487,17 +1491,14 @@ class Plot(QtWidgets.QWidget):
                     next_pos = x[right - 1]
                 else:
                     next_pos = x[right]
-            self._accept_cursor_update = True
             self.plot.cursor1.setPos(next_pos)
 
         # self.plot.cursor_hint.setData(x=[], y=[])
         self.plot.cursor_hint.hide()
 
     def cursor_moved(self):
-        if self.plot.cursor1 is None or (
-            perf_counter() - self._last_cursor_update < 0.030
-            and not self._accept_cursor_update
-        ):
+
+        if self.plot.cursor1 is None:
             return
 
         position = self.plot.cursor1.value()
@@ -1529,8 +1530,6 @@ class Plot(QtWidgets.QWidget):
             stats = self.plot.get_stats(self.info_uuid)
             self.info.set_stats(stats)
 
-        self._last_cursor_update = perf_counter()
-        self._accept_cursor_update = False
         self.cursor_moved_signal.emit(self, position)
 
     def cursor_removed(self):
@@ -1554,10 +1553,8 @@ class Plot(QtWidgets.QWidget):
         self.cursor_removed_signal.emit(self)
 
     def range_modified(self):
-        if self.plot.region is None or (
-            perf_counter() - self._last_cursor_update < 0.030
-            and not self._accept_cursor_update
-        ):
+
+        if self.plot.region is None:
             return
 
         start, stop = self.plot.region.getRegion()
@@ -1603,9 +1600,6 @@ class Plot(QtWidgets.QWidget):
             stats = self.plot.get_stats(self.info_uuid)
             self.info.set_stats(stats)
 
-        self._last_cursor_update = perf_counter()
-        self._accept_cursor_update = False
-
         self.region_moved_signal.emit(self, [start, stop])
 
     def xrange_changed(self):
@@ -1648,7 +1642,6 @@ class Plot(QtWidgets.QWidget):
                     next_pos = timebase[right]
             stop = next_pos
 
-            self._accept_cursor_update = True
             self.plot.region.setRegion((start, stop))
 
     def keyPressEvent(self, event):
@@ -2049,6 +2042,7 @@ class Plot(QtWidgets.QWidget):
         channels = valid
 
         self.adjust_splitter(channels)
+        QtCore.QCoreApplication.processEvents()
 
         channels = self.plot.add_new_channels(channels)
 
@@ -2065,6 +2059,8 @@ class Plot(QtWidgets.QWidget):
                     enforce_y_axis = True
 
             iterator += 1
+
+        children = []
 
         new_items = {}
         for sig in channels:
@@ -2110,12 +2106,8 @@ class Plot(QtWidgets.QWidget):
 
             if mime_data is None:
 
-                if destination is None:
-                    self.channel_selection.addTopLevelItem(item)
-                else:
-                    destination.addChild(item)
+                children.append((item, it))
 
-                self.channel_selection.setItemWidget(item, 1, it)
             else:
                 new_items[(item.name, *item.entry, item.mdf_uuid)] = (item, it)
 
@@ -2150,6 +2142,16 @@ class Plot(QtWidgets.QWidget):
                     self.channel_selection.addTopLevelItem(item)
                     widget.item = item
                     self.channel_selection.setItemWidget(item, 1, widget)
+        elif children:
+            items = [ch[0] for ch in children]
+
+            if destination is None:
+                self.channel_selection.addTopLevelItems(items)
+            else:
+                destination.addChildren(items)
+
+            for item, it in children:
+                self.channel_selection.setItemWidget(item, 1, it)
 
         self.channel_selection.update_channel_groups_count()
         self.channel_selection.refresh()
@@ -2430,7 +2432,6 @@ class _Plot(pg.PlotWidget):
             line_interconnect if line_interconnect != "line" else ""
         )
 
-        self._last_update = perf_counter()
         self._can_trim = True
         self.mdf = mdf
 
@@ -2478,6 +2479,7 @@ class _Plot(pg.PlotWidget):
         self.layout = self.plot_item.layout
         self.scene_ = self.plot_item.scene()
         self.scene_.sigMouseClicked.connect(self._clicked)
+
         self.viewbox = self.plot_item.vb
 
         self.viewbox.menu.removeAction(self.viewbox.menu.viewAll)
@@ -3422,11 +3424,15 @@ class _Plot(pg.PlotWidget):
                     self.region.lines[i].pen.setStyle(QtCore.Qt.SolidLine)
         self.range_modified_finished.emit()
 
-    def trim(self, signals=None, force=False):
+    def trim(self, signals=None, force=False, view_range=None):
         signals = signals or self.signals
         if not self._can_trim:
             return
-        (start, stop), _ = self.viewbox.viewRange()
+
+        if view_range is None:
+            (start, stop), _ = self.viewbox.viewRange()
+        else:
+            start, stop = view_range
 
         width = self.width() - self.y_axis.width()
 
@@ -3439,6 +3445,7 @@ class _Plot(pg.PlotWidget):
                     sig.trim_python(start, stop, width)
 
     def xrange_changed_handle(self, force=False):
+        print("xrange_changed_handle")
         self.trim(force=force)
         self.update_lines()
 
