@@ -1424,12 +1424,12 @@ class Plot(QtWidgets.QWidget):
             if sig.enable:
 
                 self.plot.curves[index].hide()
-                self.plot.update_signal_curve(sig, index)
+                # self.plot.update_signal_curve(sig, index)
                 for i in range(3):
                     QtWidgets.QApplication.processEvents()
                     sleep(0.01)
                 self.plot.curves[index].show()
-                self.plot.update_signal_curve(sig, index)
+                # self.plot.update_signal_curve(sig, index)
 
                 self.plot.set_current_uuid(self.info_uuid)
                 if self.info.isVisible():
@@ -1446,12 +1446,12 @@ class Plot(QtWidgets.QWidget):
             if sig.enable:
 
                 self.plot.curves[index].hide()
-                self.plot.update_signal_curve(sig, index)
+                # self.plot.update_signal_curve(sig, index)
                 for i in range(3):
                     QtWidgets.QApplication.processEvents()
                     sleep(0.01)
                 self.plot.curves[index].show()
-                self.plot.update_signal_curve(sig, index)
+                # self.plot.update_signal_curve(sig, index)
 
                 self.plot.set_current_uuid(self.info_uuid)
                 if self.info.isVisible():
@@ -2481,6 +2481,7 @@ class _Plot(pg.PlotWidget):
         self.scene_.sigMouseClicked.connect(self._clicked)
 
         self.viewbox = self.plot_item.vb
+        self.viewbox.border = None
 
         self.viewbox.menu.removeAction(self.viewbox.menu.viewAll)
         for ax in self.viewbox.menu.axes:
@@ -2490,6 +2491,7 @@ class _Plot(pg.PlotWidget):
         self.common_axis_items = set()
         self.common_axis_label = ""
         self.common_viewbox = pg.ViewBox(enableMenu=False)
+        self.common_viewbox.border = None
         self.scene_.addItem(self.common_viewbox)
         self.common_viewbox.setXLink(self.viewbox)
 
@@ -2608,7 +2610,7 @@ class _Plot(pg.PlotWidget):
             view.setMouseEnabled(y=not self.locked)
         self.viewbox.setMouseEnabled(y=not self.locked)
 
-    def update_signal_curve(self, signal, signal_index, bounds=False):
+    def update_signal_curve(self, signal, signal_index, bounds=False, xrange=None):
         sig = signal
         color = sig.color
         t = sig.plot_timestamps
@@ -2630,6 +2632,7 @@ class _Plot(pg.PlotWidget):
                 mouseWidth=30,
                 dynamicRangeLimit=None,
                 stepMode=self.line_interconnect,
+                skipFiniteCheck=True,
             )
             if self.with_dots:
                 curve.curve.setClickable(True, 30)
@@ -2642,11 +2645,7 @@ class _Plot(pg.PlotWidget):
 
             self.view_boxes[signal_index].addItem(curve)
         else:
-            if (
-                self.with_dots
-                or self.line_interconnect != curve.opts["stepMode"]
-                or not t.size
-            ):
+            if self.with_dots or self.line_interconnect != curve.opts["stepMode"]:
                 curve.setData(
                     x=t,
                     y=plot_samples,
@@ -2657,17 +2656,23 @@ class _Plot(pg.PlotWidget):
                     skipFiniteCheck=True,
                 )
                 curve.update()
+
             else:
                 sig_min = sig.min
                 sig_max = sig.max
 
+                if sig_min == "n.a.":
+                    return
+
+                start, stop = xrange
+
                 if curve._boundsCache[0] is not None:
-                    curve._boundsCache[0][1] = (t[0], t[-1])
+                    curve._boundsCache[0][1] = xrange
                     curve._boundsCache[1][1] = (sig_min, sig_max)
 
                 else:
                     curve._boundsCache = [
-                        [(1.0, None), (t[0], t[-1])],
+                        [(1.0, None), xrange],
                         [(1.0, None), (sig_min, sig_max)],
                     ]
 
@@ -2676,7 +2681,7 @@ class _Plot(pg.PlotWidget):
                 curve.path = None
                 if bounds:
                     curve._boundingRect = QtCore.QRectF(
-                        t[0], sig_min, t[-1] - t[0], sig_max - sig_min
+                        start, sig_min, stop - start, sig_max - sig_min
                     )
                 else:
                     curve._boundingRect = None
@@ -2688,13 +2693,16 @@ class _Plot(pg.PlotWidget):
         self.curvetype = pg.PlotDataItem if self.with_dots else pg.PlotCurveItem
 
         if self.curves:
+            xrange = self.viewbox.viewRange()[0]
             for sig in self.signals:
                 _, signal_index = self.signal_by_uuid(sig.uuid)
 
                 if not sig.enable:
                     self.curves[signal_index].hide()
                 else:
-                    self.update_signal_curve(sig, signal_index, bounds=bounds)
+                    self.update_signal_curve(
+                        sig, signal_index, bounds=bounds, xrange=xrange
+                    )
                     self.curves[signal_index].show()
 
     def set_color(self, uuid, color):
@@ -3594,6 +3602,7 @@ class _Plot(pg.PlotWidget):
         for index, sig in enumerate(channels, initial_index):
 
             view_box = pg.ViewBox(enableMenu=False)
+            view_box.border = None
             view_box.setGeometry(geometry)
             view_box.disableAutoRange()
             view_box.setMouseEnabled(y=not self.locked)
@@ -3614,6 +3623,7 @@ class _Plot(pg.PlotWidget):
                 mouseWidth=30,
                 dynamicRangeLimit=None,
                 stepMode=self.line_interconnect,
+                skipFiniteCheck=True,
                 #                connect='finite',
             )
             curve.hide()
