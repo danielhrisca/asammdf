@@ -23,6 +23,7 @@ import pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5
 import pyqtgraph.GraphicsScene.exportDialogTemplate_pyqt5
 import pyqtgraph.imageview.ImageViewTemplate_pyqt5
 
+from ...blocks.utils import target_byte_order
 from ..utils import FONT_SIZE
 
 try:
@@ -171,6 +172,9 @@ class PlotSignal(Signal):
             if np.any(nans):
                 self.samples = self.samples[~nans]
                 self.timestamps = self.timestamps[~nans]
+
+        if self.samples.dtype.byteorder not in target_byte_order:
+            self.samples = self.samples.byteswap().newbyteorder()
 
         if self.conversion:
             samples = self.conversion.convert(self.samples)
@@ -824,7 +828,29 @@ class PlotSignal(Signal):
 
                     pos = self._pos[: 2 * count]
 
-                    positions(samples.astype("f8"), pos, steps, count, rest)
+                    if samples.dtype.kind == "f" and samples.itemsize == 2:
+                        samples = samples.astype("f8")
+
+                    if samples.flags.c_contiguous:
+                        positions(
+                            samples,
+                            pos,
+                            steps,
+                            count,
+                            rest,
+                            samples.dtype.kind,
+                            samples.itemsize,
+                        )
+                    else:
+                        positions(
+                            samples.astype("f8"),
+                            pos,
+                            steps,
+                            count,
+                            rest,
+                            samples.dtype.kind,
+                            samples.itemsize,
+                        )
 
                     sig.plot_samples = samples[pos]
                     sig.plot_timestamps = timestamps[pos]
