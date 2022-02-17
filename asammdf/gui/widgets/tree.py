@@ -434,6 +434,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 if hasattr(item_widget, "disconnect_slots"):
                     item_widget.disconnect_slots()
                 (item.parent() or root).removeChild(item)
+                item.widget = None
+                item_widget.item = None
 
             self.refresh()
 
@@ -1133,6 +1135,16 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         super().resizeEvent(e)
         self.update_visibility_status()
 
+    def link_widgets(self):
+        iterator = QtWidgets.QTreeWidgetItemIterator(self)
+        while iterator.value():
+            item = iterator.value()
+            if isinstance(item, ChannelsTreeItem):
+                widget = self.itemWidget(item, 1)
+                item.widget = widget
+
+            iterator += 1
+
 
 class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
@@ -1160,6 +1172,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         self.mdf_uuid = mdf_uuid
         self.category = category
         self._is_visible = True
+        self.widget = None
 
         self.setFlags(
             self.flags() | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled

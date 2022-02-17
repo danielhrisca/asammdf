@@ -1960,6 +1960,7 @@ class Plot(QtWidgets.QWidget):
                         if key in items_pool:
                             item, widget = items_pool[key]
                             widget.item = item
+                            item.widget = widget
                             widget.set_ranges(ranges)
                             widget.ylink.setEnabled(not self.locked)
 
@@ -1973,6 +1974,7 @@ class Plot(QtWidgets.QWidget):
                         if key in items_pool:
                             item, widget = items_pool[key]
                             widget.item = item
+                            item.widget = widget
                             widget.set_ranges(ranges)
                             widget.ylink.setEnabled(not self.locked)
 
