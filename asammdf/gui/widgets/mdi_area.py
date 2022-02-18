@@ -12,6 +12,7 @@ from natsort import natsorted
 import numpy as np
 import pandas as pd
 from PyQt5 import QtCore, QtGui, QtWidgets
+import pyqtgraph as pg
 
 from ...blocks import v4_constants as v4c
 from ...blocks.conversion_utils import from_dict
@@ -2924,8 +2925,7 @@ class WithMDIArea:
         if current_plot and isinstance(current_plot, Plot):
             self.with_dots = with_dots
             current_plot.with_dots = with_dots
-            current_plot.plot.with_dots = with_dots
-            current_plot.plot.update_lines()
+            current_plot.plot.set_dots(with_dots)
 
     def set_line_interconnect(self, line_interconnect):
 
@@ -2937,8 +2937,7 @@ class WithMDIArea:
             widget = mdi.widget()
             if isinstance(widget, Plot):
                 widget.line_interconnect = line_interconnect
-                widget.plot.line_interconnect = line_interconnect
-                widget.plot.update_lines()
+                widget.plot.set_line_interconnect(line_interconnect)
 
     def set_subplots(self, option):
         self.subplots = option

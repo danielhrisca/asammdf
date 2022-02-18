@@ -1474,12 +1474,10 @@ class Plot(QtWidgets.QWidget):
             if sig.enable:
 
                 self.plot.curves[index].hide()
-                # self.plot.update_signal_curve(sig, index)
                 for i in range(3):
                     QtWidgets.QApplication.processEvents()
                     sleep(0.01)
                 self.plot.curves[index].show()
-                # self.plot.update_signal_curve(sig, index)
 
                 self.plot.set_current_uuid(self.info_uuid)
                 if self.info.isVisible():
@@ -1496,12 +1494,10 @@ class Plot(QtWidgets.QWidget):
             if sig.enable:
 
                 self.plot.curves[index].hide()
-                # self.plot.update_signal_curve(sig, index)
                 for i in range(3):
                     QtWidgets.QApplication.processEvents()
                     sleep(0.01)
                 self.plot.curves[index].show()
-                # self.plot.update_signal_curve(sig, index)
 
                 self.plot.set_current_uuid(self.info_uuid)
                 if self.info.isVisible():
@@ -2491,6 +2487,8 @@ class _Plot(pg.PlotWidget):
         self._can_trim = True
         self.mdf = mdf
 
+        self._update_lines_allowed = True
+
         self.setAcceptDrops(True)
 
         self._last_size = self.geometry()
@@ -2676,21 +2674,16 @@ class _Plot(pg.PlotWidget):
             view.setMouseEnabled(y=not self.locked)
         self.viewbox.setMouseEnabled(y=not self.locked)
 
-    def update_signal_curve(
-        self,
-        signal,
-        signal_index,
-        curve,
-        curvetype,
-        with_dots,
-        line_interconnect,
-        bounds=False,
-        xrange=None,
-        update=True,
-    ):
+    def set_dots(self, with_dots):
+        self.curvetype = pg.PlotDataItem if with_dots else pg.PlotCurveItem
+        self.with_dots = with_dots
 
-        if not isinstance(curve, curvetype):
-            curve = curvetype(
+        for signal_index, (signal, curve, viewbox) in enumerate(
+            zip(self.signals, self.curves, self.view_boxes)
+        ):
+            viewbox.removeItem(curve)
+
+            curve = self.curvetype(
                 signal.plot_timestamps,
                 signal.plot_samples,
                 pen=signal.pen,
@@ -2701,7 +2694,7 @@ class _Plot(pg.PlotWidget):
                 clickable=True,
                 mouseWidth=30,
                 dynamicRangeLimit=None,
-                stepMode=line_interconnect,
+                stepMode=self.line_interconnect,
                 skipFiniteCheck=True,
             )
             if with_dots:
@@ -2709,90 +2702,110 @@ class _Plot(pg.PlotWidget):
 
             curve.sigClicked.connect(partial(self.curve_clicked.emit, signal.uuid))
 
-            self.view_boxes[signal_index].removeItem(self.curves[signal_index])
-
             self.curves[signal_index] = curve
 
-            self.view_boxes[signal_index].addItem(curve)
+            viewbox.addItem(curve)
+
+    def set_line_interconnect(self, line_interconnect):
+        self.line_interconnect = line_interconnect
+
+        for curve, signal in zip(self.curves, self.signals):
+            curve.setData(
+                x=signal.plot_timestamps,
+                y=signal.plot_samples,
+                stepMode=line_interconnect,
+                symbolBrush=signal.color,
+                symbolPen=signal.color,
+                pen=signal.pen,
+                skipFiniteCheck=True,
+            )
+            curve.update()
+
+    def update_signal_curve(
+        self,
+        signal,
+        curve,
+        with_dots,
+        line_interconnect,
+        bounds=False,
+        xrange=None,
+        update=True,
+    ):
+
+        if with_dots:
+            curve.setData(
+                x=signal.plot_timestamps,
+                y=signal.plot_samples,
+                stepMode=line_interconnect,
+                symbolBrush=signal.color,
+                symbolPen=signal.color,
+                pen=signal.pen,
+                skipFiniteCheck=True,
+            )
+            curve.update()
+
         else:
-            if with_dots or line_interconnect != curve.opts["stepMode"]:
-                curve.setData(
-                    x=signal.plot_timestamps,
-                    y=signal.plot_samples,
-                    stepMode=line_interconnect,
-                    symbolBrush=signal.color,
-                    symbolPen=signal.color,
-                    pen=signal.pen,
-                    skipFiniteCheck=True,
-                )
-                curve.update()
+            sig_min = signal.min
+            sig_max = signal.max
+
+            if sig_min == "n.a.":
+                return
+
+            start, stop = xrange
+
+            if curve._boundsCache[0] is not None:
+                curve._boundsCache[0][1] = xrange
+                curve._boundsCache[1][1] = (sig_min, sig_max)
 
             else:
-                sig_min = signal.min
-                sig_max = signal.max
+                curve._boundsCache = [
+                    [(1.0, None), xrange],
+                    [(1.0, None), (sig_min, sig_max)],
+                ]
 
-                if sig_min == "n.a.":
-                    return
+            curve.xData = signal.plot_timestamps
+            curve.yData = signal.plot_samples
+            curve.path = None
+            if bounds:
+                curve._boundingRect = QtCore.QRectF(
+                    start, sig_min, stop - start, sig_max - sig_min
+                )
+            else:
 
-                start, stop = xrange
+                curve._boundingRect = None
+            curve.opts["pen"] = signal.pen
 
-                if curve._boundsCache[0] is not None:
-                    curve._boundsCache[0][1] = xrange
-                    curve._boundsCache[1][1] = (sig_min, sig_max)
-
-                else:
-                    curve._boundsCache = [
-                        [(1.0, None), xrange],
-                        [(1.0, None), (sig_min, sig_max)],
-                    ]
-
-                curve.xData = signal.plot_timestamps
-                curve.yData = signal.plot_samples
-                curve.path = None
-                if bounds:
-                    curve._boundingRect = QtCore.QRectF(
-                        start, sig_min, stop - start, sig_max - sig_min
-                    )
-                else:
-
-                    curve._boundingRect = None
-                curve.opts["pen"] = signal.pen
-
-                if update:
-                    curve.prepareGeometryChange()
-                    curve.update()
+            if update:
+                curve.prepareGeometryChange()
+                curve.update()
 
     def update_lines(self, bounds=False, update=True):
-        self.curvetype = pg.PlotDataItem if self.with_dots else pg.PlotCurveItem
 
         curves = self.curves
         bounds = True
 
-        if curves:
-            xrange, _ = self.viewbox.viewRange()
+        xrange, _ = self.viewbox.viewRange()
 
-            uuid_map = self._uuid_map
-            curvetype, with_dots, line_interconnect = (
-                self.curvetype,
-                self.with_dots,
-                self.line_interconnect,
-            )
+        uuid_map = self._uuid_map
+        curvetype, with_dots, line_interconnect = (
+            self.curvetype,
+            self.with_dots,
+            self.line_interconnect,
+        )
 
-            for sig in self.signals:
-                _, signal_index = uuid_map[sig.uuid]
+        for sig in self.signals:
+            _, signal_index = uuid_map[sig.uuid]
 
-                if sig.enable:
-                    self.update_signal_curve(
-                        sig,
-                        signal_index,
-                        curves[signal_index],
-                        curvetype,
-                        with_dots,
-                        line_interconnect,
-                        bounds=bounds,
-                        xrange=xrange,
-                        update=update,
-                    )
+            if sig.enable:
+                self.update_signal_curve(
+                    sig,
+                    curves[signal_index],
+                    with_dots,
+                    line_interconnect,
+                    bounds=bounds,
+                    xrange=xrange,
+                    update=update,
+                )
 
     def set_color(self, uuid, color):
         self._pixmap = None
@@ -3565,9 +3578,10 @@ class _Plot(pg.PlotWidget):
                     sig.trim_python(start, stop, width)
 
     def xrange_changed_handle(self, force=False):
-        self._pixmap = None
-        self.trim(force=force)
-        self.update_lines()
+        if self._update_lines_allowed:
+            self._pixmap = None
+            self.trim(force=force)
+            self.update_lines()
 
     def _resizeEvent(self, ev):
         new_size, last_size = self.geometry(), self._last_size
@@ -3679,6 +3693,7 @@ class _Plot(pg.PlotWidget):
 
         geometry = self.viewbox.sceneBoundingRect()
         initial_index = len(self.signals)
+        self._update_lines_allowed = False
 
         for sig in channels:
             if not hasattr(sig, "computed"):
@@ -3712,19 +3727,8 @@ class _Plot(pg.PlotWidget):
         axis_uuid = None
 
         for index, sig in enumerate(channels, initial_index):
-
-            view_box = pg.ViewBox(enableMenu=False)
-            view_box.border = None
-            view_box.setGeometry(geometry)
-            view_box.disableAutoRange()
-            view_box.setMouseEnabled(y=not self.locked)
-
-            self.scene_.addItem(view_box)
-
-            t = sig.plot_timestamps
-
             curve = self.curvetype(
-                t,
+                sig.plot_timestamps,
                 sig.plot_samples,
                 pen=sig.pen,
                 symbolBrush=sig.color,
@@ -3736,13 +3740,20 @@ class _Plot(pg.PlotWidget):
                 dynamicRangeLimit=None,
                 stepMode=self.line_interconnect,
                 skipFiniteCheck=True,
-                #                connect='finite',
             )
             curve.hide()
             if self.with_dots:
                 curve.curve.setClickable(True, 30)
 
             curve.sigClicked.connect(partial(self.curve_clicked.emit, sig.uuid))
+
+            view_box = pg.ViewBox(enableMenu=False)
+            view_box.border = None
+            view_box.setGeometry(geometry)
+            view_box.disableAutoRange()
+            view_box.setMouseEnabled(y=not self.locked)
+
+            self.scene_.addItem(view_box)
 
             self.view_boxes.append(view_box)
             self.curves.append(curve)
@@ -3767,6 +3778,9 @@ class _Plot(pg.PlotWidget):
 
         if axis_uuid is not None:
             self.set_current_uuid(sig.uuid)
+
+        self._update_lines_allowed = True
+        self.xrange_changed_handle(force=True)
 
         return channels
 
