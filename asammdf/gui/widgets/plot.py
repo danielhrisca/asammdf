@@ -107,6 +107,8 @@ HERE = Path(__file__).resolve().parent
 
 FAKE = -2
 
+float64 = np.float64
+
 
 def simple_min(a, b):
     if b != b:
@@ -144,7 +146,9 @@ class PlotSignal(Signal):
             encoding=signal.encoding,
         )
 
-        self._pos = np.empty(2 * 10000, dtype="i4")
+        self._pos = np.empty(2 * 4000, dtype="i4")
+        self._plot_samples = np.empty(2 * 4000, dtype="i1")
+        self._plot_timestamps = np.empty(2 * 4000, dtype="f8")
 
         self.duplication = duplication
         self.uuid = getattr(signal, "uuid", os.urandom(6).hex())
@@ -175,6 +179,12 @@ class PlotSignal(Signal):
 
         if self.samples.dtype.byteorder not in target_byte_order:
             self.samples = self.samples.byteswap().newbyteorder()
+
+        if self.timestamps.dtype.byteorder not in target_byte_order:
+            self.timestamps = self.timestamps.byteswap().newbyteorder()
+
+        if self.timestamps.dtype != float64:
+            self.timestamps = self.timestamps.astype(float64)
 
         if self.conversion:
             samples = self.conversion.convert(self.samples)
@@ -764,8 +774,7 @@ class PlotSignal(Signal):
             return None
 
         self.trim_info = trim_info
-        sig = self
-        sig_timestamps = sig.timestamps
+        sig_timestamps = self.timestamps
         dim = sig_timestamps.size
 
         if dim:
@@ -788,8 +797,8 @@ class PlotSignal(Signal):
                 sig_timestamps[-1],
             )
             if start > stop_t_sig or stop < start_t_sig:
-                sig.plot_samples = signal_samples[:0]
-                sig.plot_timestamps = sig_timestamps[:0]
+                self.plot_samples = signal_samples[:0]
+                self.plot_timestamps = sig_timestamps[:0]
                 pos = []
             else:
                 start_t = simple_max(start, start_t_sig)
@@ -831,10 +840,16 @@ class PlotSignal(Signal):
                     if samples.dtype.kind == "f" and samples.itemsize == 2:
                         samples = samples.astype("f8")
 
+                    if samples.dtype != self._plot_samples.dtype:
+                        self._plot_samples = np.empty(2 * 4000, dtype=samples.dtype)
+
                     if samples.flags.c_contiguous:
                         positions(
                             samples,
-                            pos,
+                            timestamps,
+                            self._plot_samples,
+                            self._plot_timestamps,
+                            self._pos,
                             steps,
                             count,
                             rest,
@@ -843,8 +858,11 @@ class PlotSignal(Signal):
                         )
                     else:
                         positions(
-                            samples.astype("f8"),
-                            pos,
+                            samples.copy(),
+                            timestamps,
+                            self._plot_samples,
+                            self._plot_timestamps,
+                            self._pos,
                             steps,
                             count,
                             rest,
@@ -852,22 +870,24 @@ class PlotSignal(Signal):
                             samples.itemsize,
                         )
 
-                    sig.plot_samples = samples[pos]
-                    sig.plot_timestamps = timestamps[pos]
+                    size = 2 * count
+                    pos = self._pos[:size]
+                    self.plot_samples = self._plot_samples[:size]
+                    self.plot_timestamps = self._plot_timestamps[:size]
 
                 else:
                     start_ = simple_min(simple_max(0, start_ - 2), dim - 1)
                     stop_ = simple_min(stop_ + 2, dim)
 
                     if start_ == 0 and stop_ == dim:
-                        sig.plot_samples = signal_samples
-                        sig.plot_timestamps = sig_timestamps
+                        self.plot_samples = signal_samples
+                        self.plot_timestamps = sig_timestamps
 
                         pos = None
                     else:
 
-                        sig.plot_samples = signal_samples[start_:stop_]
-                        sig.plot_timestamps = sig_timestamps[start_:stop_]
+                        self.plot_samples = signal_samples[start_:stop_]
+                        self.plot_timestamps = sig_timestamps[start_:stop_]
 
                         pos = np.arange(start_, stop_)
 
@@ -1024,6 +1044,7 @@ class PlotSignal(Signal):
         try:
             return self.trim_c(start, stop, width, force)
         except:
+            print(format_exc())
             return self.trim_python(start, stop, width, force)
 
     def value_at_timestamp(self, stamp):

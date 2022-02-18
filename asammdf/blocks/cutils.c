@@ -345,35 +345,46 @@ static PyObject* get_vlsd_offsets(PyObject* self, PyObject* args)
 }
 
 
-void positions_char(PyObject* samples, PyObject* result, long step, long count, long last)
+void positions_char(PyObject* samples, PyObject* timestamps, PyObject* plot_samples, PyObject* plot_timestamps, PyObject* result, long step, long count, long last)
 {
     char min, max, * indata;
     long* outdata;
     int pos_min = 0, pos_max = 0;
-
+    
     indata = (char*)PyArray_GETPTR1(samples, 0);
     outdata = (long*)PyArray_GETPTR1(result, 0);
+
+    char * ps;
+    double tmin, tmax, * ts, *pt;
+
+    ps = (char*)PyArray_GETPTR1(plot_samples, 0);
+    pt = (double*)PyArray_GETPTR1(plot_timestamps, 0);
+    ts = (double*)PyArray_GETPTR1(timestamps, 0);
 
     int current_pos = 0, stop_index=count-1;
     for (int i = 0; i < (int)count; i++) {
 
         pos_min = current_pos;
         pos_max = current_pos;
-        min = *indata;
-        max = *indata;
+        min = max = *indata;
         indata++;
         current_pos++;
 
+        tmin = tmax = *ts;
+        ts++;
+
         if ((i != stop_index) || (0 != last)) {
 
-            for (int j = 1; j < step; j++, indata++) {
+            for (int j = 1; j < step; j++, indata++, ts++) {
                 if (*indata < min) {
                     min = *indata;
                     pos_min = current_pos;
+                    tmin = *ts;
                 }
                 else if (*indata > max) {
                     max = *indata;
                     pos_max = current_pos;
+                    tmax = *ts;
                 }
 
                 current_pos++;
@@ -385,15 +396,26 @@ void positions_char(PyObject* samples, PyObject* result, long step, long count, 
         if (pos_min < pos_max) {
             *outdata++ = pos_min;
             *outdata++ = pos_max;
+
+            *ps++ = min;
+            *pt++ = tmin;
+            *ps++ = max;
+            *pt++ = tmax;
+
         }
         else {
             *outdata++ = pos_max;
             *outdata++ = pos_min;
+
+            *ps++ = max;
+            *pt++ = tmax;
+            *ps++ = min;
+            *pt++ = tmin;
         }
     }
 }
 
-void positions_short(PyObject* samples, PyObject* result, long step, long count, long last)
+void positions_short(PyObject* samples, PyObject* timestamps, PyObject* plot_samples, PyObject* plot_timestamps, PyObject* result, long step, long count, long last)
 {
     short min, max, * indata;
     long* outdata;
@@ -402,26 +424,37 @@ void positions_short(PyObject* samples, PyObject* result, long step, long count,
     indata = (short*)PyArray_GETPTR1(samples, 0);
     outdata = (long*)PyArray_GETPTR1(result, 0);
 
-    int current_pos = 0, stop_index=count-1;
+    short * ps;
+    double tmin, tmax, * ts, *pt;
+
+    ps = (short*)PyArray_GETPTR1(plot_samples, 0);
+    pt = (double*)PyArray_GETPTR1(plot_timestamps, 0);
+    ts = (double*)PyArray_GETPTR1(timestamps, 0);
+
+    int current_pos = 0, stop_index = count - 1;
     for (int i = 0; i < (int)count; i++) {
 
         pos_min = current_pos;
         pos_max = current_pos;
-        min = *indata;
-        max = *indata;
+        min = max = *indata;
         indata++;
         current_pos++;
 
+        tmin = tmax = *ts;
+        ts++;
+
         if ((i != stop_index) || (0 != last)) {
 
-            for (int j = 1; j < step; j++, indata++) {
+            for (int j = 1; j < step; j++, indata++, ts++) {
                 if (*indata < min) {
                     min = *indata;
                     pos_min = current_pos;
+                    tmin = *ts;
                 }
                 else if (*indata > max) {
                     max = *indata;
                     pos_max = current_pos;
+                    tmax = *ts;
                 }
 
                 current_pos++;
@@ -433,15 +466,26 @@ void positions_short(PyObject* samples, PyObject* result, long step, long count,
         if (pos_min < pos_max) {
             *outdata++ = pos_min;
             *outdata++ = pos_max;
+
+            *ps++ = min;
+            *pt++ = tmin;
+            *ps++ = max;
+            *pt++ = tmax;
+
         }
         else {
             *outdata++ = pos_max;
             *outdata++ = pos_min;
+
+            *ps++ = max;
+            *pt++ = tmax;
+            *ps++ = min;
+            *pt++ = tmin;
         }
     }
 }
 
-void positions_long(PyObject* samples, PyObject* result, long step, long count, long last)
+void positions_long(PyObject* samples, PyObject* timestamps, PyObject* plot_samples, PyObject* plot_timestamps, PyObject* result, long step, long count, long last)
 {
     long min, max, * indata;
     long* outdata;
@@ -450,26 +494,37 @@ void positions_long(PyObject* samples, PyObject* result, long step, long count, 
     indata = (long*)PyArray_GETPTR1(samples, 0);
     outdata = (long*)PyArray_GETPTR1(result, 0);
 
-    int current_pos = 0, stop_index=count-1;
+    long * ps;
+    double tmin, tmax, * ts, *pt;
+
+    ps = (long*)PyArray_GETPTR1(plot_samples, 0);
+    pt = (double*)PyArray_GETPTR1(plot_timestamps, 0);
+    ts = (double*)PyArray_GETPTR1(timestamps, 0);
+
+    int current_pos = 0, stop_index = count - 1;
     for (int i = 0; i < (int)count; i++) {
 
         pos_min = current_pos;
         pos_max = current_pos;
-        min = *indata;
-        max = *indata;
+        min = max = *indata;
         indata++;
         current_pos++;
 
+        tmin = tmax = *ts;
+        ts++;
+
         if ((i != stop_index) || (0 != last)) {
 
-            for (int j = 1; j < step; j++, indata++) {
+            for (int j = 1; j < step; j++, indata++, ts++) {
                 if (*indata < min) {
                     min = *indata;
                     pos_min = current_pos;
+                    tmin = *ts;
                 }
                 else if (*indata > max) {
                     max = *indata;
                     pos_max = current_pos;
+                    tmax = *ts;
                 }
 
                 current_pos++;
@@ -481,15 +536,26 @@ void positions_long(PyObject* samples, PyObject* result, long step, long count, 
         if (pos_min < pos_max) {
             *outdata++ = pos_min;
             *outdata++ = pos_max;
+
+            *ps++ = min;
+            *pt++ = tmin;
+            *ps++ = max;
+            *pt++ = tmax;
+
         }
         else {
             *outdata++ = pos_max;
             *outdata++ = pos_min;
+
+            *ps++ = max;
+            *pt++ = tmax;
+            *ps++ = min;
+            *pt++ = tmin;
         }
     }
 }
 
-void positions_long_long(PyObject* samples, PyObject* result, long step, long count, long last)
+void positions_long_long(PyObject* samples, PyObject* timestamps, PyObject* plot_samples, PyObject* plot_timestamps, PyObject* result, long step, long count, long last)
 {
     long long min, max, * indata;
     long* outdata;
@@ -498,26 +564,37 @@ void positions_long_long(PyObject* samples, PyObject* result, long step, long co
     indata = (long long*)PyArray_GETPTR1(samples, 0);
     outdata = (long*)PyArray_GETPTR1(result, 0);
 
-    int current_pos = 0, stop_index=count-1;
+    long long * ps;
+    double tmin, tmax, * ts, * pt;
+
+    ps = (long long*)PyArray_GETPTR1(plot_samples, 0);
+    pt = (double*)PyArray_GETPTR1(plot_timestamps, 0);
+    ts = (double*)PyArray_GETPTR1(timestamps, 0);
+
+    int current_pos = 0, stop_index = count - 1;
     for (int i = 0; i < (int)count; i++) {
 
         pos_min = current_pos;
         pos_max = current_pos;
-        min = *indata;
-        max = *indata;
+        min = max = *indata;
         indata++;
         current_pos++;
 
+        tmin = tmax = *ts;
+        ts++;
+
         if ((i != stop_index) || (0 != last)) {
 
-            for (int j = 1; j < step; j++, indata++) {
+            for (int j = 1; j < step; j++, indata++, ts++) {
                 if (*indata < min) {
                     min = *indata;
                     pos_min = current_pos;
+                    tmin = *ts;
                 }
                 else if (*indata > max) {
                     max = *indata;
                     pos_max = current_pos;
+                    tmax = *ts;
                 }
 
                 current_pos++;
@@ -529,15 +606,26 @@ void positions_long_long(PyObject* samples, PyObject* result, long step, long co
         if (pos_min < pos_max) {
             *outdata++ = pos_min;
             *outdata++ = pos_max;
+
+            *ps++ = min;
+            *pt++ = tmin;
+            *ps++ = max;
+            *pt++ = tmax;
+
         }
         else {
             *outdata++ = pos_max;
             *outdata++ = pos_min;
+
+            *ps++ = max;
+            *pt++ = tmax;
+            *ps++ = min;
+            *pt++ = tmin;
         }
     }
 }
 
-void positions_unsigned_char(PyObject* samples, PyObject* result, long step, long count, long last)
+void positions_unsigned_char(PyObject* samples, PyObject* timestamps, PyObject* plot_samples, PyObject* plot_timestamps, PyObject* result, long step, long count, long last)
 {
     unsigned char min, max, * indata;
     long* outdata;
@@ -546,26 +634,37 @@ void positions_unsigned_char(PyObject* samples, PyObject* result, long step, lon
     indata = (unsigned char*)PyArray_GETPTR1(samples, 0);
     outdata = (long*)PyArray_GETPTR1(result, 0);
 
-    int current_pos = 0, stop_index=count-1;
+    unsigned char* ps;
+    double tmin, tmax, * ts, * pt;
+
+    ps = (unsigned char*)PyArray_GETPTR1(plot_samples, 0);
+    pt = (double*)PyArray_GETPTR1(plot_timestamps, 0);
+    ts = (double*)PyArray_GETPTR1(timestamps, 0);
+
+    int current_pos = 0, stop_index = count - 1;
     for (int i = 0; i < (int)count; i++) {
 
         pos_min = current_pos;
         pos_max = current_pos;
-        min = *indata;
-        max = *indata;
+        min = max = *indata;
         indata++;
         current_pos++;
 
+        tmin = tmax = *ts;
+        ts++;
+
         if ((i != stop_index) || (0 != last)) {
 
-            for (int j = 1; j < step; j++, indata++) {
+            for (int j = 1; j < step; j++, indata++, ts++) {
                 if (*indata < min) {
                     min = *indata;
                     pos_min = current_pos;
+                    tmin = *ts;
                 }
                 else if (*indata > max) {
                     max = *indata;
                     pos_max = current_pos;
+                    tmax = *ts;
                 }
 
                 current_pos++;
@@ -577,15 +676,26 @@ void positions_unsigned_char(PyObject* samples, PyObject* result, long step, lon
         if (pos_min < pos_max) {
             *outdata++ = pos_min;
             *outdata++ = pos_max;
+
+            *ps++ = min;
+            *pt++ = tmin;
+            *ps++ = max;
+            *pt++ = tmax;
+
         }
         else {
             *outdata++ = pos_max;
             *outdata++ = pos_min;
+
+            *ps++ = max;
+            *pt++ = tmax;
+            *ps++ = min;
+            *pt++ = tmin;
         }
     }
 }
 
-void positions_unsigned_short(PyObject* samples, PyObject* result, long step, long count, long last)
+void positions_unsigned_short(PyObject* samples, PyObject* timestamps, PyObject* plot_samples, PyObject* plot_timestamps, PyObject* result, long step, long count, long last)
 {
     unsigned short min, max, * indata;
     long* outdata;
@@ -594,26 +704,37 @@ void positions_unsigned_short(PyObject* samples, PyObject* result, long step, lo
     indata = (unsigned short *)PyArray_GETPTR1(samples, 0);
     outdata = (long*)PyArray_GETPTR1(result, 0);
 
-    int current_pos = 0, stop_index=count-1;
+    unsigned short* ps;
+    double tmin, tmax, * ts, * pt;
+
+    ps = (unsigned short*)PyArray_GETPTR1(plot_samples, 0);
+    pt = (double*)PyArray_GETPTR1(plot_timestamps, 0);
+    ts = (double*)PyArray_GETPTR1(timestamps, 0);
+
+    int current_pos = 0, stop_index = count - 1;
     for (int i = 0; i < (int)count; i++) {
 
         pos_min = current_pos;
         pos_max = current_pos;
-        min = *indata;
-        max = *indata;
+        min = max = *indata;
         indata++;
         current_pos++;
 
+        tmin = tmax = *ts;
+        ts++;
+
         if ((i != stop_index) || (0 != last)) {
 
-            for (int j = 1; j < step; j++, indata++) {
+            for (int j = 1; j < step; j++, indata++, ts++) {
                 if (*indata < min) {
                     min = *indata;
                     pos_min = current_pos;
+                    tmin = *ts;
                 }
                 else if (*indata > max) {
                     max = *indata;
                     pos_max = current_pos;
+                    tmax = *ts;
                 }
 
                 current_pos++;
@@ -625,15 +746,26 @@ void positions_unsigned_short(PyObject* samples, PyObject* result, long step, lo
         if (pos_min < pos_max) {
             *outdata++ = pos_min;
             *outdata++ = pos_max;
+
+            *ps++ = min;
+            *pt++ = tmin;
+            *ps++ = max;
+            *pt++ = tmax;
+
         }
         else {
             *outdata++ = pos_max;
             *outdata++ = pos_min;
+
+            *ps++ = max;
+            *pt++ = tmax;
+            *ps++ = min;
+            *pt++ = tmin;
         }
     }
 }
 
-void positions_unsigned_long(PyObject* samples, PyObject* result, long step, long count, long last)
+void positions_unsigned_long(PyObject* samples, PyObject* timestamps, PyObject* plot_samples, PyObject* plot_timestamps, PyObject* result, long step, long count, long last)
 {
     unsigned long min, max, * indata;
     long* outdata;
@@ -642,26 +774,37 @@ void positions_unsigned_long(PyObject* samples, PyObject* result, long step, lon
     indata = (unsigned long*)PyArray_GETPTR1(samples, 0);
     outdata = (long*)PyArray_GETPTR1(result, 0);
 
-    int current_pos = 0, stop_index=count-1;
+    unsigned long* ps;
+    double tmin, tmax, * ts, * pt;
+
+    ps = (unsigned long*)PyArray_GETPTR1(plot_samples, 0);
+    pt = (double*)PyArray_GETPTR1(plot_timestamps, 0);
+    ts = (double*)PyArray_GETPTR1(timestamps, 0);
+
+    int current_pos = 0, stop_index = count - 1;
     for (int i = 0; i < (int)count; i++) {
 
         pos_min = current_pos;
         pos_max = current_pos;
-        min = *indata;
-        max = *indata;
+        min = max = *indata;
         indata++;
         current_pos++;
 
+        tmin = tmax = *ts;
+        ts++;
+
         if ((i != stop_index) || (0 != last)) {
 
-            for (int j = 1; j < step; j++, indata++) {
+            for (int j = 1; j < step; j++, indata++, ts++) {
                 if (*indata < min) {
                     min = *indata;
                     pos_min = current_pos;
+                    tmin = *ts;
                 }
                 else if (*indata > max) {
                     max = *indata;
                     pos_max = current_pos;
+                    tmax = *ts;
                 }
 
                 current_pos++;
@@ -673,15 +816,26 @@ void positions_unsigned_long(PyObject* samples, PyObject* result, long step, lon
         if (pos_min < pos_max) {
             *outdata++ = pos_min;
             *outdata++ = pos_max;
+
+            *ps++ = min;
+            *pt++ = tmin;
+            *ps++ = max;
+            *pt++ = tmax;
+
         }
         else {
             *outdata++ = pos_max;
             *outdata++ = pos_min;
+
+            *ps++ = max;
+            *pt++ = tmax;
+            *ps++ = min;
+            *pt++ = tmin;
         }
     }
 }
 
-void positions_unsigned_long_long(PyObject* samples, PyObject* result, long step, long count, long last)
+void positions_unsigned_long_long(PyObject* samples, PyObject* timestamps, PyObject* plot_samples, PyObject* plot_timestamps, PyObject* result, long step, long count, long last)
 {
     unsigned long long min, max, * indata;
     long* outdata;
@@ -690,26 +844,37 @@ void positions_unsigned_long_long(PyObject* samples, PyObject* result, long step
     indata = (unsigned long long *)PyArray_GETPTR1(samples, 0);
     outdata = (long*)PyArray_GETPTR1(result, 0);
 
-    int current_pos = 0, stop_index=count-1;
+    unsigned long long* ps;
+    double tmin, tmax, * ts, * pt;
+
+    ps = (unsigned long long*)PyArray_GETPTR1(plot_samples, 0);
+    pt = (double*)PyArray_GETPTR1(plot_timestamps, 0);
+    ts = (double*)PyArray_GETPTR1(timestamps, 0);
+
+    int current_pos = 0, stop_index = count - 1;
     for (int i = 0; i < (int)count; i++) {
 
         pos_min = current_pos;
         pos_max = current_pos;
-        min = *indata;
-        max = *indata;
+        min = max = *indata;
         indata++;
         current_pos++;
 
+        tmin = tmax = *ts;
+        ts++;
+
         if ((i != stop_index) || (0 != last)) {
 
-            for (int j = 1; j < step; j++, indata++) {
+            for (int j = 1; j < step; j++, indata++, ts++) {
                 if (*indata < min) {
                     min = *indata;
                     pos_min = current_pos;
+                    tmin = *ts;
                 }
                 else if (*indata > max) {
                     max = *indata;
                     pos_max = current_pos;
+                    tmax = *ts;
                 }
 
                 current_pos++;
@@ -721,43 +886,65 @@ void positions_unsigned_long_long(PyObject* samples, PyObject* result, long step
         if (pos_min < pos_max) {
             *outdata++ = pos_min;
             *outdata++ = pos_max;
+
+            *ps++ = min;
+            *pt++ = tmin;
+            *ps++ = max;
+            *pt++ = tmax;
+
         }
         else {
             *outdata++ = pos_max;
             *outdata++ = pos_min;
+
+            *ps++ = max;
+            *pt++ = tmax;
+            *ps++ = min;
+            *pt++ = tmin;
         }
     }
 }
 
-void positions_float(PyObject* samples, PyObject* result, long step, long count, long last)
+void positions_float(PyObject* samples, PyObject* timestamps, PyObject* plot_samples, PyObject* plot_timestamps, PyObject* result, long step, long count, long last)
 {
-    float min, max, * indata;
-    long* outdata;
+    float min, max, * indata=NULL;
+    long* outdata= NULL;
     int pos_min = 0, pos_max = 0;
 
     indata = (float*)PyArray_GETPTR1(samples, 0);
     outdata = (long*)PyArray_GETPTR1(result, 0);
 
-    int current_pos = 0, stop_index=count-1;
+    float* ps;
+    double tmin, tmax, * ts, * pt;
+
+    ps = (float*)PyArray_GETPTR1(plot_samples, 0);
+    pt = (double*)PyArray_GETPTR1(plot_timestamps, 0);
+    ts = (double*)PyArray_GETPTR1(timestamps, 0);
+
+    int current_pos = 0, stop_index = count - 1;
     for (int i = 0; i < (int)count; i++) {
 
         pos_min = current_pos;
         pos_max = current_pos;
-        min = *indata;
-        max = *indata;
+        min = max = *indata;
         indata++;
         current_pos++;
 
+        tmin = tmax = *ts;
+        ts++;
+
         if ((i != stop_index) || (0 != last)) {
 
-            for (int j = 1; j < step; j++, indata++) {
+            for (int j = 1; j < step; j++, indata++, ts++) {
                 if (*indata < min) {
                     min = *indata;
                     pos_min = current_pos;
+                    tmin = *ts;
                 }
                 else if (*indata > max) {
                     max = *indata;
                     pos_max = current_pos;
+                    tmax = *ts;
                 }
 
                 current_pos++;
@@ -769,43 +956,65 @@ void positions_float(PyObject* samples, PyObject* result, long step, long count,
         if (pos_min < pos_max) {
             *outdata++ = pos_min;
             *outdata++ = pos_max;
+
+            *ps++ = min;
+            *pt++ = tmin;
+            *ps++ = max;
+            *pt++ = tmax;
+
         }
         else {
             *outdata++ = pos_max;
             *outdata++ = pos_min;
+
+            *ps++ = max;
+            *pt++ = tmax;
+            *ps++ = min;
+            *pt++ = tmin;
         }
     }
 }
 
-void positions_double(PyObject* samples, PyObject* result, long step, long count, long last)
+void positions_double(PyObject* samples, PyObject* timestamps, PyObject* plot_samples, PyObject* plot_timestamps, PyObject* result, long step, long count, long last)
 {
-    double min, max, val, * indata;
-    long* outdata;
+    double min, max, val, * indata=NULL;
+    long* outdata = NULL;
     int pos_min = 0, pos_max = 0;
 
     indata = (double*)PyArray_GETPTR1(samples, 0);
     outdata = (long*)PyArray_GETPTR1(result, 0);
 
-    int current_pos = 0, stop_index=count-1;
+    double* ps = NULL;
+    double tmin, tmax, * ts = NULL, * pt = NULL;
+
+    ps = (double*)PyArray_GETPTR1(plot_samples, 0);
+    pt = (double*)PyArray_GETPTR1(plot_timestamps, 0);
+    ts = (double*)PyArray_GETPTR1(timestamps, 0);
+
+    int current_pos = 0, stop_index = count - 1;
     for (int i = 0; i < (int)count; i++) {
 
         pos_min = current_pos;
         pos_max = current_pos;
-        min = *indata;
-        max = *indata;
+        min = max = *indata;
         indata++;
         current_pos++;
 
+        tmin = tmax = *ts;
+        ts++;
+
         if ((i != stop_index) || (0 != last)) {
 
-            for (int j = 1; j < step; j++, indata++) {
+            for (int j = 1; j < step; j++, indata++, ts++) {
                 if (*indata < min) {
                     min = *indata;
                     pos_min = current_pos;
+                    tmin = *ts;
                 }
                 else if (*indata > max) {
                     max = *indata;
                     pos_max = current_pos;
+                    tmax = *ts;
                 }
 
                 current_pos++;
@@ -817,10 +1026,21 @@ void positions_double(PyObject* samples, PyObject* result, long step, long count
         if (pos_min < pos_max) {
             *outdata++ = pos_min;
             *outdata++ = pos_max;
+
+            *ps++ = min;
+            *pt++ = tmin;
+            *ps++ = max;
+            *pt++ = tmax;
+
         }
         else {
             *outdata++ = pos_max;
             *outdata++ = pos_min;
+
+            *ps++ = max;
+            *pt++ = tmax;
+            *ps++ = min;
+            *pt++ = tmin;
         }
     }
 }
@@ -833,10 +1053,10 @@ static PyObject* positions(PyObject* self, PyObject* args)
     char* kind;
     Py_ssize_t _size;
 
-    PyObject* samples, * result, * step_obj, * count_obj, * last_obj;
+    PyObject* samples, *timestamps, * result, * step_obj, * count_obj, * last_obj, *plot_samples, *plot_timestamps;
 
-    if (!PyArg_ParseTuple(args, "OOOOOs#B",
-        &samples, &result, &step_obj, &count_obj, &last_obj, &kind, &_size, &itemsize
+    if (!PyArg_ParseTuple(args, "OOOOOOOOs#B",
+        &samples, &timestamps, &plot_samples, &plot_timestamps, &result, &step_obj, &count_obj, &last_obj, &kind, &_size, &itemsize
     )) {
         PyErr_SetString(PyExc_ValueError, "check_timestamp was called with wring parameters\n");
         return NULL;
@@ -847,20 +1067,20 @@ static PyObject* positions(PyObject* self, PyObject* args)
         last = PyLong_AsLong(last_obj) - 1;
 
         if (kind[0] == 'u') {
-            if (itemsize == 1) positions_unsigned_char(samples, result, step, count, last);
-            else if (itemsize == 2) positions_unsigned_short(samples, result, step, count, last);
-            else if (itemsize == 4) positions_unsigned_long(samples, result, step, count, last);
-            else positions_unsigned_long_long(samples, result, step, count, last);
+            if (itemsize == 1) positions_unsigned_char(samples, timestamps, plot_samples, plot_timestamps, result, step, count, last);
+            else if (itemsize == 2) positions_unsigned_short(samples, timestamps, plot_samples, plot_timestamps, result, step, count, last);
+            else if (itemsize == 4) positions_unsigned_long(samples, timestamps, plot_samples, plot_timestamps, result, step, count, last);
+            else positions_unsigned_long_long(samples, timestamps, plot_samples, plot_timestamps, result, step, count, last);
         }
         else if (kind[0] == 'i') {
-            if (itemsize == 1) positions_char(samples, result, step, count, last);
-            else if (itemsize == 2) positions_short(samples, result, step, count, last);
-            else if (itemsize == 4) positions_long(samples, result, step, count, last);
-            else positions_long_long(samples, result, step, count, last);
+            if (itemsize == 1) positions_char(samples, timestamps, plot_samples, plot_timestamps, result, step, count, last);
+            else if (itemsize == 2) positions_short(samples, timestamps, plot_samples, plot_timestamps, result, step, count, last);
+            else if (itemsize == 4) positions_long(samples, timestamps, plot_samples, plot_timestamps, result, step, count, last);
+            else positions_long_long(samples, timestamps, plot_samples, plot_timestamps, result, step, count, last);
         }
         else if (kind[0] == 'f') {
-            if (itemsize == 4) positions_float(samples, result, step, count, last);
-            else positions_double(samples, result, step, count, last);
+            if (itemsize == 4) positions_float(samples, timestamps, plot_samples, plot_timestamps, result, step, count, last);
+            else positions_double(samples, timestamps, plot_samples, plot_timestamps, result, step, count, last);
         }
 
         Py_INCREF(Py_None);
