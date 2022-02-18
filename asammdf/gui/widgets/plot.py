@@ -2754,6 +2754,7 @@ class _Plot(pg.PlotWidget):
                         start, sig_min, stop - start, sig_max - sig_min
                     )
                 else:
+
                     curve._boundingRect = None
                 curve.opts["pen"] = signal.pen
 
@@ -2765,6 +2766,7 @@ class _Plot(pg.PlotWidget):
         self.curvetype = pg.PlotDataItem if self.with_dots else pg.PlotCurveItem
 
         curves = self.curves
+        bounds = True
 
         if curves:
             xrange, _ = self.viewbox.viewRange()

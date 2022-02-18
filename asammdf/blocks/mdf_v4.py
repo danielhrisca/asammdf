@@ -155,6 +155,7 @@ COMMON_uf = v4c.COMMON_uf
 COMMON_SHORT_SIZE = v4c.COMMON_SHORT_SIZE
 COMMON_SHORT_uf = v4c.COMMON_SHORT_uf
 COMMON_SHORT_u = v4c.COMMON_SHORT_u
+VALID_DATA_TYPES = v4c.VALID_DATA_TYPES
 
 EMPTY_TUPLE = tuple()
 
@@ -971,6 +972,10 @@ class MDF4(MDF_Common):
                     file_limit=self.file_limit,
                     parsed_strings=None,
                 )
+
+            if channel.data_type not in VALID_DATA_TYPES:
+                ch_addr = channel.next_ch_addr
+                continue
 
             if channel.channel_type == v4c.CHANNEL_TYPE_SYNC:
                 channel.attachment = self._attachments_map.get(

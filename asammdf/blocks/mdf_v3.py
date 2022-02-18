@@ -871,6 +871,10 @@ class MDF3(MDF_Common):
                             parsed_strings=None,
                         )
 
+                    if new_ch.data_type not in v23c.VALID_DATA_TYPES:
+                        ch_addr = new_ch.next_ch_addr
+                        continue
+
                     if self._remove_source_from_channel_names:
                         new_ch.name = new_ch.name.split("\\", 1)[0]
                         new_ch.display_names = {
