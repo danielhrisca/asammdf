@@ -2779,10 +2779,7 @@ class _Plot(pg.PlotWidget):
             for sig in self.signals:
                 _, signal_index = uuid_map[sig.uuid]
 
-                if not sig.enable:
-                    curves[signal_index].hide()
-                else:
-
+                if sig.enable:
                     self.update_signal_curve(
                         sig,
                         signal_index,
@@ -2794,9 +2791,6 @@ class _Plot(pg.PlotWidget):
                         xrange=xrange,
                         update=update,
                     )
-                    curve = curves[signal_index]
-                    if not curve.isVisible():
-                        curve.show()
 
     def set_color(self, uuid, color):
         self._pixmap = None
@@ -2925,6 +2919,8 @@ class _Plot(pg.PlotWidget):
             uuids = self._timebase_db.setdefault(id(sig.timestamps), set())
             uuids.add(sig.uuid)
 
+            self.curves[index].show()
+
         else:
             sig.enable = False
             self.view_boxes[index].setXLink(None)
@@ -2938,6 +2934,8 @@ class _Plot(pg.PlotWidget):
                     del self._timebase_db[id(sig.timestamps)]
             except:
                 pass
+
+            self.curves[index].hide()
 
         self._enable_timer.start(50)
 
