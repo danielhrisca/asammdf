@@ -23,6 +23,8 @@ import pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5
 import pyqtgraph.GraphicsScene.exportDialogTemplate_pyqt5
 import pyqtgraph.imageview.ImageViewTemplate_pyqt5
 
+PLOT_BUFFER_SIZE = 4000
+
 from ...blocks.utils import target_byte_order
 from ..utils import FONT_SIZE
 
@@ -146,9 +148,9 @@ class PlotSignal(Signal):
             encoding=signal.encoding,
         )
 
-        self._pos = np.empty(2 * 4000, dtype="i4")
-        self._plot_samples = np.empty(2 * 4000, dtype="i1")
-        self._plot_timestamps = np.empty(2 * 4000, dtype="f8")
+        self._pos = np.empty(2 * PLOT_BUFFER_SIZE, dtype="i4")
+        self._plot_samples = np.empty(2 * PLOT_BUFFER_SIZE, dtype="i1")
+        self._plot_timestamps = np.empty(2 * PLOT_BUFFER_SIZE, dtype="f8")
 
         self.duplication = duplication
         self.uuid = getattr(signal, "uuid", os.urandom(6).hex())
@@ -841,7 +843,9 @@ class PlotSignal(Signal):
                         samples = samples.astype("f8")
 
                     if samples.dtype != self._plot_samples.dtype:
-                        self._plot_samples = np.empty(2 * 4000, dtype=samples.dtype)
+                        self._plot_samples = np.empty(
+                            2 * PLOT_BUFFER_SIZE, dtype=samples.dtype
+                        )
 
                     if samples.flags.c_contiguous:
                         positions(
@@ -2786,18 +2790,16 @@ class _Plot(pg.PlotWidget):
 
         xrange, _ = self.viewbox.viewRange()
 
-        uuid_map = self._uuid_map
-        curvetype, with_dots, line_interconnect = (
-            self.curvetype,
+        with_dots, line_interconnect, update_signal_curve = (
             self.with_dots,
             self.line_interconnect,
+            self.update_signal_curve,
         )
 
-        for sig in self.signals:
-            _, signal_index = uuid_map[sig.uuid]
+        for signal_index, sig in enumerate(self.signals):
 
             if sig.enable:
-                self.update_signal_curve(
+                update_signal_curve(
                     sig,
                     curves[signal_index],
                     with_dots,

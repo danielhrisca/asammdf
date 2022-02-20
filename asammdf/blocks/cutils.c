@@ -1088,7 +1088,6 @@ static PyObject* positions(PyObject* self, PyObject* args)
     }
 }
 
-
 static PyObject* get_channel_raw_bytes(PyObject* self, PyObject* args)
 {
     Py_ssize_t count, size, actual_byte_count, delta;
@@ -1141,10 +1140,9 @@ static PyObject* get_channel_raw_bytes(PyObject* self, PyObject* args)
             delta = record_size - byte_count;
             
             for (int i=0; i<count; i++) {
-                for (int j=0; j < byte_count; j++) {
-                    *outptr++ = *inptr++;
-                }
-                inptr += delta;
+                memcpy(outptr, inptr, byte_count);
+                inptr += record_size;
+                outptr += byte_count;
             }
            
         }
