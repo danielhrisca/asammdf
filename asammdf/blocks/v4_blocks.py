@@ -3499,13 +3499,11 @@ class ChannelConversion(_ChannelConversionBase):
 
                 self._cache = {
                     "phys": phys,
-                    "raw_vals": raw_vals,
                     "lower": lower,
                     "upper": upper,
                 }
             else:
                 phys = self._cache["phys"]
-                raw_vals = self._cache["raw_vals"]
                 lower = self._cache["lower"]
                 upper = self._cache["upper"]
 
