@@ -3443,10 +3443,10 @@ class ChannelConversion(_ChannelConversionBase):
 
                     if idx.size:
                         indexes = idx1[idx]
-                        
+
                         if indexes.size <= 300:
                             unique = sorted(set(indexes.tolist()))
-                        else:                            
+                        else:
                             unique = np.unique(indexes).tolist()
                         for val in unique:
 

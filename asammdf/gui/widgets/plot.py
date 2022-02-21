@@ -2773,7 +2773,7 @@ class _Plot(pg.PlotWidget):
             curve.update()
 
         else:
-  
+
             sig_min = signal.min
             sig_max = signal.max
 
