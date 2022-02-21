@@ -3443,8 +3443,12 @@ class ChannelConversion(_ChannelConversionBase):
 
                     if idx.size:
                         indexes = idx1[idx]
-                        unique = np.unique(indexes)
-                        for val in unique.tolist():
+                        
+                        if indexes.size <= 300:
+                            unique = sorted(set(indexes.tolist()))
+                        else:                            
+                            unique = np.unique(indexes).tolist()
+                        for val in unique:
 
                             item = phys[val]
                             idx_ = np.argwhere(indexes == val).ravel()
@@ -3457,8 +3461,11 @@ class ChannelConversion(_ChannelConversionBase):
                     # all the raw values are found in the conversion table
 
                     if idx1.size:
-                        unique = np.unique(idx1)
-                        for val in unique.tolist():
+                        if idx1.size <= 300:
+                            unique = sorted(set(idx1.tolist()))
+                        else:
+                            unique = np.unique(idx1).tolist()
+                        for val in unique:
 
                             item = phys[val]
                             idx_ = np.argwhere(idx1 == val).ravel()

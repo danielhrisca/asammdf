@@ -863,8 +863,6 @@ class PlotSignal(Signal):
                         rest = visible_duplication
                     steps = visible_duplication
 
-                    pos = self._pos[: 2 * count]
-
                     if samples.dtype.kind == "f" and samples.itemsize == 2:
                         samples = samples.astype("f8")
 
@@ -2775,6 +2773,7 @@ class _Plot(pg.PlotWidget):
             curve.update()
 
         else:
+  
             sig_min = signal.min
             sig_max = signal.max
 
