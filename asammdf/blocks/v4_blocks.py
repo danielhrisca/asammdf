@@ -2358,6 +2358,7 @@ class ChannelConversion(_ChannelConversionBase):
     """
 
     def __init__(self, **kwargs) -> None:
+        self._cache = None
 
         if "stream" in kwargs:
             stream = kwargs["stream"]
@@ -3344,16 +3345,22 @@ class ChannelConversion(_ChannelConversionBase):
             values = new_values
 
         elif conversion_type == v4c.CONVERSION_TYPE_TABX:
-            nr = self.val_param_nr
-            raw_vals = [self[f"val_{i}"] for i in range(nr)]
+            if self._cache is None:
+                nr = self.val_param_nr
+                raw_vals = [self[f"val_{i}"] for i in range(nr)]
 
-            phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
+                phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
+
+                x = sorted(zip(raw_vals, phys))
+                raw_vals = np.array([e[0] for e in x], dtype="<i8")
+                phys = [e[1] for e in x]
+
+                self._cache = {"phys": phys, "raw_vals": raw_vals}
+            else:
+                phys = self._cache["phys"]
+                raw_vals = self._cache["raw_vals"]
 
             default = self.referenced_blocks["default_addr"]
-
-            x = sorted(zip(raw_vals, phys))
-            raw_vals = np.array([e[0] for e in x], dtype="<i8")
-            phys = [e[1] for e in x]
 
             names = values.dtype.names
 
@@ -3361,14 +3368,14 @@ class ChannelConversion(_ChannelConversionBase):
                 name = names[0]
                 vals = values[name]
                 shape = vals.shape
-                vals = vals.flatten()
+                vals = vals.ravel()
 
                 ret = np.full(len(vals), None, "O")
 
                 idx1 = np.searchsorted(raw_vals, vals, side="right") - 1
                 idx2 = np.searchsorted(raw_vals, vals, side="left")
 
-                idx = np.argwhere(idx1 != idx2).flatten()
+                idx = np.argwhere(idx1 != idx2).ravel()
 
                 if isinstance(default, bytes):
                     ret[idx] = default
@@ -3379,10 +3386,10 @@ class ChannelConversion(_ChannelConversionBase):
                 if idx.size:
                     indexes = idx1[idx]
                     unique = np.unique(indexes)
-                    for val in unique:
+                    for val in unique.tolist():
 
                         item = phys[val]
-                        idx_ = np.argwhere(indexes == val).flatten()
+                        idx_ = np.argwhere(indexes == val).ravel()
                         if isinstance(item, bytes):
                             ret[idx[idx_]] = item
                         else:
@@ -3476,19 +3483,33 @@ class ChannelConversion(_ChannelConversionBase):
                 values = ret
 
         elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
-            nr = self.val_param_nr // 2
 
-            phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
+            if self._cache is None:
+                nr = self.val_param_nr // 2
+
+                phys = [self.referenced_blocks[f"text_{i}"] for i in range(nr)]
+
+                lower = [self[f"lower_{i}"] for i in range(nr)]
+                upper = [self[f"upper_{i}"] for i in range(nr)]
+
+                x = sorted(zip(lower, upper, phys))
+                lower = np.array([e[0] for e in x], dtype="<i8")
+                upper = np.array([e[1] for e in x], dtype="<i8")
+                phys = [e[2] for e in x]
+
+                self._cache = {
+                    "phys": phys,
+                    "raw_vals": raw_vals,
+                    "lower": lower,
+                    "upper": upper,
+                }
+            else:
+                phys = self._cache["phys"]
+                raw_vals = self._cache["raw_vals"]
+                lower = self._cache["lower"]
+                upper = self._cache["upper"]
 
             default = self.referenced_blocks["default_addr"]
-
-            lower = [self[f"lower_{i}"] for i in range(nr)]
-            upper = [self[f"upper_{i}"] for i in range(nr)]
-
-            x = sorted(zip(lower, upper, phys))
-            lower = np.array([e[0] for e in x], dtype="<i8")
-            upper = np.array([e[1] for e in x], dtype="<i8")
-            phys = [e[2] for e in x]
 
             ret = np.full(values.size, None, "O")
 
@@ -3509,7 +3530,7 @@ class ChannelConversion(_ChannelConversionBase):
                 for val in unique:
 
                     item = phys[val]
-                    idx_ = np.argwhere(indexes == val).flatten()
+                    idx_ = np.argwhere(indexes == val).ravel()
 
                     if isinstance(item, bytes):
                         ret[idx_eq[idx_]] = item

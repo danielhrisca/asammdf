@@ -86,6 +86,32 @@ pg.graphicsItems.ScatterPlotItem.SymbolAtlas._keys = _keys
 pg.graphicsItems.ScatterPlotItem._USE_QRECT = False
 pg.GraphicsScene.mouseReleaseEvent = mouseReleaseEvent
 
+from functools import lru_cache
+
+import pyqtgraph.functions as fn
+
+create_qpolygonf_orig = fn.create_qpolygonf
+ndarray_from_qpolygonf_orig = fn.ndarray_from_qpolygonf
+
+
+@lru_cache(maxsize=512)
+def create_qpolygonf(size):
+    return create_qpolygonf_orig(size)
+
+
+poly_cache = {}
+
+
+def ndarray_from_qpolygonf(polyline):
+    id_ = id(polyline)
+    if id_ not in poly_cache:
+        poly_cache[id_] = ndarray_from_qpolygonf_orig(polyline)
+
+    return poly_cache[id_]
+
+
+fn.create_qpolygonf = create_qpolygonf
+fn.ndarray_from_qpolygonf = ndarray_from_qpolygonf
 
 from ...blocks import v4_constants as v4c
 from ...mdf import MDF
