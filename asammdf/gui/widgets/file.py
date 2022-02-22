@@ -1898,7 +1898,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             elif mode == "tile horizontally":
                 self.mdi_area.tile_horizontally()
 
-        elif key == QtCore.Qt.Key_F and modifier == QtCore.Qt.ShiftModifier:
+        elif key == QtCore.Qt.Key_F and modifier == (
+            QtCore.Qt.ShiftModifier | QtCore.Qt.AltModifier
+        ):
             self.toggle_frames()
 
         elif key == QtCore.Qt.Key_L and modifier == QtCore.Qt.ShiftModifier:

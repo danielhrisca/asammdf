@@ -291,6 +291,33 @@ def load_dsp(file, background="#000000"):
 
     channels = parse_channels(dsp.find("DISPLAY_INFO"))
 
+    virtual_channels = [
+        {
+            "color": COLORS[i % len(COLORS)],
+            "common_axis": False,
+            "computed": True,
+            "computation": {
+                "type": "expression",
+                "expression": "{{" + ch["parent"] + "}}",
+            },
+            "enabled": True,
+            "fmt": "{}",
+            "individual_axis": False,
+            "name": ch["parent"],
+            "precision": 3,
+            "ranges": [],
+            "unit": "",
+            "conversion": ch["vtab"],
+            "user_defined_name": ch["name"],
+            "mdf_uuid": "000000000000",
+        }
+        for i, ch in enumerate(
+            parse_virtual_channels(dsp.find("VIRTUAL_CHANNEL")).values()
+        )
+    ]
+
+    channels.extend(virtual_channels)
+
     info = {"selected_channels": [], "windows": []}
 
     if channels:
@@ -300,41 +327,6 @@ def load_dsp(file, background="#000000"):
             "title": "Display channels",
             "configuration": {
                 "channels": channels,
-                "locked": True,
-            },
-        }
-
-        info["windows"].append(plot)
-
-    channels = parse_virtual_channels(dsp.find("VIRTUAL_CHANNEL"))
-
-    if channels:
-        plot = {
-            "type": "Plot",
-            "title": "Virtual display channels",
-            "configuration": {
-                "channels": [
-                    {
-                        "color": COLORS[i % len(COLORS)],
-                        "common_axis": False,
-                        "computed": True,
-                        "computation": {
-                            "type": "expression",
-                            "expression": "{{" + ch["parent"] + "}}",
-                        },
-                        "enabled": True,
-                        "fmt": "{}",
-                        "individual_axis": False,
-                        "name": ch["parent"],
-                        "precision": 3,
-                        "ranges": [],
-                        "unit": "",
-                        "conversion": ch["vtab"],
-                        "user_defined_name": ch["name"],
-                        "mdf_uuid": "000000000000",
-                    }
-                    for i, ch in enumerate(channels.values())
-                ],
                 "locked": True,
             },
         }
