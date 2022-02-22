@@ -10,18 +10,11 @@ from time import perf_counter, sleep
 from traceback import format_exc
 
 import numpy as np
-from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
 
 # imports for pyinstaller
-import pyqtgraph.canvas.CanvasTemplate_pyqt5
-import pyqtgraph.canvas.TransformGuiTemplate_pyqt5
-import pyqtgraph.console.template_pyqt5
 import pyqtgraph.functions as fn
-import pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyqt5
-import pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyqt5
-import pyqtgraph.GraphicsScene.exportDialogTemplate_pyqt5
-import pyqtgraph.imageview.ImageViewTemplate_pyqt5
+from PySide6 import QtCore, QtGui, QtWidgets
 
 PLOT_BUFFER_SIZE = 4000
 
@@ -117,7 +110,7 @@ from ...blocks import v4_constants as v4c
 from ...mdf import MDF
 from ...signal import Signal
 from ..dialogs.define_channel import DefineChannel
-from ..ui import resource_rc as resource_rc
+from ..ui import resource_rc
 from ..utils import COLORS, copy_ranges, extract_mime_names
 from .channel_display import ChannelDisplay
 from .channel_group_display import ChannelGroupDisplay
@@ -1107,16 +1100,16 @@ class PlotSignal(Signal):
 
 class Plot(QtWidgets.QWidget):
 
-    add_channels_request = QtCore.pyqtSignal(list)
-    close_request = QtCore.pyqtSignal()
-    clicked = QtCore.pyqtSignal()
-    cursor_moved_signal = QtCore.pyqtSignal(object, float)
-    cursor_removed_signal = QtCore.pyqtSignal(object)
-    region_moved_signal = QtCore.pyqtSignal(object, list)
-    region_removed_signal = QtCore.pyqtSignal(object)
-    show_properties = QtCore.pyqtSignal(list)
-    splitter_moved = QtCore.pyqtSignal(object, int)
-    pattern_group_added = QtCore.pyqtSignal(object, object)
+    add_channels_request = QtCore.Signal(list)
+    close_request = QtCore.Signal()
+    clicked = QtCore.Signal()
+    cursor_moved_signal = QtCore.Signal(object, float)
+    cursor_removed_signal = QtCore.Signal(object)
+    region_moved_signal = QtCore.Signal(object, list)
+    region_removed_signal = QtCore.Signal(object)
+    show_properties = QtCore.Signal(list)
+    splitter_moved = QtCore.Signal(object, int)
+    pattern_group_added = QtCore.Signal(object, object)
 
     def __init__(
         self,
@@ -1381,10 +1374,10 @@ class Plot(QtWidgets.QWidget):
         self.keyboard_events = (
             set(
                 [
-                    (QtCore.Qt.Key_M, QtCore.Qt.NoModifier),
-                    (QtCore.Qt.Key_B, QtCore.Qt.ControlModifier),
-                    (QtCore.Qt.Key_H, QtCore.Qt.ControlModifier),
-                    (QtCore.Qt.Key_P, QtCore.Qt.ControlModifier),
+                    (QtCore.Qt.Key_M, int(QtCore.Qt.NoModifier)),
+                    (QtCore.Qt.Key_B, int(QtCore.Qt.ControlModifier)),
+                    (QtCore.Qt.Key_H, int(QtCore.Qt.ControlModifier)),
+                    (QtCore.Qt.Key_P, int(QtCore.Qt.ControlModifier)),
                 ]
             )
             | self.plot.keyboard_events
@@ -1547,7 +1540,7 @@ class Plot(QtWidgets.QWidget):
         if not count:
             self.close_request.emit()
 
-    def cursor_move_finished(self):
+    def cursor_move_finished(self, cursor=None):
         x = self.plot.get_current_timebase()
         if x.size:
             dim = len(x)
@@ -1568,7 +1561,7 @@ class Plot(QtWidgets.QWidget):
         # self.plot.cursor_hint.setData(x=[], y=[])
         self.plot.cursor_hint.hide()
 
-    def cursor_moved(self):
+    def cursor_moved(self, cursor=None):
 
         if self.plot.cursor1 is None:
             return
@@ -1624,7 +1617,7 @@ class Plot(QtWidgets.QWidget):
 
         self.cursor_removed_signal.emit(self)
 
-    def range_modified(self):
+    def range_modified(self, region):
 
         if self.plot.region is None:
             return
@@ -1674,7 +1667,7 @@ class Plot(QtWidgets.QWidget):
 
         self.region_moved_signal.emit(self, [start, stop])
 
-    def xrange_changed(self):
+    def xrange_changed(self, *args):
         if self.info.isVisible():
             stats = self.plot.get_stats(self.info_uuid)
             self.info.set_stats(stats)
@@ -1784,7 +1777,7 @@ class Plot(QtWidgets.QWidget):
                     axis.update()
 
             if self.plot.cursor1:
-                self.plot.cursor_moved.emit()
+                self.plot.cursor_moved.emit(self.plot.cursor1)
 
         elif (
             key in (QtCore.Qt.Key_R, QtCore.Qt.Key_S)
@@ -1857,7 +1850,7 @@ class Plot(QtWidgets.QWidget):
             self.plot.update_lines()
 
             if self.plot.cursor1:
-                self.plot.cursor_moved.emit()
+                self.plot.cursor_moved.emit(self.plot.cursor1)
 
         elif key == QtCore.Qt.Key_I and modifiers == QtCore.Qt.ControlModifier:
             if self.plot.cursor1:
@@ -1920,7 +1913,7 @@ class Plot(QtWidgets.QWidget):
 
             self.plot.keyPressEvent(event)
 
-        elif (key, modifiers) in self.plot.keyboard_events:
+        elif (key, int(modifiers)) in self.plot.keyboard_events:
             self.plot.keyPressEvent(event)
 
         else:
@@ -1943,7 +1936,7 @@ class Plot(QtWidgets.QWidget):
         self.cursor_info.update_value()
 
         if self.plot.cursor1:
-            self.plot.cursor_moved.emit()
+            self.plot.cursor_moved.emit(self.plot.cursor1)
         if self.info.isVisible():
             stats = self.plot.get_stats(self.info_uuid)
             self.info.set_stats(stats)
@@ -2443,7 +2436,7 @@ class Plot(QtWidgets.QWidget):
 
     def update_current_values(self, *args):
         if self.plot.region:
-            self.range_modified()
+            self.range_modified(None)
         else:
             self.cursor_moved()
 
@@ -2474,17 +2467,17 @@ class Plot(QtWidgets.QWidget):
 
 
 class _Plot(pg.PlotWidget):
-    cursor_moved = QtCore.pyqtSignal()
-    cursor_removed = QtCore.pyqtSignal()
-    range_removed = QtCore.pyqtSignal()
-    range_modified = QtCore.pyqtSignal()
-    range_modified_finished = QtCore.pyqtSignal()
-    cursor_move_finished = QtCore.pyqtSignal()
-    xrange_changed = QtCore.pyqtSignal()
-    computation_channel_inserted = QtCore.pyqtSignal()
-    curve_clicked = QtCore.pyqtSignal(str)
+    cursor_moved = QtCore.Signal(object)
+    cursor_removed = QtCore.Signal()
+    range_removed = QtCore.Signal()
+    range_modified = QtCore.Signal(object)
+    range_modified_finished = QtCore.Signal(object)
+    cursor_move_finished = QtCore.Signal(object)
+    xrange_changed = QtCore.Signal(object, object)
+    computation_channel_inserted = QtCore.Signal()
+    curve_clicked = QtCore.Signal(str)
 
-    add_channels_request = QtCore.pyqtSignal(list)
+    add_channels_request = QtCore.Signal(list)
 
     def __init__(
         self,
@@ -2653,6 +2646,9 @@ class _Plot(pg.PlotWidget):
                 (QtCore.Qt.Key_Insert, QtCore.Qt.NoModifier),
             ]
         )
+        self.keyboard_events = {
+            (key, int(modif)) for key, modif in self.keyboard_events
+        }
 
         events = events or []
 
@@ -2726,11 +2722,16 @@ class _Plot(pg.PlotWidget):
             if with_dots:
                 curve.curve.setClickable(True, 30)
 
-            curve.sigClicked.connect(partial(self.curve_clicked.emit, signal.uuid))
+            curve.sigClicked.connect(
+                partial(self.curve_clicked_handle, uuid=signal.uuid)
+            )
 
             self.curves[signal_index] = curve
 
             viewbox.addItem(curve)
+
+    def curve_clicked_handle(self, curve, ev, uuid):
+        self.curve_clicked.emit(uuid)
 
     def set_line_interconnect(self, line_interconnect):
         self.line_interconnect = line_interconnect
@@ -2984,7 +2985,7 @@ class _Plot(pg.PlotWidget):
         self._compute_all_timebase()
         self.update_lines()
         if self.cursor1:
-            self.cursor_move_finished.emit()
+            self.cursor_move_finished.emit(self.cursor1)
 
     def update_views(self):
         geometry = self.viewbox.sceneBoundingRect()
@@ -3008,7 +3009,7 @@ class _Plot(pg.PlotWidget):
         key = event.key()
         modifier = event.modifiers()
 
-        if (key, modifier) in self.disabled_keys:
+        if (key, int(modifier)) in self.disabled_keys:
             super().keyPressEvent(event)
         else:
             if key == QtCore.Qt.Key_C and modifier == QtCore.Qt.NoModifier:
@@ -3023,7 +3024,7 @@ class _Plot(pg.PlotWidget):
                         self.cursor_move_finished.emit
                     )
                     self.cursor1.setPos((start + stop) / 2)
-                    self.cursor_move_finished.emit()
+                    self.cursor_move_finished.emit(self.cursor1)
 
                     if self.region is not None:
                         self.cursor1.hide()
@@ -3116,7 +3117,7 @@ class _Plot(pg.PlotWidget):
                         viewbox.setYRange(min_, max_, padding=0)
 
                 if self.cursor1:
-                    self.cursor_moved.emit()
+                    self.cursor_moved.emit(self.cursor1)
 
             elif (
                 key == QtCore.Qt.Key_F
@@ -3159,7 +3160,7 @@ class _Plot(pg.PlotWidget):
                         viewbox.setYRange(min_, max_, padding=0)
 
                 if self.cursor1:
-                    self.cursor_moved.emit()
+                    self.cursor_moved.emit(self.cursor1)
 
             elif key == QtCore.Qt.Key_G and modifier == QtCore.Qt.NoModifier:
                 self._pixmap = None
@@ -3369,7 +3370,7 @@ class _Plot(pg.PlotWidget):
                     self.viewbox.setXRange(*xrange, padding=0)
                     self.viewbox.disableAutoRange()
                 if self.cursor1:
-                    self.cursor_moved.emit()
+                    self.cursor_moved.emit(self.cursor1)
 
             elif (
                 key == QtCore.Qt.Key_S
@@ -3439,7 +3440,7 @@ class _Plot(pg.PlotWidget):
                     self.viewbox.setXRange(*xrange, padding=0)
                     self.viewbox.disableAutoRange()
                 if self.cursor1:
-                    self.cursor_moved.emit()
+                    self.cursor_moved.emit(self.cursor1)
 
             elif key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right) and modifier in (
                 QtCore.Qt.NoModifier,
@@ -3565,7 +3566,7 @@ class _Plot(pg.PlotWidget):
                     self.keyPressEvent(event_)
 
                     if self.cursor1:
-                        self.cursor_moved.emit()
+                        self.cursor_moved.emit(self.cursor1)
 
             elif key == QtCore.Qt.Key_Insert and modifier == QtCore.Qt.NoModifier:
                 self.insert_computation()
@@ -3573,14 +3574,14 @@ class _Plot(pg.PlotWidget):
             else:
                 self.parent().keyPressEvent(event)
 
-    def range_modified_finished_handler(self):
+    def range_modified_finished_handler(self, region):
         if self.region_lock is not None:
             for i in range(2):
                 if self.region.lines[i].value() == self.region_lock:
                     self.region.lines[i].pen.setStyle(QtCore.Qt.DashDotDotLine)
                 else:
                     self.region.lines[i].pen.setStyle(QtCore.Qt.SolidLine)
-        self.range_modified_finished.emit()
+        self.range_modified_finished.emit(region)
 
     def trim(self, signals=None, force=False, view_range=None):
         signals = signals or self.signals
@@ -3602,7 +3603,7 @@ class _Plot(pg.PlotWidget):
                 except:
                     sig.trim_python(start, stop, width)
 
-    def xrange_changed_handle(self, force=False):
+    def xrange_changed_handle(self, *, force=False):
         if self._update_lines_allowed:
             self._pixmap = None
             self.trim(force=force)
@@ -3681,7 +3682,7 @@ class _Plot(pg.PlotWidget):
         if not start <= pos <= stop:
             return
 
-        if (QtCore.Qt.Key_C, QtCore.Qt.NoModifier) not in self.disabled_keys:
+        if (QtCore.Qt.Key_C, int(QtCore.Qt.NoModifier)) not in self.disabled_keys:
 
             if self.region is None:
                 if event.button() == QtCore.Qt.MouseButton.LeftButton:
@@ -3700,7 +3701,7 @@ class _Plot(pg.PlotWidget):
                     self.cursor1.sigPositionChangeFinished.connect(
                         self.cursor_move_finished.emit
                     )
-                    self.cursor_move_finished.emit()
+                    self.cursor_move_finished.emit(self.cursor1)
 
             else:
                 pos = self.plot_item.vb.mapSceneToView(event.scenePos())
@@ -3770,7 +3771,7 @@ class _Plot(pg.PlotWidget):
             if self.with_dots:
                 curve.curve.setClickable(True, 30)
 
-            curve.sigClicked.connect(partial(self.curve_clicked.emit, sig.uuid))
+            curve.sigClicked.connect(partial(self.curve_clicked_handle, uuid=sig.uuid))
 
             view_box = pg.ViewBox(enableMenu=False)
             view_box.border = None

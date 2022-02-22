@@ -2,10 +2,10 @@
 import re
 
 from natsort import natsorted
-from PyQt5 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 from ...blocks.utils import extract_cncomment_xml
-from ..ui import resource_rc as resource_rc
+from ..ui import resource_rc
 from ..ui.search_dialog import Ui_SearchDialog
 from .range_editor import RangeEditor
 

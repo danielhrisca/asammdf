@@ -5,7 +5,7 @@ from datetime import date, datetime
 import json
 from struct import pack
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..dialogs.advanced_search import AdvancedSearch
 from ..utils import copy_ranges, extract_mime_names
@@ -214,6 +214,7 @@ class TreeWidget(QtWidgets.QTreeWidget):
 
         super().__init__(*args, **kwargs)
 
+        self.setSortingEnabled(False)
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
         self.setDragDropMode(QtWidgets.QAbstractItemView.DragOnly)
         self.setUniformRowHeights(True)
@@ -357,14 +358,14 @@ class SearchTreeWidget(QtWidgets.QTreeWidget):
 
 
 class ChannelsTreeWidget(QtWidgets.QTreeWidget):
-    itemsDeleted = QtCore.pyqtSignal(list)
-    set_time_offset = QtCore.pyqtSignal(list)
-    items_rearranged = QtCore.pyqtSignal(list)
-    add_channels_request = QtCore.pyqtSignal(list)
-    show_properties = QtCore.pyqtSignal(object)
-    insert_computation = QtCore.pyqtSignal(str)
-    pattern_group_added = QtCore.pyqtSignal(object)
-    compute_fft_request = QtCore.pyqtSignal(str)
+    itemsDeleted = QtCore.Signal(list)
+    set_time_offset = QtCore.Signal(list)
+    items_rearranged = QtCore.Signal(list)
+    add_channels_request = QtCore.Signal(list)
+    show_properties = QtCore.Signal(object)
+    insert_computation = QtCore.Signal(str)
+    pattern_group_added = QtCore.Signal(object)
+    compute_fft_request = QtCore.Signal(str)
 
     def __init__(
         self, hide_missing_channels=False, hide_disabled_channels=False, *args, **kwargs
@@ -1148,10 +1149,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
 class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
-    color_changed = QtCore.pyqtSignal(object, str)
-    enable_changed = QtCore.pyqtSignal(object, int)
-    ylink_changed = QtCore.pyqtSignal(object, int)
-    individual_axis_changed = QtCore.pyqtSignal(object, int)
+    color_changed = QtCore.Signal(object, str)
+    enable_changed = QtCore.Signal(object, int)
+    ylink_changed = QtCore.Signal(object, int)
+    individual_axis_changed = QtCore.Signal(object, int)
 
     def __init__(
         self,

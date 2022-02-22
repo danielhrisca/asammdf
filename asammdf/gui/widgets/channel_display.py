@@ -2,23 +2,23 @@
 import json
 from time import perf_counter
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from .. import utils
 from ..dialogs.range_editor import RangeEditor
-from ..ui import resource_rc as resource_rc
+from ..ui import resource_rc
 from ..ui.channel_display_widget import Ui_ChannelDiplay
 from ..utils import copy_ranges, get_colors_using_ranges
 
 
 class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
-    color_changed = QtCore.pyqtSignal(object, str)
-    enable_changed = QtCore.pyqtSignal(object, int)
-    ylink_changed = QtCore.pyqtSignal(object, int)
-    individual_axis_changed = QtCore.pyqtSignal(object, int)
-    unit_changed = QtCore.pyqtSignal(object, str)
-    name_changed = QtCore.pyqtSignal(object, str)
+    color_changed = QtCore.Signal(object, str)
+    enable_changed = QtCore.Signal(object, int)
+    ylink_changed = QtCore.Signal(object, int)
+    individual_axis_changed = QtCore.Signal(object, int)
+    unit_changed = QtCore.Signal(object, str)
+    name_changed = QtCore.Signal(object, str)
 
     def __init__(
         self,

@@ -2,8 +2,8 @@
 import argparse
 import sys
 
-from PyQt5 import QtWidgets
 import pyqtgraph
+from PySide6 import QtWidgets
 
 from asammdf.gui.utils import excepthook
 from asammdf.gui.widgets.main import MainWindow

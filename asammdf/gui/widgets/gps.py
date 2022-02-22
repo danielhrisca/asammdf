@@ -1,21 +1,24 @@
 # -*- coding: utf-8 -*-
 import io
+import sys
+from traceback import format_exc
 
 import numpy as np
-from PyQt5 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
 try:
-    from pyqtlet import L, MapWidget
+    from pyqtlet2 import L, MapWidget
 except:
+    print(format_exc())
     pass
 
 
-from ..ui import resource_rc as resource_rc
+from ..ui import resource_rc
 from ..ui.gps import Ui_GPSDisplay
 
 
 class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
-    timestamp_changed_signal = QtCore.pyqtSignal(object, float)
+    timestamp_changed_signal = QtCore.Signal(object, float)
 
     def __init__(self, latitude_channel, longitude_channel, zoom=15, *args, **kwargs):
         super().__init__(*args, **kwargs)

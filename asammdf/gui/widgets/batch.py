@@ -5,14 +5,14 @@ from pathlib import Path
 
 from natsort import natsorted
 import psutil
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...blocks.utils import extract_cncomment_xml
 from ...blocks.v2_v3_blocks import HeaderBlock as HeaderBlockV3
 from ...blocks.v4_blocks import HeaderBlock as HeaderBlockV4
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ..dialogs.advanced_search import AdvancedSearch
-from ..ui import resource_rc as resource_rc
+from ..ui import resource_rc
 from ..ui.batch_widget import Ui_batch_widget
 from ..utils import HelperChannel, run_thread_with_progress, setup_progress, TERMINATED
 from .database_item import DatabaseItem

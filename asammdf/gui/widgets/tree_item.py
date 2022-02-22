@@ -3,15 +3,12 @@
 from time import perf_counter
 from traceback import format_exc
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..utils import get_colors_using_ranges
 
 
 class TreeItem(QtWidgets.QTreeWidgetItem):
-
-    __slots__ = "entry", "name", "mdf_uuid", "ranges"
-
     def __init__(
         self,
         entry,
@@ -22,7 +19,6 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
         computation=None,
         ranges=None,
     ):
-
         super().__init__(parent, strings)
 
         self.entry = entry

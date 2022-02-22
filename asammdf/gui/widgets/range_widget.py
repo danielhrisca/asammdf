@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
-from ..ui import resource_rc as resource_rc
+from ..ui import resource_rc
 from ..ui.range_widget import Ui_RangeWidget
 
 
 class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
-    add_channels_request = QtCore.pyqtSignal(list)
-    timestamp_changed_signal = QtCore.pyqtSignal(object, float)
+    add_channels_request = QtCore.Signal(list)
+    timestamp_changed_signal = QtCore.Signal(object, float)
 
     def __init__(
         self,

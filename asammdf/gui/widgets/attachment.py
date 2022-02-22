@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 from pathlib import Path
 
-from PyQt5 import QtWidgets
+from PySide6 import QtWidgets
 
 from ...blocks.utils import extract_encryption_information
-from ..ui import resource_rc as resource_rc
+from ..ui import resource_rc
 from ..ui.attachment import Ui_Attachment
 
 

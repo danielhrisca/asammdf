@@ -9,10 +9,9 @@ isal; platform_machine == "x86_64" or platform_machine == "AMD64"
 lxml 
 natsort 
 psutil 
-PyQt5==5.15.2 
+PySide6 
 pyqtgraph==0.12.3
-PyQtWebEngine 
-pyqtlet 
+pyqtlet2 
 h5py 
 fastparquet 
 scipy 

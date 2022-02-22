@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
 import pandas as pd
-from PyQt5 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
-from ..ui import resource_rc as resource_rc
+from ..ui import resource_rc
 from ..ui.tabular_filter import Ui_TabularFilter
 
 

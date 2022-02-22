@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from PyQt5 import QtWidgets
+from PySide6 import QtWidgets
 
 
 class ListItem(QtWidgets.QListWidgetItem):
-
-    __slots__ = "entry", "name", "computation", "mdf_uuid"
-
     def __init__(self, entry, name="", computation=None, parent=None, mdf_uuid=None):
 
         super().__init__()

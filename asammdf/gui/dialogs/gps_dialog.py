@@ -2,9 +2,9 @@
 import re
 
 from natsort import natsorted
-from PyQt5 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
-from ..ui import resource_rc as resource_rc
+from ..ui import resource_rc
 from ..ui.gps_dialog import Ui_GPSDialog
 from .advanced_search import AdvancedSearch
 

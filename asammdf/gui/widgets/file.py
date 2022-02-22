@@ -10,8 +10,8 @@ from traceback import format_exc
 from natsort import natsorted
 import pandas as pd
 import psutil
-from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...blocks.utils import extract_cncomment_xml
 from ...blocks.v4_constants import (
@@ -29,7 +29,7 @@ from ..dialogs.channel_group_info import ChannelGroupInfoDialog
 from ..dialogs.channel_info import ChannelInfoDialog
 from ..dialogs.gps_dialog import GPSDialog
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
-from ..ui import resource_rc as resource_rc
+from ..ui import resource_rc
 from ..ui.file_widget import Ui_file_widget
 from ..utils import (
     HelperChannel,
@@ -55,8 +55,8 @@ from .tree_item import TreeItem
 
 class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
-    open_new_file = QtCore.pyqtSignal(str)
-    full_screen_toggled = QtCore.pyqtSignal()
+    open_new_file = QtCore.Signal(str)
+    full_screen_toggled = QtCore.Signal()
 
     def __init__(
         self,
@@ -90,8 +90,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.subplots = subplots
         self.subplots_link = subplots_link
         self.ignore_value2text_conversions = ignore_value2text_conversions
-        self._viewbox = pg.ViewBox()
-        self._viewbox.setXRange(0, 10)
 
         self.file_name = file_name
         self.progress = None
@@ -255,6 +253,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.channels_tree.setDragEnabled(True)
 
             self.mdi_area = MdiAreaWidget()
+
             self.mdi_area.add_window_request.connect(self.add_window)
             self.mdi_area.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
             self.mdi_area.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
@@ -265,9 +264,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             self.channel_view.setCurrentIndex(-1)
             self.filter_view.setCurrentIndex(-1)
+
             self.channel_view.setCurrentText(
                 self._settings.value("channels_view", "Internal file structure")
             )
+
             self.filter_view.setCurrentText(
                 self._settings.value("filter_view", "Internal file structure")
             )
@@ -629,6 +630,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.raster.setEnabled(True)
 
     def _update_channel_tree(self, index=None, widget=None):
+
         if widget is None:
             widget = self.channels_tree
         if widget is self.channels_tree and self.channel_view.currentIndex() == -1:
@@ -644,6 +646,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         signals = set()
 
         if widget.mode == "Internal file structure":
+
             while iterator.value():
                 item = iterator.value()
 
@@ -653,6 +656,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 iterator += 1
         else:
+
             while iterator.value():
                 item = iterator.value()
 
@@ -686,9 +690,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             widget.addTopLevelItems(items)
 
         elif widget.mode == "Internal file structure":
+
+            items = []
+
             for i, group in enumerate(self.mdf.groups):
                 entry = i, 0xFFFFFFFFFFFFFFFF
+
                 channel_group = TreeItem(entry, mdf_uuid=self.uuid)
+
                 comment = extract_cncomment_xml(group.channel_group.comment)
 
                 if self.mdf.version >= "4.00" and group.channel_group.acq_source:
@@ -707,10 +716,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         ico = None
 
                     if ico is not None:
+
                         icon = QtGui.QIcon()
                         icon.addPixmap(
                             QtGui.QPixmap(ico), QtGui.QIcon.Normal, QtGui.QIcon.Off
                         )
+
                         channel_group.setIcon(0, icon)
 
                 if comment:
@@ -723,7 +734,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     | QtCore.Qt.ItemIsUserCheckable
                 )
 
-                widget.addTopLevelItem(channel_group)
+                # widget.addTopLevelItems(i, channel_group)
+                items.append(channel_group)
 
                 channels = [
                     HelperChannel(name=ch.name, entry=(i, j))
@@ -739,6 +751,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     mdf_uuid=self.uuid,
                     version=self.mdf.version,
                 )
+
+            widget.addTopLevelItems(items)
+
         else:
             items = []
             for entry in signals:
@@ -1406,7 +1421,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         self.mdf = None
 
-    def _create_window(self, event, window_type=None):
+    def _create_window(self, event=None, window_type=None):
 
         if window_type is None:
             dialog = WindowSelectionDialog(

@@ -2,9 +2,9 @@
 from threading import Thread
 from time import sleep
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
-from ..ui import resource_rc as resource_rc
+from ..ui import resource_rc
 from ..ui.error_dialog import Ui_ErrorDialog
 
 

@@ -6,10 +6,10 @@ from traceback import format_exc
 
 from numexpr import evaluate
 import numpy as np
-from PyQt5 import QtWidgets
+from PySide6 import QtWidgets
 
 from ...signal import Signal as AsamSignal
-from ..ui import resource_rc as resource_rc
+from ..ui import resource_rc
 from ..ui.define_channel_dialog import Ui_ComputedChannel
 
 OPS_TO_STR = {

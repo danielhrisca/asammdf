@@ -6,7 +6,7 @@ from traceback import format_exc
 import numpy as np
 import numpy.core.defchararray as npchar
 import pandas as pd
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...blocks.utils import (
     csv_bytearray2hex,
@@ -23,7 +23,7 @@ LOCAL_TIMEZONE = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinf
 
 
 class Tabular(TabularBase):
-    add_channels_request = QtCore.pyqtSignal(list)
+    add_channels_request = QtCore.Signal(list)
 
     def __init__(
         self, signals=None, start=0, format="phys", ranges=None, *args, **kwargs

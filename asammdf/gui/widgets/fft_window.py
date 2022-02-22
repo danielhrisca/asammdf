@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 import scipy.signal as scipy_signal
 
-from ..ui import resource_rc as resource_rc
+from ..ui import resource_rc
 from ..ui.fft_window import Ui_FFTWindow
 from .plot import Plot, PlotSignal, Signal
 

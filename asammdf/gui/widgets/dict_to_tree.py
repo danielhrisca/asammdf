@@ -1,7 +1,7 @@
 # taken from https://stackoverflow.com/a/46096319/11009349
 
-from PyQt5 import QtGui
-from PyQt5.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem
+from PySide6 import QtGui
+from PySide6.QtWidgets import QMainWindow, QTreeWidget, QTreeWidgetItem
 
 
 class ViewTree(QTreeWidget):

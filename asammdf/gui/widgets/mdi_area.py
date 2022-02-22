@@ -11,8 +11,8 @@ from traceback import format_exc
 from natsort import natsorted
 import numpy as np
 import pandas as pd
-from PyQt5 import QtCore, QtGui, QtWidgets
 import pyqtgraph as pg
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...blocks import v4_constants as v4c
 from ...blocks.conversion_utils import from_dict
@@ -341,8 +341,8 @@ def parse_matrix_component(name):
 
 
 class MdiSubWindow(QtWidgets.QMdiSubWindow):
-    sigClosed = QtCore.pyqtSignal()
-    titleModified = QtCore.pyqtSignal()
+    sigClosed = QtCore.Signal()
+    titleModified = QtCore.Signal()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -355,7 +355,7 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
 
 class MdiAreaWidget(QtWidgets.QMdiArea):
 
-    add_window_request = QtCore.pyqtSignal(list)
+    add_window_request = QtCore.Signal(list)
 
     def __init__(self, *args, **kwargs):
 
@@ -469,7 +469,7 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
 
 class WithMDIArea:
 
-    windows_modified = QtCore.pyqtSignal()
+    windows_modified = QtCore.Signal()
 
     def __init__(self, *args, **kwargs):
         self._cursor_source = None
@@ -900,7 +900,7 @@ class WithMDIArea:
             if ok and name:
                 mdi.setWindowTitle(name)
 
-        action = QtWidgets.QAction("Set title", menu)
+        action = QtGui.QAction("Set title", menu)
         action.triggered.connect(partial(set_title, w))
         before = menu.actions()[0]
         menu.insertAction(before, action)
@@ -1110,7 +1110,7 @@ class WithMDIArea:
             if ok and name:
                 mdi.setWindowTitle(name)
 
-        action = QtWidgets.QAction("Set title", menu)
+        action = QtGui.QAction("Set title", menu)
         action.triggered.connect(partial(set_title, w))
         before = menu.actions()[0]
         menu.insertAction(before, action)
@@ -1372,7 +1372,7 @@ class WithMDIArea:
             if ok and name:
                 mdi.setWindowTitle(name)
 
-        action = QtWidgets.QAction("Set title", menu)
+        action = QtGui.QAction("Set title", menu)
         action.triggered.connect(partial(set_title, w))
         before = menu.actions()[0]
         menu.insertAction(before, action)
@@ -1426,7 +1426,7 @@ class WithMDIArea:
             if ok and name:
                 mdi.setWindowTitle(name)
 
-        action = QtWidgets.QAction("Set title", menu)
+        action = QtGui.QAction("Set title", menu)
         action.triggered.connect(partial(set_title, w))
         before = menu.actions()[0]
         menu.insertAction(before, action)
@@ -1723,7 +1723,7 @@ class WithMDIArea:
 
             menu = w.systemMenu()
 
-            action = QtWidgets.QAction("Set title", menu)
+            action = QtGui.QAction("Set title", menu)
             action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
@@ -1769,7 +1769,7 @@ class WithMDIArea:
 
             menu = w.systemMenu()
 
-            action = QtWidgets.QAction("Set title", menu)
+            action = QtGui.QAction("Set title", menu)
             action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
@@ -1879,7 +1879,7 @@ class WithMDIArea:
 
             menu = w.systemMenu()
 
-            action = QtWidgets.QAction("Set title", menu)
+            action = QtGui.QAction("Set title", menu)
             action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
@@ -2002,7 +2002,7 @@ class WithMDIArea:
 
             w.layout().setSpacing(1)
 
-            action = QtWidgets.QAction("Set title", menu)
+            action = QtGui.QAction("Set title", menu)
             action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
@@ -2183,7 +2183,7 @@ class WithMDIArea:
 
             menu = w.systemMenu()
 
-            action = QtWidgets.QAction("Set title", menu)
+            action = QtGui.QAction("Set title", menu)
             action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
@@ -2259,7 +2259,7 @@ class WithMDIArea:
 
             menu = w.systemMenu()
 
-            action = QtWidgets.QAction("Set title", menu)
+            action = QtGui.QAction("Set title", menu)
             action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
@@ -2546,7 +2546,7 @@ class WithMDIArea:
 
             menu = w.systemMenu()
 
-            action = QtWidgets.QAction("Set title", menu)
+            action = QtGui.QAction("Set title", menu)
             action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)
@@ -2847,7 +2847,7 @@ class WithMDIArea:
 
             menu = w.systemMenu()
 
-            action = QtWidgets.QAction("Set title", menu)
+            action = QtGui.QAction("Set title", menu)
             action.triggered.connect(partial(set_title, w))
             before = menu.actions()[0]
             menu.insertAction(before, action)

@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
-from PyQt5 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
-from ..ui import resource_rc as resource_rc
+from ..ui import resource_rc
 from ..ui.search_widget import Ui_SearchWidget
 
 
 class SearchWidget(Ui_SearchWidget, QtWidgets.QWidget):
 
-    selectionChanged = QtCore.pyqtSignal()
+    selectionChanged = QtCore.Signal()
 
     def __init__(self, sorted_keys, channels_db, *args, **kwargs):
         super().__init__(*args, **kwargs)

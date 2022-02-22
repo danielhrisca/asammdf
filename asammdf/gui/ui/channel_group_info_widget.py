@@ -1,116 +1,160 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'channel_group_info_widget.ui'
-#
-# Created by: PyQt5 UI code generator 5.13.1
-#
-# WARNING! All changes made in this file will be lost!
+################################################################################
+## Form generated from reading UI file 'channel_group_info_widget.ui'
+##
+## Created by: Qt User Interface Compiler version 6.2.3
+##
+## WARNING! All changes made in this file will be lost when recompiling UI file!
+################################################################################
 
-
-from PyQt5 import QtCore, QtGui, QtWidgets
-
+from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
+    QMetaObject, QObject, QPoint, QRect,
+    QSize, QTime, QUrl, Qt)
+from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
+    QFont, QFontDatabase, QGradient, QIcon,
+    QImage, QKeySequence, QLinearGradient, QPainter,
+    QPalette, QPixmap, QRadialGradient, QTransform)
+from PySide6.QtWidgets import (QApplication, QCheckBox, QGroupBox, QHBoxLayout,
+    QLabel, QListWidget, QListWidgetItem, QPlainTextEdit,
+    QScrollArea, QScrollBar, QSizePolicy, QSpacerItem,
+    QSplitter, QTabWidget, QVBoxLayout, QWidget)
 
 class Ui_ChannelGroupInfo(object):
     def setupUi(self, ChannelGroupInfo):
-        ChannelGroupInfo.setObjectName("ChannelGroupInfo")
+        if not ChannelGroupInfo.objectName():
+            ChannelGroupInfo.setObjectName(u"ChannelGroupInfo")
         ChannelGroupInfo.resize(926, 558)
-        self.verticalLayout_2 = QtWidgets.QVBoxLayout(ChannelGroupInfo)
-        self.verticalLayout_2.setObjectName("verticalLayout_2")
-        self.tabs = QtWidgets.QTabWidget(ChannelGroupInfo)
-        self.tabs.setObjectName("tabs")
-        self.ta_widet = QtWidgets.QWidget()
-        self.ta_widet.setObjectName("ta_widet")
-        self.horizontalLayout = QtWidgets.QHBoxLayout(self.ta_widet)
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.groupBox = QtWidgets.QGroupBox(self.ta_widet)
+        self.verticalLayout_2 = QVBoxLayout(ChannelGroupInfo)
+        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
+        self.tabs = QTabWidget(ChannelGroupInfo)
+        self.tabs.setObjectName(u"tabs")
+        self.ta_widet = QWidget()
+        self.ta_widet.setObjectName(u"ta_widet")
+        self.horizontalLayout = QHBoxLayout(self.ta_widet)
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.groupBox = QGroupBox(self.ta_widet)
+        self.groupBox.setObjectName(u"groupBox")
         self.groupBox.setFlat(False)
-        self.groupBox.setObjectName("groupBox")
-        self.verticalLayout_4 = QtWidgets.QVBoxLayout(self.groupBox)
-        self.verticalLayout_4.setObjectName("verticalLayout_4")
-        self.scrollArea = QtWidgets.QScrollArea(self.groupBox)
+        self.verticalLayout_4 = QVBoxLayout(self.groupBox)
+        self.verticalLayout_4.setObjectName(u"verticalLayout_4")
+        self.scrollArea = QScrollArea(self.groupBox)
+        self.scrollArea.setObjectName(u"scrollArea")
         self.scrollArea.setWidgetResizable(True)
-        self.scrollArea.setObjectName("scrollArea")
-        self.scrollAreaWidgetContents = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 409, 443))
-        self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
-        self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.scrollAreaWidgetContents)
-        self.verticalLayout_3.setObjectName("verticalLayout_3")
-        self.channel_group_label = QtWidgets.QLabel(self.scrollAreaWidgetContents)
-        self.channel_group_label.setTextInteractionFlags(QtCore.Qt.LinksAccessibleByMouse|QtCore.Qt.TextSelectableByKeyboard|QtCore.Qt.TextSelectableByMouse)
-        self.channel_group_label.setObjectName("channel_group_label")
+        self.scrollAreaWidgetContents = QWidget()
+        self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 409, 443))
+        self.verticalLayout_3 = QVBoxLayout(self.scrollAreaWidgetContents)
+        self.verticalLayout_3.setObjectName(u"verticalLayout_3")
+        self.channel_group_label = QLabel(self.scrollAreaWidgetContents)
+        self.channel_group_label.setObjectName(u"channel_group_label")
+        self.channel_group_label.setTextInteractionFlags(Qt.LinksAccessibleByMouse|Qt.TextSelectableByKeyboard|Qt.TextSelectableByMouse)
+
         self.verticalLayout_3.addWidget(self.channel_group_label)
-        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        self.verticalLayout_3.addItem(spacerItem)
+
+        self.verticalSpacer_3 = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+
+        self.verticalLayout_3.addItem(self.verticalSpacer_3)
+
         self.scrollArea.setWidget(self.scrollAreaWidgetContents)
+
         self.verticalLayout_4.addWidget(self.scrollArea)
+
+
         self.horizontalLayout.addWidget(self.groupBox)
-        self.groupBox_3 = QtWidgets.QGroupBox(self.ta_widet)
-        self.groupBox_3.setObjectName("groupBox_3")
-        self.verticalLayout_5 = QtWidgets.QVBoxLayout(self.groupBox_3)
-        self.verticalLayout_5.setObjectName("verticalLayout_5")
-        self.scrollArea_3 = QtWidgets.QScrollArea(self.groupBox_3)
+
+        self.groupBox_3 = QGroupBox(self.ta_widet)
+        self.groupBox_3.setObjectName(u"groupBox_3")
+        self.verticalLayout_5 = QVBoxLayout(self.groupBox_3)
+        self.verticalLayout_5.setObjectName(u"verticalLayout_5")
+        self.scrollArea_3 = QScrollArea(self.groupBox_3)
+        self.scrollArea_3.setObjectName(u"scrollArea_3")
         self.scrollArea_3.setWidgetResizable(True)
-        self.scrollArea_3.setObjectName("scrollArea_3")
-        self.scrollAreaWidgetContents_3 = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents_3.setGeometry(QtCore.QRect(0, 0, 408, 443))
-        self.scrollAreaWidgetContents_3.setObjectName("scrollAreaWidgetContents_3")
-        self.verticalLayout = QtWidgets.QVBoxLayout(self.scrollAreaWidgetContents_3)
-        self.verticalLayout.setObjectName("verticalLayout")
-        self.source_label = QtWidgets.QLabel(self.scrollAreaWidgetContents_3)
-        self.source_label.setTextInteractionFlags(QtCore.Qt.LinksAccessibleByMouse|QtCore.Qt.TextSelectableByKeyboard|QtCore.Qt.TextSelectableByMouse)
-        self.source_label.setObjectName("source_label")
+        self.scrollAreaWidgetContents_3 = QWidget()
+        self.scrollAreaWidgetContents_3.setObjectName(u"scrollAreaWidgetContents_3")
+        self.scrollAreaWidgetContents_3.setGeometry(QRect(0, 0, 408, 443))
+        self.verticalLayout = QVBoxLayout(self.scrollAreaWidgetContents_3)
+        self.verticalLayout.setObjectName(u"verticalLayout")
+        self.source_label = QLabel(self.scrollAreaWidgetContents_3)
+        self.source_label.setObjectName(u"source_label")
+        self.source_label.setTextInteractionFlags(Qt.LinksAccessibleByMouse|Qt.TextSelectableByKeyboard|Qt.TextSelectableByMouse)
+
         self.verticalLayout.addWidget(self.source_label)
-        spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        self.verticalLayout.addItem(spacerItem1)
+
+        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+
+        self.verticalLayout.addItem(self.verticalSpacer_2)
+
         self.scrollArea_3.setWidget(self.scrollAreaWidgetContents_3)
+
         self.verticalLayout_5.addWidget(self.scrollArea_3)
+
+
         self.horizontalLayout.addWidget(self.groupBox_3)
+
         self.tabs.addTab(self.ta_widet, "")
-        self.tab_2 = QtWidgets.QWidget()
-        self.tab_2.setObjectName("tab_2")
-        self.horizontalLayout_3 = QtWidgets.QHBoxLayout(self.tab_2)
-        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
-        self.splitter = QtWidgets.QSplitter(self.tab_2)
-        self.splitter.setOrientation(QtCore.Qt.Horizontal)
-        self.splitter.setObjectName("splitter")
-        self.layoutWidget = QtWidgets.QWidget(self.splitter)
-        self.layoutWidget.setObjectName("layoutWidget")
-        self.verticalLayout_6 = QtWidgets.QVBoxLayout(self.layoutWidget)
+        self.tab_2 = QWidget()
+        self.tab_2.setObjectName(u"tab_2")
+        self.horizontalLayout_3 = QHBoxLayout(self.tab_2)
+        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
+        self.splitter = QSplitter(self.tab_2)
+        self.splitter.setObjectName(u"splitter")
+        self.splitter.setOrientation(Qt.Horizontal)
+        self.layoutWidget = QWidget(self.splitter)
+        self.layoutWidget.setObjectName(u"layoutWidget")
+        self.verticalLayout_6 = QVBoxLayout(self.layoutWidget)
+        self.verticalLayout_6.setObjectName(u"verticalLayout_6")
         self.verticalLayout_6.setContentsMargins(0, 0, 0, 0)
-        self.verticalLayout_6.setObjectName("verticalLayout_6")
-        self.wrap = QtWidgets.QCheckBox(self.layoutWidget)
+        self.wrap = QCheckBox(self.layoutWidget)
+        self.wrap.setObjectName(u"wrap")
         self.wrap.setChecked(True)
-        self.wrap.setObjectName("wrap")
+
         self.verticalLayout_6.addWidget(self.wrap)
-        self.channels = QtWidgets.QListWidget(self.layoutWidget)
-        self.channels.setObjectName("channels")
+
+        self.channels = QListWidget(self.layoutWidget)
+        self.channels.setObjectName(u"channels")
+
         self.verticalLayout_6.addWidget(self.channels)
-        self.display = QtWidgets.QPlainTextEdit(self.splitter)
-        self.display.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+
+        self.splitter.addWidget(self.layoutWidget)
+        self.display = QPlainTextEdit(self.splitter)
+        self.display.setObjectName(u"display")
+        self.display.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.display.setUndoRedoEnabled(False)
-        self.display.setLineWrapMode(QtWidgets.QPlainTextEdit.WidgetWidth)
+        self.display.setLineWrapMode(QPlainTextEdit.WidgetWidth)
         self.display.setReadOnly(True)
-        self.display.setObjectName("display")
+        self.splitter.addWidget(self.display)
+
         self.horizontalLayout_3.addWidget(self.splitter)
-        self.scroll = QtWidgets.QScrollBar(self.tab_2)
+
+        self.scroll = QScrollBar(self.tab_2)
+        self.scroll.setObjectName(u"scroll")
         self.scroll.setMaximum(9999)
-        self.scroll.setOrientation(QtCore.Qt.Vertical)
-        self.scroll.setObjectName("scroll")
+        self.scroll.setOrientation(Qt.Vertical)
+
         self.horizontalLayout_3.addWidget(self.scroll)
+
         self.tabs.addTab(self.tab_2, "")
+
         self.verticalLayout_2.addWidget(self.tabs)
 
+
         self.retranslateUi(ChannelGroupInfo)
+
         self.tabs.setCurrentIndex(0)
-        QtCore.QMetaObject.connectSlotsByName(ChannelGroupInfo)
+
+
+        QMetaObject.connectSlotsByName(ChannelGroupInfo)
+    # setupUi
 
     def retranslateUi(self, ChannelGroupInfo):
-        _translate = QtCore.QCoreApplication.translate
-        ChannelGroupInfo.setWindowTitle(_translate("ChannelGroupInfo", "Form"))
-        self.groupBox.setTitle(_translate("ChannelGroupInfo", "Channel Group"))
-        self.channel_group_label.setText(_translate("ChannelGroupInfo", "Channel group metadata"))
-        self.groupBox_3.setTitle(_translate("ChannelGroupInfo", "Source"))
-        self.source_label.setText(_translate("ChannelGroupInfo", "No source"))
-        self.tabs.setTabText(self.tabs.indexOf(self.ta_widet), _translate("ChannelGroupInfo", "Channel group CGBLOCK"))
-        self.wrap.setText(_translate("ChannelGroupInfo", "Text wrap"))
-        self.tabs.setTabText(self.tabs.indexOf(self.tab_2), _translate("ChannelGroupInfo", "Raw bytes"))
+        ChannelGroupInfo.setWindowTitle(QCoreApplication.translate("ChannelGroupInfo", u"Form", None))
+        self.groupBox.setTitle(QCoreApplication.translate("ChannelGroupInfo", u"Channel Group", None))
+        self.channel_group_label.setText(QCoreApplication.translate("ChannelGroupInfo", u"Channel group metadata", None))
+        self.groupBox_3.setTitle(QCoreApplication.translate("ChannelGroupInfo", u"Source", None))
+        self.source_label.setText(QCoreApplication.translate("ChannelGroupInfo", u"No source", None))
+        self.tabs.setTabText(self.tabs.indexOf(self.ta_widet), QCoreApplication.translate("ChannelGroupInfo", u"Channel group CGBLOCK", None))
+        self.wrap.setText(QCoreApplication.translate("ChannelGroupInfo", u"Text wrap", None))
+        self.tabs.setTabText(self.tabs.indexOf(self.tab_2), QCoreApplication.translate("ChannelGroupInfo", u"Raw bytes", None))
+    # retranslateUi
+

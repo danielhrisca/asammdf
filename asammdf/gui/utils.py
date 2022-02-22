@@ -13,7 +13,7 @@ from traceback import format_exc
 import lxml
 from numexpr import evaluate
 import numpy as np
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..mdf import MDF, MDF2, MDF3, MDF4
 from ..signal import Signal

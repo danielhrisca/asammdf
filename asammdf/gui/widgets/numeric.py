@@ -12,7 +12,7 @@ from time import perf_counter
 from natsort import natsorted
 import numpy as np
 from numpy import searchsorted
-from PyQt5 import QtCore, QtGui, QtWidgets, uic
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from asammdf.gui import utils
 from asammdf.gui.dialogs.range_editor import RangeEditor
@@ -20,6 +20,7 @@ from asammdf.gui.utils import copy_ranges, extract_mime_names, get_colors_using_
 from asammdf.gui.widgets.plot import PlotSignal
 
 from ..ui import resource_rc
+from .loader import load_ui
 
 HERE = Path(__file__).resolve().parent
 
@@ -120,7 +121,7 @@ class SignalOffline:
             self.last_timestamp = timestamp
 
             sig = self.signal
-            if sig.size:
+            if sig.samples.size:
                 idx = searchsorted(sig.timestamps, timestamp, side="right")
                 idx -= 1
                 if idx < 0:
@@ -197,7 +198,7 @@ class OnlineBackEnd:
             numeric._max = -float("inf")
 
             for sig in self.signals:
-                if sig.size:
+                if sig.samples.size:
                     numeric._min = min(self._min, sig.timestamps[0])
                     numeric._max = max(self._max, sig.timestamps[-1])
 
@@ -551,7 +552,7 @@ class TableModel(QtCore.QAbstractTableModel):
 
 
 class TableView(QtWidgets.QTableView):
-    add_channels_request = QtCore.pyqtSignal(list)
+    add_channels_request = QtCore.Signal(list)
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -560,7 +561,7 @@ class TableView(QtWidgets.QTableView):
 
         self.ranges = {}
 
-        self._backgrund_color = self.palette().color(QtGui.QPalette.Background)
+        self._backgrund_color = self.palette().color(QtGui.QPalette.Window)
         self._font_color = self.palette().color(QtGui.QPalette.WindowText)
 
         model = TableModel(parent, self._backgrund_color, self._font_color)
@@ -1066,8 +1067,8 @@ class NumericViewer(QtWidgets.QWidget):
 
 
 class Numeric(QtWidgets.QWidget):
-    add_channels_request = QtCore.pyqtSignal(list)
-    timestamp_changed_signal = QtCore.pyqtSignal(object, float)
+    add_channels_request = QtCore.Signal(list)
+    timestamp_changed_signal = QtCore.Signal(object, float)
 
     def __init__(
         self,
@@ -1081,9 +1082,9 @@ class Numeric(QtWidgets.QWidget):
         super().__init__(*args, **kwargs)
 
         if mode == "offline":
-            uic.loadUi(HERE.joinpath("..", "ui", "numeric_offline.ui"), self)
+            load_ui(HERE.joinpath("..", "ui", "numeric_offline.ui"), self)
         else:
-            uic.loadUi(HERE.joinpath("..", "ui", "numeric_online.ui"), self)
+            load_ui(HERE.joinpath("..", "ui", "numeric_online.ui"), self)
 
         self.mode = mode
 

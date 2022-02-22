@@ -3,19 +3,19 @@
 import json
 from struct import pack
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..utils import extract_mime_names
 
 
 class ListWidget(QtWidgets.QListWidget):
 
-    itemsDeleted = QtCore.pyqtSignal(list)
-    set_time_offset = QtCore.pyqtSignal(list)
-    items_rearranged = QtCore.pyqtSignal()
-    add_channels_request = QtCore.pyqtSignal(list)
-    show_properties = QtCore.pyqtSignal(object)
-    insert_computation = QtCore.pyqtSignal(str)
+    itemsDeleted = QtCore.Signal(list)
+    set_time_offset = QtCore.Signal(list)
+    items_rearranged = QtCore.Signal()
+    add_channels_request = QtCore.Signal(list)
+    show_properties = QtCore.Signal(object)
+    insert_computation = QtCore.Signal(str)
 
     def __init__(self, *args, **kwargs):
 
@@ -398,8 +398,8 @@ class ListWidget(QtWidgets.QListWidget):
 
 class MinimalListWidget(QtWidgets.QListWidget):
 
-    itemsDeleted = QtCore.pyqtSignal(list)
-    itemsPasted = QtCore.pyqtSignal()
+    itemsDeleted = QtCore.Signal(list)
+    itemsPasted = QtCore.Signal()
 
     def __init__(self, *args, **kwargs):
 

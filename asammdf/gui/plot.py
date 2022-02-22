@@ -4,7 +4,7 @@ import logging
 from ..blocks.utils import plausible_timestamps
 
 try:
-    from PyQt5 import QtWidgets
+    from PySide6 import QtWidgets
 
     from .widgets.plot_standalone import PlotWindow
 

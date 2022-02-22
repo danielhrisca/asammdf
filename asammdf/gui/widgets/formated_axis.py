@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta, timezone
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 LOCAL_TIMEZONE = datetime.now(timezone.utc).astimezone().tzinfo
 

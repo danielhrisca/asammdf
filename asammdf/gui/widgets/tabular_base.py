@@ -35,14 +35,14 @@ from traceback import format_exc
 import numpy as np
 import numpy.core.defchararray as npchar
 import pandas as pd
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 Qt = QtCore.Qt
 
 from ...blocks.utils import csv_bytearray2hex, pandas_query_compatible
 from ...mdf import MDF
 from ..dialogs.range_editor import RangeEditor
-from ..ui import resource_rc as resource_rc
+from ..ui import resource_rc
 from ..ui.tabular import Ui_TabularDisplay
 from ..utils import (
     copy_ranges,
@@ -400,14 +400,14 @@ class DataTableModel(QtCore.QAbstractTableModel):
 
 
 class DataTableView(QtWidgets.QTableView):
-    add_channels_request = QtCore.pyqtSignal(list)
+    add_channels_request = QtCore.Signal(list)
 
     def __init__(self, parent):
         super().__init__(parent)
         self.dataframe_viewer = parent
         self.pgdf = parent.pgdf
 
-        self._backgrund_color = self.palette().color(QtGui.QPalette.Background)
+        self._backgrund_color = self.palette().color(QtGui.QPalette.Window)
         self._font_color = self.palette().color(QtGui.QPalette.WindowText)
 
         # Create and set model
@@ -1305,7 +1305,7 @@ class ColumnMenu(QtWidgets.QMenu):
         self.close()
 
     def add_action(self, text, function):
-        action = QtWidgets.QAction(text, self)
+        action = QtGui.QAction(text, self)
         action.triggered.connect(function)
         self.addAction(action)
 
@@ -1327,8 +1327,8 @@ class ColumnMenu(QtWidgets.QMenu):
 
 
 class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
-    add_channels_request = QtCore.pyqtSignal(list)
-    timestamp_changed_signal = QtCore.pyqtSignal(object, float)
+    add_channels_request = QtCore.Signal(list)
+    timestamp_changed_signal = QtCore.Signal(object, float)
 
     def __init__(self, df, ranges=None, *args, **kwargs):
         super().__init__(*args, **kwargs)

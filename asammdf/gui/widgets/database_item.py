@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from PyQt5 import QtWidgets
+from PySide6 import QtWidgets
 
 from ..ui.database_item import Ui_DatabaseItemUI
 

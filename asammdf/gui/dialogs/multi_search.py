@@ -4,9 +4,9 @@ from textwrap import wrap
 from traceback import format_exc
 
 from natsort import natsorted
-from PyQt5 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
-from ..ui import resource_rc as resource_rc
+from ..ui import resource_rc
 from ..ui.multi_search_dialog import Ui_MultiSearchDialog
 
 

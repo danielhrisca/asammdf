@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import json
 
-from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..dialogs.range_editor import RangeEditor
-from ..ui import resource_rc as resource_rc
+from ..ui import resource_rc
 from ..ui.channel_group_display_widget import Ui_ChannelGroupDisplay
 from ..utils import copy_ranges
 

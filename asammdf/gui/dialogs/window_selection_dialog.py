@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from PyQt5 import QtWidgets
+from PySide6 import QtWidgets
 
-from ..ui import resource_rc as resource_rc
+from ..ui import resource_rc
 from ..ui.windows_selection_dialog import Ui_WindowSelectionDialog
 
 

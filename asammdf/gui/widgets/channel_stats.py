@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-from PyQt5 import QtGui, QtWidgets
+from PySide6 import QtGui, QtWidgets
 
-from ..ui import resource_rc as resource_rc
+from ..ui import resource_rc
 from ..ui.channel_stats import Ui_ChannelStats
 
 MONOSPACE_FONT = None
