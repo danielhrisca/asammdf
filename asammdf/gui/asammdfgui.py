@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 import argparse
+import os
 import sys
 
-from PySide6 import QtWidgets # isort: skip
+os.environ["QT_API"] = "pyside6"
+os.environ["PYQTGRAPH_QT_LIB"] = "PySide6"
 import pyqtgraph
+from PySide6 import QtWidgets
 
 from asammdf.gui.utils import excepthook
 from asammdf.gui.widgets.main import MainWindow

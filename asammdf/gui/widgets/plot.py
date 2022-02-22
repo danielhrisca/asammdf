@@ -1914,7 +1914,10 @@ class Plot(QtWidgets.QWidget):
             self.plot.keyPressEvent(event)
 
         elif (key, int(modifiers)) in self.plot.keyboard_events:
-            self.plot.keyPressEvent(event)
+            try:
+                self.plot.keyPressEvent(event)
+            except:
+                print(format_exc())
 
         else:
             event.ignore()
