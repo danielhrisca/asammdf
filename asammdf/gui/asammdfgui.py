@@ -5,6 +5,8 @@ import sys
 
 os.environ["QT_API"] = "pyside6"
 os.environ["PYQTGRAPH_QT_LIB"] = "PySide6"
+os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "0"
+
 import pyqtgraph
 from PySide6 import QtWidgets
 
