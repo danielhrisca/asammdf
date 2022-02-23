@@ -104,7 +104,7 @@ def ndarray_from_qpolygonf(polyline):
 
 
 fn.create_qpolygonf = create_qpolygonf
-fn.ndarray_from_qpolygonf = ndarray_from_qpolygonf
+# fn.ndarray_from_qpolygonf = ndarray_from_qpolygonf
 
 from ...blocks import v4_constants as v4c
 from ...mdf import MDF
