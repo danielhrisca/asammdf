@@ -1,3 +1,4 @@
+#define PY_SSZIE_T_CLEAN
 #include <Python.h>
 #include "numpy/arrayobject.h"
 #include "numpy/ndarrayobject.h"
