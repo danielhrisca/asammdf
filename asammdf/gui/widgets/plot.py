@@ -79,34 +79,7 @@ pg.graphicsItems.ScatterPlotItem.SymbolAtlas._keys = _keys
 pg.graphicsItems.ScatterPlotItem._USE_QRECT = False
 pg.GraphicsScene.mouseReleaseEvent = mouseReleaseEvent
 
-from functools import lru_cache
 
-import pyqtgraph.functions as fn
-
-create_qpolygonf_orig = fn.create_qpolygonf
-ndarray_from_qpolygonf_orig = fn.ndarray_from_qpolygonf
-
-
-@lru_cache(maxsize=512)
-def create_qpolygonf(size):
-    return create_qpolygonf_orig(size)
-
-
-poly_cache = {}
-
-
-def ndarray_from_qpolygonf(polyline):
-    id_ = id(polyline)
-    if id_ not in poly_cache:
-        poly_cache[id_] = ndarray_from_qpolygonf_orig(polyline)
-
-    return poly_cache[id_]
-
-
-fn.create_qpolygonf = create_qpolygonf
-# fn.ndarray_from_qpolygonf = ndarray_from_qpolygonf
-
-from ...blocks import v4_constants as v4c
 from ...mdf import MDF
 from ...signal import Signal
 from ..dialogs.define_channel import DefineChannel
@@ -148,7 +121,7 @@ def simple_max(a, b):
 
 
 class PlotSignal(Signal):
-    def __init__(self, signal, index=0, fast=False, trim_info=None, duplication=1):
+    def __init__(self, signal, index=0, trim_info=None, duplication=1):
         super().__init__(
             signal.samples,
             signal.timestamps,
@@ -235,15 +208,14 @@ class PlotSignal(Signal):
             "fmt": "",
         }
 
-        if not fast:
-            if hasattr(signal, "color"):
-                color = signal.color or COLORS[index % 10]
-            else:
-                color = COLORS[index % 10]
-            self.color = color
-            self.pen = pg.mkPen(color=color, style=QtCore.Qt.SolidLine)
+        if hasattr(signal, "color"):
+            color = signal.color or COLORS[index % 10]
+        else:
+            color = COLORS[index % 10]
+        self.color = color
+        self.pen = pg.mkPen(color=color, style=QtCore.Qt.SolidLine)
 
-        if len(self.phys_samples) and not fast:
+        if len(self.phys_samples):
 
             if self.raw_samples.dtype.kind in "SUV":
                 self._min_raw = ""
@@ -333,24 +305,47 @@ class PlotSignal(Signal):
                 self._std_raw = "n.a."
 
         self.mode = "phys"
-        if not fast:
-            self.trim(*(trim_info or (None, None, 1900)))
+        self.trim(*(trim_info or (None, None, 1900)))
 
     @property
     def min(self):
-        return self._min if self._mode == "phys" else self._min_raw
+        if self._mode == "phys":
+            _min = self._min
+            samples = self.phys_samples
+        else:
+            _min = self._min_raw
+            samples = self.raw_samples
 
-    @min.setter
-    def min(self, min):
-        self._min = min
+        if _min is not None:
+            return _min
+        else:
+            if samples.dtype.kind in "SUV":
+                return ""
+            else:
+                if len(samples):
+                    return np.nanmin(samples)
+                else:
+                    return "n.a."
 
     @property
     def max(self):
-        return self._max if self._mode == "phys" else self._max_raw
+        if self._mode == "phys":
+            _max = self._max
+            samples = self.phys_samples
+        else:
+            _max = self._max_raw
+            samples = self.raw_samples
 
-    @max.setter
-    def max(self, max):
-        self._max = max
+        if _max is not None:
+            return _max
+        else:
+            if samples.dtype.kind in "SUV":
+                return ""
+            else:
+                if len(samples):
+                    return np.nanmax(samples)
+                else:
+                    return "n.a."
 
     @property
     def avg(self):
@@ -372,13 +367,7 @@ class PlotSignal(Signal):
     def std(self):
         return self._std if self.mode == "phys" else self._std_raw
 
-    @std.setter
-    def std(self, std):
-        self._std = std
-
-    def cut(
-        self, start=None, stop=None, include_ends=True, interpolation_mode=0, fast=False
-    ):
+    def cut(self, start=None, stop=None, include_ends=True, interpolation_mode=0):
         cut_sig = super().cut(start, stop, include_ends, interpolation_mode)
 
         cut_sig.group_index = self.group_index
@@ -389,7 +378,7 @@ class PlotSignal(Signal):
         cut_sig.precision = self.precision
         cut_sig.mdf_uuif = self.mdf_uuid
 
-        return PlotSignal(cut_sig, duplication=self.duplication, fast=fast)
+        return PlotSignal(cut_sig, duplication=self.duplication)
 
     @property
     def mode(self):
@@ -1325,6 +1314,9 @@ class Plot(QtWidgets.QWidget):
             self.computation_channel_inserted
         )
         self.plot.curve_clicked.connect(self.curve_clicked)
+        self.plot.signals_enable_changed.connect(self._update_visibile_entries)
+        self._visible_entries = set()
+        self._visible_items = {}
 
         self.splitter.addWidget(self.plot)
 
@@ -1539,6 +1531,8 @@ class Plot(QtWidgets.QWidget):
 
         if not count:
             self.close_request.emit()
+
+        self._update_visibile_entries()
 
     def cursor_move_finished(self, cursor=None):
         x = self.plot.get_current_timebase()
@@ -2227,6 +2221,7 @@ class Plot(QtWidgets.QWidget):
 
         self.channel_selection.update_channel_groups_count()
         self.channel_selection.refresh()
+        self._update_visibile_entries()
 
     def to_config(self):
         def item_to_config(tree, root):
@@ -2468,6 +2463,32 @@ class Plot(QtWidgets.QWidget):
                 elif size >= 100:
                     self.splitter.setSizes([50, size - 50, 0])
 
+    def visible_entries(self):
+        return self._visible_entries
+
+    def visible_items(self):
+        return self._visible_items
+
+    def _update_visibile_entries(self):
+
+        _visible_entries = self._visible_entries = set()
+        _visible_items = self._visible_items = {}
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+        while item := iterator.value():
+            iterator += 1
+            if isinstance(item, ChannelsTreeItem):
+                item_widget = item.widget or self.channel_selection.itemWidget(item, 1)
+
+                if item.checkState(0) == QtCore.Qt.Checked:
+                    entry = (item.mdf_uuid, item.name)
+                    _visible_entries.add(entry)
+                    _visible_items[entry] = item, item_widget
+                else:
+                    item_widget.set_value("")
+
+        if self.plot.cursor1 is not None:
+            self.cursor_moved()
+
 
 class _Plot(pg.PlotWidget):
     cursor_moved = QtCore.Signal(object)
@@ -2479,6 +2500,7 @@ class _Plot(pg.PlotWidget):
     xrange_changed = QtCore.Signal(object, object)
     computation_channel_inserted = QtCore.Signal()
     curve_clicked = QtCore.Signal(str)
+    signals_enable_changed = QtCore.Signal()
 
     add_channels_request = QtCore.Signal(list)
 
@@ -2751,90 +2773,41 @@ class _Plot(pg.PlotWidget):
             )
             curve.update()
 
-    def update_signal_curve(
-        self,
-        signal,
-        curve,
-        with_dots,
-        line_interconnect,
-        bounds=False,
-        xrange=None,
-        update=True,
-    ):
+    def update_lines(self, update=True):
 
-        if with_dots:
-            curve.setData(
-                x=signal.plot_timestamps,
-                y=signal.plot_samples,
-                stepMode=line_interconnect,
-                symbolBrush=signal.color,
-                symbolPen=signal.color,
-                pen=signal.pen,
-                skipFiniteCheck=True,
-            )
-            curve.update()
-
-        else:
-
-            sig_min = signal.min
-            sig_max = signal.max
-
-            if sig_min == "n.a.":
-                return
-
-            start, stop = xrange
-
-            if curve._boundsCache[0] is not None:
-                curve._boundsCache[0][1] = xrange
-                curve._boundsCache[1][1] = (sig_min, sig_max)
-
-            else:
-                curve._boundsCache = [
-                    [(1.0, None), xrange],
-                    [(1.0, None), (sig_min, sig_max)],
-                ]
-
-            curve.xData = signal.plot_timestamps
-            curve.yData = signal.plot_samples
-            curve.path = None
-            if bounds:
-                curve._boundingRect = QtCore.QRectF(
-                    start, sig_min, stop - start, sig_max - sig_min
-                )
-            else:
-
-                curve._boundingRect = None
-            curve.opts["pen"] = signal.pen
-
-            if update:
-                curve.prepareGeometryChange()
-                curve.update()
-
-    def update_lines(self, bounds=False, update=True):
-
-        curves = self.curves
-        bounds = True
-
-        xrange, _ = self.viewbox.viewRange()
-
-        with_dots, line_interconnect, update_signal_curve = (
+        with_dots, line_interconnect, curves = (
             self.with_dots,
             self.line_interconnect,
-            self.update_signal_curve,
+            self.curves,
         )
 
-        for signal_index, sig in enumerate(self.signals):
+        if with_dots:
+            for curve, sig in zip(self.curves, self.signals):
 
-            if sig.enable:
-                update_signal_curve(
-                    sig,
-                    curves[signal_index],
-                    with_dots,
-                    line_interconnect,
-                    bounds=bounds,
-                    xrange=xrange,
-                    update=update,
-                )
+                if sig.enable:
+
+                    curve.setData(
+                        x=sig.plot_timestamps,
+                        y=sig.plot_samples,
+                        stepMode=line_interconnect,
+                        symbolBrush=sig.color,
+                        symbolPen=sig.color,
+                        pen=sig.pen,
+                        skipFiniteCheck=True,
+                    )
+                    curve.update()
+
+        else:
+            for curve, sig in zip(self.curves, self.signals):
+
+                if sig.enable:
+                    curve.xData = sig.plot_timestamps
+                    curve.yData = sig.plot_samples
+                    curve.path = None
+
+                    if update:
+                        curve.prepareGeometryChange()
+                        curve.update()
 
     def set_color(self, uuid, color):
         self._pixmap = None
@@ -2989,6 +2962,7 @@ class _Plot(pg.PlotWidget):
         self.update_lines()
         if self.cursor1:
             self.cursor_move_finished.emit(self.cursor1)
+        self.signals_enable_changed.emit()
 
     def update_views(self):
         geometry = self.viewbox.sceneBoundingRect()
@@ -3600,11 +3574,7 @@ class _Plot(pg.PlotWidget):
 
         for sig in signals:
             if sig.enable:
-                # sig.trim_orig(start, stop, width)
-                try:
-                    sig.trim(start, stop, width, force)
-                except:
-                    sig.trim_python(start, stop, width)
+                sig.trim(start, stop, width, force)
 
     def xrange_changed_handle(self, *, force=False):
         if self._update_lines_allowed:
