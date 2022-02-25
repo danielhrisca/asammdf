@@ -189,12 +189,12 @@ optional dependencies needed for exports
 
 other optional dependencies
 
-* PyQt5 : for GUI tool
+* PySide6 : for GUI tool
 * pyqtgraph : for GUI tool and Signal plotting
 * matplotlib : as fallback for Signal plotting
 * cChardet : to detect non-standard Unicode encodings
 * chardet : to detect non-standard Unicode encodings 
-* pyqtlet : for GPS window
+* pyqtlet2 : for the GPS window
 * isal : for faster zlib compression/decompression
 
 # Benchmarks
