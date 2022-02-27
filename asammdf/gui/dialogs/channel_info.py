@@ -25,6 +25,3 @@ class ChannelInfoDialog(QtWidgets.QDialog):
 
         self.setWindowIcon(icon)
         self.setGeometry(240, 60, 1200, 600)
-
-        screen = QtWidgets.QApplication.desktop().screenGeometry()
-        self.move((screen.width() - 1200) // 2, (screen.height() - 600) // 2)
