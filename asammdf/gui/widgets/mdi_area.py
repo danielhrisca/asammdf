@@ -2175,6 +2175,11 @@ class WithMDIArea:
                 else:
                     self.mdi_area.tileSubWindows()
 
+            if window_info.get("maximized", False):
+                w.showMaximized()
+            elif window_info.get("minimized", False):
+                w.showMinimized()
+
             w.setWindowTitle(
                 generate_window_title(w, window_info["type"], window_info["title"])
             )
@@ -2254,6 +2259,11 @@ class WithMDIArea:
             w.setWindowTitle(
                 generate_window_title(w, window_info["type"], window_info["title"])
             )
+
+            if window_info.get("maximized", False):
+                w.showMaximized()
+            elif window_info.get("minimized", False):
+                w.showMinimized()
 
             gps._update_values()
 
@@ -2544,6 +2554,11 @@ class WithMDIArea:
                 else:
                     self.mdi_area.tileSubWindows()
 
+            if window_info.get("maximized", False):
+                w.showMaximized()
+            elif window_info.get("minimized", False):
+                w.showMinimized()
+
             menu = w.systemMenu()
 
             action = QtGui.QAction("Set title", menu)
@@ -2807,6 +2822,11 @@ class WithMDIArea:
                     w.setGeometry(*geometry)
                 else:
                     self.mdi_area.tileSubWindows()
+
+            if window_info.get("maximized", False):
+                w.showMaximized()
+            elif window_info.get("minimized", False):
+                w.showMinimized()
 
             w.setWindowTitle(
                 generate_window_title(w, window_info["type"], window_info["title"])

@@ -1031,6 +1031,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     geometry.width(),
                     geometry.height(),
                 ],
+                "maximized": window.isMaximized(),
+                "minimized": window.isMinimized(),
             }
             if isinstance(wid, Numeric):
                 window_config["type"] = "Numeric"
