@@ -729,7 +729,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             menu.addAction(self.tr("Remove from common Y axis"))
             menu.addSeparator()
             menu.addAction(self.tr("Set unit"))
-            menu.addAction(self.tr("Set precision"))
+
+        menu.addAction(self.tr("Set precision"))
+
+        if isinstance(item, ChannelsTreeItem):
             menu.addSeparator()
             menu.addAction(self.tr("Relative time base shift"))
             menu.addAction(self.tr("Set time base start offset"))
@@ -865,23 +868,18 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         elif action.text() == "Add to common Y axis":
             selected_items = self.selectedItems()
 
-            iterator = QtWidgets.QTreeWidgetItemIterator(self)
-            while iterator.value():
-                item = iterator.value()
-                if item in selected_items and isinstance(item, ChannelsTreeItem):
+            for item in selected_items:
+                if isinstance(item, ChannelsTreeItem):
                     widget = self.itemWidget(item, 1)
                     widget.ylink.setCheckState(QtCore.Qt.Checked)
-                iterator += 1
 
         elif action.text() == "Remove from common Y axis":
             selected_items = self.selectedItems()
-            iterator = QtWidgets.QTreeWidgetItemIterator(self)
-            while iterator.value():
-                item = iterator.value()
-                if item in selected_items and isinstance(item, ChannelsTreeItem):
+
+            for item in selected_items:
+                if isinstance(item, ChannelsTreeItem):
                     widget = self.itemWidget(item, 1)
                     widget.ylink.setCheckState(QtCore.Qt.Unchecked)
-                iterator += 1
 
         elif action.text() == "Set unit":
             selected_items = self.selectedItems()
@@ -889,15 +887,12 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             unit, ok = QtWidgets.QInputDialog.getText(None, "Set new unit", "Unit:")
 
             if ok:
+                for item in selected_items:
+                    if isinstance(item, ChannelsTreeItem):
 
-                iterator = QtWidgets.QTreeWidgetItemIterator(self)
-                while iterator.value():
-                    item = iterator.value()
-                    if item in selected_items and isinstance(item, ChannelsTreeItem):
                         widget = self.itemWidget(item, 1)
                         widget.set_unit(unit)
                         widget.update_information()
-                    iterator += 1
 
         elif action.text() == "Set precision":
             selected_items = self.selectedItems()
@@ -908,14 +903,16 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
             if ok:
 
-                iterator = QtWidgets.QTreeWidgetItemIterator(self)
-                while iterator.value():
-                    item = iterator.value()
-                    if item in selected_items and isinstance(item, ChannelsTreeItem):
+                for item in selected_items:
+                    if isinstance(item, ChannelsTreeItem):
                         widget = self.itemWidget(item, 1)
                         widget.set_precision(precision)
                         widget.update_information()
-                    iterator += 1
+                    else:
+                        for channel_item in item.get_all_channel_items():
+                            widget = self.itemWidget(channel_item, 1)
+                            widget.set_precision(precision)
+                            widget.update_information()
 
         elif action.text() in (
             "Relative time base shift",
@@ -940,15 +937,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 if ok:
                     uuids = []
 
-                    iterator = QtWidgets.QTreeWidgetItemIterator(self)
-                    while iterator.value():
-                        item = iterator.value()
-                        if item in selected_items and isinstance(
-                            item, ChannelsTreeItem
-                        ):
+                    for item in selected_items:
+                        if isinstance(item, ChannelsTreeItem):
                             widget = self.itemWidget(item, 1)
                             uuids.append(widget.uuid)
-                        iterator += 1
 
                     self.set_time_offset.emit([absolute, offset] + uuids)
 
@@ -1270,6 +1262,18 @@ class ChannelsGroupTreeItem(QtWidgets.QTreeWidgetItem):
         for i in range(count):
             item = self.child(i)
             item.update_child_values(tree)
+
+    def get_all_channel_items(self):
+        children = []
+        count = self.childCount()
+        for i in range(count):
+            item = self.child(i)
+            if isinstance(item, ChannelsGroupTreeItem):
+                children.extend(item.get_all_channel_items())
+            else:
+                children.append(item)
+
+        return children
 
 
 class ChannnelGroupDialog(QtWidgets.QDialog):
