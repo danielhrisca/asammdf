@@ -41,6 +41,7 @@ from .tree import ChannelsGroupTreeItem
 COMPONENT = re.compile(r"\[(?P<index>\d+)\]$")
 SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
 NOT_FOUND = 2**32 - 1
+FAKE_INDEX = 0xFFFFFFFF
 
 
 def build_mime_from_config(channels, mdf=None, uuid=None, default_index=NOT_FOUND):
@@ -225,6 +226,31 @@ def get_flatten_entries_from_mime(data, default_index=None):
         else:
             entries.extend(get_flatten_entries_from_mime(channel_index, default_index))
     return entries
+
+
+def replace_fake_entries(entries, mdf, uuid):
+    new_data = []
+    for (name, group_index, channel_index, mdf_uuid, type_, ranges) in entries:
+        if (group_index, channel_index) == (FAKE_INDEX, FAKE_INDEX):
+            try:
+                if name in mdf.channels_db:
+                    group_index, channel_index = mdf.channels_db[name][0]
+                    mdf_uuid = uuid
+            except:
+                print(format_exc())
+                pass
+        new_data.append((name, group_index, channel_index, mdf_uuid, type_, ranges))
+    return new_data
+
+
+def all_fake_entries(entries):
+    for (name, group_index, channel_index, mdf_uuid, type_, ranges) in entries:
+        if type_ == "channel" and (group_index, channel_index) != (
+            FAKE_INDEX,
+            FAKE_INDEX,
+        ):
+            return False
+    return True
 
 
 def get_pattern_groups(data):
@@ -540,29 +566,29 @@ class WithMDIArea:
                 mime_data = names
 
                 entries = get_flatten_entries_from_mime(names)
+
                 signals_ = [name for name in entries if tuple(name[1:3]) != (-1, -1)]
 
                 computed = [name[0] for name in entries if tuple(name[1:3]) == (-1, -1)]
 
                 uuids = set(entry[3] for entry in entries)
 
-            # print(computed)
-            # print(names)
-            # print(signals_)
-
             if isinstance(widget, Tabular):
                 dfs = []
 
                 for uuid in uuids:
-                    uuids_signals = [
-                        entry[:3] for entry in signals_ if entry[3] == uuid and entry
-                    ]
 
                     file_info = self.file_by_uuid(uuid)
                     if not file_info:
                         continue
 
                     file_index, file = file_info
+
+                    entries = replace_fake_entries(signals_, file.mdf)
+
+                    uuids_signals = [
+                        entry[:3] for entry in entries if entry[3] == uuid and entry
+                    ]
 
                     selected_signals = file.mdf.to_dataframe(
                         channels=uuids_signals,
@@ -593,16 +619,22 @@ class WithMDIArea:
 
                 signals = []
 
-                for uuid in uuids:
-                    uuids_signals = [
-                        entry[:3] for entry in signals_ if entry[3] == uuid
-                    ]
+                if len(uuids) == 1 and all_fake_entries(signals_):
+                    try:
+                        uuids = {self.files.widget(self.files.currentIndex()).uuid}
+                    except:
+                        uuids = {self.uuid}
 
+                for uuid in uuids:
                     file_info = self.file_by_uuid(uuid)
                     if not file_info:
                         continue
 
                     file_index, file = file_info
+
+                    entries = replace_fake_entries(signals_, file.mdf, uuid)
+
+                    uuids_signals = [entry[:3] for entry in entries if entry[3] == uuid]
 
                     selected_signals = file.mdf.select(
                         uuids_signals,

@@ -4,6 +4,7 @@ from collections import defaultdict
 from datetime import date, datetime
 import json
 from struct import pack
+from traceback import format_exc
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -701,6 +702,11 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             menu.addAction(self.tr("Copy name (Ctrl+C)"))
             menu.addAction(self.tr("Copy display properties [Ctrl+Shift+C]"))
             menu.addAction(self.tr("Paste display properties [Ctrl+Shift+P]"))
+
+        # menu.addAction(self.tr("Copy channel structure"))
+        # menu.addAction(self.tr("Paste channel structure"))
+
+        if isinstance(item, ChannelsTreeItem):
             menu.addAction(self.tr("Rename channel"))
             menu.addSeparator()
         elif isinstance(item, ChannelsGroupTreeItem):
@@ -762,6 +768,21 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             )
             if isinstance(item, ChannelsTreeItem):
                 self.itemWidget(item, 1).keyPressEvent(event)
+
+        elif action.text() == "Copy channel structure":
+            selected_items = self.selectedItems()
+            data = get_data(selected_items, uuids_only=False)
+            QtWidgets.QApplication.instance().clipboard().setText(json.dumps(data))
+
+        elif action.text() == "Paste channel structure":
+            try:
+                data = QtWidgets.QApplication.instance().clipboard().text()
+                data = json.loads(data)
+                print(data)
+                self.add_channels_request.emit(data)
+            except:
+                print(format_exc())
+                pass
 
         elif action.text() == "Copy display properties [Ctrl+Shift+C]":
             event = QtGui.QKeyEvent(
