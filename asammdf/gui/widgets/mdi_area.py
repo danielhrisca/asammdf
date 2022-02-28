@@ -2711,6 +2711,11 @@ class WithMDIArea:
                     if item.pattern:
                         plot.pattern_group_added.emit(plot, item)
 
+            if "common_axis_y_range" in window_info["configuration"]:
+                plot.plot.common_viewbox.setYRange(
+                    *window_info["configuration"]["common_axis_y_range"], padding=0
+                )
+
             plot.channel_selection.refresh()
 
         elif window_info["type"] == "Tabular":

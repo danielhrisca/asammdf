@@ -22,7 +22,7 @@ class RangeWidget(Ui_RangeWidget, QtWidgets.QWidget):
         *args,
         **kwargs,
     ):
-        super(QtWidgets.QWidget, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.setupUi(self)
         self._settings = QtCore.QSettings()
 

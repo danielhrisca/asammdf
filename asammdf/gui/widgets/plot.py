@@ -2270,6 +2270,7 @@ class Plot(QtWidgets.QWidget):
                     view = self.plot.view_boxes[idx]
                     channel["y_range"] = [float(e) for e in view.viewRange()[1]]
                     channel["mdf_uuid"] = str(sig.mdf_uuid)
+                    # print(channel["y_range"])
 
                     if sig.computed and sig.conversion:
                         channel["user_defined_name"] = sig.name
@@ -2353,7 +2354,13 @@ class Plot(QtWidgets.QWidget):
             "cursor_precision": self.cursor_info.precision,
             "font_size": self.font().pointSize(),
             "locked": self.locked,
+            "common_axis_y_range": [
+                float(e) for e in self.plot.common_viewbox.viewRange()[1]
+            ],
         }
+
+        # print(self.plot.common_viewbox.viewRange()[1])
+        # print('=====')
 
         return config
 
