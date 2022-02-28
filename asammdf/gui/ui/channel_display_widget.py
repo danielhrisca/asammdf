@@ -28,7 +28,7 @@ class Ui_ChannelDiplay(object):
         self.verticalLayout = QVBoxLayout(ChannelDiplay)
         self.verticalLayout.setSpacing(3)
         self.verticalLayout.setObjectName(u"verticalLayout")
-        self.verticalLayout.setContentsMargins(2, 0, 2, 0)
+        self.verticalLayout.setContentsMargins(0, 0, 2, 0)
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.color_btn = QPushButton(ChannelDiplay)
@@ -94,6 +94,7 @@ class Ui_ChannelDiplay(object):
         self.details.setObjectName(u"details")
 
         self.verticalLayout.addWidget(self.details)
+
 
         self.retranslateUi(ChannelDiplay)
 
