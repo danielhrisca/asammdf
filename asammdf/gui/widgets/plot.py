@@ -1461,6 +1461,8 @@ class Plot(QtWidgets.QWidget):
 
             iterator += 1
 
+        self._update_visibile_entries()
+
     def channel_selection_item_changed(self, item, column):
         if item is not None and column == 0:
             state = item.checkState(0)
