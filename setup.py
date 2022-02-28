@@ -110,7 +110,7 @@ setup(
             "PySide6",
             "pyqtgraph>=0.12.3",
             "pyqtlet2>=0.7.0",
-            "scipy",
+            "scipy<1.18.0",
         ],
         "encryption": ["cryptography", "keyring"],
         "symbolic_math": "numexpr3",
