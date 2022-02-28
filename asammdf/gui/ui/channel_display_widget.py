@@ -95,7 +95,6 @@ class Ui_ChannelDiplay(object):
 
         self.verticalLayout.addWidget(self.details)
 
-
         self.retranslateUi(ChannelDiplay)
 
         QMetaObject.connectSlotsByName(ChannelDiplay)

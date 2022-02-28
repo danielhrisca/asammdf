@@ -2270,7 +2270,6 @@ class Plot(QtWidgets.QWidget):
                     view = self.plot.view_boxes[idx]
                     channel["y_range"] = [float(e) for e in view.viewRange()[1]]
                     channel["mdf_uuid"] = str(sig.mdf_uuid)
-                    # print(channel["y_range"])
 
                     if sig.computed and sig.conversion:
                         channel["user_defined_name"] = sig.name
@@ -2358,9 +2357,6 @@ class Plot(QtWidgets.QWidget):
                 float(e) for e in self.plot.common_viewbox.viewRange()[1]
             ],
         }
-
-        # print(self.plot.common_viewbox.viewRange()[1])
-        # print('=====')
 
         return config
 
@@ -2602,6 +2598,8 @@ class _Plot(pg.PlotWidget):
         self.common_viewbox.disableAutoRange()
         self.scene_.addItem(self.common_viewbox)
         self.common_viewbox.setXLink(self.viewbox)
+        geometry = self.viewbox.sceneBoundingRect()
+        self.common_viewbox.setGeometry(geometry)
 
         self.viewbox.sigYRangeChanged.connect(self.update_plt)
         self.common_viewbox.sigYRangeChanged.connect(self.update_plt)
@@ -2979,6 +2977,8 @@ class _Plot(pg.PlotWidget):
             for view_box in self.view_boxes:
                 view_box.setGeometry(geometry)
             self._prev_geometry = geometry
+
+            self.common_viewbox.setGeometry(geometry)
 
     def get_stats(self, uuid):
         sig, index = self.signal_by_uuid(uuid)
