@@ -15,6 +15,45 @@ from .channel_group_display import ChannelGroupDisplay
 from .tree_item import TreeItem
 
 
+def substitude_mime_uuids(mime, uuid, force=False):
+    if not mime:
+        return mime
+
+    new_mime = []
+
+    # check first mime
+    generic_uuid = mime[0][3]
+    if not force and generic_uuid is not None:
+        return mime
+
+    for (
+        name,
+        group_index,
+        channel_index,
+        generic_uuid,
+        type_,
+        ranges,
+        item_uuid,
+    ) in mime:
+        if type_ == "channel":
+            new_mime.append(
+                (name, group_index, channel_index, uuid, type_, ranges, item_uuid)
+            )
+        else:
+            new_mime.append(
+                (
+                    name,
+                    group_index,
+                    substitude_mime_uuids(channel_index, uuid),
+                    uuid,
+                    type_,
+                    ranges,
+                    item_uuid,
+                )
+            )
+    return new_mime
+
+
 def add_children(
     widget,
     channels,
@@ -710,8 +749,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             menu.addAction(self.tr("Copy display properties [Ctrl+Shift+C]"))
             menu.addAction(self.tr("Paste display properties [Ctrl+Shift+P]"))
 
-        # menu.addAction(self.tr("Copy channel structure"))
-        # menu.addAction(self.tr("Paste channel structure"))
+        menu.addAction(self.tr("Copy channel structure"))
+        menu.addAction(self.tr("Paste channel structure"))
 
         if isinstance(item, ChannelsTreeItem):
             menu.addAction(self.tr("Rename channel"))
@@ -779,6 +818,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         elif action.text() == "Copy channel structure":
             selected_items = self.selectedItems()
             data = get_data(selected_items, uuids_only=False)
+            data = substitude_mime_uuids(data, None, force=True)
             QtWidgets.QApplication.instance().clipboard().setText(json.dumps(data))
 
         elif action.text() == "Paste channel structure":
@@ -787,6 +827,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 data = json.loads(data)
                 print(data)
                 self.add_channels_request.emit(data)
+                print("gata")
             except:
                 print(format_exc())
                 pass

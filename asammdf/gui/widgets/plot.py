@@ -2483,7 +2483,7 @@ class Plot(QtWidgets.QWidget):
             if isinstance(item, ChannelsTreeItem):
                 item_widget = item.widget or self.channel_selection.itemWidget(item, 1)
 
-                if item.checkState(0) == QtCore.Qt.Checked:
+                if item.checkState(0) == QtCore.Qt.Checked and item_widget.exists:
                     entry = (item.origin_uuid, item.name)
                     _visible_entries.add(entry)
                     _visible_items[entry] = item, item_widget

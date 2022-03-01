@@ -372,6 +372,47 @@ def get_required_from_descriptions(channels, mdf):
     return required, found, not_found, computed
 
 
+def substitude_mime_uuids(mime, uuid, force=False):
+    if not mime:
+        return mime
+
+    new_mime = []
+
+    # check first mime
+    generic_uuid = mime[0][3]
+    if not force and generic_uuid is not None:
+        return mime
+
+    for (
+        name,
+        group_index,
+        channel_index,
+        generic_uuid,
+        type_,
+        ranges,
+        item_uuid,
+    ) in mime:
+        if type_ == "channel":
+            new_mime.append(
+                (name, group_index, channel_index, uuid, type_, ranges, item_uuid)
+            )
+        else:
+            new_mime.append(
+                (
+                    name,
+                    group_index,
+                    substitude_mime_uuids(channel_index, uuid),
+                    uuid,
+                    type_,
+                    ranges,
+                    item_uuid,
+                )
+            )
+    print("sub", mime)
+    print("sub", new_mime)
+    return new_mime
+
+
 def set_title(mdi):
     name, ok = QtWidgets.QInputDialog.getText(
         None,
@@ -604,7 +645,9 @@ class WithMDIArea:
             else:
                 mime_data = names
 
-                entries = get_flatten_entries_from_mime(names)
+                mime_data = substitude_mime_uuids(mime_data, self.uuid)
+
+                entries = get_flatten_entries_from_mime(mime_data)
                 signals_ = [name for name in entries if tuple(name[1:3]) != (-1, -1)]
 
                 computed = [name for name in entries if tuple(name[1:3]) == (-1, -1)]

@@ -309,9 +309,12 @@ class OfflineBackEnd:
                 self.map[signal.entry] = signal
                 self.signals.append(signal)
 
-        self.timebase = np.unique(
-            np.concatenate([signal.signal.timestamps for signal in self.signals])
-        )
+        if self.signals:
+            self.timebase = np.unique(
+                np.concatenate([signal.signal.timestamps for signal in self.signals])
+            )
+        else:
+            self.timebase = np.array([])
 
         self.sort()
 

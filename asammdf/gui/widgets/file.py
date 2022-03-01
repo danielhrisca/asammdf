@@ -1518,7 +1518,15 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             ch = self.mdf.groups[group].channels[index]
                             if not ch.component_addr:
                                 signals.append(
-                                    (ch.name, group, index, self.uuid, "channel", [])
+                                    (
+                                        ch.name,
+                                        group,
+                                        index,
+                                        self.uuid,
+                                        "channel",
+                                        [],
+                                        os.urandom(6).hex(),
+                                    )
                                 )
 
                         iterator += 1
@@ -1531,7 +1539,15 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             ch = self.mdf.groups[group].channels[index]
                             if not ch.component_addr:
                                 signals.append(
-                                    (ch.name, group, index, self.uuid, "channel", [])
+                                    (
+                                        ch.name,
+                                        group,
+                                        index,
+                                        self.uuid,
+                                        "channel",
+                                        [],
+                                        os.urandom(6).hex(),
+                                    )
                                 )
 
                         iterator += 1

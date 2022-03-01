@@ -111,16 +111,11 @@ def load_dsp(file, background="#000000"):
     if isinstance(background, str):
         background = QtGui.QColor(background)
 
-    def parse_channels(display, unique_names=None):
-        unique_names = unique_names or set()
+    def parse_channels(display):
         channels = []
         for elem in display.iterchildren():
             if elem.tag == "CHANNEL":
                 channel_name = elem.get("name")
-                if channel_name in unique_names:
-                    continue
-                else:
-                    unique_names.add(channel_name)
 
                 color_ = int(elem.get("color"))
                 c = 0
@@ -189,7 +184,7 @@ def load_dsp(file, background="#000000"):
                         "name": elem.get("data"),
                         "enabled": elem.get("on") == "1",
                         "type": "group",
-                        "channels": parse_channels(elem, unique_names),
+                        "channels": parse_channels(elem),
                         "pattern": None,
                     }
                 )
