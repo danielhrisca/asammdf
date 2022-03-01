@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-
 from collections import defaultdict
 from datetime import date, datetime
 import json
+import os
 from struct import pack
 from traceback import format_exc
 
@@ -21,7 +21,7 @@ def add_children(
     channel_dependencies,
     signals,
     entries=None,
-    mdf_uuid=None,
+    origin_uuid=None,
     version="4.11",
 ):
     children = []
@@ -36,7 +36,7 @@ def add_children(
 
         entry = ch.entry
 
-        child = TreeItem(entry, ch.name, mdf_uuid=mdf_uuid)
+        child = TreeItem(entry, ch.name, origin_uuid=origin_uuid)
         child.setText(0, ch.name)
 
         dep = channel_dependencies[entry[1]]
@@ -54,7 +54,7 @@ def add_children(
                     channel_dependencies,
                     signals,
                     dep,
-                    mdf_uuid=mdf_uuid,
+                    origin_uuid=origin_uuid,
                 )
 
         if entry in signals:
@@ -160,6 +160,7 @@ def get_data(items, uuids_only=False):
                             None,
                             "group",
                             [],
+                            os.urandom(6).hex(),
                         )
                     )
                 else:
@@ -171,6 +172,7 @@ def get_data(items, uuids_only=False):
                             None,
                             "group",
                             [],
+                            os.urandom(6).hex(),
                         )
                     )
 
@@ -202,9 +204,10 @@ def get_data(items, uuids_only=False):
                     (
                         info,
                         *item.entry,
-                        item.mdf_uuid,
+                        item.origin_uuid,
                         "channel",
                         ranges,
+                        os.urandom(6).hex(),
                     )
                 )
     return data
@@ -265,9 +268,10 @@ class TreeWidget(QtWidgets.QTreeWidget):
                                 (
                                     child.name,
                                     *child.entry,
-                                    child.mdf_uuid,
+                                    child.origin_uuid,
                                     "channel",
                                     [],
+                                    os.urandom(6).hex(),
                                 )
                             )
             else:
@@ -276,9 +280,10 @@ class TreeWidget(QtWidgets.QTreeWidget):
                         (
                             item.name,
                             *item.entry,
-                            item.mdf_uuid,
+                            item.origin_uuid,
                             "channel",
                             [],
+                            os.urandom(6).hex(),
                         )
                     )
 
@@ -320,7 +325,7 @@ class FileTreeItem(QtWidgets.QTreeWidgetItem):
             return self.text(column) < otherItem.text(column)
 
     def __del__(self):
-        self.entry = self.name = self.mdf_uuid = None
+        self.entry = self.name = self.origin_uuid = None
 
 
 class FileTreeWidget(QtWidgets.QTreeWidget):
@@ -567,7 +572,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
     def startDrag(self, supportedActions):
 
-        selected_items = self.selectedItems()
+        selected_items = validate_drag_items(
+            self.invisibleRootItem(), self.selectedItems(), []
+        )
 
         mimeData = QtCore.QMimeData()
 
@@ -1173,20 +1180,22 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         name="",
         computation=None,
         parent=None,
-        mdf_uuid=None,
+        origin_uuid=None,
         category="channel",
         texts=("", ""),
         check=None,
+        uuid="",
     ):
         super().__init__(parent, list(texts))
 
         self.entry = entry
         self.name = name
         self.computation = computation
-        self.mdf_uuid = mdf_uuid
+        self.origin_uuid = origin_uuid
         self.category = category
         self._is_visible = True
         self.widget = None
+        self.uuid = uuid
 
         self.setFlags(
             self.flags() | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled
@@ -1202,9 +1211,10 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.entry,
             self.name,
             self.computation,
-            mdf_uuid=self.mdf_uuid,
+            origin_uuid=self.origin_uuid,
             category=self.category,
             check=self.checkState(0),
+            uuid=self.uuid,
         )
         return x
 
@@ -1233,11 +1243,12 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
 
 class ChannelsGroupTreeItem(QtWidgets.QTreeWidgetItem):
-    def __init__(self, name="", pattern=None, parent=None):
+    def __init__(self, name="", pattern=None, parent=None, uuid=""):
         super().__init__(parent, ["", ""])
         self.name = name.split("\t[")[0]
         self.pattern = pattern
         self._is_visible = True
+        self.uuid = uuid
 
         self.setFlags(
             self.flags()
@@ -1249,7 +1260,7 @@ class ChannelsGroupTreeItem(QtWidgets.QTreeWidgetItem):
         self.setCheckState(0, QtCore.Qt.Checked)
 
     def copy(self):
-        x = ChannelsGroupTreeItem(self.name, self.pattern)
+        x = ChannelsGroupTreeItem(self.name, self.pattern, uuid=self.uuid)
         return x
 
     def show_info(self):

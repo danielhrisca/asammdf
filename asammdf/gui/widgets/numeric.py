@@ -56,11 +56,11 @@ class SignalOnline:
         self.configured_from_device = True
 
     @property
-    def mdf_uuid(self):
+    def origin_uuid(self):
         return self.entry[0]
 
-    @mdf_uuid.setter
-    def mdf_uuid(self, value):
+    @origin_uuid.setter
+    def origin_uuid(self, value):
         self.entry = (value, self.name)
 
     def reset(self):
@@ -157,9 +157,9 @@ class OnlineBackEnd:
 
         self.update()
 
-    def update_signal_mdf_uuid(self, signal, mdf_uuid):
+    def update_signal_origin_uuid(self, signal, origin_uuid):
         old_entry = signal.entry
-        signal.mdf_uuid = mdf_uuid
+        signal.origin_uuid = origin_uuid
         self.map[signal.entry] = signal
         del self.map[old_entry]
 
@@ -652,9 +652,10 @@ class TableView(QtWidgets.QTableView):
                     *entry,
                     str(entry[0])
                     if numeric_mode == "online"
-                    else signal.signal.mdf_uuid,
+                    else signal.signal.origin_uuid,
                     "channel",
                     ranges,
+                    os.urandom(6).hex(),
                 )
             )
 
@@ -1147,7 +1148,7 @@ class Numeric(QtWidgets.QWidget):
             others = []
             for sig in channels:
                 if sig is not None:
-                    entry = (sig.mdf_uuid, sig.name)
+                    entry = (sig.origin_uuid, sig.name)
 
                     others.append(
                         SignalOnline(
@@ -1227,7 +1228,7 @@ class Numeric(QtWidgets.QWidget):
 
                 channels.append(
                     {
-                        "mdf_uuid": str(signal.entry[0]),
+                        "origin_uuid": str(signal.entry[0]),
                         "name": signal.name,
                         "ranges": ranges,
                     }

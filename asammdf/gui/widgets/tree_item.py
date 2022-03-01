@@ -15,7 +15,7 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
         name="",
         parent=None,
         strings=None,
-        mdf_uuid=None,
+        origin_uuid=None,
         computation=None,
         ranges=None,
     ):
@@ -23,7 +23,7 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
 
         self.entry = entry
         self.name = name
-        self.mdf_uuid = mdf_uuid
+        self.origin_uuid = origin_uuid
         self.computation = computation or {}
         self.ranges = ranges or []
 
@@ -64,7 +64,7 @@ class TreeItem(QtWidgets.QTreeWidgetItem):
             return super().__lt__(other)
 
     def __del__(self):
-        self.entry = self.name = self.mdf_uuid = None
+        self.entry = self.name = self.origin_uuid = None
 
     def check_signal_range(self, value=None):
         if value is None:

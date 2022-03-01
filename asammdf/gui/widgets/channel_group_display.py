@@ -17,6 +17,7 @@ class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
         count=0,
         ranges=None,
         item=None,
+        uuid="",
         *args,
         **kwargs,
     ):
@@ -33,6 +34,7 @@ class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
         self.set_ranges(ranges or [] if not self.pattern else self.pattern["ranges"])
 
         self.item = item
+        self.uuid = uuid
 
     def set_double_clicked_enabled(self, state):
         self.double_clicked_enabled = state
@@ -59,6 +61,7 @@ class ChannelGroupDisplay(Ui_ChannelGroupDisplay, QtWidgets.QWidget):
             self.pattern,
             self.count,
             ranges=copy_ranges(self.ranges),
+            uuid=self.uuid,
         )
 
         return new

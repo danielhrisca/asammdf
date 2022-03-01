@@ -7,6 +7,7 @@ import os
 import re
 import sys
 from traceback import format_exc
+from typing import Type
 
 from natsort import natsorted
 import numpy as np
@@ -41,24 +42,43 @@ from .tree import ChannelsGroupTreeItem
 COMPONENT = re.compile(r"\[(?P<index>\d+)\]$")
 SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
 NOT_FOUND = 2**32 - 1
-FAKE_INDEX = 0xFFFFFFFF
 
 
-def build_mime_from_config(channels, mdf=None, uuid=None, default_index=NOT_FOUND):
+def build_mime_from_config(
+    channels, mdf=None, origin_uuid=None, default_index=NOT_FOUND
+):
+    descriptions = {}
+    found = {}
+    not_found = {}
+    computed = {}
     mime = []
     for channel in channels:
+        uuid = os.urandom(6).hex()
+        channel["uuid"] = uuid
+
         if channel.get("type", "channel") == "group":
             if channel.get("pattern", None) is None:
+                (
+                    new_mine,
+                    new_descriptions,
+                    new_found,
+                    new_not_found,
+                    new_computed,
+                ) = build_mime_from_config(
+                    channel["channels"], mdf, origin_uuid, default_index
+                )
+                descriptions.update(new_descriptions)
+                found.update(new_found)
+                not_found.update(new_not_found)
                 mime.append(
                     (
                         channel["name"],
                         None,
-                        build_mime_from_config(
-                            channel["channels"], mdf, uuid, default_index
-                        ),
+                        new_mine,
                         None,
                         "group",
                         channel.get("ranges", []),
+                        uuid,
                     )
                 )
             else:
@@ -70,25 +90,38 @@ def build_mime_from_config(channels, mdf=None, uuid=None, default_index=NOT_FOUN
                         None,
                         "group",
                         channel.get("ranges", []),
+                        uuid,
                     )
                 )
         else:
+            descriptions[uuid] = channel
+
+            channel["uuid"] = uuid
+
             occurrences = mdf.whereis(channel["name"]) if mdf else None
             if occurrences:
                 group_index, channel_index = occurrences[0]
+                found[uuid] = channel["name"], group_index, channel_index
             else:
-                group_index, channel_index = default_index, default_index
+                if isinstance(channel["name"], dict):
+                    group_index, channel_index = -1, -1
+                    computed[uuid] = channel["name"]
+                else:
+                    group_index, channel_index = default_index, default_index
+                    not_found[channel["name"]] = uuid
             mime.append(
                 (
                     channel["name"],
                     group_index,
                     channel_index,
-                    uuid or channel["mdf_uuid"],
+                    origin_uuid or channel["origin_uuid"],
                     "channel",
                     channel.get("ranges", []),
+                    uuid,
                 )
             )
-    return mime
+
+    return mime, descriptions, found, not_found, computed
 
 
 def extract_signals_using_pattern(
@@ -138,7 +171,7 @@ def extract_signals_using_pattern(
             keep = []
             for i, (name, group_index, channel_index) in enumerate(matches):
                 sig = psignals[i]
-                sig.mdf_uuid = uuid
+                sig.origin_uuid = uuid
                 sig.group_index, sig.channel_index = group_index, channel_index
 
                 size = len(sig)
@@ -172,7 +205,13 @@ def extract_signals_using_pattern(
                         continue
         signals = keep
 
-    return signals
+    output_signals = {}
+    for sig in signals:
+        uuid = os.urandom(6).hex()
+        sig.uuid = uuid
+        output_signals[uuid] = sig
+
+    return output_signals
 
 
 def generate_window_title(mdi, window_name="", title=""):
@@ -213,52 +252,43 @@ def get_descriptions(channels):
 def get_flatten_entries_from_mime(data, default_index=None):
     entries = []
 
-    for (name, group_index, channel_index, mdf_uuid, type_, ranges) in data:
+    for (name, group_index, channel_index, origin_uuid, type_, ranges, uuid) in data:
         if type_ == "channel":
             if default_index is not None:
                 entries.append(
-                    (name, default_index, default_index, mdf_uuid, "channel", ranges)
+                    (
+                        name,
+                        default_index,
+                        default_index,
+                        origin_uuid,
+                        "channel",
+                        ranges,
+                        uuid,
+                    )
                 )
             else:
                 entries.append(
-                    (name, group_index, channel_index, mdf_uuid, "channel", ranges)
+                    (
+                        name,
+                        group_index,
+                        channel_index,
+                        origin_uuid,
+                        "channel",
+                        ranges,
+                        uuid,
+                    )
                 )
         else:
             entries.extend(get_flatten_entries_from_mime(channel_index, default_index))
     return entries
 
 
-def replace_fake_entries(entries, mdf, uuid):
-    new_data = []
-    for (name, group_index, channel_index, mdf_uuid, type_, ranges) in entries:
-        if (group_index, channel_index) == (FAKE_INDEX, FAKE_INDEX):
-            try:
-                if name in mdf.channels_db:
-                    group_index, channel_index = mdf.channels_db[name][0]
-                    mdf_uuid = uuid
-            except:
-                print(format_exc())
-                pass
-        new_data.append((name, group_index, channel_index, mdf_uuid, type_, ranges))
-    return new_data
-
-
-def all_fake_entries(entries):
-    for (name, group_index, channel_index, mdf_uuid, type_, ranges) in entries:
-        if type_ == "channel" and (group_index, channel_index) != (
-            FAKE_INDEX,
-            FAKE_INDEX,
-        ):
-            return False
-    return True
-
-
 def get_pattern_groups(data):
     groups = []
-    for (name, pattern, channels, mdf_uuid, type_, ranges) in data:
+    for (name, pattern, channels, origin_uuid, type_, ranges, uuid) in data:
         if type_ == "group":
             if pattern is not None:
-                groups.append(name, pattern, channels, mdf_uuid, type_, ranges)
+                groups.append(name, pattern, channels, origin_uuid, type_, ranges, uuid)
             else:
                 groups.extend(get_pattern_groups(channels))
     return groups
@@ -314,8 +344,8 @@ def get_required_from_computed(channel):
     return names
 
 
-def get_required_from_config(channels, mdf):
-    required, found, not_found, computed = set(), {}, set(), []
+def get_required_from_descriptions(channels, mdf):
+    required, found, not_found, computed = {}, {}, {}, {}
     for channel in channels:
         if channel.get("type", "channel") == "group":
             (
@@ -323,14 +353,14 @@ def get_required_from_config(channels, mdf):
                 new_found,
                 new_not_found,
                 new_computed,
-            ) = get_required_from_config(channel["channels"], mdf)
-            required |= new_required
+            ) = get_required_from_descriptions(channel["channels"], mdf)
+            required.update(new_required)
             found.update(new_found)
-            not_found |= new_not_found
-            computed.extend(new_computed)
+            not_found.update(new_not_found)
+            computed.update(new_computed)
         else:
             if channel.get("computed", False):
-                computed.append(channel)
+                computed[channel["uuid"]] = channel
             name = channel["name"]
             required.add(name)
 
@@ -408,9 +438,10 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
                         name,
                         group_index,
                         channel_index,
-                        mdf_uuid,
+                        origin_uuid,
                         type_,
                         ranges,
+                        uuid,
                     ) in data:
                         if type_ == "channel":
                             s += 1
@@ -513,13 +544,13 @@ class WithMDIArea:
             self.uuid,
         )
 
-        signals = [
-            sig
-            for sig in signals
+        signals = {
+            sig_uuid: sig
+            for sig_uuid, sig in signals.items()
             if sig.samples.dtype.kind not in "SU"
             and not sig.samples.dtype.names
             and not len(sig.samples.shape) > 1
-        ]
+        }
 
         group.count = len(signals)
         if signals:
@@ -553,7 +584,14 @@ class WithMDIArea:
             names = list(names)
             if names and isinstance(names[0], str):
                 signals_ = [
-                    (name, *self.mdf.whereis(name)[0], self.uuid, "channel", [])
+                    (
+                        name,
+                        *self.mdf.whereis(name)[0],
+                        self.uuid,
+                        "channel",
+                        [],
+                        os.urandom(6).hex(),
+                    )
                     for name in names
                     if name in self.mdf
                 ]
@@ -561,34 +599,35 @@ class WithMDIArea:
                 uuids = {self.uuid}
 
                 mime_data = signals_
+                computed = []
 
             else:
                 mime_data = names
 
                 entries = get_flatten_entries_from_mime(names)
-
                 signals_ = [name for name in entries if tuple(name[1:3]) != (-1, -1)]
 
-                computed = [name[0] for name in entries if tuple(name[1:3]) == (-1, -1)]
+                computed = [name for name in entries if tuple(name[1:3]) == (-1, -1)]
 
                 uuids = set(entry[3] for entry in entries)
+
+            # print(computed)
+            # print(names)
+            # print(signals_)
 
             if isinstance(widget, Tabular):
                 dfs = []
 
                 for uuid in uuids:
+                    uuids_signals = [
+                        entry[:3] for entry in signals_ if entry[3] == uuid and entry
+                    ]
 
                     file_info = self.file_by_uuid(uuid)
                     if not file_info:
                         continue
 
                     file_index, file = file_info
-
-                    entries = replace_fake_entries(signals_, file.mdf)
-
-                    uuids_signals = [
-                        entry[:3] for entry in entries if entry[3] == uuid and entry
-                    ]
 
                     selected_signals = file.mdf.to_dataframe(
                         channels=uuids_signals,
@@ -615,26 +654,24 @@ class WithMDIArea:
 
                 widget.add_new_channels(signals)
 
-            else:
+            elif isinstance(widget, Numeric):
 
                 signals = []
 
-                if len(uuids) == 1 and all_fake_entries(signals_):
-                    try:
-                        uuids = {self.files.widget(self.files.currentIndex()).uuid}
-                    except:
-                        uuids = {self.uuid}
-
                 for uuid in uuids:
+                    uuids_signals = [
+                        entry[:3] for entry in signals_ if entry[3] == uuid
+                    ]
+
+                    uuids_signals_uuid = [
+                        entry[-1] for entry in signals_ if entry[3] == uuid
+                    ]
+
                     file_info = self.file_by_uuid(uuid)
                     if not file_info:
                         continue
 
                     file_index, file = file_info
-
-                    entries = replace_fake_entries(signals_, file.mdf, uuid)
-
-                    uuids_signals = [entry[:3] for entry in entries if entry[3] == uuid]
 
                     selected_signals = file.mdf.select(
                         uuids_signals,
@@ -644,13 +681,16 @@ class WithMDIArea:
                         raw=True,
                     )
 
-                    for sig, sig_ in zip(selected_signals, uuids_signals):
+                    for sig, sig_, sig_uuid in zip(
+                        selected_signals, uuids_signals, uuids_signals_uuid
+                    ):
                         sig.group_index = sig_[1]
                         sig.channel_index = sig_[2]
                         sig.computed = False
                         sig.computation = {}
-                        sig.mdf_uuid = uuid
+                        sig.origin_uuid = uuid
                         sig.name = sig_[0]
+                        sig.uuid = sig_uuid
 
                         if not hasattr(self, "mdf"):
                             # MainWindow => comparison plots
@@ -659,15 +699,6 @@ class WithMDIArea:
                             sig.name = f"{file_index+1}: {sig.name}"
 
                     signals.extend(selected_signals)
-
-                if isinstance(widget, Plot):
-                    signals = [
-                        sig
-                        for sig in signals
-                        if sig.samples.dtype.kind not in "SU"
-                        and not sig.samples.dtype.names
-                        and not len(sig.samples.shape) > 1
-                    ]
 
                 for signal in signals:
                     if len(signal.samples.shape) > 1:
@@ -679,9 +710,70 @@ class WithMDIArea:
                     if signal.name.endswith("CAN_DataFrame.ID"):
                         signal.samples = signal.samples.astype("<u4") & 0x1FFFFFFF
 
-                signals = sigs = natsorted(signals, key=lambda x: x.name)
+                signals = natsorted(signals, key=lambda x: x.name)
 
-                if isinstance(widget, Plot) and computed:
+                widget.add_new_channels(signals, mime_data=mime_data)
+
+            elif isinstance(widget, Plot):
+
+                signals = {}
+
+                for uuid in uuids:
+                    uuids_signals = [entry for entry in signals_ if entry[3] == uuid]
+
+                    file_info = self.file_by_uuid(uuid)
+                    if not file_info:
+                        continue
+
+                    file_index, file = file_info
+
+                    selected_signals = file.mdf.select(
+                        [entry[:3] for entry in uuids_signals],
+                        ignore_value2text_conversions=ignore_value2text_conversions,
+                        copy_master=False,
+                        validate=True,
+                        raw=True,
+                    )
+
+                    for sig, sig_ in zip(selected_signals, uuids_signals):
+                        sig.group_index = sig_[1]
+                        sig.channel_index = sig_[2]
+                        sig.computed = False
+                        sig.computation = {}
+                        sig.origin_uuid = uuid
+                        sig.name = sig_[0]
+                        sig.uuid = sig_[-1]
+
+                        if not hasattr(self, "mdf"):
+                            # MainWindow => comparison plots
+
+                            sig.tooltip = f"{sig.name}\n@ {file.file_name}"
+                            sig.name = f"{file_index+1}: {sig.name}"
+
+                        signals[sig.uuid] = sig
+
+                signals = {
+                    key: sig
+                    for key, sig in signals.items()
+                    if sig.samples.dtype.kind not in "SU"
+                    and not sig.samples.dtype.names
+                    and not len(sig.samples.shape) > 1
+                }
+
+                for signal in signals.values():
+                    if len(signal.samples.shape) > 1:
+
+                        signal.samples = csv_bytearray2hex(
+                            pd.Series(list(signal.samples))
+                        )
+
+                    if signal.name.endswith("CAN_DataFrame.ID"):
+                        signal.samples = signal.samples.astype("<u4") & 0x1FFFFFFF
+
+                sigs = signals
+
+                if computed and 0:
+                    # TO DO : handle computed channels
                     measured_signals = {sig.name: sig for sig in sigs}
                     if measured_signals:
                         all_timebase = np.unique(
@@ -731,7 +823,7 @@ class WithMDIArea:
                             signal.unit = channel["unit"]
                             signal.group_index = -1
                             signal.channel_index = -1
-                            signal.mdf_uuid = self.uuid
+                            signal.origin_uuid = self.uuid
 
                             if "conversion" in channel:
                                 signal.conversion = from_dict(channel["conversion"])
@@ -740,12 +832,30 @@ class WithMDIArea:
                             computed_signals[signal.name] = signal
                         except:
                             pass
-                    signals.extend(computed_signals.values())
+                    signals.update(computed_signals.values())
 
-                widget.add_new_channels(sigs, mime_data=mime_data)
+                widget.add_new_channels(signals, mime_data=mime_data)
 
         except MdfException:
             print(format_exc())
+
+    def add_window(self, args):
+        window_type, names = args
+
+        if window_type == "CAN Bus Trace":
+            return self._add_can_bus_trace_window()
+        elif window_type == "FlexRay Bus Trace":
+            return self._add_flexray_bus_trace_window()
+        elif window_type == "LIN Bus Trace":
+            return self._add_lin_bus_trace_window()
+        elif window_type == "GPS":
+            return self._add_gps_window(names)
+        elif window_type == "Plot":
+            return self._add_plot_window(names)
+        elif window_type == "Numeric":
+            return self._add_numeric_window(names)
+        elif window_type == "Tabular":
+            return self._add_tabular_window(names)
 
     def _add_can_bus_trace_window(self, ranges=None):
         items = []
@@ -1158,6 +1268,57 @@ class WithMDIArea:
 
         return trace
 
+    def _add_gps_window(self, signals):
+
+        signals = [sig[:3] for sig in signals]
+        latitude_channel, longitude_channel = self.mdf.select(signals, validate=True)
+
+        gps = GPS(latitude_channel, longitude_channel)
+        sub = MdiSubWindow(parent=self)
+        sub.setWidget(gps)
+        sub.sigClosed.connect(self.window_closed_handler)
+        sub.titleModified.connect(self.window_closed_handler)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/globe.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        sub.setWindowIcon(icon)
+
+        w = self.mdi_area.addSubWindow(sub)
+
+        if len(self.mdi_area.subWindowList()) == 1:
+            w.showMaximized()
+        else:
+            w.show()
+            self.mdi_area.tileSubWindows()
+
+        menu = w.systemMenu()
+        if self._frameless_windows:
+            w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+
+        w.layout().setSpacing(1)
+
+        def set_title(mdi):
+            name, ok = QtWidgets.QInputDialog.getText(
+                None, "Set sub-plot title", "Title:"
+            )
+            if ok and name:
+                mdi.setWindowTitle(name)
+
+        action = QtGui.QAction("Set title", menu)
+        action.triggered.connect(partial(set_title, w))
+        before = menu.actions()[0]
+        menu.insertAction(before, action)
+
+        w.setWindowTitle(f"GPS {self._window_counter}")
+        self._window_counter += 1
+
+        if self.subplots_link:
+            gps.timestamp_changed_signal.connect(self.set_cursor)
+
+        self.windows_modified.emit()
+
     def _add_lin_bus_trace_window(self, ranges=None):
         items = []
         groups_count = len(self.mdf.groups)
@@ -1420,283 +1581,90 @@ class WithMDIArea:
 
         return trace
 
-    def _add_gps_window(self, signals):
-
-        signals = [sig[:3] for sig in signals]
-        latitude_channel, longitude_channel = self.mdf.select(signals, validate=True)
-
-        gps = GPS(latitude_channel, longitude_channel)
-        sub = MdiSubWindow(parent=self)
-        sub.setWidget(gps)
-        sub.sigClosed.connect(self.window_closed_handler)
-        sub.titleModified.connect(self.window_closed_handler)
-
-        icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/globe.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
-        sub.setWindowIcon(icon)
-
-        w = self.mdi_area.addSubWindow(sub)
-
-        if len(self.mdi_area.subWindowList()) == 1:
-            w.showMaximized()
-        else:
-            w.show()
-            self.mdi_area.tileSubWindows()
-
-        menu = w.systemMenu()
-        if self._frameless_windows:
-            w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
-
-        w.layout().setSpacing(1)
-
-        def set_title(mdi):
-            name, ok = QtWidgets.QInputDialog.getText(
-                None, "Set sub-plot title", "Title:"
-            )
-            if ok and name:
-                mdi.setWindowTitle(name)
-
-        action = QtGui.QAction("Set title", menu)
-        action.triggered.connect(partial(set_title, w))
-        before = menu.actions()[0]
-        menu.insertAction(before, action)
-
-        w.setWindowTitle(f"GPS {self._window_counter}")
-        self._window_counter += 1
-
-        if self.subplots_link:
-            gps.timestamp_changed_signal.connect(self.set_cursor)
-
-        self.windows_modified.emit()
-
-    def add_window(self, args):
-        window_type, names = args
-
-        if window_type == "CAN Bus Trace":
-            return self._add_can_bus_trace_window()
-        elif window_type == "FlexRay Bus Trace":
-            return self._add_flexray_bus_trace_window()
-        elif window_type == "LIN Bus Trace":
-            return self._add_lin_bus_trace_window()
-        elif window_type == "GPS":
-            return self._add_gps_window(names)
+    def _add_numeric_window(self, names):
 
         if names and isinstance(names[0], str):
             signals_ = [
-                (name, *self.mdf.whereis(name)[0], self.uuid, "channel")
+                (
+                    name,
+                    *self.mdf.whereis(name)[0],
+                    self.uuid,
+                    "channel",
+                    [],
+                    os.urandom(6).hex(),
+                )
                 for name in names
                 if name in self.mdf
             ]
-            computed = []
+
         else:
             flatten_entries = get_flatten_entries_from_mime(names)
             signals_ = [
                 entry for entry in flatten_entries if tuple(entry[1:3]) != (-1, -1)
             ]
 
-            computed = [
-                entry[0] for entry in flatten_entries if tuple(entry[1:3]) == (-1, -1)
-            ]
-
         signals_ = natsorted(signals_)
-        computed = natsorted(computed)
 
-        if window_type == "Tabular":
-            uuids = set(entry[3] for entry in signals_)
+        uuids = set(entry[3] for entry in signals_)
 
-            dfs = []
-            start = []
+        signals = []
 
-            for uuid in uuids:
-                uuids_signals = [entry[:3] for entry in signals_ if entry[3] == uuid]
+        for uuid in uuids:
+            uuids_signals = [entry[:3] for entry in signals_ if entry[3] == uuid]
 
-                file_info = self.file_by_uuid(uuid)
-                if not file_info:
-                    continue
+            file_info = self.file_by_uuid(uuid)
+            if not file_info:
+                continue
 
-                file_index, file = file_info
-                start.append(file.mdf.header.start_time.timestamp())
+            file_index, file = file_info
 
-                uuids_signals = [
-                    entry
-                    for entry in uuids_signals
-                    if entry[2] != file.mdf.masters_db.get(entry[1], None)
-                ]
+            selected_signals = file.mdf.select(
+                uuids_signals,
+                ignore_value2text_conversions=self.ignore_value2text_conversions,
+                copy_master=False,
+                validate=True,
+                raw=True,
+            )
 
-                df = file.mdf.to_dataframe(
-                    channels=uuids_signals,
-                    ignore_value2text_conversions=self.ignore_value2text_conversions,
-                    time_from_zero=False,
-                    empty_channels="zeros",
-                )
+            for sig, sig_ in zip(selected_signals, uuids_signals):
+                sig.group_index = sig_[1]
+                sig.channel_index = sig_[2]
+                sig.computed = False
+                sig.computation = {}
+                sig.origin_uuid = uuid
+                sig.name = sig_[0] or sig.name
 
                 if not hasattr(self, "mdf"):
                     # MainWindow => comparison plots
-                    columns = {name: f"{file_index+1}: {name}" for name in df.columns}
-                    df.rename(columns=columns, inplace=True)
 
-                dfs.append(df)
+                    sig.tooltip = f"{sig.name}\n@ {file.file_name}"
+                    sig.name = f"{file_index+1}: {sig.name}"
 
-            if not dfs:
-                return
+            signals.extend(selected_signals)
 
-            signals = pd.concat(dfs, axis=1)
-            start = min(start)
+            for (
+                name,
+                pattern_info,
+                channels,
+                origin_uuid,
+                type_,
+                ranges,
+            ) in get_pattern_groups(names):
 
-            for name in signals.columns:
-                if name.endswith(
-                    (
-                        "CAN_DataFrame.ID",
-                        "FLX_Frame.ID",
-                        "FlexRay_DataFrame.ID",
-                        "LIN_Frame.ID",
-                        "MOST_DataFrame.ID",
-                        "ETH_Frame.ID",
-                    )
-                ):
-                    signals[name] = signals[name].astype("<u4") & 0x1FFFFFFF
-
-        else:
-
-            uuids = set(entry[3] for entry in signals_)
-
-            signals = []
-
-            for uuid in uuids:
-                uuids_signals = [entry[:3] for entry in signals_ if entry[3] == uuid]
-
-                file_info = self.file_by_uuid(uuid)
+                file_info = self.file_by_uuid(origin_uuid)
                 if not file_info:
                     continue
 
                 file_index, file = file_info
 
-                selected_signals = file.mdf.select(
-                    uuids_signals,
-                    ignore_value2text_conversions=self.ignore_value2text_conversions,
-                    copy_master=False,
-                    validate=True,
-                    raw=True,
-                )
-
-                for sig, sig_ in zip(selected_signals, uuids_signals):
-                    sig.group_index = sig_[1]
-                    sig.channel_index = sig_[2]
-                    sig.computed = False
-                    sig.computation = {}
-                    sig.mdf_uuid = uuid
-                    sig.name = sig_[0] or sig.name
-
-                    if not hasattr(self, "mdf"):
-                        # MainWindow => comparison plots
-
-                        sig.tooltip = f"{sig.name}\n@ {file.file_name}"
-                        sig.name = f"{file_index+1}: {sig.name}"
-
-                signals.extend(selected_signals)
-
-            if window_type == "Plot":
-                nd = [
-                    sig
-                    for sig in signals
-                    if sig.samples.dtype.kind not in "SU"
-                    and (sig.samples.dtype.names or len(sig.samples.shape) > 1)
-                ]
-
-                signals = [
-                    sig
-                    for sig in signals
-                    if sig.samples.dtype.kind not in "SU"
-                    and not sig.samples.dtype.names
-                    and not len(sig.samples.shape) > 1
-                ]
-
-                for sig in nd:
-                    if sig.samples.dtype.names is None:
-                        shape = sig.samples.shape[1:]
-
-                        matrix_dims = [list(range(dim)) for dim in shape]
-
-                        matrix_name = sig.name
-
-                        for indexes in itertools.product(*matrix_dims):
-                            indexes_string = "".join(
-                                f"[{_index}]" for _index in indexes
-                            )
-
-                            samples = sig.samples
-                            for idx in indexes:
-                                samples = samples[:, idx]
-                            sig_name = f"{matrix_name}{indexes_string}"
-
-                            new_sig = sig.copy()
-                            new_sig.name = sig_name
-                            new_sig.samples = samples
-                            new_sig.group_index = sig.group_index
-                            new_sig.channel_index = sig.channel_index
-                            new_sig.computed = False
-                            new_sig.computation = {}
-                            new_sig.mdf_uuid = sig.mdf_uuid
-
-                            signals.append(new_sig)
-                    else:
-                        name = sig.samples.dtype.names[0]
-                        if name == sig.name:
-                            array_samples = sig.samples[name]
-
-                            shape = array_samples.shape[1:]
-
-                            matrix_dims = [list(range(dim)) for dim in shape]
-
-                            matrix_name = sig.name
-
-                            for indexes in itertools.product(*matrix_dims):
-                                indexes_string = "".join(
-                                    f"[{_index}]" for _index in indexes
-                                )
-
-                                samples = array_samples
-                                for idx in indexes:
-                                    samples = samples[:, idx]
-                                sig_name = f"{matrix_name}{indexes_string}"
-
-                                new_sig = sig.copy()
-                                new_sig.name = sig_name
-                                new_sig.samples = samples
-                                new_sig.group_index = sig.group_index
-                                new_sig.channel_index = sig.channel_index
-                                new_sig.computed = False
-                                new_sig.computation = {}
-                                new_sig.mdf_uuid = sig.mdf_uuid
-
-                                signals.append(new_sig)
-
-            elif window_type == "Numeric":
-                for (
-                    name,
-                    pattern_info,
-                    channels,
-                    mdf_uuid,
-                    type_,
-                    ranges,
-                ) in get_pattern_groups(names):
-
-                    file_info = self.file_by_uuid(mdf_uuid)
-                    if not file_info:
-                        continue
-
-                    file_index, file = file_info
-
-                    signals.extend(
-                        extract_signals_using_pattern(
-                            file.mdf,
-                            pattern_info,
-                            file.ignore_value2text_conversions,
-                            file.uuid,
-                        )
+                signals.extend(
+                    extract_signals_using_pattern(
+                        file.mdf,
+                        pattern_info,
+                        file.ignore_value2text_conversions,
+                        file.uuid,
                     )
+                )
 
             for signal in signals:
                 if len(signal.samples.shape) > 1:
@@ -1722,333 +1690,536 @@ class WithMDIArea:
 
             signals = natsorted(signals, key=lambda x: x.name)
 
-        if window_type == "Numeric":
-            numeric = Numeric([], parent=self, mode="offline")
+        numeric = Numeric([], parent=self, mode="offline")
 
-            numeric.show()
-            numeric.hide()
+        numeric.show()
+        numeric.hide()
 
-            sub = MdiSubWindow(parent=self)
-            sub.setWidget(numeric)
-            sub.sigClosed.connect(self.window_closed_handler)
-            sub.titleModified.connect(self.window_closed_handler)
+        sub = MdiSubWindow(parent=self)
+        sub.setWidget(numeric)
+        sub.sigClosed.connect(self.window_closed_handler)
+        sub.titleModified.connect(self.window_closed_handler)
 
-            if not self.subplots:
-                for mdi in self.mdi_area.subWindowList():
-                    mdi.close()
-                w = self.mdi_area.addSubWindow(sub)
+        if not self.subplots:
+            for mdi in self.mdi_area.subWindowList():
+                mdi.close()
+            w = self.mdi_area.addSubWindow(sub)
 
+            w.showMaximized()
+        else:
+            w = self.mdi_area.addSubWindow(sub)
+
+            if len(self.mdi_area.subWindowList()) == 1:
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(sub)
+                w.show()
+                self.mdi_area.tileSubWindows()
 
-                if len(self.mdi_area.subWindowList()) == 1:
-                    w.showMaximized()
-                else:
-                    w.show()
-                    self.mdi_area.tileSubWindows()
+        if self._frameless_windows:
+            w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
 
-            if self._frameless_windows:
-                w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+        w.layout().setSpacing(1)
 
-            w.layout().setSpacing(1)
+        menu = w.systemMenu()
 
-            menu = w.systemMenu()
+        action = QtGui.QAction("Set title", menu)
+        action.triggered.connect(partial(set_title, w))
+        before = menu.actions()[0]
+        menu.insertAction(before, action)
 
-            action = QtGui.QAction("Set title", menu)
-            action.triggered.connect(partial(set_title, w))
-            before = menu.actions()[0]
-            menu.insertAction(before, action)
+        w.setWindowTitle(generate_window_title(w, "Numeric"))
 
-            w.setWindowTitle(generate_window_title(w, window_type))
+        numeric.add_channels_request.connect(
+            partial(self.add_new_channels, widget=numeric)
+        )
+        if self.subplots_link:
+            numeric.timestamp_changed_signal.connect(self.set_cursor)
 
-            numeric.add_channels_request.connect(
-                partial(self.add_new_channels, widget=numeric)
+        numeric.add_new_channels(signals)
+        numeric.show()
+
+        self.windows_modified.emit()
+
+    def _add_plot_window(self, signals):
+
+        if signals and isinstance(signals[0], str):
+            mime_data = [
+                (
+                    name,
+                    *self.mdf.whereis(name)[0],
+                    self.uuid,
+                    "channel",
+                    [],
+                    os.urandom(6).hex(),
+                )
+                for name in signals
+                if name in self.mdf
+            ]
+        else:
+            mime_data = signals
+
+        flatten_entries = get_flatten_entries_from_mime(mime_data)
+        signals_ = {
+            entry[-1]: entry
+            for entry in flatten_entries
+            if tuple(entry[1:3]) != (-1, -1)
+        }
+
+        computed = {
+            entry[-1]: entry
+            for entry in flatten_entries
+            if tuple(entry[1:3]) == (-1, -1)
+        }
+
+        uuids = set(entry[3] for entry in signals_.values())
+
+        signals = {}
+
+        for uuid in uuids:
+            uuids_signals = {
+                key: entry for key, entry in signals_.items() if entry[3] == uuid
+            }
+
+            file_info = self.file_by_uuid(uuid)
+            if not file_info:
+                continue
+
+            file_index, file = file_info
+
+            selected_signals = file.mdf.select(
+                [entry[:3] for entry in uuids_signals.values()],
+                ignore_value2text_conversions=self.ignore_value2text_conversions,
+                copy_master=False,
+                validate=True,
+                raw=True,
             )
-            if self.subplots_link:
-                numeric.timestamp_changed_signal.connect(self.set_cursor)
 
-            numeric.add_new_channels(signals)
-            numeric.show()
+            for sig, (sig_uuid, sig_) in zip(selected_signals, uuids_signals.items()):
+                sig.group_index = sig_[1]
+                sig.channel_index = sig_[2]
+                sig.computed = False
+                sig.computation = {}
+                sig.origin_uuid = uuid
+                sig.name = sig_[0] or sig.name
+                sig.uuid = sig_uuid
 
-        elif window_type == "Bar":
-            bar = Bar(signals)
+                if not hasattr(self, "mdf"):
+                    # MainWindow => comparison plots
 
-            sub = MdiSubWindow(parent=self)
-            sub.setWidget(bar)
-            sub.sigClosed.connect(self.window_closed_handler)
-            sub.titleModified.connect(self.window_closed_handler)
+                    sig.tooltip = f"{sig.name}\n@ {file.file_name}"
+                    sig.name = f"{file_index+1}: {sig.name}"
 
-            if not self.subplots:
-                for mdi in self.mdi_area.subWindowList():
-                    mdi.close()
-                w = self.mdi_area.addSubWindow(sub)
+                signals[sig_uuid] = sig
 
-                w.showMaximized()
-            else:
-                w = self.mdi_area.addSubWindow(sub)
+            nd = {
+                key: sig
+                for key, sig in signals.items()
+                if sig.samples.dtype.kind not in "SU"
+                and (sig.samples.dtype.names or len(sig.samples.shape) > 1)
+            }
 
-                if len(self.mdi_area.subWindowList()) == 1:
-                    w.showMaximized()
+            signals = {
+                key: sig
+                for key, sig in signals.items()
+                if sig.samples.dtype.kind not in "SU"
+                and not sig.samples.dtype.names
+                and not len(sig.samples.shape) > 1
+            }
+
+            for sig in nd.values():
+                if sig.samples.dtype.names is None:
+                    shape = sig.samples.shape[1:]
+
+                    matrix_dims = [list(range(dim)) for dim in shape]
+
+                    matrix_name = sig.name
+
+                    for indexes in itertools.product(*matrix_dims):
+                        indexes_string = "".join(f"[{_index}]" for _index in indexes)
+
+                        samples = sig.samples
+                        for idx in indexes:
+                            samples = samples[:, idx]
+                        sig_name = f"{matrix_name}{indexes_string}"
+
+                        new_sig = sig.copy()
+                        new_sig.name = sig_name
+                        new_sig.samples = samples
+                        new_sig.group_index = sig.group_index
+                        new_sig.channel_index = sig.channel_index
+                        new_sig.computed = False
+                        new_sig.computation = {}
+                        new_sig.origin_uuid = sig.origin_uuid
+                        new_sig.uuid = os.urandom(6).hex()
+
+                        signals[new_sig.uuid] = new_sig
                 else:
-                    w.show()
-                    self.mdi_area.tileSubWindows()
+                    name = sig.samples.dtype.names[0]
+                    if name == sig.name:
+                        array_samples = sig.samples[name]
 
-            if self._frameless_windows:
-                w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+                        shape = array_samples.shape[1:]
 
-            w.layout().setSpacing(1)
+                        matrix_dims = [list(range(dim)) for dim in shape]
 
-            menu = w.systemMenu()
+                        matrix_name = sig.name
 
-            action = QtGui.QAction("Set title", menu)
-            action.triggered.connect(partial(set_title, w))
-            before = menu.actions()[0]
-            menu.insertAction(before, action)
+                        for indexes in itertools.product(*matrix_dims):
+                            indexes_string = "".join(
+                                f"[{_index}]" for _index in indexes
+                            )
 
-            w.setWindowTitle(generate_window_title(w, window_type))
+                            samples = array_samples
+                            for idx in indexes:
+                                samples = samples[:, idx]
+                            sig_name = f"{matrix_name}{indexes_string}"
 
-            bar.add_channels_request.connect(partial(self.add_new_channels, widget=bar))
-            if self.subplots_link:
-                bar.timestamp_changed_signal.connect(self.set_cursor)
+                            new_sig = sig.copy()
+                            new_sig.name = sig_name
+                            new_sig.samples = samples
+                            new_sig.group_index = sig.group_index
+                            new_sig.channel_index = sig.channel_index
+                            new_sig.computed = False
+                            new_sig.computation = {}
+                            new_sig.origin_uuid = sig.origin_uuid
+                            new_sig.uuid = os.urandom(6).hex()
 
-        elif window_type == "Plot":
-            mime_data = names
-            if hasattr(self, "mdf"):
-                events = []
-                origin = self.mdf.start_time
+                            signals[new_sig.uuid] = new_sig
 
-                if self.mdf.version >= "4.00":
-                    mdf_events = list(self.mdf.events)
-
-                    for pos, event in enumerate(mdf_events):
-                        event_info = {}
-                        event_info["value"] = event.value
-                        event_info["type"] = v4c.EVENT_TYPE_TO_STRING[event.event_type]
-                        description = event.name
-                        if event.comment:
-                            try:
-                                comment = extract_cncomment_xml(event.comment)
-                            except:
-                                comment = event.comment
-                            description += f" ({comment})"
-                        event_info["description"] = description
-                        event_info["index"] = pos
-
-                        if event.range_type == v4c.EVENT_RANGE_TYPE_POINT:
-                            events.append(event_info)
-                        elif event.range_type == v4c.EVENT_RANGE_TYPE_BEGINNING:
-                            events.append([event_info])
+            for signal in signals.values():
+                if len(signal.samples.shape) > 1:
+                    if signal.name.endswith(".DataBytes"):
+                        length_name = signal.name.replace(".DataBytes", ".DataLength")
+                        for s in signals:
+                            if s.name == length_name:
+                                length = s.samples
+                                break
                         else:
-                            if event.parent is not None:
-                                parent = events[event.parent]
-                                parent.append(event_info)
-                            events.append(None)
-                    events = [ev for ev in events if ev is not None]
-                else:
-                    for gp in self.mdf.groups:
-                        if not gp.trigger:
-                            continue
+                            if length_name in self.mdf:
+                                length = self.mdf.get(length_name, samples_only=True)[0]
+                            else:
+                                length = None
+                    else:
+                        length = None
+                    signal.samples = csv_bytearray2hex(
+                        pd.Series(list(signal.samples)), length
+                    )
 
-                        for i in range(gp.trigger.trigger_events_nr):
-                            event = {
-                                "value": gp.trigger[f"trigger_{i}_time"],
-                                "index": i,
-                                "description": gp.trigger.comment,
-                                "type": v4c.EVENT_TYPE_TO_STRING[
-                                    v4c.EVENT_TYPE_TRIGGER
-                                ],
-                            }
-                            events.append(event)
+                if signal.name.endswith("CAN_DataFrame.ID"):
+                    signal.samples = signal.samples.astype("<u4") & 0x1FFFFFFF
+
+            # signals = natsorted(signals, key=lambda x: x.name)
+
+        if computed:
+            measured_signals = {sig.name: sig for sig in signals.values()}
+            if measured_signals:
+                all_timebase = np.unique(
+                    np.concatenate(
+                        [sig.timestamps for sig in measured_signals.values()]
+                    )
+                )
             else:
-                events = []
-                origin = self.files.widget(0).mdf.start_time
+                all_timebase = []
 
-            if hasattr(self, "mdf"):
-                mdf = self.mdf
+            required_channels = []
+            for ch in computed:
+                required_channels.extend(get_required_from_computed(ch[0]))
+
+            required_channels = set(required_channels)
+            required_channels = [
+                (None, *self.mdf.whereis(channel)[0])
+                for channel in required_channels
+                if channel not in list(measured_signals) and channel in self.mdf
+            ]
+            required_channels = {
+                sig.name: sig
+                for sig in self.mdf.select(
+                    required_channels,
+                    ignore_value2text_conversions=self.ignore_value2text_conversions,
+                    copy_master=False,
+                )
+            }
+
+            required_channels.update(measured_signals)
+
+            # computed_signals = {}
+            #
+            # for channel in computed:
+            #     computation = channel["computation"]
+            #
+            #     try:
+            #
+            #         signal = compute_signal(
+            #             computation, required_channels, all_timebase
+            #         )
+            #         signal.color = channel["color"]
+            #         signal.computed = True
+            #         signal.computation = channel["computation"]
+            #         signal.name = channel["name"]
+            #         signal.unit = channel["unit"]
+            #         signal.group_index = -1
+            #         signal.channel_index = -1
+            #
+            #         computed_signals[signal.name] = signal
+            #     except:
+            #         pass
+            # signals = list(computed_signals.values())
+
+        if hasattr(self, "mdf"):
+            events = []
+            origin = self.mdf.start_time
+
+            if self.mdf.version >= "4.00":
+                mdf_events = list(self.mdf.events)
+
+                for pos, event in enumerate(mdf_events):
+                    event_info = {}
+                    event_info["value"] = event.value
+                    event_info["type"] = v4c.EVENT_TYPE_TO_STRING[event.event_type]
+                    description = event.name
+                    if event.comment:
+                        try:
+                            comment = extract_cncomment_xml(event.comment)
+                        except:
+                            comment = event.comment
+                        description += f" ({comment})"
+                    event_info["description"] = description
+                    event_info["index"] = pos
+
+                    if event.range_type == v4c.EVENT_RANGE_TYPE_POINT:
+                        events.append(event_info)
+                    elif event.range_type == v4c.EVENT_RANGE_TYPE_BEGINNING:
+                        events.append([event_info])
+                    else:
+                        if event.parent is not None:
+                            parent = events[event.parent]
+                            parent.append(event_info)
+                        events.append(None)
+                events = [ev for ev in events if ev is not None]
             else:
-                mdf = None
-            plot = Plot(
-                [],
-                events=events,
-                with_dots=self.with_dots,
-                line_interconnect=self.line_interconnect,
-                origin=origin,
-                mdf=mdf,
-                parent=self,
-                hide_missing_channels=self.hide_missing_channels,
-                hide_disabled_channels=self.hide_disabled_channels,
-            )
-            plot.pattern_group_added.connect(self.add_pattern_group)
-            plot.pattern = {}
-
-            sub = MdiSubWindow(parent=self)
-            sub.setWidget(plot)
-            sub.sigClosed.connect(self.window_closed_handler)
-            sub.titleModified.connect(self.window_closed_handler)
-
-            if not self.subplots:
-                for mdi in self.mdi_area.subWindowList():
-                    mdi.close()
-                w = self.mdi_area.addSubWindow(sub)
-
-                w.showMaximized()
-            else:
-                w = self.mdi_area.addSubWindow(sub)
-
-                if len(self.mdi_area.subWindowList()) == 1:
-                    w.showMaximized()
-                else:
-                    w.show()
-                    self.mdi_area.tileSubWindows()
-
-            if self._frameless_windows:
-                w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
-
-            w.layout().setSpacing(1)
-
-            plot.show()
-
-            menu = w.systemMenu()
-
-            action = QtGui.QAction("Set title", menu)
-            action.triggered.connect(partial(set_title, w))
-            before = menu.actions()[0]
-            menu.insertAction(before, action)
-
-            w.setWindowTitle(generate_window_title(w, window_type))
-
-            if self.subplots_link:
-
-                for i, mdi in enumerate(self.mdi_area.subWindowList()):
-                    try:
-                        viewbox = mdi.widget().plot.viewbox
-                        if plot.plot.viewbox is not viewbox:
-                            plot.plot.viewbox.setXLink(viewbox)
-                        break
-                    except:
+                for gp in self.mdf.groups:
+                    if not gp.trigger:
                         continue
 
-            plot.add_channels_request.connect(
-                partial(self.add_new_channels, widget=plot)
-            )
+                    for i in range(gp.trigger.trigger_events_nr):
+                        event = {
+                            "value": gp.trigger[f"trigger_{i}_time"],
+                            "index": i,
+                            "description": gp.trigger.comment,
+                            "type": v4c.EVENT_TYPE_TO_STRING[v4c.EVENT_TYPE_TRIGGER],
+                        }
+                        events.append(event)
+        else:
+            events = []
+            origin = self.files.widget(0).mdf.start_time
 
-            plot.show_properties.connect(self._show_info)
-            # TO DO plot.channel_selection.setCurrentRow(0)
+        if hasattr(self, "mdf"):
+            mdf = self.mdf
+        else:
+            mdf = None
+        plot = Plot(
+            [],
+            events=events,
+            with_dots=self.with_dots,
+            line_interconnect=self.line_interconnect,
+            origin=origin,
+            mdf=mdf,
+            parent=self,
+            hide_missing_channels=self.hide_missing_channels,
+            hide_disabled_channels=self.hide_disabled_channels,
+        )
+        plot.pattern_group_added.connect(self.add_pattern_group)
+        plot.pattern = {}
 
-            plot.add_new_channels(signals, mime_data)
+        sub = MdiSubWindow(parent=self)
+        sub.setWidget(plot)
+        sub.sigClosed.connect(self.window_closed_handler)
+        sub.titleModified.connect(self.window_closed_handler)
 
-            if computed:
-                measured_signals = {sig.name: sig for sig in signals}
-                if measured_signals:
-                    all_timebase = np.unique(
-                        np.concatenate(
-                            [sig.timestamps for sig in measured_signals.values()]
-                        )
-                    )
-                else:
-                    all_timebase = []
+        if not self.subplots:
+            for mdi in self.mdi_area.subWindowList():
+                mdi.close()
+            w = self.mdi_area.addSubWindow(sub)
 
-                required_channels = []
-                for ch in computed:
-                    required_channels.extend(get_required_from_computed(ch))
+            w.showMaximized()
+        else:
+            w = self.mdi_area.addSubWindow(sub)
 
-                required_channels = set(required_channels)
-                required_channels = [
-                    (None, *self.mdf.whereis(channel)[0])
-                    for channel in required_channels
-                    if channel not in list(measured_signals) and channel in self.mdf
-                ]
-                required_channels = {
-                    sig.name: sig
-                    for sig in self.mdf.select(
-                        required_channels,
-                        ignore_value2text_conversions=self.ignore_value2text_conversions,
-                        copy_master=False,
-                    )
-                }
-
-                required_channels.update(measured_signals)
-
-                computed_signals = {}
-
-                for channel in computed:
-                    computation = channel["computation"]
-
-                    try:
-
-                        signal = compute_signal(
-                            computation, required_channels, all_timebase
-                        )
-                        signal.color = channel["color"]
-                        signal.computed = True
-                        signal.computation = channel["computation"]
-                        signal.name = channel["name"]
-                        signal.unit = channel["unit"]
-                        signal.group_index = -1
-                        signal.channel_index = -1
-
-                        computed_signals[signal.name] = signal
-                    except:
-                        pass
-                signals = list(computed_signals.values())
-                plot.add_new_channels(signals)
-
-            self.set_subplots_link(self.subplots_link)
-
-            iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
-            while iterator.value():
-                item = iterator.value()
-                iterator += 1
-
-                if isinstance(item, ChannelsGroupTreeItem):
-                    if item.pattern:
-                        plot.pattern_group_added.emit(plot, item)
-
-        elif window_type == "Tabular":
-            tabular = Tabular(signals, start=start, parent=self)
-
-            sub = MdiSubWindow(parent=self)
-            sub.setWidget(tabular)
-            sub.sigClosed.connect(self.window_closed_handler)
-            sub.titleModified.connect(self.window_closed_handler)
-
-            if not self.subplots:
-                for mdi in self.mdi_area.subWindowList():
-                    mdi.close()
-                w = self.mdi_area.addSubWindow(sub)
-
+            if len(self.mdi_area.subWindowList()) == 1:
                 w.showMaximized()
             else:
-                w = self.mdi_area.addSubWindow(sub)
+                w.show()
+                self.mdi_area.tileSubWindows()
 
-                if len(self.mdi_area.subWindowList()) == 1:
-                    w.showMaximized()
-                else:
-                    w.show()
-                    self.mdi_area.tileSubWindows()
+        if self._frameless_windows:
+            w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
 
-            menu = w.systemMenu()
-            if self._frameless_windows:
-                w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+        w.layout().setSpacing(1)
 
-            w.layout().setSpacing(1)
+        plot.show()
 
-            action = QtGui.QAction("Set title", menu)
-            action.triggered.connect(partial(set_title, w))
-            before = menu.actions()[0]
-            menu.insertAction(before, action)
+        menu = w.systemMenu()
 
-            w.setWindowTitle(generate_window_title(w, window_type))
+        action = QtGui.QAction("Set title", menu)
+        action.triggered.connect(partial(set_title, w))
+        before = menu.actions()[0]
+        menu.insertAction(before, action)
 
-            if self.subplots_link:
-                tabular.timestamp_changed_signal.connect(self.set_cursor)
+        w.setWindowTitle(generate_window_title(w, "Plot"))
 
-            tabular.add_channels_request.connect(
-                partial(self.add_new_channels, widget=tabular)
+        if self.subplots_link:
+
+            for i, mdi in enumerate(self.mdi_area.subWindowList()):
+                try:
+                    viewbox = mdi.widget().plot.viewbox
+                    if plot.plot.viewbox is not viewbox:
+                        plot.plot.viewbox.setXLink(viewbox)
+                    break
+                except:
+                    continue
+
+        plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
+
+        plot.show_properties.connect(self._show_info)
+        # TO DO plot.channel_selection.setCurrentRow(0)
+
+        plot.add_new_channels(signals, mime_data)
+
+        self.set_subplots_link(self.subplots_link)
+
+        iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
+        while iterator.value():
+            item = iterator.value()
+            iterator += 1
+
+            if isinstance(item, ChannelsGroupTreeItem):
+                if item.pattern:
+                    plot.pattern_group_added.emit(plot, item)
+
+        self.windows_modified.emit()
+
+        return w, plot
+
+    def _add_tabular_window(self, names):
+
+        if names and isinstance(names[0], str):
+            signals_ = [
+                (
+                    name,
+                    *self.mdf.whereis(name)[0],
+                    self.uuid,
+                    "channel",
+                    [],
+                    os.urandom(6).hex(),
+                )
+                for name in names
+                if name in self.mdf
+            ]
+        else:
+            flatten_entries = get_flatten_entries_from_mime(names)
+            signals_ = [
+                entry for entry in flatten_entries if tuple(entry[1:3]) != (-1, -1)
+            ]
+
+        signals_ = natsorted(signals_)
+
+        uuids = set(entry[3] for entry in signals_)
+
+        dfs = []
+        start = []
+
+        for uuid in uuids:
+            uuids_signals = [entry[:3] for entry in signals_ if entry[3] == uuid]
+
+            file_info = self.file_by_uuid(uuid)
+            if not file_info:
+                continue
+
+            file_index, file = file_info
+            start.append(file.mdf.header.start_time.timestamp())
+
+            uuids_signals = [
+                entry
+                for entry in uuids_signals
+                if entry[2] != file.mdf.masters_db.get(entry[1], None)
+            ]
+
+            df = file.mdf.to_dataframe(
+                channels=uuids_signals,
+                ignore_value2text_conversions=self.ignore_value2text_conversions,
+                time_from_zero=False,
+                empty_channels="zeros",
             )
 
-            tabular.tree.auto_size_header()
+            if not hasattr(self, "mdf"):
+                # MainWindow => comparison plots
+                columns = {name: f"{file_index+1}: {name}" for name in df.columns}
+                df.rename(columns=columns, inplace=True)
+
+            dfs.append(df)
+
+        if not dfs:
+            return
+
+        signals = pd.concat(dfs, axis=1)
+        start = min(start)
+
+        for name in signals.columns:
+            if name.endswith(
+                (
+                    "CAN_DataFrame.ID",
+                    "FLX_Frame.ID",
+                    "FlexRay_DataFrame.ID",
+                    "LIN_Frame.ID",
+                    "MOST_DataFrame.ID",
+                    "ETH_Frame.ID",
+                )
+            ):
+                signals[name] = signals[name].astype("<u4") & 0x1FFFFFFF
+
+        tabular = Tabular(signals, start=start, parent=self)
+
+        sub = MdiSubWindow(parent=self)
+        sub.setWidget(tabular)
+        sub.sigClosed.connect(self.window_closed_handler)
+        sub.titleModified.connect(self.window_closed_handler)
+
+        if not self.subplots:
+            for mdi in self.mdi_area.subWindowList():
+                mdi.close()
+            w = self.mdi_area.addSubWindow(sub)
+
+            w.showMaximized()
+        else:
+            w = self.mdi_area.addSubWindow(sub)
+
+            if len(self.mdi_area.subWindowList()) == 1:
+                w.showMaximized()
+            else:
+                w.show()
+                self.mdi_area.tileSubWindows()
+
+        menu = w.systemMenu()
+        if self._frameless_windows:
+            w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+
+        w.layout().setSpacing(1)
+
+        action = QtGui.QAction("Set title", menu)
+        action.triggered.connect(partial(set_title, w))
+        before = menu.actions()[0]
+        menu.insertAction(before, action)
+
+        w.setWindowTitle(generate_window_title(w, "Tabular"))
+
+        if self.subplots_link:
+            tabular.timestamp_changed_signal.connect(self.set_cursor)
+
+        tabular.add_channels_request.connect(
+            partial(self.add_new_channels, widget=tabular)
+        )
+
+        tabular.tree.auto_size_header()
 
         self.windows_modified.emit()
 
@@ -2063,872 +2234,776 @@ class WithMDIArea:
 
     def load_window(self, window_info):
 
+        functions = {
+            "Numeric": self._load_numeric_window,
+            "Plot": self._load_plot_window,
+            "GPS": self._load_gps_window,
+            "Tabular": self._load_tabular_window,
+            "CAN Bus Trace": self._load_can_bus_trace_window,
+            "FlexRay Bus Trace": self._load_flexray_bus_trace_window,
+            "LIN Bus Trace": self._load_lin_bus_trace_window,
+        }
+
+        load_window_function = functions[window_info["type"]]
+
+        w, pattern_info = load_window_function(window_info)
+
+        if w:
+
+            if self._frameless_windows:
+                w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+
+            if pattern_info:
+                icon = QtGui.QIcon()
+                icon.addPixmap(
+                    QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                )
+                w.setWindowIcon(icon)
+
+            w.layout().setSpacing(1)
+
+            self.windows_modified.emit()
+
+    def _load_numeric_window(self, window_info):
+
         uuid = self.uuid
         geometry = window_info.get("geometry", None)
 
-        if window_info["type"] == "Numeric":
-            # patterns
-            pattern_info = window_info["configuration"].get("pattern", {})
-            if pattern_info:
+        # patterns
+        pattern_info = window_info["configuration"].get("pattern", {})
+        if pattern_info:
 
-                signals = extract_signals_using_pattern(
-                    self.mdf,
-                    pattern_info,
-                    self.ignore_value2text_conversions,
-                    self.uuid,
+            signals = extract_signals_using_pattern(
+                self.mdf,
+                pattern_info,
+                self.ignore_value2text_conversions,
+                self.uuid,
+            )
+
+            for sig in signals:
+                sig.origin_uuid = uuid
+                sig.computation = None
+
+            try:
+                ranges = [
+                    {
+                        "font_color": range["color"],
+                        "background_color": range["color"],
+                        "op1": "<=",
+                        "op2": "<=",
+                        "value1": float(range["start"]),
+                        "value2": float(range["stop"]),
+                    }
+                    for range in pattern_info["ranges"]
+                ]
+            except KeyError:
+                ranges = pattern_info["ranges"]
+
+            for range in ranges:
+                range["font_color"] = QtGui.QBrush(QtGui.QColor(range["font_color"]))
+                range["background_color"] = QtGui.QBrush(
+                    QtGui.QColor(range["background_color"])
                 )
 
-                for sig in signals:
-                    sig.mdf_uuid = uuid
-                    sig.computation = None
+            pattern_info["ranges"] = ranges
 
-                try:
-                    ranges = [
-                        {
-                            "font_color": range["color"],
-                            "background_color": range["color"],
-                            "op1": "<=",
-                            "op2": "<=",
-                            "value1": float(range["start"]),
-                            "value2": float(range["stop"]),
-                        }
-                        for range in pattern_info["ranges"]
-                    ]
-                except KeyError:
-                    ranges = pattern_info["ranges"]
+        else:
 
-                for range in ranges:
-                    range["font_color"] = QtGui.QBrush(
-                        QtGui.QColor(range["font_color"])
+            required = set(window_info["configuration"]["channels"])
+
+            signals_ = [
+                (name, *self.mdf.whereis(name)[0])
+                for name in window_info["configuration"]["channels"]
+                if name in self.mdf
+            ]
+
+            if window_info["configuration"].get("ranges", []):
+                ranges = [
+                    range
+                    for name, range in zip(
+                        window_info["configuration"]["channels"],
+                        window_info["configuration"]["ranges"],
                     )
-                    range["background_color"] = QtGui.QBrush(
-                        QtGui.QColor(range["background_color"])
-                    )
+                    if name in self.mdf
+                ]
 
-                pattern_info["ranges"] = ranges
-
+                for channel_ranges in ranges:
+                    for range in channel_ranges:
+                        range["font_color"] = QtGui.QBrush(
+                            QtGui.QColor(range["font_color"])
+                        )
+                        range["background_color"] = QtGui.QBrush(
+                            QtGui.QColor(range["background_color"])
+                        )
             else:
-
-                required = set(window_info["configuration"]["channels"])
-
-                signals_ = [
-                    (name, *self.mdf.whereis(name)[0])
+                ranges = [
+                    []
                     for name in window_info["configuration"]["channels"]
                     if name in self.mdf
                 ]
 
-                if window_info["configuration"].get("ranges", []):
-                    ranges = [
-                        range
-                        for name, range in zip(
-                            window_info["configuration"]["channels"],
-                            window_info["configuration"]["ranges"],
-                        )
-                        if name in self.mdf
-                    ]
-
-                    for channel_ranges in ranges:
-                        for range in channel_ranges:
-                            range["font_color"] = QtGui.QBrush(
-                                QtGui.QColor(range["font_color"])
-                            )
-                            range["background_color"] = QtGui.QBrush(
-                                QtGui.QColor(range["background_color"])
-                            )
-                else:
-                    ranges = [
-                        []
-                        for name in window_info["configuration"]["channels"]
-                        if name in self.mdf
-                    ]
-
-                if not signals_:
-                    return
-
-                signals = self.mdf.select(
-                    signals_,
-                    ignore_value2text_conversions=self.ignore_value2text_conversions,
-                    copy_master=False,
-                    validate=True,
-                    raw=True,
-                )
-
-                for sig, sig_, channel_ranges in zip(signals, signals_, ranges):
-                    sig.group_index = sig_[1]
-                    sig.mdf_uuid = uuid
-                    sig.computation = None
-                    sig.ranges = channel_ranges
-
-                signals = [
-                    sig
-                    for sig in signals
-                    if not sig.samples.dtype.names and len(sig.samples.shape) <= 1
-                ]
-
-                signals = natsorted(signals, key=lambda x: x.name)
-
-                found = set(sig.name for sig in signals)
-                not_found = [
-                    Signal([], [], name=name) for name in sorted(required - found)
-                ]
-                uuid = os.urandom(6).hex()
-                for sig in not_found:
-                    sig.mdf_uuid = uuid
-                    sig.group_index = 0
-
-                signals.extend(not_found)
-
-            numeric = Numeric(
-                [],
-                format=window_info["configuration"]["format"],
-                float_precision=window_info["configuration"].get("float_precision", 3),
-                parent=self,
-                mode="offline",
-            )
-            numeric.pattern = pattern_info
-
-            sub = MdiSubWindow(parent=self)
-            sub.setWidget(numeric)
-            sub.sigClosed.connect(self.window_closed_handler)
-            sub.titleModified.connect(self.window_closed_handler)
-
-            if not self.subplots:
-                for mdi in self.mdi_area.subWindowList():
-                    mdi.close()
-                w = self.mdi_area.addSubWindow(sub)
-
-                w.showMaximized()
-            else:
-                w = self.mdi_area.addSubWindow(sub)
-                w.show()
-
-                if geometry:
-                    w.setGeometry(*geometry)
-                else:
-                    self.mdi_area.tileSubWindows()
-
-            if window_info.get("maximized", False):
-                w.showMaximized()
-            elif window_info.get("minimized", False):
-                w.showMinimized()
-
-            w.setWindowTitle(
-                generate_window_title(w, window_info["type"], window_info["title"])
-            )
-
-            numeric.add_new_channels(signals)
-
-            menu = w.systemMenu()
-
-            action = QtGui.QAction("Set title", menu)
-            action.triggered.connect(partial(set_title, w))
-            before = menu.actions()[0]
-            menu.insertAction(before, action)
-
-            numeric.add_channels_request.connect(
-                partial(self.add_new_channels, widget=numeric)
-            )
-
-            if self.subplots_link:
-                numeric.timestamp_changed_signal.connect(self.set_cursor)
-
-            sections_width = window_info["configuration"].get(
-                "header_sections_width", []
-            )
-            if sections_width:
-                sections_width = reversed(
-                    [(i, width) for i, width in enumerate(sections_width)]
-                )
-                for column_index, width in sections_width:
-                    numeric.channels.columnHeader.setColumnWidth(column_index, width)
-                    numeric.channels.dataView.setColumnWidth(
-                        column_index,
-                        numeric.channels.columnHeader.columnWidth(column_index),
-                    )
-
-        elif window_info["type"] == "GPS":
-            signals_ = [
-                (None, *self.mdf.whereis(name)[0])
-                for name in (
-                    window_info["configuration"]["latitude_channel"],
-                    window_info["configuration"]["longitude_channel"],
-                )
-                if name in self.mdf
-            ]
-
-            if len(signals_) != 2:
+            if not signals_:
                 return
 
-            latitude, longitude = self.mdf.select(
+            signals = self.mdf.select(
                 signals_,
+                ignore_value2text_conversions=self.ignore_value2text_conversions,
                 copy_master=False,
                 validate=True,
-                raw=False,
+                raw=True,
             )
 
-            gps = GPS(latitude, longitude, window_info["configuration"]["zoom"])
-
-            sub = MdiSubWindow(parent=self)
-            sub.setWidget(gps)
-            sub.sigClosed.connect(self.window_closed_handler)
-            sub.titleModified.connect(self.window_closed_handler)
-
-            if not self.subplots:
-                for mdi in self.mdi_area.subWindowList():
-                    mdi.close()
-                w = self.mdi_area.addSubWindow(sub)
-
-                w.showMaximized()
-            else:
-                w = self.mdi_area.addSubWindow(sub)
-                w.show()
-
-                if geometry:
-                    w.setGeometry(*geometry)
-                else:
-                    self.mdi_area.tileSubWindows()
-
-            w.setWindowTitle(
-                generate_window_title(w, window_info["type"], window_info["title"])
-            )
-
-            if window_info.get("maximized", False):
-                w.showMaximized()
-            elif window_info.get("minimized", False):
-                w.showMinimized()
-
-            gps._update_values()
-
-            menu = w.systemMenu()
-
-            action = QtGui.QAction("Set title", menu)
-            action.triggered.connect(partial(set_title, w))
-            before = menu.actions()[0]
-            menu.insertAction(before, action)
-
-            if self.subplots_link:
-                gps.timestamp_changed_signal.connect(self.set_cursor)
-
-        elif window_info["type"] == "Plot":
-            # patterns
-            pattern_info = window_info["configuration"].get("pattern", {})
-            if pattern_info:
-                required = set()
-                found_signals = []
-
-                signals = extract_signals_using_pattern(
-                    self.mdf,
-                    pattern_info,
-                    self.ignore_value2text_conversions,
-                    self.uuid,
-                )
-
-                mime_data = None
-
-            else:
-
-                (
-                    required,
-                    found_signals,
-                    not_found,
-                    computed_signals_descriptions,
-                ) = get_required_from_config(
-                    window_info["configuration"]["channels"], self.mdf
-                )
-                mime_data = build_mime_from_config(
-                    window_info["configuration"]["channels"], self.mdf, self.uuid
-                )
-
-                measured_signals_ = [
-                    (name, *self.mdf.whereis(name)[0]) for name in found_signals
-                ]
-
-                found_signals = list(found_signals.values())
-
-                measured_signals = {
-                    sig_info[0]: sig
-                    for sig, sig_info in zip(
-                        self.mdf.select(
-                            measured_signals_,
-                            ignore_value2text_conversions=self.ignore_value2text_conversions,
-                            copy_master=False,
-                            validate=True,
-                            raw=True,
-                        ),
-                        measured_signals_,
-                    )
-                }
-
-                for signal, entry_info, channel in zip(
-                    measured_signals.values(), measured_signals_, found_signals
-                ):
-                    signal.computed = False
-                    signal.computation = {}
-                    signal.color = channel["color"]
-                    signal.group_index = entry_info[1]
-                    signal.channel_index = entry_info[2]
-                    signal.mdf_uuid = uuid
-                    signal.name = entry_info[0]
-
-                matrix_components = []
-                for name in not_found:
-                    name, indexes = parse_matrix_component(name)
-                    if indexes and name in self.mdf:
-                        matrix_components.append((name, indexes))
-
-                matrix_signals = {
-                    str(matrix_element): sig
-                    for sig, matrix_element in zip(
-                        self.mdf.select(
-                            [el[0] for el in matrix_components],
-                            ignore_value2text_conversions=self.ignore_value2text_conversions,
-                            copy_master=False,
-                        ),
-                        matrix_components,
-                    )
-                }
-
-                new_matrix_signals = {}
-                for signal_mat, (_n, indexes) in zip(
-                    matrix_signals.values(), matrix_components
-                ):
-                    signal = deepcopy(signal_mat)
-                    signal.computed = False
-                    signal.computation = {}
-                    signal.group_index, signal.channel_index = self.mdf.whereis(
-                        signal.name
-                    )[0]
-
-                    indexes_string = "".join(f"[{_index}]" for _index in indexes)
-
-                    samples = signal.samples
-                    if samples.dtype.names:
-                        samples = samples[signal.name]
-
-                    for idx in indexes:
-                        samples = samples[:, idx]
-                    sig_name = f"{signal.name}{indexes_string}"
-                    signal.name = sig_name
-                    signal.samples = samples
-
-                    new_matrix_signals[signal.name] = signal
-
-                measured_signals.update(
-                    {name: sig for name, sig in new_matrix_signals.items()}
-                )
-
-                if measured_signals:
-                    all_timebase = np.unique(
-                        np.concatenate(
-                            [sig.timestamps for sig in measured_signals.values()]
-                        )
-                    )
-                else:
-                    all_timebase = []
-
-                required_channels = []
-                for ch in computed_signals_descriptions:
-                    required_channels.extend(get_required_from_computed(ch))
-
-                required_channels = set(required_channels)
-                required_channels = [
-                    (None, *self.mdf.whereis(channel)[0])
-                    for channel in required_channels
-                    if channel not in list(measured_signals) and channel in self.mdf
-                ]
-                required_channels = {
-                    sig.name: sig
-                    for sig in self.mdf.select(
-                        required_channels,
-                        ignore_value2text_conversions=self.ignore_value2text_conversions,
-                        copy_master=False,
-                    )
-                }
-
-                required_channels.update(measured_signals)
-
-                computed_signals = {}
-
-                for channel in computed_signals_descriptions:
-                    computation = channel["computation"]
-
-                    try:
-
-                        signal = compute_signal(
-                            computation, required_channels, all_timebase
-                        )
-                        signal.color = channel["color"]
-                        signal.computed = True
-                        signal.computation = channel["computation"]
-                        signal.name = channel["name"]
-                        signal.unit = channel["unit"]
-                        signal.group_index = -1
-                        signal.channel_index = -1
-                        signal.mdf_uuid = uuid
-
-                        if "conversion" in channel:
-                            signal.conversion = from_dict(channel["conversion"])
-                            signal.name = channel["user_defined_name"]
-
-                        computed_signals[signal.name] = signal
-                    except:
-                        pass
-
-                signals = list(measured_signals.values()) + list(
-                    computed_signals.values()
-                )
+            for sig, sig_, channel_ranges in zip(signals, signals_, ranges):
+                sig.group_index = sig_[1]
+                sig.origin_uuid = uuid
+                sig.computation = None
+                sig.ranges = channel_ranges
 
             signals = [
                 sig
                 for sig in signals
-                if sig.samples.dtype.kind not in "SU"
-                and not sig.samples.dtype.names
-                and not len(sig.samples.shape) > 1
+                if not sig.samples.dtype.names and len(sig.samples.shape) <= 1
             ]
 
-            if hasattr(self, "mdf"):
-                events = []
-                origin = self.mdf.start_time
-
-                if self.mdf.version >= "4.00":
-                    mdf_events = list(self.mdf.events)
-
-                    for pos, event in enumerate(mdf_events):
-                        event_info = {}
-                        event_info["value"] = event.value
-                        event_info["type"] = v4c.EVENT_TYPE_TO_STRING[event.event_type]
-                        description = event.name
-                        if event.comment:
-                            try:
-                                comment = extract_cncomment_xml(event.comment)
-                            except:
-                                comment = event.comment
-                            description += f" ({comment})"
-                        event_info["description"] = description
-                        event_info["index"] = pos
-
-                        if event.range_type == v4c.EVENT_RANGE_TYPE_POINT:
-                            events.append(event_info)
-                        elif event.range_type == v4c.EVENT_RANGE_TYPE_BEGINNING:
-                            events.append([event_info])
-                        else:
-                            parent = events[event.parent]
-                            parent.append(event_info)
-                            events.append(None)
-                    events = [ev for ev in events if ev is not None]
-                else:
-                    for gp in self.mdf.groups:
-                        if not gp.trigger:
-                            continue
-
-                        for i in range(gp.trigger.trigger_events_nr):
-                            event = {
-                                "value": gp.trigger[f"trigger_{i}_time"],
-                                "index": i,
-                                "description": gp.trigger.comment,
-                                "type": v4c.EVENT_TYPE_TO_STRING[
-                                    v4c.EVENT_TYPE_TRIGGER
-                                ],
-                            }
-                            events.append(event)
-            else:
-                events = []
-                origin = self.files.widget(0).mdf.start_time
+            signals = natsorted(signals, key=lambda x: x.name)
 
             found = set(sig.name for sig in signals)
             not_found = [Signal([], [], name=name) for name in sorted(required - found)]
-            # uuid = os.urandom(6).hex()
+            uuid = os.urandom(6).hex()
             for sig in not_found:
-                sig.mdf_uuid = uuid
-                sig.group_index = NOT_FOUND
-                sig.channel_index = NOT_FOUND
+                sig.origin_uuid = uuid
+                sig.group_index = 0
 
             signals.extend(not_found)
 
-            if hasattr(self, "mdf"):
-                mdf = self.mdf
+        numeric = Numeric(
+            [],
+            format=window_info["configuration"]["format"],
+            float_precision=window_info["configuration"].get("float_precision", 3),
+            parent=self,
+            mode="offline",
+        )
+        numeric.pattern = pattern_info
+
+        sub = MdiSubWindow(parent=self)
+        sub.setWidget(numeric)
+        sub.sigClosed.connect(self.window_closed_handler)
+        sub.titleModified.connect(self.window_closed_handler)
+
+        if not self.subplots:
+            for mdi in self.mdi_area.subWindowList():
+                mdi.close()
+            w = self.mdi_area.addSubWindow(sub)
+
+            w.showMaximized()
+        else:
+            w = self.mdi_area.addSubWindow(sub)
+            w.show()
+
+            if geometry:
+                w.setGeometry(*geometry)
             else:
-                mdf = None
-            plot = Plot(
-                [],
-                with_dots=self.with_dots,
-                line_interconnect=self.line_interconnect,
-                events=events,
-                origin=origin,
-                mdf=mdf,
-                parent=self,
-                hide_missing_channels=self.hide_missing_channels,
-                hide_disabled_channels=self.hide_disabled_channels,
+                self.mdi_area.tileSubWindows()
+
+        if window_info.get("maximized", False):
+            w.showMaximized()
+        elif window_info.get("minimized", False):
+            w.showMinimized()
+
+        w.setWindowTitle(
+            generate_window_title(w, window_info["type"], window_info["title"])
+        )
+
+        numeric.add_new_channels(signals)
+
+        menu = w.systemMenu()
+
+        action = QtGui.QAction("Set title", menu)
+        action.triggered.connect(partial(set_title, w))
+        before = menu.actions()[0]
+        menu.insertAction(before, action)
+
+        numeric.add_channels_request.connect(
+            partial(self.add_new_channels, widget=numeric)
+        )
+
+        if self.subplots_link:
+            numeric.timestamp_changed_signal.connect(self.set_cursor)
+
+        sections_width = window_info["configuration"].get("header_sections_width", [])
+        if sections_width:
+            sections_width = reversed(
+                [(i, width) for i, width in enumerate(sections_width)]
             )
-            plot.pattern_group_added.connect(self.add_pattern_group)
-            plot.pattern = pattern_info
+            for column_index, width in sections_width:
+                numeric.channels.columnHeader.setColumnWidth(column_index, width)
+                numeric.channels.dataView.setColumnWidth(
+                    column_index,
+                    numeric.channels.columnHeader.columnWidth(column_index),
+                )
 
-            plot.show()
+        return w, pattern_info
 
-            sub = MdiSubWindow(parent=self)
-            sub.setWidget(plot)
-            sub.sigClosed.connect(self.window_closed_handler)
-            sub.titleModified.connect(self.window_closed_handler)
+    def _load_gps_window(self, window_info):
+        uuid = self.uuid
+        geometry = window_info.get("geometry", None)
 
-            if not self.subplots:
-                for mdi in self.mdi_area.subWindowList():
-                    mdi.close()
-                w = self.mdi_area.addSubWindow(sub)
+        signals_ = [
+            (None, *self.mdf.whereis(name)[0])
+            for name in (
+                window_info["configuration"]["latitude_channel"],
+                window_info["configuration"]["longitude_channel"],
+            )
+            if name in self.mdf
+        ]
 
-                w.showMaximized()
+        if len(signals_) != 2:
+            return
+
+        latitude, longitude = self.mdf.select(
+            signals_,
+            copy_master=False,
+            validate=True,
+            raw=False,
+        )
+
+        gps = GPS(latitude, longitude, window_info["configuration"]["zoom"])
+
+        sub = MdiSubWindow(parent=self)
+        sub.setWidget(gps)
+        sub.sigClosed.connect(self.window_closed_handler)
+        sub.titleModified.connect(self.window_closed_handler)
+
+        if not self.subplots:
+            for mdi in self.mdi_area.subWindowList():
+                mdi.close()
+            w = self.mdi_area.addSubWindow(sub)
+
+            w.showMaximized()
+        else:
+            w = self.mdi_area.addSubWindow(sub)
+            w.show()
+
+            if geometry:
+                w.setGeometry(*geometry)
             else:
-                w = self.mdi_area.addSubWindow(sub)
+                self.mdi_area.tileSubWindows()
 
-                w.show()
+        w.setWindowTitle(
+            generate_window_title(w, window_info["type"], window_info["title"])
+        )
 
-                if geometry:
-                    w.setGeometry(*geometry)
-                else:
-                    self.mdi_area.tileSubWindows()
+        if window_info.get("maximized", False):
+            w.showMaximized()
+        elif window_info.get("minimized", False):
+            w.showMinimized()
 
-            if window_info.get("maximized", False):
-                w.showMaximized()
-            elif window_info.get("minimized", False):
-                w.showMinimized()
+        gps._update_values()
 
-            menu = w.systemMenu()
+        menu = w.systemMenu()
 
-            action = QtGui.QAction("Set title", menu)
-            action.triggered.connect(partial(set_title, w))
-            before = menu.actions()[0]
-            menu.insertAction(before, action)
+        action = QtGui.QAction("Set title", menu)
+        action.triggered.connect(partial(set_title, w))
+        before = menu.actions()[0]
+        menu.insertAction(before, action)
 
-            w.setWindowTitle(
-                generate_window_title(w, window_info["type"], window_info["title"])
+        if self.subplots_link:
+            gps.timestamp_changed_signal.connect(self.set_cursor)
+
+        return w, False
+
+    def _load_plot_window(self, window_info):
+        geometry = window_info.get("geometry", None)
+
+        # patterns
+        pattern_info = window_info["configuration"].get("pattern", {})
+        if pattern_info:
+
+            plot_signals = extract_signals_using_pattern(
+                self.mdf,
+                pattern_info,
+                self.ignore_value2text_conversions,
+                self.uuid,
             )
 
-            if "x_range" in window_info["configuration"]:
-                plot.plot.viewbox.setXRange(
-                    *window_info["configuration"]["x_range"], padding=0
-                )
+            mime_data = None
+            descriptions = {}
 
-            if "splitter" in window_info["configuration"]:
-                plot.splitter.setSizes(window_info["configuration"]["splitter"])
+        else:
 
-            if "y_axis_width" in window_info["configuration"]:
-                plot.plot.y_axis.setWidth(window_info["configuration"]["y_axis_width"])
-
-            if "grid" in window_info["configuration"]:
-                x_grid, y_grid = window_info["configuration"]["grid"]
-                plot.plot.plotItem.ctrl.xGridCheck.setChecked(x_grid)
-                plot.plot.plotItem.ctrl.yGridCheck.setChecked(y_grid)
-
-            if "font_size" in window_info["configuration"]:
-                plot.set_font_size(window_info["configuration"]["font_size"])
-
-            if "locked" in window_info["configuration"]:
-                plot.set_locked(window_info["configuration"]["locked"])
-
-            plot.splitter.setContentsMargins(1, 1, 1, 1)
-            plot.setContentsMargins(1, 1, 1, 1)
-
-            # plot.hide()
-
-            plot.add_new_channels(signals, mime_data)
-
-            iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
-            while iterator.value():
-                item = iterator.value()
-                iterator += 1
-
-                widget = plot.channel_selection.itemWidget(item, 1)
-
-                if isinstance(widget, ChannelDisplay):
-                    sig, index = plot.plot.signal_by_uuid(widget.uuid)
-                    if sig.group_index == NOT_FOUND:
-                        widget.does_not_exist()
-
-            needs_update = False
-            for channel, sig in zip(found_signals, plot.plot.signals):
-                if "mode" in channel:
-                    sig.mode = channel["mode"]
-                    needs_update = True
-            if needs_update:
-                plot.plot.update_lines()
-
-            # plot.show()
-
-            plot.add_channels_request.connect(
-                partial(self.add_new_channels, widget=plot)
+            (
+                mime_data,
+                descriptions,
+                found,
+                not_found,
+                computed,
+            ) = build_mime_from_config(
+                window_info["configuration"]["channels"], self.mdf, self.uuid
             )
 
-            descriptions = get_descriptions(window_info["configuration"]["channels"])
+            plot_signals = {}
+            measured_signals = {}
 
-            iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
-            while iterator.value():
-                item = iterator.value()
-                iterator += 1
-                wid = plot.channel_selection.itemWidget(item, 1)
-                if isinstance(wid, ChannelDisplay):
-                    name = wid._name
+            for ((sig_uuid, entry), signal) in zip(
+                found.items(),
+                self.mdf.select(
+                    list(found.values()),
+                    ignore_value2text_conversions=self.ignore_value2text_conversions,
+                    copy_master=False,
+                    validate=True,
+                    raw=True,
+                ),
+            ):
+                description = descriptions[sig_uuid]
 
-                    description = descriptions.get(name, None)
-                    if description is not None:
+                signal.computed = False
+                signal.computation = {}
+                signal.color = description["color"]
+                signal.group_index = entry[1]
+                signal.channel_index = entry[2]
+                signal.origin_uuid = self.uuid
+                signal.name = entry[0]
+                signal.mode = description.get("mode", "phys")
+                signal.uuid = sig_uuid
 
-                        _, _idx = plot.plot.signal_by_uuid(wid.uuid)
+                measured_signals[signal.name] = signal
+                plot_signals[sig_uuid] = signal
 
-                        if "y_range" in description:
-                            plot.plot.view_boxes[_idx].setYRange(
-                                *description["y_range"], padding=0
-                            )
+            matrix_components = []
+            for name in not_found:
+                name, indexes = parse_matrix_component(name)
+                if indexes and name in self.mdf:
+                    matrix_components.append((name, indexes))
 
-                        wid.set_fmt(description["fmt"])
-                        wid.set_precision(description["precision"])
-                        try:
-                            wid.set_ranges(
-                                [
-                                    {
-                                        "font_color": range["color"],
-                                        "background_color": range["color"],
-                                        "op1": "<=",
-                                        "op2": "<=",
-                                        "value1": float(range["start"]),
-                                        "value2": float(range["stop"]),
-                                    }
-                                    for range in description["ranges"]
-                                ]
-                            )
-                        except KeyError:
-                            wid.set_ranges(description["ranges"])
-
-                        for range in wid.ranges:
-                            range["font_color"] = QtGui.QColor(range["font_color"])
-                            range["background_color"] = QtGui.QColor(
-                                range["background_color"]
-                            )
-
-                        wid.ylink.setCheckState(
-                            QtCore.Qt.Checked
-                            if description["common_axis"]
-                            else QtCore.Qt.Unchecked
-                        )
-                        wid.individual_axis.setCheckState(
-                            QtCore.Qt.Checked
-                            if description.get("individual_axis", False)
-                            else QtCore.Qt.Unchecked
-                        )
-                        width = description.get("individual_axis_width", 0)
-                        if width:
-                            plot.plot.axes[_idx].setWidth(width)
-                        item.setCheckState(
-                            0,
-                            QtCore.Qt.Checked
-                            if description["enabled"]
-                            else QtCore.Qt.Unchecked,
-                        )
-
-                    elif pattern_info:
-                        wid.set_ranges(pattern_info["ranges"])
-
-                    wid.set_value(update=True)
-
-            self.set_subplots_link(self.subplots_link)
-
-            if "cursor_precision" in window_info["configuration"]:
-                plot.cursor_info.set_precision(
-                    window_info["configuration"]["cursor_precision"]
+            matrix_signals = {
+                str(matrix_element): sig
+                for sig, matrix_element in zip(
+                    self.mdf.select(
+                        [el[0] for el in matrix_components],
+                        ignore_value2text_conversions=self.ignore_value2text_conversions,
+                        copy_master=False,
+                    ),
+                    matrix_components,
                 )
+            }
 
-            iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
-            while iterator.value():
-                item = iterator.value()
-                iterator += 1
+            new_matrix_signals = {}
+            for signal_mat, (_n, indexes) in zip(
+                matrix_signals.values(), matrix_components
+            ):
+                indexes_string = "".join(f"[{_index}]" for _index in indexes)
+                sig_name = f"{signal_mat.name}{indexes_string}"
 
-                if isinstance(item, ChannelsGroupTreeItem):
-                    if item.pattern:
-                        plot.pattern_group_added.emit(plot, item)
+                if sig_name in not_found:
+                    signal = deepcopy(signal_mat)
+                    samples = signal.samples
+                    if samples.dtype.names:
+                        samples = samples[sig_name]
 
-            if "common_axis_y_range" in window_info["configuration"]:
-                plot.plot.common_viewbox.setYRange(
-                    *window_info["configuration"]["common_axis_y_range"], padding=0
+                    for idx in indexes:
+                        samples = samples[:, idx]
+                    signal.samples = samples
+
+                    sig_uuid = not_found[sig_name]
+
+                    description = descriptions[sig_uuid]
+
+                    signal.color = description["color"]
+                    signal.group_index, signal.channel_index = self.mdf.whereis(
+                        sig_name
+                    )[0]
+                    signal.computed = False
+                    signal.computation = {}
+                    signal.origin_uuid = self.uuid
+                    signal.name = sig_name
+                    signal.mode = description.get("mode", "phys")
+                    signal.uuid = sig_uuid
+
+                    measured_signals[signal.name] = signal
+
+                    plot_signals[sig_uuid] = signal
+
+            measured_signals.update(
+                {name: sig for name, sig in new_matrix_signals.items()}
+            )
+
+            if measured_signals:
+                all_timebase = np.unique(
+                    np.concatenate(
+                        [sig.timestamps for sig in measured_signals.values()]
+                    )
                 )
+            else:
+                all_timebase = []
 
-            plot.channel_selection.refresh()
+            required_channels = []
+            for ch in computed.values():
+                required_channels.extend(get_required_from_computed(ch))
 
-        elif window_info["type"] == "Tabular":
-            # patterns
-            pattern_info = window_info["configuration"].get("pattern", {})
-            if pattern_info:
-                required = set()
-                found_signals = []
-
-                signals_ = extract_signals_using_pattern(
-                    self.mdf,
-                    pattern_info,
-                    self.ignore_value2text_conversions,
-                    self.uuid,
+            required_channels = set(required_channels)
+            required_channels = [
+                (None, *self.mdf.whereis(channel)[0])
+                for channel in required_channels
+                if channel not in list(measured_signals) and channel in self.mdf
+            ]
+            required_channels = {
+                sig.name: sig
+                for sig in self.mdf.select(
+                    required_channels,
+                    ignore_value2text_conversions=self.ignore_value2text_conversions,
+                    copy_master=False,
                 )
+            }
+
+            required_channels.update(measured_signals)
+
+            for sig_uuid, channel in computed.items():
+                computation = channel["computation"]
 
                 try:
-                    ranges = [
-                        {
-                            "font_color": range["color"],
-                            "background_color": range["color"],
-                            "op1": "<=",
-                            "op2": "<=",
-                            "value1": float(range["start"]),
-                            "value2": float(range["stop"]),
+
+                    signal = compute_signal(
+                        computation, required_channels, all_timebase
+                    )
+                    signal.color = channel["color"]
+                    signal.computed = True
+                    signal.computation = channel["computation"]
+                    signal.name = channel["name"]
+                    signal.unit = channel["unit"]
+                    signal.group_index = -1
+                    signal.channel_index = -1
+                    signal.origin_uuid = self.uuid
+                    signal.uuid = sig_uuid
+
+                    if "conversion" in channel:
+                        signal.conversion = from_dict(channel["conversion"])
+                        signal.name = channel["user_defined_name"]
+
+                    plot_signals[sig_uuid] = signal
+                except:
+                    pass
+
+        signals = {
+            sig_uuid: sig
+            for sig_uuid, sig in plot_signals.items()
+            if sig.samples.dtype.kind not in "SU"
+            and not sig.samples.dtype.names
+            and not len(sig.samples.shape) > 1
+        }
+
+        for uuid in descriptions:
+            if uuid not in signals:
+                description = descriptions[uuid]
+
+                sig = Signal([], [], name=name)
+                sig.uuid = uuid
+
+                sig.origin_uuid = self.uuid
+                sig.group_index = NOT_FOUND
+                sig.channel_index = NOT_FOUND
+                sig.color = description["color"]
+
+                signals[uuid] = sig
+
+        if hasattr(self, "mdf"):
+            events = []
+            origin = self.mdf.start_time
+
+            if self.mdf.version >= "4.00":
+                mdf_events = list(self.mdf.events)
+
+                for pos, event in enumerate(mdf_events):
+                    event_info = {}
+                    event_info["value"] = event.value
+                    event_info["type"] = v4c.EVENT_TYPE_TO_STRING[event.event_type]
+                    description = event.name
+                    if event.comment:
+                        try:
+                            comment = extract_cncomment_xml(event.comment)
+                        except:
+                            comment = event.comment
+                        description += f" ({comment})"
+                    event_info["description"] = description
+                    event_info["index"] = pos
+
+                    if event.range_type == v4c.EVENT_RANGE_TYPE_POINT:
+                        events.append(event_info)
+                    elif event.range_type == v4c.EVENT_RANGE_TYPE_BEGINNING:
+                        events.append([event_info])
+                    else:
+                        parent = events[event.parent]
+                        parent.append(event_info)
+                        events.append(None)
+                events = [ev for ev in events if ev is not None]
+            else:
+                for gp in self.mdf.groups:
+                    if not gp.trigger:
+                        continue
+
+                    for i in range(gp.trigger.trigger_events_nr):
+                        event = {
+                            "value": gp.trigger[f"trigger_{i}_time"],
+                            "index": i,
+                            "description": gp.trigger.comment,
+                            "type": v4c.EVENT_TYPE_TO_STRING[v4c.EVENT_TYPE_TRIGGER],
                         }
-                        for range in pattern_info["ranges"]
-                    ]
-                except KeyError:
-                    ranges = pattern_info["ranges"]
+                        events.append(event)
+        else:
+            events = []
+            origin = self.files.widget(0).mdf.start_time
 
-                for range_info in ranges:
-                    range_info["font_color"] = QtGui.QBrush(
-                        QtGui.QColor(range_info["font_color"])
-                    )
-                    range_info["background_color"] = QtGui.QBrush(
-                        QtGui.QColor(range_info["background_color"])
-                    )
+        if hasattr(self, "mdf"):
+            mdf = self.mdf
+        else:
+            mdf = None
+        plot = Plot(
+            [],
+            with_dots=self.with_dots,
+            line_interconnect=self.line_interconnect,
+            events=events,
+            origin=origin,
+            mdf=mdf,
+            parent=self,
+            hide_missing_channels=self.hide_missing_channels,
+            hide_disabled_channels=self.hide_disabled_channels,
+        )
+        plot.pattern_group_added.connect(self.add_pattern_group)
+        plot.pattern = pattern_info
 
-                ranges = {sig.name: copy_ranges(ranges) for sig in signals_}
+        plot.show()
 
-                signals_ = [
-                    (sig.name, sig.group_index, sig.channel_index) for sig in signals_
-                ]
+        sub = MdiSubWindow(parent=self)
+        sub.setWidget(plot)
+        sub.sigClosed.connect(self.window_closed_handler)
+        sub.titleModified.connect(self.window_closed_handler)
 
-                pattern_info["ranges"] = ranges
+        if not self.subplots:
+            for mdi in self.mdi_area.subWindowList():
+                mdi.close()
+            w = self.mdi_area.addSubWindow(sub)
 
+            w.showMaximized()
+        else:
+            w = self.mdi_area.addSubWindow(sub)
+
+            w.show()
+
+            if geometry:
+                w.setGeometry(*geometry)
             else:
-                required = set(window_info["configuration"]["channels"])
+                self.mdi_area.tileSubWindows()
 
-                signals_ = [
-                    (name, *self.mdf.whereis(name)[0])
-                    for name in window_info["configuration"]["channels"]
-                    if name in self.mdf
-                ]
+        if window_info.get("maximized", False):
+            w.showMaximized()
+        elif window_info.get("minimized", False):
+            w.showMinimized()
 
-                ranges = window_info["configuration"].get("ranges", {})
-                for channel_ranges in ranges.values():
-                    for range_info in channel_ranges:
-                        range_info["font_color"] = QtGui.QBrush(
-                            QtGui.QColor(range_info["font_color"])
+        menu = w.systemMenu()
+
+        action = QtGui.QAction("Set title", menu)
+        action.triggered.connect(partial(set_title, w))
+        before = menu.actions()[0]
+        menu.insertAction(before, action)
+
+        w.setWindowTitle(
+            generate_window_title(w, window_info["type"], window_info["title"])
+        )
+
+        if "x_range" in window_info["configuration"]:
+            plot.plot.viewbox.setXRange(
+                *window_info["configuration"]["x_range"], padding=0
+            )
+
+        if "splitter" in window_info["configuration"]:
+            plot.splitter.setSizes(window_info["configuration"]["splitter"])
+
+        if "y_axis_width" in window_info["configuration"]:
+            plot.plot.y_axis.setWidth(window_info["configuration"]["y_axis_width"])
+
+        if "grid" in window_info["configuration"]:
+            x_grid, y_grid = window_info["configuration"]["grid"]
+            plot.plot.plotItem.ctrl.xGridCheck.setChecked(x_grid)
+            plot.plot.plotItem.ctrl.yGridCheck.setChecked(y_grid)
+
+        if "font_size" in window_info["configuration"]:
+            plot.set_font_size(window_info["configuration"]["font_size"])
+
+        if "locked" in window_info["configuration"]:
+            plot.set_locked(window_info["configuration"]["locked"])
+
+        plot.splitter.setContentsMargins(1, 1, 1, 1)
+        plot.setContentsMargins(1, 1, 1, 1)
+
+        # plot.hide()
+
+        plot.add_new_channels(signals, mime_data)
+
+        iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
+        while iterator.value():
+            item = iterator.value()
+            iterator += 1
+
+            widget = plot.channel_selection.itemWidget(item, 1)
+
+            if isinstance(widget, ChannelDisplay):
+                sig, index = plot.plot.signal_by_uuid(widget.uuid)
+                if sig.group_index == NOT_FOUND:
+                    widget.does_not_exist()
+
+        plot.plot.update_lines()
+
+        # plot.show()
+
+        plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
+
+        iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
+        while iterator.value():
+            item = iterator.value()
+            iterator += 1
+            wid = plot.channel_selection.itemWidget(item, 1)
+            if isinstance(wid, ChannelDisplay):
+
+                description = descriptions.get(wid.uuid, None)
+                if description is not None:
+
+                    _, _idx = plot.plot.signal_by_uuid(wid.uuid)
+
+                    if "y_range" in description:
+                        plot.plot.view_boxes[_idx].setYRange(
+                            *description["y_range"], padding=0
                         )
-                        range_info["background_color"] = QtGui.QBrush(
-                            QtGui.QColor(range_info["background_color"])
+
+                    wid.set_fmt(description["fmt"])
+                    wid.set_precision(description["precision"])
+                    try:
+                        wid.set_ranges(
+                            [
+                                {
+                                    "font_color": range["color"],
+                                    "background_color": range["color"],
+                                    "op1": "<=",
+                                    "op2": "<=",
+                                    "value1": float(range["start"]),
+                                    "value2": float(range["stop"]),
+                                }
+                                for range in description["ranges"]
+                            ]
+                        )
+                    except KeyError:
+                        wid.set_ranges(description["ranges"])
+
+                    for range in wid.ranges:
+                        range["font_color"] = QtGui.QColor(range["font_color"])
+                        range["background_color"] = QtGui.QColor(
+                            range["background_color"]
                         )
 
-                if not signals_:
-                    return
-
-            signals = self.mdf.to_dataframe(
-                channels=signals_,
-                time_from_zero=False,
-                ignore_value2text_conversions=self.ignore_value2text_conversions,
-            )
-
-            found = set(signals.columns)
-            dim = len(signals.index)
-
-            for name in sorted(required - found):
-                vals = np.empty(dim)
-                vals.fill(np.NaN)
-                signals[name] = pd.Series(vals, index=signals.index)
-
-            tabular = Tabular(
-                signals,
-                ranges=ranges,
-                start=self.mdf.header.start_time.timestamp(),
-                parent=self,
-            )
-            tabular.pattern = pattern_info
-
-            sub = MdiSubWindow(parent=self)
-            sub.setWidget(tabular)
-            sub.sigClosed.connect(self.window_closed_handler)
-            sub.titleModified.connect(self.window_closed_handler)
-
-            if not self.subplots:
-                for mdi in self.mdi_area.subWindowList():
-                    mdi.close()
-                w = self.mdi_area.addSubWindow(sub)
-
-                w.showMaximized()
-            else:
-                w = self.mdi_area.addSubWindow(sub)
-
-                w.show()
-
-                if geometry:
-                    w.setGeometry(*geometry)
-                else:
-                    self.mdi_area.tileSubWindows()
-
-            if window_info.get("maximized", False):
-                w.showMaximized()
-            elif window_info.get("minimized", False):
-                w.showMinimized()
-
-            w.setWindowTitle(
-                generate_window_title(w, window_info["type"], window_info["title"])
-            )
-
-            filter_count = 0
-            available_columns = [signals.index.name] + list(signals.columns)
-            for filter_info in window_info["configuration"]["filters"]:
-                if filter_info["column"] in available_columns:
-                    tabular.add_filter()
-                    filter = tabular.filters.itemWidget(
-                        tabular.filters.item(filter_count)
-                    )
-                    filter.enabled.setCheckState(
+                    wid.ylink.setCheckState(
                         QtCore.Qt.Checked
-                        if filter_info["enabled"]
+                        if description["common_axis"]
                         else QtCore.Qt.Unchecked
                     )
-                    filter.relation.setCurrentText(filter_info["relation"])
-                    filter.column.setCurrentText(filter_info["column"])
-                    filter.op.setCurrentText(filter_info["op"])
-                    filter.target.setText(str(filter_info["target"]).strip('"'))
-                    filter.validate_target()
+                    wid.individual_axis.setCheckState(
+                        QtCore.Qt.Checked
+                        if description.get("individual_axis", False)
+                        else QtCore.Qt.Unchecked
+                    )
+                    width = description.get("individual_axis_width", 0)
+                    if width:
+                        plot.plot.axes[_idx].setWidth(width)
+                    item.setCheckState(
+                        0,
+                        QtCore.Qt.Checked
+                        if description["enabled"]
+                        else QtCore.Qt.Unchecked,
+                    )
 
-                    filter_count += 1
+                elif pattern_info:
+                    wid.set_ranges(pattern_info["ranges"])
 
-            if filter_count and window_info["configuration"]["filtered"]:
-                tabular.apply_filters()
+                wid.set_value(update=True)
 
-            tabular.time_as_date.setCheckState(
-                QtCore.Qt.Checked
-                if window_info["configuration"]["time_as_date"]
-                else QtCore.Qt.Unchecked
+        self.set_subplots_link(self.subplots_link)
+
+        if "cursor_precision" in window_info["configuration"]:
+            plot.cursor_info.set_precision(
+                window_info["configuration"]["cursor_precision"]
             )
-            tabular.add_channels_request.connect(
-                partial(self.add_new_channels, widget=tabular)
+
+        iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
+        while iterator.value():
+            item = iterator.value()
+            iterator += 1
+
+            if isinstance(item, ChannelsGroupTreeItem):
+                if item.pattern:
+                    plot.pattern_group_added.emit(plot, item)
+
+        if "common_axis_y_range" in window_info["configuration"]:
+            plot.plot.common_viewbox.setYRange(
+                *window_info["configuration"]["common_axis_y_range"], padding=0
             )
 
-            menu = w.systemMenu()
+        plot.channel_selection.refresh()
 
-            action = QtGui.QAction("Set title", menu)
-            action.triggered.connect(partial(set_title, w))
-            before = menu.actions()[0]
-            menu.insertAction(before, action)
+        return w, pattern_info
 
-            if self.subplots_link:
-                tabular.timestamp_changed_signal.connect(self.set_cursor)
+    def _load_tabular_window(self, window_info):
+        uuid = self.uuid
+        geometry = window_info.get("geometry", None)
 
-            sections_width = window_info["configuration"].get(
-                "header_sections_width", []
+        # patterns
+        pattern_info = window_info["configuration"].get("pattern", {})
+        if pattern_info:
+            required = set()
+            found_signals = []
+
+            signals_ = extract_signals_using_pattern(
+                self.mdf,
+                pattern_info,
+                self.ignore_value2text_conversions,
+                self.uuid,
             )
-            if sections_width:
-                for i, width in enumerate(sections_width):
 
-                    tabular.tree.columnHeader.setColumnWidth(i, width)
-                    tabular.tree.dataView.setColumnWidth(i, width)
+            try:
+                ranges = [
+                    {
+                        "font_color": range["color"],
+                        "background_color": range["color"],
+                        "op1": "<=",
+                        "op2": "<=",
+                        "value1": float(range["start"]),
+                        "value2": float(range["stop"]),
+                    }
+                    for range in pattern_info["ranges"]
+                ]
+            except KeyError:
+                ranges = pattern_info["ranges"]
 
-                tabular.tree.dataView.updateGeometry()
-                tabular.tree.columnHeader.updateGeometry()
+            for range_info in ranges:
+                range_info["font_color"] = QtGui.QBrush(
+                    QtGui.QColor(range_info["font_color"])
+                )
+                range_info["background_color"] = QtGui.QBrush(
+                    QtGui.QColor(range_info["background_color"])
+                )
 
-        elif window_info["type"] in (
-            "CAN Bus Trace",
-            "FlexRay Bus Trace",
-            "LIN Bus Trace",
-        ):
+            ranges = {sig.name: copy_ranges(ranges) for sig in signals_}
+
+            signals_ = [
+                (sig.name, sig.group_index, sig.channel_index) for sig in signals_
+            ]
+
+            pattern_info["ranges"] = ranges
+
+        else:
+            required = set(window_info["configuration"]["channels"])
+
+            signals_ = [
+                (name, *self.mdf.whereis(name)[0])
+                for name in window_info["configuration"]["channels"]
+                if name in self.mdf
+            ]
 
             ranges = window_info["configuration"].get("ranges", {})
             for channel_ranges in ranges.values():
@@ -2940,39 +3015,186 @@ class WithMDIArea:
                         QtGui.QColor(range_info["background_color"])
                     )
 
-            if window_info["type"] == "CAN Bus Trace":
-                widget = self._add_can_bus_trace_window(ranges)
-            elif window_info["type"] == "FlexRay Bus Trace":
-                widget = self._add_can_bus_trace_window(ranges)
-            elif window_info["type"] == "LIN Bus Trace":
-                widget = self._add_lin_bus_trace_window(ranges)
+            if not signals_:
+                return
 
-            sections_width = window_info["configuration"].get(
-                "header_sections_width", []
-            )
-            if sections_width:
-                for i, width in enumerate(sections_width):
-                    widget.tree.header().resizeSection(i, width)
+        signals = self.mdf.to_dataframe(
+            channels=signals_,
+            time_from_zero=False,
+            ignore_value2text_conversions=self.ignore_value2text_conversions,
+        )
 
-            scroll = widget.tree.horizontalScrollBar()
-            if scroll:
-                scroll.setValue(scroll.minimum())
+        found = set(signals.columns)
+        dim = len(signals.index)
 
-            return
+        for name in sorted(required - found):
+            vals = np.empty(dim)
+            vals.fill(np.NaN)
+            signals[name] = pd.Series(vals, index=signals.index)
 
-        if self._frameless_windows:
-            w.setWindowFlags(w.windowFlags() | QtCore.Qt.FramelessWindowHint)
+        tabular = Tabular(
+            signals,
+            ranges=ranges,
+            start=self.mdf.header.start_time.timestamp(),
+            parent=self,
+        )
+        tabular.pattern = pattern_info
 
-        if pattern_info:
-            icon = QtGui.QIcon()
-            icon.addPixmap(
-                QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-            )
-            w.setWindowIcon(icon)
+        sub = MdiSubWindow(parent=self)
+        sub.setWidget(tabular)
+        sub.sigClosed.connect(self.window_closed_handler)
+        sub.titleModified.connect(self.window_closed_handler)
 
-        w.layout().setSpacing(1)
+        if not self.subplots:
+            for mdi in self.mdi_area.subWindowList():
+                mdi.close()
+            w = self.mdi_area.addSubWindow(sub)
 
-        self.windows_modified.emit()
+            w.showMaximized()
+        else:
+            w = self.mdi_area.addSubWindow(sub)
+
+            w.show()
+
+            if geometry:
+                w.setGeometry(*geometry)
+            else:
+                self.mdi_area.tileSubWindows()
+
+        if window_info.get("maximized", False):
+            w.showMaximized()
+        elif window_info.get("minimized", False):
+            w.showMinimized()
+
+        w.setWindowTitle(
+            generate_window_title(w, window_info["type"], window_info["title"])
+        )
+
+        filter_count = 0
+        available_columns = [signals.index.name] + list(signals.columns)
+        for filter_info in window_info["configuration"]["filters"]:
+            if filter_info["column"] in available_columns:
+                tabular.add_filter()
+                filter = tabular.filters.itemWidget(tabular.filters.item(filter_count))
+                filter.enabled.setCheckState(
+                    QtCore.Qt.Checked if filter_info["enabled"] else QtCore.Qt.Unchecked
+                )
+                filter.relation.setCurrentText(filter_info["relation"])
+                filter.column.setCurrentText(filter_info["column"])
+                filter.op.setCurrentText(filter_info["op"])
+                filter.target.setText(str(filter_info["target"]).strip('"'))
+                filter.validate_target()
+
+                filter_count += 1
+
+        if filter_count and window_info["configuration"]["filtered"]:
+            tabular.apply_filters()
+
+        tabular.time_as_date.setCheckState(
+            QtCore.Qt.Checked
+            if window_info["configuration"]["time_as_date"]
+            else QtCore.Qt.Unchecked
+        )
+        tabular.add_channels_request.connect(
+            partial(self.add_new_channels, widget=tabular)
+        )
+
+        menu = w.systemMenu()
+
+        action = QtGui.QAction("Set title", menu)
+        action.triggered.connect(partial(set_title, w))
+        before = menu.actions()[0]
+        menu.insertAction(before, action)
+
+        if self.subplots_link:
+            tabular.timestamp_changed_signal.connect(self.set_cursor)
+
+        sections_width = window_info["configuration"].get("header_sections_width", [])
+        if sections_width:
+            for i, width in enumerate(sections_width):
+
+                tabular.tree.columnHeader.setColumnWidth(i, width)
+                tabular.tree.dataView.setColumnWidth(i, width)
+
+            tabular.tree.dataView.updateGeometry()
+            tabular.tree.columnHeader.updateGeometry()
+
+        return w, pattern_info
+
+    def _load_can_bus_trace_window(self, window_info):
+
+        ranges = window_info["configuration"].get("ranges", {})
+        for channel_ranges in ranges.values():
+            for range_info in channel_ranges:
+                range_info["font_color"] = QtGui.QBrush(
+                    QtGui.QColor(range_info["font_color"])
+                )
+                range_info["background_color"] = QtGui.QBrush(
+                    QtGui.QColor(range_info["background_color"])
+                )
+
+        widget = self._add_can_bus_trace_window(ranges)
+
+        sections_width = window_info["configuration"].get("header_sections_width", [])
+        if sections_width:
+            for i, width in enumerate(sections_width):
+                widget.tree.header().resizeSection(i, width)
+
+        scroll = widget.tree.horizontalScrollBar()
+        if scroll:
+            scroll.setValue(scroll.minimum())
+
+        return None, False
+
+    def _load_flexray_bus_trace_window(self, window_info):
+
+        ranges = window_info["configuration"].get("ranges", {})
+        for channel_ranges in ranges.values():
+            for range_info in channel_ranges:
+                range_info["font_color"] = QtGui.QBrush(
+                    QtGui.QColor(range_info["font_color"])
+                )
+                range_info["background_color"] = QtGui.QBrush(
+                    QtGui.QColor(range_info["background_color"])
+                )
+
+        widget = self._add_flexray_bus_trace_window(ranges)
+
+        sections_width = window_info["configuration"].get("header_sections_width", [])
+        if sections_width:
+            for i, width in enumerate(sections_width):
+                widget.tree.header().resizeSection(i, width)
+
+        scroll = widget.tree.horizontalScrollBar()
+        if scroll:
+            scroll.setValue(scroll.minimum())
+
+        return None, False
+
+    def _load_lin_bus_trace_window(self, window_info):
+
+        ranges = window_info["configuration"].get("ranges", {})
+        for channel_ranges in ranges.values():
+            for range_info in channel_ranges:
+                range_info["font_color"] = QtGui.QBrush(
+                    QtGui.QColor(range_info["font_color"])
+                )
+                range_info["background_color"] = QtGui.QBrush(
+                    QtGui.QColor(range_info["background_color"])
+                )
+
+        widget = self._add_lin_bus_trace_window(ranges)
+
+        sections_width = window_info["configuration"].get("header_sections_width", [])
+        if sections_width:
+            for i, width in enumerate(sections_width):
+                widget.tree.header().resizeSection(i, width)
+
+        scroll = widget.tree.horizontalScrollBar()
+        if scroll:
+            scroll.setValue(scroll.minimum())
+
+        return None, False
 
     def set_line_style(self, with_dots=None):
         if with_dots is None:

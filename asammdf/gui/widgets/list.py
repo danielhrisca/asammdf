@@ -153,7 +153,7 @@ class ListWidget(QtWidgets.QListWidget):
             data.append(
                 pack(
                     f"<12s3q{len(info)}s",
-                    str(item.mdf_uuid).encode("ascii"),
+                    str(item.origin_uuid).encode("ascii"),
                     entry[0],
                     entry[1],
                     len(info),

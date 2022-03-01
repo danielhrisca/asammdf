@@ -3109,6 +3109,13 @@ class MDF:
                 if name is not None:
                     signal.name = name
 
+        unique = set()
+        for i, signal in enumerate(signals):
+            obj_id = id(signal)
+            if id(signal) in unique:
+                signals[i] = signal.copy()
+            unique.add(obj_id)
+
         return signals
 
     @staticmethod

@@ -85,9 +85,10 @@ def extract_mime_names(data):
             name,
             group_index,
             channel_index,
-            mdf_uuid,
+            origin_uuid,
             item_type,
             ranges,
+            uuid,
         ) in enumerate(data):
             if item_type == "channel":
                 if (group_index, channel_index) != (-1, -1):
@@ -169,6 +170,7 @@ def load_dsp(file, background="#000000"):
                         "fmt": "{}",
                         "individual_axis": False,
                         "name": channel_name,
+                        "mode": "phys",
                         "precision": 3,
                         "ranges": ranges,
                         "unit": "",
@@ -177,7 +179,7 @@ def load_dsp(file, background="#000000"):
                             -gain * offset,
                             -gain * offset + 19 * gain,
                         ],
-                        "mdf_uuid": "000000000000",
+                        "origin_uuid": "000000000000",
                     }
                 )
 
@@ -309,7 +311,7 @@ def load_dsp(file, background="#000000"):
             "unit": "",
             "conversion": ch["vtab"],
             "user_defined_name": ch["name"],
-            "mdf_uuid": "000000000000",
+            "origin_uuid": "000000000000",
         }
         for i, ch in enumerate(
             parse_virtual_channels(dsp.find("VIRTUAL_CHANNEL")).values()

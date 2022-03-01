@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import bisect
+from collections import defaultdict
 from copy import deepcopy
 from datetime import timedelta
 from functools import partial, reduce
@@ -11,9 +12,16 @@ from traceback import format_exc
 
 import numpy as np
 import pyqtgraph as pg
+import pyqtgraph.canvas.CanvasTemplate_pyside6
+import pyqtgraph.canvas.TransformGuiTemplate_pyside6
+import pyqtgraph.console.template_pyside6
 
 # imports for pyinstaller
 import pyqtgraph.functions as fn
+import pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyside6
+import pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyside6
+import pyqtgraph.GraphicsScene.exportDialogTemplate_pyside6
+import pyqtgraph.imageview.ImageViewTemplate_pyside6
 from PySide6 import QtCore, QtGui, QtWidgets
 
 PLOT_BUFFER_SIZE = 4000
@@ -146,7 +154,7 @@ class PlotSignal(Signal):
 
         self.duplication = duplication
         self.uuid = getattr(signal, "uuid", os.urandom(6).hex())
-        self.mdf_uuid = getattr(signal, "mdf_uuid", os.urandom(6).hex())
+        self.origin_uuid = getattr(signal, "origin_uuid", os.urandom(6).hex())
 
         self.group_index = getattr(signal, "group_index", FAKE)
         self.channel_index = getattr(signal, "channel_index", FAKE)
@@ -304,8 +312,12 @@ class PlotSignal(Signal):
                 self._rms_raw = "n.a."
                 self._std_raw = "n.a."
 
-        self.mode = "phys"
+        self.mode = getattr(signal, "mode", "phys")
         self.trim(*(trim_info or (None, None, 1900)))
+
+    def set_color(self, color):
+        self.color = color
+        self.pen = pg.mkPen(color=color, style=QtCore.Qt.SolidLine)
 
     @property
     def min(self):
@@ -376,7 +388,7 @@ class PlotSignal(Signal):
         cut_sig.color = self.color
         cut_sig.computation = self.computation
         cut_sig.precision = self.precision
-        cut_sig.mdf_uuif = self.mdf_uuid
+        cut_sig.mdf_uuif = self.origin_uuid
 
         return PlotSignal(cut_sig, duplication=self.duplication)
 
@@ -1991,7 +2003,15 @@ class Plot(QtWidgets.QWidget):
         def add_new_items(tree, root, items, items_pool):
             pairs = []
             children = []
-            for (name, group_index, channel_index, mdf_uuid, type_, ranges) in items:
+            for (
+                name,
+                group_index,
+                channel_index,
+                origin_uuid,
+                type_,
+                ranges,
+                uuid,
+            ) in items:
                 ranges = deepcopy(ranges)
                 for range_info in ranges:
                     range_info["font_color"] = QtGui.QColor(range_info["font_color"])
@@ -2001,9 +2021,9 @@ class Plot(QtWidgets.QWidget):
 
                 if type_ == "group":
                     pattern = group_index
-                    item = ChannelsGroupTreeItem(name, pattern, root)
+                    item = ChannelsGroupTreeItem(name, pattern, uuid=uuid)  # , root)
                     widget = ChannelGroupDisplay(
-                        name, pattern, item=item, ranges=ranges
+                        name, pattern, item=item, ranges=ranges, uuid=uuid
                     )
                     widget.item = item
 
@@ -2014,47 +2034,26 @@ class Plot(QtWidgets.QWidget):
 
                 else:
 
-                    key = (name, group_index, channel_index, mdf_uuid)
+                    if uuid in items_pool:
+                        item, widget = items_pool[uuid]
+                        widget.item = item
+                        item.widget = widget
+                        widget.set_ranges(ranges)
+                        widget.ylink.setEnabled(not self.locked)
 
-                    if isinstance(name, dict):
-                        key = (name["name"],) + key[1:]
-                        if key in items_pool:
-                            item, widget = items_pool[key]
-                            widget.item = item
-                            item.widget = widget
-                            widget.set_ranges(ranges)
-                            widget.ylink.setEnabled(not self.locked)
+                        children.append(item)
+                        pairs.append((item, widget))
 
-                            children.append(item)  # root.addChild(item)
-                            pairs.append((item, widget))
-                            # tree.setItemWidget(item, 1, widget)
-
-                            del items_pool[key]
-                    else:
-
-                        if key in items_pool:
-                            item, widget = items_pool[key]
-                            widget.item = item
-                            item.widget = widget
-                            widget.set_ranges(ranges)
-                            widget.ylink.setEnabled(not self.locked)
-
-                            children.append(item)
-                            pairs.append((item, widget))
-
-                            del items_pool[key]
+                        del items_pool[uuid]
 
             root.addChildren(children)
 
             return pairs
 
-        for sig in channels:
-            sig.uuid = os.urandom(6).hex()
-
         invalid = []
 
         can_trim = True
-        for channel in channels:
+        for channel in channels.values():
             diff = np.diff(channel.timestamps)
             invalid_indexes = np.argwhere(diff <= 0).ravel()
             if len(invalid_indexes):
@@ -2082,9 +2081,9 @@ class Plot(QtWidgets.QWidget):
             )
             self.plot._can_trim = can_trim
 
-        valid = []
+        valid = {}
         invalid = []
-        for channel in channels:
+        for uuid, channel in channels.items():
             if len(channel):
                 samples = channel.samples
                 if samples.dtype.kind not in "SUV" and np.all(np.isnan(samples)):
@@ -2094,11 +2093,11 @@ class Plot(QtWidgets.QWidget):
                     if samples.dtype.kind not in "SUV" and np.all(np.isnan(samples)):
                         invalid.append(channel.name)
                     else:
-                        valid.append(channel)
+                        valid[uuid] = channel
                 else:
-                    valid.append(channel)
+                    valid[uuid] = channel
             else:
-                valid.append(channel)
+                valid[uuid] = channel
 
         if invalid:
             QtWidgets.QMessageBox.warning(
@@ -2109,7 +2108,7 @@ class Plot(QtWidgets.QWidget):
 
         channels = valid
 
-        self.adjust_splitter(channels)
+        self.adjust_splitter(list(channels.values()))
         QtCore.QCoreApplication.processEvents()
 
         channels = self.plot.add_new_channels(channels)
@@ -2130,16 +2129,17 @@ class Plot(QtWidgets.QWidget):
 
         children = []
 
-        new_items = {}
-        for sig in channels:
+        new_items = defaultdict(list)
+        for sig_uuid, sig in channels.items():
 
             item = ChannelsTreeItem(
                 (sig.group_index, sig.channel_index),
                 sig.name,
                 sig.computation,
                 None,
-                sig.mdf_uuid,
+                sig.origin_uuid,
                 check=QtCore.Qt.Checked if sig.enable else QtCore.Qt.Unchecked,
+                uuid=sig_uuid,
             )
 
             # item.setData(QtCore.Qt.UserRole, sig.name)
@@ -2154,7 +2154,7 @@ class Plot(QtWidgets.QWidget):
             else:
                 kind = sig.samples.dtype.kind
             it = ChannelDisplay(
-                sig.uuid, sig.unit, kind, 3, tooltip, details, parent=self, item=item
+                sig_uuid, sig.unit, kind, 3, tooltip, details, parent=self, item=item
             )
             if self.channel_selection.details_enabled:
                 it.details.setVisible(True)
@@ -2173,11 +2173,10 @@ class Plot(QtWidgets.QWidget):
             item.setSizeHint(1, it.sizeHint())
 
             if mime_data is None:
-
                 children.append((item, it))
 
             else:
-                new_items[(item.name, *item.entry, item.mdf_uuid)] = (item, it)
+                new_items[sig_uuid] = (item, it)
 
             it.color_changed.connect(self.plot.set_color)
             it.enable_changed.connect(self.plot.set_signal_enable)
@@ -2191,7 +2190,7 @@ class Plot(QtWidgets.QWidget):
             item.setFlags(
                 item.flags() | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled
             )
-            self.info_uuid = sig.uuid
+            self.info_uuid = sig_uuid
 
         if mime_data:
             pairs = add_new_items(
@@ -2271,7 +2270,7 @@ class Plot(QtWidgets.QWidget):
 
                     view = self.plot.view_boxes[idx]
                     channel["y_range"] = [float(e) for e in view.viewRange()[1]]
-                    channel["mdf_uuid"] = str(sig.mdf_uuid)
+                    channel["origin_uuid"] = str(sig.origin_uuid)
 
                     if sig.computed and sig.conversion:
                         channel["user_defined_name"] = sig.name
@@ -2401,7 +2400,7 @@ class Plot(QtWidgets.QWidget):
 
                 else:
                     self.show_properties.emit(
-                        [sig.group_index, sig.channel_index, sig.mdf_uuid]
+                        [sig.group_index, sig.channel_index, sig.origin_uuid]
                     )
 
     def set_splitter(self, pos, index):
@@ -2485,7 +2484,7 @@ class Plot(QtWidgets.QWidget):
                 item_widget = item.widget or self.channel_selection.itemWidget(item, 1)
 
                 if item.checkState(0) == QtCore.Qt.Checked:
-                    entry = (item.mdf_uuid, item.name)
+                    entry = (item.origin_uuid, item.name)
                     _visible_entries.add(entry)
                     _visible_items[entry] = item, item_widget
                 else:
@@ -3703,7 +3702,7 @@ class _Plot(pg.PlotWidget):
         initial_index = len(self.signals)
         self._update_lines_allowed = False
 
-        for sig in channels:
+        for sig in channels.values():
             if not hasattr(sig, "computed"):
                 sig.computed = computed
                 if not computed:
@@ -3716,7 +3715,7 @@ class _Plot(pg.PlotWidget):
 
         channels = [
             PlotSignal(sig, i, trim_info=trim_info)
-            for i, sig in enumerate(channels, len(self.signals))
+            for i, sig in enumerate(channels.values(), len(self.signals))
         ]
 
         for sig in channels:
@@ -3790,7 +3789,7 @@ class _Plot(pg.PlotWidget):
         self._update_lines_allowed = True
         self.xrange_changed_handle(force=True)
 
-        return channels
+        return {sig.uuid: sig for sig in channels}
 
     def _compute_all_timebase(self):
         if self._timebase_db:
@@ -3962,7 +3961,7 @@ class _Plot(pg.PlotWidget):
             sig.uuid = os.urandom(6).hex()
             sig.group_index = -1
             sig.channel_index = -1
-            sig.mdf_uuid = os.urandom(6).hex()
+            sig.origin_uuid = os.urandom(6).hex()
             self.add_new_channels([sig], computed=True)
             self.computation_channel_inserted.emit()
 

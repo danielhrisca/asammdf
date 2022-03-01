@@ -77,11 +77,11 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
             sig = self.signals[uuid]
 
             if len(sig):
-                if (sig.group_index, sig.mdf_uuid) in idx_cache:
-                    idx = idx_cache[(sig.group_index, sig.mdf_uuid)]
+                if (sig.group_index, sig.origin_uuid) in idx_cache:
+                    idx = idx_cache[(sig.group_index, sig.origin_uuid)]
                 else:
                     idx = min(sig.size - 1, searchsorted(sig.timestamps, stamp))
-                    idx_cache[(sig.group_index, sig.mdf_uuid)] = idx
+                    idx_cache[(sig.group_index, sig.origin_uuid)] = idx
                 value = sig.samples[idx]
 
                 widget.set_value(value)
@@ -164,7 +164,7 @@ class Bar(Ui_BarDisplay, QtWidgets.QWidget):
                 sig.name,
                 sig.computation,
                 self.channels,
-                sig.mdf_uuid,
+                sig.origin_uuid,
             )
             item.setData(QtCore.Qt.UserRole, sig.name)
             tooltip = getattr(sig, "tooltip", "") or sig.comment

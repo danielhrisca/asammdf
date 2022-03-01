@@ -943,7 +943,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     for entry in signals:
                         gp_index, ch_index = entry
                         ch = mdf.groups[gp_index].channels[ch_index]
-                        channel = TreeItem(entry, ch.name, mdf_uuid=self.uuid)
+                        channel = TreeItem(entry, ch.name, origin_uuid=self.uuid)
                         channel.setText(0, ch.name)
                         channel.setCheckState(0, QtCore.Qt.Checked)
                         items.append(channel)
@@ -1010,7 +1010,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                         for j, ch in enumerate(group.channels):
                             entry = i, j
 
-                            channel = TreeItem(entry, ch.name, mdf_uuid=uuid)
+                            channel = TreeItem(entry, ch.name, origin_uuid=uuid)
                             channel.setText(0, ch.name)
                             if entry in signals:
                                 channel.setCheckState(0, QtCore.Qt.Checked)
@@ -1027,7 +1027,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 elif widget.mode == "Internal file structure":
                     for i, group in enumerate(mdf.groups):
                         entry = i, 0xFFFFFFFFFFFFFFFF
-                        channel_group = TreeItem(entry, mdf_uuid=uuid)
+                        channel_group = TreeItem(entry, origin_uuid=uuid)
                         comment = group.channel_group.comment
                         comment = extract_cncomment_xml(comment)
 
@@ -1054,14 +1054,14 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                             group.channel_dependencies,
                             signals,
                             entries=None,
-                            mdf_uuid=uuid,
+                            origin_uuid=uuid,
                         )
                 else:
                     items = []
                     for entry in signals:
                         gp_index, ch_index = entry
                         ch = mdf.groups[gp_index].channels[ch_index]
-                        channel = TreeItem(entry, ch.name, mdf_uuid=uuid)
+                        channel = TreeItem(entry, ch.name, origin_uuid=uuid)
                         channel.setText(0, ch.name)
                         channel.setCheckState(0, QtCore.Qt.Checked)
                         items.append(channel)

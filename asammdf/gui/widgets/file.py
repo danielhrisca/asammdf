@@ -53,6 +53,18 @@ from .tree import add_children
 from .tree_item import TreeItem
 
 
+def _process_dict(d):
+    new_d = {}
+    for k, v in d.items():
+        if isinstance(v, dict):
+            v = _process_dict(v)
+        if k == "mdf_uuid":
+            k = "origin_uuid"
+        new_d[k] = v
+
+    return new_d
+
+
 class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
     open_new_file = QtCore.Signal(str)
@@ -674,7 +686,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 for j, ch in enumerate(group.channels):
                     entry = i, j
 
-                    channel = TreeItem(entry, ch.name, mdf_uuid=self.uuid)
+                    channel = TreeItem(entry, ch.name, origin_uuid=self.uuid)
                     channel.setToolTip(0, f"{ch.name} @ group {i}, index {j}")
                     channel.setText(0, ch.name)
                     if entry in signals:
@@ -696,7 +708,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             for i, group in enumerate(self.mdf.groups):
                 entry = i, 0xFFFFFFFFFFFFFFFF
 
-                channel_group = TreeItem(entry, mdf_uuid=self.uuid)
+                channel_group = TreeItem(entry, origin_uuid=self.uuid)
 
                 comment = extract_cncomment_xml(group.channel_group.comment)
 
@@ -748,7 +760,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     group.channel_dependencies,
                     signals,
                     entries=None,
-                    mdf_uuid=self.uuid,
+                    origin_uuid=self.uuid,
                     version=self.mdf.version,
                 )
 
@@ -759,7 +771,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             for entry in signals:
                 gp_index, ch_index = entry
                 ch = self.mdf.groups[gp_index].channels[ch_index]
-                channel = TreeItem(entry, ch.name, mdf_uuid=self.uuid)
+                channel = TreeItem(entry, ch.name, origin_uuid=self.uuid)
                 channel.setToolTip(0, f"{ch.name} @ group {gp_index}, index {ch_index}")
                 channel.setText(0, ch.name)
                 channel.setCheckState(0, QtCore.Qt.Checked)
@@ -930,7 +942,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     for name, gp_index, ch_index in signals:
                         entry = gp_index, ch_index
                         ch = self.mdf.groups[gp_index].channels[ch_index]
-                        channel = TreeItem(entry, ch.name, mdf_uuid=self.uuid)
+                        channel = TreeItem(entry, ch.name, origin_uuid=self.uuid)
                         channel.setText(0, ch.name)
                         channel.setCheckState(0, QtCore.Qt.Checked)
                         items.append(channel)
@@ -971,7 +983,15 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         window_type = dialog.selected_type()
 
                         signals = natsorted(
-                            (name, dg_cntr, ch_cntr, self.uuid, "channel", [])
+                            (
+                                name,
+                                dg_cntr,
+                                ch_cntr,
+                                self.uuid,
+                                "channel",
+                                [],
+                                os.urandom(6).hex(),
+                            )
                             for name, dg_cntr, ch_cntr in names
                         )
 
@@ -1165,6 +1185,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 try:
                     for i, window in enumerate(windows, 1):
+                        window = _process_dict(window)
                         window_type = window["type"]
                         window_title = window["title"]
                         progress.setLabelText(
@@ -1306,7 +1327,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         for j, ch in enumerate(gp.channels):
                             if ch.name in channels:
                                 entry = i, j
-                                channel = TreeItem(entry, ch.name, mdf_uuid=self.uuid)
+                                channel = TreeItem(
+                                    entry, ch.name, origin_uuid=self.uuid
+                                )
                                 channel.setText(0, ch.name)
                                 channel.setCheckState(0, QtCore.Qt.Checked)
                                 items.append(channel)
