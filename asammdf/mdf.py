@@ -2194,17 +2194,66 @@ class MDF:
 
             mdf.configure(copy_on_get=False)
 
+            reorder_channel_groups = False
+            cg_translations = {}
+
             if mdf_index == 0:
                 last_timestamps = [None for gp in mdf.virtual_groups]
                 groups_nr = len(last_timestamps)
+                first_mdf = mdf
 
             else:
                 if len(mdf.virtual_groups) != groups_nr:
                     raise MdfException(
                         f"internal structure of file <{mdf.name}> is different; different channel groups count"
                     )
+                else:
+                    cg_translations = dict.fromkeys(range(0, groups_nr))
+
+                    make_translation = False
+
+                    # check if the order of the channel groups is the same
+                    for i, group_index in enumerate(mdf.virtual_groups):
+                        included_channels = mdf.included_channels(group_index)[
+                            group_index
+                        ]
+                        names = [
+                            mdf.groups[gp_index].channels[ch_index].name
+                            for gp_index, channels in included_channels.items()
+                            for ch_index in channels
+                        ]
+
+                        if names != included_channel_names[i]:
+                            if sorted(names) != sorted(included_channel_names[i]):
+                                make_translation = reorder_channel_groups = True
+                                break
+
+                    # Make a channel group translation dictionary if the order is different
+                    if make_translation:
+                        for i, orgGroup in enumerate(first_mdf.groups):
+
+                            orgGroupSource = orgGroup.channel_group.acq_source
+                            for j, newGroup in enumerate(mdf.groups):
+                                newGroupSource = newGroup.channel_group.acq_source
+                                if (
+                                    newGroup.channel_group.acq_name
+                                    == orgGroup.channel_group.acq_name
+                                    and (newGroupSource and orgGroupSource)
+                                    and newGroupSource.name == orgGroupSource.name
+                                    and newGroupSource.path == orgGroupSource.path
+                                    and newGroup.channel_group.samples_byte_nr
+                                    == orgGroup.channel_group.samples_byte_nr
+                                ):
+
+                                    cg_translations[i] = j
 
             for i, group_index in enumerate(mdf.virtual_groups):
+                # save original group index for extension
+                # replace with the translated group index
+                if reorder_channel_groups:
+                    origin_gp_idx = group_index                
+                    group_index = cg_translations[group_index]
+
                 included_channels = mdf.included_channels(group_index)[group_index]
 
                 if mdf_index == 0:
@@ -2334,6 +2383,9 @@ class MDF:
                                     )
                                 )
                             cg_nr = cg_map[group_index]
+                            # set the original channel group number back for extension
+                            if reorder_channel_groups:
+                                cg_nr = cg_map[origin_gp_idx]
                             merged.extend(cg_nr, signals)
 
                             if first_timestamp is None:
