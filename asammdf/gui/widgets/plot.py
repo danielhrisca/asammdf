@@ -2498,7 +2498,10 @@ class Plot(QtWidgets.QWidget):
         _visible_entries = self._visible_entries = set()
         _visible_items = self._visible_items = {}
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
-        while item := iterator.value():
+        while True:
+            item = iterator.value()
+            if item is None:
+                break
             iterator += 1
             if isinstance(item, ChannelsTreeItem):
                 item_widget = item.widget or self.channel_selection.itemWidget(item, 1)
