@@ -2231,21 +2231,20 @@ class MDF:
 
                     # Make a channel group translation dictionary if the order is different
                     if make_translation:
-                        for i, orgGroup in enumerate(first_mdf.groups):
+                        for i, org_group in enumerate(first_mdf.groups):
 
-                            orgGroupSource = orgGroup.channel_group.acq_source
-                            for j, newGroup in enumerate(mdf.groups):
-                                newGroupSource = newGroup.channel_group.acq_source
+                            org_group_source = org_group.channel_group.acq_source
+                            for j, new_group in enumerate(mdf.groups):
+                                new_group_source = new_group.channel_group.acq_source
                                 if (
-                                    newGroup.channel_group.acq_name
-                                    == orgGroup.channel_group.acq_name
-                                    and (newGroupSource and orgGroupSource)
-                                    and newGroupSource.name == orgGroupSource.name
-                                    and newGroupSource.path == orgGroupSource.path
-                                    and newGroup.channel_group.samples_byte_nr
-                                    == orgGroup.channel_group.samples_byte_nr
+                                    new_group.channel_group.acq_name
+                                    == org_group.channel_group.acq_name
+                                    and (new_group_source and org_group_source)
+                                    and new_group_source.name == org_group_source.name
+                                    and new_group_source.path == org_group_source.path
+                                    and new_group.channel_group.samples_byte_nr
+                                    == org_group.channel_group.samples_byte_nr
                                 ):
-
                                     cg_translations[i] = j
 
             for i, group_index in enumerate(mdf.virtual_groups):
