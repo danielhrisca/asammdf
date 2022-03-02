@@ -2201,6 +2201,7 @@ class MDF:
                 last_timestamps = [None for gp in mdf.virtual_groups]
                 groups_nr = len(last_timestamps)
                 first_mdf = mdf
+                input_types[0] = True
 
             else:
                 if len(mdf.virtual_groups) != groups_nr:
@@ -2400,6 +2401,9 @@ class MDF:
 
             if not input_types[mdf_index]:
                 mdf.close()
+            
+            if mdf_index == mdf_nr and reorder_channel_groups and not isinstance(files[0] , MDF):
+                first_mdf.close()
 
             if callback:
                 callback(i + 1 + mdf_index * groups_nr, groups_nr * mdf_nr)
