@@ -453,8 +453,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         selection = list(self.selectedItems())
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self)
-        while iterator.value():
+        while True:
             item = iterator.value()
+            if item is None:
+                break
             widget = self.itemWidget(item, 1)
 
             if widget:
@@ -1138,8 +1140,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
     def update_channel_groups_count(self):
         iterator = QtWidgets.QTreeWidgetItemIterator(self)
-        while iterator.value():
+        while True:
             item = iterator.value()
+            if item is None:
+                break
             if isinstance(item, ChannelsGroupTreeItem):
                 widget = self.itemWidget(item, 1)
                 widget.count = item.childCount()
@@ -1150,8 +1154,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         hide_disabled_channels = self.hide_disabled_channels
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self)
-        while iterator.value():
+        while True:
             item = iterator.value()
+            if item is None:
+                break
             widget = self.itemWidget(item, 1)
             hidden = False
             if widget:
@@ -1183,8 +1189,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         tree_rect = self.viewport().rect()
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self)
-        while iterator.value():
+        while True:
             item = iterator.value()
+            if item is None:
+                break
             rect = self.visualItemRect(item)
             item._is_visible = rect.intersects(tree_rect)
 
@@ -1199,8 +1207,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
     def link_widgets(self):
         iterator = QtWidgets.QTreeWidgetItemIterator(self)
-        while iterator.value():
+        while True:
             item = iterator.value()
+            if item is None:
+                break
             if isinstance(item, ChannelsTreeItem):
                 widget = self.itemWidget(item, 1)
                 item.widget = widget

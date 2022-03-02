@@ -14,6 +14,7 @@ import numpy as np
 from numpy import searchsorted
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from asammdf import MDF
 from asammdf.gui import utils
 from asammdf.gui.dialogs.range_editor import RangeEditor
 from asammdf.gui.utils import copy_ranges, extract_mime_names, get_colors_using_ranges
@@ -1561,3 +1562,6 @@ class Numeric(QtWidgets.QWidget):
                         mdf.save(file_name, overwrite=True)
         else:
             self.channels.dataView.keyPressEvent(event)
+
+    def close(self):
+        super().close()

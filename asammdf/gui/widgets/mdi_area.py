@@ -1048,6 +1048,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(trace)
+        trace.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -1258,6 +1260,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(trace)
+        trace.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -1319,6 +1323,8 @@ class WithMDIArea:
         gps = GPS(latitude_channel, longitude_channel)
         sub = MdiSubWindow(parent=self)
         sub.setWidget(gps)
+        gps.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -1571,6 +1577,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(trace)
+        trace.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -1740,6 +1748,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(numeric)
+        numeric.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -2076,6 +2086,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(plot)
+        plot.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -2224,6 +2236,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(tabular)
+        tabular.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -2430,6 +2444,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(numeric)
+        numeric.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -2514,6 +2530,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(gps)
+        gps.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -2817,6 +2835,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(plot)
+        plot.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -3085,6 +3105,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(tabular)
+        tabular.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 

@@ -1444,6 +1444,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.channels_tree.clear()
         self.filter_tree.clear()
 
+        for window in self.mdi_area.subWindowList():
+            widget = window.widget()
+            self.mdi_area.removeSubWindow(window)
+            widget.setParent(None)
+            window.close()
+            widget.close()
+
         self.mdf = None
 
     def _create_window(self, event=None, window_type=None):
