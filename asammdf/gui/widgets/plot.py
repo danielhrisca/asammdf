@@ -152,6 +152,8 @@ class PlotSignal(Signal):
         self._plot_samples = np.empty(2 * PLOT_BUFFER_SIZE, dtype="i1")
         self._plot_timestamps = np.empty(2 * PLOT_BUFFER_SIZE, dtype="f8")
 
+        self._dtype = "i1"
+
         self.duplication = duplication
         self.uuid = getattr(signal, "uuid", os.urandom(6).hex())
         self.origin_uuid = getattr(signal, "origin_uuid", os.urandom(6).hex())
@@ -161,8 +163,8 @@ class PlotSignal(Signal):
         self.precision = getattr(signal, "precision", 6)
 
         self._mode = "raw"
+        self._enable = True
 
-        self.enable = True
         self.format = "phys"
 
         self.individual_axis = False
@@ -314,6 +316,21 @@ class PlotSignal(Signal):
 
         self.mode = getattr(signal, "mode", "phys")
         self.trim(*(trim_info or (None, None, 1900)))
+
+    @property
+    def enable(self):
+        return self._enable
+
+    @enable.setter
+    def enable(self, enable_state):
+        if self._enable != enable_state:
+            if enable_state:
+                self._pos = np.empty(2 * PLOT_BUFFER_SIZE, dtype="i4")
+                self._plot_samples = np.empty(2 * PLOT_BUFFER_SIZE, dtype=self._dtype)
+                self._plot_timestamps = np.empty(2 * PLOT_BUFFER_SIZE, dtype="f8")
+
+            else:
+                self._pos = self._plot_samples = self._plot_timestamps = None
 
     def set_color(self, color):
         self.color = color
@@ -857,11 +874,14 @@ class PlotSignal(Signal):
 
                     if samples.dtype.kind == "f" and samples.itemsize == 2:
                         samples = samples.astype("f8")
+                        self._dtype = "f8"
 
                     if samples.dtype != self._plot_samples.dtype:
                         self._plot_samples = np.empty(
                             2 * PLOT_BUFFER_SIZE, dtype=samples.dtype
                         )
+
+                        self._dtype = samples.dtype
 
                     if samples.flags.c_contiguous:
                         positions(
@@ -2493,6 +2513,51 @@ class Plot(QtWidgets.QWidget):
         if self.plot.cursor1 is not None:
             self.cursor_moved()
 
+    def close(self):
+
+        tree = self.channel_selection
+        iterator = QtWidgets.QTreeWidgetItemIterator(tree)
+        while True:
+            item = iterator.value()
+            if item is None:
+                break
+
+            if isinstance(item, ChannelsTreeItem):
+                widget = item.widget or tree.itemWidget(item, 1)
+                item.widget = None
+                if widget:
+                    widget.item = None
+            else:
+                widget = tree.itemWidget(item, 1)
+                widget.item = None
+
+            iterator += 1
+
+        tree.clear()
+        self._visible_items.clear()
+
+        for sig in self.plot.signals:
+            sig.enable = False
+            del sig.plot_samples
+            del sig.timestamps
+            del sig.plot_timestamps
+            del sig.samples
+            del sig.phys_samples
+            del sig.raw_samples
+            sig._raw_samples = None
+            sig._phys_samples = None
+            sig._timestamps = None
+        self.plot.signals.clear()
+        self.plot._uuid_map.clear()
+        self.plot._timebase_db.clear()
+        self.plot.curves = None
+        self.plot.axes = None
+        self.plot.view_boxes = None
+        self.plot = None
+        del self.plot
+
+        super().close()
+
 
 class _Plot(pg.PlotWidget):
     cursor_moved = QtCore.Signal(object)
@@ -2558,7 +2623,7 @@ class _Plot(pg.PlotWidget):
         self.region_lock = None
         self.cursor1 = None
         self.cursor2 = None
-        self.signals = signals or []
+        self.signals = []
 
         self.axes = []
         self._axes_layout_pos = 2
