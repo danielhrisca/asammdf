@@ -22,35 +22,18 @@ def substitude_mime_uuids(mime, uuid, force=False):
     new_mime = []
 
     # check first mime
-    generic_uuid = mime[0][3]
+    generic_uuid = mime[0]["origin_uuid"]
     if not force and generic_uuid is not None:
         return mime
 
-    for (
-        name,
-        group_index,
-        channel_index,
-        generic_uuid,
-        type_,
-        ranges,
-        item_uuid,
-    ) in mime:
-        if type_ == "channel":
-            new_mime.append(
-                (name, group_index, channel_index, uuid, type_, ranges, item_uuid)
-            )
+    for item in mime:
+        if item["type"] == "channel":
+            item["origin_uuid"] = uuid
+            new_mime.append(item)
         else:
-            new_mime.append(
-                (
-                    name,
-                    group_index,
-                    substitude_mime_uuids(channel_index, uuid),
-                    uuid,
-                    type_,
-                    ranges,
-                    item_uuid,
-                )
-            )
+            item["channels"] = substitude_mime_uuids(item["channels"], uuid)
+            item["origin_uuid"] = uuid
+            new_mime.append(item)
     return new_mime
 
 
@@ -183,45 +166,59 @@ def get_data(items, uuids_only=False):
 
     if items:
         tree = items[0].treeWidget()
+        plot = tree.plot
 
     for item in items:
+        widget = item.widget
+        ranges = copy_ranges(widget.ranges)
+
+        for range_info in ranges:
+            range_info["background_color"] = range_info[
+                "background_color"
+            ].name()
+            range_info["font_color"] = range_info["font_color"].name()
+
         if isinstance(item, ChannelsGroupTreeItem):
             children = [item.child(i) for i in range(item.childCount())]
+
             if uuids_only:
                 data.extend(get_data(children, uuids_only))
             else:
+
                 if item.pattern:
                     data.append(
-                        (
-                            item.name,
-                            item.pattern,
-                            [],
-                            None,
-                            "group",
-                            [],
-                            os.urandom(6).hex(),
-                        )
+
+                        {
+                            "name": item.name,
+                            "pattern": item.pattern,
+                            "channels": [],
+                            "type": "group",
+                            "uuid": os.urandom(6).hex(),
+                            "ranges": ranges,
+                        }
+
                     )
+
                 else:
                     data.append(
-                        (
-                            item.name,
-                            None,
-                            get_data(children, uuids_only),
-                            None,
-                            "group",
-                            [],
-                            os.urandom(6).hex(),
-                        )
+
+                        {
+                            "name": item.name,
+                            "pattern": None,
+                            "channels": get_data(children, uuids_only),
+                            "type": "group",
+                            "uuid": os.urandom(6).hex(),
+                            "ranges": ranges,
+                        }
                     )
 
         else:
             if uuids_only:
                 data.append(tree.itemWidget(item, 1).uuid)
             else:
-                widget = item.treeWidget().itemWidget(item, 1)
+
                 if item.entry == (-1, -1):
-                    info = {
+                    name = {
                         "name": item.name,
                         "computation": item.computation,
                         "computed": True,
@@ -229,26 +226,22 @@ def get_data(items, uuids_only=False):
                         "color": widget.color,
                     }
                 else:
-                    info = item.name
+                    name = item.name
 
-                ranges = copy_ranges(widget.ranges)
-
-                for range_info in ranges:
-                    range_info["background_color"] = range_info[
-                        "background_color"
-                    ].name()
-                    range_info["font_color"] = range_info["font_color"].name()
+                channel = plot.channel
 
                 data.append(
-                    (
-                        info,
-                        *item.entry,
-                        item.origin_uuid,
-                        "channel",
-                        ranges,
-                        os.urandom(6).hex(),
-                    )
+                    {
+                        "name": name,
+                        "type": "channel",
+                        "group_index": item.entry[0],
+                        "channel_index": item.entry[1],
+                        "ranges": ranges,
+                        "uuid": os.urandom(6).hex(),
+                        "origin_uuid": item.origin_uuid,
+                    }
                 )
+
     return data
 
 

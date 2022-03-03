@@ -81,21 +81,13 @@ def excepthook(exc_type, exc_value, tracebackobj):
 
 def extract_mime_names(data):
     def fix_comparison_name(data):
-        for i, (
-            name,
-            group_index,
-            channel_index,
-            origin_uuid,
-            item_type,
-            ranges,
-            uuid,
-        ) in enumerate(data):
-            if item_type == "channel":
-                if (group_index, channel_index) != (-1, -1):
-                    name = COMPARISON_NAME.match(name).group("name").strip()
-                    data[i][0] = name
+        for item in data:
+            if item["type"] == "channel":
+                if (item["group_index"], item["channel_index"]) != (-1, -1):
+                    name = COMPARISON_NAME.match(item["name"]).group("name").strip()
+                    item["name"] = name
             else:
-                fix_comparison_name(channel_index)
+                fix_comparison_name(item["channels"])
 
     names = []
     if data.hasFormat("application/octet-stream-asammdf"):

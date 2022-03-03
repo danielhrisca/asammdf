@@ -45,19 +45,19 @@ NOT_FOUND = 2**32 - 1
 
 
 def build_mime_from_config(
-    channels, mdf=None, origin_uuid=None, default_index=NOT_FOUND
+    items, mdf=None, origin_uuid=None, default_index=NOT_FOUND
 ):
     descriptions = {}
     found = {}
     not_found = {}
     computed = {}
     mime = []
-    for channel in channels:
+    for item in items:
         uuid = os.urandom(6).hex()
-        channel["uuid"] = uuid
+        item["uuid"] = uuid
 
-        if channel.get("type", "channel") == "group":
-            if channel.get("pattern", None) is None:
+        if item.get("type", "channel") == "group":
+            if item.get("pattern", None) is None:
                 (
                     new_mine,
                     new_descriptions,
@@ -65,61 +65,35 @@ def build_mime_from_config(
                     new_not_found,
                     new_computed,
                 ) = build_mime_from_config(
-                    channel["channels"], mdf, origin_uuid, default_index
+                    item["channels"], mdf, origin_uuid, default_index
                 )
                 descriptions.update(new_descriptions)
                 found.update(new_found)
                 not_found.update(new_not_found)
-                mime.append(
-                    (
-                        channel["name"],
-                        None,
-                        new_mine,
-                        None,
-                        "group",
-                        channel.get("ranges", []),
-                        uuid,
-                    )
-                )
+
+                item["channels"] = new_mine
+
+                mime.append(item)
             else:
-                mime.append(
-                    (
-                        channel["name"],
-                        channel["pattern"],
-                        [],
-                        None,
-                        "group",
-                        channel.get("ranges", []),
-                        uuid,
-                    )
-                )
+                mime.append(item)
         else:
-            descriptions[uuid] = channel
+            descriptions[uuid] = item
 
-            channel["uuid"] = uuid
-
-            occurrences = mdf.whereis(channel["name"]) if mdf else None
+            occurrences = mdf.whereis(item["name"]) if mdf else None
             if occurrences:
                 group_index, channel_index = occurrences[0]
-                found[uuid] = channel["name"], group_index, channel_index
+                found[uuid] = item["name"], group_index, channel_index
             else:
-                if isinstance(channel["name"], dict):
+                if isinstance(item["name"], dict):
                     group_index, channel_index = -1, -1
-                    computed[uuid] = channel["name"]
+                    computed[uuid] = item["name"]
                 else:
                     group_index, channel_index = default_index, default_index
-                    not_found[channel["name"]] = uuid
-            mime.append(
-                (
-                    channel["name"],
-                    group_index,
-                    channel_index,
-                    origin_uuid or channel["origin_uuid"],
-                    "channel",
-                    channel.get("ranges", []),
-                    uuid,
-                )
-            )
+                    not_found[item["name"]] = uuid
+
+            item["group_index"] = group_index
+            item["channel_index"] = channel_index
+            mime.append(item)
 
     return mime, descriptions, found, not_found, computed
 
