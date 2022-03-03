@@ -179,6 +179,7 @@ def load_dsp(file, background="#000000"):
                         "channels": parse_channels(elem),
                         "pattern": None,
                         "origin_uuid": "000000000000",
+                        "ranges": [],
                     }
                 )
 
@@ -300,6 +301,7 @@ def load_dsp(file, background="#000000"):
             "conversion": ch["vtab"],
             "user_defined_name": ch["name"],
             "origin_uuid": "000000000000",
+            "type": "channel",
         }
         for i, ch in enumerate(
             parse_virtual_channels(dsp.find("VIRTUAL_CHANNEL")).values()
