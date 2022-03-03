@@ -2200,8 +2200,11 @@ class Plot(QtWidgets.QWidget):
 
         enforce_y_axis = False
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
-        while iterator.value():
+        while True:
             item = iterator.value()
+            if item is None:
+                break
+
             widget = self.channel_selection.itemWidget(item, 1)
             if isinstance(widget, ChannelDisplay):
                 if widget.ylink.checkState() == QtCore.Qt.Unchecked:
@@ -2213,6 +2216,8 @@ class Plot(QtWidgets.QWidget):
             iterator += 1
 
         children = []
+
+        size_hint = None
 
         new_items = defaultdict(list)
         for sig_uuid, sig in channels.items():
@@ -2261,7 +2266,9 @@ class Plot(QtWidgets.QWidget):
             it.set_fmt(description.get("fmt", it.fmt))
             it.set_name(sig.name)
             it.set_color(sig.color)
-            item.setSizeHint(1, it.sizeHint())
+            if size_hint is None:
+                size_hint = it.sizeHint()
+            item.setSizeHint(1, size_hint)
 
             if mime_data is None:
                 children.append((item, it))

@@ -21,18 +21,18 @@ from . import resource_rc
 
 class Ui_ChannelDiplay(object):
     def setupUi(self, ChannelDiplay):
-        if not ChannelDiplay.objectName():
-            ChannelDiplay.setObjectName(u"ChannelDiplay")
+        # if not ChannelDiplay.objectName():
+        #     ChannelDiplay.setObjectName(u"ChannelDiplay")
         ChannelDiplay.resize(565, 56)
         ChannelDiplay.setMinimumSize(QSize(40, 16))
         self.verticalLayout = QVBoxLayout(ChannelDiplay)
         self.verticalLayout.setSpacing(3)
-        self.verticalLayout.setObjectName(u"verticalLayout")
+        # self.verticalLayout.setObjectName(u"verticalLayout")
         self.verticalLayout.setContentsMargins(0, 0, 2, 0)
         self.horizontalLayout = QHBoxLayout()
-        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        # self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.color_btn = QPushButton(ChannelDiplay)
-        self.color_btn.setObjectName(u"color_btn")
+        # self.color_btn.setObjectName(u"color_btn")
         sizePolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -41,12 +41,12 @@ class Ui_ChannelDiplay(object):
         self.color_btn.setMinimumSize(QSize(16, 16))
         self.color_btn.setMaximumSize(QSize(16, 16))
         self.color_btn.setAutoFillBackground(False)
-        self.color_btn.setFlat(False)
+        # self.color_btn.setFlat(False)
 
         self.horizontalLayout.addWidget(self.color_btn)
 
         self.range_indicator = QLabel(ChannelDiplay)
-        self.range_indicator.setObjectName(u"range_indicator")
+        # self.range_indicator.setObjectName(u"range_indicator")
         self.range_indicator.setMinimumSize(QSize(16, 16))
         self.range_indicator.setMaximumSize(QSize(16, 16))
         self.range_indicator.setPixmap(QPixmap(u":/paint.png"))
@@ -55,7 +55,7 @@ class Ui_ChannelDiplay(object):
         self.horizontalLayout.addWidget(self.range_indicator)
 
         self.name = QLabel(ChannelDiplay)
-        self.name.setObjectName(u"name")
+        # self.name.setObjectName(u"name")
         sizePolicy1 = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Preferred)
         sizePolicy1.setHorizontalStretch(0)
         sizePolicy1.setVerticalStretch(0)
@@ -69,7 +69,7 @@ class Ui_ChannelDiplay(object):
         self.horizontalLayout.addWidget(self.name)
 
         self.value = QLabel(ChannelDiplay)
-        self.value.setObjectName(u"value")
+        # self.value.setObjectName(u"value")
         self.value.setMinimumSize(QSize(75, 0))
         self.value.setTextFormat(Qt.PlainText)
         self.value.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
@@ -77,12 +77,12 @@ class Ui_ChannelDiplay(object):
         self.horizontalLayout.addWidget(self.value)
 
         self.ylink = QCheckBox(ChannelDiplay)
-        self.ylink.setObjectName(u"ylink")
+        # self.ylink.setObjectName(u"ylink")
 
         self.horizontalLayout.addWidget(self.ylink)
 
         self.individual_axis = QCheckBox(ChannelDiplay)
-        self.individual_axis.setObjectName(u"individual_axis")
+        # self.individual_axis.setObjectName(u"individual_axis")
 
         self.horizontalLayout.addWidget(self.individual_axis)
 
@@ -91,14 +91,14 @@ class Ui_ChannelDiplay(object):
         self.verticalLayout.addLayout(self.horizontalLayout)
 
         self.details = QLabel(ChannelDiplay)
-        self.details.setObjectName(u"details")
+        # self.details.setObjectName(u"details")
 
         self.verticalLayout.addWidget(self.details)
 
 
-        self.retranslateUi(ChannelDiplay)
+        # self.retranslateUi(ChannelDiplay)
 
-        QMetaObject.connectSlotsByName(ChannelDiplay)
+        # QMetaObject.connectSlotsByName(ChannelDiplay)
     # setupUi
 
     def retranslateUi(self, ChannelDiplay):
