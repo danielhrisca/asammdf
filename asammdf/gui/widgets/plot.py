@@ -2809,10 +2809,9 @@ class _Plot(pg.PlotWidget):
 
         self.common_viewbox.border = None
         self.common_viewbox.disableAutoRange()
-        self.scene_.addItem(self.common_viewbox)
+        self.layout.addItem(self.common_viewbox, 2, 1)
         self.common_viewbox.setXLink(self.viewbox)
         geometry = self.viewbox.sceneBoundingRect()
-        self.common_viewbox.setGeometry(geometry)
 
         self.viewbox.sigYRangeChanged.connect(self.update_plt)
         self.common_viewbox.sigYRangeChanged.connect(self.update_plt)
@@ -3187,8 +3186,8 @@ class _Plot(pg.PlotWidget):
         if geometry != self._prev_geometry:
             self._pixmap = None
 
-            for view_box in self.view_boxes:
-                view_box.setGeometry(geometry)
+            # for view_box in self.view_boxes:
+            #     view_box.setGeometry(geometry)
             self._prev_geometry = geometry
 
             self.common_viewbox.setGeometry(geometry)
@@ -3971,11 +3970,13 @@ class _Plot(pg.PlotWidget):
 
             view_box = pg.ViewBox(enableMenu=False)
             view_box.border = None
-            view_box.setGeometry(geometry)
+            # view_box.setGeometry(geometry)
             view_box.disableAutoRange()
             view_box.setMouseEnabled(y=not self.locked)
 
-            self.scene_.addItem(view_box)
+            # self.scene_.addItem(view_box)
+
+            self.layout.addItem(view_box, 2, 1)
 
             self.view_boxes.append(view_box)
             self.curves.append(curve)
