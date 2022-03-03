@@ -2296,7 +2296,7 @@ class Plot(QtWidgets.QWidget):
         return channel
 
     def channel_group_item_to_config(self, item):
-        widget = item.widget
+        widget = self.channel_selection.itemWidget(item, 1)
         pattern = widget.pattern
         if pattern:
             pattern = dict(pattern)
@@ -2320,6 +2320,7 @@ class Plot(QtWidgets.QWidget):
             "enabled": item.checkState(0) == QtCore.Qt.Checked,
             "pattern": pattern,
             "ranges": ranges,
+            "origin_uuid": None,
         }
 
         return channel_group
@@ -2575,9 +2576,9 @@ class Plot(QtWidgets.QWidget):
         self.plot.signals.clear()
         self.plot._uuid_map.clear()
         self.plot._timebase_db.clear()
-        self.plot.curves = None
         self.plot.axes = None
         self.plot.view_boxes = None
+        self.plot.curves = None
         self.plot = None
         del self.plot
 

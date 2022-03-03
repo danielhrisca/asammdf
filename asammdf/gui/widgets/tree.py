@@ -96,6 +96,7 @@ def add_new_items(tree, root, items, pos):
 
         new_item = item.copy()
         new_widget = tree.itemWidget(item, 1).copy()
+        new_item.widget = new_widget
         new_widget.item = new_item
 
         if pos is None:
@@ -170,10 +171,11 @@ def get_data(plot, items, uuids_only=False):
             children = [item.child(i) for i in range(item.childCount())]
 
             if uuids_only:
-                data.extend(get_data(children, uuids_only))
+                data.extend(get_data(plot, children, uuids_only))
             else:
                 group = plot.channel_group_item_to_config(item)
                 group["uuid"] = os.urandom(6).hex()
+                group["channels"] = get_data(plot, children, uuids_only)
 
                 data.append(group)
 
@@ -663,6 +665,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             root = self.invisibleRootItem()
             for item in selected_items:
                 item_widget = self.itemWidget(item, 1)
+                item.widget = None
+                item_widget.item = None
                 if hasattr(item_widget, "disconnect_slots"):
                     item_widget.disconnect_slots()
                 (item.parent() or root).removeChild(item)
@@ -773,7 +777,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 self.itemWidget(item, 1).keyPressEvent(event)
 
         elif action.text() == "Copy channel structure":
-            selected_items = self.selectedItems()
+            selected_items = validate_drag_items(
+                self.invisibleRootItem(), self.selectedItems(), []
+            )
             data = get_data(self.plot, selected_items, uuids_only=False)
             data = substitude_mime_uuids(data, None, force=True)
             QtWidgets.QApplication.instance().clipboard().setText(json.dumps(data))
@@ -782,9 +788,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             try:
                 data = QtWidgets.QApplication.instance().clipboard().text()
                 data = json.loads(data)
-                print(data)
                 self.add_channels_request.emit(data)
-                print("gata")
             except:
                 print(format_exc())
                 pass
