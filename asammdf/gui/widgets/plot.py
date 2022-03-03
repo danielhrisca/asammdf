@@ -107,7 +107,7 @@ bin_ = bin
 
 HERE = Path(__file__).resolve().parent
 
-FAKE = -2
+NOT_FOUND = 0xFFFFFFFF
 
 float64 = np.float64
 
@@ -128,7 +128,7 @@ def simple_max(a, b):
     return a
 
 
-def get_descriptions(mime):
+def get_descriptions_by_uuid(mime):
     descriptions = {}
     if mime:
 
@@ -136,7 +136,7 @@ def get_descriptions(mime):
             descriptions[item["uuid"]] = item
             if item["type"] == "group":
 
-                descriptions.update(get_descriptions(item["channels"]))
+                descriptions.update(get_descriptions_by_uuid(item["channels"]))
 
     return descriptions
 
@@ -171,8 +171,8 @@ class PlotSignal(Signal):
         self.uuid = getattr(signal, "uuid", os.urandom(6).hex())
         self.origin_uuid = getattr(signal, "origin_uuid", os.urandom(6).hex())
 
-        self.group_index = getattr(signal, "group_index", FAKE)
-        self.channel_index = getattr(signal, "channel_index", FAKE)
+        self.group_index = getattr(signal, "group_index", NOT_FOUND)
+        self.channel_index = getattr(signal, "channel_index", NOT_FOUND)
         self.precision = getattr(signal, "precision", 6)
 
         self._mode = "raw"
@@ -231,7 +231,7 @@ class PlotSignal(Signal):
             "fmt": "",
         }
 
-        if hasattr(signal, "color"):
+        if getattr(signal, "color", None):
             color = signal.color or COLORS[index % 10]
         else:
             color = COLORS[index % 10]
@@ -337,6 +337,7 @@ class PlotSignal(Signal):
     @enable.setter
     def enable(self, enable_state):
         if self._enable != enable_state:
+            self._enable = enable_state
             if enable_state:
                 self._pos = np.empty(2 * PLOT_BUFFER_SIZE, dtype="i4")
                 self._plot_samples = np.empty(2 * PLOT_BUFFER_SIZE, dtype=self._dtype)
@@ -1094,11 +1095,12 @@ class PlotSignal(Signal):
         return pos
 
     def trim(self, start=None, stop=None, width=1900, force=False):
-        try:
-            return self.trim_c(start, stop, width, force)
-        except:
-            print(format_exc())
-            return self.trim_python(start, stop, width, force)
+        if self._enable:
+            try:
+                return self.trim_c(start, stop, width, force)
+            except:
+                print(format_exc())
+                return self.trim_python(start, stop, width, force)
 
     def value_at_timestamp(self, stamp):
         if len(self.timestamps) and self.timestamps[-1] < stamp:
@@ -1160,6 +1162,7 @@ class Plot(QtWidgets.QWidget):
     ):
         events = kwargs.pop("events", None)
         super().__init__(*args, **kwargs)
+        self.closed = False
         self.line_interconnect = line_interconnect
         self.setContentsMargins(0, 0, 0, 0)
         self.pattern = {}
@@ -1544,24 +1547,25 @@ class Plot(QtWidgets.QWidget):
                     self.info.set_stats(stats)
 
     def channel_selection_row_changed(self, current, previous):
-        if isinstance(current, ChannelsTreeItem):
-            item = current
-            uuid = self.channel_selection.itemWidget(item, 1).uuid
-            self.info_uuid = uuid
+        if not self.closed:
+            if isinstance(current, ChannelsTreeItem):
+                item = current
+                uuid = self.channel_selection.itemWidget(item, 1).uuid
+                self.info_uuid = uuid
 
-            sig, index = self.plot.signal_by_uuid(uuid)
-            if sig.enable:
+                sig, index = self.plot.signal_by_uuid(uuid)
+                if sig.enable:
 
-                self.plot.curves[index].hide()
-                for i in range(3):
-                    QtWidgets.QApplication.processEvents()
-                    sleep(0.01)
-                self.plot.curves[index].show()
+                    self.plot.curves[index].hide()
+                    for i in range(3):
+                        QtWidgets.QApplication.processEvents()
+                        sleep(0.01)
+                    self.plot.curves[index].show()
 
-                self.plot.set_current_uuid(self.info_uuid)
-                if self.info.isVisible():
-                    stats = self.plot.get_stats(self.info_uuid)
-                    self.info.set_stats(stats)
+                    self.plot.set_current_uuid(self.info_uuid)
+                    if self.info.isVisible():
+                        stats = self.plot.get_stats(self.info_uuid)
+                        self.info.set_stats(stats)
 
     def channel_selection_reduced(self, deleted):
 
@@ -2084,7 +2088,7 @@ class Plot(QtWidgets.QWidget):
 
             return pairs
 
-        descriptions = get_descriptions(mime_data)
+        descriptions = get_descriptions_by_uuid(mime_data)
 
         invalid = []
 
@@ -2209,6 +2213,7 @@ class Plot(QtWidgets.QWidget):
                 font.setItalic(True)
                 it.name.setFont(font)
 
+            it.set_fmt(description.get("fmt", it.fmt))
             it.set_name(sig.name)
             it.set_color(sig.color)
             item.setSizeHint(1, it.sizeHint())
@@ -2224,6 +2229,27 @@ class Plot(QtWidgets.QWidget):
             it.unit_changed.connect(self.plot.set_unit)
             it.name_changed.connect(self.plot.set_name)
             it.individual_axis_changed.connect(self.plot.set_individual_axis)
+
+            try:
+                it.set_ranges(
+                    [
+                        {
+                            "font_color": range["color"],
+                            "background_color": range["color"],
+                            "op1": "<=",
+                            "op2": "<=",
+                            "value1": float(range["start"]),
+                            "value2": float(range["stop"]),
+                        }
+                        for range in description["ranges"]
+                    ]
+                )
+            except KeyError:
+                it.set_ranges(description.get("ranges", []))
+
+            for range in it.ranges:
+                range["font_color"] = QtGui.QColor(range["font_color"])
+                range["background_color"] = QtGui.QColor(range["background_color"])
 
             if description:
                 individual_axis = description.get("individual_axis", False)
@@ -2247,6 +2273,10 @@ class Plot(QtWidgets.QWidget):
             item.setFlags(
                 item.flags() | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled
             )
+
+            if sig.group_index == NOT_FOUND:
+                it.does_not_exist()
+
             self.info_uuid = sig_uuid
 
         if mime_data:
@@ -2581,6 +2611,7 @@ class Plot(QtWidgets.QWidget):
             self.cursor_moved()
 
     def close(self):
+        self.closed = True
 
         tree = self.channel_selection
         tree.plot = None

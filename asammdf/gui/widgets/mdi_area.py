@@ -35,13 +35,26 @@ from .flexray_bus_trace import FlexRayBusTrace
 from .gps import GPS
 from .lin_bus_trace import LINBusTrace
 from .numeric import Numeric
-from .plot import Plot
+from .plot import get_descriptions_by_uuid, Plot
 from .tabular import Tabular
 from .tree import ChannelsGroupTreeItem
 
 COMPONENT = re.compile(r"\[(?P<index>\d+)\]$")
 SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
-NOT_FOUND = 2**32 - 1
+NOT_FOUND = 0xFFFFFFFF
+
+
+def rename_origin_uuid(items):
+
+    for item in items:
+        if item["type"] == "channel":
+            if "mdf_uuid" in item:
+                item["origin_uuid"] = item["mdf_uuid"]
+                del item["mdf_uuid"]
+            else:
+                return
+        else:
+            rename_origin_uuid(item["channels"])
 
 
 def get_origin_uuid(item):
@@ -66,6 +79,7 @@ def build_mime_from_config(
 ):
 
     if top:
+        rename_origin_uuid(items)
         for item in items:
             if item["type"] == "group":
                 item["origin_uuid"] = get_origin_uuid(item)
@@ -235,11 +249,11 @@ def generate_window_title(mdi, window_name="", title=""):
     return name
 
 
-def get_descriptions(channels):
+def get_descriptions_by_name(channels):
     descriptions = {}
     for channel in channels:
         if channel.get("type", "channel") == "group":
-            new_descriptions = get_descriptions(channel["channels"])
+            new_descriptions = get_descriptions_by_name(channel["channels"])
             descriptions.update(new_descriptions)
         else:
             descriptions[channel["name"]] = channel
@@ -630,7 +644,7 @@ class WithMDIArea:
                     uuids_signals = [
                         (entry["name"], entry["group_index"], entry["channel_index"])
                         for entry in signals_
-                        if entry["origin_uuid"] == uuid and entry
+                        if entry["origin_uuid"] == uuid
                     ]
 
                     file_info = self.file_by_uuid(uuid)
@@ -731,9 +745,27 @@ class WithMDIArea:
                 signals = {}
 
                 for uuid in uuids:
-                    uuids_signals = [
+                    uuids_entries = [
                         entry for entry in signals_ if entry["origin_uuid"] == uuid
                     ]
+
+                    uuids_signals = []
+                    not_found = []
+
+                    for entry in uuids_entries:
+                        if entry["name"] in self.mdf:
+                            entries = self.mdf.whereis(entry["name"])
+
+                            if (
+                                entry["group_index"],
+                                entry["channel_index"],
+                            ) not in entries:
+                                entry["group_index"], entry["channel_index"] = entries[
+                                    0
+                                ]
+                            uuids_signals.append(entry)
+                        else:
+                            not_found.append(entry)
 
                     file_info = self.file_by_uuid(uuid)
                     if not file_info:
@@ -763,7 +795,7 @@ class WithMDIArea:
                         sig.computation = {}
                         sig.origin_uuid = uuid
                         sig.name = sig_["name"]
-                        sig.color = sig_["color"]
+                        sig.color = sig_.get("color", None)
                         sig.uuid = sig_["uuid"]
 
                         if not hasattr(self, "mdf"):
@@ -855,6 +887,20 @@ class WithMDIArea:
                         except:
                             pass
                     signals.update(computed_signals.values())
+
+                not_found_uuid = os.urandom(6).hex()
+
+                for entry in not_found:
+
+                    sig = Signal([], [], name=entry["name"])
+                    sig.uuid = entry["uuid"]
+
+                    sig.origin_uuid = not_found_uuid
+                    sig.group_index = NOT_FOUND
+                    sig.channel_index = NOT_FOUND
+                    sig.color = entry.get("color", None)
+
+                    signals[sig.uuid] = sig
 
                 widget.add_new_channels(signals, mime_data=mime_data)
 
@@ -2757,7 +2803,7 @@ class WithMDIArea:
             if uuid not in signals:
                 description = descriptions[uuid]
 
-                sig = Signal([], [], name=name)
+                sig = Signal([], [], name=description["name"])
                 sig.uuid = uuid
 
                 sig.origin_uuid = self.uuid
@@ -2902,17 +2948,17 @@ class WithMDIArea:
 
         plot.add_new_channels(signals, mime_data)
 
-        iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
-        while iterator.value():
-            item = iterator.value()
-            iterator += 1
-
-            widget = plot.channel_selection.itemWidget(item, 1)
-
-            if isinstance(widget, ChannelDisplay):
-                sig, index = plot.plot.signal_by_uuid(widget.uuid)
-                if sig.group_index == NOT_FOUND:
-                    widget.does_not_exist()
+        # iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
+        # while iterator.value():
+        #     item = iterator.value()
+        #     iterator += 1
+        #
+        #     widget = plot.channel_selection.itemWidget(item, 1)
+        #
+        #     if isinstance(widget, ChannelDisplay):
+        #         sig, index = plot.plot.signal_by_uuid(widget.uuid)
+        #         if sig.group_index == NOT_FOUND:
+        #             widget.does_not_exist()
 
         plot.plot.update_lines()
 
@@ -2932,49 +2978,49 @@ class WithMDIArea:
 
                     _, _idx = plot.plot.signal_by_uuid(wid.uuid)
 
-                    if "y_range" in description:
-                        plot.plot.view_boxes[_idx].setYRange(
-                            *description["y_range"], padding=0
-                        )
+                    # if "y_range" in description:
+                    #     plot.plot.view_boxes[_idx].setYRange(
+                    #         *description["y_range"], padding=0
+                    #     )
+                    #
+                    # wid.set_fmt(description["fmt"])
+                    # wid.set_precision(description["precision"])
+                    # try:
+                    #     wid.set_ranges(
+                    #         [
+                    #             {
+                    #                 "font_color": range["color"],
+                    #                 "background_color": range["color"],
+                    #                 "op1": "<=",
+                    #                 "op2": "<=",
+                    #                 "value1": float(range["start"]),
+                    #                 "value2": float(range["stop"]),
+                    #             }
+                    #             for range in description["ranges"]
+                    #         ]
+                    #     )
+                    # except KeyError:
+                    #     wid.set_ranges(description["ranges"])
+                    #
+                    # for range in wid.ranges:
+                    #     range["font_color"] = QtGui.QColor(range["font_color"])
+                    #     range["background_color"] = QtGui.QColor(
+                    #         range["background_color"]
+                    #     )
 
-                    wid.set_fmt(description["fmt"])
-                    wid.set_precision(description["precision"])
-                    try:
-                        wid.set_ranges(
-                            [
-                                {
-                                    "font_color": range["color"],
-                                    "background_color": range["color"],
-                                    "op1": "<=",
-                                    "op2": "<=",
-                                    "value1": float(range["start"]),
-                                    "value2": float(range["stop"]),
-                                }
-                                for range in description["ranges"]
-                            ]
-                        )
-                    except KeyError:
-                        wid.set_ranges(description["ranges"])
-
-                    for range in wid.ranges:
-                        range["font_color"] = QtGui.QColor(range["font_color"])
-                        range["background_color"] = QtGui.QColor(
-                            range["background_color"]
-                        )
-
-                    wid.ylink.setCheckState(
-                        QtCore.Qt.Checked
-                        if description["common_axis"]
-                        else QtCore.Qt.Unchecked
-                    )
-                    wid.individual_axis.setCheckState(
-                        QtCore.Qt.Checked
-                        if description.get("individual_axis", False)
-                        else QtCore.Qt.Unchecked
-                    )
-                    width = description.get("individual_axis_width", 0)
-                    if width:
-                        plot.plot.axes[_idx].setWidth(width)
+                    # wid.ylink.setCheckState(
+                    #     QtCore.Qt.Checked
+                    #     if description["common_axis"]
+                    #     else QtCore.Qt.Unchecked
+                    # )
+                    # wid.individual_axis.setCheckState(
+                    #     QtCore.Qt.Checked
+                    #     if description.get("individual_axis", False)
+                    #     else QtCore.Qt.Unchecked
+                    # )
+                    # width = description.get("individual_axis_width", 0)
+                    # if width:
+                    #     plot.plot.axes[_idx].setWidth(width)
                     item.setCheckState(
                         0,
                         QtCore.Qt.Checked
