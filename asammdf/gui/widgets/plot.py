@@ -1174,6 +1174,7 @@ class Plot(QtWidgets.QWidget):
             hide_missing_channels=hide_missing_channels,
             hide_disabled_channels=hide_disabled_channels,
             parent=self,
+            plot=self,
         )
 
         widget.setLayout(vbox)
@@ -2023,24 +2024,21 @@ class Plot(QtWidgets.QWidget):
         def add_new_items(tree, root, items, items_pool):
             pairs = []
             children = []
-            for (
-                name,
-                group_index,
-                channel_index,
-                origin_uuid,
-                type_,
-                ranges,
-                uuid,
-            ) in items:
-                ranges = deepcopy(ranges)
+            for info in items:
+
+                pattern = info.get("pattern", None)
+                uuid = info["uuid"]
+                name = info["name"]
+
+                ranges = deepcopy(info["ranges"])
                 for range_info in ranges:
                     range_info["font_color"] = QtGui.QColor(range_info["font_color"])
                     range_info["background_color"] = QtGui.QColor(
                         range_info["background_color"]
                     )
 
-                if type_ == "group":
-                    pattern = group_index
+                if info["type"] == "group":
+
                     item = ChannelsGroupTreeItem(name, pattern, uuid=uuid)  # , root)
                     widget = ChannelGroupDisplay(
                         name, pattern, item=item, ranges=ranges, uuid=uuid
@@ -2050,7 +2048,9 @@ class Plot(QtWidgets.QWidget):
                     children.append(item)
                     pairs.append((item, widget))
 
-                    pairs.extend(add_new_items(tree, item, channel_index, items_pool))
+                    pairs.extend(
+                        add_new_items(tree, item, info["channels"], items_pool)
+                    )
 
                 else:
 
@@ -2244,6 +2244,86 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.refresh()
         self._update_visibile_entries()
 
+    def channel_item_to_config(self, item):
+        widget = item.widget
+
+        channel = {"type": "channel"}
+
+        sig, idx = self.plot.signal_by_uuid(widget.uuid)
+
+        channel["name"] = sig.name
+        channel["unit"] = sig.unit
+        channel["enabled"] = item.checkState(0) == QtCore.Qt.Checked
+
+        if widget.individual_axis.checkState() == QtCore.Qt.Checked:
+            channel["individual_axis"] = True
+            channel["individual_axis_width"] = (
+                self.plot.axes[idx].boundingRect().width()
+            )
+        else:
+            channel["individual_axis"] = False
+
+        channel["common_axis"] = widget.ylink.checkState() == QtCore.Qt.Checked
+        channel["color"] = sig.color
+        channel["computed"] = sig.computed
+        channel["ranges"] = copy_ranges(widget.ranges)
+
+        for range_info in channel["ranges"]:
+            range_info["background_color"] = range_info["background_color"].name()
+            range_info["font_color"] = range_info["font_color"].name()
+
+        channel["precision"] = widget.precision
+        channel["fmt"] = widget.fmt
+        channel["mode"] = sig.mode
+        if sig.computed:
+            channel["computation"] = sig.computation
+
+        view = self.plot.view_boxes[idx]
+        channel["y_range"] = [float(e) for e in view.viewRange()[1]]
+        channel["origin_uuid"] = str(sig.origin_uuid)
+
+        if sig.computed and sig.conversion:
+            channel["user_defined_name"] = sig.name
+            channel["name"] = sig.computation["expression"].strip("}{")
+
+            channel["conversion"] = {}
+            for i in range(sig.conversion.val_param_nr):
+                channel["conversion"][f"text_{i}"] = sig.conversion.referenced_blocks[
+                    f"text_{i}"
+                ].decode("utf-8")
+                channel["conversion"][f"val_{i}"] = sig.conversion[f"val_{i}"]
+
+        return channel
+
+    def channel_group_item_to_config(self, item):
+        widget = item.widget
+        pattern = widget.pattern
+        if pattern:
+            pattern = dict(pattern)
+            ranges = copy_ranges(pattern["ranges"])
+
+            for range_info in ranges:
+                range_info["font_color"] = range_info["font_color"].name()
+                range_info["background_color"] = range_info["background_color"].name()
+
+            pattern["ranges"] = ranges
+
+        ranges = copy_ranges(widget.ranges)
+
+        for range_info in ranges:
+            range_info["font_color"] = range_info["font_color"].name()
+            range_info["background_color"] = range_info["background_color"].name()
+
+        channel_group = {
+            "type": "group",
+            "name": widget.name.text().rsplit("\t[")[0],
+            "enabled": item.checkState(0) == QtCore.Qt.Checked,
+            "pattern": pattern,
+            "ranges": ranges,
+        }
+
+        return channel_group
+
     def to_config(self):
         def item_to_config(tree, root):
             channels = []
@@ -2252,60 +2332,7 @@ class Plot(QtWidgets.QWidget):
                 item = root.child(i)
                 widget = tree.itemWidget(item, 1)
                 if isinstance(widget, ChannelDisplay):
-
-                    channel = {"type": "channel"}
-
-                    sig, idx = self.plot.signal_by_uuid(widget.uuid)
-
-                    channel["name"] = sig.name
-                    channel["unit"] = sig.unit
-                    channel["enabled"] = item.checkState(0) == QtCore.Qt.Checked
-
-                    if widget.individual_axis.checkState() == QtCore.Qt.Checked:
-                        channel["individual_axis"] = True
-                        channel["individual_axis_width"] = (
-                            self.plot.axes[idx].boundingRect().width()
-                        )
-                    else:
-                        channel["individual_axis"] = False
-
-                    channel["common_axis"] = (
-                        widget.ylink.checkState() == QtCore.Qt.Checked
-                    )
-                    channel["color"] = sig.color
-                    channel["computed"] = sig.computed
-                    channel["ranges"] = copy_ranges(widget.ranges)
-
-                    for range_info in channel["ranges"]:
-                        range_info["background_color"] = range_info[
-                            "background_color"
-                        ].name()
-                        range_info["font_color"] = range_info["font_color"].name()
-
-                    channel["precision"] = widget.precision
-                    channel["fmt"] = widget.fmt
-                    channel["mode"] = sig.mode
-                    if sig.computed:
-                        channel["computation"] = sig.computation
-
-                    view = self.plot.view_boxes[idx]
-                    channel["y_range"] = [float(e) for e in view.viewRange()[1]]
-                    channel["origin_uuid"] = str(sig.origin_uuid)
-
-                    if sig.computed and sig.conversion:
-                        channel["user_defined_name"] = sig.name
-                        channel["name"] = sig.computation["expression"].strip("}{")
-
-                        channel["conversion"] = {}
-                        for i in range(sig.conversion.val_param_nr):
-                            channel["conversion"][
-                                f"text_{i}"
-                            ] = sig.conversion.referenced_blocks[f"text_{i}"].decode(
-                                "utf-8"
-                            )
-                            channel["conversion"][f"val_{i}"] = sig.conversion[
-                                f"val_{i}"
-                            ]
+                    channel = self.channel_item_to_config(item)
 
                 elif isinstance(widget, ChannelGroupDisplay):
                     pattern = widget.pattern
@@ -2329,16 +2356,10 @@ class Plot(QtWidgets.QWidget):
                             "background_color"
                         ].name()
 
-                    channel = {
-                        "type": "group",
-                        "name": widget.name.text().rsplit("\t[")[0],
-                        "channels": item_to_config(tree, item)
-                        if item.pattern is None
-                        else [],
-                        "enabled": item.checkState(0) == QtCore.Qt.Checked,
-                        "pattern": pattern,
-                        "ranges": ranges,
-                    }
+                    channel = self.channel_group_item_to_config(item)
+                    channel["channels"] = (
+                        item_to_config(tree, item) if item.pattern is None else []
+                    )
 
                 channels.append(channel)
 
@@ -2519,6 +2540,7 @@ class Plot(QtWidgets.QWidget):
     def close(self):
 
         tree = self.channel_selection
+        tree.plot = None
         iterator = QtWidgets.QTreeWidgetItemIterator(tree)
         while True:
             item = iterator.value()

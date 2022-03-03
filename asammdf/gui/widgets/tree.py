@@ -161,22 +161,10 @@ def validate_drag_items(root, items, not_allowed):
     return valid_items
 
 
-def get_data(items, uuids_only=False):
+def get_data(plot, items, uuids_only=False):
     data = []
 
-    if items:
-        tree = items[0].treeWidget()
-        plot = tree.plot
-
     for item in items:
-        widget = item.widget
-        ranges = copy_ranges(widget.ranges)
-
-        for range_info in ranges:
-            range_info["background_color"] = range_info[
-                "background_color"
-            ].name()
-            range_info["font_color"] = range_info["font_color"].name()
 
         if isinstance(item, ChannelsGroupTreeItem):
             children = [item.child(i) for i in range(item.childCount())]
@@ -184,63 +172,20 @@ def get_data(items, uuids_only=False):
             if uuids_only:
                 data.extend(get_data(children, uuids_only))
             else:
+                group = plot.channel_group_item_to_config(item)
+                group["uuid"] = os.urandom(6).hex()
 
-                if item.pattern:
-                    data.append(
-
-                        {
-                            "name": item.name,
-                            "pattern": item.pattern,
-                            "channels": [],
-                            "type": "group",
-                            "uuid": os.urandom(6).hex(),
-                            "ranges": ranges,
-                        }
-
-                    )
-
-                else:
-                    data.append(
-
-                        {
-                            "name": item.name,
-                            "pattern": None,
-                            "channels": get_data(children, uuids_only),
-                            "type": "group",
-                            "uuid": os.urandom(6).hex(),
-                            "ranges": ranges,
-                        }
-                    )
+                data.append(group)
 
         else:
             if uuids_only:
-                data.append(tree.itemWidget(item, 1).uuid)
+                data.append(item.widget.uuid)
             else:
+                channel = plot.channel_item_to_config(item)
+                channel["uuid"] = os.urandom(6).hex()
+                channel["group_index"], channel["channel_index"] = item.entry
 
-                if item.entry == (-1, -1):
-                    name = {
-                        "name": item.name,
-                        "computation": item.computation,
-                        "computed": True,
-                        "unit": widget._unit,
-                        "color": widget.color,
-                    }
-                else:
-                    name = item.name
-
-                channel = plot.channel
-
-                data.append(
-                    {
-                        "name": name,
-                        "type": "channel",
-                        "group_index": item.entry[0],
-                        "channel_index": item.entry[1],
-                        "ranges": ranges,
-                        "uuid": os.urandom(6).hex(),
-                        "origin_uuid": item.origin_uuid,
-                    }
-                )
+                data.append(channel)
 
     return data
 
@@ -297,26 +242,33 @@ class TreeWidget(QtWidgets.QTreeWidget):
 
                         if child.entry[1] != 0xFFFFFFFFFFFFFFFF:
                             data.append(
-                                (
-                                    child.name,
-                                    *child.entry,
-                                    child.origin_uuid,
-                                    "channel",
-                                    [],
-                                    os.urandom(6).hex(),
-                                )
+                                {
+                                    "name": child.name,
+                                    "group_index": child.entry[0],
+                                    "channel_index": child.entry[1],
+                                    "type": "channel",
+                                    "ranges": [],
+                                    "uuid": os.urandom(6).hex(),
+                                    "origin_uuid": child.origin_uuid,
+                                    "computed": False,
+                                    "computation": None,
+                                }
                             )
+
             else:
                 if item.entry[1] != 0xFFFFFFFFFFFFFFFF:
                     data.append(
-                        (
-                            item.name,
-                            *item.entry,
-                            item.origin_uuid,
-                            "channel",
-                            [],
-                            os.urandom(6).hex(),
-                        )
+                        {
+                            "name": item.name,
+                            "group_index": item.entry[0],
+                            "channel_index": item.entry[1],
+                            "type": "channel",
+                            "ranges": [],
+                            "uuid": os.urandom(6).hex(),
+                            "origin_uuid": item.origin_uuid,
+                            "computed": False,
+                            "computation": None,
+                        }
                     )
 
             return data
@@ -329,7 +281,11 @@ class TreeWidget(QtWidgets.QTreeWidget):
         for item in selected_items:
             data.extend(get_data(item))
 
-        data = json.dumps(sorted(data)).encode("utf-8")
+        data = json.dumps(
+            sorted(
+                data, key=lambda x: (x["name"], x["group_index"], x["channel_index"])
+            )
+        ).encode("utf-8")
 
         mimeData.setData("application/octet-stream-asammdf", QtCore.QByteArray(data))
 
@@ -406,10 +362,16 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     compute_fft_request = QtCore.Signal(str)
 
     def __init__(
-        self, hide_missing_channels=False, hide_disabled_channels=False, *args, **kwargs
+        self,
+        hide_missing_channels=False,
+        hide_disabled_channels=False,
+        plot=None,
+        *args,
+        **kwargs,
     ):
 
         super().__init__(*args, **kwargs)
+        self.plot = plot
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 
@@ -467,7 +429,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         if key == QtCore.Qt.Key_Delete and self.can_delete_items:
             selected_items = self.selectedItems()
-            deleted = get_data(selected_items, uuids_only=True)
+            deleted = get_data(self.plot, selected_items, uuids_only=True)
 
             root = self.invisibleRootItem()
             for item in selected_items:
@@ -612,7 +574,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         mimeData = QtCore.QMimeData()
 
-        data = get_data(selected_items, uuids_only=False)
+        data = get_data(self.plot, selected_items, uuids_only=False)
         data = json.dumps(data).encode("utf-8")
 
         mimeData.setData("application/octet-stream-asammdf", QtCore.QByteArray(data))
@@ -655,7 +617,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     if valid_drop_target(target=drop_item, item=item)
                 ]
 
-            uuids = get_data(selected_items, uuids_only=True)
+            uuids = get_data(self.plot, selected_items, uuids_only=True)
 
             if drop_item is None:
                 add_new_items(
@@ -812,7 +774,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         elif action.text() == "Copy channel structure":
             selected_items = self.selectedItems()
-            data = get_data(selected_items, uuids_only=False)
+            data = get_data(self.plot, selected_items, uuids_only=False)
             data = substitude_mime_uuids(data, None, force=True)
             QtWidgets.QApplication.instance().clipboard().setText(json.dumps(data))
 

@@ -44,9 +44,7 @@ SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
 NOT_FOUND = 2**32 - 1
 
 
-def build_mime_from_config(
-    items, mdf=None, origin_uuid=None, default_index=NOT_FOUND
-):
+def build_mime_from_config(items, mdf=None, origin_uuid=None, default_index=NOT_FOUND):
     descriptions = {}
     found = {}
     not_found = {}
@@ -226,45 +224,31 @@ def get_descriptions(channels):
 def get_flatten_entries_from_mime(data, default_index=None):
     entries = []
 
-    for (name, group_index, channel_index, origin_uuid, type_, ranges, uuid) in data:
-        if type_ == "channel":
+    for item in data:
+        if item["type"] == "channel":
+            new_item = dict(item)
+
             if default_index is not None:
-                entries.append(
-                    (
-                        name,
-                        default_index,
-                        default_index,
-                        origin_uuid,
-                        "channel",
-                        ranges,
-                        uuid,
-                    )
-                )
-            else:
-                entries.append(
-                    (
-                        name,
-                        group_index,
-                        channel_index,
-                        origin_uuid,
-                        "channel",
-                        ranges,
-                        uuid,
-                    )
-                )
+                new_item["group_index"] = default_index
+                new_item["channel_index"] = default_index
+
+            entries.append(new_item)
+
         else:
-            entries.extend(get_flatten_entries_from_mime(channel_index, default_index))
+            entries.extend(
+                get_flatten_entries_from_mime(item["channels"], default_index)
+            )
     return entries
 
 
 def get_pattern_groups(data):
     groups = []
-    for (name, pattern, channels, origin_uuid, type_, ranges, uuid) in data:
-        if type_ == "group":
-            if pattern is not None:
-                groups.append(name, pattern, channels, origin_uuid, type_, ranges, uuid)
+    for item in data:
+        if item["type"] == "group":
+            if item["pattern"] is not None:
+                groups.append(item)
             else:
-                groups.extend(get_pattern_groups(channels))
+                groups.extend(get_pattern_groups(item["channels"]))
     return groups
 
 
@@ -353,37 +337,18 @@ def substitude_mime_uuids(mime, uuid, force=False):
     new_mime = []
 
     # check first mime
-    generic_uuid = mime[0][3]
+    generic_uuid = mime[0]["origin_uuid"]
     if not force and generic_uuid is not None:
         return mime
 
-    for (
-        name,
-        group_index,
-        channel_index,
-        generic_uuid,
-        type_,
-        ranges,
-        item_uuid,
-    ) in mime:
-        if type_ == "channel":
-            new_mime.append(
-                (name, group_index, channel_index, uuid, type_, ranges, item_uuid)
-            )
+    for item in mime:
+        if item["type"] == "channel":
+            item["origin_uuid"] = uuid
+            new_mime.append(item)
         else:
-            new_mime.append(
-                (
-                    name,
-                    group_index,
-                    substitude_mime_uuids(channel_index, uuid),
-                    uuid,
-                    type_,
-                    ranges,
-                    item_uuid,
-                )
-            )
-    print("sub", mime)
-    print("sub", new_mime)
+            item["channels"] = substitude_mime_uuids(item["channels"], uuid)
+            item["origin_uuid"] = uuid
+            new_mime.append(item)
     return new_mime
 
 
@@ -449,19 +414,11 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
 
                 def count(data):
                     s = 0
-                    for (
-                        name,
-                        group_index,
-                        channel_index,
-                        origin_uuid,
-                        type_,
-                        ranges,
-                        uuid,
-                    ) in data:
-                        if type_ == "channel":
+                    for item in data:
+                        if item["type"] == "channel":
                             s += 1
                         else:
-                            s += count(channel_index)
+                            s += count(item["channels"])
                     return s
 
                 names = extract_mime_names(data)
@@ -622,11 +579,19 @@ class WithMDIArea:
                 mime_data = substitude_mime_uuids(mime_data, self.uuid)
 
                 entries = get_flatten_entries_from_mime(mime_data)
-                signals_ = [name for name in entries if tuple(name[1:3]) != (-1, -1)]
+                signals_ = [
+                    entry
+                    for entry in entries
+                    if (entry["group_index"], entry["channel_index"]) != (-1, -1)
+                ]
 
-                computed = [name for name in entries if tuple(name[1:3]) == (-1, -1)]
+                computed = [
+                    entry
+                    for entry in entries
+                    if (entry["group_index"], entry["channel_index"]) == (-1, -1)
+                ]
 
-                uuids = set(entry[3] for entry in entries)
+                uuids = set(entry["origin_uuid"] for entry in entries)
 
             # print(computed)
             # print(names)
@@ -637,7 +602,9 @@ class WithMDIArea:
 
                 for uuid in uuids:
                     uuids_signals = [
-                        entry[:3] for entry in signals_ if entry[3] == uuid and entry
+                        (entry["name"], entry["group_index"], entry["channel_index"])
+                        for entry in signals_
+                        if entry["origin_uuid"] == uuid and entry
                     ]
 
                     file_info = self.file_by_uuid(uuid)
@@ -677,11 +644,13 @@ class WithMDIArea:
 
                 for uuid in uuids:
                     uuids_signals = [
-                        entry[:3] for entry in signals_ if entry[3] == uuid
+                        (entry["name"], entry["group_index"], entry["channel_index"])
+                        for entry in signals_
+                        if entry["origin_uuid"] == uuid
                     ]
 
                     uuids_signals_uuid = [
-                        entry[-1] for entry in signals_ if entry[3] == uuid
+                        entry for entry in signals_ if entry["origin_uuid"] == uuid
                     ]
 
                     file_info = self.file_by_uuid(uuid)
@@ -736,7 +705,9 @@ class WithMDIArea:
                 signals = {}
 
                 for uuid in uuids:
-                    uuids_signals = [entry for entry in signals_ if entry[3] == uuid]
+                    uuids_signals = [
+                        entry for entry in signals_ if entry["origin_uuid"] == uuid
+                    ]
 
                     file_info = self.file_by_uuid(uuid)
                     if not file_info:
@@ -745,7 +716,14 @@ class WithMDIArea:
                     file_index, file = file_info
 
                     selected_signals = file.mdf.select(
-                        [entry[:3] for entry in uuids_signals],
+                        [
+                            (
+                                entry["name"],
+                                entry["group_index"],
+                                entry["channel_index"],
+                            )
+                            for entry in uuids_signals
+                        ],
                         ignore_value2text_conversions=ignore_value2text_conversions,
                         copy_master=False,
                         validate=True,
@@ -753,13 +731,13 @@ class WithMDIArea:
                     )
 
                     for sig, sig_ in zip(selected_signals, uuids_signals):
-                        sig.group_index = sig_[1]
-                        sig.channel_index = sig_[2]
+                        sig.group_index = sig_["group_index"]
+                        sig.channel_index = sig_["channel_index"]
                         sig.computed = False
                         sig.computation = {}
                         sig.origin_uuid = uuid
-                        sig.name = sig_[0]
-                        sig.uuid = sig_[-1]
+                        sig.name = sig_["name"]
+                        sig.uuid = sig_["uuid"]
 
                         if not hasattr(self, "mdf"):
                             # MainWindow => comparison plots
@@ -1625,17 +1603,23 @@ class WithMDIArea:
         else:
             flatten_entries = get_flatten_entries_from_mime(names)
             signals_ = [
-                entry for entry in flatten_entries if tuple(entry[1:3]) != (-1, -1)
+                entry
+                for entry in flatten_entries
+                if tuple((entry["group_index"], entry["channel_index"])) != (-1, -1)
             ]
 
         signals_ = natsorted(signals_)
 
-        uuids = set(entry[3] for entry in signals_)
+        uuids = set(entry["origin_uuid"] for entry in signals_)
 
         signals = []
 
         for uuid in uuids:
-            uuids_signals = [entry[:3] for entry in signals_ if entry[3] == uuid]
+            uuids_signals = [
+                (entry["name"], entry["group_index"], entry["channel_index"])
+                for entry in signals_
+                if entry["origin_uuid"] == uuid
+            ]
 
             file_info = self.file_by_uuid(uuid)
             if not file_info:
@@ -1787,24 +1771,26 @@ class WithMDIArea:
 
         flatten_entries = get_flatten_entries_from_mime(mime_data)
         signals_ = {
-            entry[-1]: entry
+            entry["uuid"]: entry
             for entry in flatten_entries
-            if tuple(entry[1:3]) != (-1, -1)
+            if (entry["group_index"], entry["channel_index"]) != (-1, -1)
         }
 
         computed = {
-            entry[-1]: entry
+            entry["uuid"]: entry
             for entry in flatten_entries
-            if tuple(entry[1:3]) == (-1, -1)
+            if (entry["group_index"], entry["channel_index"]) == (-1, -1)
         }
 
-        uuids = set(entry[3] for entry in signals_.values())
+        uuids = set(entry["origin_uuid"] for entry in signals_.values())
 
         signals = {}
 
         for uuid in uuids:
             uuids_signals = {
-                key: entry for key, entry in signals_.items() if entry[3] == uuid
+                key: entry
+                for key, entry in signals_.items()
+                if entry["origin_uuid"] == uuid
             }
 
             file_info = self.file_by_uuid(uuid)
@@ -1814,7 +1800,10 @@ class WithMDIArea:
             file_index, file = file_info
 
             selected_signals = file.mdf.select(
-                [entry[:3] for entry in uuids_signals.values()],
+                [
+                    (entry["name"], entry["group_index"], entry["channel_index"])
+                    for entry in uuids_signals.values()
+                ],
                 ignore_value2text_conversions=self.ignore_value2text_conversions,
                 copy_master=False,
                 validate=True,
@@ -1822,12 +1811,12 @@ class WithMDIArea:
             )
 
             for sig, (sig_uuid, sig_) in zip(selected_signals, uuids_signals.items()):
-                sig.group_index = sig_[1]
-                sig.channel_index = sig_[2]
+                sig.group_index = sig_["group_index"]
+                sig.channel_index = sig_["channel_index"]
                 sig.computed = False
                 sig.computation = {}
                 sig.origin_uuid = uuid
-                sig.name = sig_[0] or sig.name
+                sig.name = sig_["name"] or sig.name
                 sig.uuid = sig_uuid
 
                 if not hasattr(self, "mdf"):
@@ -2117,8 +2106,10 @@ class WithMDIArea:
         self.set_subplots_link(self.subplots_link)
 
         iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
-        while iterator.value():
+        while True:
             item = iterator.value()
+            if item is None:
+                break
             iterator += 1
 
             if isinstance(item, ChannelsGroupTreeItem):
@@ -2147,18 +2138,24 @@ class WithMDIArea:
         else:
             flatten_entries = get_flatten_entries_from_mime(names)
             signals_ = [
-                entry for entry in flatten_entries if tuple(entry[1:3]) != (-1, -1)
+                entry
+                for entry in flatten_entries
+                if tuple((entry["group_index"], entry["channel_index"])) != (-1, -1)
             ]
 
         signals_ = natsorted(signals_)
 
-        uuids = set(entry[3] for entry in signals_)
+        uuids = set(entry["origin_uuid"] for entry in signals_)
 
         dfs = []
         start = []
 
         for uuid in uuids:
-            uuids_signals = [entry[:3] for entry in signals_ if entry[3] == uuid]
+            uuids_signals = [
+                (entry["name"], entry["group_index"], entry["channel_index"])
+                for entry in signals_
+                if entry["origin_uuid"] == uuid
+            ]
 
             file_info = self.file_by_uuid(uuid)
             if not file_info:
@@ -2385,7 +2382,7 @@ class WithMDIArea:
             )
 
             for sig, sig_, channel_ranges in zip(signals, signals_, ranges):
-                sig.group_index = sig_[1]
+                sig.group_index = sig_["group_index"]
                 sig.origin_uuid = uuid
                 sig.computation = None
                 sig.ranges = channel_ranges

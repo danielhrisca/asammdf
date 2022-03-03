@@ -634,13 +634,7 @@ class TableView(QtWidgets.QTableView):
 
             entry = signal.entry if numeric_mode == "online" else signal.signal.entry
 
-            if entry == (-1, -1):
-                info = {
-                    "name": signal.name,
-                    "computation": {},
-                }
-            else:
-                info = signal.name
+            group_index, channel_index = entry
 
             ranges = copy_ranges(self.ranges[signal.entry])
 
@@ -650,18 +644,21 @@ class TableView(QtWidgets.QTableView):
                     range_info["background_color"].color().name()
                 )
 
-            data.append(
-                (
-                    info,
-                    *entry,
-                    str(entry[0])
-                    if numeric_mode == "online"
-                    else signal.signal.origin_uuid,
-                    "channel",
-                    ranges,
-                    os.urandom(6).hex(),
-                )
-            )
+            info = {
+                "name": signal.name,
+                "computation": {},
+                "computed": True,
+                "group_index": group_index,
+                "channel_index": channel_index,
+                "ranges": ranges,
+                "origin_uuid": str(entry[0])
+                if numeric_mode == "online"
+                else signal.signal.origin_uuid,
+                "type": "channel",
+                "uuid": os.urandom(6).hex(),
+            }
+
+            data.append(info)
 
         data = json.dumps(data).encode("utf-8")
 

@@ -983,16 +983,24 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         window_type = dialog.selected_type()
 
                         signals = natsorted(
-                            (
-                                name,
-                                dg_cntr,
-                                ch_cntr,
-                                self.uuid,
-                                "channel",
-                                [],
-                                os.urandom(6).hex(),
-                            )
-                            for name, dg_cntr, ch_cntr in names
+                            [
+                                {
+                                    "name": name,
+                                    "group_index": dg_cntr,
+                                    "channel_index": ch_cntr,
+                                    "origin_uuid": self.uuid,
+                                    "type": "channel",
+                                    "ranges": [],
+                                    "uuid": os.urandom(6).hex(),
+                                    "enabled": True,
+                                }
+                                for name, dg_cntr, ch_cntr in names
+                            ],
+                            key=lambda x: (
+                                x["name"],
+                                x["group_index"],
+                                x["channel_index"],
+                            ),
                         )
 
                         if window_type == "New plot window":
@@ -1525,15 +1533,15 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             ch = self.mdf.groups[group].channels[index]
                             if not ch.component_addr:
                                 signals.append(
-                                    (
-                                        ch.name,
-                                        group,
-                                        index,
-                                        self.uuid,
-                                        "channel",
-                                        [],
-                                        os.urandom(6).hex(),
-                                    )
+                                    {
+                                        "name": ch.name,
+                                        "group_index": group,
+                                        "channel_index": index,
+                                        "origin_uuid": self.uuid,
+                                        "type": "channel",
+                                        "ranges": [],
+                                        "uuid": os.urandom(6).hex(),
+                                    }
                                 )
 
                         iterator += 1
@@ -1546,15 +1554,15 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             ch = self.mdf.groups[group].channels[index]
                             if not ch.component_addr:
                                 signals.append(
-                                    (
-                                        ch.name,
-                                        group,
-                                        index,
-                                        self.uuid,
-                                        "channel",
-                                        [],
-                                        os.urandom(6).hex(),
-                                    )
+                                    {
+                                        "name": ch.name,
+                                        "group_index": group,
+                                        "channel_index": index,
+                                        "origin_uuid": self.uuid,
+                                        "type": "channel",
+                                        "ranges": [],
+                                        "uuid": os.urandom(6).hex(),
+                                    }
                                 )
 
                         iterator += 1
