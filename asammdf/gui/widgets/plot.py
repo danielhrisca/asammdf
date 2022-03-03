@@ -2044,6 +2044,7 @@ class Plot(QtWidgets.QWidget):
                         name, pattern, item=item, ranges=ranges, uuid=uuid
                     )
                     widget.item = item
+                    item.widget = widget
 
                     children.append(item)
                     pairs.append((item, widget))
@@ -2180,6 +2181,9 @@ class Plot(QtWidgets.QWidget):
                 it.details.setVisible(True)
             it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
+            item.widget = it
+            it.item = item
+
             if len(sig):
                 it.set_value(sig.samples[0])
 
@@ -2221,6 +2225,8 @@ class Plot(QtWidgets.QWidget):
             )
 
             for item, widget in pairs:
+                item.widget = widget
+                widget.item = item
                 self.channel_selection.setItemWidget(item, 1, widget)
 
             # still have simple signals to add
@@ -2228,6 +2234,7 @@ class Plot(QtWidgets.QWidget):
                 for item, widget in new_items.values():
                     self.channel_selection.addTopLevelItem(item)
                     widget.item = item
+                    item.widget = widget
                     self.channel_selection.setItemWidget(item, 1, widget)
         elif children:
             items = [ch[0] for ch in children]
@@ -2238,6 +2245,8 @@ class Plot(QtWidgets.QWidget):
                 destination.addChildren(items)
 
             for item, it in children:
+                it.item = item
+                item.widget = it
                 self.channel_selection.setItemWidget(item, 1, it)
 
         self.channel_selection.update_channel_groups_count()
@@ -2548,14 +2557,10 @@ class Plot(QtWidgets.QWidget):
             if item is None:
                 break
 
-            if isinstance(item, ChannelsTreeItem):
-                widget = item.widget or tree.itemWidget(item, 1)
-                item.widget = None
-                if widget:
-                    widget.item = None
-            else:
-                widget = tree.itemWidget(item, 1)
+            widget = item.widget
+            if widget:
                 widget.item = None
+            item.widget = None
 
             iterator += 1
 

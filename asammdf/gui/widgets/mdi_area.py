@@ -44,7 +44,32 @@ SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
 NOT_FOUND = 2**32 - 1
 
 
-def build_mime_from_config(items, mdf=None, origin_uuid=None, default_index=NOT_FOUND):
+def get_origin_uuid(item):
+    if item["type"] == "group":
+        for subitem in item["channels"]:
+            if subitem["type"] == "channel":
+                return subitem["origin_uuid"]
+        for subitem in item["channels"]:
+            if subitem["type"] == "group":
+                uuid = get_origin_uuid(subitem)
+                if uuid is not None:
+                    return uuid
+
+        return None
+
+    else:
+        return item["origin_uuid"]
+
+
+def build_mime_from_config(
+    items, mdf=None, origin_uuid=None, default_index=NOT_FOUND, top=True
+):
+
+    if top:
+        for item in items:
+            if item["type"] == "group":
+                item["origin_uuid"] = get_origin_uuid(item)
+
     descriptions = {}
     found = {}
     not_found = {}
@@ -55,6 +80,7 @@ def build_mime_from_config(items, mdf=None, origin_uuid=None, default_index=NOT_
         item["uuid"] = uuid
 
         if item.get("type", "channel") == "group":
+
             if item.get("pattern", None) is None:
                 (
                     new_mine,
@@ -63,7 +89,7 @@ def build_mime_from_config(items, mdf=None, origin_uuid=None, default_index=NOT_
                     new_not_found,
                     new_computed,
                 ) = build_mime_from_config(
-                    item["channels"], mdf, origin_uuid, default_index
+                    item["channels"], mdf, origin_uuid, default_index, top=False
                 )
                 descriptions.update(new_descriptions)
                 found.update(new_found)
@@ -330,24 +356,23 @@ def get_required_from_descriptions(channels, mdf):
     return required, found, not_found, computed
 
 
-def substitude_mime_uuids(mime, uuid, force=False):
+def substitude_mime_uuids(mime, uuid=None, force=False):
     if not mime:
         return mime
 
     new_mime = []
 
-    # check first mime
-    generic_uuid = mime[0]["origin_uuid"]
-    if not force and generic_uuid is not None:
-        return mime
-
     for item in mime:
         if item["type"] == "channel":
-            item["origin_uuid"] = uuid
+            if force or item["origin_uuid"] is None:
+                item["origin_uuid"] = uuid
             new_mime.append(item)
         else:
-            item["channels"] = substitude_mime_uuids(item["channels"], uuid)
-            item["origin_uuid"] = uuid
+            item["channels"] = substitude_mime_uuids(
+                item["channels"], uuid, force=force
+            )
+            if force or item["origin_uuid"] is None:
+                item["origin_uuid"] = uuid
             new_mime.append(item)
     return new_mime
 
@@ -1755,14 +1780,15 @@ class WithMDIArea:
 
         if signals and isinstance(signals[0], str):
             mime_data = [
-                (
-                    name,
-                    *self.mdf.whereis(name)[0],
-                    self.uuid,
-                    "channel",
-                    [],
-                    os.urandom(6).hex(),
-                )
+                {
+                    "name": name,
+                    "group_index": self.mdf.whereis(name)[0][0],
+                    "channel_index": self.mdf.whereis(name)[0][0],
+                    "origin_uuid": self.uuid,
+                    "type": "channel",
+                    "ranges": [],
+                    "uuid": os.urandom(6).hex(),
+                }
                 for name in signals
                 if name in self.mdf
             ]
@@ -2382,7 +2408,7 @@ class WithMDIArea:
             )
 
             for sig, sig_, channel_ranges in zip(signals, signals_, ranges):
-                sig.group_index = sig_["group_index"]
+                sig.group_index = sig_[2]
                 sig.origin_uuid = uuid
                 sig.computation = None
                 sig.ranges = channel_ranges

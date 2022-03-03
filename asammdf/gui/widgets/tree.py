@@ -15,24 +15,23 @@ from .channel_group_display import ChannelGroupDisplay
 from .tree_item import TreeItem
 
 
-def substitude_mime_uuids(mime, uuid, force=False):
+def substitude_mime_uuids(mime, uuid=None, force=False):
     if not mime:
         return mime
 
     new_mime = []
 
-    # check first mime
-    generic_uuid = mime[0]["origin_uuid"]
-    if not force and generic_uuid is not None:
-        return mime
-
     for item in mime:
         if item["type"] == "channel":
-            item["origin_uuid"] = uuid
+            if force or item["origin_uuid"] is None:
+                item["origin_uuid"] = uuid
             new_mime.append(item)
         else:
-            item["channels"] = substitude_mime_uuids(item["channels"], uuid)
-            item["origin_uuid"] = uuid
+            item["channels"] = substitude_mime_uuids(
+                item["channels"], uuid, force=force
+            )
+            if force or item["origin_uuid"] is None:
+                item["origin_uuid"] = uuid
             new_mime.append(item)
     return new_mime
 
@@ -782,6 +781,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             )
             data = get_data(self.plot, selected_items, uuids_only=False)
             data = substitude_mime_uuids(data, None, force=True)
+            from pprint import pprint
+
+            pprint(data)
             QtWidgets.QApplication.instance().clipboard().setText(json.dumps(data))
 
         elif action.text() == "Paste channel structure":
@@ -1259,6 +1261,7 @@ class ChannelsGroupTreeItem(QtWidgets.QTreeWidgetItem):
         self.pattern = pattern
         self._is_visible = True
         self.uuid = uuid
+        self.widget = None
 
         self.setFlags(
             self.flags()
@@ -1356,8 +1359,8 @@ class ChannnelGroupDialog(QtWidgets.QDialog):
         self.setMinimumWidth(500)
         self.adjustSize()
 
-        screen = QtWidgets.QApplication.desktop().screenGeometry()
-        self.move((screen.width() - 1200) // 2, (screen.height() - 600) // 2)
+        # screen = QtWidgets.QApplication.desktop().screenGeometry()
+        # self.move((screen.width() - 1200) // 2, (screen.height() - 600) // 2)
 
 
 if __name__ == "__main__":

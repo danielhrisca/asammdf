@@ -178,6 +178,7 @@ def load_dsp(file, background="#000000"):
                         "type": "group",
                         "channels": parse_channels(elem),
                         "pattern": None,
+                        "origin_uuid": "000000000000",
                     }
                 )
 
