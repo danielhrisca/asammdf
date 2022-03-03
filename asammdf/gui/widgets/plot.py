@@ -2226,11 +2226,14 @@ class Plot(QtWidgets.QWidget):
             it.individual_axis_changed.connect(self.plot.set_individual_axis)
 
             if description:
-                it.individual_axis.setCheckState(
-                    QtCore.Qt.Checked
-                    if description.get("individual_axis", False)
-                    else QtCore.Qt.Unchecked
-                )
+                individual_axis = description.get("individual_axis", False)
+                if individual_axis:
+                    it.individual_axis.setCheckState(QtCore.Qt.Checked)
+
+                    _, idx = self.plot.signal_by_uuid(sig_uuid)
+                    axis = self.plot.axes[idx]
+                    axis.setWidth(description["individual_axis_width"])
+
                 it.ylink.setCheckState(
                     QtCore.Qt.Checked
                     if description.get("common_axis", False)
