@@ -3,7 +3,7 @@ import bisect
 from collections import defaultdict
 from copy import deepcopy
 from datetime import timedelta
-from functools import partial, reduce
+from functools import lru_cache, partial, reduce
 import logging
 import os
 from pathlib import Path
@@ -82,10 +82,55 @@ def mouseReleaseEvent(self, ev):
     self.sendHoverEvents(ev)
 
 
+mkColor_factory = fn.mkColor
+mkBrush_factory = fn.mkBrush
+mkPen_factory = fn.mkPen
+
+
+def mkColor(*args):
+    try:
+        return cached_mkColor_factory(*args)
+    except:
+        return mkColor_factory(*args)
+
+
+@lru_cache(maxsize=512)
+def cached_mkColor_factory(*args):
+    return mkColor_factory(*args)
+
+
+def mkBrush(*args, **kwargs):
+    try:
+        return cached_mkBrush_factory(*args, **kwargs)
+    except:
+        return mkBrush_factory(*args, **kwargs)
+
+
+@lru_cache(maxsize=512)
+def cached_mkBrush_factory(*args, **kargs):
+    return mkBrush_factory(*args, **kargs)
+
+
+def mkPen(*args, **kwargs):
+    try:
+        return cached_mkPen_factory(*args, **kwargs)
+    except:
+        return mkPen_factory(*args, **kwargs)
+
+
+@lru_cache(maxsize=512)
+def cached_mkPen_factory(*args, **kargs):
+    return mkPen_factory(*args, **kargs)
+
+
 # speed-up monkey patches
 pg.graphicsItems.ScatterPlotItem.SymbolAtlas._keys = _keys
 pg.graphicsItems.ScatterPlotItem._USE_QRECT = False
 pg.GraphicsScene.mouseReleaseEvent = mouseReleaseEvent
+
+fn.mkBrush = mkBrush
+fn.mkColor = mkColor
+fn.mkPen = mkPen
 
 
 from ...mdf import MDF
