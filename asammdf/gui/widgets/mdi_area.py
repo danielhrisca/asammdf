@@ -581,14 +581,15 @@ class WithMDIArea:
             names = list(names)
             if names and isinstance(names[0], str):
                 signals_ = [
-                    (
-                        name,
-                        *self.mdf.whereis(name)[0],
-                        self.uuid,
-                        "channel",
-                        [],
-                        os.urandom(6).hex(),
-                    )
+                    {
+                        "name": name,
+                        "group_index": self.mdf.whereis(name)[0][0],
+                        "channel_index": self.mdf.whereis(name)[0][1],
+                        "origin_uuid": self.uuid,
+                        "type": "channel",
+                        "ranges": [],
+                        "uuid": os.urandom(6).hex(),
+                    }
                     for name in names
                     if name in self.mdf
                 ]
@@ -762,6 +763,7 @@ class WithMDIArea:
                         sig.computation = {}
                         sig.origin_uuid = uuid
                         sig.name = sig_["name"]
+                        sig.color = sig_["color"]
                         sig.uuid = sig_["uuid"]
 
                         if not hasattr(self, "mdf"):
@@ -1844,6 +1846,8 @@ class WithMDIArea:
                 sig.origin_uuid = uuid
                 sig.name = sig_["name"] or sig.name
                 sig.uuid = sig_uuid
+                if "color" in sig_:
+                    sig.color = sig_["color"]
 
                 if not hasattr(self, "mdf"):
                     # MainWindow => comparison plots

@@ -781,9 +781,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             )
             data = get_data(self.plot, selected_items, uuids_only=False)
             data = substitude_mime_uuids(data, None, force=True)
-            from pprint import pprint
-
-            pprint(data)
             QtWidgets.QApplication.instance().clipboard().setText(json.dumps(data))
 
         elif action.text() == "Paste channel structure":

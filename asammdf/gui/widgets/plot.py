@@ -128,6 +128,19 @@ def simple_max(a, b):
     return a
 
 
+def get_descriptions(mime):
+    descriptions = {}
+    if mime:
+
+        for item in mime:
+            descriptions[item["uuid"]] = item
+            if item["type"] == "group":
+
+                descriptions.update(get_descriptions(item["channels"]))
+
+    return descriptions
+
+
 class PlotSignal(Signal):
     def __init__(self, signal, index=0, trim_info=None, duplication=1):
         super().__init__(
@@ -2071,6 +2084,8 @@ class Plot(QtWidgets.QWidget):
 
             return pairs
 
+        descriptions = get_descriptions(mime_data)
+
         invalid = []
 
         can_trim = True
@@ -2132,7 +2147,7 @@ class Plot(QtWidgets.QWidget):
         self.adjust_splitter(list(channels.values()))
         QtCore.QCoreApplication.processEvents()
 
-        channels = self.plot.add_new_channels(channels)
+        channels = self.plot.add_new_channels(channels, descriptions=descriptions)
 
         enforce_y_axis = False
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
@@ -2152,6 +2167,8 @@ class Plot(QtWidgets.QWidget):
 
         new_items = defaultdict(list)
         for sig_uuid, sig in channels.items():
+
+            description = descriptions.get(sig_uuid, {})
 
             item = ChannelsTreeItem(
                 (sig.group_index, sig.channel_index),
@@ -2198,7 +2215,6 @@ class Plot(QtWidgets.QWidget):
 
             if mime_data is None:
                 children.append((item, it))
-
             else:
                 new_items[sig_uuid] = (item, it)
 
@@ -2207,9 +2223,23 @@ class Plot(QtWidgets.QWidget):
             it.ylink_changed.connect(self.plot.set_common_axis)
             it.unit_changed.connect(self.plot.set_unit)
             it.name_changed.connect(self.plot.set_name)
+            it.individual_axis_changed.connect(self.plot.set_individual_axis)
+
+            if description:
+                it.individual_axis.setCheckState(
+                    QtCore.Qt.Checked
+                    if description.get("individual_axis", False)
+                    else QtCore.Qt.Unchecked
+                )
+                it.ylink.setCheckState(
+                    QtCore.Qt.Checked
+                    if description.get("common_axis", False)
+                    else QtCore.Qt.Unchecked
+                )
+                it.set_precision(description.get("precision", 3))
+
             if enforce_y_axis:
                 it.ylink.setCheckState(QtCore.Qt.Checked)
-            it.individual_axis_changed.connect(self.plot.set_individual_axis)
 
             item.setFlags(
                 item.flags() | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled
@@ -2994,7 +3024,7 @@ class _Plot(pg.PlotWidget):
         _, index = self.signal_by_uuid(uuid)
         viewbox = self.view_boxes[index]
         if state in (QtCore.Qt.Checked, True, 1):
-            viewbox.setYRange(*self.common_viewbox.viewRange()[1], padding=0)
+            self.common_viewbox.setYRange(*viewbox.viewRange()[1], padding=0)
             viewbox.setYLink(self.common_viewbox)
             self.common_axis_items.add(uuid)
         else:
@@ -3792,7 +3822,8 @@ class _Plot(pg.PlotWidget):
                     else:
                         self.region.setRegion((pos.x(), stop))
 
-    def add_new_channels(self, channels, computed=False):
+    def add_new_channels(self, channels, computed=False, descriptions=None):
+        descriptions = descriptions or {}
 
         geometry = self.viewbox.sceneBoundingRect()
         initial_index = len(self.signals)
@@ -3830,6 +3861,8 @@ class _Plot(pg.PlotWidget):
         axis_uuid = None
 
         for index, sig in enumerate(channels, initial_index):
+            description = descriptions.get(sig.uuid, {})
+
             curve = self.curvetype(
                 sig.plot_timestamps,
                 sig.plot_samples,
@@ -3861,7 +3894,10 @@ class _Plot(pg.PlotWidget):
             self.view_boxes.append(view_box)
             self.curves.append(curve)
             if not sig.empty:
-                view_box.setYRange(sig.min, sig.max, padding=0, update=True)
+                if description.get("y_range", None):
+                    view_box.setYRange(*description["y_range"], padding=0, update=True)
+                else:
+                    view_box.setYRange(sig.min, sig.max, padding=0, update=True)
 
             self.axes.append(self._axes_layout_pos)
             self._axes_layout_pos += 1
