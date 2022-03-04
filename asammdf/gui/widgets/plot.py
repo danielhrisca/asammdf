@@ -35,102 +35,96 @@ except:
     pass
 
 
-def _keys(self, styles):
-    def getId(obj):
-        try:
-            return obj._id
-        except AttributeError:
-            obj._id = next(pg.graphicsItems.ScatterPlotItem.SymbolAtlas._idGenerator)
-            return obj._id
+def monkey_patch_pyqtgraph():
+    def _keys(self, styles):
+        def getId(obj):
+            try:
+                return obj._id
+            except AttributeError:
+                obj._id = next(
+                    pg.graphicsItems.ScatterPlotItem.SymbolAtlas._idGenerator
+                )
+                return obj._id
 
-    res = [
-        (
-            symbol if isinstance(symbol, (str, int)) else getId(symbol),
-            size,
-            getId(pen),
-            getId(brush),
-        )
-        for symbol, size, pen, brush in styles[:1]
-    ]
+        res = [
+            (
+                symbol if isinstance(symbol, (str, int)) else getId(symbol),
+                size,
+                getId(pen),
+                getId(brush),
+            )
+            for symbol, size, pen, brush in styles[:1]
+        ]
 
-    return res
+        return res
 
-
-# fixes https://github.com/pyqtgraph/pyqtgraph/issues/2117
-def mouseReleaseEvent(self, ev):
-    if self.mouseGrabberItem() is None:
-        if ev.button() in self.dragButtons:
-            if self.sendDragEvent(ev, final=True):
-                ev.accept()
-            self.dragButtons.remove(ev.button())
-        else:
-            cev = [e for e in self.clickEvents if e.button() == ev.button()]
-            if cev:
-                if self.sendClickEvent(cev[0]):
+    # fixes https://github.com/pyqtgraph/pyqtgraph/issues/2117
+    def mouseReleaseEvent(self, ev):
+        if self.mouseGrabberItem() is None:
+            if ev.button() in self.dragButtons:
+                if self.sendDragEvent(ev, final=True):
                     ev.accept()
-                try:
-                    self.clickEvents.remove(cev[0])
-                except:
-                    pass
+                self.dragButtons.remove(ev.button())
+            else:
+                cev = [e for e in self.clickEvents if e.button() == ev.button()]
+                if cev:
+                    if self.sendClickEvent(cev[0]):
+                        ev.accept()
+                    try:
+                        self.clickEvents.remove(cev[0])
+                    except:
+                        pass
 
-    if not ev.buttons():
-        self.dragItem = None
-        self.dragButtons = []
-        self.clickEvents = []
-        self.lastDrag = None
-    QtWidgets.QGraphicsScene.mouseReleaseEvent(self, ev)
-    self.sendHoverEvents(ev)
+        if not ev.buttons():
+            self.dragItem = None
+            self.dragButtons = []
+            self.clickEvents = []
+            self.lastDrag = None
+        QtWidgets.QGraphicsScene.mouseReleaseEvent(self, ev)
+        self.sendHoverEvents(ev)
 
+    mkColor_factory = fn.mkColor
+    mkBrush_factory = fn.mkBrush
+    mkPen_factory = fn.mkPen
 
-mkColor_factory = fn.mkColor
-mkBrush_factory = fn.mkBrush
-mkPen_factory = fn.mkPen
+    def mkColor(*args):
+        try:
+            return cached_mkColor_factory(*args)
+        except:
+            return mkColor_factory(*args)
 
-
-def mkColor(*args):
-    try:
-        return cached_mkColor_factory(*args)
-    except:
+    @lru_cache(maxsize=512)
+    def cached_mkColor_factory(*args):
         return mkColor_factory(*args)
 
+    def mkBrush(*args, **kwargs):
+        try:
+            return cached_mkBrush_factory(*args, **kwargs)
+        except:
+            return mkBrush_factory(*args, **kwargs)
 
-@lru_cache(maxsize=512)
-def cached_mkColor_factory(*args):
-    return mkColor_factory(*args)
+    @lru_cache(maxsize=512)
+    def cached_mkBrush_factory(*args, **kargs):
+        return mkBrush_factory(*args, **kargs)
 
+    def mkPen(*args, **kwargs):
+        try:
+            return cached_mkPen_factory(*args, **kwargs)
+        except:
+            return mkPen_factory(*args, **kwargs)
 
-def mkBrush(*args, **kwargs):
-    try:
-        return cached_mkBrush_factory(*args, **kwargs)
-    except:
-        return mkBrush_factory(*args, **kwargs)
+    @lru_cache(maxsize=512)
+    def cached_mkPen_factory(*args, **kargs):
+        return mkPen_factory(*args, **kargs)
 
+    # speed-up monkey patches
+    pg.graphicsItems.ScatterPlotItem.SymbolAtlas._keys = _keys
+    pg.graphicsItems.ScatterPlotItem._USE_QRECT = False
+    pg.GraphicsScene.mouseReleaseEvent = mouseReleaseEvent
 
-@lru_cache(maxsize=512)
-def cached_mkBrush_factory(*args, **kargs):
-    return mkBrush_factory(*args, **kargs)
-
-
-def mkPen(*args, **kwargs):
-    try:
-        return cached_mkPen_factory(*args, **kwargs)
-    except:
-        return mkPen_factory(*args, **kwargs)
-
-
-@lru_cache(maxsize=512)
-def cached_mkPen_factory(*args, **kargs):
-    return mkPen_factory(*args, **kargs)
-
-
-# speed-up monkey patches
-pg.graphicsItems.ScatterPlotItem.SymbolAtlas._keys = _keys
-pg.graphicsItems.ScatterPlotItem._USE_QRECT = False
-pg.GraphicsScene.mouseReleaseEvent = mouseReleaseEvent
-
-fn.mkBrush = mkBrush
-fn.mkColor = mkColor
-fn.mkPen = mkPen
+    fn.mkBrush = mkBrush
+    fn.mkColor = mkColor
+    fn.mkPen = mkPen
 
 
 from ...mdf import MDF

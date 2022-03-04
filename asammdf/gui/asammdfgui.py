@@ -12,6 +12,7 @@ from PySide6 import QtWidgets
 
 from asammdf.gui.utils import excepthook
 from asammdf.gui.widgets.main import MainWindow
+from asammdf.gui.widgets.plot import monkey_patch_pyqtgraph
 
 sys.excepthook = excepthook
 
@@ -25,6 +26,7 @@ def _cmd_line_parser():
 
 
 def main(measurements=None):
+    monkey_patch_pyqtgraph()
     parser = _cmd_line_parser()
     args = parser.parse_args(sys.argv[1:])
     app = pyqtgraph.mkQApp()
