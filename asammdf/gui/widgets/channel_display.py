@@ -73,13 +73,17 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             self.fmt = f"{{:.{self.precision}f}}"
 
         self.setAutoFillBackground(True)
-        self._back_ground_color = self.palette().color(QtGui.QPalette.Base)
-        self._selected_color = self.palette().color(QtGui.QPalette.Highlight)
-        self._selected_font_color = self.palette().color(QtGui.QPalette.HighlightedText)
-        self._font_color = QtGui.QColor(self.color)
 
-        self._current_background_color = self._back_ground_color
-        self._current_font_color = self._font_color = QtGui.QColor(self.color)
+        self._palette = self.palette()
+        self._deselected_color = self._palette.color(QtGui.QPalette.Base)
+        self._deselected_font_color = self._font_color = QtGui.QColor(self.color)
+        self._selected_color = self._palette.color(QtGui.QPalette.Highlight)
+        self._selected_font_color = self._palette.color(QtGui.QPalette.HighlightedText)
+
+        self._current_background_color = self._deselected_color
+        self._current_font_color = self._deselected_font_color
+
+        self._selected = False
 
         self.exists = True
 
@@ -158,31 +162,16 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
     def set_color(self, color):
         self.color = color
-        self.color_btn.setStyleSheet(f"background-color: {color};")
 
-        self._font_color = QtGui.QColor(self.color)
+        self._deselected_font_color = self._font_color = QtGui.QColor(self.color)
+        self._palette.setColor(QtGui.QPalette.Button, color)
 
-        if self._current_font_color.name() != self._selected_font_color.name():
-            self._current_font_color = self._font_color
-
-        palette = self.palette()
-        palette.setColor(QtGui.QPalette.Text, self._current_font_color)
-
-        self.setPalette(palette)
-
-        self.set_name(self._name)
         if self.item is not None:
-            self.set_value(update=True)
+            self.set_value(update=True, force=True)
 
     def set_selected(self, on):
-        if on:
-            self._current_background_color = self._selected_color
-            self._current_font_color = self._selected_font_color
-            self.set_value(update=True, force=True)
-        else:
-            self._current_background_color = self._back_ground_color
-            self._current_font_color = self._font_color
-            self.set_value(update=True, force=True)
+        self._selected = on
+        self.set_value(update=True, force=True)
 
     def set_name(self, text=""):
         self.setToolTip(self._tooltip or text)
@@ -215,8 +204,12 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         else:
             value = self._value
 
-        default_background_color = self._current_background_color
-        default_font_color = self._current_font_color
+        if self._selected:
+            default_background_color = self._selected_color
+            default_font_color = self._selected_font_color
+        else:
+            default_background_color = self._deselected_color
+            default_font_color = self._font_color
 
         new_background_color, new_font_color = get_colors_using_ranges(
             value,
@@ -227,13 +220,15 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
 
         if (
             force
-            or new_background_color is not default_background_color
-            or new_font_color is not default_font_color
+            or new_background_color is not self._current_background_color
+            or new_font_color is not self._current_font_color
         ):
-            p = self.palette()
-            p.setColor(QtGui.QPalette.Base, new_background_color)
-            p.setColor(QtGui.QPalette.Text, new_font_color)
-            self.setPalette(p)
+            self._palette.setColor(QtGui.QPalette.Base, new_background_color)
+            self._palette.setColor(QtGui.QPalette.Text, new_font_color)
+            self.setPalette(self._palette)
+
+            self._current_background_color = new_background_color
+            self._current_font_color = new_font_color
 
         template = "{{}}{}"
         if value not in ("", "n.a."):

@@ -2194,7 +2194,7 @@ class Plot(QtWidgets.QWidget):
         channels = valid
 
         self.adjust_splitter(list(channels.values()))
-        QtCore.QCoreApplication.processEvents()
+        # QtCore.QCoreApplication.processEvents()
 
         channels = self.plot.add_new_channels(channels, descriptions=descriptions)
 
@@ -3185,12 +3185,7 @@ class _Plot(pg.PlotWidget):
         geometry = self.viewbox.sceneBoundingRect()
         if geometry != self._prev_geometry:
             self._pixmap = None
-
-            # for view_box in self.view_boxes:
-            #     view_box.setGeometry(geometry)
             self._prev_geometry = geometry
-
-            self.common_viewbox.setGeometry(geometry)
 
     def get_stats(self, uuid):
         sig, index = self.signal_by_uuid(uuid)
