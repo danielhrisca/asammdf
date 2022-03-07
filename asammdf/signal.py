@@ -464,7 +464,7 @@ class Signal(object):
 
         original_start, original_stop = (start, stop)
 
-        if len(self) == 0:
+        if self.samples.size == 0:
             result = Signal(
                 np.array([], dtype=self.samples.dtype),
                 np.array([], dtype=self.timestamps.dtype),

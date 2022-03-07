@@ -384,9 +384,11 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
     def get_ranges(self):
         if self.resolved_ranges is None:
             if self.item is None:
-                return self.ranges
+                resolved_ranges = self.ranges
             else:
-                return self.item.get_ranges()
+                resolved_ranges = self.item.get_ranges()
+            self.resolved_ranges = resolved_ranges
+            return resolved_ranges
         else:
             return self.resolved_ranges
 
@@ -396,3 +398,4 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         else:
             self.range_indicator.setHidden(True)
         self.ranges = ranges
+        self.resolved_ranges = None

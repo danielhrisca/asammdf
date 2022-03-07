@@ -1141,23 +1141,57 @@ class PlotSignal(Signal):
                 print(format_exc())
                 return self.trim_python(start, stop, width, force)
 
-    def value_at_timestamp(self, stamp):
-        if len(self.timestamps) and self.timestamps[-1] < stamp:
-            values = self.samples[-1:]
-        else:
-            values = super().cut(stamp, stamp).samples
+    def value_at_timestamp(self, timestamp):
 
-        if len(values) == 0:
+        if self.mode == "raw":
+            kind = self.raw_samples.dtype.kind
+        else:
+            kind = self.phys_samples.dtype.kind
+
+        if self.samples.size == 0 or timestamp < self.timestamps[0]:
             value = "n.a."
-            kind = values.dtype.kind
         else:
 
-            if self.mode != "raw":
-                if self.conversion:
-                    values = self.conversion.convert(values)
-            value = values[0]
+            if timestamp > self.timestamps[-1]:
+                index = -1
+            else:
+                index = np.searchsorted(self.timestamps, timestamp, side="left")
 
-            kind = values.dtype.kind
+            if self.mode == "raw":
+                value = self.raw_samples[index]
+            else:
+                value = self.phys_samples[index]
+
+            if kind == "S":
+                try:
+                    value = value.decode("utf-8").strip(" \r\n\t\v\0")
+                except:
+                    value = value.decode("latin-1").strip(" \r\n\t\v\0")
+
+                value = value or "<empty string>"
+            elif kind == "f":
+                value = float(value)
+            else:
+                value = int(value)
+
+        return value, kind, self.format
+
+    def value_at_index(self, index):
+
+        if self.mode == "raw":
+            kind = self.raw_samples.dtype.kind
+        else:
+            kind = self.phys_samples.dtype.kind
+
+        if index is None:
+            value = "n.a."
+        else:
+
+            if self.mode == "raw":
+                value = self.raw_samples[index]
+            else:
+                value = self.phys_samples[index]
+
             if kind == "S":
                 try:
                     value = value.decode("utf-8").strip(" \r\n\t\v\0")
@@ -1595,10 +1629,12 @@ class Plot(QtWidgets.QWidget):
                 sig, index = self.plot.signal_by_uuid(uuid)
                 if sig.enable:
 
+                    self.plot._pixmap = None
                     self.plot.curves[index].hide()
                     for i in range(3):
                         QtWidgets.QApplication.processEvents()
                         sleep(0.01)
+                    self.plot._pixmap = None
                     self.plot.curves[index].show()
 
                     self.plot.set_current_uuid(self.info_uuid)
@@ -1657,18 +1693,21 @@ class Plot(QtWidgets.QWidget):
 
             self.cursor_info.update_value()
 
-            iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
-            while iterator.value():
-                item = iterator.value()
-                iterator += 1
-                if not self.channel_selection.is_item_visible(item):
-                    continue
+            # iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+            # while iterator.value():
+            #     item = iterator.value()
+            #     iterator += 1
+            #     if not self.channel_selection.is_item_visible(item):
+            #         continue
 
-                widget = self.channel_selection.itemWidget(item, 1)
+        
+            for item, widget in self._visible_items.values():
                 if isinstance(widget, ChannelDisplay):
 
                     signal, idx = self.plot.signal_by_uuid(widget.uuid)
-                    value, kind, fmt = signal.value_at_timestamp(position)
+                    index = self.plot.get_timestamp_index(position, signal.timestamps)
+
+                    value, kind, fmt = signal.value_at_index(index)
 
                     widget.set_prefix("= ")
                     widget.kind = kind
@@ -2647,7 +2686,7 @@ class Plot(QtWidgets.QWidget):
                 item_widget = item.widget or self.channel_selection.itemWidget(item, 1)
 
                 if item.checkState(0) == QtCore.Qt.Checked and item_widget.exists:
-                    entry = (item.origin_uuid, item.name)
+                    entry = (item.origin_uuid, item.name, item.uuid)
                     _visible_entries.add(entry)
                     _visible_items[entry] = item, item_widget
                 else:
@@ -2772,6 +2811,7 @@ class _Plot(pg.PlotWidget):
         self.disabled_keys = set()
 
         self._timebase_db = {}
+        self._timestamps_indexes = {}
         self.all_timebase = self.timebase = np.array([])
         for sig in self.signals:
             uuids = self._timebase_db.setdefault(id(sig.timestamps), set())
@@ -2850,6 +2890,11 @@ class _Plot(pg.PlotWidget):
         self._enable_timer = QtCore.QTimer()
         self._enable_timer.setSingleShot(True)
         self._enable_timer.timeout.connect(self._signals_enabled_changed_handler)
+
+        # self._paint_timer = QtCore.QTimer()
+        # self._paint_timer.setSingleShot(True)
+        # self._paint_timer.timeout.connect(self._paint)
+        self._inhibit = False
 
         if signals:
             self.add_new_channels(signals)
@@ -3203,6 +3248,7 @@ class _Plot(pg.PlotWidget):
                     self.cursor1 = Cursor(
                         self.cursor_unit, pos=0, angle=90, movable=True
                     )
+                    self.cursor1.raise_()
                     self.plotItem.addItem(self.cursor1, ignoreBounds=True)
                     self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
                     self.cursor1.sigPositionChangeFinished.connect(
@@ -3899,7 +3945,6 @@ class _Plot(pg.PlotWidget):
     def add_new_channels(self, channels, computed=False, descriptions=None):
         descriptions = descriptions or {}
 
-        geometry = self.viewbox.sceneBoundingRect()
         initial_index = len(self.signals)
         self._update_lines_allowed = False
 
@@ -3959,11 +4004,8 @@ class _Plot(pg.PlotWidget):
 
             view_box = pg.ViewBox(enableMenu=False)
             view_box.border = None
-            # view_box.setGeometry(geometry)
             view_box.disableAutoRange()
             view_box.setMouseEnabled(y=not self.locked)
-
-            # self.scene_.addItem(view_box)
 
             self.layout.addItem(view_box, 2, 1)
 
@@ -4200,6 +4242,59 @@ class _Plot(pg.PlotWidget):
 
         return axis
 
+    def paintEvent2(self, ev):
+        if self._pixmap is not None:
+            print(ev.rect())
+            paint = QtGui.QPainter()
+            paint.begin(self.viewport())
+            paint.setCompositionMode(QtGui.QPainter.CompositionMode_Source)
+
+            paint.drawPixmap(ev.rect(), self._pixmap, ev.rect())
+
+            paint.end()
+        else:
+            super().paintEvent(ev)
+
+        # if self._pixmap is None:
+        #     super().paintEvent(ev)
+        #     rectangle = self.viewport().rect()
+        #     self._pixmap = QtGui.QPixmap(rectangle.size())
+        #     self.render(self._pixmap, QtCore.QPoint(), QtCore.QRegion(rectangle))
+
+        if self.cursor1 is not None:
+            print('paint cursor')
+            paint = QtGui.QPainter()
+            vp = self.viewport()
+            paint.begin(vp)
+            paint.setCompositionMode(QtGui.QPainter.CompositionMode_Source)
+            self.cursor1.paint(paint, None, None, skip=False, delta=self.y_axis.width() + 1,
+                               height=vp.height() - self.x_axis.height() + 1)
+            paint.end()
+        #
+        #
+        # paint = QtGui.QPainter()
+        # paint.begin(self.viewport())
+        # paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
+        #
+        # rect = QtCore.QRect(0, 0, self._pixmap.width(), self._pixmap.height())
+        #
+        # # paint.drawPixmap(rect, self._pixmap.copy(), rect)
+        # paint.drawPixmap(rect, self._pixmap, rect)
+        # # paint.drawPixmap(QtCore.QPoint(0, 0), self._pixmap.copy())
+        #
+        # if self.cursor1 is not None:
+        #     self.cursor1.paint(paint, None, None, skip=False, delta=self.y_axis.width() + 1,
+        #                        height=self._pixmap.height() - self.x_axis.height() + 1)
+        #
+        # paint.end()
+        # #
+        # # ev.accept()
+
+        print('<-------------------------- end plot', self._pixmap)
+
+    def close(self):
+        super().close()
+
     def paintEvent(self, ev):
         if self._pixmap is not None:
             paint = QtGui.QPainter()
@@ -4211,6 +4306,32 @@ class _Plot(pg.PlotWidget):
             paint.end()
         else:
             super().paintEvent(ev)
+
+        if self.cursor1 is not None:
+            paint = QtGui.QPainter()
+            paint.begin(self.viewport())
+            paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
+
+            self.cursor1.paint(paint, None, None)
+            paint.end()
+
+    def get_timestamp_index(self, timestamp, timestamps):
+        key = id(timestamps), timestamp
+        if key in self._timestamps_indexes:
+            return self._timestamps_indexes[key]
+        else:
+            if timestamps.size:
+                if timestamp > timestamps[-1]:
+                    index = -1
+                else:
+                    index = np.searchsorted(timestamps, timestamp, side="left")
+            else:
+                index = None
+
+            if len(self._timestamps_indexes) > 100000:
+                self._timestamps_indexes.clear()
+            self._timestamps_indexes[key] = index
+            return index
 
 
 class CursorInfo(QtWidgets.QLabel):
