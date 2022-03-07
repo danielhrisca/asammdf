@@ -7,7 +7,7 @@ from functools import lru_cache, partial, reduce
 import logging
 import os
 from pathlib import Path
-from time import perf_counter, sleep
+from time import perf_counter, sleep, time
 from traceback import format_exc
 
 import numpy as np
@@ -2767,6 +2767,10 @@ class _Plot(pg.PlotWidget):
         events = kwargs.pop("events", [])
         super().__init__()
 
+        self._generate_pix = False
+        self._grabbing = False
+        self.autoFillBackground()
+
         self._pixmap = None
 
         self.locked = False
@@ -2978,6 +2982,7 @@ class _Plot(pg.PlotWidget):
         self.viewbox.setMouseEnabled(y=not self.locked)
 
     def set_dots(self, with_dots):
+        self._pixmap = None
         self.curvetype = pg.PlotDataItem if with_dots else pg.PlotCurveItem
         self.with_dots = with_dots
 
@@ -3835,6 +3840,7 @@ class _Plot(pg.PlotWidget):
             self._pixmap = None
             self.trim(force=force)
             self.update_lines()
+            self._generate_pix = True
 
     def _resizeEvent(self, ev):
         new_size, last_size = self.geometry(), self._last_size
@@ -3915,20 +3921,19 @@ class _Plot(pg.PlotWidget):
                 if event.button() == QtCore.Qt.MouseButton.LeftButton:
                     pos = self.plot_item.vb.mapSceneToView(event.scenePos())
 
-                    if self.cursor1 is not None:
-                        self.plotItem.removeItem(self.cursor1)
-                        self.cursor1.setParent(None)
-                        self.cursor1 = None
+                    if self.cursor1 is None:
 
-                    self.cursor1 = Cursor(
-                        self.cursor_unit, pos=pos, angle=90, movable=True
-                    )
-                    self.plotItem.addItem(self.cursor1, ignoreBounds=True)
-                    self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
-                    self.cursor1.sigPositionChangeFinished.connect(
-                        self.cursor_move_finished.emit
-                    )
-                    self.cursor_move_finished.emit(self.cursor1)
+                        self.cursor1 = Cursor(
+                            self.cursor_unit, pos=pos, angle=90, movable=True
+                        )
+                        self.plotItem.addItem(self.cursor1, ignoreBounds=True)
+                        self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
+                        self.cursor1.sigPositionChangeFinished.connect(
+                            self.cursor_move_finished.emit
+                        )
+                        self.cursor_move_finished.emit(self.cursor1)
+                    else:
+                        self.cursor1.setPos(pos)
 
             else:
                 pos = self.plot_item.vb.mapSceneToView(event.scenePos())
@@ -4242,18 +4247,18 @@ class _Plot(pg.PlotWidget):
 
         return axis
 
-    def paintEvent2(self, ev):
-        if self._pixmap is not None:
-            print(ev.rect())
-            paint = QtGui.QPainter()
-            paint.begin(self.viewport())
-            paint.setCompositionMode(QtGui.QPainter.CompositionMode_Source)
+    def paintEvent(self, ev):
+        print('>>>>>>>>>>>>>>>>>>>> PAINT')
 
-            paint.drawPixmap(ev.rect(), self._pixmap, ev.rect())
-
-            paint.end()
-        else:
+        if self._pixmap is None:
             super().paintEvent(ev)
+
+        if self._generate_pix:
+            print('gen pix')
+            self._generate_pix = False
+            self._grabbing = True
+            self._pixmap = self.grab()
+            print('get pix', self._pixmap.rect())
 
         # if self._pixmap is None:
         #     super().paintEvent(ev)
@@ -4261,15 +4266,45 @@ class _Plot(pg.PlotWidget):
         #     self._pixmap = QtGui.QPixmap(rectangle.size())
         #     self.render(self._pixmap, QtCore.QPoint(), QtCore.QRegion(rectangle))
 
-        if self.cursor1 is not None:
-            print('paint cursor')
+
+
+        if self._pixmap is not None:
+            print("FROM PIX", ev.rect())
+
+            if ev.rect() != self._pixmap.rect():
+                ev.accept()
+                ev = QtGui.QPaintEvent(self._pixmap.rect())
+                return self.paintEvent(ev)
+
             paint = QtGui.QPainter()
             vp = self.viewport()
             paint.begin(vp)
+            paint.setViewport(vp.rect())
+            print('?', vp.rect(), paint.viewport())
+            paint.eraseRect(self._pixmap.rect())
+            paint.fillRect(self._pixmap.rect(), QtCore.Qt.red)
             paint.setCompositionMode(QtGui.QPainter.CompositionMode_Source)
-            self.cursor1.paint(paint, None, None, skip=False, delta=self.y_axis.width() + 1,
-                               height=vp.height() - self.x_axis.height() + 1)
+
+            paint.drawPixmap(ev.rect(), self._pixmap.copy(), ev.rect())
+
+            self._pixmap.save(rf"D:\TMP\pix_{time()}.png", quality=100)
+
+            if self.cursor1 is not None:
+                self.cursor1.paint(paint, None, None, skip=False, delta=self.y_axis.width() + 1,
+                                   height=vp.height() - self.x_axis.height() + 1)
+
             paint.end()
+        elif not self._grabbing:
+            if self.cursor1 is not None:
+                paint = QtGui.QPainter()
+                vp = self.viewport()
+                paint.begin(vp)
+                paint.setCompositionMode(QtGui.QPainter.CompositionMode_Source)
+                self.cursor1.paint(paint, None, None, skip=False, delta=self.y_axis.width() + 1,
+                                   height=vp.height() - self.x_axis.height() + 1)
+                paint.end()
+
+        self._grabbing = False
         #
         #
         # paint = QtGui.QPainter()
@@ -4295,7 +4330,7 @@ class _Plot(pg.PlotWidget):
     def close(self):
         super().close()
 
-    def paintEvent(self, ev):
+    def paintEvent2(self, ev):
         if self._pixmap is not None:
             paint = QtGui.QPainter()
             paint.begin(self.viewport())
