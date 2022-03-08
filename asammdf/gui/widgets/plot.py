@@ -1700,7 +1700,6 @@ class Plot(QtWidgets.QWidget):
             #     if not self.channel_selection.is_item_visible(item):
             #         continue
 
-        
             for item, widget in self._visible_items.values():
                 if isinstance(widget, ChannelDisplay):
 
@@ -2766,6 +2765,8 @@ class _Plot(pg.PlotWidget):
     ):
         events = kwargs.pop("events", [])
         super().__init__()
+
+        self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
 
         self._generate_pix = False
         self._grabbing = False
@@ -4248,28 +4249,15 @@ class _Plot(pg.PlotWidget):
         return axis
 
     def paintEvent(self, ev):
-        print('>>>>>>>>>>>>>>>>>>>> PAINT')
-
         if self._pixmap is None:
             super().paintEvent(ev)
 
         if self._generate_pix:
-            print('gen pix')
             self._generate_pix = False
             self._grabbing = True
             self._pixmap = self.grab()
-            print('get pix', self._pixmap.rect())
-
-        # if self._pixmap is None:
-        #     super().paintEvent(ev)
-        #     rectangle = self.viewport().rect()
-        #     self._pixmap = QtGui.QPixmap(rectangle.size())
-        #     self.render(self._pixmap, QtCore.QPoint(), QtCore.QRegion(rectangle))
-
-
 
         if self._pixmap is not None:
-            print("FROM PIX", ev.rect())
 
             if ev.rect() != self._pixmap.rect():
                 ev.accept()
@@ -4280,18 +4268,21 @@ class _Plot(pg.PlotWidget):
             vp = self.viewport()
             paint.begin(vp)
             paint.setViewport(vp.rect())
-            print('?', vp.rect(), paint.viewport())
             paint.eraseRect(self._pixmap.rect())
             paint.fillRect(self._pixmap.rect(), QtCore.Qt.red)
             paint.setCompositionMode(QtGui.QPainter.CompositionMode_Source)
 
             paint.drawPixmap(ev.rect(), self._pixmap.copy(), ev.rect())
 
-            self._pixmap.save(rf"D:\TMP\pix_{time()}.png", quality=100)
-
             if self.cursor1 is not None:
-                self.cursor1.paint(paint, None, None, skip=False, delta=self.y_axis.width() + 1,
-                                   height=vp.height() - self.x_axis.height() + 1)
+                self.cursor1.paint(
+                    paint,
+                    None,
+                    None,
+                    skip=False,
+                    delta=self.y_axis.width() + 1,
+                    height=vp.height() - self.x_axis.height() + 1,
+                )
 
             paint.end()
         elif not self._grabbing:
@@ -4300,32 +4291,17 @@ class _Plot(pg.PlotWidget):
                 vp = self.viewport()
                 paint.begin(vp)
                 paint.setCompositionMode(QtGui.QPainter.CompositionMode_Source)
-                self.cursor1.paint(paint, None, None, skip=False, delta=self.y_axis.width() + 1,
-                                   height=vp.height() - self.x_axis.height() + 1)
+                self.cursor1.paint(
+                    paint,
+                    None,
+                    None,
+                    skip=False,
+                    delta=self.y_axis.width() + 1,
+                    height=vp.height() - self.x_axis.height() + 1,
+                )
                 paint.end()
 
         self._grabbing = False
-        #
-        #
-        # paint = QtGui.QPainter()
-        # paint.begin(self.viewport())
-        # paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
-        #
-        # rect = QtCore.QRect(0, 0, self._pixmap.width(), self._pixmap.height())
-        #
-        # # paint.drawPixmap(rect, self._pixmap.copy(), rect)
-        # paint.drawPixmap(rect, self._pixmap, rect)
-        # # paint.drawPixmap(QtCore.QPoint(0, 0), self._pixmap.copy())
-        #
-        # if self.cursor1 is not None:
-        #     self.cursor1.paint(paint, None, None, skip=False, delta=self.y_axis.width() + 1,
-        #                        height=self._pixmap.height() - self.x_axis.height() + 1)
-        #
-        # paint.end()
-        # #
-        # # ev.accept()
-
-        print('<-------------------------- end plot', self._pixmap)
 
     def close(self):
         super().close()
