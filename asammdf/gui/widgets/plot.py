@@ -135,7 +135,7 @@ from ..utils import COLORS, copy_ranges, extract_mime_names
 from .channel_display import ChannelDisplay
 from .channel_group_display import ChannelGroupDisplay
 from .channel_stats import ChannelStats
-from .cursor import Cursor
+from .cursor import Cursor, Region
 from .dict_to_tree import ComputedChannelInfoWindow
 from .formated_axis import FormatedAxis
 from .list import ListWidget
@@ -2973,6 +2973,7 @@ class _Plot(pg.PlotWidget):
 
     def update_plt(self, *args, **kwargs):
         self._pixmap = None
+        self._generate_pix = True
         self.plot_item.update()
 
     def set_locked(self, locked):
@@ -2984,6 +2985,7 @@ class _Plot(pg.PlotWidget):
 
     def set_dots(self, with_dots):
         self._pixmap = None
+        self._generate_pix = True
         self.curvetype = pg.PlotDataItem if with_dots else pg.PlotCurveItem
         self.with_dots = with_dots
 
@@ -3073,6 +3075,7 @@ class _Plot(pg.PlotWidget):
 
     def set_color(self, uuid, color):
         self._pixmap = None
+        self._generate_pix = True
 
         sig, index = self.signal_by_uuid(uuid)
         curve = self.curves[index]
@@ -3103,6 +3106,7 @@ class _Plot(pg.PlotWidget):
 
     def set_unit(self, uuid, unit):
         self._pixmap = None
+        self._generate_pix = True
 
         sig, index = self.signal_by_uuid(uuid)
         sig.unit = unit
@@ -3127,6 +3131,7 @@ class _Plot(pg.PlotWidget):
 
     def set_name(self, uuid, name):
         self._pixmap = None
+        self._generate_pix = True
 
         sig, index = self.signal_by_uuid(uuid)
         sig.name = name
@@ -3151,6 +3156,8 @@ class _Plot(pg.PlotWidget):
 
     def set_common_axis(self, uuid, state):
         self._pixmap = None
+        self._generate_pix = True
+
         _, index = self.signal_by_uuid(uuid)
         viewbox = self.view_boxes[index]
         if state in (QtCore.Qt.Checked, True, 1):
@@ -3169,6 +3176,8 @@ class _Plot(pg.PlotWidget):
 
     def set_individual_axis(self, uuid, state):
         self._pixmap = None
+        self._generate_pix = True
+
         _, index = self.signal_by_uuid(uuid)
 
         if state in (QtCore.Qt.Checked, True, 1):
@@ -3181,6 +3190,8 @@ class _Plot(pg.PlotWidget):
 
     def set_signal_enable(self, uuid, state):
         self._pixmap = None
+        self._generate_pix = True
+
         sig, index = self.signal_by_uuid(uuid)
 
         if state in (QtCore.Qt.Checked, True, 1):
@@ -3220,6 +3231,8 @@ class _Plot(pg.PlotWidget):
 
     def _signals_enabled_changed_handler(self):
         self._pixmap = None
+        self._generate_pix = True
+
         self._compute_all_timebase()
         self.update_lines()
         if self.cursor1:
@@ -3230,6 +3243,7 @@ class _Plot(pg.PlotWidget):
         geometry = self.viewbox.sceneBoundingRect()
         if geometry != self._prev_geometry:
             self._pixmap = None
+            self._generate_pix = True
             self._prev_geometry = geometry
 
     def get_stats(self, uuid):
@@ -3249,18 +3263,18 @@ class _Plot(pg.PlotWidget):
             super().keyPressEvent(event)
         else:
             if key == QtCore.Qt.Key_C and modifier == QtCore.Qt.NoModifier:
+
                 if self.cursor1 is None:
                     start, stop = self.viewbox.viewRange()[0]
-                    self.cursor1 = Cursor(
-                        self.cursor_unit, pos=0, angle=90, movable=True
-                    )
-                    self.cursor1.raise_()
+                    pos = QtCore.QPointF((start + stop) / 2, 0)
+
+                    self.cursor1 = Cursor(pos=pos, angle=90, movable=True)
                     self.plotItem.addItem(self.cursor1, ignoreBounds=True)
+
                     self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
                     self.cursor1.sigPositionChangeFinished.connect(
                         self.cursor_move_finished.emit
                     )
-                    self.cursor1.setPos((start + stop) / 2)
                     self.cursor_move_finished.emit(self.cursor1)
 
                     if self.region is not None:
@@ -3268,9 +3282,13 @@ class _Plot(pg.PlotWidget):
 
                 else:
                     self.plotItem.removeItem(self.cursor1)
+
                     self.cursor1.setParent(None)
                     self.cursor1 = None
                     self.cursor_removed.emit()
+
+                self.update()
+                self.plotItem.update()
 
             elif key == QtCore.Qt.Key_Y and modifier == QtCore.Qt.NoModifier:
                 if self.region is not None:
@@ -3299,6 +3317,8 @@ class _Plot(pg.PlotWidget):
                 and not self.locked
             ):
                 self._pixmap = None
+                self._generate_pix = True
+
                 if self.common_axis_items:
                     if any(
                         len(self.signal_by_uuid(uuid)[0].plot_samples)
@@ -3362,6 +3382,8 @@ class _Plot(pg.PlotWidget):
                 and not self.locked
             ):
                 self._pixmap = None
+                self._generate_pix = True
+
                 parent = self.parent().parent()
                 uuids = [
                     parent.channel_selection.itemWidget(item, 1).uuid
@@ -3401,6 +3423,8 @@ class _Plot(pg.PlotWidget):
 
             elif key == QtCore.Qt.Key_G and modifier == QtCore.Qt.NoModifier:
                 self._pixmap = None
+                self._generate_pix = True
+
                 y = self.plotItem.ctrl.yGridCheck.isChecked()
                 x = self.plotItem.ctrl.xGridCheck.isChecked()
 
@@ -3416,6 +3440,8 @@ class _Plot(pg.PlotWidget):
                 and modifier == QtCore.Qt.NoModifier
             ):
                 self._pixmap = None
+                self._generate_pix = True
+
                 x_range, _ = self.viewbox.viewRange()
                 delta = x_range[1] - x_range[0]
                 step = delta * 0.05
@@ -3429,7 +3455,7 @@ class _Plot(pg.PlotWidget):
             elif key == QtCore.Qt.Key_R and modifier == QtCore.Qt.NoModifier:
                 if self.region is None:
 
-                    self.region = pg.LinearRegionItem((0, 0))
+                    self.region = Region((0, 0))
                     self.region.setZValue(-10)
                     self.plotItem.addItem(self.region)
                     self.region.sigRegionChanged.connect(self.range_modified.emit)
@@ -3461,6 +3487,9 @@ class _Plot(pg.PlotWidget):
 
                     if self.cursor1 is not None:
                         self.cursor1.show()
+
+                self.update()
+                self.plotItem.update()
 
             elif key == QtCore.Qt.Key_S and modifier == QtCore.Qt.ControlModifier:
                 file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
@@ -3499,6 +3528,8 @@ class _Plot(pg.PlotWidget):
             ):
 
                 self._pixmap = None
+                self._generate_pix = True
+
                 parent = self.parent().parent()
                 uuids = []
 
@@ -3616,6 +3647,8 @@ class _Plot(pg.PlotWidget):
             ):
 
                 self._pixmap = None
+                self._generate_pix = True
+
                 parent = self.parent().parent()
                 uuids = [
                     parent.channel_selection.itemWidget(item, 1).uuid
@@ -3792,6 +3825,8 @@ class _Plot(pg.PlotWidget):
                 and not self.locked
             ):
                 self._pixmap = None
+                self._generate_pix = True
+
                 if len(self.all_timebase):
                     start_ts = np.amin(self.all_timebase)
                     stop_ts = np.amax(self.all_timebase)
@@ -3852,6 +3887,8 @@ class _Plot(pg.PlotWidget):
 
     def set_current_uuid(self, uuid, force=False):
         self._pixmap = None
+        self._generate_pix = True
+
         axis = self.y_axis
         viewbox = self.viewbox
 
@@ -3924,9 +3961,7 @@ class _Plot(pg.PlotWidget):
 
                     if self.cursor1 is None:
 
-                        self.cursor1 = Cursor(
-                            self.cursor_unit, pos=pos, angle=90, movable=True
-                        )
+                        self.cursor1 = Cursor(pos=pos, angle=90, movable=True)
                         self.plotItem.addItem(self.cursor1, ignoreBounds=True)
                         self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
                         self.cursor1.sigPositionChangeFinished.connect(
@@ -3935,6 +3970,8 @@ class _Plot(pg.PlotWidget):
                         self.cursor_move_finished.emit(self.cursor1)
                     else:
                         self.cursor1.setPos(pos)
+
+                    self.plotItem.update()
 
             else:
                 pos = self.plot_item.vb.mapSceneToView(event.scenePos())
@@ -4218,7 +4255,7 @@ class _Plot(pg.PlotWidget):
             sig.group_index = -1
             sig.channel_index = -1
             sig.origin_uuid = os.urandom(6).hex()
-            self.add_new_channels([sig], computed=True)
+            self.add_new_channels({sig.name: sig}, computed=True)
             self.computation_channel_inserted.emit()
 
     def get_axis(self, index):
@@ -4256,6 +4293,7 @@ class _Plot(pg.PlotWidget):
             self._generate_pix = False
             self._grabbing = True
             self._pixmap = self.grab()
+            self._pixmap.save(rf"D:\TMP\pix_{time()}.png")
 
         if self._pixmap is not None:
 
@@ -4274,19 +4312,29 @@ class _Plot(pg.PlotWidget):
 
             paint.drawPixmap(ev.rect(), self._pixmap.copy(), ev.rect())
 
-            if self.cursor1 is not None:
+            if self.cursor1 is not None and self.cursor1.isVisible():
                 self.cursor1.paint(
                     paint,
                     None,
                     None,
                     skip=False,
-                    delta=self.y_axis.width() + 1,
+                    x_delta=self.y_axis.width() + 1,
+                    height=vp.height() - self.x_axis.height() + 1,
+                )
+
+            if self.region is not None:
+                self.region.paint(
+                    paint,
+                    None,
+                    None,
+                    skip=False,
+                    x_delta=self.y_axis.width() + 1,
                     height=vp.height() - self.x_axis.height() + 1,
                 )
 
             paint.end()
         elif not self._grabbing:
-            if self.cursor1 is not None:
+            if self.cursor1 is not None and self.cursor1.isVisible():
                 paint = QtGui.QPainter()
                 vp = self.viewport()
                 paint.begin(vp)
@@ -4296,7 +4344,22 @@ class _Plot(pg.PlotWidget):
                     None,
                     None,
                     skip=False,
-                    delta=self.y_axis.width() + 1,
+                    x_delta=self.y_axis.width() + 1,
+                    height=vp.height() - self.x_axis.height() + 1,
+                )
+                paint.end()
+
+            if self.region is not None:
+                paint = QtGui.QPainter()
+                vp = self.viewport()
+                paint.begin(vp)
+                paint.setCompositionMode(QtGui.QPainter.CompositionMode_Source)
+                self.region.paint(
+                    paint,
+                    None,
+                    None,
+                    skip=False,
+                    x_delta=self.y_axis.width() + 1,
                     height=vp.height() - self.x_axis.height() + 1,
                 )
                 paint.end()

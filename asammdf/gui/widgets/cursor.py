@@ -1,89 +1,124 @@
 # -*- coding: utf-8 -*-
 
-import pyqtgraph as pg
 from math import atan2, degrees
 
+import pyqtgraph as pg
 from PySide6 import QtCore, QtGui
 
 
 class Cursor(pg.InfiniteLine):
-    def __init__(self, cursor_unit="s", *args, **kwargs):
+    def __init__(self, *args, **kwargs):
 
         super().__init__(
             *args,
-            label=f"{{value:.6f}}{cursor_unit}",
-            labelOpts={"position": 0.04},
             **kwargs,
         )
 
         self.pen.setWidth(3)
         self.hoverPen.setWidth(3)
 
-        # self.addMarker("^", 0)
-        # self.addMarker("v", 1)
-
-        self._settings = QtCore.QSettings()
-        if self._settings.value("plot_background") == "White":
-            self.label.setColor(QtGui.QColor(0, 59, 126))
-        else:
-            self.label.setColor(QtGui.QColor("#ffffff"))
-
-        self.label.show()
-
     def set_value(self, value):
         self.setPos(value)
 
-    def paint(self, p, *args, skip=True, delta=0, height=0):
-        print('paint cursor ')
+    def paint(self, p, *args, skip=True, x_delta=0, height=0):
         if not skip:
             p.setRenderHint(p.RenderHint.Antialiasing)
 
-            left, right = self._endPoints
             pen = self.currentPen
             pen.setJoinStyle(QtCore.Qt.PenJoinStyle.MiterJoin)
             p.setPen(pen)
             vb = self.getViewBox()
-            (xs, _1), (_2, ys) = vb.state["viewRange"]
+            xs = vb.state["viewRange"][0][0]
             x_scale, y_scale = vb.viewPixelSize()
 
-            # x = (x - xs) / x_scale + delta
-            # y = (ys - y) / y_scale + 1
+            # x = (x - xs) / x_scale + x_delta
             # is rewriten as
 
-            xs = xs - delta * x_scale
+            xs = xs - x_delta * x_scale
 
             x = (self.value() - xs) / x_scale
 
-            print('draw', (self.value(), x), pen.width(), pen.color().name())
+            p.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
             p.drawLine(pg.Point(x, 0), pg.Point(x, height))
-            #
-            # if len(self.markers) == 0:
-            #     return
-            #
-            # # paint markers in native coordinate system
-            # tr = p.transform()
-            # p.resetTransform()
-            #
-            # start = tr.map(pg.Point(left, 0))
-            # end = tr.map(pg.Point(right, 0))
-            # up = tr.map(pg.Point(left, 1))
-            # dif = end - start
-            # length = pg.Point(dif).length()
-            # angle = degrees(atan2(dif.y(), dif.x()))
-            #
-            # p.translate(start)
-            # p.rotate(angle)
-            #
-            # up = up - start
-            # det = up.x() * dif.y() - dif.x() * up.y()
-            # p.scale(1, 1 if det > 0 else -1)
-            #
-            # p.setBrush(pg.functions.mkBrush(self.currentPen.color()))
-            # # p.setPen(fn.mkPen(None))
-            # tr = p.transform()
-            # for path, pos, size in self.markers:
-            #     p.setTransform(tr)
-            #     x = length * pos
-            #     p.translate(x, 0)
-            #     p.scale(size, size)
-            #     p.drawPath(path)
+
+
+class Region(pg.LinearRegionItem):
+    def __init__(
+        self,
+        values=(0, 1),
+        orientation="vertical",
+        brush=None,
+        pen=None,
+        hoverBrush=None,
+        hoverPen=None,
+        movable=True,
+        bounds=None,
+        span=(0, 1),
+        swapMode="sort",
+        clipItem=None,
+    ):
+        pg.GraphicsObject.__init__(self)
+        self.orientation = orientation
+        self.blockLineSignal = False
+        self.moving = False
+        self.mouseHovering = False
+        self.span = span
+        self.swapMode = swapMode
+        self.clipItem = clipItem
+
+        self._boundingRectCache = None
+        self._clipItemBoundsCache = None
+
+        # note LinearRegionItem.Horizontal and LinearRegionItem.Vertical
+        # are kept for backward compatibility.
+        lineKwds = dict(
+            movable=movable,
+            bounds=bounds,
+            span=span,
+            pen=pen,
+            hoverPen=hoverPen,
+        )
+
+        self.lines = [
+            Cursor(QtCore.QPointF(values[0], 0), angle=90, **lineKwds),
+            Cursor(QtCore.QPointF(values[1], 0), angle=90, **lineKwds),
+        ]
+
+        for l in self.lines:
+            l.setParentItem(self)
+            l.sigPositionChangeFinished.connect(self.lineMoveFinished)
+        self.lines[0].sigPositionChanged.connect(self._line0Moved)
+        self.lines[1].sigPositionChanged.connect(self._line1Moved)
+
+        if brush is None:
+            brush = QtGui.QBrush(QtGui.QColor(0, 0, 255, 50))
+        self.setBrush(brush)
+
+        if hoverBrush is None:
+            c = self.brush.color()
+            c.setAlpha(min(c.alpha() * 2, 255))
+            hoverBrush = pg.functions.mkBrush(c)
+        self.setHoverBrush(hoverBrush)
+
+        self.setMovable(movable)
+
+    def paint(self, p, *args, skip=True, x_delta=0, height=0):
+
+        vb = self.getViewBox()
+        xs = vb.state["viewRange"][0][0]
+        x_scale, y_scale = vb.viewPixelSize()
+        xs = xs - x_delta * x_scale
+
+        rect = QtCore.QRectF(
+            (self.lines[0].value() - xs) / x_scale,
+            0,
+            (self.lines[1].value() - self.lines[0].value()) / x_scale,
+            height,
+        )
+
+        p.setBrush(self.currentBrush)
+        p.setPen(pg.functions.mkPen(None))
+        p.setCompositionMode(QtGui.QPainter.CompositionMode_SourceAtop)
+        p.drawRect(rect)
+        for line in self.lines:
+            line.paint(p, *args, skip=skip, x_delta=x_delta, height=height)
