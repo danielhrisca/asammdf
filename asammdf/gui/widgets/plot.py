@@ -1419,7 +1419,7 @@ class Plot(QtWidgets.QWidget):
         vbox.addWidget(self.cursor_info)
 
         self.range_proxy = pg.SignalProxy(
-            self.plot.range_modified, rateLimit=30, slot=self.range_modified
+            self.plot.range_modified, rateLimit=16, slot=self.range_modified
         )
         # self.plot.range_modified.connect(self.range_modified)
         self.plot.range_removed.connect(self.range_removed)
@@ -1427,7 +1427,7 @@ class Plot(QtWidgets.QWidget):
         self.plot.cursor_removed.connect(self.cursor_removed)
 
         self.cursor_proxy = pg.SignalProxy(
-            self.plot.cursor_moved, rateLimit=30, slot=self.cursor_moved
+            self.plot.cursor_moved, rateLimit=16, slot=self.cursor_moved
         )
         # self.plot.cursor_moved.connect(self.cursor_moved)
         self.plot.cursor_move_finished.connect(self.cursor_move_finished)
@@ -1693,13 +1693,6 @@ class Plot(QtWidgets.QWidget):
 
             self.cursor_info.update_value()
 
-            # iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
-            # while iterator.value():
-            #     item = iterator.value()
-            #     iterator += 1
-            #     if not self.channel_selection.is_item_visible(item):
-            #         continue
-
             for item, widget in self._visible_items.values():
                 if isinstance(widget, ChannelDisplay):
 
@@ -1749,15 +1742,7 @@ class Plot(QtWidgets.QWidget):
 
         self.cursor_info.update_value()
 
-        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
-        while iterator.value():
-            item = iterator.value()
-            iterator += 1
-
-            if not self.channel_selection.is_item_visible(item):
-                continue
-
-            widget = self.channel_selection.itemWidget(item, 1)
+        for item, widget in self._visible_items.values():
             if isinstance(widget, ChannelDisplay):
 
                 signal, i = self.plot.signal_by_uuid(widget.uuid)
@@ -2124,7 +2109,7 @@ class Plot(QtWidgets.QWidget):
                 uuid = info["uuid"]
                 name = info["name"]
 
-                ranges = deepcopy(info["ranges"])
+                ranges = copy_ranges(info["ranges"])
                 for range_info in ranges:
                     range_info["font_color"] = QtGui.QColor(range_info["font_color"])
                     range_info["background_color"] = QtGui.QColor(
@@ -2329,7 +2314,7 @@ class Plot(QtWidgets.QWidget):
                     ]
                 )
             except KeyError:
-                it.set_ranges(description.get("ranges", []))
+                it.set_ranges(copy_ranges(description.get("ranges", [])))
 
             for range in it.ranges:
                 range["font_color"] = QtGui.QColor(range["font_color"])
@@ -2770,6 +2755,7 @@ class _Plot(pg.PlotWidget):
 
         self._generate_pix = False
         self._grabbing = False
+        self.copy_pixmap = True
         self.autoFillBackground()
 
         self._pixmap = None
@@ -3875,8 +3861,8 @@ class _Plot(pg.PlotWidget):
         if self._update_lines_allowed:
             self._pixmap = None
             self.trim(force=force)
-            self.update_lines()
             self._generate_pix = True
+            self.update_lines()
 
     def _resizeEvent(self, ev):
         new_size, last_size = self.geometry(), self._last_size
@@ -3988,6 +3974,8 @@ class _Plot(pg.PlotWidget):
     def add_new_channels(self, channels, computed=False, descriptions=None):
         descriptions = descriptions or {}
 
+        geometry = self.viewbox.geometry()
+
         initial_index = len(self.signals)
         self._update_lines_allowed = False
 
@@ -4051,6 +4039,7 @@ class _Plot(pg.PlotWidget):
             view_box.setMouseEnabled(y=not self.locked)
 
             self.layout.addItem(view_box, 2, 1)
+            view_box.setGeometry(geometry)
 
             self.view_boxes.append(view_box)
             self.curves.append(curve)
@@ -4293,24 +4282,20 @@ class _Plot(pg.PlotWidget):
             self._generate_pix = False
             self._grabbing = True
             self._pixmap = self.grab()
-            self._pixmap.save(rf"D:\TMP\pix_{time()}.png")
 
         if self._pixmap is not None:
-
-            if ev.rect() != self._pixmap.rect():
-                ev.accept()
-                ev = QtGui.QPaintEvent(self._pixmap.rect())
-                return self.paintEvent(ev)
 
             paint = QtGui.QPainter()
             vp = self.viewport()
             paint.begin(vp)
-            paint.setViewport(vp.rect())
-            paint.eraseRect(self._pixmap.rect())
-            paint.fillRect(self._pixmap.rect(), QtCore.Qt.red)
             paint.setCompositionMode(QtGui.QPainter.CompositionMode_Source)
 
-            paint.drawPixmap(ev.rect(), self._pixmap.copy(), ev.rect())
+            rect = ev.rect()
+
+            if self.copy_pixmap:
+                paint.drawPixmap(rect, self._pixmap.copy(), rect)
+            else:
+                paint.drawPixmap(rect, self._pixmap, rect)
 
             if self.cursor1 is not None and self.cursor1.isVisible():
                 self.cursor1.paint(
@@ -4320,6 +4305,7 @@ class _Plot(pg.PlotWidget):
                     skip=False,
                     x_delta=self.y_axis.width() + 1,
                     height=vp.height() - self.x_axis.height() + 1,
+                    vb=self.viewbox,
                 )
 
             if self.region is not None:
@@ -4330,9 +4316,11 @@ class _Plot(pg.PlotWidget):
                     skip=False,
                     x_delta=self.y_axis.width() + 1,
                     height=vp.height() - self.x_axis.height() + 1,
+                    vb=self.viewbox,
                 )
 
             paint.end()
+
         elif not self._grabbing:
             if self.cursor1 is not None and self.cursor1.isVisible():
                 paint = QtGui.QPainter()
@@ -4346,6 +4334,7 @@ class _Plot(pg.PlotWidget):
                     skip=False,
                     x_delta=self.y_axis.width() + 1,
                     height=vp.height() - self.x_axis.height() + 1,
+                    vb=self.viewbox,
                 )
                 paint.end()
 
@@ -4361,6 +4350,7 @@ class _Plot(pg.PlotWidget):
                     skip=False,
                     x_delta=self.y_axis.width() + 1,
                     height=vp.height() - self.x_axis.height() + 1,
+                    vb=self.viewbox,
                 )
                 paint.end()
 

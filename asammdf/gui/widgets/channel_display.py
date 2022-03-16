@@ -196,6 +196,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         self.set_value(update=True)
 
     def set_value(self, value=None, update=False, force=False):
+        update_text = value != self._value
         if value is not None:
             if self._value == value and update is False:
                 return
@@ -230,16 +231,18 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             self._current_background_color = new_background_color
             self._current_font_color = new_font_color
 
-        template = "{{}}{}"
-        if value not in ("", "n.a."):
-            template = template.format(self.fmt)
-        else:
-            template = template.format("{}")
-        try:
-            self.value.setText(template.format(self._value_prefix, value))
-        except (ValueError, TypeError):
-            template = "{}{}"
-            self.value.setText(template.format(self._value_prefix, value))
+        if update_text:
+
+            if value in ("", "n.a."):
+                text = f"{self._value_prefix}{value}"
+                self.value.setText(text)
+            else:
+                text = f"{self._value_prefix}{self.fmt}".format(value)
+
+                try:
+                    self.value.setText(text)
+                except (ValueError, TypeError):
+                    self.value.setText(f"{self._value_prefix}{value}")
 
     def keyPressEvent(self, event):
         key = event.key()

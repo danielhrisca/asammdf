@@ -20,14 +20,14 @@ class Cursor(pg.InfiniteLine):
     def set_value(self, value):
         self.setPos(value)
 
-    def paint(self, p, *args, skip=True, x_delta=0, height=0):
+    def paint(self, p, *args, skip=True, x_delta=0, height=0, vb=None):
         if not skip:
             p.setRenderHint(p.RenderHint.Antialiasing)
 
             pen = self.currentPen
             pen.setJoinStyle(QtCore.Qt.PenJoinStyle.MiterJoin)
             p.setPen(pen)
-            vb = self.getViewBox()
+
             xs = vb.state["viewRange"][0][0]
             x_scale, y_scale = vb.viewPixelSize()
 
@@ -39,7 +39,7 @@ class Cursor(pg.InfiniteLine):
             x = (self.value() - xs) / x_scale
 
             p.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
-            p.drawLine(pg.Point(x, 0), pg.Point(x, height))
+            p.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
 
 
 class Region(pg.LinearRegionItem):
@@ -102,23 +102,23 @@ class Region(pg.LinearRegionItem):
 
         self.setMovable(movable)
 
-    def paint(self, p, *args, skip=True, x_delta=0, height=0):
+    def paint(self, p, *args, skip=True, x_delta=0, height=0, vb=None):
+        if not skip:
 
-        vb = self.getViewBox()
-        xs = vb.state["viewRange"][0][0]
-        x_scale, y_scale = vb.viewPixelSize()
-        xs = xs - x_delta * x_scale
+            xs = vb.state["viewRange"][0][0]
+            x_scale, y_scale = vb.viewPixelSize()
+            xs = xs - x_delta * x_scale
 
-        rect = QtCore.QRectF(
-            (self.lines[0].value() - xs) / x_scale,
-            0,
-            (self.lines[1].value() - self.lines[0].value()) / x_scale,
-            height,
-        )
+            rect = QtCore.QRectF(
+                (self.lines[0].value() - xs) / x_scale,
+                0,
+                (self.lines[1].value() - self.lines[0].value()) / x_scale,
+                height,
+            )
 
-        p.setBrush(self.currentBrush)
-        p.setPen(pg.functions.mkPen(None))
-        p.setCompositionMode(QtGui.QPainter.CompositionMode_SourceAtop)
-        p.drawRect(rect)
-        for line in self.lines:
-            line.paint(p, *args, skip=skip, x_delta=x_delta, height=height)
+            p.setBrush(self.currentBrush)
+            p.setPen(pg.functions.mkPen(None))
+            p.setCompositionMode(QtGui.QPainter.CompositionMode_SourceAtop)
+            p.drawRect(rect)
+            for line in self.lines:
+                line.paint(p, *args, skip=skip, x_delta=x_delta, height=height, vb=vb)
