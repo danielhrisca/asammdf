@@ -173,7 +173,7 @@ def get_descriptions_by_uuid(mime):
 
         for item in mime:
             descriptions[item["uuid"]] = item
-            if item["type"] == "group":
+            if item.get("type", "channel") == "group":
 
                 descriptions.update(get_descriptions_by_uuid(item["channels"]))
 
@@ -2116,7 +2116,7 @@ class Plot(QtWidgets.QWidget):
                         range_info["background_color"]
                     )
 
-                if info["type"] == "group":
+                if info.get("type", "channel") == "group":
 
                     item = ChannelsGroupTreeItem(name, pattern, uuid=uuid)  # , root)
                     widget = ChannelGroupDisplay(

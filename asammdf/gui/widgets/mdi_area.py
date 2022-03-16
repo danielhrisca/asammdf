@@ -47,7 +47,7 @@ NOT_FOUND = 0xFFFFFFFF
 def rename_origin_uuid(items):
 
     for item in items:
-        if item["type"] == "channel":
+        if item.get("type", "channel") == "channel":
             if "mdf_uuid" in item:
                 item["origin_uuid"] = item["mdf_uuid"]
                 del item["mdf_uuid"]
@@ -58,12 +58,12 @@ def rename_origin_uuid(items):
 
 
 def get_origin_uuid(item):
-    if item["type"] == "group":
+    if item.get("type", "channel") == "group":
         for subitem in item["channels"]:
-            if subitem["type"] == "channel":
+            if subitem.get("type", "channel") == "channel":
                 return subitem["origin_uuid"]
         for subitem in item["channels"]:
-            if subitem["type"] == "group":
+            if subitem.get("type", "channel") == "group":
                 uuid = get_origin_uuid(subitem)
                 if uuid is not None:
                     return uuid
@@ -81,7 +81,7 @@ def build_mime_from_config(
     if top:
         rename_origin_uuid(items)
         for item in items:
-            if item["type"] == "group":
+            if item.get("type", "channel") == "group":
                 item["origin_uuid"] = get_origin_uuid(item)
 
     descriptions = {}
@@ -265,7 +265,7 @@ def get_flatten_entries_from_mime(data, default_index=None):
     entries = []
 
     for item in data:
-        if item["type"] == "channel":
+        if item.get("type", "channel") == "channel":
             new_item = dict(item)
 
             if default_index is not None:
@@ -284,7 +284,7 @@ def get_flatten_entries_from_mime(data, default_index=None):
 def get_pattern_groups(data):
     groups = []
     for item in data:
-        if item["type"] == "group":
+        if item.get("type", "channel") == "group":
             if item["pattern"] is not None:
                 groups.append(item)
             else:
@@ -377,7 +377,7 @@ def substitude_mime_uuids(mime, uuid=None, force=False):
     new_mime = []
 
     for item in mime:
-        if item["type"] == "channel":
+        if item.get("type", "channel") == "channel":
             if force or item["origin_uuid"] is None:
                 item["origin_uuid"] = uuid
             new_mime.append(item)
@@ -454,7 +454,7 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
                 def count(data):
                     s = 0
                     for item in data:
-                        if item["type"] == "channel":
+                        if item.get("type", "channel") == "channel":
                             s += 1
                         else:
                             s += count(item["channels"])
