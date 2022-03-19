@@ -164,4 +164,4 @@ class Ui_NumericDisplay(object):
         self.op.setItemText(5, _translate("NumericDisplay", ">="))
         self.target.setPlaceholderText(_translate("NumericDisplay", "target value"))
 from asammdf.gui.widgets.tree_numeric import NumericTreeWidget
-from . from . import resource_rc
+from . import resource_rc

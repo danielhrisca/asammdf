@@ -1727,14 +1727,27 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 ]
                 for dbc_name, found_ids in call_info["found_ids"].items():
                     for msg_id, msg_name in sorted(found_ids):
-                        message.append(f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>")
+                        try:
+                            message.append(
+                                f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>"
+                            )
+                        except:
+                            pgn, sa = msg_id
+                            message.append(
+                                f"- PGN=0x{pgn:X} SA=0x{sa:X} --> {msg_name} in <{dbc_name}>"
+                            )
 
                 message += [
                     "",
                     f"The following {bus} IDs were in the MDF log file, but not matched in the DBC:",
                 ]
                 for msg_id in sorted(call_info["unknown_ids"]):
-                    message.append(f"- 0x{msg_id:X}")
+                    try:
+                        message.append(f"- 0x{msg_id:X}")
+                    except:
+                        pgn, sa = msg_id
+                        message.append(f"- PGN=0x{pgn:X} SA=0x{sa:X}")
+
                 message.append("\n\n")
 
             self.output_info_bus.setPlainText("\n".join(message))

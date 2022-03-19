@@ -1879,10 +1879,11 @@ class Plot(QtWidgets.QWidget):
                         self.plot.y_axis.picture = None
                         self.plot.y_axis.update()
 
-                    axis = self.plot.axes[idx]
-                    axis.format = fmt
-                    axis.picture = None
-                    axis.update()
+                    axis = self.plot.get_axis(idx)
+                    if isinstance(axis, FormatedAxis):
+                        axis.format = fmt
+                        axis.picture = None
+                        axis.update()
 
             if self.plot.cursor1:
                 self.plot.cursor_moved.emit(self.plot.cursor1)
@@ -2326,8 +2327,9 @@ class Plot(QtWidgets.QWidget):
                     it.individual_axis.setCheckState(QtCore.Qt.Checked)
 
                     _, idx = self.plot.signal_by_uuid(sig_uuid)
-                    axis = self.plot.axes[idx]
-                    axis.setWidth(description["individual_axis_width"])
+                    axis = self.plot.get_axis(idx)
+                    if isinstance(axis, FormatedAxis):
+                        axis.setWidth(description["individual_axis_width"])
 
                 it.ylink.setCheckState(
                     QtCore.Qt.Checked
