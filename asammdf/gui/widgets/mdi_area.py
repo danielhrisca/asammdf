@@ -2446,6 +2446,11 @@ class WithMDIArea:
                     if name in self.mdf
                 ]
 
+            if window_info["configuration"].get("formats", None):
+                formats = window_info["configuration"]["formats"]
+            else:
+                formats = ["phys" for _ in ranges]
+
             if not signals_:
                 return
 
@@ -2457,11 +2462,14 @@ class WithMDIArea:
                 raw=True,
             )
 
-            for sig, sig_, channel_ranges in zip(signals, signals_, ranges):
+            for sig, sig_, channel_ranges, channel_format in zip(
+                signals, signals_, ranges, formats
+            ):
                 sig.group_index = sig_[2]
                 sig.origin_uuid = uuid
                 sig.computation = None
                 sig.ranges = channel_ranges
+                sig.format = channel_format
 
             signals = [
                 sig

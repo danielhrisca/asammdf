@@ -381,16 +381,16 @@ class DataTableModel(QtCore.QAbstractTableModel):
 
         elif role == QtCore.Qt.TextAlignmentRole:
             if isinstance(cell, str):
-                return QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
+                return int(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
             elif isinstance(cell, pd.Timestamp):
-                return QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
+                return int(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
             else:
                 if self.float_precision == -1 and isinstance(
                     cell, (float, np.floating)
                 ):
-                    return QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
+                    return int(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
                 else:
-                    return QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
+                    return int(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
     def flags(self, index):
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
@@ -562,11 +562,11 @@ class HeaderModel(QtCore.QAbstractTableModel):
                 )
 
                 if np.issubdtype(dtype, np.integer):
-                    return QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
+                    return int(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
                 elif float_precision != -1 and np.issubdtype(dtype, np.floating):
-                    return QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
+                    return int(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
                 else:
-                    return QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
+                    return int(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
             else:
                 return QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
 
@@ -1062,7 +1062,7 @@ class HeaderNamesModel(QtCore.QAbstractTableModel):
                 return icon
 
         elif role == QtCore.Qt.TextAlignmentRole:
-            return QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
+            return int(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
 
 
 class HeaderNamesView(QtWidgets.QTableView):

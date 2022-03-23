@@ -217,7 +217,7 @@ class PlotSignal(Signal):
         self._mode = "raw"
         self._enable = True
 
-        self.format = "phys"
+        self.format = getattr(signal, "format", "phys")
 
         self.individual_axis = False
         self.computed = signal.computed
