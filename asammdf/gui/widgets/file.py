@@ -983,16 +983,24 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         window_type = dialog.selected_type()
 
                         signals = natsorted(
-                            (
-                                name,
-                                dg_cntr,
-                                ch_cntr,
-                                self.uuid,
-                                "channel",
-                                [],
-                                os.urandom(6).hex(),
-                            )
-                            for name, dg_cntr, ch_cntr in names
+                            [
+                                {
+                                    "name": name,
+                                    "group_index": dg_cntr,
+                                    "channel_index": ch_cntr,
+                                    "origin_uuid": self.uuid,
+                                    "type": "channel",
+                                    "ranges": [],
+                                    "uuid": os.urandom(6).hex(),
+                                    "enabled": True,
+                                }
+                                for name, dg_cntr, ch_cntr in names
+                            ],
+                            key=lambda x: (
+                                x["name"],
+                                x["group_index"],
+                                x["channel_index"],
+                            ),
                         )
 
                         if window_type == "New plot window":
@@ -1444,6 +1452,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.channels_tree.clear()
         self.filter_tree.clear()
 
+        for window in self.mdi_area.subWindowList():
+            widget = window.widget()
+            self.mdi_area.removeSubWindow(window)
+            widget.setParent(None)
+            window.close()
+            widget.close()
+
         self.mdf = None
 
     def _create_window(self, event=None, window_type=None):
@@ -1518,15 +1533,15 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             ch = self.mdf.groups[group].channels[index]
                             if not ch.component_addr:
                                 signals.append(
-                                    (
-                                        ch.name,
-                                        group,
-                                        index,
-                                        self.uuid,
-                                        "channel",
-                                        [],
-                                        os.urandom(6).hex(),
-                                    )
+                                    {
+                                        "name": ch.name,
+                                        "group_index": group,
+                                        "channel_index": index,
+                                        "origin_uuid": self.uuid,
+                                        "type": "channel",
+                                        "ranges": [],
+                                        "uuid": os.urandom(6).hex(),
+                                    }
                                 )
 
                         iterator += 1
@@ -1539,15 +1554,15 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             ch = self.mdf.groups[group].channels[index]
                             if not ch.component_addr:
                                 signals.append(
-                                    (
-                                        ch.name,
-                                        group,
-                                        index,
-                                        self.uuid,
-                                        "channel",
-                                        [],
-                                        os.urandom(6).hex(),
-                                    )
+                                    {
+                                        "name": ch.name,
+                                        "group_index": group,
+                                        "channel_index": index,
+                                        "origin_uuid": self.uuid,
+                                        "type": "channel",
+                                        "ranges": [],
+                                        "uuid": os.urandom(6).hex(),
+                                    }
                                 )
 
                         iterator += 1
@@ -1712,14 +1727,27 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 ]
                 for dbc_name, found_ids in call_info["found_ids"].items():
                     for msg_id, msg_name in sorted(found_ids):
-                        message.append(f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>")
+                        try:
+                            message.append(
+                                f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>"
+                            )
+                        except:
+                            pgn, sa = msg_id
+                            message.append(
+                                f"- PGN=0x{pgn:X} SA=0x{sa:X} --> {msg_name} in <{dbc_name}>"
+                            )
 
                 message += [
                     "",
                     f"The following {bus} IDs were in the MDF log file, but not matched in the DBC:",
                 ]
                 for msg_id in sorted(call_info["unknown_ids"]):
-                    message.append(f"- 0x{msg_id:X}")
+                    try:
+                        message.append(f"- 0x{msg_id:X}")
+                    except:
+                        pgn, sa = msg_id
+                        message.append(f"- PGN=0x{pgn:X} SA=0x{sa:X}")
+
                 message.append("\n\n")
 
             self.output_info_bus.setPlainText("\n".join(message))

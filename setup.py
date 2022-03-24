@@ -109,7 +109,7 @@ setup(
             "psutil",
             "PySide6",
             "pyqtgraph>=0.12.3",
-            "pyqtlet2>=0.7.0",
+            "pyqtlet2>=0.8.0",
             "scipy<1.8.0",
         ],
         "encryption": ["cryptography", "keyring"],

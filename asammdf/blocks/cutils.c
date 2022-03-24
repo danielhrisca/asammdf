@@ -1,4 +1,4 @@
-#define PY_SSZIE_T_CLEAN
+#define PY_SSIZE_T_CLEAN 1
 #include <Python.h>
 #include "numpy/arrayobject.h"
 #include "numpy/ndarrayobject.h"
@@ -1059,7 +1059,6 @@ static PyObject* positions(PyObject* self, PyObject* args)
     if (!PyArg_ParseTuple(args, "OOOOOOOOs#B",
         &samples, &timestamps, &plot_samples, &plot_timestamps, &result, &step_obj, &count_obj, &last_obj, &kind, &_size, &itemsize
     )) {
-        PyErr_SetString(PyExc_ValueError, "check_timestamp was called with wring parameters\n");
         return NULL;
     }
     else {

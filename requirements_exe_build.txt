@@ -10,7 +10,7 @@ lxml
 natsort 
 psutil 
 PySide6 
-pyqtgraph==0.12.3
+pyqtgraph>=0.12.4
 pyqtlet2 
 h5py 
 fastparquet 

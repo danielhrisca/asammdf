@@ -14,6 +14,7 @@ import numpy as np
 from numpy import searchsorted
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from asammdf import MDF
 from asammdf.gui import utils
 from asammdf.gui.dialogs.range_editor import RangeEditor
 from asammdf.gui.utils import copy_ranges, extract_mime_names, get_colors_using_ranges
@@ -45,6 +46,7 @@ class SignalOnline:
         entry=(),
         conversion=None,
         exists=True,
+        format="phys",
     ):
         self.name = name
         self.raw = raw
@@ -54,6 +56,7 @@ class SignalOnline:
         self.conversion = conversion
         self.exists = exists
         self.configured_from_device = True
+        self.format = format
 
     @property
     def origin_uuid(self):
@@ -103,6 +106,7 @@ class SignalOffline:
         self.entry = signal.entry
         self.name = signal.name
         self.unit = signal.unit
+        self.format = getattr(signal, "format", "phys")
 
     def reset(self):
         self.signal = None
@@ -285,6 +289,10 @@ class OnlineBackEnd:
     def get_signal_value(self, signal, column):
         return signal.get_value(column)
 
+    def set_format(self, fmt, rows):
+        for row in rows:
+            self.signals[row].format = fmt
+
 
 class OfflineBackEnd:
     def __init__(self, signals, numeric):
@@ -412,6 +420,10 @@ class OfflineBackEnd:
     def get_signal_value(self, signal, column):
         return signal.get_value(column, self.timestamp)
 
+    def set_format(self, fmt, rows):
+        for row in rows:
+            self.signals[row].format = fmt
+
 
 class TableModel(QtCore.QAbstractTableModel):
     def __init__(self, parent, background_color, font_color):
@@ -453,10 +465,42 @@ class TableModel(QtCore.QAbstractTableModel):
                     return str(cell)
 
             elif isinstance(cell, (int, np.integer)):
-                if self.format == "Hex":
-                    return f"{cell:X}"
-                elif self.format == "Bin":
-                    return f"{cell:b}"
+                if signal.format == "hex":
+                    return f"0x{cell:X}"
+
+                elif signal.format == "bin":
+                    if cell < 0:
+                        sign = "-"
+                        cell = -cell
+                    else:
+                        sign = ""
+
+                    cell_str = f"{cell:b}"
+                    size = len(cell_str)
+
+                    if isinstance(cell, int):
+                        r = size % 4
+                        size += 4 - r
+                    else:
+                        size = cell.itemsize * 4
+
+                    fmt = f"{{:0>{size}}}"
+                    cell_str = fmt.format(cell_str)
+
+                    nibles = [cell_str[i * 4 : i * 4 + 4] for i in range(size // 4)]
+                    return f"{sign}0b {' '.join(nibles)}"
+
+                elif signal.format == "ascii":
+                    if cell < 0:
+                        return "●"
+                    elif cell > 0:
+                        try:
+                            return chr(cell)
+                        except:
+                            return "●"
+                    else:
+                        return "\\0"
+
                 else:
                     return str(cell)
 
@@ -506,9 +550,9 @@ class TableModel(QtCore.QAbstractTableModel):
 
         elif role == QtCore.Qt.TextAlignmentRole:
             if col:
-                return QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
+                return int(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
             else:
-                return QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter
+                return int(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
 
         elif role == QtCore.Qt.DecorationRole and col == 0:
             if not signal.exists:
@@ -552,6 +596,16 @@ class TableModel(QtCore.QAbstractTableModel):
 
     def supportedDropActions(self) -> bool:
         return QtCore.Qt.MoveAction | QtCore.Qt.CopyAction
+
+    def set_format(self, fmt, indexes):
+        if fmt not in ("phys", "hex", "bin", "ascii"):
+            return
+
+        self.format = fmt
+
+        rows = set(index.row() for index in indexes)
+
+        self.backend.set_format(fmt, rows)
 
 
 class TableView(QtWidgets.QTableView):
@@ -633,13 +687,7 @@ class TableView(QtWidgets.QTableView):
 
             entry = signal.entry if numeric_mode == "online" else signal.signal.entry
 
-            if entry == (-1, -1):
-                info = {
-                    "name": signal.name,
-                    "computation": {},
-                }
-            else:
-                info = signal.name
+            group_index, channel_index = entry
 
             ranges = copy_ranges(self.ranges[signal.entry])
 
@@ -649,18 +697,21 @@ class TableView(QtWidgets.QTableView):
                     range_info["background_color"].color().name()
                 )
 
-            data.append(
-                (
-                    info,
-                    *entry,
-                    str(entry[0])
-                    if numeric_mode == "online"
-                    else signal.signal.origin_uuid,
-                    "channel",
-                    ranges,
-                    os.urandom(6).hex(),
-                )
-            )
+            info = {
+                "name": signal.name,
+                "computation": {},
+                "computed": True,
+                "group_index": group_index,
+                "channel_index": channel_index,
+                "ranges": ranges,
+                "origin_uuid": str(entry[0])
+                if numeric_mode == "online"
+                else signal.signal.origin_uuid,
+                "type": "channel",
+                "uuid": os.urandom(6).hex(),
+            }
+
+            data.append(info)
 
         data = json.dumps(data).encode("utf-8")
 
@@ -699,6 +750,10 @@ class TableView(QtWidgets.QTableView):
         if dlg.pressed_button == "apply":
             ranges = dlg.result
             self.ranges[signal.entry] = ranges
+
+    def set_format(self, fmt):
+        indexes = self.selectedIndexes()
+        self.model().set_format(fmt, indexes)
 
 
 class HeaderModel(QtCore.QAbstractTableModel):
@@ -1018,13 +1073,21 @@ class NumericViewer(QtWidgets.QWidget):
         for i in range(self.dataView.model().rowCount())[:N]:
             mi = self.dataView.model().index(i, column_index)
             text = self.dataView.model().data(mi)
-            w = self.dataView.fontMetrics().boundingRect(text).width()
+            w = (
+                self.dataView.fontMetrics()
+                .boundingRect(text.replace("\0", " "))
+                .width()
+            )
             width = max(width, w)
 
         for i in range(self.columnHeader.model().rowCount()):
             mi = self.columnHeader.model().index(i, column_index)
             text = self.columnHeader.model().data(mi)
-            w = self.columnHeader.fontMetrics().boundingRect(text).width()
+            w = (
+                self.columnHeader.fontMetrics()
+                .boundingRect(text.replace("\0", " "))
+                .width()
+            )
             width = max(width, w)
 
         padding = 20
@@ -1108,18 +1171,13 @@ class Numeric(QtWidgets.QWidget):
         self.float_precision.addItems(
             ["Full float precision"] + [f"{i} float decimals" for i in range(16)]
         )
-        self.float_precision.setCurrentIndex(-1)
-        self.format_selection.setCurrentIndex(-1)
 
-        self.format_selection.currentTextChanged.connect(self.set_format)
         self.float_precision.currentIndexChanged.connect(self.set_float_precision)
 
         format = format or self._settings.value("numeric_format", "Physical")
-        if format not in ("Physical", "Hex", "Binary"):
+        if format not in ("Physical", "Hex", "Binary", "Ascii"):
             format = "Physical"
             self._settings.setValue("numeric_format", format)
-
-        self.format_selection.setCurrentText(format)
 
         if float_precision is None:
             float_precision = self._settings.value("numeric_float_precision", -1)
@@ -1159,6 +1217,7 @@ class Numeric(QtWidgets.QWidget):
                             conversion=sig.conversion,
                             entry=entry,
                             unit=sig.unit,
+                            format=getattr(sig, "format", "phys"),
                         )
                     )
 
@@ -1171,6 +1230,10 @@ class Numeric(QtWidgets.QWidget):
                     sig.computed = False
                     sig.computation = None
                     sig = PlotSignal(sig)
+                    if sig.conversion:
+                        sig.phys_samples = sig.conversion.convert(
+                            sig.raw_samples, as_object=True
+                        )
                     sig.entry = sig.group_index, sig.channel_index
 
                     others.append(
@@ -1234,11 +1297,12 @@ class Numeric(QtWidgets.QWidget):
                         "origin_uuid": str(signal.entry[0]),
                         "name": signal.name,
                         "ranges": ranges,
+                        "format": signal.format,
                     }
                 )
 
             config = {
-                "format": self.format_selection.currentText(),
+                "format": self.format,
                 "mode": "",
                 "channels": channels,
                 "float_precision": self.float_precision.currentIndex() - 1,
@@ -1262,7 +1326,7 @@ class Numeric(QtWidgets.QWidget):
                         range_info["background_color"].color().name()
                     )
 
-                channels[signal.name] = ranges
+                channels[signal.name] = (ranges, signal.format)
 
             pattern = self.pattern
             if pattern:
@@ -1277,10 +1341,15 @@ class Numeric(QtWidgets.QWidget):
                 pattern["ranges"] = ranges
 
             config = {
-                "format": self.format_selection.currentText(),
+                "format": "Physical",
                 "mode": self.mode,
                 "channels": list(channels) if not self.pattern else [],
-                "ranges": list(channels.values()) if not self.pattern else [],
+                "ranges": [elem[0] for elem in channels.values()]
+                if not self.pattern
+                else [],
+                "formats": [elem[1] for elem in channels.values()]
+                if not self.pattern
+                else [],
                 "pattern": pattern,
                 "float_precision": self.float_precision.currentIndex() - 1,
                 "header_sections_width": [
@@ -1297,15 +1366,23 @@ class Numeric(QtWidgets.QWidget):
         self.channels.backend.does_not_exist(entry, exists)
 
     def set_format(self, fmt):
-        if fmt == "Phys":
-            fmt = "Physical"
-        elif fmt == "Binary":
-            fmt = "Bin"
-        if fmt not in ("Physical", "Hex", "Bin"):
-            fmt = "Physical"
+        fmt = fmt.lower()
+        if fmt in ("phys", "physical"):
+            fmt_s = "Physical"
+            fmt = "phys"
+        elif fmt in ("bin", "binary"):
+            fmt_s = "Bin"
+            fmt = "bin"
+        elif fmt == "hex":
+            fmt_s = "Hex"
+        elif fmt == "ascii":
+            fmt_s = "Ascii"
+        else:
+            fmt_s = "Physical"
+            fmt = "phys"
 
-        self.channels.dataView.model().format = fmt
-        self._settings.setValue("numeric_format", fmt)
+        self.channels.dataView.set_format(fmt)
+        self._settings.setValue("numeric_format", fmt_s)
         self.channels.backend.data_changed()
 
     def set_float_precision(self, index):
@@ -1502,15 +1579,17 @@ class Numeric(QtWidgets.QWidget):
         modifier = event.modifiers()
 
         if (
-            key in (QtCore.Qt.Key_H, QtCore.Qt.Key_B, QtCore.Qt.Key_P)
+            key in (QtCore.Qt.Key_H, QtCore.Qt.Key_B, QtCore.Qt.Key_P, QtCore.Qt.Key_T)
             and modifier == QtCore.Qt.ControlModifier
         ):
             if key == QtCore.Qt.Key_H:
-                self.format_selection.setCurrentText("Hex")
+                self.set_format("Hex")
             elif key == QtCore.Qt.Key_B:
-                self.format_selection.setCurrentText("Binary")
+                self.set_format("Bin")
+            elif key == QtCore.Qt.Key_T:
+                self.set_format("Ascii")
             else:
-                self.format_selection.setCurrentText("Physical")
+                self.set_format("Physical")
             event.accept()
         elif (
             key == QtCore.Qt.Key_Right
@@ -1561,3 +1640,6 @@ class Numeric(QtWidgets.QWidget):
                         mdf.save(file_name, overwrite=True)
         else:
             self.channels.dataView.keyPressEvent(event)
+
+    def close(self):
+        super().close()

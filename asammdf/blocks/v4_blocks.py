@@ -3192,7 +3192,7 @@ class ChannelConversion(_ChannelConversionBase):
 
         return address
 
-    def convert(self, values):
+    def convert(self, values, as_object=False):
         if not isinstance(values, np.ndarray):
             values = np.array(values)
         conversion_type = self.conversion_type
@@ -3405,9 +3405,10 @@ class ChannelConversion(_ChannelConversionBase):
                     try:
                         ret = ret.astype("f8")
                     except:
-                        ret = np.array(
-                            [np.nan if isinstance(v, bytes) else v for v in ret]
-                        )
+                        if not as_object:
+                            ret = np.array(
+                                [np.nan if isinstance(v, bytes) else v for v in ret]
+                            )
 
                 else:
                     ret = ret.astype(bytes)
@@ -3480,12 +3481,13 @@ class ChannelConversion(_ChannelConversionBase):
                     try:
                         ret = ret.astype("<f8")
                     except:
-                        ret = np.array(
-                            [
-                                np.nan if isinstance(v, bytes) else v
-                                for v in ret.tolist()
-                            ]
-                        )
+                        if not as_object:
+                            ret = np.array(
+                                [
+                                    np.nan if isinstance(v, bytes) else v
+                                    for v in ret.tolist()
+                                ]
+                            )
 
                 values = ret
 
@@ -3552,7 +3554,10 @@ class ChannelConversion(_ChannelConversionBase):
                 try:
                     ret = ret.astype("<f8")
                 except:
-                    ret = np.array([np.nan if isinstance(v, bytes) else v for v in ret])
+                    if not as_object:
+                        ret = np.array(
+                            [np.nan if isinstance(v, bytes) else v for v in ret]
+                        )
 
             values = ret
 

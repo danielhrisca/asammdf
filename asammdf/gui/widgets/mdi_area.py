@@ -35,29 +35,67 @@ from .flexray_bus_trace import FlexRayBusTrace
 from .gps import GPS
 from .lin_bus_trace import LINBusTrace
 from .numeric import Numeric
-from .plot import Plot
+from .plot import get_descriptions_by_uuid, Plot
 from .tabular import Tabular
 from .tree import ChannelsGroupTreeItem
 
 COMPONENT = re.compile(r"\[(?P<index>\d+)\]$")
 SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
-NOT_FOUND = 2**32 - 1
+NOT_FOUND = 0xFFFFFFFF
+
+
+def rename_origin_uuid(items):
+
+    for item in items:
+        if item.get("type", "channel") == "channel":
+            if "mdf_uuid" in item:
+                item["origin_uuid"] = item["mdf_uuid"]
+                del item["mdf_uuid"]
+            else:
+                return
+        else:
+            rename_origin_uuid(item["channels"])
+
+
+def get_origin_uuid(item):
+    if item.get("type", "channel") == "group":
+        for subitem in item["channels"]:
+            if subitem.get("type", "channel") == "channel":
+                return subitem["origin_uuid"]
+        for subitem in item["channels"]:
+            if subitem.get("type", "channel") == "group":
+                uuid = get_origin_uuid(subitem)
+                if uuid is not None:
+                    return uuid
+
+        return None
+
+    else:
+        return item["origin_uuid"]
 
 
 def build_mime_from_config(
-    channels, mdf=None, origin_uuid=None, default_index=NOT_FOUND
+    items, mdf=None, origin_uuid=None, default_index=NOT_FOUND, top=True
 ):
+
+    if top:
+        rename_origin_uuid(items)
+        for item in items:
+            if item.get("type", "channel") == "group":
+                item["origin_uuid"] = get_origin_uuid(item)
+
     descriptions = {}
     found = {}
     not_found = {}
     computed = {}
     mime = []
-    for channel in channels:
+    for item in items:
         uuid = os.urandom(6).hex()
-        channel["uuid"] = uuid
+        item["uuid"] = uuid
 
-        if channel.get("type", "channel") == "group":
-            if channel.get("pattern", None) is None:
+        if item.get("type", "channel") == "group":
+
+            if item.get("pattern", None) is None:
                 (
                     new_mine,
                     new_descriptions,
@@ -65,61 +103,35 @@ def build_mime_from_config(
                     new_not_found,
                     new_computed,
                 ) = build_mime_from_config(
-                    channel["channels"], mdf, origin_uuid, default_index
+                    item["channels"], mdf, origin_uuid, default_index, top=False
                 )
                 descriptions.update(new_descriptions)
                 found.update(new_found)
                 not_found.update(new_not_found)
-                mime.append(
-                    (
-                        channel["name"],
-                        None,
-                        new_mine,
-                        None,
-                        "group",
-                        channel.get("ranges", []),
-                        uuid,
-                    )
-                )
+
+                item["channels"] = new_mine
+
+                mime.append(item)
             else:
-                mime.append(
-                    (
-                        channel["name"],
-                        channel["pattern"],
-                        [],
-                        None,
-                        "group",
-                        channel.get("ranges", []),
-                        uuid,
-                    )
-                )
+                mime.append(item)
         else:
-            descriptions[uuid] = channel
+            descriptions[uuid] = item
 
-            channel["uuid"] = uuid
-
-            occurrences = mdf.whereis(channel["name"]) if mdf else None
+            occurrences = mdf.whereis(item["name"]) if mdf else None
             if occurrences:
                 group_index, channel_index = occurrences[0]
-                found[uuid] = channel["name"], group_index, channel_index
+                found[uuid] = item["name"], group_index, channel_index
             else:
-                if isinstance(channel["name"], dict):
+                if isinstance(item["name"], dict):
                     group_index, channel_index = -1, -1
-                    computed[uuid] = channel["name"]
+                    computed[uuid] = item["name"]
                 else:
                     group_index, channel_index = default_index, default_index
-                    not_found[channel["name"]] = uuid
-            mime.append(
-                (
-                    channel["name"],
-                    group_index,
-                    channel_index,
-                    origin_uuid or channel["origin_uuid"],
-                    "channel",
-                    channel.get("ranges", []),
-                    uuid,
-                )
-            )
+                    not_found[item["name"]] = uuid
+
+            item["group_index"] = group_index
+            item["channel_index"] = channel_index
+            mime.append(item)
 
     return mime, descriptions, found, not_found, computed
 
@@ -237,11 +249,11 @@ def generate_window_title(mdi, window_name="", title=""):
     return name
 
 
-def get_descriptions(channels):
+def get_descriptions_by_name(channels):
     descriptions = {}
     for channel in channels:
         if channel.get("type", "channel") == "group":
-            new_descriptions = get_descriptions(channel["channels"])
+            new_descriptions = get_descriptions_by_name(channel["channels"])
             descriptions.update(new_descriptions)
         else:
             descriptions[channel["name"]] = channel
@@ -252,45 +264,31 @@ def get_descriptions(channels):
 def get_flatten_entries_from_mime(data, default_index=None):
     entries = []
 
-    for (name, group_index, channel_index, origin_uuid, type_, ranges, uuid) in data:
-        if type_ == "channel":
+    for item in data:
+        if item.get("type", "channel") == "channel":
+            new_item = dict(item)
+
             if default_index is not None:
-                entries.append(
-                    (
-                        name,
-                        default_index,
-                        default_index,
-                        origin_uuid,
-                        "channel",
-                        ranges,
-                        uuid,
-                    )
-                )
-            else:
-                entries.append(
-                    (
-                        name,
-                        group_index,
-                        channel_index,
-                        origin_uuid,
-                        "channel",
-                        ranges,
-                        uuid,
-                    )
-                )
+                new_item["group_index"] = default_index
+                new_item["channel_index"] = default_index
+
+            entries.append(new_item)
+
         else:
-            entries.extend(get_flatten_entries_from_mime(channel_index, default_index))
+            entries.extend(
+                get_flatten_entries_from_mime(item["channels"], default_index)
+            )
     return entries
 
 
 def get_pattern_groups(data):
     groups = []
-    for (name, pattern, channels, origin_uuid, type_, ranges, uuid) in data:
-        if type_ == "group":
-            if pattern is not None:
-                groups.append(name, pattern, channels, origin_uuid, type_, ranges, uuid)
+    for item in data:
+        if item.get("type", "channel") == "group":
+            if item["pattern"] is not None:
+                groups.append(item)
             else:
-                groups.extend(get_pattern_groups(channels))
+                groups.extend(get_pattern_groups(item["channels"]))
     return groups
 
 
@@ -372,44 +370,24 @@ def get_required_from_descriptions(channels, mdf):
     return required, found, not_found, computed
 
 
-def substitude_mime_uuids(mime, uuid, force=False):
+def substitude_mime_uuids(mime, uuid=None, force=False):
     if not mime:
         return mime
 
     new_mime = []
 
-    # check first mime
-    generic_uuid = mime[0][3]
-    if not force and generic_uuid is not None:
-        return mime
-
-    for (
-        name,
-        group_index,
-        channel_index,
-        generic_uuid,
-        type_,
-        ranges,
-        item_uuid,
-    ) in mime:
-        if type_ == "channel":
-            new_mime.append(
-                (name, group_index, channel_index, uuid, type_, ranges, item_uuid)
-            )
+    for item in mime:
+        if item.get("type", "channel") == "channel":
+            if force or item["origin_uuid"] is None:
+                item["origin_uuid"] = uuid
+            new_mime.append(item)
         else:
-            new_mime.append(
-                (
-                    name,
-                    group_index,
-                    substitude_mime_uuids(channel_index, uuid),
-                    uuid,
-                    type_,
-                    ranges,
-                    item_uuid,
-                )
+            item["channels"] = substitude_mime_uuids(
+                item["channels"], uuid, force=force
             )
-    print("sub", mime)
-    print("sub", new_mime)
+            if force or item["origin_uuid"] is None:
+                item["origin_uuid"] = uuid
+            new_mime.append(item)
     return new_mime
 
 
@@ -475,19 +453,11 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
 
                 def count(data):
                     s = 0
-                    for (
-                        name,
-                        group_index,
-                        channel_index,
-                        origin_uuid,
-                        type_,
-                        ranges,
-                        uuid,
-                    ) in data:
-                        if type_ == "channel":
+                    for item in data:
+                        if item.get("type", "channel") == "channel":
                             s += 1
                         else:
-                            s += count(channel_index)
+                            s += count(item["channels"])
                     return s
 
                 names = extract_mime_names(data)
@@ -625,14 +595,15 @@ class WithMDIArea:
             names = list(names)
             if names and isinstance(names[0], str):
                 signals_ = [
-                    (
-                        name,
-                        *self.mdf.whereis(name)[0],
-                        self.uuid,
-                        "channel",
-                        [],
-                        os.urandom(6).hex(),
-                    )
+                    {
+                        "name": name,
+                        "group_index": self.mdf.whereis(name)[0][0],
+                        "channel_index": self.mdf.whereis(name)[0][1],
+                        "origin_uuid": self.uuid,
+                        "type": "channel",
+                        "ranges": [],
+                        "uuid": os.urandom(6).hex(),
+                    }
                     for name in names
                     if name in self.mdf
                 ]
@@ -648,11 +619,19 @@ class WithMDIArea:
                 mime_data = substitude_mime_uuids(mime_data, self.uuid)
 
                 entries = get_flatten_entries_from_mime(mime_data)
-                signals_ = [name for name in entries if tuple(name[1:3]) != (-1, -1)]
+                signals_ = [
+                    entry
+                    for entry in entries
+                    if (entry["group_index"], entry["channel_index"]) != (-1, -1)
+                ]
 
-                computed = [name for name in entries if tuple(name[1:3]) == (-1, -1)]
+                computed = [
+                    entry
+                    for entry in entries
+                    if (entry["group_index"], entry["channel_index"]) == (-1, -1)
+                ]
 
-                uuids = set(entry[3] for entry in entries)
+                uuids = set(entry["origin_uuid"] for entry in entries)
 
             # print(computed)
             # print(names)
@@ -663,7 +642,9 @@ class WithMDIArea:
 
                 for uuid in uuids:
                     uuids_signals = [
-                        entry[:3] for entry in signals_ if entry[3] == uuid and entry
+                        (entry["name"], entry["group_index"], entry["channel_index"])
+                        for entry in signals_
+                        if entry["origin_uuid"] == uuid
                     ]
 
                     file_info = self.file_by_uuid(uuid)
@@ -703,11 +684,13 @@ class WithMDIArea:
 
                 for uuid in uuids:
                     uuids_signals = [
-                        entry[:3] for entry in signals_ if entry[3] == uuid
+                        (entry["name"], entry["group_index"], entry["channel_index"])
+                        for entry in signals_
+                        if entry["origin_uuid"] == uuid
                     ]
 
                     uuids_signals_uuid = [
-                        entry[-1] for entry in signals_ if entry[3] == uuid
+                        entry for entry in signals_ if entry["origin_uuid"] == uuid
                     ]
 
                     file_info = self.file_by_uuid(uuid)
@@ -762,7 +745,27 @@ class WithMDIArea:
                 signals = {}
 
                 for uuid in uuids:
-                    uuids_signals = [entry for entry in signals_ if entry[3] == uuid]
+                    uuids_entries = [
+                        entry for entry in signals_ if entry["origin_uuid"] == uuid
+                    ]
+
+                    uuids_signals = []
+                    not_found = []
+
+                    for entry in uuids_entries:
+                        if entry["name"] in self.mdf:
+                            entries = self.mdf.whereis(entry["name"])
+
+                            if (
+                                entry["group_index"],
+                                entry["channel_index"],
+                            ) not in entries:
+                                entry["group_index"], entry["channel_index"] = entries[
+                                    0
+                                ]
+                            uuids_signals.append(entry)
+                        else:
+                            not_found.append(entry)
 
                     file_info = self.file_by_uuid(uuid)
                     if not file_info:
@@ -771,7 +774,14 @@ class WithMDIArea:
                     file_index, file = file_info
 
                     selected_signals = file.mdf.select(
-                        [entry[:3] for entry in uuids_signals],
+                        [
+                            (
+                                entry["name"],
+                                entry["group_index"],
+                                entry["channel_index"],
+                            )
+                            for entry in uuids_signals
+                        ],
                         ignore_value2text_conversions=ignore_value2text_conversions,
                         copy_master=False,
                         validate=True,
@@ -779,13 +789,14 @@ class WithMDIArea:
                     )
 
                     for sig, sig_ in zip(selected_signals, uuids_signals):
-                        sig.group_index = sig_[1]
-                        sig.channel_index = sig_[2]
+                        sig.group_index = sig_["group_index"]
+                        sig.channel_index = sig_["channel_index"]
                         sig.computed = False
                         sig.computation = {}
                         sig.origin_uuid = uuid
-                        sig.name = sig_[0]
-                        sig.uuid = sig_[-1]
+                        sig.name = sig_["name"]
+                        sig.color = sig_.get("color", None)
+                        sig.uuid = sig_["uuid"]
 
                         if not hasattr(self, "mdf"):
                             # MainWindow => comparison plots
@@ -876,6 +887,20 @@ class WithMDIArea:
                         except:
                             pass
                     signals.update(computed_signals.values())
+
+                not_found_uuid = os.urandom(6).hex()
+
+                for entry in not_found:
+
+                    sig = Signal([], [], name=entry["name"])
+                    sig.uuid = entry["uuid"]
+
+                    sig.origin_uuid = not_found_uuid
+                    sig.group_index = NOT_FOUND
+                    sig.channel_index = NOT_FOUND
+                    sig.color = entry.get("color", None)
+
+                    signals[sig.uuid] = sig
 
                 widget.add_new_channels(signals, mime_data=mime_data)
 
@@ -1048,6 +1073,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(trace)
+        trace.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -1258,6 +1285,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(trace)
+        trace.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -1319,6 +1348,8 @@ class WithMDIArea:
         gps = GPS(latitude_channel, longitude_channel)
         sub = MdiSubWindow(parent=self)
         sub.setWidget(gps)
+        gps.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -1571,6 +1602,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(trace)
+        trace.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -1643,17 +1676,23 @@ class WithMDIArea:
         else:
             flatten_entries = get_flatten_entries_from_mime(names)
             signals_ = [
-                entry for entry in flatten_entries if tuple(entry[1:3]) != (-1, -1)
+                entry
+                for entry in flatten_entries
+                if tuple((entry["group_index"], entry["channel_index"])) != (-1, -1)
             ]
 
         signals_ = natsorted(signals_)
 
-        uuids = set(entry[3] for entry in signals_)
+        uuids = set(entry["origin_uuid"] for entry in signals_)
 
         signals = []
 
         for uuid in uuids:
-            uuids_signals = [entry[:3] for entry in signals_ if entry[3] == uuid]
+            uuids_signals = [
+                (entry["name"], entry["group_index"], entry["channel_index"])
+                for entry in signals_
+                if entry["origin_uuid"] == uuid
+            ]
 
             file_info = self.file_by_uuid(uuid)
             if not file_info:
@@ -1740,6 +1779,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(numeric)
+        numeric.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -1787,14 +1828,15 @@ class WithMDIArea:
 
         if signals and isinstance(signals[0], str):
             mime_data = [
-                (
-                    name,
-                    *self.mdf.whereis(name)[0],
-                    self.uuid,
-                    "channel",
-                    [],
-                    os.urandom(6).hex(),
-                )
+                {
+                    "name": name,
+                    "group_index": self.mdf.whereis(name)[0][0],
+                    "channel_index": self.mdf.whereis(name)[0][0],
+                    "origin_uuid": self.uuid,
+                    "type": "channel",
+                    "ranges": [],
+                    "uuid": os.urandom(6).hex(),
+                }
                 for name in signals
                 if name in self.mdf
             ]
@@ -1803,24 +1845,26 @@ class WithMDIArea:
 
         flatten_entries = get_flatten_entries_from_mime(mime_data)
         signals_ = {
-            entry[-1]: entry
+            entry["uuid"]: entry
             for entry in flatten_entries
-            if tuple(entry[1:3]) != (-1, -1)
+            if (entry["group_index"], entry["channel_index"]) != (-1, -1)
         }
 
         computed = {
-            entry[-1]: entry
+            entry["uuid"]: entry
             for entry in flatten_entries
-            if tuple(entry[1:3]) == (-1, -1)
+            if (entry["group_index"], entry["channel_index"]) == (-1, -1)
         }
 
-        uuids = set(entry[3] for entry in signals_.values())
+        uuids = set(entry["origin_uuid"] for entry in signals_.values())
 
         signals = {}
 
         for uuid in uuids:
             uuids_signals = {
-                key: entry for key, entry in signals_.items() if entry[3] == uuid
+                key: entry
+                for key, entry in signals_.items()
+                if entry["origin_uuid"] == uuid
             }
 
             file_info = self.file_by_uuid(uuid)
@@ -1830,7 +1874,10 @@ class WithMDIArea:
             file_index, file = file_info
 
             selected_signals = file.mdf.select(
-                [entry[:3] for entry in uuids_signals.values()],
+                [
+                    (entry["name"], entry["group_index"], entry["channel_index"])
+                    for entry in uuids_signals.values()
+                ],
                 ignore_value2text_conversions=self.ignore_value2text_conversions,
                 copy_master=False,
                 validate=True,
@@ -1838,13 +1885,15 @@ class WithMDIArea:
             )
 
             for sig, (sig_uuid, sig_) in zip(selected_signals, uuids_signals.items()):
-                sig.group_index = sig_[1]
-                sig.channel_index = sig_[2]
+                sig.group_index = sig_["group_index"]
+                sig.channel_index = sig_["channel_index"]
                 sig.computed = False
                 sig.computation = {}
                 sig.origin_uuid = uuid
-                sig.name = sig_[0] or sig.name
+                sig.name = sig_["name"] or sig.name
                 sig.uuid = sig_uuid
+                if "color" in sig_:
+                    sig.color = sig_["color"]
 
                 if not hasattr(self, "mdf"):
                     # MainWindow => comparison plots
@@ -2076,6 +2125,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(plot)
+        plot.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -2131,8 +2182,10 @@ class WithMDIArea:
         self.set_subplots_link(self.subplots_link)
 
         iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
-        while iterator.value():
+        while True:
             item = iterator.value()
+            if item is None:
+                break
             iterator += 1
 
             if isinstance(item, ChannelsGroupTreeItem):
@@ -2161,18 +2214,24 @@ class WithMDIArea:
         else:
             flatten_entries = get_flatten_entries_from_mime(names)
             signals_ = [
-                entry for entry in flatten_entries if tuple(entry[1:3]) != (-1, -1)
+                entry
+                for entry in flatten_entries
+                if tuple((entry["group_index"], entry["channel_index"])) != (-1, -1)
             ]
 
         signals_ = natsorted(signals_)
 
-        uuids = set(entry[3] for entry in signals_)
+        uuids = set(entry["origin_uuid"] for entry in signals_)
 
         dfs = []
         start = []
 
         for uuid in uuids:
-            uuids_signals = [entry[:3] for entry in signals_ if entry[3] == uuid]
+            uuids_signals = [
+                (entry["name"], entry["group_index"], entry["channel_index"])
+                for entry in signals_
+                if entry["origin_uuid"] == uuid
+            ]
 
             file_info = self.file_by_uuid(uuid)
             if not file_info:
@@ -2224,6 +2283,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(tabular)
+        tabular.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -2385,6 +2446,11 @@ class WithMDIArea:
                     if name in self.mdf
                 ]
 
+            if window_info["configuration"].get("formats", None):
+                formats = window_info["configuration"]["formats"]
+            else:
+                formats = ["phys" for _ in ranges]
+
             if not signals_:
                 return
 
@@ -2396,11 +2462,14 @@ class WithMDIArea:
                 raw=True,
             )
 
-            for sig, sig_, channel_ranges in zip(signals, signals_, ranges):
-                sig.group_index = sig_[1]
+            for sig, sig_, channel_ranges, channel_format in zip(
+                signals, signals_, ranges, formats
+            ):
+                sig.group_index = sig_[2]
                 sig.origin_uuid = uuid
                 sig.computation = None
                 sig.ranges = channel_ranges
+                sig.format = channel_format
 
             signals = [
                 sig
@@ -2430,6 +2499,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(numeric)
+        numeric.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -2514,6 +2585,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(gps)
+        gps.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -2738,7 +2811,7 @@ class WithMDIArea:
             if uuid not in signals:
                 description = descriptions[uuid]
 
-                sig = Signal([], [], name=name)
+                sig = Signal([], [], name=description["name"])
                 sig.uuid = uuid
 
                 sig.origin_uuid = self.uuid
@@ -2817,6 +2890,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(plot)
+        plot.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
@@ -2881,17 +2956,17 @@ class WithMDIArea:
 
         plot.add_new_channels(signals, mime_data)
 
-        iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
-        while iterator.value():
-            item = iterator.value()
-            iterator += 1
-
-            widget = plot.channel_selection.itemWidget(item, 1)
-
-            if isinstance(widget, ChannelDisplay):
-                sig, index = plot.plot.signal_by_uuid(widget.uuid)
-                if sig.group_index == NOT_FOUND:
-                    widget.does_not_exist()
+        # iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
+        # while iterator.value():
+        #     item = iterator.value()
+        #     iterator += 1
+        #
+        #     widget = plot.channel_selection.itemWidget(item, 1)
+        #
+        #     if isinstance(widget, ChannelDisplay):
+        #         sig, index = plot.plot.signal_by_uuid(widget.uuid)
+        #         if sig.group_index == NOT_FOUND:
+        #             widget.does_not_exist()
 
         plot.plot.update_lines()
 
@@ -2911,49 +2986,49 @@ class WithMDIArea:
 
                     _, _idx = plot.plot.signal_by_uuid(wid.uuid)
 
-                    if "y_range" in description:
-                        plot.plot.view_boxes[_idx].setYRange(
-                            *description["y_range"], padding=0
-                        )
+                    # if "y_range" in description:
+                    #     plot.plot.view_boxes[_idx].setYRange(
+                    #         *description["y_range"], padding=0
+                    #     )
+                    #
+                    # wid.set_fmt(description["fmt"])
+                    # wid.set_precision(description["precision"])
+                    # try:
+                    #     wid.set_ranges(
+                    #         [
+                    #             {
+                    #                 "font_color": range["color"],
+                    #                 "background_color": range["color"],
+                    #                 "op1": "<=",
+                    #                 "op2": "<=",
+                    #                 "value1": float(range["start"]),
+                    #                 "value2": float(range["stop"]),
+                    #             }
+                    #             for range in description["ranges"]
+                    #         ]
+                    #     )
+                    # except KeyError:
+                    #     wid.set_ranges(description["ranges"])
+                    #
+                    # for range in wid.ranges:
+                    #     range["font_color"] = QtGui.QColor(range["font_color"])
+                    #     range["background_color"] = QtGui.QColor(
+                    #         range["background_color"]
+                    #     )
 
-                    wid.set_fmt(description["fmt"])
-                    wid.set_precision(description["precision"])
-                    try:
-                        wid.set_ranges(
-                            [
-                                {
-                                    "font_color": range["color"],
-                                    "background_color": range["color"],
-                                    "op1": "<=",
-                                    "op2": "<=",
-                                    "value1": float(range["start"]),
-                                    "value2": float(range["stop"]),
-                                }
-                                for range in description["ranges"]
-                            ]
-                        )
-                    except KeyError:
-                        wid.set_ranges(description["ranges"])
-
-                    for range in wid.ranges:
-                        range["font_color"] = QtGui.QColor(range["font_color"])
-                        range["background_color"] = QtGui.QColor(
-                            range["background_color"]
-                        )
-
-                    wid.ylink.setCheckState(
-                        QtCore.Qt.Checked
-                        if description["common_axis"]
-                        else QtCore.Qt.Unchecked
-                    )
-                    wid.individual_axis.setCheckState(
-                        QtCore.Qt.Checked
-                        if description.get("individual_axis", False)
-                        else QtCore.Qt.Unchecked
-                    )
-                    width = description.get("individual_axis_width", 0)
-                    if width:
-                        plot.plot.axes[_idx].setWidth(width)
+                    # wid.ylink.setCheckState(
+                    #     QtCore.Qt.Checked
+                    #     if description["common_axis"]
+                    #     else QtCore.Qt.Unchecked
+                    # )
+                    # wid.individual_axis.setCheckState(
+                    #     QtCore.Qt.Checked
+                    #     if description.get("individual_axis", False)
+                    #     else QtCore.Qt.Unchecked
+                    # )
+                    # width = description.get("individual_axis_width", 0)
+                    # if width:
+                    #     plot.plot.axes[_idx].setWidth(width)
                     item.setCheckState(
                         0,
                         QtCore.Qt.Checked
@@ -3085,6 +3160,8 @@ class WithMDIArea:
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(tabular)
+        tabular.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        sub.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         sub.sigClosed.connect(self.window_closed_handler)
         sub.titleModified.connect(self.window_closed_handler)
 
