@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import bz2
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 from collections.abc import Iterable, Iterator, Sequence
 from copy import deepcopy
 import csv
@@ -1186,6 +1186,11 @@ class MDF:
 
               .. versionadded:: 6.2.0
 
+            * add_units (False) : bool
+              only valid for CSV: add the channel units on the second row of the CSV file
+
+              .. versionadded:: 7.1.0
+
 
         """
 
@@ -1283,11 +1288,9 @@ class MDF:
                 raw=raw,
                 numeric_1D_only=fmt == "parquet",
             )
-            units = OrderedDict()
-            comments = OrderedDict()
+            units = {}
+            comments = {}
             used_names = UniqueDB()
-
-            dropped = {}
 
             groups_nr = len(self.groups)
             for i, grp in enumerate(self.groups):
@@ -1490,6 +1493,10 @@ class MDF:
                     df.index = index
                     df.index.name = "timestamps"
 
+                    units["timestamps"] = ""
+                else:
+                    units["timestamps"] = "s"
+
                 if hasattr(self, "can_logging_db") and self.can_logging_db:
 
                     dropped = {}
@@ -1517,6 +1524,10 @@ class MDF:
                     names_row = [df.index.name, *df.columns]
                     writer.writerow(names_row)
 
+                    if kwargs.get("add_units", False):
+                        units_row = [units[name] for name in names_row]
+                        writer.writerow(units_row)
+
                     if reduce_memory_usage:
                         vals = [df.index, *(df[name] for name in df)]
                     else:
@@ -1536,6 +1547,8 @@ class MDF:
                             self._callback(i + 1 + count, count * 2)
 
             else:
+
+                add_units = kwargs.get("add_units", False)
 
                 filename = filename.with_suffix(".csv")
 
@@ -1579,6 +1592,38 @@ class MDF:
                         raw=raw,
                     )
 
+                    if add_units:
+                        units = {}
+                        used_names = UniqueDB()
+
+                        for gp_index, channel_indexes in self.included_channels(
+                            group_index
+                        )[group_index].items():
+                            for ch_index in channel_indexes:
+                                ch = self.groups[gp_index].channels[ch_index]
+
+                                if use_display_names:
+                                    channel_name = (
+                                        list(ch.display_names)[0]
+                                        if ch.display_names
+                                        else ch.name
+                                    )
+                                else:
+                                    channel_name = ch.name
+
+                                channel_name = used_names.get_unique_name(channel_name)
+
+                                if hasattr(ch, "unit"):
+                                    unit = ch.unit
+                                    if ch.conversion:
+                                        unit = unit or ch.conversion.unit
+                                else:
+                                    unit = ""
+
+                                units[channel_name] = unit
+                    else:
+                        units = {}
+
                     if time_as_date:
                         index = (
                             pd.to_datetime(
@@ -1590,6 +1635,10 @@ class MDF:
                         )
                         df.index = index
                         df.index.name = "timestamps"
+
+                        units["timestamps"] = ""
+                    else:
+                        units["timestamps"] = "s"
 
                     with open(group_csv_name, "w", newline="") as csvfile:
                         writer = csv.writer(csvfile, **fmtparams)
@@ -1616,6 +1665,10 @@ class MDF:
 
                         names_row = [df.index.name, *df.columns]
                         writer.writerow(names_row)
+
+                        if add_units:
+                            units_row = [units[name] for name in names_row]
+                            writer.writerow(units_row)
 
                         if reduce_memory_usage:
                             vals = [df.index, *(df[name] for name in df)]
@@ -3056,6 +3109,13 @@ class MDF:
                 if name is not None:
                     signal.name = name
 
+        unique = set()
+        for i, signal in enumerate(signals):
+            obj_id = id(signal)
+            if id(signal) in unique:
+                signals[i] = signal.copy()
+            unique.add(obj_id)
+
         return signals
 
     @staticmethod
@@ -4450,7 +4510,13 @@ class MDF:
         for dbc, dbc_name, bus_channel in valid_dbc_files:
             is_j1939 = dbc.contains_j1939
             if is_j1939:
-                messages = {message.arbitration_id.pgn: message for message in dbc}
+                messages = {
+                    (
+                        message.arbitration_id.pgn,
+                        message.arbitration_id.j1939_source,
+                    ): message
+                    for message in dbc
+                }
             else:
                 messages = {message.arbitration_id.id: message for message in dbc}
 
@@ -4490,7 +4556,7 @@ class MDF:
                         & 0x1FFFFFFF
                     )
 
-                    original_ids = msg_ids.samples.copy()
+                    original_ids = msg_ids.samples & 0xFF
 
                     if is_j1939:
                         tmp_pgn = msg_ids.samples >> 8
@@ -4519,18 +4585,11 @@ class MDF:
 
                         if is_j1939:
 
-                            if consolidated_j1939:
-                                unique_ids = np.unique(
-                                    np.core.records.fromarrays(
-                                        [bus_msg_ids, bus_msg_ids]
-                                    )
+                            unique_ids = np.unique(
+                                np.core.records.fromarrays(
+                                    [bus_msg_ids, original_msg_ids]
                                 )
-                            else:
-                                unique_ids = np.unique(
-                                    np.core.records.fromarrays(
-                                        [bus_msg_ids, original_msg_ids]
-                                    )
-                                )
+                            )
                         else:
                             unique_ids = np.unique(
                                 np.core.records.fromarrays([bus_msg_ids, bus_msg_ids])
@@ -4543,26 +4602,43 @@ class MDF:
                         for msg_id_record in unique_ids:
                             msg_id = int(msg_id_record[0])
                             original_msg_id = int(msg_id_record[1])
-                            message = messages.get(msg_id, None)
-                            if message is None:
-                                unknown_ids[msg_id].append(True)
-                                continue
+                            if is_j1939:
+                                key = (msg_id, original_msg_id)
+                                message = messages.get(key, None)
+                                if message is None:
+                                    for (_pgn, _sa), _msg in messages.items():
+                                        if _pgn == msg_id and _sa == 0xFE:
+                                            message = _msg
+                                            break
 
-                            found_ids[dbc_name].add((msg_id, message.name))
+                                if message is None:
+                                    unknown_ids[key].append(True)
+                                    continue
+
+                            else:
+                                key = msg_id
+                                message = messages.get(key, None)
+
+                                if message is None:
+                                    unknown_ids[key].append(True)
+                                    continue
+
+                            found_ids[dbc_name].add((key, message.name))
                             try:
-                                current_not_found_ids.remove((msg_id, message.name))
+                                current_not_found_ids.remove((key, message.name))
                             except KeyError:
                                 pass
 
-                            unknown_ids[msg_id].append(False)
+                            unknown_ids[key].append(False)
 
-                            if is_j1939 and not consolidated_j1939:
+                            if is_j1939:
                                 idx = np.argwhere(
                                     (bus_msg_ids == msg_id)
                                     & (original_msg_ids == original_msg_id)
                                 ).ravel()
                             else:
                                 idx = np.argwhere(bus_msg_ids == msg_id).ravel()
+
                             payload = bus_data_bytes[idx]
                             t = bus_t[idx]
 
@@ -4573,7 +4649,7 @@ class MDF:
                                 bus,
                                 t,
                                 original_message_id=original_msg_id
-                                if is_j1939 and not consolidated_j1939
+                                if is_j1939
                                 else None,
                                 ignore_value2text_conversion=ignore_value2text_conversion,
                                 is_j1939=is_j1939,
@@ -4611,25 +4687,14 @@ class MDF:
                                         sigs.append(sig)
 
                                     if is_j1939:
-                                        if consolidated_j1939:
-                                            if prefix:
-                                                acq_name = (
-                                                    comment
-                                                ) = f"{prefix}: CAN{bus} consolidated PGN=0x{msg_id:X} {message}"
-                                            else:
-                                                acq_name = (
-                                                    comment
-                                                ) = f"CAN{bus} consolidated PGN=0x{msg_id:X} {message}"
-
+                                        source_adddress = original_msg_id
+                                        if prefix:
+                                            comment = f"{prefix}: CAN{bus} PGN=0x{msg_id:X} {message} PGN=0x{msg_id:X} SA=0x{source_adddress:X}"
                                         else:
-                                            source_adddress = original_msg_id & 0xFF
-                                            if prefix:
-                                                comment = f"{prefix}: CAN{bus} PGN=0x{msg_id:X} {message} from ID=0x{original_msg_id:X} SA=0x{source_adddress:X}"
-                                            else:
-                                                comment = f"CAN{bus} PGN=0x{msg_id:X} {message} from ID=0x{original_msg_id:X} SA=0x{source_adddress:X}"
-                                            acq_name = (
-                                                f"SourceAddress = 0x{source_adddress}"
-                                            )
+                                            comment = f"CAN{bus} PGN=0x{msg_id:X} {message} PGN=0x{msg_id:X} SA=0x{source_adddress:X}"
+                                        acq_name = (
+                                            f"SourceAddress = 0x{source_adddress}"
+                                        )
                                     else:
 
                                         if prefix:
