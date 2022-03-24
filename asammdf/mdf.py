@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 import bz2
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from collections.abc import Iterable, Iterator, Sequence
 from copy import deepcopy
 import csv
@@ -545,8 +545,8 @@ class MDF:
                         ev_type = v4c.EVENT_TYPE_START_RECORDING_TRIGGER
                     event = EventBlock(
                         event_type=ev_type,
-                        sync_base=int(timestamp * 10 ** 9),
-                        sync_factor=10 ** -9,
+                        sync_base=int(timestamp * 10**9),
+                        sync_factor=10**-9,
                         scope_0_addr=0,
                     )
                     event.comment = comment
@@ -704,7 +704,7 @@ class MDF:
             self._read_fragment_size = int(read_fragment_size)
 
         if write_fragment_size is not None:
-            self._write_fragment_size = min(int(write_fragment_size), 4 * 2 ** 20)
+            self._write_fragment_size = min(int(write_fragment_size), 4 * 2**20)
 
         if use_display_names is not None:
             self._use_display_names = bool(use_display_names)
@@ -1186,11 +1186,6 @@ class MDF:
 
               .. versionadded:: 6.2.0
 
-            * add_units (False) : bool
-              only valid for CSV: add the channel units on the second row of the CSV file
-
-              .. versionadded:: 7.1.0
-
 
         """
 
@@ -1288,9 +1283,11 @@ class MDF:
                 raw=raw,
                 numeric_1D_only=fmt == "parquet",
             )
-            units = {}
-            comments = {}
+            units = OrderedDict()
+            comments = OrderedDict()
             used_names = UniqueDB()
+
+            dropped = {}
 
             groups_nr = len(self.groups)
             for i, grp in enumerate(self.groups):
@@ -1493,10 +1490,6 @@ class MDF:
                     df.index = index
                     df.index.name = "timestamps"
 
-                    units["timestamps"] = ""
-                else:
-                    units["timestamps"] = "s"
-
                 if hasattr(self, "can_logging_db") and self.can_logging_db:
 
                     dropped = {}
@@ -1524,10 +1517,6 @@ class MDF:
                     names_row = [df.index.name, *df.columns]
                     writer.writerow(names_row)
 
-                    if kwargs.get("add_units", False):
-                        units_row = [units[name] for name in names_row]
-                        writer.writerow(units_row)
-
                     if reduce_memory_usage:
                         vals = [df.index, *(df[name] for name in df)]
                     else:
@@ -1547,8 +1536,6 @@ class MDF:
                             self._callback(i + 1 + count, count * 2)
 
             else:
-
-                add_units = kwargs.get("add_units", False)
 
                 filename = filename.with_suffix(".csv")
 
@@ -1592,38 +1579,6 @@ class MDF:
                         raw=raw,
                     )
 
-                    if add_units:
-                        units = {}
-                        used_names = UniqueDB()
-
-                        for gp_index, channel_indexes in self.included_channels(
-                            group_index
-                        )[group_index].items():
-                            for ch_index in channel_indexes:
-                                ch = self.groups[gp_index].channels[ch_index]
-
-                                if use_display_names:
-                                    channel_name = (
-                                        list(ch.display_names)[0]
-                                        if ch.display_names
-                                        else ch.name
-                                    )
-                                else:
-                                    channel_name = ch.name
-
-                                channel_name = used_names.get_unique_name(channel_name)
-
-                                if hasattr(ch, "unit"):
-                                    unit = ch.unit
-                                    if ch.conversion:
-                                        unit = unit or ch.conversion.unit
-                                else:
-                                    unit = ""
-
-                                units[channel_name] = unit
-                    else:
-                        units = {}
-
                     if time_as_date:
                         index = (
                             pd.to_datetime(
@@ -1635,10 +1590,6 @@ class MDF:
                         )
                         df.index = index
                         df.index.name = "timestamps"
-
-                        units["timestamps"] = ""
-                    else:
-                        units["timestamps"] = "s"
 
                     with open(group_csv_name, "w", newline="") as csvfile:
                         writer = csv.writer(csvfile, **fmtparams)
@@ -1665,10 +1616,6 @@ class MDF:
 
                         names_row = [df.index.name, *df.columns]
                         writer.writerow(names_row)
-
-                        if add_units:
-                            units_row = [units[name] for name in names_row]
-                            writer.writerow(units_row)
 
                         if reduce_memory_usage:
                             vals = [df.index, *(df[name] for name in df)]
@@ -2194,66 +2141,17 @@ class MDF:
 
             mdf.configure(copy_on_get=False)
 
-            reorder_channel_groups = False
-            cg_translations = {}
-
             if mdf_index == 0:
                 last_timestamps = [None for gp in mdf.virtual_groups]
                 groups_nr = len(last_timestamps)
-                first_mdf = mdf
-                input_types[0] = True
 
             else:
                 if len(mdf.virtual_groups) != groups_nr:
                     raise MdfException(
                         f"internal structure of file <{mdf.name}> is different; different channel groups count"
                     )
-                else:
-                    cg_translations = dict.fromkeys(range(0, groups_nr))
-
-                    make_translation = False
-
-                    # check if the order of the channel groups is the same
-                    for i, group_index in enumerate(mdf.virtual_groups):
-                        included_channels = mdf.included_channels(group_index)[
-                            group_index
-                        ]
-                        names = [
-                            mdf.groups[gp_index].channels[ch_index].name
-                            for gp_index, channels in included_channels.items()
-                            for ch_index in channels
-                        ]
-
-                        if names != included_channel_names[i]:
-                            if sorted(names) != sorted(included_channel_names[i]):
-                                make_translation = reorder_channel_groups = True
-                                break
-
-                    # Make a channel group translation dictionary if the order is different
-                    if make_translation:
-                        for i, org_group in enumerate(first_mdf.groups):
-
-                            org_group_source = org_group.channel_group.acq_source
-                            for j, new_group in enumerate(mdf.groups):
-                                new_group_source = new_group.channel_group.acq_source
-                                if (
-                                    new_group.channel_group.acq_name
-                                    == org_group.channel_group.acq_name
-                                    and (new_group_source and org_group_source)
-                                    and new_group_source.name == org_group_source.name
-                                    and new_group_source.path == org_group_source.path
-                                    and new_group.channel_group.samples_byte_nr
-                                    == org_group.channel_group.samples_byte_nr
-                                ):
-                                    cg_translations[i] = j
 
             for i, group_index in enumerate(mdf.virtual_groups):
-                # save original group index for extension
-                # replace with the translated group index
-                if reorder_channel_groups:
-                    origin_gp_idx = group_index
-                    group_index = cg_translations[group_index]
-
                 included_channels = mdf.included_channels(group_index)[group_index]
 
                 if mdf_index == 0:
@@ -2383,9 +2281,6 @@ class MDF:
                                     )
                                 )
                             cg_nr = cg_map[group_index]
-                            # set the original channel group number back for extension
-                            if reorder_channel_groups:
-                                cg_nr = cg_map[origin_gp_idx]
                             merged.extend(cg_nr, signals)
 
                             if first_timestamp is None:
@@ -2400,13 +2295,6 @@ class MDF:
 
             if not input_types[mdf_index]:
                 mdf.close()
-
-            if (
-                mdf_index == mdf_nr
-                and reorder_channel_groups
-                and not isinstance(files[0], MDF)
-            ):
-                first_mdf.close()
 
             if callback:
                 callback(i + 1 + mdf_index * groups_nr, groups_nr * mdf_nr)
@@ -3167,13 +3055,6 @@ class MDF:
                 name = channel[0]
                 if name is not None:
                     signal.name = name
-
-        unique = set()
-        for i, signal in enumerate(signals):
-            obj_id = id(signal)
-            if id(signal) in unique:
-                signals[i] = signal.copy()
-            unique.add(obj_id)
 
         return signals
 
@@ -4569,13 +4450,7 @@ class MDF:
         for dbc, dbc_name, bus_channel in valid_dbc_files:
             is_j1939 = dbc.contains_j1939
             if is_j1939:
-                messages = {
-                    (
-                        message.arbitration_id.pgn,
-                        message.arbitration_id.j1939_source,
-                    ): message
-                    for message in dbc
-                }
+                messages = {message.arbitration_id.pgn: message for message in dbc}
             else:
                 messages = {message.arbitration_id.id: message for message in dbc}
 
@@ -4615,7 +4490,7 @@ class MDF:
                         & 0x1FFFFFFF
                     )
 
-                    original_ids = msg_ids.samples & 0xFF
+                    original_ids = msg_ids.samples.copy()
 
                     if is_j1939:
                         tmp_pgn = msg_ids.samples >> 8
@@ -4644,11 +4519,18 @@ class MDF:
 
                         if is_j1939:
 
-                            unique_ids = np.unique(
-                                np.core.records.fromarrays(
-                                    [bus_msg_ids, original_msg_ids]
+                            if consolidated_j1939:
+                                unique_ids = np.unique(
+                                    np.core.records.fromarrays(
+                                        [bus_msg_ids, bus_msg_ids]
+                                    )
                                 )
-                            )
+                            else:
+                                unique_ids = np.unique(
+                                    np.core.records.fromarrays(
+                                        [bus_msg_ids, original_msg_ids]
+                                    )
+                                )
                         else:
                             unique_ids = np.unique(
                                 np.core.records.fromarrays([bus_msg_ids, bus_msg_ids])
@@ -4661,43 +4543,26 @@ class MDF:
                         for msg_id_record in unique_ids:
                             msg_id = int(msg_id_record[0])
                             original_msg_id = int(msg_id_record[1])
-                            if is_j1939:
-                                key = (msg_id, original_msg_id)
-                                message = messages.get(key, None)
-                                if message is None:
-                                    for (_pgn, _sa), _msg in messages.items():
-                                        if _pgn == msg_id and _sa == 0xFE:
-                                            message = _msg
-                                            break
+                            message = messages.get(msg_id, None)
+                            if message is None:
+                                unknown_ids[msg_id].append(True)
+                                continue
 
-                                if message is None:
-                                    unknown_ids[key].append(True)
-                                    continue
-
-                            else:
-                                key = msg_id
-                                message = messages.get(key, None)
-
-                                if message is None:
-                                    unknown_ids[key].append(True)
-                                    continue
-
-                            found_ids[dbc_name].add((key, message.name))
+                            found_ids[dbc_name].add((msg_id, message.name))
                             try:
-                                current_not_found_ids.remove((key, message.name))
+                                current_not_found_ids.remove((msg_id, message.name))
                             except KeyError:
                                 pass
 
-                            unknown_ids[key].append(False)
+                            unknown_ids[msg_id].append(False)
 
-                            if is_j1939:
+                            if is_j1939 and not consolidated_j1939:
                                 idx = np.argwhere(
                                     (bus_msg_ids == msg_id)
                                     & (original_msg_ids == original_msg_id)
                                 ).ravel()
                             else:
                                 idx = np.argwhere(bus_msg_ids == msg_id).ravel()
-
                             payload = bus_data_bytes[idx]
                             t = bus_t[idx]
 
@@ -4708,7 +4573,7 @@ class MDF:
                                 bus,
                                 t,
                                 original_message_id=original_msg_id
-                                if is_j1939
+                                if is_j1939 and not consolidated_j1939
                                 else None,
                                 ignore_value2text_conversion=ignore_value2text_conversion,
                                 is_j1939=is_j1939,
@@ -4746,14 +4611,25 @@ class MDF:
                                         sigs.append(sig)
 
                                     if is_j1939:
-                                        source_adddress = original_msg_id
-                                        if prefix:
-                                            comment = f"{prefix}: CAN{bus} PGN=0x{msg_id:X} {message} PGN=0x{msg_id:X} SA=0x{source_adddress:X}"
+                                        if consolidated_j1939:
+                                            if prefix:
+                                                acq_name = (
+                                                    comment
+                                                ) = f"{prefix}: CAN{bus} consolidated PGN=0x{msg_id:X} {message}"
+                                            else:
+                                                acq_name = (
+                                                    comment
+                                                ) = f"CAN{bus} consolidated PGN=0x{msg_id:X} {message}"
+
                                         else:
-                                            comment = f"CAN{bus} PGN=0x{msg_id:X} {message} PGN=0x{msg_id:X} SA=0x{source_adddress:X}"
-                                        acq_name = (
-                                            f"SourceAddress = 0x{source_adddress}"
-                                        )
+                                            source_adddress = original_msg_id & 0xFF
+                                            if prefix:
+                                                comment = f"{prefix}: CAN{bus} PGN=0x{msg_id:X} {message} from ID=0x{original_msg_id:X} SA=0x{source_adddress:X}"
+                                            else:
+                                                comment = f"CAN{bus} PGN=0x{msg_id:X} {message} from ID=0x{original_msg_id:X} SA=0x{source_adddress:X}"
+                                            acq_name = (
+                                                f"SourceAddress = 0x{source_adddress}"
+                                            )
                                     else:
 
                                         if prefix:
