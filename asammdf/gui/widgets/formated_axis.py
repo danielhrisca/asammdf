@@ -108,6 +108,18 @@ class FormatedAxis(pg.AxisItem):
                     else:
                         val = ""
                     strns.append(val)
+            elif self.format == "ascii":
+                for val in values:
+                    val = float(val)
+                    if val.is_integer():
+                        val = int(val)
+                        if 0 < val < 0x110000:
+                            val = chr(val)
+                        else:
+                            val = str(val)
+                    else:
+                        val = ""
+                    strns.append(val)
             elif self.format == "time":
                 strns = [str(timedelta(seconds=val)) for val in values]
             elif self.format == "date":

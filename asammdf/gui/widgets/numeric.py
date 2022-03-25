@@ -491,15 +491,10 @@ class TableModel(QtCore.QAbstractTableModel):
                     return f"{sign}0b {' '.join(nibles)}"
 
                 elif signal.format == "ascii":
-                    if cell < 0:
-                        return "●"
-                    elif cell > 0:
-                        try:
-                            return chr(cell)
-                        except:
-                            return "●"
+                    if 0 < cell < 0x110000:
+                        return chr(cell)
                     else:
-                        return "\\0"
+                        return str(cell)
 
                 else:
                     return str(cell)
@@ -1275,7 +1270,12 @@ class Numeric(QtWidgets.QWidget):
         self.channels.dataView.double_clicked_enabled = True
 
     def set_values(self, values=None):
+        selection = self.channels.dataView.selectedIndexes()
         self.channels.backend.set_values(values)
+
+        selection_model = self.channels.dataView.selectionModel()
+        for index in selection:
+            selection_model.select(index, QtCore.QItemSelectionModel.Select)
 
     def to_config(self):
 
@@ -1302,7 +1302,7 @@ class Numeric(QtWidgets.QWidget):
                 )
 
             config = {
-                "format": self.format,
+                "format": "Physical",
                 "mode": "",
                 "channels": channels,
                 "float_precision": self.float_precision.currentIndex() - 1,
@@ -1582,6 +1582,7 @@ class Numeric(QtWidgets.QWidget):
             key in (QtCore.Qt.Key_H, QtCore.Qt.Key_B, QtCore.Qt.Key_P, QtCore.Qt.Key_T)
             and modifier == QtCore.Qt.ControlModifier
         ):
+
             if key == QtCore.Qt.Key_H:
                 self.set_format("Hex")
             elif key == QtCore.Qt.Key_B:
