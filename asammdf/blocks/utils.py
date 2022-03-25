@@ -110,10 +110,10 @@ __all__ = [
 CHANNEL_COUNT = (1000, 2000, 10000, 20000)
 _channel_count = arange(0, 20000, 1000, dtype="<u4")
 
-CONVERT = (10 * 2**20, 20 * 2**20, 30 * 2**20, 40 * 2**20)
+CONVERT = (10 * 2 ** 20, 20 * 2 ** 20, 30 * 2 ** 20, 40 * 2 ** 20)
 CONVERT = interp(_channel_count, CHANNEL_COUNT, CONVERT).astype("<u4")
 
-MERGE = (10 * 2**20, 20 * 2**20, 35 * 2**20, 60 * 2**20)
+MERGE = (10 * 2 ** 20, 20 * 2 ** 20, 35 * 2 ** 20, 60 * 2 ** 20)
 MERGE = interp(_channel_count, CHANNEL_COUNT, MERGE).astype("<u4")
 
 CHANNEL_COUNT = _channel_count
@@ -783,7 +783,7 @@ def as_non_byte_sized_signed_int(
     return where(
         truncated_integers
         >> bit_length - 1,  # sign bit as a truth series (True when negative)
-        (2**bit_length - truncated_integers)
+        (2 ** bit_length - truncated_integers)
         * -1,  # when negative, do two's complement
         truncated_integers,  # when positive, return the truncated int
     )
@@ -864,6 +864,9 @@ def count_channel_groups(
     count = 0
     ch_count = 0
 
+    stream.seek(0, 2)
+    file_limit = stream.tell()
+
     stream.seek(64)
     blk_id = stream.read(2)
     if blk_id == b"HD":
@@ -888,9 +891,22 @@ def count_channel_groups(
                         while ch_addr:
                             ch_count += 1
                             ch_addr = UINT64_uf(stream, ch_addr + 24)[0]
+                            if ch_addr >= file_limit:
+                                raise MdfException(
+                                    f"File is a corrupted MDF file - Invalid CH block address"
+                                )
+
                     cg_addr = UINT64_uf(stream, cg_addr + 24)[0]
+                    if cg_addr >= file_limit:
+                        raise MdfException(
+                            f"File is a corrupted MDF file - Invalid CG block address"
+                        )
 
                 dg_addr = UINT64_uf(stream, dg_addr + 24)[0]
+                if dg_addr >= file_limit:
+                    raise MdfException(
+                        f"File is a corrupted MDF file - Invalid DG block address"
+                    )
         else:
             stream.seek(88, 0)
             dg_addr = UINT64_u(stream.read(8))[0]
@@ -906,11 +922,25 @@ def count_channel_groups(
                             ch_count += 1
                             stream.seek(ch_addr + 24)
                             ch_addr = UINT64_u(stream.read(8))[0]
+                            if ch_addr >= file_limit:
+                                raise MdfException(
+                                    f"File is a corrupted MDF file - Invalid CH block address"
+                                )
+
                     stream.seek(cg_addr + 24)
                     cg_addr = UINT64_u(stream.read(8))[0]
+                    if cg_addr >= file_limit:
+                        raise MdfException(
+                            f"File is a corrupted MDF file - Invalid CG block address"
+                        )
 
                 stream.seek(dg_addr + 24)
                 dg_addr = UINT64_u(stream.read(8))[0]
+
+                if dg_addr >= file_limit:
+                    raise MdfException(
+                        f"File is a corrupted MDF file - Invalid DG block address"
+                    )
 
     else:
         stream.seek(68, 0)
@@ -927,11 +957,25 @@ def count_channel_groups(
                         ch_count += 1
                         stream.seek(ch_addr + 4)
                         ch_addr = UINT32_u(stream.read(4))[0]
+                        if ch_addr >= file_limit:
+                            raise MdfException(
+                                f"File is a corrupted MDF file - Invalid CH block address"
+                            )
+
                 stream.seek(cg_addr + 4)
                 cg_addr = UINT32_u(stream.read(4))[0]
+                if cg_addr >= file_limit:
+                    raise MdfException(
+                        f"File is a corrupted MDF file - Invalid CG block address"
+                    )
 
             stream.seek(dg_addr + 4)
             dg_addr = UINT32_u(stream.read(4))[0]
+
+            if dg_addr >= file_limit:
+                raise MdfException(
+                    f"File is a corrupted MDF file - Invalid DG block address"
+                )
 
     return count, ch_count
 
