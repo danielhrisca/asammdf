@@ -396,9 +396,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             item = QtWidgets.QTreeWidgetItem()
             item.setText(0, "Measurement start time")
-            item.setText(
-                1, self.mdf.header.start_time.strftime("%d-%b-%Y %H:%M:%S + %fus UTC")
-            )
+            item.setText(1, self.mdf.header.start_time_string())
             children.append(item)
 
             item = QtWidgets.QTreeWidgetItem()

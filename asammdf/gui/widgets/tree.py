@@ -403,6 +403,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.itemsDeleted.connect(self.update_visibility_status)
 
         # self.header().hideSection(0)
+        self._target_color = None
         self._moved = []
 
     def item_selection_changed(self):
@@ -1174,6 +1175,92 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 item.widget = widget
 
             iterator += 1
+
+    def paintEvent(self, event):
+        color = (
+            self.palette()
+            .brush(QtGui.QPalette.Active, QtGui.QPalette.WindowText)
+            .color()
+            .name()
+        )
+        if color != self._target_color:
+            self._target_color = color
+
+            if color == "#ffffff":
+
+                self.verticalScrollBar().setStyleSheet(
+                    """
+                    QScrollBar:vertical {
+                        border: none;
+                        background: rgb(150, 150, 150);
+                        width: 14px;
+                        margin: 15px 0 15px 0;
+                        border-radius: 0px;
+                    }
+
+                    QScrollBar::handle:vertical {
+                        background-color: rgb(68, 68, 68);
+                        min-height: 30px;
+                        border-radius: 0px;
+                        margin: 1;
+                    }
+                    
+                    QScrollBar::handle:vertical:hover {
+                        background-color: rgb(80, 80, 80);
+                    }
+                    
+                    QScrollBar::handle:vertical:pressed {
+                        background-color: rgb(68, 68, 68);
+                    }
+
+                    QScrollBar::sub-line:vertical {
+                        border: 1;
+                        background-color: rgb(68, 68, 68);
+                        height: 12px;
+                        border-top-left-radius: 0px;
+                        border-top-right-radius: 0px;
+                        subcontrol-position: top;
+                        subcontrol-origin: margin;
+                    }
+                    
+                    QScrollBar::sub-line:vertical:hover {
+                        background-color: rgb(80, 80, 80);
+                    }
+                    
+                    QScrollBar::sub-line:vertical:pressed {
+                        background-color: rgb(94, 178, 226);
+                    }
+        
+                    QScrollBar::add-line:vertical {
+                        border: 1;
+                        background-color: rgb(68, 68, 68);
+                        height: 12px;
+                        border-bottom-left-radius: 0px;
+                        border-bottom-right-radius: 0px;
+                        subcontrol-position: bottom;
+                        subcontrol-origin: margin;
+                    }
+                    
+                    QScrollBar::add-line:vertical:hover {
+                        background-color: rgb(80, 80, 80);
+                    }
+                    
+                    QScrollBar::add-line:vertical:pressed { 
+                        background-color: rgb(94, 178, 226);
+                    }
+        
+                    QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {
+                        background: none;
+                    }
+                    
+                    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                        background: none;
+                    }"""
+                )
+            else:
+                self.verticalScrollBar().setStyleSheet("")
+
+        super().paintEvent(event)
 
 
 class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):

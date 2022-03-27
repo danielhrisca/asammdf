@@ -5421,12 +5421,17 @@ class HeaderBlock:
             except OverflowError:
                 timestamp = datetime.fromtimestamp(0) + timedelta(seconds=timestamp)
         else:
+            if self.time_flags & v4c.FLAG_HD_TIME_OFFSET_VALID:
+                timestamp += self.tz_offset * 60 + self.daylight_save_time * 60
+
             try:
                 timestamp = datetime.fromtimestamp(timestamp, timezone.utc)
+
             except OverflowError:
                 timestamp = datetime.fromtimestamp(0, timezone.utc) + timedelta(
                     seconds=timestamp
                 )
+
         return timestamp
 
     @start_time.setter
@@ -5435,13 +5440,28 @@ class HeaderBlock:
         if timestamp.tzinfo is None:
             self.time_flags = v4c.FLAG_HD_LOCAL_TIME
         else:
-            self.time_flags = 0
+            self.time_flags = v4c.FLAG_HD_TIME_OFFSET_VALID
             timestamp = timestamp.astimezone(timezone.utc)
 
         timestamp = int(timestamp.timestamp() * 10**9)
         self.abs_time = timestamp
         self.tz_offset = 0
         self.daylight_save_time = 0
+
+    def start_time_string(self):
+        if self.time_flags & v4c.FLAG_HD_TIME_OFFSET_VALID:
+            tz_offset = self.tz_offset / 60
+            tz_offset_sign = "-" if tz_offset < 0 else "+"
+
+            dst_offset = self.daylight_save_time / 60
+            dst_offset_sign = "-" if dst_offset < 0 else "+"
+
+            tz_information = f"[GMT{tz_offset_sign}{tz_offset:.2f} DST{dst_offset_sign}{dst_offset:.2f}h]"
+        else:
+            tz_information = "[no time zone information available]"
+
+        start_time = f'local time = {self.start_time.strftime("%d-%b-%Y %H:%M:%S + %fu")} {tz_information}'
+        return start_time
 
     def to_blocks(self, address: int, blocks: list[Any]) -> int:
         blocks.append(self)
