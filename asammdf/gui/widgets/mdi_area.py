@@ -2238,7 +2238,7 @@ class WithMDIArea:
                 continue
 
             file_index, file = file_info
-            start.append(file.mdf.header.start_time.timestamp())
+            start.append(file.mdf.header.start_time)
 
             uuids_signals = [
                 entry
@@ -3153,7 +3153,7 @@ class WithMDIArea:
         tabular = Tabular(
             signals,
             ranges=ranges,
-            start=self.mdf.header.start_time.timestamp(),
+            start=self.mdf.header.start_time,
             parent=self,
         )
         tabular.pattern = pattern_info

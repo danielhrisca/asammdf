@@ -17,6 +17,8 @@ from traceback import format_exc
 from typing import Any, TYPE_CHECKING
 import xml.etree.ElementTree as ET
 
+import dateutil.tz
+
 try:
     from isal.isal_zlib import compress, decompress
 
@@ -5416,21 +5418,16 @@ class HeaderBlock:
 
         timestamp = self.abs_time / 10**9
         if self.time_flags & v4c.FLAG_HD_LOCAL_TIME:
-            try:
-                timestamp = datetime.fromtimestamp(timestamp)
-            except OverflowError:
-                timestamp = datetime.fromtimestamp(0) + timedelta(seconds=timestamp)
+            tz = dateutil.tz.tzlocal()
         else:
-            if self.time_flags & v4c.FLAG_HD_TIME_OFFSET_VALID:
-                timestamp += self.tz_offset * 60 + self.daylight_save_time * 60
+            tz = timezone.utc
+            timestamp += self.tz_offset * 60 + self.daylight_save_time * 60
 
-            try:
-                timestamp = datetime.fromtimestamp(timestamp, timezone.utc)
+        try:
+            timestamp = datetime.fromtimestamp(timestamp, tz)
 
-            except OverflowError:
-                timestamp = datetime.fromtimestamp(0, timezone.utc) + timedelta(
-                    seconds=timestamp
-                )
+        except OverflowError:
+            timestamp = datetime.fromtimestamp(0, tz) + timedelta(seconds=timestamp)
 
         return timestamp
 
@@ -5439,14 +5436,25 @@ class HeaderBlock:
 
         if timestamp.tzinfo is None:
             self.time_flags = v4c.FLAG_HD_LOCAL_TIME
+            self.abs_time = int(timestamp.timestamp() * 10**9)
+            self.tz_offset = 0
+            self.daylight_save_time = 0
+
         else:
             self.time_flags = v4c.FLAG_HD_TIME_OFFSET_VALID
-            timestamp = timestamp.astimezone(timezone.utc)
 
-        timestamp = int(timestamp.timestamp() * 10**9)
-        self.abs_time = timestamp
-        self.tz_offset = 0
-        self.daylight_save_time = 0
+            tzinfo = timestamp.tzinfo
+
+            dst = tzinfo.dst(timestamp)
+            if dst is not None:
+                dst = int(tzinfo.dst(timestamp).total_seconds() / 60)
+            else:
+                dst = 0
+            tz_offset = int(tzinfo.utcoffset(timestamp).total_seconds() / 60) - dst
+
+            self.tz_offset = tz_offset
+            self.daylight_save_time = dst
+            self.abs_time = int(timestamp.timestamp() * 10**9)
 
     def start_time_string(self):
         if self.time_flags & v4c.FLAG_HD_TIME_OFFSET_VALID:
@@ -5458,7 +5466,23 @@ class HeaderBlock:
 
             tz_information = f"[GMT{tz_offset_sign}{tz_offset:.2f} DST{dst_offset_sign}{dst_offset:.2f}h]"
         else:
-            tz_information = "[no time zone information available]"
+            tzinfo = self.start_time.tzinfo
+
+            dst = tzinfo.dst(self.start_time)
+            if dst is not None:
+                dst = int(tzinfo.dst(self.start_time).total_seconds() / 3600)
+            else:
+                dst = 0
+            tz_offset = (
+                int(tzinfo.utcoffset(self.start_time).total_seconds() / 3600) - dst
+            )
+
+            tz_offset_sign = "-" if tz_offset < 0 else "+"
+
+            dst_offset = dst
+            dst_offset_sign = "-" if dst_offset < 0 else "+"
+
+            tz_information = f"[assumed GMT{tz_offset_sign}{tz_offset:.2f} DST{dst_offset_sign}{dst_offset:.2f}h]"
 
         start_time = f'local time = {self.start_time.strftime("%d-%b-%Y %H:%M:%S + %fu")} {tz_information}'
         return start_time

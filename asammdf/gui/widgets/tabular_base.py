@@ -1681,6 +1681,7 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
         return config
 
     def time_as_date_changed(self, state):
+        s = self.start
         count = self.filters.count()
 
         if state == QtCore.Qt.Checked:
@@ -1693,11 +1694,11 @@ class TabularBase(Ui_TabularDisplay, QtWidgets.QWidget):
                 else:
                     filter.validate_target()
 
-            timestamps = pd.to_datetime(
-                self.tree.pgdf.df_unfiltered["timestamps"] + self.start,
-                unit="s",
+            delta = pd.to_timedelta(
+                self.tree.pgdf.df_unfiltered["timestamps"], unit="s"
             )
 
+            timestamps = self.start + delta
             self.tree.pgdf.df_unfiltered["timestamps"] = timestamps
         else:
             for i in range(count):

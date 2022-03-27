@@ -26,7 +26,7 @@ class Tabular(TabularBase):
     add_channels_request = QtCore.Signal(list)
 
     def __init__(
-        self, signals=None, start=0, format="phys", ranges=None, *args, **kwargs
+        self, signals=None, start=None, format="phys", ranges=None, *args, **kwargs
     ):
         # super().__init__(*args, **kwargs)
 

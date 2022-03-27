@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from getpass import getuser
 import logging
 from struct import pack, unpack, unpack_from
@@ -2827,7 +2827,7 @@ class HeaderBlock:
                     "Local PC Reference Time"
                 ).encode("latin-1")
 
-            self.start_time = datetime(1980, 1, 1)
+            self.start_time = datetime(1980, 1, 1, tzinfo=timezone.utc)
 
         self.author = self.author_field.strip(b" \r\n\t\0").decode("latin-1")
         self.department = self.department_field.strip(b" \r\n\t\0").decode("latin-1")
@@ -2889,24 +2889,32 @@ class HeaderBlock:
 
         if self.block_len > v23c.HEADER_COMMON_SIZE:
             if self.abs_time:
-                timestamp = self.abs_time / 10**9
+                timestamp = self.abs_time / 10**9 + self.tz_offset * 3600
                 try:
-                    timestamp = datetime.fromtimestamp(timestamp)
+                    timestamp = datetime.fromtimestamp(timestamp, timezone.utc)
+                except OverflowError:
+                    timestamp = datetime.fromtimestamp(0, timezone.utc) + timedelta(
+                        seconds=timestamp
+                    )
                 except OSError:
-                    timestamp = datetime.now()
+                    timestamp = datetime.now(timezone.utc)
             else:
                 timestamp = "{} {}".format(
                     self.date.decode("ascii"), self.time.decode("ascii")
                 )
 
-                timestamp = datetime.strptime(timestamp, "%d:%m:%Y %H:%M:%S")
+                timestamp = datetime.strptime(
+                    timestamp, "%d:%m:%Y %H:%M:%S"
+                ).astimezone(timezone.utc)
 
         else:
             timestamp = "{} {}".format(
                 self.date.decode("ascii"), self.time.decode("ascii")
             )
 
-            timestamp = datetime.strptime(timestamp, "%d:%m:%Y %H:%M:%S")
+            timestamp = datetime.strptime(timestamp, "%d:%m:%Y %H:%M:%S").astimezone(
+                timezone.utc
+            )
 
         return timestamp
 
@@ -2915,9 +2923,31 @@ class HeaderBlock:
         self.date = timestamp.strftime("%d:%m:%Y").encode("ascii")
         self.time = timestamp.strftime("%H:%M:%S").encode("ascii")
         if self.block_len > v23c.HEADER_COMMON_SIZE:
+            self.tz_offset = int(
+                timestamp.tzinfo.utcoffset(timestamp).total_seconds() / 3600
+            )
             timestamp = int(timestamp.timestamp() * 10**9)
             self.abs_time = timestamp
-            self.tz_offset = 0
+
+    def start_time_string(self):
+        tzinfo = self.start_time.tzinfo
+
+        dst = tzinfo.dst(self.start_time)
+        if dst is not None:
+            dst = int(tzinfo.dst(self.start_time).total_seconds() / 3600)
+        else:
+            dst = 0
+        tz_offset = int(tzinfo.utcoffset(self.start_time).total_seconds() / 3600) - dst
+
+        tz_offset_sign = "-" if tz_offset < 0 else "+"
+
+        dst_offset = dst
+        dst_offset_sign = "-" if dst_offset < 0 else "+"
+
+        tz_information = f"[GMT{tz_offset_sign}{tz_offset:.2f} DST{dst_offset_sign}{dst_offset:.2f}h]"
+
+        start_time = f'local time = {self.start_time.strftime("%d-%b-%Y %H:%M:%S + %fu")} {tz_information}'
+        return start_time
 
     def __getitem__(self, item: str) -> Any:
         return self.__getattribute__(item)
