@@ -573,130 +573,6 @@ def copy_ranges(ranges):
         return ranges
 
 
-def get_colors_using_ranges2(
-    value, ranges, default_background_color, default_font_color
-):
-    new_background_color = default_background_color
-    new_font_color = default_font_color
-
-    if value is None:
-        return new_background_color, new_font_color
-
-    if ranges:
-
-        for base_class in (float, int, np.number):
-            if isinstance(value, base_class):
-                for range_info in ranges:
-
-                    (
-                        background_color,
-                        font_color,
-                        op1,
-                        op2,
-                        value1,
-                        value2,
-                    ) = range_info.values()
-
-                    result = False
-
-                    if isinstance(value1, float):
-                        if op1 == "==":
-                            result = value1 == value
-                        elif op1 == "!=":
-                            result = value1 != value
-                        elif op1 == "<=":
-                            result = value1 <= value
-                        elif op1 == "<":
-                            result = value1 < value
-                        elif op1 == ">=":
-                            result = value1 >= value
-                        elif op1 == ">":
-                            result = value1 > value
-
-                        if not result:
-                            continue
-
-                    if isinstance(value2, float):
-                        if op2 == "==":
-                            result = value == value2
-                        elif op2 == "!=":
-                            result = value != value2
-                        elif op2 == "<=":
-                            result = value <= value2
-                        elif op2 == "<":
-                            result = value < value2
-                        elif op2 == ">=":
-                            result = value >= value2
-                        elif op2 == ">":
-                            result = value > value2
-
-                        if not result:
-                            continue
-
-                    if result:
-
-                        new_background_color = background_color
-                        new_font_color = font_color
-                        break
-                break
-        else:
-            # str here
-
-            for range_info in ranges:
-
-                (
-                    background_color,
-                    font_color,
-                    op1,
-                    op2,
-                    value1,
-                    value2,
-                ) = range_info.values()
-
-                result = False
-
-                if isinstance(value1, str):
-                    if op1 == "==":
-                        result = value1 == value
-                    elif op1 == "!=":
-                        result = value1 != value
-                    elif op1 == "<=":
-                        result = value1 <= value
-                    elif op1 == "<":
-                        result = value1 < value
-                    elif op1 == ">=":
-                        result = value1 >= value
-                    elif op1 == ">":
-                        result = value1 > value
-
-                    if not result:
-                        continue
-
-                if isinstance(value2, str):
-                    if op2 == "==":
-                        result = value == value2
-                    elif op2 == "!=":
-                        result = value != value2
-                    elif op2 == "<=":
-                        result = value <= value2
-                    elif op2 == "<":
-                        result = value < value2
-                    elif op2 == ">=":
-                        result = value >= value2
-                    elif op2 == ">":
-                        result = value > value2
-
-                    if not result:
-                        continue
-
-                if result:
-                    new_background_color = background_color
-                    new_font_color = font_color
-                    break
-
-    return new_background_color, new_font_color
-
-
 def get_colors_using_ranges(
     value, ranges, default_background_color, default_font_color
 ):
@@ -766,6 +642,81 @@ def get_colors_using_ranges(
                 break
 
     return new_background_color, new_font_color
+
+
+def get_color_using_ranges(
+    value,
+    ranges,
+    default_color,
+    pen=False,
+):
+    new_color = default_color
+
+    if value is None:
+        return new_color
+
+    if ranges:
+        if isinstance(value, (float, int, np.number)):
+            level_class = float
+        else:
+            level_class = str
+
+        for range_info in ranges:
+
+            (
+                background_color,
+                font_color,
+                op1,
+                op2,
+                value1,
+                value2,
+            ) = range_info.values()
+
+            result = False
+
+            if isinstance(value1, level_class):
+                if op1 == "==":
+                    result = value1 == value
+                elif op1 == "!=":
+                    result = value1 != value
+                elif op1 == "<=":
+                    result = value1 <= value
+                elif op1 == "<":
+                    result = value1 < value
+                elif op1 == ">=":
+                    result = value1 >= value
+                elif op1 == ">":
+                    result = value1 > value
+
+                if not result:
+                    continue
+
+            if isinstance(value2, level_class):
+                if op2 == "==":
+                    result = value == value2
+                elif op2 == "!=":
+                    result = value != value2
+                elif op2 == "<=":
+                    result = value <= value2
+                elif op2 == "<":
+                    result = value < value2
+                elif op2 == ">=":
+                    result = value >= value2
+                elif op2 == ">":
+                    result = value > value2
+
+                if not result:
+                    continue
+
+            if result:
+
+                new_color = font_color
+                break
+
+    if pen:
+        return QtGui.QPen(new_color)
+    else:
+        return new_color
 
 
 if __name__ == "__main__":

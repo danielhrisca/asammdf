@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from functools import lru_cache
 import json
 from time import perf_counter
 
@@ -8,7 +9,7 @@ from .. import utils
 from ..dialogs.range_editor import RangeEditor
 from ..ui import resource_rc
 from ..ui.channel_display_widget import Ui_ChannelDiplay
-from ..utils import copy_ranges, get_colors_using_ranges
+from ..utils import copy_ranges, get_color_using_ranges, get_colors_using_ranges
 
 
 class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
@@ -161,6 +162,7 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
                 self.fmt = "{}"
 
     def set_color(self, color):
+        self.get_color_using_ranges.cache_clear()
         self.color = color
 
         self._deselected_font_color = self._font_color = QtGui.QColor(self.color)
@@ -396,9 +398,16 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
             return self.resolved_ranges
 
     def set_ranges(self, ranges):
+        self.get_color_using_ranges.cache_clear()
         if ranges:
             self.range_indicator.setHidden(False)
         else:
             self.range_indicator.setHidden(True)
         self.ranges = ranges
         self.resolved_ranges = None
+
+    @lru_cache(maxsize=1024)
+    def get_color_using_ranges(self, value, pen=False):
+        return get_color_using_ranges(
+            value, self.get_ranges(), self._font_color, pen=pen
+        )
