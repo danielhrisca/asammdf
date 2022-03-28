@@ -1492,6 +1492,7 @@ class Plot(QtWidgets.QWidget):
                     (QtCore.Qt.Key_B, int(QtCore.Qt.ControlModifier)),
                     (QtCore.Qt.Key_H, int(QtCore.Qt.ControlModifier)),
                     (QtCore.Qt.Key_P, int(QtCore.Qt.ControlModifier)),
+                    (QtCore.Qt.Key_T, int(QtCore.Qt.ControlModifier)),
                 ]
             )
             | self.plot.keyboard_events

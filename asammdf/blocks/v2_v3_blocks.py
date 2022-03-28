@@ -2920,6 +2920,12 @@ class HeaderBlock:
 
     @start_time.setter
     def start_time(self, timestamp: datetime) -> None:
+        if timestamp.tzinfo is None:
+            # the user porvided a naive datetime
+            # use the local time zone
+            tzinfo = datetime.tz.tzlocal()
+            timestamp = datetime.fromtimestamp(timestamp.timestamp(), tzinfo=tzinfo)
+
         self.date = timestamp.strftime("%d:%m:%Y").encode("ascii")
         self.time = timestamp.strftime("%H:%M:%S").encode("ascii")
         if self.block_len > v23c.HEADER_COMMON_SIZE:

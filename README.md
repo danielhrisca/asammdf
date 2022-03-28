@@ -179,7 +179,7 @@ asammdf uses the following libraries
 * natsort
 * lxml : for canmatrix arxml support
 * lz4 : to speed up the disk IO performance
-* dateutil : measurement start time handling
+* python-dateutil : measurement start time handling
 
 optional dependencies needed for exports
 
