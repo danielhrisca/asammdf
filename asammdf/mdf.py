@@ -3951,9 +3951,11 @@ class MDF:
             df.index.name = "timestamps"
 
             if time_as_date:
-                new_index = np.array(df.index) + self.header.start_time.timestamp()
-                new_index = pd.to_datetime(new_index, unit="s")
+                delta = pd.to_timedelta(
+                    df.index, unit="s"
+                )
 
+                new_index = self.header.start_time + delta
                 df.set_index(new_index, inplace=True)
             elif time_from_zero and len(master):
                 df.set_index(df.index - df.index[0], inplace=True)
