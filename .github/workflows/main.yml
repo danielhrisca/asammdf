@@ -19,7 +19,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install packages
-        run: pip install tox==4.0.0b1 tox-gh-actions
+        run: pip install tox==4.0.0b1 tox-gh-actions==3.0.0a2
 
       # see: https://github.com/ymyzk/tox-gh-actions
       - name: Run tests
