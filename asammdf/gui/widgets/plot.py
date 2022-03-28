@@ -1280,6 +1280,7 @@ class Plot(QtWidgets.QWidget):
             origin=origin,
             mdf=self.mdf,
             x_axis=x_axis,
+            plot_parent=self,
         )
 
         self.cursor_info = CursorInfo(
@@ -2721,6 +2722,7 @@ class Plot(QtWidgets.QWidget):
         self.plot.view_boxes = None
         self.plot.curves = None
         self.plot = None
+        self.plot.plot_parent = None
         del self.plot
 
         super().close()
@@ -2748,11 +2750,14 @@ class _Plot(pg.PlotWidget):
         mdf=None,
         line_interconnect="line",
         x_axis="time",
+        plot_parent=None,
         *args,
         **kwargs,
     ):
         events = kwargs.pop("events", [])
         super().__init__()
+
+        self.plot_parent = plot_parent
 
         self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
 
@@ -4285,6 +4290,22 @@ class _Plot(pg.PlotWidget):
             self._generate_pix = False
             self._grabbing = True
             self._pixmap = self.grab()
+
+            paint = QtGui.QPainter()
+            paint.begin(self._pixmap)
+            paint.setCompositionMode(QtGui.QPainter.CompositionMode_Source)
+
+            for i, sig in enumerate(self.signals):
+                if not sig.enable:
+                    continue
+
+                item_widget = self.plot_parent.widget_by_uuid(sig.uuid)
+                ranges = item_widget.get_ranges()
+
+                if ranges:
+                    pass
+
+            paint.end()
 
         if self._pixmap is not None:
 

@@ -49,7 +49,7 @@ def plot(signals, title="", validate=True, index_only=False):
                 signal.samples = signal.samples[idx]
                 signal.timestamps = signal.timestamps[idx]
 
-        main = PlotWindow(signals)
+        main = PlotWindow({sig.name: sig for sig in signals})
         if title.strip():
             main.setWindowTitle(title.strip())
         else:

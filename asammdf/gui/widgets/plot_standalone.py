@@ -34,12 +34,12 @@ class PlotWindow(QtWidgets.QMainWindow):
         self._settings = QtCore.QSettings()
         self.with_dots = self._settings.value("dots", False, type=bool)
 
-        if not isinstance(signals, (list, tuple)):
-            signals = [
-                signals,
-            ]
+        if  isinstance(signals, (list, tuple)):
+            signals = {
+                sig.name: sig for sig in signals
+            }
 
-        self.plot = Plot([], self.with_dots)
+        self.plot = Plot({}, self.with_dots)
 
         self._light_palette = self.palette()
 
