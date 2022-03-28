@@ -3951,9 +3951,7 @@ class MDF:
             df.index.name = "timestamps"
 
             if time_as_date:
-                delta = pd.to_timedelta(
-                    df.index, unit="s"
-                )
+                delta = pd.to_timedelta(df.index, unit="s")
 
                 new_index = self.header.start_time + delta
                 df.set_index(new_index, inplace=True)
@@ -4332,9 +4330,7 @@ class MDF:
         df.index.name = "timestamps"
 
         if time_as_date:
-            delta = pd.to_timedelta(
-                df.index, unit="s"
-            )
+            delta = pd.to_timedelta(df.index, unit="s")
 
             new_index = self.header.start_time + delta
             df.set_index(new_index, inplace=True)
