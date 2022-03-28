@@ -5520,7 +5520,7 @@ class HeaderBlock:
                 for e in common_properties:
                     name = e.get("name")
                     if name == "project":
-                        e.text = self.author
+                        e.text = self.project
                         break
                 else:
                     project = ET.SubElement(
@@ -5530,7 +5530,7 @@ class HeaderBlock:
                 for e in common_properties:
                     name = e.get("name")
                     if name == "subject":
-                        e.text = self.author
+                        e.text = self.subject
                         break
                 else:
                     subject = ET.SubElement(
