@@ -1779,6 +1779,7 @@ class MDF:
 
             if self._callback:
                 self._callback(80, 100)
+
             if format == "7.3":
 
                 savemat(

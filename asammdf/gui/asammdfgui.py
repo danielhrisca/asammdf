@@ -35,7 +35,10 @@ def main(measurements=None):
     app.setApplicationName("py-asammdf")
     main = MainWindow(args.measurements)
 
-    app.setStyle(QtWidgets.QStyleFactory.create("Fusion"))
+    if sys.platform == "win32":
+        app.setStyle(QtWidgets.QStyleFactory.create("Windows"))
+    else:
+        app.setStyle(QtWidgets.QStyleFactory.create("Fusion"))
 
     app.exec()
 

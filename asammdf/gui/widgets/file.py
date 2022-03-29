@@ -2582,7 +2582,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 )
                 progress.setWindowIcon(icon)
                 progress.setWindowTitle("Export measurement")
-                progress.setLabelText(f"Exporting to {output_format}")
+                progress.setLabelText(
+                    f"Exporting to {output_format} (be patient this might take a while)"
+                )
 
             delimiter = self.delimiter.text() or ","
             doublequote = self.doublequote.checkState() == QtCore.Qt.Checked
