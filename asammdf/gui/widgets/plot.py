@@ -1973,6 +1973,7 @@ class Plot(QtWidgets.QWidget):
                         self.plot.y_axis.show()
 
             self.plot.update_lines()
+            self.plot.update_plt()
 
             if self.plot.cursor1:
                 self.plot.cursor_moved.emit(self.plot.cursor1)
