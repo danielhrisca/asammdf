@@ -77,6 +77,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         subplots=False,
         subplots_link=False,
         ignore_value2text_conversions=False,
+        display_cg_name=False,
         line_interconnect="line",
         password=None,
         hide_missing_channels=False,
@@ -97,6 +98,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         self.hide_missing_channels = hide_missing_channels
         self.hide_disabled_channels = hide_disabled_channels
+
+        self.display_cg_name = display_cg_name
 
         file_name = Path(file_name)
         self.subplots = subplots
@@ -248,7 +251,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             progress.setLabelText("Loading graphical elements")
 
             progress.setValue(37)
-
+            
             self.channel_view.currentIndexChanged.connect(
                 partial(self._update_channel_tree, widget=self.channels_tree)
             )
@@ -417,10 +420,15 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     comment = extract_cncomment_xml(channel_group.comment)
                 else:
                     comment = ""
-                if comment:
-                    name = f"Channel group {i} ({comment})"
+                
+                if self.display_cg_name:
+                    base_name = f"CG {i} {channel_group.acq_name}"
                 else:
-                    name = f"Channel group {i}"
+                    base_name = f"Channel group {i}"
+                if comment:
+                    name = base_name + f" ({comment})"
+                else:
+                    name = base_name 
 
                 cycles = channel_group.cycles_nr
 
@@ -639,6 +647,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.raster_channel.setCurrentIndex(0)
             self.raster.setEnabled(True)
 
+    def update_all_channel_trees(self):
+        widgetList = [self.channels_tree , self.filter_tree]
+        for widget in widgetList:
+            self._update_channel_tree(widget= widget)
+            
+
     def _update_channel_tree(self, index=None, widget=None):
 
         if widget is None:
@@ -646,7 +660,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         if widget is self.channels_tree and self.channel_view.currentIndex() == -1:
             return
         elif widget is self.filter_tree and (
-            self.filter_view.currentIndex() == -1 or not self._show_filter_tree
+            self.filter_view.currentIndex() == -1 #or not self._show_filter_tree
         ):
             return
 
@@ -710,7 +724,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 comment = extract_cncomment_xml(group.channel_group.comment)
 
-                if self.mdf.version >= "4.00" and group.channel_group.acq_source:
+                if (self.mdf.version >= "4.00" and 
+                    group.channel_group.acq_source and
+                    view == self.channel_view):
                     source = group.channel_group.acq_source
                     if source.bus_type == BUS_TYPE_CAN:
                         ico = ":/bus_can.png"
@@ -733,11 +749,16 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         )
 
                         channel_group.setIcon(0, icon)
-
-                if comment:
-                    channel_group.setText(0, f"Channel group {i} ({comment})")
+                
+                if self.display_cg_name:
+                    base_name = f"CG {i} {group.channel_group.acq_name}"
                 else:
-                    channel_group.setText(0, f"Channel group {i}")
+                    base_name = f"Channel group {i}"
+            
+                if comment:
+                    channel_group.setText(0, f"{base_name} ({comment})")
+                else:
+                    channel_group.setText(0, f"{base_name} ")
                 channel_group.setFlags(
                     channel_group.flags()
                     | QtCore.Qt.ItemIsAutoTristate
@@ -2006,7 +2027,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
     def aspect_changed(self, index):
 
         if self.aspects.tabText(self.aspects.currentIndex()) == "Modify && Export":
-
+            
             if not self.raster_channel.count():
                 self.raster_channel.setSizeAdjustPolicy(
                     QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon
@@ -2014,59 +2035,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 self.raster_channel.addItems(self.channels_db_items)
                 self.raster_channel.setMinimumWidth(100)
 
-            if not self._show_filter_tree:
-                self._show_filter_tree = True
-
-                widget = self.filter_tree
-
-                if self.filter_view.currentText() == "Natural sort":
-                    items = []
-                    for i, group in enumerate(self.mdf.groups):
-                        for j, ch in enumerate(group.channels):
-                            entry = i, j
-
-                            channel = TreeItem(entry, ch.name)
-                            channel.setText(0, ch.name)
-                            channel.setCheckState(0, QtCore.Qt.Unchecked)
-                            items.append(channel)
-
-                    if len(items) < 30000:
-                        items = natsorted(items, key=lambda x: x.name)
-                    else:
-                        items.sort(key=lambda x: x.name)
-                    widget.addTopLevelItems(items)
-
-                elif self.filter_view.currentText() == "Internal file structure":
-                    for i, group in enumerate(self.mdf.groups):
-                        entry = i, 0xFFFFFFFFFFFFFFFF
-                        channel_group = TreeItem(entry)
-                        comment = extract_cncomment_xml(group.channel_group.comment)
-
-                        if comment:
-                            channel_group.setText(0, f"Channel group {i} ({comment})")
-                        else:
-                            channel_group.setText(0, f"Channel group {i}")
-                        channel_group.setFlags(
-                            channel_group.flags()
-                            | QtCore.Qt.ItemIsAutoTristate
-                            | QtCore.Qt.ItemIsUserCheckable
-                        )
-
-                        widget.addTopLevelItem(channel_group)
-
-                        channels = [
-                            HelperChannel(name=ch.name, entry=(i, j))
-                            for j, ch in enumerate(group.channels)
-                        ]
-
-                        add_children(
-                            channel_group,
-                            channels,
-                            group.channel_dependencies,
-                            set(),
-                            entries=None,
-                            version=self.mdf.version,
-                        )
+            self._update_channel_tree(widget= self.filter_tree)
+            
 
     def toggle_frames(self, event=None):
         self._frameless_windows = not self._frameless_windows

@@ -32,6 +32,10 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             "ignore_value2text_conversions", False, type=bool
         )
 
+        self.display_cg_name = self._settings.value(
+            "display_cg_name", False, type=bool
+        )
+
         self.integer_interpolation = int(
             self._settings.value("integer_interpolation", "2 - hybrid interpolation")[0]
         )
@@ -165,11 +169,18 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         subplot_action.setChecked(state)
         menu.addAction(subplot_action)
 
-        # Link sub-windows X-axis
+        # Ignore value2text conversions
         subplot_action = QtGui.QAction("Ignore value2text conversions", menu)
         subplot_action.setCheckable(True)
         subplot_action.toggled.connect(self.set_ignore_value2text_conversions_option)
         subplot_action.setChecked(self.ignore_value2text_conversions)
+        menu.addAction(subplot_action)
+
+        # Show Channel Group Name
+        subplot_action = QtGui.QAction("Display Channel Group Name", menu)
+        subplot_action.setCheckable(True)
+        subplot_action.toggled.connect(self.set_display_cg_name_option)
+        subplot_action.setChecked(self.display_cg_name)
         menu.addAction(subplot_action)
 
         # plot background
@@ -1092,6 +1103,20 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             self.files.widget(i).ignore_value2text_conversions = state
         self.batch.ignore_value2text_conversions = state
 
+    def set_display_cg_name_option(self, state):
+        if isinstance(state, str):
+            state = True if state == "true" else False
+        self.display_cg_name = state
+        self._settings.setValue("display_cg_name", state)
+        count = self.files.count()
+
+        for i in range(count):
+            self.files.widget(i).display_cg_name = state
+            self.files.widget(i).update_all_channel_trees()
+
+        self.batch.display_cg_name = state
+
+
     def update_progress(self, current_index, max_index):
         self.progress = current_index, max_index
 
@@ -1134,6 +1159,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 self.subplots,
                 self.subplots_link,
                 self.ignore_value2text_conversions,
+                self.display_cg_name,
                 self.line_interconnect,
                 None,
                 None,
