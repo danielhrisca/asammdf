@@ -251,7 +251,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             progress.setLabelText("Loading graphical elements")
 
             progress.setValue(37)
-            
+
             self.channel_view.currentIndexChanged.connect(
                 partial(self._update_channel_tree, widget=self.channels_tree)
             )
@@ -420,7 +420,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     comment = extract_cncomment_xml(channel_group.comment)
                 else:
                     comment = ""
-                
+
                 if self.display_cg_name:
                     base_name = f"CG {i} {channel_group.acq_name}"
                 else:
@@ -428,7 +428,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 if comment:
                     name = base_name + f" ({comment})"
                 else:
-                    name = base_name 
+                    name = base_name
 
                 cycles = channel_group.cycles_nr
 
@@ -648,10 +648,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.raster.setEnabled(True)
 
     def update_all_channel_trees(self):
-        widgetList = [self.channels_tree , self.filter_tree]
+        widgetList = [self.channels_tree, self.filter_tree]
         for widget in widgetList:
-            self._update_channel_tree(widget= widget)
-            
+            self._update_channel_tree(widget=widget)
 
     def _update_channel_tree(self, index=None, widget=None):
 
@@ -659,9 +658,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             widget = self.channels_tree
         if widget is self.channels_tree and self.channel_view.currentIndex() == -1:
             return
-        elif widget is self.filter_tree and (
-            self.filter_view.currentIndex() == -1 #or not self._show_filter_tree
-        ):
+        elif widget is self.filter_tree and (self.filter_view.currentIndex() == -1):
             return
 
         view = self.channel_view if widget is self.channels_tree else self.filter_view
@@ -724,9 +721,11 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 comment = extract_cncomment_xml(group.channel_group.comment)
 
-                if (self.mdf.version >= "4.00" and 
-                    group.channel_group.acq_source and
-                    view == self.channel_view):
+                if (
+                    self.mdf.version >= "4.00"
+                    and group.channel_group.acq_source
+                    and view == self.channel_view
+                ):
                     source = group.channel_group.acq_source
                     if source.bus_type == BUS_TYPE_CAN:
                         ico = ":/bus_can.png"
@@ -749,12 +748,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         )
 
                         channel_group.setIcon(0, icon)
-                
+
                 if self.display_cg_name:
                     base_name = f"CG {i} {group.channel_group.acq_name}"
                 else:
                     base_name = f"Channel group {i}"
-            
+
                 if comment:
                     channel_group.setText(0, f"{base_name} ({comment})")
                 else:
@@ -2027,7 +2026,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
     def aspect_changed(self, index):
 
         if self.aspects.tabText(self.aspects.currentIndex()) == "Modify && Export":
-            
+
             if not self.raster_channel.count():
                 self.raster_channel.setSizeAdjustPolicy(
                     QtWidgets.QComboBox.AdjustToMinimumContentsLengthWithIcon
@@ -2035,8 +2034,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 self.raster_channel.addItems(self.channels_db_items)
                 self.raster_channel.setMinimumWidth(100)
 
-            self._update_channel_tree(widget= self.filter_tree)
-            
+            self._update_channel_tree(widget=self.filter_tree)
 
     def toggle_frames(self, event=None):
         self._frameless_windows = not self._frameless_windows

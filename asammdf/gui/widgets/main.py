@@ -32,9 +32,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             "ignore_value2text_conversions", False, type=bool
         )
 
-        self.display_cg_name = self._settings.value(
-            "display_cg_name", False, type=bool
-        )
+        self.display_cg_name = self._settings.value("display_cg_name", False, type=bool)
 
         self.integer_interpolation = int(
             self._settings.value("integer_interpolation", "2 - hybrid interpolation")[0]
@@ -1115,7 +1113,6 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             self.files.widget(i).update_all_channel_trees()
 
         self.batch.display_cg_name = state
-
 
     def update_progress(self, current_index, max_index):
         self.progress = current_index, max_index
