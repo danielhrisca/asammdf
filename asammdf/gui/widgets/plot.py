@@ -4312,9 +4312,13 @@ class _Plot(pg.PlotWidget):
 
         return axis
 
-    def scale_curve_to_pixmap(self, x, y, viewbox, delta=None):
+    def scale_curve_to_pixmap(self, x, y, viewbox=None, delta=None):
         if delta is None:
             delta = self.y_axis.width() + 1
+
+        if viewbox is None:
+            viewbox = self.viewbox
+
         (xs, _1), (_2, ys) = viewbox.state["viewRange"]
         x_scale, y_scale = viewbox.viewPixelSize()
 
@@ -4507,83 +4511,10 @@ class _Plot(pg.PlotWidget):
             delta = self.y_axis.width() + 1
 
             if self.cursor1 is not None and self.cursor1.isVisible():
-
-                if self.current_uuid:
-
-                    pen = self.cursor1.pen
-                    paint.setPen(pen)
-
-                    position = self.cursor1.value()
-
-                    signal, idx = self.signal_by_uuid(self.current_uuid)
-                    index = self.get_timestamp_index(position, signal.timestamps)
-                    y_value, kind, fmt = signal.value_at_index(index)
-
-                    x, y = self.scale_curve_to_pixmap(
-                        position, y_value, self.viewbox, delta
-                    )
-
-                    paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, y - 5))
-                    paint.drawLine(
-                        QtCore.QPointF(x, y + 5), QtCore.QPointF(x, vp.height())
-                    )
-
-                    pen.setWidth(1)
-                    paint.setPen(pen)
-
-                    paint.drawLine(QtCore.QPointF(delta, y), QtCore.QPointF(x - 5, y))
-                    paint.drawLine(
-                        QtCore.QPointF(x + 5, y), QtCore.QPointF(vp.width(), y)
-                    )
-
-                    pen.setWidth(2)
-                    paint.setPen(pen)
-
-                    paint.drawEllipse(QtCore.QPointF(x, y), 5, 5)
-
-                else:
-                    self.cursor1.paint(
-                        paint,
-                        None,
-                        None,
-                        skip=False,
-                        x_delta=self.y_axis.width() + 1,
-                        height=vp.height() - self.x_axis.height() - 2,
-                        vb=self.viewbox,
-                    )
+                self.cursor1.paint(paint, plot=self, uuid=self.current_uuid)
 
             if self.region is not None:
-                self.region.paint(
-                    paint,
-                    None,
-                    None,
-                    skip=False,
-                    x_delta=self.y_axis.width() + 1,
-                    height=vp.height() - self.x_axis.height() + 1,
-                    vb=self.viewbox,
-                )
-
-                if self.current_uuid:
-                    delta = self.y_axis.width() + 1
-                    signal, idx = self.signal_by_uuid(self.current_uuid)
-
-                    for position in self.region.getRegion():
-
-                        index = self.get_timestamp_index(position, signal.timestamps)
-                        y_value, kind, fmt = signal.value_at_index(index)
-
-                        x, y = self.scale_curve_to_pixmap(position, y_value)
-
-                        pen = paint.pen()
-                        pen.setWidth(1)
-                        paint.setPen(pen)
-
-                        paint.drawLine(delta, y, self._pixmap.width(), y)
-
-                        pen.setWidth(2)
-                        paint.setPen(pen)
-
-                        paint.drawEllipse(QtCore.QPointF(x, y), 5, 5)
+                self.region.paint(paint, plot=self, uuid=self.current_uuid)
 
             paint.end()
 

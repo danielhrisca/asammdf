@@ -17,29 +17,68 @@ class Cursor(pg.InfiniteLine):
         self.pen.setWidth(3)
         self.hoverPen.setWidth(3)
 
+        self.setCursor(QtCore.Qt.SplitHCursor)
+        self.sigDragged.connect(self.update_mouse_cursor)
+        self.sigPositionChangeFinished.connect(self.update_mouse_cursor)
+
+        self._cursor_override = False
+
+    def update_mouse_cursor(self, obj):
+        if self.moving:
+            if not self._cursor_override:
+                QtGui.QGuiApplication.setOverrideCursor(QtCore.Qt.SplitHCursor)
+                self._cursor_override = True
+        else:
+            if self._cursor_override is not None:
+                self._cursor_override = False
+                QtGui.QGuiApplication.restoreOverrideCursor()
+
     def set_value(self, value):
         self.setPos(value)
 
-    def paint(self, p, *args, skip=True, x_delta=0, height=0, vb=None):
-        if not skip:
-            p.setRenderHint(p.RenderHint.Antialiasing)
+    def paint(self, paint, *args, plot=None, uuid=None):
+        if plot:
+            paint.setRenderHint(paint.RenderHint.Antialiasing)
 
             pen = self.currentPen
             pen.setJoinStyle(QtCore.Qt.PenJoinStyle.MiterJoin)
-            p.setPen(pen)
+            paint.setPen(pen)
 
-            xs = vb.state["viewRange"][0][0]
-            x_scale, y_scale = vb.viewPixelSize()
+            pen = self.pen
+            paint.setPen(pen)
 
-            # x = (x - xs) / x_scale + x_delta
-            # is rewriten as
+            position = self.value()
 
-            xs = xs - x_delta * x_scale
+            if uuid:
 
-            x = (self.value() - xs) / x_scale
+                delta = plot.y_axis.width() + 1
+                height = plot.y_axis.height() + plot.x_axis.height()
+                width = delta + plot.x_axis.width()
 
-            p.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
-            p.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
+                signal, idx = plot.signal_by_uuid(uuid)
+                index = plot.get_timestamp_index(position, signal.timestamps)
+                y_value, kind, fmt = signal.value_at_index(index)
+
+                x, y = plot.scale_curve_to_pixmap(position, y_value)
+
+                paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, y - 5))
+                paint.drawLine(QtCore.QPointF(x, y + 5), QtCore.QPointF(x, height))
+
+                pen.setWidth(1)
+                paint.setPen(pen)
+
+                paint.drawLine(QtCore.QPointF(delta, y), QtCore.QPointF(x - 5, y))
+                paint.drawLine(QtCore.QPointF(x + 5, y), QtCore.QPointF(width, y))
+
+                pen.setWidth(2)
+                paint.setPen(pen)
+
+                paint.drawEllipse(QtCore.QPointF(x, y), 5, 5)
+
+            else:
+                x, y = self.scale_curve_to_pixmap(position, 0)
+                height = plot.y_axis.height() + plot.x_axis.height()
+                paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
 
 
 class Region(pg.LinearRegionItem):
@@ -102,17 +141,18 @@ class Region(pg.LinearRegionItem):
 
         self.setMovable(movable)
 
-    def paint(self, p, *args, skip=True, x_delta=0, height=0, vb=None):
-        if not skip:
+    def paint(self, p, *args, plot=None, uuid=None):
+        if plot:
 
-            xs = vb.state["viewRange"][0][0]
-            x_scale, y_scale = vb.viewPixelSize()
-            xs = xs - x_delta * x_scale
+            x1, y1 = plot.scale_curve_to_pixmap(self.lines[0].value(), 0)
+            x2, y2 = plot.scale_curve_to_pixmap(self.lines[1].value(), 0)
+
+            height = plot.y_axis.height() + plot.x_axis.height()
 
             rect = QtCore.QRectF(
-                (self.lines[0].value() - xs) / x_scale,
+                x1,
                 0,
-                (self.lines[1].value() - self.lines[0].value()) / x_scale,
+                x2 - x1,
                 height,
             )
 
@@ -121,4 +161,4 @@ class Region(pg.LinearRegionItem):
             p.setCompositionMode(QtGui.QPainter.CompositionMode_SourceAtop)
             p.drawRect(rect)
             for line in self.lines:
-                line.paint(p, *args, skip=skip, x_delta=x_delta, height=height, vb=vb)
+                line.paint(p, *args, plot=plot, uuid=uuid)
