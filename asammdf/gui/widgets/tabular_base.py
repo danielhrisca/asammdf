@@ -2199,19 +2199,29 @@ class DataFrameViewer(QtWidgets.QWidget):
                 if isinstance(col.values[0], np.floating):
                     col = col.round(decimals)
                     df[name] = col
+            float_format = f"%.{decimals}f"
+        else:
+            float_format = "%.16f"
 
         # If I try to use df.to_clipboard without starting new thread, large selections give access denied error
         if df.shape == (1, 1):
             # Special case for single-cell copy, excel=False removes the trailing \n character.
             threading.Thread(
                 target=lambda df: df.to_clipboard(
-                    index=header, header=header, excel=False
+                    index=header,
+                    header=header,
+                    excel=False,
+                    float_format=float_format,
                 ),
                 args=(df,),
             ).start()
         else:
             threading.Thread(
-                target=lambda df: df.to_clipboard(index=header, header=header),
+                target=lambda df: df.to_clipboard(
+                    index=header,
+                    header=header,
+                    float_format=float_format,
+                ),
                 args=(df,),
             ).start()
 
