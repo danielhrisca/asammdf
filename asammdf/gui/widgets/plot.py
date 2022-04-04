@@ -4312,6 +4312,36 @@ class _Plot(pg.PlotWidget):
 
         return axis
 
+    def scale_curve_to_pixmap(self, x, y, viewbox, delta=None):
+        if delta is None:
+            delta = self.y_axis.width() + 1
+        (xs, _1), (_2, ys) = viewbox.state["viewRange"]
+        x_scale, y_scale = viewbox.viewPixelSize()
+
+        # x = (x - xs) / x_scale + delta
+        # y = (ys - y) / y_scale + 1
+        # is rewriten as
+
+        xs = xs - delta * x_scale
+        ys = ys + y_scale
+
+        x = (x - xs) / x_scale
+        y = (ys - y) / y_scale
+
+        return x, y
+
+    def auto_clip_rect(self, painter):
+        delta = self.y_axis.width() + 1
+        painter.setClipRect(
+            QtCore.QRect(
+                delta + 1,
+                1,
+                self._pixmap.width() - delta - 6,
+                self._pixmap.height() - self.x_axis.height() - 2,
+            )
+        )
+        painter.setClipping(True)
+
     def paintEvent(self, ev):
         if self._pixmap is None:
             super().paintEvent(ev)
@@ -4326,17 +4356,8 @@ class _Plot(pg.PlotWidget):
             paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
 
             with_dots = self.with_dots
-            delta = self.y_axis.width() + 1
 
-            paint.setClipRect(
-                QtCore.QRect(
-                    delta + 1,
-                    1,
-                    self._pixmap.width() - delta - 6,
-                    self._pixmap.height() - self.x_axis.height() - 2,
-                )
-            )
-            paint.setClipping(True)
+            self.auto_clip_rect(paint)
 
             new = []
 
@@ -4405,37 +4426,26 @@ class _Plot(pg.PlotWidget):
                             y[~idx] = np.inf
                             x = sig.plot_timestamps
 
-                            (xs, _1), (_2, ys) = view.state["viewRange"]
-                            x_scale, y_scale = view.viewPixelSize()
-
-                            # x = (x - xs) / x_scale + delta
-                            # y = (ys - y) / y_scale + 1
-                            # is rewriten as
-
-                            xs = xs - delta * x_scale
-                            ys = ys + y_scale
-
-                            x = (x - xs) / x_scale
-                            y = (ys - y) / y_scale
+                            x, y = self.scale_curve_to_pixmap(x, y, view)
 
                             color = range_info["font_color"]
                             pen = QtGui.QPen(color)
 
                             if with_dots:
-                                # new_curve = pg.PlotCurveItem(
-                                #     x,
-                                #     y,
-                                #     pen=pen,
-                                #     clickable=False,
-                                #     dynamicRangeLimit=None,
-                                #     stepMode=self.line_interconnect,
-                                #     skipFiniteCheck=False,
-                                #     fillOutline=False,
-                                #     connect='finite',
-                                # )
-                                # new_curve._viewBox = weakref.ref(view)
-                                # new_curve.paint(paint, None, None)
-                                # new.append(new_curve)
+                                new_curve = pg.PlotCurveItem(
+                                    x,
+                                    y,
+                                    pen=pen,
+                                    clickable=False,
+                                    dynamicRangeLimit=None,
+                                    stepMode=self.line_interconnect,
+                                    skipFiniteCheck=False,
+                                    fillOutline=False,
+                                    connect="finite",
+                                )
+                                new_curve._viewBox = weakref.ref(view)
+                                new_curve.paint(paint, None, None)
+                                new.append(new_curve)
 
                                 new_scatter = Scatter(
                                     x,
@@ -4493,48 +4503,54 @@ class _Plot(pg.PlotWidget):
 
             paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
 
+            self.auto_clip_rect(paint)
+            delta = self.y_axis.width() + 1
+
             if self.cursor1 is not None and self.cursor1.isVisible():
-                self.cursor1.paint(
-                    paint,
-                    None,
-                    None,
-                    skip=False,
-                    x_delta=self.y_axis.width() + 1,
-                    height=vp.height() - self.x_axis.height() - 2,
-                    vb=self.viewbox,
-                )
 
                 if self.current_uuid:
+
+                    pen = self.cursor1.pen
+                    paint.setPen(pen)
+
                     position = self.cursor1.value()
-                    delta = self.y_axis.width() + 1
 
                     signal, idx = self.signal_by_uuid(self.current_uuid)
                     index = self.get_timestamp_index(position, signal.timestamps)
-                    value, kind, fmt = signal.value_at_index(index)
+                    y_value, kind, fmt = signal.value_at_index(index)
 
-                    (xs, _1), (_2, ys) = self.viewbox.state["viewRange"]
-                    x_scale, y_scale = self.viewbox.viewPixelSize()
+                    x, y = self.scale_curve_to_pixmap(
+                        position, y_value, self.viewbox, delta
+                    )
 
-                    # x = (x - xs) / x_scale + delta
-                    # y = (ys - y) / y_scale + 1
-                    # is rewriten as
+                    paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, y - 5))
+                    paint.drawLine(
+                        QtCore.QPointF(x, y + 5), QtCore.QPointF(x, vp.height())
+                    )
 
-                    xs = xs - delta * x_scale
-                    ys = ys + y_scale
-
-                    x = (position - xs) / x_scale
-                    y = (ys - value) / y_scale
-
-                    pen = paint.pen()
                     pen.setWidth(1)
                     paint.setPen(pen)
 
-                    paint.drawLine(delta, y, self._pixmap.width(), y)
+                    paint.drawLine(QtCore.QPointF(delta, y), QtCore.QPointF(x - 5, y))
+                    paint.drawLine(
+                        QtCore.QPointF(x + 5, y), QtCore.QPointF(vp.width(), y)
+                    )
 
                     pen.setWidth(2)
                     paint.setPen(pen)
 
                     paint.drawEllipse(QtCore.QPointF(x, y), 5, 5)
+
+                else:
+                    self.cursor1.paint(
+                        paint,
+                        None,
+                        None,
+                        skip=False,
+                        x_delta=self.y_axis.width() + 1,
+                        height=vp.height() - self.x_axis.height() - 2,
+                        vb=self.viewbox,
+                    )
 
             if self.region is not None:
                 self.region.paint(
@@ -4554,20 +4570,9 @@ class _Plot(pg.PlotWidget):
                     for position in self.region.getRegion():
 
                         index = self.get_timestamp_index(position, signal.timestamps)
-                        value, kind, fmt = signal.value_at_index(index)
+                        y_value, kind, fmt = signal.value_at_index(index)
 
-                        # x = (x - xs) / x_scale + delta
-                        # y = (ys - y) / y_scale + 1
-                        # is rewriten as
-
-                        (xs, _1), (_2, ys) = self.viewbox.state["viewRange"]
-                        x_scale, y_scale = self.viewbox.viewPixelSize()
-
-                        xs = xs - delta * x_scale
-                        ys = ys + y_scale
-
-                        x = (position - xs) / x_scale
-                        y = (ys - value) / y_scale
+                        x, y = self.scale_curve_to_pixmap(position, y_value)
 
                         pen = paint.pen()
                         pen.setWidth(1)
@@ -4581,42 +4586,6 @@ class _Plot(pg.PlotWidget):
                         paint.drawEllipse(QtCore.QPointF(x, y), 5, 5)
 
             paint.end()
-
-        elif not self._grabbing:
-            if self.cursor1 is not None and self.cursor1.isVisible():
-
-                paint = QtGui.QPainter()
-                vp = self.viewport()
-                paint.begin(vp)
-                paint.setCompositionMode(QtGui.QPainter.CompositionMode_Source)
-                self.cursor1.paint(
-                    paint,
-                    None,
-                    None,
-                    skip=False,
-                    x_delta=self.y_axis.width() + 1,
-                    height=vp.height() - self.x_axis.height() + 1,
-                    vb=self.viewbox,
-                )
-
-                paint.end()
-
-            if self.region is not None:
-                paint = QtGui.QPainter()
-                vp = self.viewport()
-                paint.begin(vp)
-                paint.setCompositionMode(QtGui.QPainter.CompositionMode_Source)
-                self.region.paint(
-                    paint,
-                    None,
-                    None,
-                    skip=False,
-                    x_delta=self.y_axis.width() + 1,
-                    height=vp.height() - self.x_axis.height() + 1,
-                    vb=self.viewbox,
-                )
-
-                paint.end()
 
         self._grabbing = False
 
