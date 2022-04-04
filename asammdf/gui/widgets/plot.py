@@ -1255,6 +1255,8 @@ class Plot(QtWidgets.QWidget):
         self.pattern = {}
         self.mdf = mdf
 
+        self.ignore_selection_change = False
+
         self.x_name = "t" if x_axis == "time" else "f"
         self.x_unit = "s" if x_axis == "time" else "Hz"
 
@@ -1636,7 +1638,7 @@ class Plot(QtWidgets.QWidget):
                     self.info.set_stats(stats)
 
     def channel_selection_row_changed(self, current, previous):
-        if not self.closed:
+        if not self.closed and not self.ignore_selection_change:
             if isinstance(current, ChannelsTreeItem):
                 item = current
                 uuid = self.channel_selection.itemWidget(item, 1).uuid
@@ -1804,7 +1806,6 @@ class Plot(QtWidgets.QWidget):
         timebase = self.plot.get_current_timebase()
 
         if timebase.size:
-            timebase = self.plot.timebase
             dim = len(timebase)
 
             right = np.searchsorted(timebase, start, side="right")
@@ -2794,6 +2795,7 @@ class _Plot(pg.PlotWidget):
         )
 
         self._can_trim = True
+        self._can_paint = True
         self.mdf = mdf
 
         self._update_lines_allowed = True
@@ -4008,6 +4010,7 @@ class _Plot(pg.PlotWidget):
                         self.region.setRegion((pos.x(), stop))
 
     def add_new_channels(self, channels, computed=False, descriptions=None):
+        self._can_paint = False
         descriptions = descriptions or {}
 
         geometry = self.viewbox.geometry()
@@ -4105,6 +4108,7 @@ class _Plot(pg.PlotWidget):
             self.set_current_uuid(sig.uuid)
 
         self._update_lines_allowed = True
+        self._can_paint = True
         self.xrange_changed_handle(force=True)
 
         return {sig.uuid: sig for sig in channels}
@@ -4175,6 +4179,7 @@ class _Plot(pg.PlotWidget):
                 super().dropEvent(e)
 
     def delete_channels(self, deleted):
+        self._can_paint = False
 
         needs_timebase_compute = False
 
@@ -4231,6 +4236,7 @@ class _Plot(pg.PlotWidget):
         if needs_timebase_compute:
             self._compute_all_timebase()
 
+        self._can_paint = True
         self.update_plt()
 
     def set_time_offset(self, info):
@@ -4347,6 +4353,9 @@ class _Plot(pg.PlotWidget):
         painter.setClipping(True)
 
     def paintEvent(self, ev):
+        if not self._can_paint:
+            return
+
         if self._pixmap is None:
             super().paintEvent(ev)
 

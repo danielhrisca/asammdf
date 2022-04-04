@@ -76,7 +76,7 @@ class Cursor(pg.InfiniteLine):
                 paint.drawEllipse(QtCore.QPointF(x, y), 5, 5)
 
             else:
-                x, y = self.scale_curve_to_pixmap(position, 0)
+                x, y = plot.scale_curve_to_pixmap(position, 0)
                 height = plot.y_axis.height() + plot.x_axis.height()
                 paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
 

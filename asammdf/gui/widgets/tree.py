@@ -433,6 +433,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             selected_items = self.selectedItems()
             deleted = get_data(self.plot, selected_items, uuids_only=True)
 
+            self.plot.ignore_selection_change = True
+
             root = self.invisibleRootItem()
             for item in selected_items:
                 item_widget = self.itemWidget(item, 1)
@@ -443,6 +445,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 item_widget.item = None
 
             self.refresh()
+
+            self.plot.ignore_selection_change = False
 
             if deleted:
                 self.itemsDeleted.emit(list(deleted))
