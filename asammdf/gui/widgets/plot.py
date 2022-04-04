@@ -3285,7 +3285,14 @@ class _Plot(pg.PlotWidget):
                     start, stop = self.viewbox.viewRange()[0]
                     pos = QtCore.QPointF((start + stop) / 2, 0)
 
-                    self.cursor1 = Cursor(pos=pos, angle=90, movable=True)
+                    if pg.getConfigOption("background") == "k":
+                        color = "white"
+                    else:
+                        color = "black"
+
+                    self.cursor1 = Cursor(
+                        pos=pos, angle=90, movable=True, pen=color, hoverPen=color
+                    )
                     self.plotItem.addItem(self.cursor1, ignoreBounds=True)
 
                     self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
@@ -3465,8 +3472,12 @@ class _Plot(pg.PlotWidget):
 
             elif key == QtCore.Qt.Key_R and modifier == QtCore.Qt.NoModifier:
                 if self.region is None:
+                    if pg.getConfigOption("background") == "k":
+                        color = "white"
+                    else:
+                        color = "black"
 
-                    self.region = Region((0, 0))
+                    self.region = Region((0, 0), pen=color, hoverPen=color)
                     self.region.setZValue(-10)
                     self.plotItem.addItem(self.region)
                     self.region.sigRegionChanged.connect(self.range_modified.emit)
@@ -3964,8 +3975,15 @@ class _Plot(pg.PlotWidget):
                     pos = self.plot_item.vb.mapSceneToView(event.scenePos())
 
                     if self.cursor1 is None:
+                        if pg.getConfigOption("background") == "k":
+                            color = "white"
+                        else:
+                            color = "black"
 
-                        self.cursor1 = Cursor(pos=pos, angle=90, movable=True)
+                        self.cursor1 = Cursor(
+                            pos=pos, angle=90, movable=True, pen=color, hoverPen=color
+                        )
+
                         self.plotItem.addItem(self.cursor1, ignoreBounds=True)
                         self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
                         self.cursor1.sigPositionChangeFinished.connect(
@@ -4212,6 +4230,8 @@ class _Plot(pg.PlotWidget):
 
         if needs_timebase_compute:
             self._compute_all_timebase()
+
+        self.update_plt()
 
     def set_time_offset(self, info):
         absolute, offset, *uuids = info
@@ -4484,36 +4504,37 @@ class _Plot(pg.PlotWidget):
                     vb=self.viewbox,
                 )
 
-                position = self.cursor1.value()
-                delta = self.y_axis.width() + 1
+                if self.current_uuid:
+                    position = self.cursor1.value()
+                    delta = self.y_axis.width() + 1
 
-                signal, idx = self.signal_by_uuid(self.current_uuid)
-                index = self.get_timestamp_index(position, signal.timestamps)
-                value, kind, fmt = signal.value_at_index(index)
+                    signal, idx = self.signal_by_uuid(self.current_uuid)
+                    index = self.get_timestamp_index(position, signal.timestamps)
+                    value, kind, fmt = signal.value_at_index(index)
 
-                (xs, _1), (_2, ys) = self.viewbox.state["viewRange"]
-                x_scale, y_scale = self.viewbox.viewPixelSize()
+                    (xs, _1), (_2, ys) = self.viewbox.state["viewRange"]
+                    x_scale, y_scale = self.viewbox.viewPixelSize()
 
-                # x = (x - xs) / x_scale + delta
-                # y = (ys - y) / y_scale + 1
-                # is rewriten as
+                    # x = (x - xs) / x_scale + delta
+                    # y = (ys - y) / y_scale + 1
+                    # is rewriten as
 
-                xs = xs - delta * x_scale
-                ys = ys + y_scale
+                    xs = xs - delta * x_scale
+                    ys = ys + y_scale
 
-                x = (position - xs) / x_scale
-                y = (ys - value) / y_scale
+                    x = (position - xs) / x_scale
+                    y = (ys - value) / y_scale
 
-                pen = paint.pen()
-                pen.setWidth(1)
-                paint.setPen(pen)
+                    pen = paint.pen()
+                    pen.setWidth(1)
+                    paint.setPen(pen)
 
-                paint.drawLine(delta, y, self._pixmap.width(), y)
+                    paint.drawLine(delta, y, self._pixmap.width(), y)
 
-                pen.setWidth(2)
-                paint.setPen(pen)
+                    pen.setWidth(2)
+                    paint.setPen(pen)
 
-                paint.drawEllipse(QtCore.QPointF(x, y), 5, 5)
+                    paint.drawEllipse(QtCore.QPointF(x, y), 5, 5)
 
             if self.region is not None:
                 self.region.paint(
@@ -4525,6 +4546,39 @@ class _Plot(pg.PlotWidget):
                     height=vp.height() - self.x_axis.height() + 1,
                     vb=self.viewbox,
                 )
+
+                if self.current_uuid:
+                    delta = self.y_axis.width() + 1
+                    signal, idx = self.signal_by_uuid(self.current_uuid)
+
+                    for position in self.region.getRegion():
+
+                        index = self.get_timestamp_index(position, signal.timestamps)
+                        value, kind, fmt = signal.value_at_index(index)
+
+                        # x = (x - xs) / x_scale + delta
+                        # y = (ys - y) / y_scale + 1
+                        # is rewriten as
+
+                        (xs, _1), (_2, ys) = self.viewbox.state["viewRange"]
+                        x_scale, y_scale = self.viewbox.viewPixelSize()
+
+                        xs = xs - delta * x_scale
+                        ys = ys + y_scale
+
+                        x = (position - xs) / x_scale
+                        y = (ys - value) / y_scale
+
+                        pen = paint.pen()
+                        pen.setWidth(1)
+                        paint.setPen(pen)
+
+                        paint.drawLine(delta, y, self._pixmap.width(), y)
+
+                        pen.setWidth(2)
+                        paint.setPen(pen)
+
+                        paint.drawEllipse(QtCore.QPointF(x, y), 5, 5)
 
             paint.end()
 
