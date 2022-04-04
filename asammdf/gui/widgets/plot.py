@@ -4480,9 +4480,40 @@ class _Plot(pg.PlotWidget):
                     None,
                     skip=False,
                     x_delta=self.y_axis.width() + 1,
-                    height=vp.height() - self.x_axis.height() + 1,
+                    height=vp.height() - self.x_axis.height() - 2,
                     vb=self.viewbox,
                 )
+
+                position = self.cursor1.value()
+                delta = self.y_axis.width() + 1
+
+                signal, idx = self.signal_by_uuid(self.current_uuid)
+                index = self.get_timestamp_index(position, signal.timestamps)
+                value, kind, fmt = signal.value_at_index(index)
+
+                (xs, _1), (_2, ys) = self.viewbox.state["viewRange"]
+                x_scale, y_scale = self.viewbox.viewPixelSize()
+
+                # x = (x - xs) / x_scale + delta
+                # y = (ys - y) / y_scale + 1
+                # is rewriten as
+
+                xs = xs - delta * x_scale
+                ys = ys + y_scale
+
+                x = (position - xs) / x_scale
+                y = (ys - value) / y_scale
+
+                pen = paint.pen()
+                pen.setWidth(1)
+                paint.setPen(pen)
+
+                paint.drawLine(delta, y, self._pixmap.width(), y)
+
+                pen.setWidth(2)
+                paint.setPen(pen)
+
+                paint.drawEllipse(QtCore.QPointF(x, y), 5, 5)
 
             if self.region is not None:
                 self.region.paint(
@@ -4499,6 +4530,7 @@ class _Plot(pg.PlotWidget):
 
         elif not self._grabbing:
             if self.cursor1 is not None and self.cursor1.isVisible():
+
                 paint = QtGui.QPainter()
                 vp = self.viewport()
                 paint.begin(vp)
@@ -4512,6 +4544,7 @@ class _Plot(pg.PlotWidget):
                     height=vp.height() - self.x_axis.height() + 1,
                     vb=self.viewbox,
                 )
+
                 paint.end()
 
             if self.region is not None:
@@ -4528,6 +4561,7 @@ class _Plot(pg.PlotWidget):
                     height=vp.height() - self.x_axis.height() + 1,
                     vb=self.viewbox,
                 )
+
                 paint.end()
 
         self._grabbing = False
