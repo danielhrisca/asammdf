@@ -745,13 +745,14 @@ class WithMDIArea:
 
                 signals = {}
 
+                not_found = []
+
                 for uuid in uuids:
                     uuids_entries = [
                         entry for entry in signals_ if entry["origin_uuid"] == uuid
                     ]
 
                     uuids_signals = []
-                    not_found = []
 
                     for entry in uuids_entries:
                         if entry["name"] in self.mdf:

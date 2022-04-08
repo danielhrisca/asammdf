@@ -8,7 +8,7 @@ os.environ["PYQTGRAPH_QT_LIB"] = "PySide6"
 os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "0"
 
 import pyqtgraph
-from PySide6 import QtWidgets
+from PySide6 import QtWidgets, QtGui
 
 from asammdf.gui.utils import excepthook
 from asammdf.gui.widgets.main import MainWindow
@@ -33,12 +33,9 @@ def main(measurements=None):
     app.setOrganizationName("py-asammdf")
     app.setOrganizationDomain("py-asammdf")
     app.setApplicationName("py-asammdf")
-    main = MainWindow(args.measurements)
 
-    if sys.platform == "win32":
-        app.setStyle(QtWidgets.QStyleFactory.create("Windows"))
-    else:
-        app.setStyle(QtWidgets.QStyleFactory.create("Fusion"))
+    main = MainWindow(args.measurements)
+    app.setStyle(QtWidgets.QStyleFactory.create("Fusion"))
 
     app.exec()
 
