@@ -32,6 +32,7 @@ from .bar import Bar
 from .can_bus_trace import CANBusTrace
 from .channel_display import ChannelDisplay
 from .flexray_bus_trace import FlexRayBusTrace
+from .formated_axis import FormatedAxis
 from .gps import GPS
 from .lin_bus_trace import LINBusTrace
 from .numeric import Numeric
@@ -2946,9 +2947,6 @@ class WithMDIArea:
         if "font_size" in window_info["configuration"]:
             plot.set_font_size(window_info["configuration"]["font_size"])
 
-        if "locked" in window_info["configuration"]:
-            plot.set_locked(window_info["configuration"]["locked"])
-
         plot.splitter.setContentsMargins(1, 1, 1, 1)
         plot.setContentsMargins(1, 1, 1, 1)
 
@@ -2984,7 +2982,28 @@ class WithMDIArea:
                 description = descriptions.get(wid.uuid, None)
                 if description is not None:
 
-                    _, _idx = plot.plot.signal_by_uuid(wid.uuid)
+                    signal, _idx = plot.plot.signal_by_uuid(wid.uuid)
+
+                    # signal.mode = description["mode"]
+                    # signal.format = description["format"]
+                    #
+                    # value, kind, fmt = signal.value_at_timestamp(0)
+                    #
+                    # widget = plot.widget_by_uuid(signal.uuid)
+                    # widget.kind = kind
+                    # widget.set_fmt(fmt)
+                    # widget.set_value(update=True)
+                    #
+                    # if plot.plot.current_uuid == signal.uuid:
+                    #     plot.plot.y_axis.format = fmt
+                    #     plot.plot.y_axis.picture = None
+                    #     plot.plot.y_axis.update()
+                    #
+                    # axis = plot.plot.get_axis(_idx)
+                    # if isinstance(axis, FormatedAxis):
+                    #     axis.format = fmt
+                    #     axis.picture = None
+                    #     axis.update()
 
                     # if "y_range" in description:
                     #     plot.plot.view_boxes[_idx].setYRange(
@@ -3039,7 +3058,7 @@ class WithMDIArea:
                 elif pattern_info:
                     wid.set_ranges(pattern_info["ranges"])
 
-                wid.set_value(update=True)
+                # wid.set_value(update=True)
 
         self.set_subplots_link(self.subplots_link)
 
@@ -3061,6 +3080,9 @@ class WithMDIArea:
             plot.plot.common_viewbox.setYRange(
                 *window_info["configuration"]["common_axis_y_range"], padding=0
             )
+
+        if "locked" in window_info["configuration"]:
+            plot.set_locked(window_info["configuration"]["locked"])
 
         plot.channel_selection.refresh()
 

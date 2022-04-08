@@ -411,3 +411,6 @@ class ChannelDisplay(Ui_ChannelDiplay, QtWidgets.QWidget):
         return get_color_using_ranges(
             value, self.get_ranges(), self._font_color, pen=pen
         )
+
+    def reset_resolved_ranges(self):
+        self.resolved_ranges = None

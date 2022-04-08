@@ -58,22 +58,27 @@ class Cursor(pg.InfiniteLine):
                 signal, idx = plot.signal_by_uuid(uuid)
                 index = plot.get_timestamp_index(position, signal.timestamps)
                 y_value, kind, fmt = signal.value_at_index(index)
+                if y_value != "n.a.":
 
-                x, y = plot.scale_curve_to_pixmap(position, y_value)
+                    x, y = plot.scale_curve_to_pixmap(position, y_value)
 
-                paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, y - 5))
-                paint.drawLine(QtCore.QPointF(x, y + 5), QtCore.QPointF(x, height))
+                    paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, y - 5))
+                    paint.drawLine(QtCore.QPointF(x, y + 5), QtCore.QPointF(x, height))
 
-                pen.setWidth(1)
-                paint.setPen(pen)
+                    pen.setWidth(1)
+                    paint.setPen(pen)
 
-                paint.drawLine(QtCore.QPointF(delta, y), QtCore.QPointF(x - 5, y))
-                paint.drawLine(QtCore.QPointF(x + 5, y), QtCore.QPointF(width, y))
+                    paint.drawLine(QtCore.QPointF(delta, y), QtCore.QPointF(x - 5, y))
+                    paint.drawLine(QtCore.QPointF(x + 5, y), QtCore.QPointF(width, y))
 
-                pen.setWidth(2)
-                paint.setPen(pen)
+                    pen.setWidth(2)
+                    paint.setPen(pen)
 
-                paint.drawEllipse(QtCore.QPointF(x, y), 5, 5)
+                    paint.drawEllipse(QtCore.QPointF(x, y), 5, 5)
+                else:
+                    x, y = plot.scale_curve_to_pixmap(position, 0)
+                    height = plot.y_axis.height() + plot.x_axis.height()
+                    paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
 
             else:
                 x, y = plot.scale_curve_to_pixmap(position, 0)

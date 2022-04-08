@@ -2291,17 +2291,24 @@ class Plot(QtWidgets.QWidget):
             item.widget = it
             it.item = item
 
-            if len(sig):
-                it.set_value(sig.samples[0])
-
             if sig.computed:
                 font = QtGui.QFont()
                 font.setItalic(True)
                 it.name.setFont(font)
 
-            it.set_fmt(description.get("fmt", it.fmt))
+            it.fmt = description.get("fmt", it.fmt)
             it.set_name(sig.name)
             it.set_color(sig.color)
+
+            sig.format = description.get("format", "phys")
+            sig.mode = description.get("mode", "phys")
+
+            if len(sig):
+                value, kind, fmt = sig.value_at_timestamp(sig.timestamps[0])
+                it.kind = kind
+                it._value = "n.a."
+                it.set_value(value, force=True, update=True)
+
             if size_hint is None:
                 size_hint = it.sizeHint()
             item.setSizeHint(1, size_hint)
@@ -2435,6 +2442,7 @@ class Plot(QtWidgets.QWidget):
 
         channel["precision"] = widget.precision
         channel["fmt"] = widget.fmt
+        channel["format"] = sig.format
         channel["mode"] = sig.mode
         if sig.computed:
             channel["computation"] = sig.computation
@@ -4087,6 +4095,8 @@ class _Plot(pg.PlotWidget):
                     view_box.setYRange(*description["y_range"], padding=0, update=True)
                 else:
                     view_box.setYRange(sig.min, sig.max, padding=0, update=True)
+            elif description.get("y_range", None):
+                view_box.setYRange(*description["y_range"], padding=0, update=True)
 
             self.axes.append(self._axes_layout_pos)
             self._axes_layout_pos += 1
@@ -4617,6 +4627,7 @@ class CursorInfo(QtWidgets.QLabel):
 
             if self.plot.cursor1 is not None:
                 position = self.plot.cursor1.value()
+
                 fmt = self.plot.x_axis.format
                 if fmt == "phys":
                     if self.precision == -1:

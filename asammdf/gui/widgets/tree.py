@@ -374,6 +374,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         super().__init__(*args, **kwargs)
         self.plot = plot
         self.setDragDropMode(QtWidgets.QAbstractItemView.InternalMove)
+        # self.setDragDropMode(QtWidgets.QAbstractItemView.DragDrop)
         self.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
 
         self.setUniformRowHeights(True)
@@ -405,6 +406,33 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         # self.header().hideSection(0)
         self._target_color = None
         self._moved = []
+
+        self.autoscroll_timer = QtCore.QTimer()
+        self.autoscroll_timer.timeout.connect(self.autoscroll)
+        self.autoscroll_timer.setInterval(33)
+        self.autoscroll_mouse_pos = None
+
+    def autoscroll(self):
+
+        step = max(
+            (self.verticalScrollBar().maximum() - self.verticalScrollBar().minimum())
+            // 90,
+            1,
+        )
+
+        if self.autoscroll_mouse_pos is not None:
+            height = self.rect().height()
+            y = self.autoscroll_mouse_pos
+
+            if y <= 15:
+                pos = max(self.verticalScrollBar().value() - step, 0)
+                self.verticalScrollBar().setValue(pos)
+            elif y >= height - 15:
+                pos = min(
+                    self.verticalScrollBar().value() + step,
+                    self.verticalScrollBar().maximum(),
+                )
+                self.verticalScrollBar().setValue(pos)
 
     def item_selection_changed(self):
         selection = list(self.selectedItems())
@@ -590,14 +618,22 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         drag.exec_(QtCore.Qt.MoveAction)
 
     def dragEnterEvent(self, e):
+        self.autoscroll_timer.start()
+        self.autoscroll_mouse_pos = e.answerRect().y()
+        e.accept()
+
+    def dragLeaveEvent(self, e):
+        self.autoscroll_timer.stop()
+        self.autoscroll_mouse_pos = None
         e.accept()
 
     def dragMoveEvent(self, e):
+        self.autoscroll_mouse_pos = e.answerRect().y()
         e.accept()
 
     def dropEvent(self, e):
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/open.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.autoscroll_timer.stop()
+        self.autoscroll_mouse_pos = None
 
         if e.source() is self:
 
@@ -812,8 +848,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 QtCore.Qt.Key_P,
                 QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier,
             )
-            if isinstance(item, ChannelsTreeItem):
-                self.itemWidget(item, 1).keyPressEvent(event)
+            for item in self.selectedItems():
+                if isinstance(item, ChannelsTreeItem):
+                    self.itemWidget(item, 1).keyPressEvent(event)
 
         elif action.text() == "Enable all":
             iterator = QtWidgets.QTreeWidgetItemIterator(self)
