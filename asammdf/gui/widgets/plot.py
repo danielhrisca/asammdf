@@ -30,6 +30,7 @@ PLOT_BUFFER_SIZE = 4000
 
 from ...blocks.utils import target_byte_order
 from ..utils import FONT_SIZE
+from .signal_scale import ScaleDialog
 
 try:
     from ...blocks.cutils import positions
@@ -1510,6 +1511,7 @@ class Plot(QtWidgets.QWidget):
                     (QtCore.Qt.Key_H, int(QtCore.Qt.ControlModifier)),
                     (QtCore.Qt.Key_P, int(QtCore.Qt.ControlModifier)),
                     (QtCore.Qt.Key_T, int(QtCore.Qt.ControlModifier)),
+                    (QtCore.Qt.Key_G, int(QtCore.Qt.ControlModifier)),
                 ]
             )
             | self.plot.keyboard_events
@@ -1869,38 +1871,41 @@ class Plot(QtWidgets.QWidget):
                 uuids = [
                     self.channel_selection.itemWidget(item, 1).uuid
                     for item in selected_items
+                    if isinstance(item, ChannelsTreeItem)
                 ]
 
                 signals = [self.plot.signal_by_uuid(uuid) for uuid in uuids]
 
-            if key == QtCore.Qt.Key_B:
-                fmt = "bin"
-            elif key == QtCore.Qt.Key_H:
-                fmt = "hex"
-            else:
-                fmt = "phys"
+            if signals:
 
-            for signal, idx in signals:
-                if signal.plot_samples.dtype.kind in "ui":
-                    signal.format = fmt
+                if key == QtCore.Qt.Key_B:
+                    fmt = "bin"
+                elif key == QtCore.Qt.Key_H:
+                    fmt = "hex"
+                else:
+                    fmt = "phys"
 
-                    value, kind, fmt = signal.value_at_timestamp(0)
+                for signal, idx in signals:
+                    if signal.plot_samples.dtype.kind in "ui":
+                        signal.format = fmt
 
-                    widget = self.widget_by_uuid(signal.uuid)
-                    widget.kind = kind
-                    widget.set_fmt(fmt)
-                    widget.set_value(update=True)
+                        value, kind, fmt = signal.value_at_timestamp(0)
 
-                    if self.plot.current_uuid == signal.uuid:
-                        self.plot.y_axis.format = fmt
-                        self.plot.y_axis.picture = None
-                        self.plot.y_axis.update()
+                        widget = self.widget_by_uuid(signal.uuid)
+                        widget.kind = kind
+                        widget.set_fmt(fmt)
+                        widget.set_value(update=True)
 
-                    axis = self.plot.get_axis(idx)
-                    if isinstance(axis, FormatedAxis):
-                        axis.format = fmt
-                        axis.picture = None
-                        axis.update()
+                        if self.plot.current_uuid == signal.uuid:
+                            self.plot.y_axis.format = fmt
+                            self.plot.y_axis.picture = None
+                            self.plot.y_axis.update()
+
+                        axis = self.plot.get_axis(idx)
+                        if isinstance(axis, FormatedAxis):
+                            axis.format = fmt
+                            axis.picture = None
+                            axis.update()
 
             if self.plot.cursor1:
                 self.plot.cursor_moved.emit(self.plot.cursor1)
@@ -1919,59 +1924,62 @@ class Plot(QtWidgets.QWidget):
                 uuids = [
                     self.channel_selection.itemWidget(item, 1).uuid
                     for item in selected_items
+                    if isinstance(item, ChannelsTreeItem)
                 ]
 
                 signals = [self.plot.signal_by_uuid(uuid) for uuid in uuids]
 
-            if key == QtCore.Qt.Key_R:
-                mode = "raw"
-                style = QtCore.Qt.DashLine
+            if signals:
 
-            else:
-                mode = "phys"
-                style = QtCore.Qt.SolidLine
+                if key == QtCore.Qt.Key_R:
+                    mode = "raw"
+                    style = QtCore.Qt.DashLine
 
-            for signal, idx in signals:
-                if signal.mode != mode:
-                    signal.pen = pg.mkPen(color=signal.color, style=style)
+                else:
+                    mode = "phys"
+                    style = QtCore.Qt.SolidLine
 
-                    view = self.plot.view_boxes[idx]
-                    _, (buttom, top) = view.viewRange()
+                for signal, idx in signals:
+                    if signal.mode != mode:
+                        signal.pen = pg.mkPen(color=signal.color, style=style)
 
-                    try:
-                        min_, max_ = float(signal.min), float(signal.max)
-                    except:
-                        min_, max_ = 0, 1
+                        view = self.plot.view_boxes[idx]
+                        _, (buttom, top) = view.viewRange()
 
-                    if max_ != min_ and top != buttom:
+                        try:
+                            min_, max_ = float(signal.min), float(signal.max)
+                        except:
+                            min_, max_ = 0, 1
 
-                        factor = (top - buttom) / (max_ - min_)
-                        offset = (buttom - min_) / (top - buttom)
-                    else:
-                        factor = 1
-                        offset = 0
+                        if max_ != min_ and top != buttom:
 
-                    signal.mode = mode
+                            factor = (top - buttom) / (max_ - min_)
+                            offset = (buttom - min_) / (top - buttom)
+                        else:
+                            factor = 1
+                            offset = 0
 
-                    try:
-                        min_, max_ = float(signal.min), float(signal.max)
-                    except:
-                        min_, max_ = 0, 1
+                        signal.mode = mode
 
-                    if max_ != min_:
+                        try:
+                            min_, max_ = float(signal.min), float(signal.max)
+                        except:
+                            min_, max_ = 0, 1
 
-                        delta = (max_ - min_) * factor
-                        buttom = min_ + offset * delta
-                        top = buttom + delta
-                    else:
-                        buttom, top = max_ - 1, max_ + 1
+                        if max_ != min_:
 
-                    view.setYRange(buttom, top, padding=0, update=True)
+                            delta = (max_ - min_) * factor
+                            buttom = min_ + offset * delta
+                            top = buttom + delta
+                        else:
+                            buttom, top = max_ - 1, max_ + 1
 
-                    if self.plot.current_uuid == signal.uuid:
-                        self.plot.y_axis.mode = mode
-                        self.plot.y_axis.hide()
-                        self.plot.y_axis.show()
+                        view.setYRange(buttom, top, padding=0, update=True)
+
+                        if self.plot.current_uuid == signal.uuid:
+                            self.plot.y_axis.mode = mode
+                            self.plot.y_axis.hide()
+                            self.plot.y_axis.show()
 
             self.plot.update_lines()
             self.plot.update_plt()
@@ -2026,6 +2034,27 @@ class Plot(QtWidgets.QWidget):
                         item.label.setVisible(True)
                 except:
                     pass
+
+        elif key == QtCore.Qt.Key_G and modifiers == QtCore.Qt.ControlModifier:
+            selected_items = [
+                item
+                for item in self.channel_selection.selectedItems()
+                if isinstance(item, ChannelsTreeItem)
+            ]
+
+            if selected_items:
+
+                uuid = self.channel_selection.itemWidget(selected_items[0], 1).uuid
+                sig, idx = self.plot.signal_by_uuid(uuid)
+                diag = ScaleDialog(sig, self.plot.view_boxes[idx].viewRange()[1])
+
+                if diag.exec():
+                    for item in selected_items:
+                        uuid = self.channel_selection.itemWidget(item, 1).uuid
+                        sig, idx = self.plot.signal_by_uuid(uuid)
+                        self.plot.view_boxes[idx].setYRange(
+                            diag.y_bottom.value(), diag.y_top.value(), padding=0
+                        )
 
         elif key == QtCore.Qt.Key_R and modifiers == QtCore.Qt.NoModifier:
             iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
