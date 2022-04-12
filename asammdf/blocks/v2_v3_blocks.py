@@ -2732,6 +2732,7 @@ class HeaderBlock:
         "address",
         "program",
         "comment",
+        "description",
         "id",
         "block_len",
         "first_dg_addr",
@@ -2833,6 +2834,7 @@ class HeaderBlock:
         self.department = self.department_field.strip(b" \r\n\t\0").decode("latin-1")
         self.project = self.project_field.strip(b" \r\n\t\0").decode("latin-1")
         self.subject = self.subject_field.strip(b" \r\n\t\0").decode("latin-1")
+        self.description = self.comment
 
     def to_blocks(
         self,

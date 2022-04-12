@@ -476,7 +476,7 @@ class MDF4(MDF_Common):
 
         self.identification = FileIdentificationBlock(stream=stream, mapped=mapped)
         version = self.identification["version_str"]
-        self.version = version.decode("utf-8").strip(" \n\t\0")
+        self.version = version.decode("utf-8").strip(" \n\t\r\0")
 
         if self.version >= "4.10":
             # Check for finalization past version 4.10

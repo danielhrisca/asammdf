@@ -5291,6 +5291,7 @@ class HeaderBlock:
         "department",
         "project",
         "subject",
+        "description",
         "id",
         "reserved0",
         "block_len",
@@ -5317,7 +5318,9 @@ class HeaderBlock:
 
         self.comment = ""
 
-        self.author = self.project = self.subject = self.department = ""
+        self.author = (
+            self.project
+        ) = self.subject = self.department = self.description = ""
 
         try:
             self.address = address = kwargs["address"]
@@ -5382,22 +5385,32 @@ class HeaderBlock:
         if self.comment.startswith("<HDcomment"):
             comment = self.comment
             try:
-                comment_xml = ET.fromstring(comment)
+                comment_xml = ET.fromstring(
+                    comment.replace(' xmlns="http://www.asam.net/mdf/v4"', "")
+                )
             except ET.ParseError as e:
+                self.description = self.comment
                 logger.error(f"could not parse header block comment; {e}")
             else:
+                description = comment_xml.find(".//TX")
+                if description is None:
+                    self.description = ""
+                else:
+                    self.description = description.text or ""
                 common_properties = comment_xml.find(".//common_properties")
                 if common_properties is not None:
                     for e in common_properties:
                         name = e.get("name")
                         if name == "author":
-                            self.author = e.text
+                            self.author = e.text or ""
                         elif name == "department":
-                            self.department = e.text
+                            self.department = e.text or ""
                         elif name == "project":
-                            self.project = e.text
+                            self.project = e.text or ""
                         elif name == "subject":
-                            self.subject = e.text
+                            self.subject = e.text or ""
+        else:
+            self.description = self.comment
 
     def __getitem__(self, item: str) -> Any:
         return self.__getattribute__(item)

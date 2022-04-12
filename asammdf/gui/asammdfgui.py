@@ -8,7 +8,7 @@ os.environ["PYQTGRAPH_QT_LIB"] = "PySide6"
 os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "0"
 
 import pyqtgraph
-from PySide6 import QtWidgets, QtGui
+from PySide6 import QtGui, QtWidgets
 
 from asammdf.gui.utils import excepthook
 from asammdf.gui.widgets.main import MainWindow
