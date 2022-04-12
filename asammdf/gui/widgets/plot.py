@@ -2046,7 +2046,9 @@ class Plot(QtWidgets.QWidget):
 
                 uuid = self.channel_selection.itemWidget(selected_items[0], 1).uuid
                 sig, idx = self.plot.signal_by_uuid(uuid)
-                diag = ScaleDialog(sig, self.plot.view_boxes[idx].viewRange()[1])
+                diag = ScaleDialog(
+                    sig, self.plot.view_boxes[idx].viewRange()[1], parent=self
+                )
 
                 if diag.exec():
                     for item in selected_items:

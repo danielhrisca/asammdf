@@ -24,78 +24,19 @@ class Ui_ScaleDialog(object):
     def setupUi(self, ScaleDialog):
         if not ScaleDialog.objectName():
             ScaleDialog.setObjectName(u"ScaleDialog")
-        ScaleDialog.resize(706, 414)
-        self.gridLayout = QGridLayout(ScaleDialog)
-        self.gridLayout.setObjectName(u"gridLayout")
-        self.label_12 = QLabel(ScaleDialog)
-        self.label_12.setObjectName(u"label_12")
-        self.label_12.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
-
-        self.gridLayout.addWidget(self.label_12, 0, 0, 1, 1)
-
+        ScaleDialog.resize(1091, 660)
+        self.gridLayout_3 = QGridLayout(ScaleDialog)
+        self.gridLayout_3.setObjectName(u"gridLayout_3")
         self.plot = QLabel(ScaleDialog)
         self.plot.setObjectName(u"plot")
-        self.plot.setMinimumSize(QSize(350, 350))
-        self.plot.setMaximumSize(QSize(350, 350))
+        self.plot.setMinimumSize(QSize(750, 600))
+        self.plot.setMaximumSize(QSize(750, 600))
         self.plot.setFrameShape(QFrame.Box)
         self.plot.setLineWidth(2)
 
-        self.gridLayout.addWidget(self.plot, 0, 1, 3, 1)
+        self.gridLayout_3.addWidget(self.plot, 0, 0, 4, 1)
 
-        self.groupBox = QGroupBox(ScaleDialog)
-        self.groupBox.setObjectName(u"groupBox")
-        self.gridLayout_3 = QGridLayout(self.groupBox)
-        self.gridLayout_3.setObjectName(u"gridLayout_3")
-        self.fit_btn = QPushButton(self.groupBox)
-        self.fit_btn.setObjectName(u"fit_btn")
-        icon = QIcon()
-        icon.addFile(u":/fit.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.fit_btn.setIcon(icon)
-
-        self.gridLayout_3.addWidget(self.fit_btn, 3, 0, 1, 1)
-
-        self.y_bottom = QDoubleSpinBox(self.groupBox)
-        self.y_bottom.setObjectName(u"y_bottom")
-        self.y_bottom.setMinimum(0.000000000000000)
-        self.y_bottom.setMaximum(1.000000000000000)
-
-        self.gridLayout_3.addWidget(self.y_bottom, 5, 1, 1, 1)
-
-        self.zoom_in_btn = QPushButton(self.groupBox)
-        self.zoom_in_btn.setObjectName(u"zoom_in_btn")
-        icon1 = QIcon()
-        icon1.addFile(u":/zoom-in.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.zoom_in_btn.setIcon(icon1)
-
-        self.gridLayout_3.addWidget(self.zoom_in_btn, 1, 0, 1, 1)
-
-        self.horizontalSpacer_5 = QSpacerItem(168, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        self.gridLayout_3.addItem(self.horizontalSpacer_5, 1, 1, 1, 1)
-
-        self.label_4 = QLabel(self.groupBox)
-        self.label_4.setObjectName(u"label_4")
-
-        self.gridLayout_3.addWidget(self.label_4, 4, 0, 1, 1)
-
-        self.label_8 = QLabel(self.groupBox)
-        self.label_8.setObjectName(u"label_8")
-
-        self.gridLayout_3.addWidget(self.label_8, 5, 0, 1, 1)
-
-        self.zoom_out_btn = QPushButton(self.groupBox)
-        self.zoom_out_btn.setObjectName(u"zoom_out_btn")
-        icon2 = QIcon()
-        icon2.addFile(u":/zoom-out.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.zoom_out_btn.setIcon(icon2)
-
-        self.gridLayout_3.addWidget(self.zoom_out_btn, 2, 0, 1, 1)
-
-        self.verticalSpacer_3 = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
-
-        self.gridLayout_3.addItem(self.verticalSpacer_3, 7, 0, 1, 1)
-
-        self.groupBox_3 = QGroupBox(self.groupBox)
+        self.groupBox_3 = QGroupBox(ScaleDialog)
         self.groupBox_3.setObjectName(u"groupBox_3")
         self.gridLayout_4 = QGridLayout(self.groupBox_3)
         self.gridLayout_4.setObjectName(u"gridLayout_4")
@@ -126,40 +67,160 @@ class Ui_ScaleDialog(object):
         self.gridLayout_4.addWidget(self.target_min, 1, 1, 1, 1)
 
 
-        self.gridLayout_3.addWidget(self.groupBox_3, 0, 0, 1, 2)
+        self.gridLayout_3.addWidget(self.groupBox_3, 0, 1, 1, 1)
 
-        self.y_top = QDoubleSpinBox(self.groupBox)
+        self.groupBox_2 = QGroupBox(ScaleDialog)
+        self.groupBox_2.setObjectName(u"groupBox_2")
+        self.gridLayout = QGridLayout(self.groupBox_2)
+        self.gridLayout.setObjectName(u"gridLayout")
+        self.fit_btn = QPushButton(self.groupBox_2)
+        self.fit_btn.setObjectName(u"fit_btn")
+        icon = QIcon()
+        icon.addFile(u":/fit.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.fit_btn.setIcon(icon)
+
+        self.gridLayout.addWidget(self.fit_btn, 2, 0, 1, 1)
+
+        self.label_3 = QLabel(self.groupBox_2)
+        self.label_3.setObjectName(u"label_3")
+        self.label_3.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+
+        self.gridLayout.addWidget(self.label_3, 2, 1, 1, 1)
+
+        self.zoom_out_btn = QPushButton(self.groupBox_2)
+        self.zoom_out_btn.setObjectName(u"zoom_out_btn")
+        icon1 = QIcon()
+        icon1.addFile(u":/zoom-out.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.zoom_out_btn.setIcon(icon1)
+
+        self.gridLayout.addWidget(self.zoom_out_btn, 1, 0, 1, 1)
+
+        self.label = QLabel(self.groupBox_2)
+        self.label.setObjectName(u"label")
+        self.label.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+
+        self.gridLayout.addWidget(self.label, 1, 1, 1, 1)
+
+        self.label_7 = QLabel(self.groupBox_2)
+        self.label_7.setObjectName(u"label_7")
+        self.label_7.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+
+        self.gridLayout.addWidget(self.label_7, 4, 1, 1, 1)
+
+        self.fast_shift_up_btn = QPushButton(self.groupBox_2)
+        self.fast_shift_up_btn.setObjectName(u"fast_shift_up_btn")
+        icon2 = QIcon()
+        icon2.addFile(u":/shift_up.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.fast_shift_up_btn.setIcon(icon2)
+
+        self.gridLayout.addWidget(self.fast_shift_up_btn, 5, 0, 1, 1)
+
+        self.label_2 = QLabel(self.groupBox_2)
+        self.label_2.setObjectName(u"label_2")
+        self.label_2.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+
+        self.gridLayout.addWidget(self.label_2, 0, 1, 1, 1)
+
+        self.shift_down_btn = QPushButton(self.groupBox_2)
+        self.shift_down_btn.setObjectName(u"shift_down_btn")
+        icon3 = QIcon()
+        icon3.addFile(u":/down.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.shift_down_btn.setIcon(icon3)
+
+        self.gridLayout.addWidget(self.shift_down_btn, 4, 0, 1, 1)
+
+        self.label_6 = QLabel(self.groupBox_2)
+        self.label_6.setObjectName(u"label_6")
+        self.label_6.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+
+        self.gridLayout.addWidget(self.label_6, 3, 1, 1, 1)
+
+        self.shift_up_btn = QPushButton(self.groupBox_2)
+        self.shift_up_btn.setObjectName(u"shift_up_btn")
+        icon4 = QIcon()
+        icon4.addFile(u":/up.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.shift_up_btn.setIcon(icon4)
+
+        self.gridLayout.addWidget(self.shift_up_btn, 3, 0, 1, 1)
+
+        self.zoom_in_btn = QPushButton(self.groupBox_2)
+        self.zoom_in_btn.setObjectName(u"zoom_in_btn")
+        icon5 = QIcon()
+        icon5.addFile(u":/zoom-in.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.zoom_in_btn.setIcon(icon5)
+
+        self.gridLayout.addWidget(self.zoom_in_btn, 0, 0, 1, 1)
+
+        self.fast_shift_down_btn = QPushButton(self.groupBox_2)
+        self.fast_shift_down_btn.setObjectName(u"fast_shift_down_btn")
+        icon6 = QIcon()
+        icon6.addFile(u":/shift_down.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.fast_shift_down_btn.setIcon(icon6)
+
+        self.gridLayout.addWidget(self.fast_shift_down_btn, 6, 0, 1, 1)
+
+        self.label_11 = QLabel(self.groupBox_2)
+        self.label_11.setObjectName(u"label_11")
+        self.label_11.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+
+        self.gridLayout.addWidget(self.label_11, 5, 1, 1, 1)
+
+        self.label_12 = QLabel(self.groupBox_2)
+        self.label_12.setObjectName(u"label_12")
+        self.label_12.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+
+        self.gridLayout.addWidget(self.label_12, 6, 1, 1, 1)
+
+
+        self.gridLayout_3.addWidget(self.groupBox_2, 1, 1, 1, 1)
+
+        self.groupBox_4 = QGroupBox(ScaleDialog)
+        self.groupBox_4.setObjectName(u"groupBox_4")
+        self.gridLayout_2 = QGridLayout(self.groupBox_4)
+        self.gridLayout_2.setObjectName(u"gridLayout_2")
+        self.label_4 = QLabel(self.groupBox_4)
+        self.label_4.setObjectName(u"label_4")
+
+        self.gridLayout_2.addWidget(self.label_4, 0, 0, 1, 1)
+
+        self.y_top = QDoubleSpinBox(self.groupBox_4)
         self.y_top.setObjectName(u"y_top")
         self.y_top.setMinimum(0.000000000000000)
         self.y_top.setMaximum(1.000000000000000)
 
-        self.gridLayout_3.addWidget(self.y_top, 4, 1, 1, 1)
+        self.gridLayout_2.addWidget(self.y_top, 0, 1, 1, 1)
 
-        self.label_10 = QLabel(self.groupBox)
+        self.label_8 = QLabel(self.groupBox_4)
+        self.label_8.setObjectName(u"label_8")
+
+        self.gridLayout_2.addWidget(self.label_8, 1, 0, 1, 1)
+
+        self.y_bottom = QDoubleSpinBox(self.groupBox_4)
+        self.y_bottom.setObjectName(u"y_bottom")
+        self.y_bottom.setMinimum(0.000000000000000)
+        self.y_bottom.setMaximum(1.000000000000000)
+
+        self.gridLayout_2.addWidget(self.y_bottom, 1, 1, 1, 1)
+
+        self.label_10 = QLabel(self.groupBox_4)
         self.label_10.setObjectName(u"label_10")
 
-        self.gridLayout_3.addWidget(self.label_10, 6, 0, 1, 1)
+        self.gridLayout_2.addWidget(self.label_10, 2, 0, 1, 1)
 
-        self.offset = QDoubleSpinBox(self.groupBox)
+        self.offset = QDoubleSpinBox(self.groupBox_4)
         self.offset.setObjectName(u"offset")
         self.offset.setDecimals(3)
         self.offset.setMinimum(0.000000000000000)
         self.offset.setMaximum(1.000000000000000)
 
-        self.gridLayout_3.addWidget(self.offset, 6, 1, 1, 1)
+        self.gridLayout_2.addWidget(self.offset, 2, 1, 1, 1)
 
 
-        self.gridLayout.addWidget(self.groupBox, 0, 2, 3, 1)
+        self.gridLayout_3.addWidget(self.groupBox_4, 2, 1, 1, 1)
 
-        self.verticalSpacer = QSpacerItem(20, 299, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.verticalSpacer = QSpacerItem(20, 56, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
-        self.gridLayout.addItem(self.verticalSpacer, 1, 0, 1, 1)
-
-        self.label_11 = QLabel(ScaleDialog)
-        self.label_11.setObjectName(u"label_11")
-        self.label_11.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
-
-        self.gridLayout.addWidget(self.label_11, 2, 0, 1, 1)
+        self.gridLayout_3.addItem(self.verticalSpacer, 3, 1, 1, 1)
 
         self.horizontalLayout = QHBoxLayout()
         self.horizontalLayout.setObjectName(u"horizontalLayout")
@@ -169,9 +230,9 @@ class Ui_ScaleDialog(object):
 
         self.cancel_btn = QPushButton(ScaleDialog)
         self.cancel_btn.setObjectName(u"cancel_btn")
-        icon3 = QIcon()
-        icon3.addFile(u":/erase.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.cancel_btn.setIcon(icon3)
+        icon7 = QIcon()
+        icon7.addFile(u":/erase.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.cancel_btn.setIcon(icon7)
 
         self.horizontalLayout.addWidget(self.cancel_btn)
 
@@ -181,15 +242,15 @@ class Ui_ScaleDialog(object):
 
         self.apply_btn = QPushButton(ScaleDialog)
         self.apply_btn.setObjectName(u"apply_btn")
-        icon4 = QIcon()
-        icon4.addFile(u":/checkmark.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.apply_btn.setIcon(icon4)
+        icon8 = QIcon()
+        icon8.addFile(u":/checkmark.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.apply_btn.setIcon(icon8)
 
         self.horizontalLayout.addWidget(self.apply_btn)
 
         self.horizontalLayout.setStretch(0, 1)
 
-        self.gridLayout.addLayout(self.horizontalLayout, 3, 0, 1, 3)
+        self.gridLayout_3.addLayout(self.horizontalLayout, 4, 0, 1, 2)
 
 
         self.retranslateUi(ScaleDialog)
@@ -199,20 +260,30 @@ class Ui_ScaleDialog(object):
 
     def retranslateUi(self, ScaleDialog):
         ScaleDialog.setWindowTitle(QCoreApplication.translate("ScaleDialog", u"Dialog", None))
-        self.label_12.setText(QCoreApplication.translate("ScaleDialog", u"100%", None))
         self.plot.setText("")
-        self.groupBox.setTitle(QCoreApplication.translate("ScaleDialog", u"Y scaling", None))
-        self.fit_btn.setText(QCoreApplication.translate("ScaleDialog", u"Fit vertically", None))
-        self.zoom_in_btn.setText(QCoreApplication.translate("ScaleDialog", u"Zoom in", None))
-        self.label_4.setText(QCoreApplication.translate("ScaleDialog", u"Y top", None))
-        self.label_8.setText(QCoreApplication.translate("ScaleDialog", u"Y bottom", None))
-        self.zoom_out_btn.setText(QCoreApplication.translate("ScaleDialog", u"Zoom out", None))
         self.groupBox_3.setTitle(QCoreApplication.translate("ScaleDialog", u"Expected signal values", None))
         self.label_5.setText(QCoreApplication.translate("ScaleDialog", u"Signal max", None))
         self.label_9.setText(QCoreApplication.translate("ScaleDialog", u"Signal min", None))
-        self.label_10.setText(QCoreApplication.translate("ScaleDialog", u"0 value position", None))
+        self.groupBox_2.setTitle(QCoreApplication.translate("ScaleDialog", u"Keyboard shortcuts", None))
+        self.fit_btn.setText(QCoreApplication.translate("ScaleDialog", u"Fit vertically", None))
+        self.label_3.setText(QCoreApplication.translate("ScaleDialog", u"F", None))
+        self.zoom_out_btn.setText(QCoreApplication.translate("ScaleDialog", u"Zoom out", None))
+        self.label.setText(QCoreApplication.translate("ScaleDialog", u"O", None))
+        self.label_7.setText(QCoreApplication.translate("ScaleDialog", f"Shift+\N{DOWNWARDS ARROW}", None))
+        self.fast_shift_up_btn.setText(QCoreApplication.translate("ScaleDialog", u"Fast shift up", None))
+        self.label_2.setText(QCoreApplication.translate("ScaleDialog", u"I", None))
+        self.shift_down_btn.setText(QCoreApplication.translate("ScaleDialog", u"Shift down", None))
+        self.label_6.setText(QCoreApplication.translate("ScaleDialog", f"Shift+\N{UPWARDS ARROW}", None))
+        self.shift_up_btn.setText(QCoreApplication.translate("ScaleDialog", u"Shift up", None))
+        self.zoom_in_btn.setText(QCoreApplication.translate("ScaleDialog", u"Zoom in", None))
+        self.fast_shift_down_btn.setText(QCoreApplication.translate("ScaleDialog", u"Fast shift down", None))
+        self.label_11.setText(QCoreApplication.translate("ScaleDialog", u"Shift+PageUp", None))
+        self.label_12.setText(QCoreApplication.translate("ScaleDialog", u"Shift+PageDown", None))
+        self.groupBox_4.setTitle(QCoreApplication.translate("ScaleDialog", u"Screen levels", None))
+        self.label_4.setText(QCoreApplication.translate("ScaleDialog", u"Y axis top value", None))
+        self.label_8.setText(QCoreApplication.translate("ScaleDialog", u"Y axis bottom value", None))
+        self.label_10.setText(QCoreApplication.translate("ScaleDialog", u"0 level on screen", None))
         self.offset.setSuffix(QCoreApplication.translate("ScaleDialog", u"%", None))
-        self.label_11.setText(QCoreApplication.translate("ScaleDialog", u"0%", None))
         self.cancel_btn.setText(QCoreApplication.translate("ScaleDialog", u"Cancel", None))
         self.apply_btn.setText(QCoreApplication.translate("ScaleDialog", u"Apply", None))
     # retranslateUi
