@@ -777,6 +777,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addAction(self.tr(show_missing_channels))
         menu.addSeparator()
 
+        menu.addAction(self.tr("Edit Y axis scaling [Ctrl+G]"))
         if isinstance(item, ChannelsTreeItem):
             menu.addAction(self.tr("Add to common Y axis"))
             menu.addAction(self.tr("Remove from common Y axis"))
@@ -943,6 +944,14 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 if isinstance(item, ChannelsTreeItem):
                     widget = self.itemWidget(item, 1)
                     widget.ylink.setCheckState(QtCore.Qt.Checked)
+
+        elif action.text() == "Edit Y axis scaling [Ctrl+G]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.KeyPress,
+                QtCore.Qt.Key_G,
+                QtCore.Qt.ControlModifier,
+            )
+            self.plot.keyPressEvent(event)
 
         elif action.text() == "Remove from common Y axis":
             selected_items = self.selectedItems()

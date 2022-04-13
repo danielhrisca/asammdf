@@ -2,22 +2,29 @@
 
 from functools import partial
 
+from natsort import natsorted
 import numpy as np
 from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..ui import resource_rc
 from ..ui.signal_scale import Ui_ScaleDialog
+from .plot import PlotSignal
 
 PLOT_HEIGTH = 600  # pixels
 TEXT_WIDTH = 50  # pixels
 
 
 class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
-    def __init__(self, signal, y_range, *args, **kwargs):
+    def __init__(self, signals, y_range, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
-        self.signal = signal
+        self.signals = signals
+        self._inhibit = True
+
+        self.signal.addItems(list(natsorted(signals)))
+        self.signal.setCurrentIndex(0)
+        self.signal.currentTextChanged.connect(self.signal_selected)
 
         self.setWindowTitle("Y scale configuration")
 
@@ -32,14 +39,7 @@ class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
         self.offset.setMinimum(-np.inf)
         self.offset.setMaximum(np.inf)
 
-        if not isinstance(signal.min, str):
-            self.target_max.setValue(signal.max)
-            self.target_min.setValue(signal.min)
-            self._target_max = signal.max
-            self._target_min = signal.min
-        else:
-            self._target_max = 0
-            self._target_min = 0
+        self.signal_selected(self.signal.currentText())
 
         self._y_top = y_range[1]
         self._y_bottom = y_range[0]
@@ -191,11 +191,15 @@ class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
             canvas = self.plot.pixmap()
             canvas.fill(QtCore.Qt.black)
 
-            x = np.linspace(0, 2 * np.pi * 10, PLOT_HEIGTH)
-            amp = (self.target_max.value() - self.target_min.value()) / 2
-            off = (self.target_max.value() + self.target_min.value()) / 2
-            y = np.sin(x) * amp + off
-            x = np.arange(50, 50 + PLOT_HEIGTH)
+            if self.samples is None:
+                x = np.linspace(0, 2 * np.pi * 10, PLOT_HEIGTH)
+                amp = (self.target_max.value() - self.target_min.value()) / 2
+                off = (self.target_max.value() + self.target_min.value()) / 2
+                y = np.sin(x) * amp + off
+                x = np.arange(50, 50 + PLOT_HEIGTH)
+            else:
+                x = self.samples.plot_timestamps
+                y = self.samples.plot_samples.copy()
 
             ys = self.y_top.value()
             y_scale = (self.y_top.value() - self.y_bottom.value()) / PLOT_HEIGTH
@@ -204,7 +208,7 @@ class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
 
             y = (ys - y) / y_scale
 
-            polygon = fn.create_qpolygonf(PLOT_HEIGTH)
+            polygon = fn.create_qpolygonf(len(x))
             ndarray = fn.ndarray_from_qpolygonf(polygon)
 
             ndarray[:, 0] = x
@@ -277,3 +281,32 @@ class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
             self.offset.stepBy(-10)
         else:
             super().keyPressEvent(event)
+
+    def signal_selected(self, name):
+        signal = self.signals[name].copy()
+        signal.computed = False
+        signal.computation = {}
+
+        signal = PlotSignal(signal)
+        if not isinstance(signal.min, str):
+            self.target_max.setValue(signal.max)
+            self.target_min.setValue(signal.min)
+
+            if len(signal):
+                self.samples = signal
+                self.samples.trim(
+                    signal.timestamps[0],
+                    signal.timestamps[-1],
+                    PLOT_HEIGTH,
+                )
+                self.samples.plot_timestamps -= self.samples.plot_timestamps[0]
+                x_scale = self.samples.plot_timestamps[-1] / PLOT_HEIGTH
+                self.samples.plot_timestamps /= x_scale
+                self.samples.plot_timestamps += TEXT_WIDTH
+
+            else:
+                self.samples = None
+        else:
+            self.samples = None
+
+        self.draw_plot()

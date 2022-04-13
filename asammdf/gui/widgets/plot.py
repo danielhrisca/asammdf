@@ -30,7 +30,6 @@ PLOT_BUFFER_SIZE = 4000
 
 from ...blocks.utils import target_byte_order
 from ..utils import FONT_SIZE
-from .signal_scale import ScaleDialog
 
 try:
     from ...blocks.cutils import positions
@@ -1222,6 +1221,9 @@ class PlotSignal(Signal):
         return value, kind, self.format
 
 
+from .signal_scale import ScaleDialog
+
+
 class Plot(QtWidgets.QWidget):
 
     add_channels_request = QtCore.Signal(list)
@@ -2044,16 +2046,24 @@ class Plot(QtWidgets.QWidget):
 
             if selected_items:
 
-                uuid = self.channel_selection.itemWidget(selected_items[0], 1).uuid
-                sig, idx = self.plot.signal_by_uuid(uuid)
-                diag = ScaleDialog(
-                    sig, self.plot.view_boxes[idx].viewRange()[1], parent=self
-                )
+                uuids = [
+                    self.channel_selection.itemWidget(item, 1).uuid
+                    for item in selected_items
+                ]
+
+                signals = {}
+                indexes = []
+                for i, uuid in enumerate(uuids):
+                    if i == 0:
+                        y_range = self.plot.view_boxes[i].viewRange()[1]
+                    sig, idx = self.plot.signal_by_uuid(uuid)
+                    indexes.append(idx)
+                    signals[sig.name] = sig
+
+                diag = ScaleDialog(signals, y_range, parent=self)
 
                 if diag.exec():
-                    for item in selected_items:
-                        uuid = self.channel_selection.itemWidget(item, 1).uuid
-                        sig, idx = self.plot.signal_by_uuid(uuid)
+                    for idx in indexes:
                         self.plot.view_boxes[idx].setYRange(
                             diag.y_bottom.value(), diag.y_top.value(), padding=0
                         )
