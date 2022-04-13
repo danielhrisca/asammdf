@@ -151,7 +151,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         subplot_action = QtGui.QAction("Sub-windows", menu)
         subplot_action.setCheckable(True)
 
-        state = self._settings.value("subplots", False, type=bool)
+        state = self._settings.value("subplots", True, type=bool)
         subplot_action.toggled.connect(self.set_subplot_option)
         subplot_action.triggered.connect(self.set_subplot_option)
         subplot_action.setChecked(state)
@@ -160,7 +160,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         # Link sub-windows X-axis
         subplot_action = QtGui.QAction("Link sub-windows X-axis", menu)
         subplot_action.setCheckable(True)
-        state = self._settings.value("subplots_link", False, type=bool)
+        state = self._settings.value("subplots_link", True, type=bool)
         subplot_action.toggled.connect(self.set_subplot_link_option)
         subplot_action.setChecked(state)
         menu.addAction(subplot_action)

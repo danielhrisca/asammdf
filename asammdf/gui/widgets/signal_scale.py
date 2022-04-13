@@ -242,6 +242,14 @@ class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
             pen.setWidth(2)
             painter.setPen(pen)
             painter.drawPolyline(polygon)
+
+            pen = QtGui.QPen('#18e223')
+            pen.setWidth(2)
+            pen.setStyle(QtCore.Qt.DashDotDotLine)
+            painter.setPen(pen)
+            offset = int(PLOT_HEIGTH - self.offset.value() * PLOT_HEIGTH / 100)
+            painter.drawLine(0, offset, PLOT_HEIGTH + 2 * TEXT_WIDTH, offset)
+
             painter.end()
 
             self.plot.setPixmap(canvas)
