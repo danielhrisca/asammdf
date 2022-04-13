@@ -58,7 +58,7 @@
           <enum>Qt::Horizontal</enum>
          </property>
          <widget class="QWidget" name="verticalLayoutWidget">
-          <layout class="QVBoxLayout" name="verticalLayout_4">
+          <layout class="QVBoxLayout" name="channels_layout">
            <item>
             <widget class="QComboBox" name="channel_view">
              <item>
@@ -91,7 +91,7 @@
             </widget>
            </item>
            <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_2">
+            <layout class="QHBoxLayout" name="buttons_layout">
              <item>
               <widget class="QPushButton" name="load_channel_list_btn">
                <property name="toolTip">
@@ -107,7 +107,7 @@
               </widget>
              </item>
              <item>
-              <spacer name="horizontalSpacer_6">
+              <spacer name="button_spacer1">
                <property name="orientation">
                 <enum>Qt::Horizontal</enum>
                </property>
@@ -193,7 +193,7 @@
               </widget>
              </item>
              <item>
-              <spacer name="horizontalSpacer">
+              <spacer name="button_spacer2">
                <property name="orientation">
                 <enum>Qt::Horizontal</enum>
                </property>

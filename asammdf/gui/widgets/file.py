@@ -1986,12 +1986,98 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.toggle_frames()
 
         elif key == QtCore.Qt.Key_L and modifier == QtCore.Qt.ShiftModifier:
-            sizes = self.splitter.sizes()
-            if sizes[0]:
-                self._splitter_sizes = sizes
-                self.splitter.setSizes([0, sum(sizes)])
+            if isinstance(self.buttons_layout, QtWidgets.QHBoxLayout):
+
+                self._splitter_sizes = self.splitter.sizes()
+
+                self.channel_view.hide()
+                self.channels_tree.hide()
+                layout = self.channels_layout
+
+                layout.removeItem(self.buttons_layout)
+
+                self.buttons_layout.removeWidget(self.advanced_search_btn)
+                self.buttons_layout.removeItem(self.button_spacer1)
+                self.buttons_layout.removeItem(self.button_spacer2)
+                self.buttons_layout.removeWidget(self.clear_channels_btn)
+                self.buttons_layout.removeWidget(self.create_window_btn)
+                self.buttons_layout.removeWidget(self.load_channel_list_btn)
+                self.buttons_layout.removeWidget(self.save_channel_list_btn)
+                self.buttons_layout.removeWidget(self.select_all_btn)
+
+                self.buttons_layout = QtWidgets.QVBoxLayout()
+                self.buttons_layout.setSpacing(6)
+
+                self.button_spacer1.changeSize(
+                    16, 16, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed
+                )
+                self.button_spacer2.changeSize(
+                    16,
+                    16,
+                    QtWidgets.QSizePolicy.Minimum,
+                    QtWidgets.QSizePolicy.Expanding,
+                )
+
+                self.buttons_layout.addWidget(self.load_channel_list_btn)
+                self.buttons_layout.addItem(self.button_spacer1)
+                self.buttons_layout.addWidget(self.save_channel_list_btn)
+                self.buttons_layout.addWidget(self.select_all_btn)
+                self.buttons_layout.addWidget(self.clear_channels_btn)
+                self.buttons_layout.addWidget(self.advanced_search_btn)
+                self.buttons_layout.addWidget(self.create_window_btn)
+                self.buttons_layout.addItem(self.button_spacer2)
+
+                layout.addItem(self.buttons_layout)
+
+                self.splitter.setSizes([1, sum(self._splitter_sizes)])
+                self.splitter.handle(0).setEnabled(False)
+                self.splitter.handle(1).setEnabled(False)
+
             else:
+
+                layout = self.channels_layout
+
+                layout.removeItem(self.buttons_layout)
+
+                self.buttons_layout.removeWidget(self.advanced_search_btn)
+                self.buttons_layout.removeItem(self.button_spacer1)
+                self.buttons_layout.removeItem(self.button_spacer2)
+                self.buttons_layout.removeWidget(self.clear_channels_btn)
+                self.buttons_layout.removeWidget(self.create_window_btn)
+                self.buttons_layout.removeWidget(self.load_channel_list_btn)
+                self.buttons_layout.removeWidget(self.save_channel_list_btn)
+                self.buttons_layout.removeWidget(self.select_all_btn)
+
+                self.buttons_layout = QtWidgets.QHBoxLayout()
+                self.buttons_layout.setSpacing(6)
+
+                self.button_spacer1.changeSize(
+                    16, 16, QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Minimum
+                )
+                self.button_spacer2.changeSize(
+                    16,
+                    16,
+                    QtWidgets.QSizePolicy.Expanding,
+                    QtWidgets.QSizePolicy.Minimum,
+                )
+
+                self.buttons_layout.addWidget(self.load_channel_list_btn)
+                self.buttons_layout.addItem(self.button_spacer1)
+                self.buttons_layout.addWidget(self.save_channel_list_btn)
+                self.buttons_layout.addWidget(self.select_all_btn)
+                self.buttons_layout.addWidget(self.clear_channels_btn)
+                self.buttons_layout.addWidget(self.advanced_search_btn)
+                self.buttons_layout.addWidget(self.create_window_btn)
+                self.buttons_layout.addItem(self.button_spacer2)
+
+                layout.addItem(self.buttons_layout)
+
+                self.channel_view.show()
+                self.channels_tree.show()
+
                 self.splitter.setSizes(self._splitter_sizes)
+                self.splitter.handle(0).setEnabled(True)
+                self.splitter.handle(1).setEnabled(True)
 
         elif key == QtCore.Qt.Key_Period and modifier == QtCore.Qt.NoModifier:
             self.set_line_style()

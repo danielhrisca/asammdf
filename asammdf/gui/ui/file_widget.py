@@ -49,35 +49,35 @@ class Ui_file_widget(object):
         self.splitter.setOrientation(Qt.Horizontal)
         self.verticalLayoutWidget = QWidget(self.splitter)
         self.verticalLayoutWidget.setObjectName(u"verticalLayoutWidget")
-        self.verticalLayout_4 = QVBoxLayout(self.verticalLayoutWidget)
-        self.verticalLayout_4.setObjectName(u"verticalLayout_4")
-        self.verticalLayout_4.setContentsMargins(0, 0, 0, 0)
+        self.channels_layout = QVBoxLayout(self.verticalLayoutWidget)
+        self.channels_layout.setObjectName(u"channels_layout")
+        self.channels_layout.setContentsMargins(0, 0, 0, 0)
         self.channel_view = QComboBox(self.verticalLayoutWidget)
         self.channel_view.addItem("")
         self.channel_view.addItem("")
         self.channel_view.addItem("")
         self.channel_view.setObjectName(u"channel_view")
 
-        self.verticalLayout_4.addWidget(self.channel_view)
+        self.channels_layout.addWidget(self.channel_view)
 
         self.channels_tree = TreeWidget(self.verticalLayoutWidget)
         self.channels_tree.setObjectName(u"channels_tree")
 
-        self.verticalLayout_4.addWidget(self.channels_tree)
+        self.channels_layout.addWidget(self.channels_tree)
 
-        self.horizontalLayout_2 = QHBoxLayout()
-        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.buttons_layout = QHBoxLayout()
+        self.buttons_layout.setObjectName(u"buttons_layout")
         self.load_channel_list_btn = QPushButton(self.verticalLayoutWidget)
         self.load_channel_list_btn.setObjectName(u"load_channel_list_btn")
         icon = QIcon()
         icon.addFile(u":/open.png", QSize(), QIcon.Normal, QIcon.Off)
         self.load_channel_list_btn.setIcon(icon)
 
-        self.horizontalLayout_2.addWidget(self.load_channel_list_btn)
+        self.buttons_layout.addWidget(self.load_channel_list_btn)
 
-        self.horizontalSpacer_6 = QSpacerItem(20, 20, QSizePolicy.Fixed, QSizePolicy.Minimum)
+        self.button_spacer1 = QSpacerItem(20, 20, QSizePolicy.Fixed, QSizePolicy.Minimum)
 
-        self.horizontalLayout_2.addItem(self.horizontalSpacer_6)
+        self.buttons_layout.addItem(self.button_spacer1)
 
         self.save_channel_list_btn = QPushButton(self.verticalLayoutWidget)
         self.save_channel_list_btn.setObjectName(u"save_channel_list_btn")
@@ -85,7 +85,7 @@ class Ui_file_widget(object):
         icon1.addFile(u":/save.png", QSize(), QIcon.Normal, QIcon.Off)
         self.save_channel_list_btn.setIcon(icon1)
 
-        self.horizontalLayout_2.addWidget(self.save_channel_list_btn)
+        self.buttons_layout.addWidget(self.save_channel_list_btn)
 
         self.select_all_btn = QPushButton(self.verticalLayoutWidget)
         self.select_all_btn.setObjectName(u"select_all_btn")
@@ -93,7 +93,7 @@ class Ui_file_widget(object):
         icon2.addFile(u":/checkmark.png", QSize(), QIcon.Normal, QIcon.Off)
         self.select_all_btn.setIcon(icon2)
 
-        self.horizontalLayout_2.addWidget(self.select_all_btn)
+        self.buttons_layout.addWidget(self.select_all_btn)
 
         self.clear_channels_btn = QPushButton(self.verticalLayoutWidget)
         self.clear_channels_btn.setObjectName(u"clear_channels_btn")
@@ -101,7 +101,7 @@ class Ui_file_widget(object):
         icon3.addFile(u":/erase.png", QSize(), QIcon.Normal, QIcon.Off)
         self.clear_channels_btn.setIcon(icon3)
 
-        self.horizontalLayout_2.addWidget(self.clear_channels_btn)
+        self.buttons_layout.addWidget(self.clear_channels_btn)
 
         self.advanced_search_btn = QPushButton(self.verticalLayoutWidget)
         self.advanced_search_btn.setObjectName(u"advanced_search_btn")
@@ -109,7 +109,7 @@ class Ui_file_widget(object):
         icon4.addFile(u":/search.png", QSize(), QIcon.Normal, QIcon.Off)
         self.advanced_search_btn.setIcon(icon4)
 
-        self.horizontalLayout_2.addWidget(self.advanced_search_btn)
+        self.buttons_layout.addWidget(self.advanced_search_btn)
 
         self.create_window_btn = QPushButton(self.verticalLayoutWidget)
         self.create_window_btn.setObjectName(u"create_window_btn")
@@ -117,14 +117,14 @@ class Ui_file_widget(object):
         icon5.addFile(u":/graph.png", QSize(), QIcon.Normal, QIcon.Off)
         self.create_window_btn.setIcon(icon5)
 
-        self.horizontalLayout_2.addWidget(self.create_window_btn)
+        self.buttons_layout.addWidget(self.create_window_btn)
 
-        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.button_spacer2 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
-        self.horizontalLayout_2.addItem(self.horizontalSpacer)
+        self.buttons_layout.addItem(self.button_spacer2)
 
 
-        self.verticalLayout_4.addLayout(self.horizontalLayout_2)
+        self.channels_layout.addLayout(self.buttons_layout)
 
         self.splitter.addWidget(self.verticalLayoutWidget)
 
