@@ -2980,6 +2980,8 @@ class _Plot(pg.PlotWidget):
                 (QtCore.Qt.Key_Right, QtCore.Qt.ControlModifier),
                 (QtCore.Qt.Key_Up, QtCore.Qt.ShiftModifier),
                 (QtCore.Qt.Key_Down, QtCore.Qt.ShiftModifier),
+                (QtCore.Qt.Key_PageUp, QtCore.Qt.ShiftModifier),
+                (QtCore.Qt.Key_PageDown, QtCore.Qt.ShiftModifier),
                 (QtCore.Qt.Key_H, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_Insert, QtCore.Qt.NoModifier),
             ]
@@ -3838,7 +3840,13 @@ class _Plot(pg.PlotWidget):
                 self.set_time_offset([False, offset, *uuids])
 
             elif (
-                key in (QtCore.Qt.Key_Up, QtCore.Qt.Key_Down)
+                key
+                in (
+                    QtCore.Qt.Key_Up,
+                    QtCore.Qt.Key_Down,
+                    QtCore.Qt.Key_PageUp,
+                    QtCore.Qt.Key_PageDown,
+                )
                 and modifier == QtCore.Qt.ShiftModifier
             ):
                 parent = self.parent().parent()
@@ -3855,6 +3863,10 @@ class _Plot(pg.PlotWidget):
 
                 common_axis_modified = False
 
+                factor = (
+                    10 if key in (QtCore.Qt.Key_PageUp, QtCore.Qt.Key_PageDown) else 100
+                )
+
                 for uuid in uuids:
                     signal, index = self.signal_by_uuid(uuid)
 
@@ -3869,9 +3881,9 @@ class _Plot(pg.PlotWidget):
                         viewbox = self.view_boxes[index]
 
                     bottom, top = viewbox.viewRange()[1]
-                    step = (top - bottom) / 100
+                    step = (top - bottom) / factor
 
-                    if key == QtCore.Qt.Key_Up:
+                    if key in (QtCore.Qt.Key_Up, QtCore.Qt.Key_PageUp):
                         step = -step
 
                     viewbox.setYRange(bottom + step, top + step, padding=0)

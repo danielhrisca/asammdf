@@ -243,7 +243,7 @@ class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
             painter.setPen(pen)
             painter.drawPolyline(polygon)
 
-            pen = QtGui.QPen('#18e223')
+            pen = QtGui.QPen("#18e223")
             pen.setWidth(2)
             pen.setStyle(QtCore.Qt.DashDotDotLine)
             painter.setPen(pen)
