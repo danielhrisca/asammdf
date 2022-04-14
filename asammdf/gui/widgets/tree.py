@@ -609,21 +609,25 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
     def dropEvent(self, e):
 
+        uuids = get_data(self.plot, self.selectedItems(), uuids_only=True)
+
         if e.source() is self:
-
-            drop_item = self.itemAt(e.pos())
-
-            # cannot move inside pattern channel group
-            current_item = drop_item
-            while current_item:
-                if current_item.type() == ChannelsTreeItem.Group and current_item.pattern:
-                    e.ignore()
-                    return
-                current_item = current_item.parent()
-
-            uuids = get_data(self.plot, self.selectedItems(), uuids_only=True)
-
             super().dropEvent(e)
+            #
+            #
+            # drop_item = self.itemAt(e.pos())
+            #
+            # # cannot move inside pattern channel group
+            # current_item = drop_item
+            # while current_item:
+            #     if current_item.type() == ChannelsTreeItem.Group and current_item.pattern:
+            #         e.ignore()
+            #         return
+            #     current_item = current_item.parent()
+            #
+            uuids = get_data(self.plot, self.selectedItems(), uuids_only=True)
+            #
+            # super().dropEvent(e)
             #
             # selected_items = validate_drag_items(
             #     self.invisibleRootItem(), self.selectedItems(), []
@@ -688,8 +692,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             #         item_widget.disconnect_slots()
             #     (item.parent() or root).removeChild(item)
 
-            self.update_channel_groups_count()
-            self.items_rearranged.emit(list(uuids))
+            # self.update_channel_groups_count()
+            # self.items_rearranged.emit(list(uuids))
 
         else:
             data = e.mimeData()
@@ -698,6 +702,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 self.add_channels_request.emit(names)
             else:
                 super().dropEvent(e)
+
+        self.items_rearranged.emit(list(uuids))
 
     def open_menu(self, position):
 
@@ -1215,6 +1221,8 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 | QtCore.Qt.ItemIsEnabled
                 | QtCore.Qt.ItemIsAutoTristate
                 | QtCore.Qt.ItemIsDragEnabled
+                | QtCore.Qt.ItemIsSelectable
+                | QtCore.Qt.ItemIsDropEnabled
             )
 
             self.setCheckState(0, QtCore.Qt.Checked)
@@ -1245,9 +1253,9 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 details = ""
             self.details = details or "\tSource not available"
             self.setToolTip(0, tooltip)
-            self.setToolTip(1, tooltip)
-            self.setToolTip(2, tooltip)
-            self.setToolTip(3, tooltip)
+            self.setToolTip(1, f"{signal.name} value")
+            self.setToolTip(2, f"{signal.name} common axis")
+            self.setToolTip(3, f"{signal.name} individual axis")
 
             if kind in "SUVui" or self._precision == -1:
                 self.fmt = "{}"
@@ -1262,13 +1270,15 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.entry = signal.group_index, signal.channel_index
 
             self.setText(0, self.name)
-            self.setForeground(0, signal.pen.color())
-            self.setForeground(1, signal.pen.color())
+            self.setForeground(0, signal.color)
+            self.setForeground(1, signal.color)
+            self.setForeground(1, signal.color)
+            self.setForeground(1, signal.color)
 
             self._is_visible = True
 
             self.setFlags(
-                self.flags() | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsDragEnabled
+                QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsDragEnabled| QtCore.Qt.ItemIsSelectable
             )
 
             if check is None:
@@ -1301,6 +1311,8 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.signal.color = value
             self.setForeground(0, value)
             self.setForeground(1, value)
+            self.setForeground(2, value)
+            self.setForeground(3, value)
             tree = self.treeWidget()
             if tree:
                 tree.color_changed.emit(self.uuid, value)
@@ -1525,9 +1537,13 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         if new_font_color is None:
             self.setForeground(0, self.signal.color)
             self.setForeground(1, self.signal.color)
+            self.setForeground(2, self.signal.color)
+            self.setForeground(3, self.signal.color)
         else:
             self.setForeground(0, new_font_color)
             self.setForeground(1, new_font_color)
+            self.setForeground(2, new_font_color)
+            self.setForeground(3, new_font_color)
 
         if update_text:
 

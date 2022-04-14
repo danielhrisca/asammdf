@@ -30,6 +30,7 @@ PLOT_BUFFER_SIZE = 4000
 
 from ...blocks.utils import target_byte_order
 from ..utils import FONT_SIZE
+from ..dialogs.range_editor import RangeEditor
 
 try:
     from ...blocks.cutils import positions
@@ -1600,15 +1601,39 @@ class Plot(QtWidgets.QWidget):
         self._update_visibile_entries()
 
     def channel_selection_item_changed(self, item, column):
-        if item is not None and column == 0:
-            state = item.checkState(0)
-            widget = self.channel_selection.itemWidget(item, 1)
-            if isinstance(widget, ChannelDisplay):
-                widget.enable_changed.emit(widget.uuid, state)
+        if not item or item.type() != item.Channel:
+            return
+
+        if column == 0:
+
+            item.signal.enable = False
+            self.plot.set_signal_enable(item.uuid, item.checkState(column))
+
+        elif column == 2:
+            self.plot.set_common_axis(item.uuid, item.checkState(column))
+
+        elif column == 3:
+            self.plot.set_individual_axis(item.uuid, item.checkState(column))
 
     def channel_selection_item_double_clicked(self, item, column):
-        if item.type() == ChannelsTreeItem.Group:
-            item.show_info()
+        if item is None:
+            return
+
+        type = item.type()
+        if type == ChannelsTreeItem.Group:
+            dlg = RangeEditor(
+                f"channels from <{item._name}>", ranges=item.ranges, parent=self
+            )
+            dlg.exec_()
+            if dlg.pressed_button == "apply":
+                item.set_ranges(dlg.result)
+                item.update_child_values()
+        elif type == ChannelsTreeItem.Channel:
+            dlg = RangeEditor(item.signal.name, item.unit, item.ranges, parent=self)
+            dlg.exec_()
+            if dlg.pressed_button == "apply":
+                item.set_ranges(dlg.result)
+                item.set_value(item._value, update=True)
 
     def mousePressEvent(self, event):
         self.clicked.emit()
@@ -1737,32 +1762,32 @@ class Plot(QtWidgets.QWidget):
 
         self.cursor_info.update_value()
 
-        for item, widget in self._visible_items.values():
-            if isinstance(widget, ChannelDisplay):
+        for item in self._visible_items.values():
+            if item.type() == item.Channel:
 
-                signal, i = self.plot.signal_by_uuid(widget.uuid)
+                signal, i = self.plot.signal_by_uuid(item.uuid)
 
                 start_v, kind, fmt = signal.value_at_timestamp(start)
                 stop_v, kind, fmt = signal.value_at_timestamp(stop)
 
-                widget.set_prefix("Δ = ")
-                widget.set_fmt(signal.format)
+                item.set_prefix("Δ = ")
+                item.set_fmt(signal.format)
 
                 if "n.a." not in (start_v, stop_v):
                     if kind in "ui":
                         delta = np.int64(stop_v) - np.int64(start_v)
-                        widget.kind = kind
-                        widget.set_value(delta)
-                        widget.set_fmt(fmt)
+                        item.kind = kind
+                        item.set_value(delta)
+                        item.set_fmt(fmt)
                     elif kind == "f":
                         delta = stop_v - start_v
-                        widget.kind = kind
-                        widget.set_value(delta)
-                        widget.set_fmt(fmt)
+                        item.kind = kind
+                        item.set_value(delta)
+                        item.set_fmt(fmt)
                     else:
-                        widget.set_value("n.a.")
+                        item.set_value("n.a.")
                 else:
-                    widget.set_value("n.a.")
+                    item.set_value("n.a.")
 
         if self.info.isVisible():
             stats = self.plot.get_stats(self.info_uuid)
@@ -1837,7 +1862,7 @@ class Plot(QtWidgets.QWidget):
             key in (QtCore.Qt.Key_B, QtCore.Qt.Key_H, QtCore.Qt.Key_P)
             and modifiers == QtCore.Qt.ControlModifier
         ):
-            self.plot._pixmap = None
+
             selected_items = self.channel_selection.selectedItems()
             if not selected_items:
                 signals = [(sig, i) for i, sig in enumerate(self.plot.signals)]
@@ -1866,7 +1891,7 @@ class Plot(QtWidgets.QWidget):
 
                         value, kind, fmt = signal.value_at_timestamp(0)
 
-                        widget = self.widget_by_uuid(signal.uuid)
+                        widget = self.item_by_uuid(signal.uuid)
                         widget.kind = kind
                         widget.set_fmt(fmt)
                         widget.set_value(update=True)
@@ -1882,8 +1907,7 @@ class Plot(QtWidgets.QWidget):
                             axis.picture = None
                             axis.update()
 
-            if self.plot.cursor1:
-                self.plot.cursor_moved.emit(self.plot.cursor1)
+            self.plot.update_plt()
 
         elif (
             key in (QtCore.Qt.Key_R, QtCore.Qt.Key_S)
@@ -2363,7 +2387,7 @@ class Plot(QtWidgets.QWidget):
             channel["individual_axis"] = False
 
         channel["common_axis"] = item.checkState(2) == QtCore.Qt.Checked
-        channel["color"] = sig.color
+        channel["color"] = sig.color.name()
         channel["computed"] = sig.computed
         channel["ranges"] = copy_ranges(widget.ranges)
 
@@ -2693,6 +2717,7 @@ class _Plot(pg.PlotWidget):
         line_interconnect="line",
         x_axis="time",
         plot_parent=None,
+        allow_cursor=True,
         *args,
         **kwargs,
     ):
@@ -2745,6 +2770,7 @@ class _Plot(pg.PlotWidget):
 
         self.region = None
         self.region_lock = None
+
         self.cursor1 = None
         self.cursor2 = None
         self.signals = []
@@ -2789,7 +2815,28 @@ class _Plot(pg.PlotWidget):
         self.common_viewbox.disableAutoRange()
         self.layout.addItem(self.common_viewbox, 2, 1)
         self.common_viewbox.setXLink(self.viewbox)
-        geometry = self.viewbox.sceneBoundingRect()
+
+        if allow_cursor:
+            start, stop = self.viewbox.viewRange()[0]
+            pos = QtCore.QPointF((start + stop) / 2, 0)
+
+            if pg.getConfigOption("background") == "k":
+                color = "white"
+            else:
+                color = "black"
+
+            self.cursor1 = Cursor(
+                pos=pos, angle=90, movable=True, pen=color, hoverPen=color
+            )
+            self.plotItem.addItem(self.cursor1, ignoreBounds=True)
+
+            self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
+            self.cursor1.sigPositionChangeFinished.connect(
+                self.cursor_move_finished.emit
+            )
+            self.cursor_move_finished.emit(self.cursor1)
+        else:
+            self.cursor1 = None
 
         self.viewbox.sigYRangeChanged.connect(self.update_plt)
         self.common_viewbox.sigYRangeChanged.connect(self.update_plt)
@@ -3209,42 +3256,7 @@ class _Plot(pg.PlotWidget):
             super().keyPressEvent(event)
         else:
             handled = True
-            if key == QtCore.Qt.Key_C and modifier == QtCore.Qt.NoModifier:
-
-                if self.cursor1 is None:
-                    start, stop = self.viewbox.viewRange()[0]
-                    pos = QtCore.QPointF((start + stop) / 2, 0)
-
-                    if pg.getConfigOption("background") == "k":
-                        color = "white"
-                    else:
-                        color = "black"
-
-                    self.cursor1 = Cursor(
-                        pos=pos, angle=90, movable=True, pen=color, hoverPen=color
-                    )
-                    self.plotItem.addItem(self.cursor1, ignoreBounds=True)
-
-                    self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
-                    self.cursor1.sigPositionChangeFinished.connect(
-                        self.cursor_move_finished.emit
-                    )
-                    self.cursor_move_finished.emit(self.cursor1)
-
-                    if self.region is not None:
-                        self.cursor1.hide()
-
-                else:
-                    self.plotItem.removeItem(self.cursor1)
-
-                    self.cursor1.setParent(None)
-                    self.cursor1 = None
-                    self.cursor_removed.emit()
-
-                self.update()
-                self.plotItem.update()
-
-            elif key == QtCore.Qt.Key_Y and modifier == QtCore.Qt.NoModifier:
+            if key == QtCore.Qt.Key_Y and modifier == QtCore.Qt.NoModifier:
                 if self.region is not None:
                     if self.region_lock is not None:
                         self.region_lock = None
