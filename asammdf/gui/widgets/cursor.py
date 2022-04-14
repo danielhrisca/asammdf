@@ -14,8 +14,12 @@ class Cursor(pg.InfiniteLine):
             **kwargs,
         )
 
-        self.pen.setWidth(3)
-        self.hoverPen.setWidth(3)
+        self.pen.setWidth(1)
+        self.hoverPen.setWidth(1)
+
+        color = self.pen.color()
+        color.setAlpha(128)
+        self.pen.setColor(color)
 
         self.setCursor(QtCore.Qt.SplitHCursor)
         self.sigDragged.connect(self.update_mouse_cursor)

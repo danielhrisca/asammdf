@@ -1542,7 +1542,7 @@ class Plot(QtWidgets.QWidget):
             item = iterator.value()
             iterator += 1
 
-            if isinstance(item, ChannelsTreeItem):
+            if item.type() == ChannelsTreeItem.Channel:
                 widget = self.channel_selection.itemWidget(item, 1)
                 widget.ylink.setEnabled(not self.locked)
 
@@ -1616,7 +1616,7 @@ class Plot(QtWidgets.QWidget):
                 widget.enable_changed.emit(widget.uuid, state)
 
     def channel_selection_item_double_clicked(self, item, column):
-        if isinstance(item, ChannelsGroupTreeItem):
+        if item.type() == ChannelsTreeItem.Group:
             item.show_info()
 
     def mousePressEvent(self, event):
@@ -1855,7 +1855,7 @@ class Plot(QtWidgets.QWidget):
                 uuids = [
                     self.channel_selection.itemWidget(item, 1).uuid
                     for item in selected_items
-                    if isinstance(item, ChannelsTreeItem)
+                    if item.type() == ChannelsTreeItem.Channel
                 ]
 
                 signals = [self.plot.signal_by_uuid(uuid) for uuid in uuids]
@@ -1908,7 +1908,7 @@ class Plot(QtWidgets.QWidget):
                 uuids = [
                     self.channel_selection.itemWidget(item, 1).uuid
                     for item in selected_items
-                    if isinstance(item, ChannelsTreeItem)
+                    if item.type() == ChannelsTreeItem.Channel
                 ]
 
                 signals = [self.plot.signal_by_uuid(uuid) for uuid in uuids]
@@ -2023,7 +2023,7 @@ class Plot(QtWidgets.QWidget):
             selected_items = [
                 item
                 for item in self.channel_selection.selectedItems()
-                if isinstance(item, ChannelsTreeItem)
+                if item.type() == ChannelsTreeItem.Channel
             ]
 
             if selected_items:
@@ -2160,15 +2160,10 @@ class Plot(QtWidgets.QWidget):
 
                 if info.get("type", "channel") == "group":
 
-                    item = ChannelsGroupTreeItem(name, pattern, uuid=uuid)  # , root)
-                    widget = ChannelGroupDisplay(
-                        name, pattern, item=item, ranges=ranges, uuid=uuid
-                    )
-                    widget.item = item
-                    item.widget = widget
+                    item = ChannelsTreeItem(ChannelsTreeItem.Group, name=name, pattern=pattern, uuid=uuid)  # , root)
 
                     children.append(item)
-                    pairs.append((item, widget))
+                    pairs.append((item, item))
 
                     pairs.extend(
                         add_new_items(tree, item, info["channels"], items_pool)
@@ -2707,7 +2702,7 @@ class Plot(QtWidgets.QWidget):
             if item is None:
                 break
             iterator += 1
-            if isinstance(item, ChannelsTreeItem):
+            if item.type() == ChannelsTreeItem.Channel:
                 item_widget = item.widget or self.channel_selection.itemWidget(item, 1)
 
                 _widget_cache[item.uuid] = item_widget
@@ -3435,7 +3430,7 @@ class _Plot(pg.PlotWidget):
                 uuids = [
                     parent.channel_selection.itemWidget(item, 1).uuid
                     for item in parent.channel_selection.selectedItems()
-                    if isinstance(item, ChannelsTreeItem)
+                    if item.type() == ChannelsTreeItem.Channel
                 ]
                 uuids = set(uuids)
 
@@ -3582,7 +3577,7 @@ class _Plot(pg.PlotWidget):
                 iterator = QtWidgets.QTreeWidgetItemIterator(parent.channel_selection)
                 while iterator.value():
                     item = iterator.value()
-                    if isinstance(item, ChannelsTreeItem):
+                    if item.type() == ChannelsTreeItem.Channel:
                         uuids.append(parent.channel_selection.itemWidget(item, 1).uuid)
 
                     iterator += 1
@@ -3696,7 +3691,7 @@ class _Plot(pg.PlotWidget):
                 uuids = [
                     parent.channel_selection.itemWidget(item, 1).uuid
                     for item in parent.channel_selection.selectedItems()
-                    if isinstance(item, ChannelsTreeItem)
+                    if item.type() == ChannelsTreeItem.Channel
                 ]
                 uuids = list(reversed(uuids))
                 uuids_set = set(uuids)
@@ -3807,7 +3802,7 @@ class _Plot(pg.PlotWidget):
                     set(
                         parent.channel_selection.itemWidget(item, 1).uuid
                         for item in parent.channel_selection.selectedItems()
-                        if isinstance(item, ChannelsTreeItem)
+                        if item.type() == ChannelsTreeItem.Channel
                     )
                 )
 
@@ -3838,7 +3833,7 @@ class _Plot(pg.PlotWidget):
                     set(
                         parent.channel_selection.itemWidget(item, 1).uuid
                         for item in parent.channel_selection.selectedItems()
-                        if isinstance(item, ChannelsTreeItem)
+                        if item.type() == ChannelsTreeItem.Channel
                     )
                 )
 
