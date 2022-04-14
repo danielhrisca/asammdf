@@ -9,13 +9,17 @@ from traceback import format_exc
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ..dialogs.advanced_search import AdvancedSearch
-from ..utils import copy_ranges, get_color_using_ranges, get_colors_using_ranges, extract_mime_names
 from .. import utils
+from ..dialogs.advanced_search import AdvancedSearch
+from ..utils import (
+    copy_ranges,
+    extract_mime_names,
+    get_color_using_ranges,
+    get_colors_using_ranges,
+)
 from .channel_display import ChannelDisplay
 from .channel_group_display import ChannelGroupDisplay
 from .tree_item import TreeItem
-
 
 NOT_FOUND = 0xFFFFFFFF
 
@@ -368,7 +372,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     insert_computation = QtCore.Signal(str)
     pattern_group_added = QtCore.Signal(object)
     compute_fft_request = QtCore.Signal(str)
-    color_changed = QtCore.Signal(str, str)
+    color_changed = QtCore.Signal(str, object)
     unit_changed = QtCore.Signal(str, str)
     name_changed = QtCore.Signal(str, str)
 
@@ -397,7 +401,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         self.setHeaderHidden(False)
         self.setColumnCount(4)
-        self.setHeaderLabels(["Name", "Value", "CA", "IA"])
+        self.setHeaderLabels(["Name", "Value", "\u22D5", "\u21A8"])
         self.setDragEnabled(True)
 
         self.setMinimumWidth(5)
@@ -479,7 +483,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             pattern = dlg.result
 
             if pattern:
-                group = ChannelsTreeItem(ChannelsTreeItem.Group, name=pattern["name"], pattern=pattern)
+                group = ChannelsTreeItem(
+                    ChannelsTreeItem.Group, name=pattern["name"], pattern=pattern
+                )
 
                 item = self.currentItem()
 
@@ -491,7 +497,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                         current_parent = parent
                         can_add_child = True
                         while current_parent:
-                            if current_parent.type() ==  ChannelsTreeItem.Group:
+                            if current_parent.type() == ChannelsTreeItem.Group:
                                 if current_parent.pattern:
                                     can_add_child = False
                                     break
@@ -558,6 +564,18 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     item.setCheckState(0, checked)
                     if self.hide_disabled_channels and checked == QtCore.Qt.Unchecked:
                         item.setHidden(True)
+
+        elif modifiers == QtCore.Qt.NoModifier and key == QtCore.Qt.Key_C:
+            selected_items = self.selectedItems()
+            if not selected_items:
+                return
+
+            color = QtWidgets.QColorDialog.getColor(selected_items[0].signal.color)
+            if color.isValid():
+                for item in selected_items:
+                    item.color = color
+                # self.set_color(color.name())
+                # self.color_changed.emit(self.uuid, color.name())
 
         elif modifiers == QtCore.Qt.ControlModifier and key == QtCore.Qt.Key_C:
             selected_items = self.selectedItems()
@@ -879,7 +897,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     if not item:
                         break
 
-                    if item.type() == ChannelsTreeItem.Channel and item.checkState(0) == QtCore.Qt.Unchecked:
+                    if (
+                        item.type() == ChannelsTreeItem.Channel
+                        and item.checkState(0) == QtCore.Qt.Unchecked
+                    ):
                         item.setHidden(True)
 
                     iterator += 1
@@ -1139,16 +1160,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             if item.type() == ChannelsTreeItem.Channel:
                 if hide_missing_channels and not item.exists:
                     hidden = True
-                if (
-                    hide_disabled_channels
-                    and item.checkState(0) == QtCore.Qt.Unchecked
-                ):
+                if hide_disabled_channels and item.checkState(0) == QtCore.Qt.Unchecked:
                     hidden = True
             else:
-                if (
-                    hide_disabled_channels
-                    and item.checkState(0) == QtCore.Qt.Unchecked
-                ):
+                if hide_disabled_channels and item.checkState(0) == QtCore.Qt.Unchecked:
                     hidden = True
 
             item.setHidden(hidden)
@@ -1204,6 +1219,8 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         self.resolved_ranges = None
         self.ranges = []
 
+        self.inhibit = False
+
         self._name = ""
 
         if type == self.Group:
@@ -1246,7 +1263,9 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
             self.kind = kind
 
-            tooltip = getattr(signal, "tooltip", "") or f"{signal.name}\n{signal.comment}"
+            tooltip = (
+                getattr(signal, "tooltip", "") or f"{signal.name}\n{signal.comment}"
+            )
             if signal.source:
                 details = signal.source.get_details()
             else:
@@ -1278,7 +1297,10 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self._is_visible = True
 
             self.setFlags(
-                QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsDragEnabled| QtCore.Qt.ItemIsSelectable
+                QtCore.Qt.ItemIsUserCheckable
+                | QtCore.Qt.ItemIsEnabled
+                | QtCore.Qt.ItemIsDragEnabled
+                | QtCore.Qt.ItemIsSelectable
             )
 
             if check is None:
@@ -1308,11 +1330,14 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
     @color.setter
     def color(self, value):
         if self.type() == self.Channel:
+
             self.signal.color = value
+            self.inhibit = True
             self.setForeground(0, value)
             self.setForeground(1, value)
             self.setForeground(2, value)
             self.setForeground(3, value)
+            self.inhibit = False
             tree = self.treeWidget()
             if tree:
                 tree.color_changed.emit(self.uuid, value)
@@ -1523,6 +1548,8 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             default_font_color=default_font_color,
         )
 
+        self.inhibit = True
+
         if new_background_color is None:
             self.setData(0, QtCore.Qt.BackgroundRole, None)
             self.setData(1, QtCore.Qt.BackgroundRole, None)
@@ -1545,6 +1572,8 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.setForeground(2, new_font_color)
             self.setForeground(3, new_font_color)
 
+        self.inhibit = False
+
         if update_text:
 
             if value in ("", "n.a."):
@@ -1560,7 +1589,9 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
     def show_info(self):
         if self.type() == self.Group:
-            ChannnelGroupDialog(self.name, self.pattern, self.get_ranges(), self.treeWidget()).show()
+            ChannnelGroupDialog(
+                self.name, self.pattern, self.get_ranges(), self.treeWidget()
+            ).show()
 
     @property
     def unit(self):

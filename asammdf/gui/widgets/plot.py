@@ -29,8 +29,8 @@ from PySide6 import QtCore, QtGui, QtWidgets
 PLOT_BUFFER_SIZE = 4000
 
 from ...blocks.utils import target_byte_order
-from ..utils import FONT_SIZE
 from ..dialogs.range_editor import RangeEditor
+from ..utils import FONT_SIZE
 
 try:
     from ...blocks.cutils import positions
@@ -237,6 +237,8 @@ class PlotSignal(Signal):
         self.individual_axis = False
         self.computed = signal.computed
         self.computation = signal.computation
+
+        self.y_link = False
 
         self.trim_info = None
 
@@ -1515,6 +1517,7 @@ class Plot(QtWidgets.QWidget):
             set(
                 [
                     (QtCore.Qt.Key_M, int(QtCore.Qt.NoModifier)),
+                    (QtCore.Qt.Key_C, int(QtCore.Qt.NoModifier)),
                     (QtCore.Qt.Key_B, int(QtCore.Qt.ControlModifier)),
                     (QtCore.Qt.Key_H, int(QtCore.Qt.ControlModifier)),
                     (QtCore.Qt.Key_P, int(QtCore.Qt.ControlModifier)),
@@ -1530,29 +1533,39 @@ class Plot(QtWidgets.QWidget):
         self.show()
 
     def set_locked(self, event=None, locked=None):
-        if locked is not None:
-            self.locked = locked
-        else:
-            self.locked = not self.locked
-
-        if self.locked:
+        if locked is None:
+            locked = not self.locked
+        if locked:
             tooltip = "The Y axis is locked. Press to unlock"
             png = ":/locked.png"
         else:
             tooltip = "The Y axis is unlocked. Press to lock"
             png = ":/unlocked.png"
 
-        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
-        while iterator.value():
-            item = iterator.value()
-            iterator += 1
+        if locked:
+            iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
 
-            if item.type() == ChannelsTreeItem.Channel:
-                # To DO: handle locked plot
-                # widget.ylink.setEnabled(not self.locked)
-                pass
+            while iterator.value():
+                item = iterator.value()
+                iterator += 1
 
-        self.plot.set_locked(self.locked)
+                if item.type() == ChannelsTreeItem.Channel:
+                    item.setData(2, QtCore.Qt.CheckStateRole, None)
+
+        else:
+            iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+            while iterator.value():
+                item = iterator.value()
+                iterator += 1
+
+                if item.type() == ChannelsTreeItem.Channel:
+                    state = (
+                        QtCore.Qt.Checked if item.signal.y_link else QtCore.Qt.Unchecked
+                    )
+                    item.setData(2, QtCore.Qt.CheckStateRole, state)
+
+        self.locked = locked
+        self.plot.set_locked(locked)
 
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(png), QtGui.QIcon.Normal, QtGui.QIcon.Off)
@@ -1601,16 +1614,23 @@ class Plot(QtWidgets.QWidget):
         self._update_visibile_entries()
 
     def channel_selection_item_changed(self, item, column):
+
         if not item or item.type() != item.Channel:
             return
 
         if column == 0:
-
             item.signal.enable = False
             self.plot.set_signal_enable(item.uuid, item.checkState(column))
 
         elif column == 2:
-            self.plot.set_common_axis(item.uuid, item.checkState(column))
+            if (
+                not self.locked
+                and item.data(column, QtCore.Qt.CheckStateRole) is not None
+                and not item.inhibit
+            ):
+                state = item.checkState(column)
+                item.signal.y_link = state == QtCore.Qt.Checked
+                self.plot.set_common_axis(item.uuid, state)
 
         elif column == 3:
             self.plot.set_individual_axis(item.uuid, item.checkState(column))
@@ -1644,7 +1664,7 @@ class Plot(QtWidgets.QWidget):
 
     def channel_selection_row_changed(self, current, previous):
         if not self.closed and not self.ignore_selection_change:
-            if current and current.type() ==  ChannelsTreeItem.Channel:
+            if current and current.type() == ChannelsTreeItem.Channel:
                 item = current
                 uuid = item.uuid
                 self.info_uuid = uuid
@@ -2043,10 +2063,7 @@ class Plot(QtWidgets.QWidget):
 
             if selected_items:
 
-                uuids = [
-                    item.uuid
-                    for item in selected_items
-                ]
+                uuids = [item.uuid for item in selected_items]
 
                 signals = {}
                 indexes = []
@@ -2077,6 +2094,9 @@ class Plot(QtWidgets.QWidget):
                 iterator += 1
 
             self.plot.keyPressEvent(event)
+
+        elif key == QtCore.Qt.Key_C and modifiers == QtCore.Qt.NoModifier:
+            self.channel_selection.keyPressEvent(event)
 
         elif (key, int(modifiers)) in self.plot.keyboard_events:
             try:
@@ -2174,7 +2194,9 @@ class Plot(QtWidgets.QWidget):
 
                 if info.get("type", "channel") == "group":
 
-                    item = ChannelsTreeItem(ChannelsTreeItem.Group, name=name, pattern=pattern, uuid=uuid)  # , root)
+                    item = ChannelsTreeItem(
+                        ChannelsTreeItem.Group, name=name, pattern=pattern, uuid=uuid
+                    )  # , root)
                     children.append(item)
                     item.set_ranges(ranges)
 
@@ -2184,10 +2206,6 @@ class Plot(QtWidgets.QWidget):
 
                     if uuid in items_pool:
                         item = items_pool[uuid]
-
-                        # TO DO: handle lcoked plot
-                        # widget.ylink.setEnabled(not self.locked)
-
                         children.append(item)
 
                         del items_pool[uuid]
@@ -2894,7 +2912,6 @@ class _Plot(pg.PlotWidget):
 
         self.keyboard_events = set(
             [
-                (QtCore.Qt.Key_C, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_F, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_F, QtCore.Qt.ShiftModifier),
                 (QtCore.Qt.Key_G, QtCore.Qt.NoModifier),
@@ -3072,7 +3089,6 @@ class _Plot(pg.PlotWidget):
             self.update_plt()
 
     def set_color(self, uuid, color):
-
         sig, index = self.signal_by_uuid(uuid)
         curve = self.curves[index]
         sig.color = color
