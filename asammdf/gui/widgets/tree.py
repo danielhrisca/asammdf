@@ -478,6 +478,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
             if deleted:
                 self.itemsDeleted.emit(list(deleted))
+                self.update_channel_groups_count()
 
         elif key == QtCore.Qt.Key_Insert and modifiers == QtCore.Qt.ControlModifier:
 
@@ -526,6 +527,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 self.pattern_group_added.emit(group)
 
                 self.refresh()
+                self.update_channel_groups_count()
 
         elif key == QtCore.Qt.Key_Insert and modifiers == QtCore.Qt.ShiftModifier:
             text, ok = QtWidgets.QInputDialog.getText(
@@ -550,6 +552,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
                 self.setItemWidget(group, 1, widget)
                 self.refresh()
+                self.update_channel_groups_count()
 
         elif key == QtCore.Qt.Key_Space:
             selected_items = self.selectedItems()
@@ -597,8 +600,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             event.ignore()
         else:
             super().keyPressEvent(event)
-
-        self.update_channel_groups_count()
 
     def startDrag(self, supportedActions):
 

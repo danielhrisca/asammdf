@@ -1459,6 +1459,7 @@ class Plot(QtWidgets.QWidget):
         self.plot.signals_enable_changed.connect(self._update_visibile_entries)
         self._visible_entries = set()
         self._visible_items = {}
+        self._widget_cache = {}
 
         self.splitter.addWidget(self.plot)
 
@@ -1483,9 +1484,9 @@ class Plot(QtWidgets.QWidget):
 
         self.channel_selection.itemsDeleted.connect(self.channel_selection_reduced)
         self.channel_selection.itemPressed.connect(self.channel_selection_modified)
-        self.channel_selection.currentItemChanged.connect(
-            self.channel_selection_row_changed
-        )
+        # self.channel_selection.currentItemChanged.connect(
+        #     self.channel_selection_row_changed
+        # )
         self.channel_selection.add_channels_request.connect(self.add_channels_request)
         self.channel_selection.set_time_offset.connect(self.plot.set_time_offset)
         self.channel_selection.show_properties.connect(self._show_properties)
@@ -1623,23 +1624,7 @@ class Plot(QtWidgets.QWidget):
         super().mousePressEvent(event)
 
     def channel_selection_modified(self, item):
-        if isinstance(item, ChannelsTreeItem):
-            uuid = self.channel_selection.itemWidget(item, 1).uuid
-            self.info_uuid = uuid
-
-            sig, index = self.plot.signal_by_uuid(uuid)
-            if sig.enable:
-
-                self.plot.curves[index].hide()
-                for i in range(3):
-                    QtWidgets.QApplication.processEvents()
-                    sleep(0.01)
-                self.plot.curves[index].show()
-
-                self.plot.set_current_uuid(self.info_uuid)
-                if self.info.isVisible():
-                    stats = self.plot.get_stats(self.info_uuid)
-                    self.info.set_stats(stats)
+        self.channel_selection_row_changed(item, None)
 
     def channel_selection_row_changed(self, current, previous):
         if not self.closed and not self.ignore_selection_change:
@@ -1651,12 +1636,9 @@ class Plot(QtWidgets.QWidget):
                 sig, index = self.plot.signal_by_uuid(uuid)
                 if sig.enable:
 
-                    self.plot._pixmap = None
                     self.plot.curves[index].hide()
-                    for i in range(3):
-                        QtWidgets.QApplication.processEvents()
-                        sleep(0.01)
-                    self.plot._pixmap = None
+                    self.plot.update_plt()
+                    sleep(0.03)
                     self.plot.curves[index].show()
 
                     self.plot.set_current_uuid(self.info_uuid)
@@ -2088,7 +2070,7 @@ class Plot(QtWidgets.QWidget):
                 print(format_exc())
 
         else:
-            event.ignore()
+            super().keyPressEvent(event)
 
     def range_removed(self):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
@@ -2630,18 +2612,7 @@ class Plot(QtWidgets.QWidget):
                 super().dropEvent(e)
 
     def widget_by_uuid(self, uuid):
-        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
-        while iterator.value():
-            item = iterator.value()
-            widget = self.channel_selection.itemWidget(item, 1)
-
-            if isinstance(widget, ChannelDisplay) and widget.uuid == uuid:
-                break
-
-            iterator += 1
-        else:
-            widget = None
-        return widget
+        return self._widget_cache[uuid]
 
     def _show_properties(self, uuid):
         for sig in self.plot.signals:
@@ -2727,6 +2698,7 @@ class Plot(QtWidgets.QWidget):
 
     def _update_visibile_entries(self):
 
+        _widget_cache = self._widget_cache = {}
         _visible_entries = self._visible_entries = set()
         _visible_items = self._visible_items = {}
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
@@ -2737,6 +2709,8 @@ class Plot(QtWidgets.QWidget):
             iterator += 1
             if isinstance(item, ChannelsTreeItem):
                 item_widget = item.widget or self.channel_selection.itemWidget(item, 1)
+
+                _widget_cache[item.uuid] = item_widget
 
                 if item.checkState(0) == QtCore.Qt.Checked and item_widget.exists:
                     entry = (item.origin_uuid, item.name, item.uuid)
