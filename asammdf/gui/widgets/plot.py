@@ -1518,6 +1518,7 @@ class Plot(QtWidgets.QWidget):
                 [
                     (QtCore.Qt.Key_M, int(QtCore.Qt.NoModifier)),
                     (QtCore.Qt.Key_C, int(QtCore.Qt.NoModifier)),
+                    (QtCore.Qt.Key_C, int(QtCore.Qt.ControlModifier)),
                     (QtCore.Qt.Key_B, int(QtCore.Qt.ControlModifier)),
                     (QtCore.Qt.Key_H, int(QtCore.Qt.ControlModifier)),
                     (QtCore.Qt.Key_P, int(QtCore.Qt.ControlModifier)),
@@ -2095,7 +2096,16 @@ class Plot(QtWidgets.QWidget):
 
             self.plot.keyPressEvent(event)
 
-        elif key == QtCore.Qt.Key_C and modifiers == QtCore.Qt.NoModifier:
+        elif key == QtCore.Qt.Key_C and modifiers in (
+            QtCore.Qt.NoModifier,
+            QtCore.Qt.ControlModifier,
+            QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier,
+        ):
+            self.channel_selection.keyPressEvent(event)
+
+        elif key == QtCore.Qt.Key_P and modifiers == (
+            QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier
+        ):
             self.channel_selection.keyPressEvent(event)
 
         elif (key, int(modifiers)) in self.plot.keyboard_events:
@@ -4017,6 +4027,8 @@ class _Plot(pg.PlotWidget):
 
         for index, sig in enumerate(channels, initial_index):
             description = descriptions.get(sig.uuid, {})
+            if description:
+                sig.enable = description.get("enabled", True)
 
             curve = self.curvetype(
                 sig.plot_timestamps,
@@ -4069,8 +4081,11 @@ class _Plot(pg.PlotWidget):
         for index, sig in enumerate(channels, initial_index):
             self.view_boxes[index].setXLink(self.viewbox)
 
-        for curve in self.curves[initial_index:]:
-            curve.show()
+        for curve, sig in zip(
+            self.curves[initial_index:], self.signals[initial_index:]
+        ):
+            if sig.enable:
+                curve.show()
 
         if axis_uuid is not None:
             self.set_current_uuid(sig.uuid)
