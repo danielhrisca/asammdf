@@ -20,6 +20,7 @@ from ..signal import Signal
 from .dialogs.error_dialog import ErrorDialog
 
 ERROR_ICON = None
+RANGE_INDICATOR_ICON = None
 NO_ERROR_ICON = None
 
 

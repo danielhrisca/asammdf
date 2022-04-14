@@ -142,7 +142,7 @@ from .dict_to_tree import ComputedChannelInfoWindow
 from .formated_axis import FormatedAxis
 from .list import ListWidget
 from .list_item import ListItem
-from .tree import ChannelsGroupTreeItem, ChannelsTreeItem, ChannelsTreeWidget
+from .tree import ChannelsTreeItem, ChannelsTreeWidget
 
 bin_ = bin
 
@@ -288,7 +288,7 @@ class PlotSignal(Signal):
             color = signal.color or COLORS[index % 10]
         else:
             color = COLORS[index % 10]
-        self.color = color
+        self.color = QtGui.QColor(color)
         self.pen = pg.mkPen(color=color, style=QtCore.Qt.SolidLine)
 
         if len(self.phys_samples):
@@ -1459,7 +1459,7 @@ class Plot(QtWidgets.QWidget):
         self.plot.signals_enable_changed.connect(self._update_visibile_entries)
         self._visible_entries = set()
         self._visible_items = {}
-        self._widget_cache = {}
+        self._item_cache = {}
 
         self.splitter.addWidget(self.plot)
 
@@ -1481,6 +1481,10 @@ class Plot(QtWidgets.QWidget):
 
         if signals:
             self.add_new_channels(signals)
+
+        self.channel_selection.color_changed.connect(self.plot.set_color)
+        self.channel_selection.unit_changed.connect(self.plot.set_unit)
+        self.channel_selection.name_changed.connect(self.plot.set_name)
 
         self.channel_selection.itemsDeleted.connect(self.channel_selection_reduced)
         self.channel_selection.itemPressed.connect(self.channel_selection_modified)
@@ -1543,8 +1547,9 @@ class Plot(QtWidgets.QWidget):
             iterator += 1
 
             if item.type() == ChannelsTreeItem.Channel:
-                widget = self.channel_selection.itemWidget(item, 1)
-                widget.ylink.setEnabled(not self.locked)
+                # To DO: handle locked plot
+                # widget.ylink.setEnabled(not self.locked)
+                pass
 
         self.plot.set_locked(self.locked)
 
@@ -1592,20 +1597,6 @@ class Plot(QtWidgets.QWidget):
             iterator += 1
 
     def channel_selection_rearranged(self, uuids):
-        uuids = set(uuids)
-
-        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
-        while iterator.value():
-            item = iterator.value()
-            widget = self.channel_selection.itemWidget(item, 1)
-            if isinstance(widget, ChannelDisplay) and widget.uuid in uuids:
-                widget.color_changed.connect(self.plot.set_color)
-                widget.enable_changed.connect(self.plot.set_signal_enable)
-                widget.ylink_changed.connect(self.plot.set_common_axis)
-                widget.individual_axis_changed.connect(self.plot.set_individual_axis)
-
-            iterator += 1
-
         self._update_visibile_entries()
 
     def channel_selection_item_changed(self, item, column):
@@ -1628,9 +1619,9 @@ class Plot(QtWidgets.QWidget):
 
     def channel_selection_row_changed(self, current, previous):
         if not self.closed and not self.ignore_selection_change:
-            if isinstance(current, ChannelsTreeItem):
+            if current and current.type() ==  ChannelsTreeItem.Channel:
                 item = current
-                uuid = self.channel_selection.itemWidget(item, 1).uuid
+                uuid = item.uuid
                 self.info_uuid = uuid
 
                 sig, index = self.plot.signal_by_uuid(uuid)
@@ -1697,19 +1688,19 @@ class Plot(QtWidgets.QWidget):
 
             self.cursor_info.update_value()
 
-            for item, widget in self._visible_items.values():
-                if isinstance(widget, ChannelDisplay):
+            for item in self._visible_items.values():
+                if item.type() == item.Channel:
 
-                    signal, idx = self.plot.signal_by_uuid(widget.uuid)
+                    signal, idx = self.plot.signal_by_uuid(item.uuid)
                     index = self.plot.get_timestamp_index(position, signal.timestamps)
 
                     value, kind, fmt = signal.value_at_index(index)
 
-                    widget.set_prefix("= ")
-                    widget.kind = kind
-                    widget.set_fmt(fmt)
+                    item.set_prefix("= ")
+                    item.kind = kind
+                    item.set_fmt(fmt)
 
-                    widget.set_value(value, update=True)
+                    item.set_value(value, update=True)
 
         if self.info.isVisible():
             stats = self.plot.get_stats(self.info_uuid)
@@ -1853,7 +1844,7 @@ class Plot(QtWidgets.QWidget):
 
             else:
                 uuids = [
-                    self.channel_selection.itemWidget(item, 1).uuid
+                    item.uuid
                     for item in selected_items
                     if item.type() == ChannelsTreeItem.Channel
                 ]
@@ -1906,7 +1897,7 @@ class Plot(QtWidgets.QWidget):
 
             else:
                 uuids = [
-                    self.channel_selection.itemWidget(item, 1).uuid
+                    item.uuid
                     for item in selected_items
                     if item.type() == ChannelsTreeItem.Channel
                 ]
@@ -2029,7 +2020,7 @@ class Plot(QtWidgets.QWidget):
             if selected_items:
 
                 uuids = [
-                    self.channel_selection.itemWidget(item, 1).uuid
+                    item.uuid
                     for item in selected_items
                 ]
 
@@ -2143,7 +2134,6 @@ class Plot(QtWidgets.QWidget):
 
     def add_new_channels(self, channels, mime_data=None, destination=None):
         def add_new_items(tree, root, items, items_pool):
-            pairs = []
             children = []
             for info in items:
 
@@ -2161,31 +2151,24 @@ class Plot(QtWidgets.QWidget):
                 if info.get("type", "channel") == "group":
 
                     item = ChannelsTreeItem(ChannelsTreeItem.Group, name=name, pattern=pattern, uuid=uuid)  # , root)
-
                     children.append(item)
-                    pairs.append((item, item))
+                    item.set_ranges(ranges)
 
-                    pairs.extend(
-                        add_new_items(tree, item, info["channels"], items_pool)
-                    )
+                    add_new_items(tree, item, info["channels"], items_pool)
 
                 else:
 
                     if uuid in items_pool:
-                        item, widget = items_pool[uuid]
-                        widget.item = item
-                        item.widget = widget
-                        widget.set_ranges(ranges)
-                        widget.ylink.setEnabled(not self.locked)
+                        item = items_pool[uuid]
+
+                        # TO DO: handle lcoked plot
+                        # widget.ylink.setEnabled(not self.locked)
 
                         children.append(item)
-                        pairs.append((item, widget))
 
                         del items_pool[uuid]
 
             root.addChildren(children)
-
-            return pairs
 
         descriptions = get_descriptions_by_uuid(mime_data)
 
@@ -2259,9 +2242,8 @@ class Plot(QtWidgets.QWidget):
             if item is None:
                 break
 
-            widget = self.channel_selection.itemWidget(item, 1)
-            if isinstance(widget, ChannelDisplay):
-                if widget.ylink.checkState() == QtCore.Qt.Unchecked:
+            if item.type() == item.Channel:
+                if item.checkState(2) == QtCore.Qt.Unchecked:
                     enforce_y_axis = False
                     break
                 else:
@@ -2271,80 +2253,34 @@ class Plot(QtWidgets.QWidget):
 
         children = []
 
-        size_hint = None
-
         new_items = defaultdict(list)
         for sig_uuid, sig in channels.items():
 
             description = descriptions.get(sig_uuid, {})
 
-            item = ChannelsTreeItem(
-                (sig.group_index, sig.channel_index),
-                sig.name,
-                sig.computation,
-                None,
-                sig.origin_uuid,
-                check=QtCore.Qt.Checked if sig.enable else QtCore.Qt.Unchecked,
-                uuid=sig_uuid,
-            )
-
-            # item.setData(QtCore.Qt.UserRole, sig.name)
-            tooltip = getattr(sig, "tooltip", "") or f"{sig.name}\n{sig.comment}"
-            if sig.source:
-                details = sig.source.get_details()
-            else:
-                details = ""
-
-            if len(sig.samples) and sig.conversion:
-                kind = sig.conversion.convert(sig.samples[:1]).dtype.kind
-            else:
-                kind = sig.samples.dtype.kind
-            it = ChannelDisplay(
-                sig_uuid, sig.unit, kind, 3, tooltip, details, parent=self, item=item
-            )
-            if self.channel_selection.details_enabled:
-                it.details.setVisible(True)
-            it.setAttribute(QtCore.Qt.WA_StyledBackground)
-
-            item.widget = it
-            it.item = item
-
-            if sig.computed:
-                font = QtGui.QFont()
-                font.setItalic(True)
-                it.name.setFont(font)
-
-            it.fmt = description.get("fmt", it.fmt)
-            it.set_name(sig.name)
-            it.set_color(sig.color)
-
             sig.format = description.get("format", "phys")
             sig.mode = description.get("mode", "phys")
 
+            item = ChannelsTreeItem(
+                ChannelsTreeItem.Channel,
+                signal=sig,
+                check=QtCore.Qt.Checked if sig.enable else QtCore.Qt.Unchecked,
+            )
+            item.fmt = description.get("fmt", item.fmt)
+
             if len(sig):
                 value, kind, fmt = sig.value_at_timestamp(sig.timestamps[0])
-                it.kind = kind
-                it._value = "n.a."
-                it.set_value(value, force=True, update=True)
-
-            if size_hint is None:
-                size_hint = it.sizeHint()
-            item.setSizeHint(1, size_hint)
+                item.kind = kind
+                item._value = "n.a."
+                item.set_value(value, force=True, update=True)
 
             if mime_data is None:
-                children.append((item, it))
+                children.append(item)
             else:
-                new_items[sig_uuid] = (item, it)
-
-            it.color_changed.connect(self.plot.set_color)
-            it.enable_changed.connect(self.plot.set_signal_enable)
-            it.ylink_changed.connect(self.plot.set_common_axis)
-            it.unit_changed.connect(self.plot.set_unit)
-            it.name_changed.connect(self.plot.set_name)
-            it.individual_axis_changed.connect(self.plot.set_individual_axis)
+                new_items[sig_uuid] = item
 
             try:
-                it.set_ranges(
+                item.set_ranges(
                     [
                         {
                             "font_color": range["color"],
@@ -2358,80 +2294,57 @@ class Plot(QtWidgets.QWidget):
                     ]
                 )
             except KeyError:
-                it.set_ranges(copy_ranges(description.get("ranges", [])))
+                item.set_ranges(copy_ranges(description.get("ranges", [])))
 
-            for range in it.ranges:
+            for range in item.ranges:
                 range["font_color"] = QtGui.QColor(range["font_color"])
                 range["background_color"] = QtGui.QColor(range["background_color"])
 
             if description:
                 individual_axis = description.get("individual_axis", False)
                 if individual_axis:
-                    it.individual_axis.setCheckState(QtCore.Qt.Checked)
+                    item.setCheckState(3, QtCore.Qt.Checked)
 
                     _, idx = self.plot.signal_by_uuid(sig_uuid)
                     axis = self.plot.get_axis(idx)
                     if isinstance(axis, FormatedAxis):
                         axis.setWidth(description["individual_axis_width"])
 
-                it.ylink.setCheckState(
-                    QtCore.Qt.Checked
-                    if description.get("common_axis", False)
-                    else QtCore.Qt.Unchecked
-                )
-                it.set_precision(description.get("precision", 3))
+                if description.get("common_axis", False):
+                    item.setCheckState(2, QtCore.Qt.Checked)
+
+                item.precision = description.get("precision", 3)
 
             if enforce_y_axis:
-                it.ylink.setCheckState(QtCore.Qt.Checked)
-
-            item.setFlags(
-                item.flags() | QtCore.Qt.ItemIsUserCheckable | QtCore.Qt.ItemIsEnabled
-            )
-
-            if sig.group_index == NOT_FOUND:
-                it.does_not_exist()
+                item.setCheckState(2, QtCore.Qt.Checked)
 
             self.info_uuid = sig_uuid
 
         if mime_data:
-            pairs = add_new_items(
+            add_new_items(
                 self.channel_selection,
                 destination or self.channel_selection.invisibleRootItem(),
                 mime_data,
                 new_items,
             )
 
-            for item, widget in pairs:
-                item.widget = widget
-                widget.item = item
-                self.channel_selection.setItemWidget(item, 1, widget)
-
             # still have simple signals to add
             if new_items:
-                for item, widget in new_items.values():
-                    self.channel_selection.addTopLevelItem(item)
-                    widget.item = item
-                    item.widget = widget
-                    self.channel_selection.setItemWidget(item, 1, widget)
+                self.channel_selection.addTopLevelItems(list(new_items.values()))
+
         elif children:
-            items = [ch[0] for ch in children]
 
             if destination is None:
-                self.channel_selection.addTopLevelItems(items)
+                self.channel_selection.addTopLevelItems(children)
             else:
-                destination.addChildren(items)
-
-            for item, it in children:
-                it.item = item
-                item.widget = it
-                self.channel_selection.setItemWidget(item, 1, it)
+                destination.addChildren(children)
 
         self.channel_selection.update_channel_groups_count()
         self.channel_selection.refresh()
         self._update_visibile_entries()
 
     def channel_item_to_config(self, item):
-        widget = item.widget
+        widget = item
 
         channel = {"type": "channel"}
 
@@ -2441,7 +2354,7 @@ class Plot(QtWidgets.QWidget):
         channel["unit"] = sig.unit
         channel["enabled"] = item.checkState(0) == QtCore.Qt.Checked
 
-        if widget.individual_axis.checkState() == QtCore.Qt.Checked:
+        if item.checkState(3) == QtCore.Qt.Checked:
             channel["individual_axis"] = True
             channel["individual_axis_width"] = (
                 self.plot.axes[idx].boundingRect().width()
@@ -2449,7 +2362,7 @@ class Plot(QtWidgets.QWidget):
         else:
             channel["individual_axis"] = False
 
-        channel["common_axis"] = widget.ylink.checkState() == QtCore.Qt.Checked
+        channel["common_axis"] = item.checkState(2) == QtCore.Qt.Checked
         channel["color"] = sig.color
         channel["computed"] = sig.computed
         channel["ranges"] = copy_ranges(widget.ranges)
@@ -2483,7 +2396,7 @@ class Plot(QtWidgets.QWidget):
         return channel
 
     def channel_group_item_to_config(self, item):
-        widget = self.channel_selection.itemWidget(item, 1)
+        widget = item
         pattern = widget.pattern
         if pattern:
             pattern = dict(pattern)
@@ -2503,7 +2416,7 @@ class Plot(QtWidgets.QWidget):
 
         channel_group = {
             "type": "group",
-            "name": widget.name.text().rsplit("\t[")[0],
+            "name": widget._name,
             "enabled": item.checkState(0) == QtCore.Qt.Checked,
             "pattern": pattern,
             "ranges": ranges,
@@ -2518,12 +2431,11 @@ class Plot(QtWidgets.QWidget):
 
             for i in range(root.childCount()):
                 item = root.child(i)
-                widget = tree.itemWidget(item, 1)
-                if isinstance(widget, ChannelDisplay):
+                if item.type() == item.Channel:
                     channel = self.channel_item_to_config(item)
 
-                elif isinstance(widget, ChannelGroupDisplay):
-                    pattern = widget.pattern
+                elif item.type() == item.Group:
+                    pattern = item.pattern
                     if pattern:
                         pattern = dict(pattern)
                         ranges = copy_ranges(pattern["ranges"])
@@ -2536,7 +2448,7 @@ class Plot(QtWidgets.QWidget):
 
                         pattern["ranges"] = ranges
 
-                    ranges = copy_ranges(widget.ranges)
+                    ranges = copy_ranges(item.ranges)
 
                     for range_info in ranges:
                         range_info["font_color"] = range_info["font_color"].name()
@@ -2606,8 +2518,8 @@ class Plot(QtWidgets.QWidget):
             else:
                 super().dropEvent(e)
 
-    def widget_by_uuid(self, uuid):
-        return self._widget_cache[uuid]
+    def item_by_uuid(self, uuid):
+        return self._item_cache[uuid]
 
     def _show_properties(self, uuid):
         for sig in self.plot.signals:
@@ -2693,7 +2605,7 @@ class Plot(QtWidgets.QWidget):
 
     def _update_visibile_entries(self):
 
-        _widget_cache = self._widget_cache = {}
+        _item_cache = self._item_cache = {}
         _visible_entries = self._visible_entries = set()
         _visible_items = self._visible_items = {}
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
@@ -2703,16 +2615,15 @@ class Plot(QtWidgets.QWidget):
                 break
             iterator += 1
             if item.type() == ChannelsTreeItem.Channel:
-                item_widget = item.widget or self.channel_selection.itemWidget(item, 1)
 
-                _widget_cache[item.uuid] = item_widget
+                _item_cache[item.uuid] = item
 
-                if item.checkState(0) == QtCore.Qt.Checked and item_widget.exists:
-                    entry = (item.origin_uuid, item.name, item.uuid)
+                if item.checkState(0) == QtCore.Qt.Checked and item.exists:
+                    entry = (item.origin_uuid, item.signal.name, item.uuid)
                     _visible_entries.add(entry)
-                    _visible_items[entry] = item, item_widget
+                    _visible_items[entry] = item
                 else:
-                    item_widget.set_value("")
+                    item.set_value("")
 
         if self.plot.cursor1 is not None:
             self.cursor_moved()
@@ -2728,10 +2639,7 @@ class Plot(QtWidgets.QWidget):
             if item is None:
                 break
 
-            widget = item.widget
-            if widget:
-                widget.item = None
-            item.widget = None
+            item.signal = None
 
             iterator += 1
 
@@ -3428,7 +3336,7 @@ class _Plot(pg.PlotWidget):
 
                 parent = self.parent().parent()
                 uuids = [
-                    parent.channel_selection.itemWidget(item, 1).uuid
+                    item.uuid
                     for item in parent.channel_selection.selectedItems()
                     if item.type() == ChannelsTreeItem.Channel
                 ]
@@ -3578,7 +3486,7 @@ class _Plot(pg.PlotWidget):
                 while iterator.value():
                     item = iterator.value()
                     if item.type() == ChannelsTreeItem.Channel:
-                        uuids.append(parent.channel_selection.itemWidget(item, 1).uuid)
+                        uuids.append(item.uuid)
 
                     iterator += 1
 
@@ -3689,7 +3597,7 @@ class _Plot(pg.PlotWidget):
 
                 parent = self.parent().parent()
                 uuids = [
-                    parent.channel_selection.itemWidget(item, 1).uuid
+                    item.uuid
                     for item in parent.channel_selection.selectedItems()
                     if item.type() == ChannelsTreeItem.Channel
                 ]
@@ -3800,7 +3708,7 @@ class _Plot(pg.PlotWidget):
                 parent = self.parent().parent()
                 uuids = list(
                     set(
-                        parent.channel_selection.itemWidget(item, 1).uuid
+                        item.uuid
                         for item in parent.channel_selection.selectedItems()
                         if item.type() == ChannelsTreeItem.Channel
                     )
@@ -3831,7 +3739,7 @@ class _Plot(pg.PlotWidget):
                 parent = self.parent().parent()
                 uuids = list(
                     set(
-                        parent.channel_selection.itemWidget(item, 1).uuid
+                        item.uuid
                         for item in parent.channel_selection.selectedItems()
                         if item.type() == ChannelsTreeItem.Channel
                     )
@@ -4412,11 +4320,11 @@ class _Plot(pg.PlotWidget):
                 if not sig.enable:
                     continue
 
-                item_widget = self.plot_parent.widget_by_uuid(sig.uuid)
-                if not item_widget:
+                item = self.plot_parent.item_by_uuid(sig.uuid)
+                if not item:
                     continue
 
-                ranges = item_widget.get_ranges()
+                ranges = item.get_ranges()
 
                 if ranges:
                     for range_info in ranges:

@@ -38,7 +38,6 @@ from .lin_bus_trace import LINBusTrace
 from .numeric import Numeric
 from .plot import get_descriptions_by_uuid, Plot
 from .tabular import Tabular
-from .tree import ChannelsGroupTreeItem
 
 COMPONENT = re.compile(r"\[(?P<index>\d+)\]$")
 SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
@@ -2190,7 +2189,7 @@ class WithMDIArea:
                 break
             iterator += 1
 
-            if isinstance(item, ChannelsGroupTreeItem):
+            if item.type() == item.Group:
                 if item.pattern:
                     plot.pattern_group_added.emit(plot, item)
 
@@ -3073,7 +3072,7 @@ class WithMDIArea:
             item = iterator.value()
             iterator += 1
 
-            if isinstance(item, ChannelsGroupTreeItem):
+            if item.type() == item.Group:
                 if item.pattern:
                     plot.pattern_group_added.emit(plot, item)
 
