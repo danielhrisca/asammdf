@@ -1622,12 +1622,14 @@ class Plot(QtWidgets.QWidget):
 
     def channel_selection_item_changed(self, item, column):
 
-        if not item or item.type() != item.Channel:
+        if not item or item.type() != item.Channel or item.inhibit:
             return
 
         if column == 0:
-            item.signal.enable = False
-            self.plot.set_signal_enable(item.uuid, item.checkState(column))
+            enabled = item.checkState(column) == QtCore.Qt.Checked
+            if enabled != item.signal.enable:
+                item.signal.enable = enabled
+                self.plot.set_signal_enable(item.uuid, item.checkState(column))
 
         elif column == 2:
             if (
@@ -1635,12 +1637,15 @@ class Plot(QtWidgets.QWidget):
                 and item.data(column, QtCore.Qt.CheckStateRole) is not None
                 and not item.inhibit
             ):
-                state = item.checkState(column)
-                item.signal.y_link = state == QtCore.Qt.Checked
-                self.plot.set_common_axis(item.uuid, state)
+                enabled = item.checkState(column) == QtCore.Qt.Checked
+                if enabled != item.signal.y_link:
+                    item.signal.y_link = enabled
+                    self.plot.set_common_axis(item.uuid, enabled)
 
         elif column == 3:
-            self.plot.set_individual_axis(item.uuid, item.checkState(column))
+            enabled = item.checkState(column) == QtCore.Qt.Checked
+            if enabled != item.signal.individual_axis:
+                self.plot.set_individual_axis(item.uuid, enabled)
 
     def channel_selection_item_double_clicked(self, item, column):
         if item is None:

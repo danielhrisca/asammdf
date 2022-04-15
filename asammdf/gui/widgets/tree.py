@@ -413,9 +413,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         self.header().setStretchLastSection(False)
 
-        # self.header().setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
-        # self.header().setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
-        # self.itemSelectionChanged.connect(self.item_selection_changed)
+        self.itemSelectionChanged.connect(self.item_selection_changed)
 
         self.itemCollapsed.connect(self.update_visibility_status)
         self.itemExpanded.connect(self.update_visibility_status)
@@ -1661,7 +1659,6 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
         self.resolved_ranges = None
 
-    @timeit
     def set_value(self, value=None, update=False, force=False):
         update_text = value != self._value
         if value is not None:
@@ -1686,31 +1683,33 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
         if new_background_color is None:
             if self._background_color != self.background(0).color():
-                self.setBackground(0, self._background_color)
-                self.setBackground(1, self._background_color)
-                self.setBackground(2, self._background_color)
-                self.setBackground(3, self._background_color)
+                brush = fn.mkBrush(self._background_color.name())
+                self.setBackground(0, brush)
+                self.setBackground(1, brush)
+                self.setBackground(2, brush)
+                self.setBackground(3, brush)
         else:
             if new_background_color != self.background(0).color():
-                self.setBackground(0, new_background_color)
-                self.setBackground(1, new_background_color)
-                self.setBackground(2, new_background_color)
-                self.setBackground(3, new_background_color)
+                brush = fn.mkBrush(new_background_color.name())
+                self.setBackground(0, brush)
+                self.setBackground(1, brush)
+                self.setBackground(2, brush)
+                self.setBackground(3, brush)
 
         if new_font_color is None:
             if self.signal.color != self.foreground(0).color():
-                self.setForeground(0, self.signal.color)
-                self.setForeground(1, self.signal.color)
-                self.setForeground(2, self.signal.color)
-                self.setForeground(3, self.signal.color)
+                brush = fn.mkBrush(self.signal.color_name)
+                self.setForeground(0, brush)
+                self.setForeground(1, brush)
+                self.setForeground(2, brush)
+                self.setForeground(3, brush)
         else:
             if new_font_color != self.foreground(0).color():
-                self.setForeground(0, new_font_color)
-                self.setForeground(1, new_font_color)
-                self.setForeground(2, new_font_color)
-                self.setForeground(3, new_font_color)
-
-        self.inhibit = False
+                brush = fn.mkBrush(new_font_color.name())
+                self.setForeground(0, brush)
+                self.setForeground(1, brush)
+                self.setForeground(2, brush)
+                self.setForeground(3, brush)
 
         if update_text:
 
@@ -1724,6 +1723,8 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                     self.setText(1, text)
                 except (ValueError, TypeError):
                     self.setText(1, f"{self._value_prefix}{value}")
+
+        self.inhibit = False
 
     def show_info(self):
         if self.type() == self.Group:
