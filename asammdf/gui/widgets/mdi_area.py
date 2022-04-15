@@ -30,7 +30,6 @@ from ..dialogs.window_selection_dialog import WindowSelectionDialog
 from ..utils import compute_signal, copy_ranges, extract_mime_names
 from .bar import Bar
 from .can_bus_trace import CANBusTrace
-from .channel_display import ChannelDisplay
 from .flexray_bus_trace import FlexRayBusTrace
 from .formated_axis import FormatedAxis
 from .gps import GPS
@@ -2954,111 +2953,11 @@ class WithMDIArea:
 
         plot.add_new_channels(signals, mime_data)
 
-        # iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
-        # while iterator.value():
-        #     item = iterator.value()
-        #     iterator += 1
-        #
-        #     widget = plot.channel_selection.itemWidget(item, 1)
-        #
-        #     if isinstance(widget, ChannelDisplay):
-        #         sig, index = plot.plot.signal_by_uuid(widget.uuid)
-        #         if sig.group_index == NOT_FOUND:
-        #             widget.does_not_exist()
-
         plot.plot.update_lines()
 
         # plot.show()
 
         plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
-
-        iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
-        while iterator.value():
-            item = iterator.value()
-            iterator += 1
-            wid = plot.channel_selection.itemWidget(item, 1)
-            if isinstance(wid, ChannelDisplay):
-
-                description = descriptions.get(wid.uuid, None)
-                if description is not None:
-
-                    signal, _idx = plot.plot.signal_by_uuid(wid.uuid)
-
-                    # signal.mode = description["mode"]
-                    # signal.format = description["format"]
-                    #
-                    # value, kind, fmt = signal.value_at_timestamp(0)
-                    #
-                    # widget = plot.widget_by_uuid(signal.uuid)
-                    # widget.kind = kind
-                    # widget.set_fmt(fmt)
-                    # widget.set_value(update=True)
-                    #
-                    # if plot.plot.current_uuid == signal.uuid:
-                    #     plot.plot.y_axis.format = fmt
-                    #     plot.plot.y_axis.picture = None
-                    #     plot.plot.y_axis.update()
-                    #
-                    # axis = plot.plot.get_axis(_idx)
-                    # if isinstance(axis, FormatedAxis):
-                    #     axis.format = fmt
-                    #     axis.picture = None
-                    #     axis.update()
-
-                    # if "y_range" in description:
-                    #     plot.plot.view_boxes[_idx].setYRange(
-                    #         *description["y_range"], padding=0
-                    #     )
-                    #
-                    # wid.set_fmt(description["fmt"])
-                    # wid.set_precision(description["precision"])
-                    # try:
-                    #     wid.set_ranges(
-                    #         [
-                    #             {
-                    #                 "font_color": range["color"],
-                    #                 "background_color": range["color"],
-                    #                 "op1": "<=",
-                    #                 "op2": "<=",
-                    #                 "value1": float(range["start"]),
-                    #                 "value2": float(range["stop"]),
-                    #             }
-                    #             for range in description["ranges"]
-                    #         ]
-                    #     )
-                    # except KeyError:
-                    #     wid.set_ranges(description["ranges"])
-                    #
-                    # for range in wid.ranges:
-                    #     range["font_color"] = QtGui.QColor(range["font_color"])
-                    #     range["background_color"] = QtGui.QColor(
-                    #         range["background_color"]
-                    #     )
-
-                    # wid.ylink.setCheckState(
-                    #     QtCore.Qt.Checked
-                    #     if description["common_axis"]
-                    #     else QtCore.Qt.Unchecked
-                    # )
-                    # wid.individual_axis.setCheckState(
-                    #     QtCore.Qt.Checked
-                    #     if description.get("individual_axis", False)
-                    #     else QtCore.Qt.Unchecked
-                    # )
-                    # width = description.get("individual_axis_width", 0)
-                    # if width:
-                    #     plot.plot.axes[_idx].setWidth(width)
-                    item.setCheckState(
-                        0,
-                        QtCore.Qt.Checked
-                        if description["enabled"]
-                        else QtCore.Qt.Unchecked,
-                    )
-
-                elif pattern_info:
-                    wid.set_ranges(pattern_info["ranges"])
-
-                # wid.set_value(update=True)
 
         self.set_subplots_link(self.subplots_link)
 

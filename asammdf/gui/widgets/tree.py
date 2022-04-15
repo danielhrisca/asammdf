@@ -7,6 +7,7 @@ import os
 from struct import pack
 from traceback import format_exc
 
+from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from .. import utils
@@ -17,8 +18,6 @@ from ..utils import (
     get_color_using_ranges,
     get_colors_using_ranges,
 )
-from .channel_display import ChannelDisplay
-from .channel_group_display import ChannelGroupDisplay
 from .tree_item import TreeItem
 
 NOT_FOUND = 0xFFFFFFFF
@@ -609,7 +608,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
             try:
                 info = json.loads(info)
-                info["color"] = QtGui.QColor(info["color"])
+                info["color"] = fn.mkColor(info["color"])
             except:
                 pass
             else:
@@ -1301,6 +1300,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         check=None,
         ranges=None,
         origin_uuid=None,
+        background_color=None,
     ):
         super().__init__(parent, type)
         self.exists = True
@@ -1311,6 +1311,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
         self._name = ""
         self._count = 0
+        self._background_color = background_color
 
         if type == self.Group:
 
@@ -1421,9 +1422,10 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
     @color.setter
     def color(self, value):
         if self.type() == self.Channel:
-            value = QtGui.QColor(value)
+            value = fn.mkColor(value)
 
             self.signal.color = value
+            self.signal.pen.setColor(value)
             self.inhibit = True
             self.setForeground(0, value)
             self.setForeground(1, value)
@@ -1437,7 +1439,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             if tree:
                 tree.color_changed.emit(self.uuid, value)
         else:
-            value = QtGui.QColor(value)
+            value = fn.mkColor(value)
             self.setForeground(0, value)
 
     def copy(self):
@@ -1517,7 +1519,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
     @lru_cache(maxsize=1024)
     def get_color_using_ranges(self, value, pen=False):
         return get_color_using_ranges(
-            value, self.get_ranges(), self._font_color, pen=pen
+            value, self.get_ranges(), self.color, pen=pen
         )
 
     def get_display_properties(self):
@@ -1620,9 +1622,9 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.pattern["ranges"] = copy_ranges(self.pattern["ranges"])
             for range_info in self.pattern["ranges"]:
                 if isinstance(range_info["font_color"], str):
-                    range_info["font_color"] = QtGui.QColor(range_info["font_color"])
+                    range_info["font_color"] = fn.mkColor(range_info["font_color"])
                 if isinstance(range_info["background_color"], str):
-                    range_info["background_color"] = QtGui.QColor(
+                    range_info["background_color"] = fn.mkColor(
                         range_info["background_color"]
                     )
         else:
@@ -1651,9 +1653,9 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         self.ranges = []
         for range_info in ranges:
             if isinstance(range_info["font_color"], str):
-                range_info["font_color"] = QtGui.QColor(range_info["font_color"])
+                range_info["font_color"] = fn.mkColor(range_info["font_color"])
             if isinstance(range_info["background_color"], str):
-                range_info["background_color"] = QtGui.QColor(
+                range_info["background_color"] = fn.mkColor(
                     range_info["background_color"]
                 )
             self.ranges.append(range_info)
@@ -1683,26 +1685,34 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         self.inhibit = True
 
         if new_background_color is None:
-            self.setData(0, QtCore.Qt.BackgroundRole, None)
-            self.setData(1, QtCore.Qt.BackgroundRole, None)
-            self.setData(2, QtCore.Qt.BackgroundRole, None)
-            self.setData(3, QtCore.Qt.BackgroundRole, None)
+            # self.setData(0, QtCore.Qt.BackgroundRole, None)
+            # self.setData(1, QtCore.Qt.BackgroundRole, None)
+            # self.setData(2, QtCore.Qt.BackgroundRole, None)
+            # self.setData(3, QtCore.Qt.BackgroundRole, None)
+            if self._background_color != self.background(0).color():
+                self.setBackground(0, self._background_color)
+                self.setBackground(1, self._background_color)
+                self.setBackground(2, self._background_color)
+                self.setBackground(3, self._background_color)
         else:
-            self.setBackground(0, new_background_color)
-            self.setBackground(1, new_background_color)
-            self.setBackground(2, new_background_color)
-            self.setBackground(3, new_background_color)
+            if self._background_color != self.background(0).color():
+                self.setBackground(0, new_background_color)
+                self.setBackground(1, new_background_color)
+                self.setBackground(2, new_background_color)
+                self.setBackground(3, new_background_color)
 
         if new_font_color is None:
-            self.setForeground(0, self.signal.color)
-            self.setForeground(1, self.signal.color)
-            self.setForeground(2, self.signal.color)
-            self.setForeground(3, self.signal.color)
+            if self.signal.color != self.foreground(0).color():
+                self.setForeground(0, self.signal.color)
+                self.setForeground(1, self.signal.color)
+                self.setForeground(2, self.signal.color)
+                self.setForeground(3, self.signal.color)
         else:
-            self.setForeground(0, new_font_color)
-            self.setForeground(1, new_font_color)
-            self.setForeground(2, new_font_color)
-            self.setForeground(3, new_font_color)
+            if new_font_color != self.foreground(0).color():
+                self.setForeground(0, new_font_color)
+                self.setForeground(1, new_font_color)
+                self.setForeground(2, new_font_color)
+                self.setForeground(3, new_font_color)
 
         self.inhibit = False
 

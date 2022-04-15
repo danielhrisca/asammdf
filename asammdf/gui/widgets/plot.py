@@ -91,6 +91,8 @@ def monkey_patch_pyqtgraph():
     mkPen_factory = fn.mkPen
 
     def mkColor(*args):
+        if len(args) == 1 and isinstance(args[0], QtGui.QColor):
+            return args[0]
         try:
             return cached_mkColor_factory(*args)
         except:
@@ -101,6 +103,8 @@ def monkey_patch_pyqtgraph():
         return mkColor_factory(*args)
 
     def mkBrush(*args, **kwargs):
+        if len(args) == 1 and isinstance(args[0], QtGui.QBrush):
+            return args[0]
         try:
             return cached_mkBrush_factory(*args, **kwargs)
         except:
@@ -111,6 +115,8 @@ def monkey_patch_pyqtgraph():
         return mkBrush_factory(*args, **kargs)
 
     def mkPen(*args, **kwargs):
+        if len(args) == 1 and isinstance(args[0], QtGui.QPen):
+            return args[0]
         try:
             return cached_mkPen_factory(*args, **kwargs)
         except:
@@ -135,7 +141,6 @@ from ...signal import Signal
 from ..dialogs.define_channel import DefineChannel
 from ..ui import resource_rc
 from ..utils import COLORS, copy_ranges, extract_mime_names
-from .channel_display import ChannelDisplay
 from .channel_group_display import ChannelGroupDisplay
 from .channel_stats import ChannelStats
 from .cursor import Cursor, Region
@@ -291,8 +296,8 @@ class PlotSignal(Signal):
             color = signal.color or COLORS[index % 10]
         else:
             color = COLORS[index % 10]
-        self.color = QtGui.QColor(color)
-        self.pen = pg.mkPen(color=color, style=QtCore.Qt.SolidLine)
+        self.color = fn.mkColor(color)
+        self.pen = fn.mkPen(color=color, style=QtCore.Qt.SolidLine)
 
         if len(self.phys_samples):
 
@@ -1250,6 +1255,7 @@ class Plot(QtWidgets.QWidget):
         hide_missing_channels=False,
         hide_disabled_channels=False,
         x_axis="time",
+        allow_cursor=True,
         *args,
         **kwargs,
     ):
@@ -1302,6 +1308,7 @@ class Plot(QtWidgets.QWidget):
             origin=origin,
             mdf=self.mdf,
             x_axis=x_axis,
+            allow_cursor=allow_cursor,
             plot_parent=self,
         )
 
@@ -1602,10 +1609,12 @@ class Plot(QtWidgets.QWidget):
 
     def curve_clicked(self, uuid):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
-        while iterator.value():
+        while True:
             item = iterator.value()
-            widget = self.channel_selection.itemWidget(item, 1)
-            if isinstance(widget, ChannelDisplay) and widget.uuid == uuid:
+            if item is None:
+                break
+
+            if item.type() == item.Channel and item.uuid == uuid:
                 self.channel_selection.setCurrentItem(item)
                 break
 
@@ -1757,14 +1766,15 @@ class Plot(QtWidgets.QWidget):
     def cursor_removed(self):
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
-        while iterator.value():
+        while True:
             item = iterator.value()
-            widget = self.channel_selection.itemWidget(item, 1)
+            if item is None:
+                break
 
-            if isinstance(widget, ChannelDisplay) and not self.plot.region:
+            if item.type() == item.Channel and not self.plot.region:
                 self.cursor_info.update_value()
-                widget.set_prefix("")
-                widget.set_value("")
+                item.set_prefix("")
+                item.set_value("")
 
             iterator += 1
 
@@ -2085,12 +2095,14 @@ class Plot(QtWidgets.QWidget):
 
         elif key == QtCore.Qt.Key_R and modifiers == QtCore.Qt.NoModifier:
             iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
-            while iterator.value():
+            while True:
                 item = iterator.value()
-                widget = self.channel_selection.itemWidget(item, 1)
-                if isinstance(widget, ChannelDisplay):
-                    widget.set_prefix("")
-                    widget.set_value("")
+                if item is None:
+                    break
+
+                if item.type() == item.Channel:
+                    item.set_prefix("")
+                    item.set_value("")
 
                 iterator += 1
 
@@ -2119,12 +2131,14 @@ class Plot(QtWidgets.QWidget):
 
     def range_removed(self):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
-        while iterator.value():
+        while True:
             item = iterator.value()
-            widget = self.channel_selection.itemWidget(item, 1)
-            if isinstance(widget, ChannelDisplay):
-                widget.set_prefix("")
-                widget.set_value("")
+            if item is None:
+                break
+
+            if item.type() == item.Channel:
+                item.set_prefix("")
+                item.set_value("")
 
             iterator += 1
 
@@ -2143,44 +2157,18 @@ class Plot(QtWidgets.QWidget):
 
     def computation_channel_inserted(self):
         sig = self.plot.signals[-1]
+        sig.enable = True
 
-        name, unit = sig.name, sig.unit
-        item = ChannelsTreeItem((-1, -1), name, sig.computation)
-        tooltip = getattr(sig, "tooltip", "")
-        it = ChannelDisplay(
-            sig.uuid,
-            unit,
-            sig.samples.dtype.kind,
-            3,
-            tooltip,
-            "",
-            item=item,
-            parent=self,
+        background_color = self.palette().color(QtGui.QPalette.Base)
+
+        item = ChannelsTreeItem(
+            ChannelsTreeItem.Channel,
+            signal=sig,
+            check=QtCore.Qt.Checked if sig.enable else QtCore.Qt.Unchecked,
+            background_color=background_color,
         )
-        it.setAttribute(QtCore.Qt.WA_StyledBackground)
 
-        font = QtGui.QFont()
-        font.setItalic(True)
-        it.name.setFont(font)
-
-        it.set_name(name)
-        it.set_value("")
-        it.set_color(sig.color)
-        item.setSizeHint(1, it.sizeHint())
         self.channel_selection.addTopLevelItem(item)
-        self.channel_selection.setItemWidget(item, 1, it)
-
-        it.color_changed.connect(self.plot.set_color)
-        it.unit_changed.connect(self.plot.set_unit)
-        it.name_changed.connect(self.plot.set_name)
-        it.enable_changed.connect(self.plot.set_signal_enable)
-        it.ylink_changed.connect(self.plot.set_common_axis)
-        it.individual_axis_changed.connect(self.plot.set_individual_axis)
-        it.unit_changed.connect(self.plot.set_unit)
-
-        it.enable_changed.emit(sig.uuid, 1)
-        it.enable_changed.emit(sig.uuid, 0)
-        it.enable_changed.emit(sig.uuid, 1)
 
         self.info_uuid = sig.uuid
 
@@ -2197,8 +2185,8 @@ class Plot(QtWidgets.QWidget):
 
                 ranges = copy_ranges(info["ranges"])
                 for range_info in ranges:
-                    range_info["font_color"] = QtGui.QColor(range_info["font_color"])
-                    range_info["background_color"] = QtGui.QColor(
+                    range_info["font_color"] = fn.mkColor(range_info["font_color"])
+                    range_info["background_color"] = fn.mkColor(
                         range_info["background_color"]
                     )
 
@@ -2305,6 +2293,8 @@ class Plot(QtWidgets.QWidget):
 
         children = []
 
+        background_color = self.palette().color(QtGui.QPalette.Base)
+
         new_items = defaultdict(list)
         for sig_uuid, sig in channels.items():
 
@@ -2317,6 +2307,7 @@ class Plot(QtWidgets.QWidget):
                 ChannelsTreeItem.Channel,
                 signal=sig,
                 check=QtCore.Qt.Checked if sig.enable else QtCore.Qt.Unchecked,
+                background_color=background_color,
             )
             item.fmt = description.get("fmt", item.fmt)
 
@@ -2349,8 +2340,8 @@ class Plot(QtWidgets.QWidget):
                 item.set_ranges(copy_ranges(description.get("ranges", [])))
 
             for range in item.ranges:
-                range["font_color"] = QtGui.QColor(range["font_color"])
-                range["background_color"] = QtGui.QColor(range["background_color"])
+                range["font_color"] = fn.mkColor(range["font_color"])
+                range["background_color"] = fn.mkColor(range["background_color"])
 
             if description:
                 individual_axis = description.get("individual_axis", False)
@@ -3948,32 +3939,7 @@ class _Plot(pg.PlotWidget):
 
         if (QtCore.Qt.Key_C, int(QtCore.Qt.NoModifier)) not in self.disabled_keys:
 
-            if self.region is None:
-                if event.button() == QtCore.Qt.MouseButton.LeftButton:
-                    pos = self.plot_item.vb.mapSceneToView(event.scenePos())
-
-                    if self.cursor1 is None:
-                        if pg.getConfigOption("background") == "k":
-                            color = "white"
-                        else:
-                            color = "black"
-
-                        self.cursor1 = Cursor(
-                            pos=pos, angle=90, movable=True, pen=color, hoverPen=color
-                        )
-
-                        self.plotItem.addItem(self.cursor1, ignoreBounds=True)
-                        self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
-                        self.cursor1.sigPositionChangeFinished.connect(
-                            self.cursor_move_finished.emit
-                        )
-                        self.cursor_move_finished.emit(self.cursor1)
-                    else:
-                        self.cursor1.setPos(pos)
-
-                    self.plotItem.update()
-
-            else:
+            if self.region is not None:
                 pos = self.plot_item.vb.mapSceneToView(event.scenePos())
                 start, stop = self.region.getRegion()
 
@@ -4425,7 +4391,7 @@ class _Plot(pg.PlotWidget):
                             x, y = self.scale_curve_to_pixmap(x, y, view)
 
                             color = range_info["font_color"]
-                            pen = QtGui.QPen(color)
+                            pen = fn.mkPen(color)
 
                             if with_dots:
                                 new_curve = pg.PlotCurveItem(

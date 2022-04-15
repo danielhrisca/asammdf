@@ -13,6 +13,7 @@ from traceback import format_exc
 import lxml
 from numexpr import evaluate
 import numpy as np
+from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..mdf import MDF, MDF2, MDF3, MDF4
@@ -102,7 +103,7 @@ def extract_mime_names(data):
 
 def load_dsp(file, background="#000000"):
     if isinstance(background, str):
-        background = QtGui.QColor(background)
+        background = fn.mkColor(background)
 
     def parse_channels(display):
         channels = []
@@ -137,7 +138,7 @@ def load_dsp(file, background="#000000"):
                             c = c << 8
                             c += color_ & 0xFF
                             color_ = color_ >> 8
-                        color = QtGui.QColor(f"#{c:06X}")
+                        color = fn.mkColor(f"#{c:06X}")
                         ranges.append(
                             {
                                 "background_color": background,
@@ -213,7 +214,7 @@ def load_dsp(file, background="#000000"):
                                 c = c << 8
                                 c += color_ & 0xFF
                                 color_ = color_ >> 8
-                            color = QtGui.QColor(f"#{c:06X}")
+                            color = fn.mkColor(f"#{c:06X}")
                             ranges.append(
                                 {
                                     "background_color": background,
@@ -566,7 +567,7 @@ def copy_ranges(ranges):
                 if isinstance(color, QtGui.QBrush):
                     range_info[color_name] = QtGui.QBrush(color)
                 elif isinstance(color, QtGui.QColor):
-                    range_info[color_name] = QtGui.QColor(color)
+                    range_info[color_name] = fn.mkColor(color)
             new_ranges.append(range_info)
 
         return new_ranges
@@ -715,7 +716,7 @@ def get_color_using_ranges(
                 break
 
     if pen:
-        return QtGui.QPen(new_color)
+        return fn.mkPen(new_color)
     else:
         return new_color
 
