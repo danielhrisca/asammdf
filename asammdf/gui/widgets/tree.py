@@ -1301,8 +1301,6 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         self.resolved_ranges = None
         self.ranges = []
 
-        self.inhibit = False
-
         self._name = ""
         self._count = 0
         self._background_color = background_color
@@ -1421,12 +1419,10 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.signal.color = value
             self.signal.pen.setColor(value)
             self.signal.color_name = value.name()
-            self.inhibit = True
             self.setForeground(0, value)
             self.setForeground(1, value)
             self.setForeground(2, value)
             self.setForeground(3, value)
-            self.inhibit = False
 
             if self.details is not None:
                 self.details.color = value
@@ -1659,6 +1655,14 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
         self.resolved_ranges = None
 
+    @timeit
+    def setBackground(self, col, c):
+        super().setBackground(col, c)
+
+    @timeit
+    def setForeground(self, col, c):
+        super().setForeground(col, c)
+
     def set_value(self, value=None, update=False, force=False):
         update_text = value != self._value
         if value is not None:
@@ -1678,8 +1682,6 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             default_background_color=default_background_color,
             default_font_color=default_font_color,
         )
-
-        self.inhibit = True
 
         if new_background_color is None:
             if self._background_color != self.background(0).color():
@@ -1723,8 +1725,6 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                     self.setText(1, text)
                 except (ValueError, TypeError):
                     self.setText(1, f"{self._value_prefix}{value}")
-
-        self.inhibit = False
 
     def show_info(self):
         if self.type() == self.Group:

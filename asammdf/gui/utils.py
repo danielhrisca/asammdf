@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 import re
 from threading import Thread
-from time import sleep, perf_counter
+from time import perf_counter, sleep
 import traceback
 from traceback import format_exc
 

@@ -1503,7 +1503,9 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.show_properties.connect(self._show_properties)
         self.channel_selection.insert_computation.connect(self.plot.insert_computation)
 
-        self.channel_selection.itemChanged.connect(self.channel_selection_item_changed)
+        self.channel_selection.model().dataChanged.connect(
+            self.channel_selection_item_changed
+        )
         self.channel_selection.items_rearranged.connect(
             self.channel_selection_rearranged
         )
@@ -1511,6 +1513,7 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.itemDoubleClicked.connect(
             self.channel_selection_item_double_clicked
         )
+
         self.channel_selection.compute_fft_request.connect(self.compute_fft)
         self.channel_selection.itemExpanded.connect(self.update_current_values)
         self.channel_selection.verticalScrollBar().valueChanged.connect(
@@ -1536,6 +1539,9 @@ class Plot(QtWidgets.QWidget):
         self.splitter.splitterMoved.connect(self.set_splitter)
 
         self.show()
+
+    def dd(self, *args):
+        print(">>", args)
 
     def set_locked(self, event=None, locked=None):
         if locked is None:
@@ -1620,10 +1626,16 @@ class Plot(QtWidgets.QWidget):
     def channel_selection_rearranged(self, uuids):
         self._update_visibile_entries()
 
-    def channel_selection_item_changed(self, item, column):
-
-        if not item or item.type() != item.Channel or item.inhibit:
+    def channel_selection_item_changed(self, top_left, bottom_right, roles):
+        if QtCore.Qt.CheckStateRole not in roles:
             return
+
+        item = self.channel_selection.itemFromIndex(top_left)
+
+        if item.type() != item.Channel:
+            return
+
+        column = top_left.column()
 
         if column == 0:
             enabled = item.checkState(column) == QtCore.Qt.Checked
@@ -1635,7 +1647,6 @@ class Plot(QtWidgets.QWidget):
             if (
                 not self.locked
                 and item.data(column, QtCore.Qt.CheckStateRole) is not None
-                and not item.inhibit
             ):
                 enabled = item.checkState(column) == QtCore.Qt.Checked
                 if enabled != item.signal.y_link:
