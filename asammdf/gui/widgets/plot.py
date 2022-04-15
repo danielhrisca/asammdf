@@ -91,8 +91,6 @@ def monkey_patch_pyqtgraph():
     mkPen_factory = fn.mkPen
 
     def mkColor(*args):
-        if len(args) == 1 and isinstance(args[0], QtGui.QColor):
-            return args[0]
         try:
             return cached_mkColor_factory(*args)
         except:
@@ -115,8 +113,6 @@ def monkey_patch_pyqtgraph():
         return mkBrush_factory(*args, **kargs)
 
     def mkPen(*args, **kwargs):
-        if len(args) == 1 and isinstance(args[0], QtGui.QPen):
-            return args[0]
         try:
             return cached_mkPen_factory(*args, **kwargs)
         except:
@@ -297,6 +293,7 @@ class PlotSignal(Signal):
         else:
             color = COLORS[index % 10]
         self.color = fn.mkColor(color)
+        self.color_name = self.color.name()
         self.pen = fn.mkPen(color=color, style=QtCore.Qt.SolidLine)
 
         if len(self.phys_samples):

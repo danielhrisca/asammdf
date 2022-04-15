@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 import re
 from threading import Thread
-from time import sleep
+from time import sleep, perf_counter
 import traceback
 from traceback import format_exc
 
@@ -716,9 +716,24 @@ def get_color_using_ranges(
                 break
 
     if pen:
-        return fn.mkPen(new_color)
+        return fn.mkPen(new_color.name())
     else:
         return new_color
+
+
+def timeit(func):
+    def timed(*args, **kwargs):
+        t1 = perf_counter()
+        ret = func(*args, **kwargs)
+        t2 = perf_counter()
+        delta = t2 - t1
+        if delta >= 1e-3:
+            print(f"CALL {func.__qualname__}: {delta*1e3:.3f} ms")
+        else:
+            print(f"CALL {func.__qualname__}: {delta*1e6:.3f} us")
+        return ret
+
+    return timed
 
 
 if __name__ == "__main__":

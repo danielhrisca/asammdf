@@ -17,6 +17,7 @@ from ..utils import (
     extract_mime_names,
     get_color_using_ranges,
     get_colors_using_ranges,
+    timeit,
 )
 from .tree_item import TreeItem
 
@@ -452,12 +453,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
             root = self.invisibleRootItem()
             for item in selected_items:
-                item_widget = self.itemWidget(item, 1)
-                if hasattr(item_widget, "disconnect_slots"):
-                    item_widget.disconnect_slots()
                 (item.parent() or root).removeChild(item)
-                item.widget = None
-                item_widget.item = None
 
             self.refresh()
 
@@ -1382,8 +1378,8 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.setText(0, self.name)
             self.setForeground(0, signal.color)
             self.setForeground(1, signal.color)
-            self.setForeground(1, signal.color)
-            self.setForeground(1, signal.color)
+            self.setForeground(2, signal.color)
+            self.setForeground(3, signal.color)
 
             self._is_visible = True
 
@@ -1426,6 +1422,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
             self.signal.color = value
             self.signal.pen.setColor(value)
+            self.signal.color_name = value.name()
             self.inhibit = True
             self.setForeground(0, value)
             self.setForeground(1, value)
@@ -1519,7 +1516,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
     @lru_cache(maxsize=1024)
     def get_color_using_ranges(self, value, pen=False):
         return get_color_using_ranges(
-            value, self.get_ranges(), self.color, pen=pen
+            value, self.get_ranges(), self.signal.color, pen=pen
         )
 
     def get_display_properties(self):
@@ -1549,15 +1546,17 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         return json.dumps(info)
 
     def get_ranges(self, tree=None):
-        tree = tree or self.treeWidget()
-        if tree:
-            parent = self.parent()
-            if parent is None:
-                return self.ranges
+        if self.resolved_ranges is None:
+            tree = tree or self.treeWidget()
+            if tree:
+                parent = self.parent()
+                if parent is None:
+                    self.resolved_ranges = self.ranges
+                else:
+                    self.resolved_ranges = [*self.ranges, *parent.get_ranges(tree)]
             else:
-                return [*self.ranges, *parent.get_ranges(tree)]
-        else:
-            return []
+                self.resolved_ranges = []
+        return self.resolved_ranges
 
     @property
     def name(self):
@@ -1662,6 +1661,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
         self.resolved_ranges = None
 
+    @timeit
     def set_value(self, value=None, update=False, force=False):
         update_text = value != self._value
         if value is not None:
@@ -1685,17 +1685,13 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         self.inhibit = True
 
         if new_background_color is None:
-            # self.setData(0, QtCore.Qt.BackgroundRole, None)
-            # self.setData(1, QtCore.Qt.BackgroundRole, None)
-            # self.setData(2, QtCore.Qt.BackgroundRole, None)
-            # self.setData(3, QtCore.Qt.BackgroundRole, None)
             if self._background_color != self.background(0).color():
                 self.setBackground(0, self._background_color)
                 self.setBackground(1, self._background_color)
                 self.setBackground(2, self._background_color)
                 self.setBackground(3, self._background_color)
         else:
-            if self._background_color != self.background(0).color():
+            if new_background_color != self.background(0).color():
                 self.setBackground(0, new_background_color)
                 self.setBackground(1, new_background_color)
                 self.setBackground(2, new_background_color)
