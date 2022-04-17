@@ -1655,13 +1655,13 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
         self.resolved_ranges = None
 
-    @timeit
-    def setBackground(self, col, c):
-        super().setBackground(col, c)
+    # @timeit
+    # def setBackground(self, col, c):
+    #     super().setBackground(col, c)
 
-    @timeit
-    def setForeground(self, col, c):
-        super().setForeground(col, c)
+    # @timeit
+    # def setForeground(self, col, c):
+    #     super().setForeground(col, c)
 
     def set_value(self, value=None, update=False, force=False):
         update_text = value != self._value

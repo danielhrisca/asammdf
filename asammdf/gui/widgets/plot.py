@@ -137,7 +137,6 @@ from ...signal import Signal
 from ..dialogs.define_channel import DefineChannel
 from ..ui import resource_rc
 from ..utils import COLORS, copy_ranges, extract_mime_names
-from .channel_group_display import ChannelGroupDisplay
 from .channel_stats import ChannelStats
 from .cursor import Cursor, Region
 from .dict_to_tree import ComputedChannelInfoWindow
