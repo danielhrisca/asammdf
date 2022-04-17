@@ -14,9 +14,13 @@ from pyqtgraph.graphicsItems.ButtonItem import ButtonItem
 
 
 class FormatedAxis(pg.AxisItem):
+
+    rangeChanged = QtCore.Signal(object, object)
+
     def __init__(self, *args, **kwargs):
 
         self.plus = self.minus = None
+        self.uuid = kwargs.pop("uuid", None)
 
         super().__init__(*args, **kwargs)
 
@@ -304,3 +308,24 @@ class FormatedAxis(pg.AxisItem):
             self.setFont(font)
 
         self.label.setFont(font)
+
+    def setRange(self, mn, mx):
+        super().setRange(mn, mx)
+        self.rangeChanged.emit(self.uuid, (mn, mx))
+
+    def wheelEvent(self, event):
+        lv = self.linkedView()
+        if lv is None:
+            mid = sum(self.range) / 2
+            delta = self.range[-1] - self.range[0]
+
+            if event.delta() > 0:
+                delta = 0.66 * delta
+            else:
+                delta = 1.33 * delta
+
+            self.setRange(mid - delta / 2, mid + delta / 2)
+
+            event.accept()
+        else:
+            super().wheelEvent(event)
