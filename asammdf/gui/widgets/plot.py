@@ -38,6 +38,13 @@ except:
     pass
 
 
+@lru_cache(maxsize=1024)
+def polygon_and_ndarray(size):
+    polygon = fn.create_qpolygonf(size)
+    ndarray = fn.ndarray_from_qpolygonf(polygon)
+    return polygon, ndarray
+
+
 def monkey_patch_pyqtgraph():
     def _keys(self, styles):
         def getId(obj):
@@ -1160,12 +1167,17 @@ class PlotSignal(Signal):
                 print(format_exc())
                 return self.trim_python(start, stop, width, force)
 
-    def value_at_timestamp(self, timestamp):
+    def value_at_timestamp(self, timestamp, numeric=False):
 
         if self.mode == "raw":
             kind = self.raw_samples.dtype.kind
+            samples = self.raw_samples
         else:
             kind = self.phys_samples.dtype.kind
+            samples = self.phys_samples
+
+        if numeric and kind not in "uif":
+            samples = self.raw_samples
 
         if self.samples.size == 0 or timestamp < self.timestamps[0]:
             value = "n.a."
@@ -1176,10 +1188,7 @@ class PlotSignal(Signal):
             else:
                 index = np.searchsorted(self.timestamps, timestamp, side="left")
 
-            if self.mode == "raw":
-                value = self.raw_samples[index]
-            else:
-                value = self.phys_samples[index]
+            value = samples[index]
 
             if kind == "S":
                 try:
@@ -1495,9 +1504,9 @@ class Plot(QtWidgets.QWidget):
 
         self.channel_selection.itemsDeleted.connect(self.channel_selection_reduced)
         self.channel_selection.itemPressed.connect(self.channel_selection_modified)
-        # self.channel_selection.currentItemChanged.connect(
-        #     self.channel_selection_row_changed
-        # )
+        self.channel_selection.currentItemChanged.connect(
+            self.channel_selection_row_changed
+        )
         self.channel_selection.add_channels_request.connect(self.add_channels_request)
         self.channel_selection.set_time_offset.connect(self.plot.set_time_offset)
         self.channel_selection.show_properties.connect(self._show_properties)
@@ -1696,12 +1705,13 @@ class Plot(QtWidgets.QWidget):
                 sig, index = self.plot.signal_by_uuid(uuid)
                 if sig.enable:
 
-                    self.plot.curves[index].hide()
+                    sig.enable = False
                     self.plot.update_plt()
-                    sleep(0.03)
-                    self.plot.curves[index].show()
-
+                    sleep(0.1)
                     self.plot.set_current_uuid(self.info_uuid)
+                    sig.enable = True
+                    self.plot.update_plt()
+
                     if self.info.isVisible():
                         stats = self.plot.get_stats(self.info_uuid)
                         self.info.set_stats(stats)
@@ -2715,7 +2725,6 @@ class Plot(QtWidgets.QWidget):
         self.plot._uuid_map.clear()
         self.plot._timebase_db.clear()
         self.plot.axes = None
-        self.plot.curves = None
         self.plot.plot_parent = None
         self.plot = None
         del self.plot
@@ -2828,20 +2837,19 @@ class _Plot(pg.PlotWidget):
         self.viewbox.border = None
         self.viewbox.disableAutoRange()
 
+        self.x_range = (0, 1)
+        self._curve = pg.PlotCurveItem(
+            np.array([]),
+            np.array([]),
+            stepMode=self.line_interconnect,
+            skipFiniteCheck=False,
+            connect="finite",
+        )
+
         self.viewbox.menu.removeAction(self.viewbox.menu.viewAll)
         for ax in self.viewbox.menu.axes:
             self.viewbox.menu.removeAction(ax.menuAction())
         self.plot_item.setMenuEnabled(False, None)
-
-        self.plot_viewbox = view_box = pg.ViewBox(enableMenu=False)
-        view_box.border = None
-        view_box.disableAutoRange()
-        view_box.setMouseEnabled(y=not self.locked)
-
-        self.layout.addItem(view_box, 2, 1)
-        view_box.setGeometry(self.viewbox.sceneBoundingRect())
-
-        view_box.setXLink(self.viewbox)
 
         self.common_axis_items = set()
         self.common_axis_label = ""
@@ -2859,7 +2867,7 @@ class _Plot(pg.PlotWidget):
             self.cursor1 = Cursor(
                 pos=pos, angle=90, movable=True, pen=color, hoverPen=color
             )
-            self.plot_viewbox.addItem(self.cursor1, ignoreBounds=True)
+            self.viewbox.addItem(self.cursor1, ignoreBounds=True)
 
             self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
             self.cursor1.sigPositionChangeFinished.connect(
@@ -2889,9 +2897,7 @@ class _Plot(pg.PlotWidget):
 
         self.plot_item.setAxisItems({"left": self.y_axis, "bottom": self.x_axis})
 
-        self.curves = []
-
-        self._prev_geometry = self.viewbox.sceneBoundingRect()
+        self.viewbox_geometry = self.viewbox.sceneBoundingRect()
 
         self.resizeEvent = self._resizeEvent
 
@@ -2978,6 +2984,9 @@ class _Plot(pg.PlotWidget):
         if signals:
             self.update_views()
 
+        self.px = 1
+        self.py = 1
+
     def y_changed(self, *args):
         if len(args) == 1:
             # range manually changed by the user with the wheel
@@ -3054,17 +3063,7 @@ class _Plot(pg.PlotWidget):
     def set_line_interconnect(self, line_interconnect):
         self.line_interconnect = line_interconnect
 
-        for curve, signal in zip(self.curves, self.signals):
-            curve.setData(
-                x=signal.plot_timestamps,
-                y=signal.plot_samples,
-                stepMode=line_interconnect,
-                symbolBrush=signal.color,
-                symbolPen=signal.color,
-                pen=signal.pen,
-                skipFiniteCheck=True,
-            )
-
+        self._curve.setData(line_interconnect=line_interconnect)
         self.update_plt()
 
     def update_lines(self, update=True):
@@ -3074,7 +3073,6 @@ class _Plot(pg.PlotWidget):
 
     def set_color(self, uuid, color):
         sig, index = self.signal_by_uuid(uuid)
-        curve = self.curves[index]
 
         if sig.mode == "raw":
             style = QtCore.Qt.DashLine
@@ -3082,8 +3080,6 @@ class _Plot(pg.PlotWidget):
             style = QtCore.Qt.SolidLine
 
         sig.pen = fn.mkPen(color=color, style=style)
-
-        curve.setPen(sig.pen)
 
         if sig.individual_axis:
             self.get_axis(index).set_pen(sig.pen)
@@ -3221,10 +3217,10 @@ class _Plot(pg.PlotWidget):
 
     def update_views(self):
         geometry = self.viewbox.sceneBoundingRect()
-        if geometry != self._prev_geometry:
+        if geometry != self.viewbox_geometry:
             self._pixmap = None
             self._generate_pix = True
-            self._prev_geometry = geometry
+            self.viewbox_geometry = geometry
 
     def get_stats(self, uuid):
         sig, index = self.signal_by_uuid(uuid)
@@ -3396,7 +3392,7 @@ class _Plot(pg.PlotWidget):
 
                     self.region = Region((0, 0), pen=color, hoverPen=color)
                     self.region.setZValue(-10)
-                    self.plot_viewbox.addItem(self.region)
+                    self.viewbox.addItem(self.region)
                     self.region.sigRegionChanged.connect(self.range_modified.emit)
                     self.region.sigRegionChangeFinished.connect(
                         self.range_modified_finished_handler
@@ -3593,7 +3589,7 @@ class _Plot(pg.PlotWidget):
 
                 count = sum(
                     1
-                    for i, (sig, curve) in enumerate(zip(self.signals, self.curves))
+                    for i, sig in enumerate(self.signals)
                     if sig.uuid in uuids_set and sig.min != "n.a." and sig.enable
                 )
 
@@ -3845,6 +3841,11 @@ class _Plot(pg.PlotWidget):
                 sig.trim(start, stop, width, force)
 
     def xrange_changed_handle(self, *, force=False):
+        self.x_range = tuple(self.viewbox.viewRange()[0])
+        self.px = (self.viewport().width() - self.y_axis.width() - 2) / (
+            self.x_range[1] - self.x_range[0]
+        )
+
         if self._update_lines_allowed:
             self.trim(force=force)
             self.update_lines()
@@ -3853,6 +3854,10 @@ class _Plot(pg.PlotWidget):
     def _resizeEvent(self, ev):
         new_size, last_size = self.geometry(), self._last_size
         if new_size != last_size:
+            self.px = (self.viewport().width() - self.y_axis.width() - 2) / (
+                self.x_range[1] - self.x_range[0]
+            )
+            self.py = self.viewport().height() - self.x_axis.height() - 2
             self._last_size = new_size
             super().resizeEvent(ev)
             self.xrange_changed_handle()
@@ -3909,10 +3914,13 @@ class _Plot(pg.PlotWidget):
         if not start <= pos <= stop:
             return
 
+        pos = self.plot_item.vb.mapSceneToView(event.scenePos())
+        x = pos.x()
+        y = event.scenePos().y()
+
         if (QtCore.Qt.Key_C, int(QtCore.Qt.NoModifier)) not in self.disabled_keys:
 
             if self.region is not None:
-                pos = self.plot_item.vb.mapSceneToView(event.scenePos())
                 start, stop = self.region.getRegion()
 
                 if self.region_lock is not None:
@@ -3924,9 +3932,28 @@ class _Plot(pg.PlotWidget):
                         self.region.setRegion((pos.x(), stop))
 
             else:
-                pos = self.plot_item.vb.mapSceneToView(event.scenePos())
                 if self.cursor1 is not None:
                     self.cursor1.setPos(pos)
+                    self.cursor1.sigPositionChangeFinished.emit(self.cursor1)
+
+        delta = self.y_axis.width() + 1
+        x_range = self.viewbox.viewRange()[0]
+        for sig in self.signals:
+            if not sig.enable:
+                continue
+
+            val, _1, _2 = sig.value_at_timestamp(x, numeric=True)
+
+            if val == "n.a.":
+                continue
+
+            x_val, y_val = self.scale_curve_to_pixmap(
+                x, val, y_range=sig.y_range, x_range=x_range, delta=delta
+            )
+
+            if abs(y_val - y) <= 15:
+                self.curve_clicked.emit(sig.uuid)
+                break
 
     def add_new_channels(self, channels, computed=False, descriptions=None):
         self._can_paint = False
@@ -3971,23 +3998,6 @@ class _Plot(pg.PlotWidget):
             if description:
                 sig.enable = description.get("enabled", True)
 
-            curve = pg.PlotCurveItem(
-                sig.plot_timestamps,
-                sig.plot_samples,
-                pen=sig.pen,
-                symbolBrush=sig.color,
-                symbolPen=sig.pen,
-                symbol="o",
-                symbolSize=4,
-                clickable=True,
-                mouseWidth=30,
-                dynamicRangeLimit=None,
-                stepMode=self.line_interconnect,
-                skipFiniteCheck=True,
-            )
-            curve.hide()
-
-            self.curves.append(curve)
             if not sig.empty:
                 if description.get("y_range", None):
                     sig.y_range = tuple(description["y_range"])
@@ -4001,12 +4011,6 @@ class _Plot(pg.PlotWidget):
 
             if initial_index == 0 and index == 0:
                 axis_uuid = sig.uuid
-
-        for curve, sig in zip(
-            self.curves[initial_index:], self.signals[initial_index:]
-        ):
-            if sig.enable:
-                curve.show()
 
         if axis_uuid is not None:
             self.set_current_uuid(sig.uuid)
@@ -4092,7 +4096,6 @@ class _Plot(pg.PlotWidget):
         )
 
         for i, uuid in indexes:
-            self.curves.pop(i)
 
             item = self.axes.pop(i)
             if isinstance(item, FormatedAxis):
@@ -4214,15 +4217,13 @@ class _Plot(pg.PlotWidget):
 
         return axis
 
-    def scale_curve_to_pixmap(self, x, y, viewbox=None, delta=None):
-        if delta is None:
-            delta = self.y_axis.width() + 1
+    def scale_curve_to_pixmap(self, x, y, y_range, x_range, delta):
 
-        if viewbox is None:
-            viewbox = self.plot_viewbox
+        y_scale = (float(y_range[1]) - float(y_range[0])) / self.py
+        x_scale = self.px
 
-        (xs, _1), (_2, ys) = viewbox.state["viewRange"]
-        x_scale, y_scale = viewbox.viewPixelSize()
+        xs = x_range[0]
+        ys = y_range[1]
 
         # x = (x - xs) / x_scale + delta
         # y = (ys - y) / y_scale + 1
@@ -4248,6 +4249,12 @@ class _Plot(pg.PlotWidget):
         )
         painter.setClipping(True)
 
+    def generatePath(self, x, y):
+        if x is None or len(x) == 0 or y is None or len(y) == 0:
+            return QtGui.QPainterPath()
+        else:
+            return self._curve.generatePath(x, y)
+
     def paintEvent(self, ev):
         if not self._can_paint:
             return
@@ -4265,37 +4272,56 @@ class _Plot(pg.PlotWidget):
             paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
             paint.setRenderHint(paint.RenderHint.Antialiasing, True)
 
+            self.x_range, self.y_range = self.viewbox.viewRange()
+            self.px = (self.x_range[1] - self.x_range[0]) / (
+                self.viewport().width() - self.y_axis.width() - 2
+            )
+            self.py = self.viewport().height() - self.x_axis.height() - 2
+
             with_dots = self.with_dots
 
             self.auto_clip_rect(paint)
 
-            new = []
+            delta = self.y_axis.width() + 1
+            x_range = self.viewbox.viewRange()[0]
 
-            for i, (sig, curve) in enumerate(zip(self.signals, self.curves)):
+            no_brush = QtGui.QBrush()
+
+            for i, sig in enumerate(self.signals):
                 if not sig.enable:
                     continue
 
-                self.plot_viewbox.setYRange(*sig.y_range, padding=0)
                 y = sig.plot_samples
                 x = sig.plot_timestamps
 
-                x, y = self.scale_curve_to_pixmap(x, y, self.plot_viewbox)
-                curve.setData(x=x, y=y)
-                curve._viewBox = weakref.ref(self.plot_viewbox)
-                curve.paint(paint, None, None)
+                x, y = self.scale_curve_to_pixmap(
+                    x, y, y_range=sig.y_range, x_range=x_range, delta=delta
+                )
+
+                paint.resetTransform()
+                paint.translate(0, 0)
+                paint.setPen(sig.pen)
+                paint.setBrush(no_brush)
+                paint.drawPath(self.generatePath(x, y))
                 paint.resetTransform()
                 paint.translate(0, 0)
 
                 if with_dots:
-                    paint.setPen(fn.mkPen(sig.color.name(), width=4))
+                    pos = np.isfinite(y)
+                    y = y[pos]
+                    x = x[pos]
 
-                    points = [
-                        QtCore.QPointF(px, py) for px, py in zip(x.tolist(), y.tolist())
-                    ]
-                    paint.drawPoints(points)
+                    _pen = fn.mkPen(sig.color.name(), width=4, cap="round")
+                    _pen.setCapStyle(QtCore.Qt.RoundCap)
+                    paint.setPen(_pen)
 
-                    paint.pen().setWidth(1)
-                    paint.setBrush(QtGui.QBrush())
+                    poly, arr = polygon_and_ndarray(x.size)
+
+                    arr[:, 0] = x
+                    arr[:, 1] = y
+                    paint.drawPoints(poly)
+
+                    paint.setBrush(no_brush)
 
                 item = self.plot_parent.item_by_uuid(sig.uuid)
                 if not item:
@@ -4356,35 +4382,37 @@ class _Plot(pg.PlotWidget):
                             y[~idx] = np.inf
                             x = sig.plot_timestamps
 
-                            x, y = self.scale_curve_to_pixmap(x, y, self.plot_viewbox)
+                            x, y = self.scale_curve_to_pixmap(
+                                x, y, y_range=sig.y_range, x_range=x_range, delta=delta
+                            )
 
                             color = range_info["font_color"]
                             pen = fn.mkPen(color.name())
 
-                            new_curve = pg.PlotCurveItem(
-                                x,
-                                y,
-                                pen=pen,
-                                clickable=False,
-                                dynamicRangeLimit=None,
-                                stepMode=self.line_interconnect,
-                                skipFiniteCheck=False,
-                                connect="finite",
-                            )
-
-                            new_curve._viewBox = weakref.ref(self.plot_viewbox)
-                            new_curve.paint(paint, None, None)
+                            paint.resetTransform()
+                            paint.translate(0, 0)
+                            paint.setPen(sig.pen)
+                            paint.setBrush(no_brush)
+                            paint.drawPath(self.generatePath(x, y))
+                            paint.resetTransform()
+                            paint.translate(0, 0)
 
                             if with_dots:
                                 pen.setWidth(4)
+                                pen.setCapStyle(QtCore.Qt.RoundCap)
                                 paint.setPen(pen)
 
-                                points = [
-                                    QtCore.QPointF(px, py)
-                                    for px, py in zip(x.tolist(), y.tolist())
-                                    if py not in (np.inf, -np.inf)
-                                ]
-                                paint.drawPoints(points)
+                                pos = np.isfinite(y)
+                                y = y[pos]
+                                x = x[pos]
+
+                                poly, arr = polygon_and_ndarray(x.size)
+
+                                arr[:, 0] = x
+                                arr[:, 1] = y
+                                paint.drawPoints(poly)
+
+                                paint.setBrush(no_brush)
 
             paint.end()
 
@@ -4405,11 +4433,6 @@ class _Plot(pg.PlotWidget):
             paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
 
             self.auto_clip_rect(paint)
-            delta = self.y_axis.width() + 1
-
-            if self.current_uuid:
-                sig, idx = self.signal_by_uuid(self.current_uuid)
-                self.plot_viewbox.setYRange(*sig.y_range, padding=0)
 
             if self.cursor1 is not None and self.cursor1.isVisible():
                 self.cursor1.paint(paint, plot=self, uuid=self.current_uuid)

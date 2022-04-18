@@ -420,6 +420,37 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.verticalScrollBar().valueChanged.connect(self.update_visibility_status)
         self.itemsDeleted.connect(self.update_visibility_status)
 
+        # self.header().hideSection(0)
+        self._target_color = None
+        self._moved = []
+
+        self.autoscroll_timer = QtCore.QTimer()
+        self.autoscroll_timer.timeout.connect(self.autoscroll)
+        self.autoscroll_timer.setInterval(33)
+        self.autoscroll_mouse_pos = None
+
+    def autoscroll(self):
+
+        step = max(
+            (self.verticalScrollBar().maximum() - self.verticalScrollBar().minimum())
+            // 90,
+            1,
+        )
+
+        if self.autoscroll_mouse_pos is not None:
+            height = self.rect().height()
+            y = self.autoscroll_mouse_pos
+
+            if y <= 15:
+                pos = max(self.verticalScrollBar().value() - step, 0)
+                self.verticalScrollBar().setValue(pos)
+            elif y >= height - 15:
+                pos = min(
+                    self.verticalScrollBar().value() + step,
+                    self.verticalScrollBar().maximum(),
+                )
+                self.verticalScrollBar().setValue(pos)
+
     def item_selection_changed(self):
         selection = list(self.selectedItems())
 
@@ -667,101 +698,28 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         drag.exec_(QtCore.Qt.MoveAction)
 
     def dragEnterEvent(self, e):
+        self.autoscroll_timer.start()
+        self.autoscroll_mouse_pos = e.answerRect().y()
         e.accept()
 
     def dragLeaveEvent(self, e):
+        self.autoscroll_timer.stop()
+        self.autoscroll_mouse_pos = None
         e.accept()
 
     def dragMoveEvent(self, e):
+        self.autoscroll_mouse_pos = e.answerRect().y()
         e.accept()
 
     def dropEvent(self, e):
+        self.autoscroll_timer.stop()
+        self.autoscroll_mouse_pos = None
 
         uuids = get_data(self.plot, self.selectedItems(), uuids_only=True)
 
         if e.source() is self:
-            super().dropEvent(e)
-            #
-            #
-            # drop_item = self.itemAt(e.pos())
-            #
-            # # cannot move inside pattern channel group
-            # current_item = drop_item
-            # while current_item:
-            #     if current_item.type() == ChannelsTreeItem.Group and current_item.pattern:
-            #         e.ignore()
-            #         return
-            #     current_item = current_item.parent()
-            #
             uuids = get_data(self.plot, self.selectedItems(), uuids_only=True)
-            #
-            # super().dropEvent(e)
-            #
-            # selected_items = validate_drag_items(
-            #     self.invisibleRootItem(), self.selectedItems(), []
-            # )
-            #
-            # if drop_item is not None:
-            #     selected_items = [
-            #         item
-            #         for item in selected_items
-            #         if valid_drop_target(target=drop_item, item=item)
-            #     ]
-            #
-            # uuids = get_data(self.plot, selected_items, uuids_only=True)
-            #
-            # if drop_item is None:
-            #     add_new_items(
-            #         self,
-            #         self.invisibleRootItem(),
-            #         selected_items,
-            #         pos=None,
-            #     )
-            #
-            # elif isinstance(drop_item, ChannelsTreeItem):
-            #     parent = drop_item.parent()
-            #
-            #     if not parent:
-            #         index = initial = self.indexOfTopLevelItem(self.itemAt(e.pos()))
-            #         index_func = self.indexOfTopLevelItem
-            #         root = self.invisibleRootItem()
-            #     else:
-            #         index = initial = parent.indexOfChild(drop_item)
-            #         index_func = parent.indexOfChild
-            #         root = parent
-            #
-            #     for it in selected_items:
-            #
-            #         idx = index_func(it)
-            #         if 0 <= idx < initial:
-            #             index -= 1
-            #
-            #     add_new_items(
-            #         self,
-            #         root,
-            #         selected_items,
-            #         pos=index,
-            #     )
-            #
-            # elif isinstance(drop_item, ChannelsGroupTreeItem):
-            #     add_new_items(
-            #         self,
-            #         drop_item,
-            #         selected_items,
-            #         pos=0,
-            #     )
-            #
-            # root = self.invisibleRootItem()
-            # for item in selected_items:
-            #     item_widget = self.itemWidget(item, 1)
-            #     item.widget = None
-            #     item_widget.item = None
-            #     if hasattr(item_widget, "disconnect_slots"):
-            #         item_widget.disconnect_slots()
-            #     (item.parent() or root).removeChild(item)
-
-            # self.update_channel_groups_count()
-            # self.items_rearranged.emit(list(uuids))
+            super().dropEvent(e)
 
         else:
             data = e.mimeData()

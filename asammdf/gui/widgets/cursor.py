@@ -42,7 +42,7 @@ class Cursor(pg.InfiniteLine):
 
     def paint(self, paint, *args, plot=None, uuid=None):
         if plot:
-            paint.setRenderHint(paint.RenderHint.Antialiasing)
+            paint.setRenderHint(paint.RenderHint.Antialiasing, True)
 
             pen = self.currentPen
             pen.setJoinStyle(QtCore.Qt.PenJoinStyle.MiterJoin)
@@ -65,7 +65,13 @@ class Cursor(pg.InfiniteLine):
                     y_value, kind, fmt = signal.value_at_index(index)
                     if y_value != "n.a.":
 
-                        x, y = plot.scale_curve_to_pixmap(position, y_value)
+                        x, y = plot.scale_curve_to_pixmap(
+                            position,
+                            y_value,
+                            y_range=plot.viewbox.viewRange()[1],
+                            x_range=plot.viewbox.viewRange()[0],
+                            delta=delta,
+                        )
 
                         paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, y - 5))
                         paint.drawLine(
@@ -87,9 +93,25 @@ class Cursor(pg.InfiniteLine):
 
                         paint.drawEllipse(QtCore.QPointF(x, y), 5, 5)
                     else:
-                        x, y = plot.scale_curve_to_pixmap(position, 0)
+                        x, y = plot.scale_curve_to_pixmap(
+                            position,
+                            0,
+                            y_range=plot.viewbox.viewRange()[1],
+                            x_range=plot.viewbox.viewRange()[0],
+                            delta=delta,
+                        )
                         height = plot.y_axis.height() + plot.x_axis.height()
                         paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
+                else:
+                    x, y = plot.scale_curve_to_pixmap(
+                        position,
+                        0,
+                        y_range=plot.viewbox.viewRange()[1],
+                        x_range=plot.viewbox.viewRange()[0],
+                        delta=delta,
+                    )
+                    height = plot.y_axis.height() + plot.x_axis.height()
+                    paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
 
             else:
                 x, y = plot.scale_curve_to_pixmap(position, 0)
