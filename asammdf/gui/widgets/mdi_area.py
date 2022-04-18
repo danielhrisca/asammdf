@@ -2976,8 +2976,8 @@ class WithMDIArea:
                     plot.pattern_group_added.emit(plot, item)
 
         if "common_axis_y_range" in window_info["configuration"]:
-            plot.plot.common_viewbox.setYRange(
-                *window_info["configuration"]["common_axis_y_range"], padding=0
+            plot.plot.common_axis_y_range = tuple(
+                window_info["configuration"]["common_axis_y_range"]
             )
 
         if "locked" in window_info["configuration"]:

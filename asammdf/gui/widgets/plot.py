@@ -2550,9 +2550,7 @@ class Plot(QtWidgets.QWidget):
             "cursor_precision": self.cursor_info.precision,
             "font_size": self.font().pointSize(),
             "locked": self.locked,
-            "common_axis_y_range": [
-                float(e) for e in self.plot.common_viewbox.viewRange()[1]
-            ],
+            "common_axis_y_range": list(self.plot.common_axis_y_range),
         }
 
         return config
@@ -2860,7 +2858,7 @@ class _Plot(pg.PlotWidget):
             self.cursor1 = Cursor(
                 pos=pos, angle=90, movable=True, pen=color, hoverPen=color
             )
-            self.plotItem.addItem(self.cursor1, ignoreBounds=True)
+            self.plot_viewbox.addItem(self.cursor1, ignoreBounds=True)
 
             self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
             self.cursor1.sigPositionChangeFinished.connect(
@@ -2980,7 +2978,6 @@ class _Plot(pg.PlotWidget):
             self.update_views()
 
     def y_changed(self, *args):
-        print("y changed", args)
         if len(args) == 1:
             # range manually changed by the user with the wheel
             mask = args[0]
@@ -3398,7 +3395,7 @@ class _Plot(pg.PlotWidget):
 
                     self.region = Region((0, 0), pen=color, hoverPen=color)
                     self.region.setZValue(-10)
-                    self.plotItem.addItem(self.region)
+                    self.plot_viewbox.addItem(self.region)
                     self.region.sigRegionChanged.connect(self.range_modified.emit)
                     self.region.sigRegionChangeFinished.connect(
                         self.range_modified_finished_handler
@@ -4216,7 +4213,7 @@ class _Plot(pg.PlotWidget):
             delta = self.y_axis.width() + 1
 
         if viewbox is None:
-            viewbox = self.viewbox
+            viewbox = self.plot_viewbox
 
         (xs, _1), (_2, ys) = viewbox.state["viewRange"]
         x_scale, y_scale = viewbox.viewPixelSize()
@@ -4289,9 +4286,6 @@ class _Plot(pg.PlotWidget):
                     points = [QtCore.QPointF(px, py) for px, py in zip(x, y)]
                     paint.drawPoints(points)
 
-                    # This is currently not workinf in PySide
-                    # paint.drawPointsNp(np.array(x), np.array(y))
-
                     paint.pen().setWidth(1)
                     paint.setBrush(QtGui.QBrush())
 
@@ -4357,44 +4351,33 @@ class _Plot(pg.PlotWidget):
                             x, y = self.scale_curve_to_pixmap(x, y, self.plot_viewbox)
 
                             color = range_info["font_color"]
-                            pen = fn.mkPen(color)
+                            pen = fn.mkPen(color.name())
+
+                            new_curve = pg.PlotCurveItem(
+                                x,
+                                y,
+                                pen=pen,
+                                clickable=False,
+                                dynamicRangeLimit=None,
+                                stepMode=self.line_interconnect,
+                                skipFiniteCheck=False,
+                                connect="finite",
+                            )
+
+                            new_curve._viewBox = weakref.ref(self.plot_viewbox)
+                            new_curve.paint(paint, None, None)
 
                             if with_dots:
-                                new_curve = pg.PlotCurveItem(
-                                    x,
-                                    y,
-                                    pen=pen,
-                                    clickable=False,
-                                    dynamicRangeLimit=None,
-                                    stepMode=self.line_interconnect,
-                                    skipFiniteCheck=False,
-                                    fillOutline=False,
-                                    connect="finite",
-                                )
-                                new_curve._viewBox = weakref.ref(self.plot_viewbox)
-                                paint.setBrush(QtGui.QBrush())
-                                new_curve.paint(paint, None, None)
-                                new.append(new_curve)
+                                pen.setWidth(4)
+                                paint.setPen(pen)
 
-                                paint.setBrush(color)
-                                for px, py in zip(x, y):
-                                    paint.drawEllipse(QtCore.QPointF(px, py), 2, 2)
+                                points = [
+                                    QtCore.QPointF(px, py)
+                                    for px, py in zip(x, y)
+                                    if py not in (np.inf, -np.inf)
+                                ]
+                                paint.drawPoints(points)
 
-                            else:
-
-                                new_curve = pg.PlotCurveItem(
-                                    x,
-                                    y,
-                                    pen=pen,
-                                    clickable=False,
-                                    dynamicRangeLimit=None,
-                                    stepMode=self.line_interconnect,
-                                    skipFiniteCheck=False,
-                                    connect="finite",
-                                )
-
-                                new_curve._viewBox = weakref.ref(self.plot_viewbox)
-                                new_curve.paint(paint, None, None)
             paint.end()
 
         if self._pixmap is not None:
@@ -4415,6 +4398,10 @@ class _Plot(pg.PlotWidget):
 
             self.auto_clip_rect(paint)
             delta = self.y_axis.width() + 1
+
+            if self.current_uuid:
+                sig, idx = self.signal_by_uuid(self.current_uuid)
+                self.plot_viewbox.setYRange(*sig.y_range, padding=0)
 
             if self.cursor1 is not None and self.cursor1.isVisible():
                 self.cursor1.paint(paint, plot=self, uuid=self.current_uuid)
