@@ -4289,7 +4289,9 @@ class _Plot(pg.PlotWidget):
                 if with_dots:
                     paint.setPen(fn.mkPen(sig.color.name(), width=4))
 
-                    points = [QtCore.QPointF(px, py) for px, py in zip(x.tolist(), y.tolist())]
+                    points = [
+                        QtCore.QPointF(px, py) for px, py in zip(x.tolist(), y.tolist())
+                    ]
                     paint.drawPoints(points)
 
                     paint.pen().setWidth(1)
