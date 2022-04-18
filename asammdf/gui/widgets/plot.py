@@ -2551,6 +2551,7 @@ class Plot(QtWidgets.QWidget):
             "font_size": self.font().pointSize(),
             "locked": self.locked,
             "common_axis_y_range": list(self.plot.common_axis_y_range),
+            "common_axis_y_range": list(self.plot.common_axis_y_range),
         }
 
         return config
@@ -2844,7 +2845,7 @@ class _Plot(pg.PlotWidget):
 
         self.common_axis_items = set()
         self.common_axis_label = ""
-        self.common_axis_y_range = None
+        self.common_axis_y_range = (0, 1)
 
         if allow_cursor:
             start, stop = self.viewbox.viewRange()[0]
@@ -3922,6 +3923,11 @@ class _Plot(pg.PlotWidget):
                     else:
                         self.region.setRegion((pos.x(), stop))
 
+            else:
+                pos = self.plot_item.vb.mapSceneToView(event.scenePos())
+                if self.cursor1 is not None:
+                    self.cursor1.setPos(pos)
+
     def add_new_channels(self, channels, computed=False, descriptions=None):
         self._can_paint = False
         descriptions = descriptions or {}
@@ -4283,7 +4289,7 @@ class _Plot(pg.PlotWidget):
                 if with_dots:
                     paint.setPen(fn.mkPen(sig.color.name(), width=4))
 
-                    points = [QtCore.QPointF(px, py) for px, py in zip(x, y)]
+                    points = [QtCore.QPointF(px, py) for px, py in zip(x.tolist(), y.tolist())]
                     paint.drawPoints(points)
 
                     paint.pen().setWidth(1)
@@ -4373,7 +4379,7 @@ class _Plot(pg.PlotWidget):
 
                                 points = [
                                     QtCore.QPointF(px, py)
-                                    for px, py in zip(x, y)
+                                    for px, py in zip(x.tolist(), y.tolist())
                                     if py not in (np.inf, -np.inf)
                                 ]
                                 paint.drawPoints(points)
