@@ -2108,11 +2108,12 @@ class Plot(QtWidgets.QWidget):
                 diag = ScaleDialog(signals, y_range, parent=self)
 
                 if diag.exec():
+                    y_range = (
+                        diag.y_bottom.value(),
+                        diag.y_top.value(),
+                    )
                     for idx in indexes:
-                        self.signals[idx].y_range = (
-                            diag.y_bottom.value(),
-                            diag.y_top.value(),
-                        )
+                        self.plot.signals[idx].y_range = y_range
 
                     self.plot.update_plt()
 
@@ -2561,14 +2562,10 @@ class Plot(QtWidgets.QWidget):
             "font_size": self.font().pointSize(),
             "locked": self.locked,
             "common_axis_y_range": [float(e) for e in self.plot.common_axis_y_range],
-            "channels_header":
-                [
-                    self.splitter.sizes()[0],
-                [
-                    self.channel_selection.columnWidth(i)
-                    for i in range(4)
-                ],
-            ]
+            "channels_header": [
+                self.splitter.sizes()[0],
+                [self.channel_selection.columnWidth(i) for i in range(4)],
+            ],
         }
 
         return config

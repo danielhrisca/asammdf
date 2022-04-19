@@ -114,7 +114,14 @@ class Cursor(pg.InfiniteLine):
                     paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
 
             else:
-                x, y = plot.scale_curve_to_pixmap(position, 0)
+                delta = plot.y_axis.width() + 1
+                x, y = plot.scale_curve_to_pixmap(
+                    position,
+                    0,
+                    y_range=plot.viewbox.viewRange()[1],
+                    x_range=plot.viewbox.viewRange()[0],
+                    delta=delta,
+                )
                 height = plot.y_axis.height() + plot.x_axis.height()
                 paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
 
@@ -181,9 +188,22 @@ class Region(pg.LinearRegionItem):
 
     def paint(self, p, *args, plot=None, uuid=None):
         if plot:
+            delta = plot.y_axis.width() + 1
 
-            x1, y1 = plot.scale_curve_to_pixmap(self.lines[0].value(), 0)
-            x2, y2 = plot.scale_curve_to_pixmap(self.lines[1].value(), 0)
+            x1, y1 = plot.scale_curve_to_pixmap(
+                self.lines[0].value(),
+                0,
+                y_range=plot.viewbox.viewRange()[1],
+                x_range=plot.viewbox.viewRange()[0],
+                delta=delta,
+            )
+            x2, y2 = plot.scale_curve_to_pixmap(
+                self.lines[1].value(),
+                0,
+                y_range=plot.viewbox.viewRange()[1],
+                x_range=plot.viewbox.viewRange()[0],
+                delta=delta,
+            )
 
             height = plot.y_axis.height() + plot.x_axis.height()
 
