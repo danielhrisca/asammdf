@@ -1291,7 +1291,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
             self._value_prefix = ""
             self._value = "n.a."
-            self._precision = -1
+            self._precision = 3
             self.uuid = signal.uuid
             self.origin_uuid = signal.origin_uuid
             self.set_ranges(ranges or [])
@@ -1544,6 +1544,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.fmt = f"{{:.{self._precision}f}}"
         else:
             self.fmt = "{}"
+        self.set_value(update=True)
 
     def reset_resolved_ranges(self):
         self.resolved_ranges = None

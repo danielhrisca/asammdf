@@ -2980,6 +2980,13 @@ class WithMDIArea:
                 window_info["configuration"]["common_axis_y_range"]
             )
 
+        if "channels_header" in window_info["configuration"]:
+            width, sizes = window_info["configuration"]["channels_header"]
+            current_width = sum(plot.splitter.sizes())
+            plot.splitter.setSizes([width, current_width-width])
+            for i, size in enumerate(sizes):
+                plot.channel_selection.setColumnWidth(i, size)
+
         if "locked" in window_info["configuration"]:
             plot.set_locked(window_info["configuration"]["locked"])
 

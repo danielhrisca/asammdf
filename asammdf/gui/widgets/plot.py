@@ -2444,7 +2444,7 @@ class Plot(QtWidgets.QWidget):
         if sig.computed:
             channel["computation"] = sig.computation
 
-        channel["y_range"] = sig.y_range
+        channel["y_range"] = [float(e) for e in sig.y_range]
         channel["origin_uuid"] = str(sig.origin_uuid)
 
         if sig.computed and sig.conversion:
@@ -2560,8 +2560,15 @@ class Plot(QtWidgets.QWidget):
             "cursor_precision": self.cursor_info.precision,
             "font_size": self.font().pointSize(),
             "locked": self.locked,
-            "common_axis_y_range": list(self.plot.common_axis_y_range),
-            "common_axis_y_range": list(self.plot.common_axis_y_range),
+            "common_axis_y_range": [float(e) for e in self.plot.common_axis_y_range],
+            "channels_header":
+                [
+                    self.splitter.sizes()[0],
+                [
+                    self.channel_selection.columnWidth(i)
+                    for i in range(4)
+                ],
+            ]
         }
 
         return config
@@ -4232,7 +4239,10 @@ class _Plot(pg.PlotWidget):
                 all_bad = True
 
         if all_bad:
-            y = np.full(len(y), np.inf)
+            try:
+                y = np.full(len(y), np.inf)
+            except:
+                y = np.inf
         else:
 
             xs = x_range[0]
