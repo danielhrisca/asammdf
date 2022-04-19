@@ -158,7 +158,7 @@ static Py_ssize_t calc_size(char* buf)
 static PyObject* extract(PyObject* self, PyObject* args)
 {
     int i=0, count, max=0, list_count;
-    long long int offset
+    long long int offset;
     Py_ssize_t pos=0, size=0;
     PyObject *signal_data, *is_byte_array, *offsets, *offsets_list=NULL;
     char *buf;
