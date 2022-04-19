@@ -4258,15 +4258,7 @@ class _Plot(pg.PlotWidget):
         return x, y
 
     def auto_clip_rect(self, painter):
-        delta = self.y_axis.width() + 1
-        painter.setClipRect(
-            QtCore.QRect(
-                delta + 1,
-                1,
-                self._pixmap.width() - delta - 6,
-                self._pixmap.height() - self.x_axis.height() - 2,
-            )
-        )
+        painter.setClipRect(self.viewbox.sceneBoundingRect())
         painter.setClipping(True)
 
     def generatePath(self, x, y):
@@ -4293,16 +4285,18 @@ class _Plot(pg.PlotWidget):
             paint.setRenderHint(paint.RenderHint.Antialiasing, True)
 
             self.x_range, self.y_range = self.viewbox.viewRange()
-            self.px = (self.x_range[1] - self.x_range[0]) / (
-                self.viewport().width() - self.y_axis.width() - 2
-            )
-            self.py = self.viewport().height() - self.x_axis.height() - 2
+            rect = self.viewbox.sceneBoundingRect()
+
+            self.px = (self.x_range[1] - self.x_range[0]) / rect.width()
+            self.py = rect.height()
 
             with_dots = self.with_dots
 
             self.auto_clip_rect(paint)
 
-            delta = self.y_axis.width() + 1
+            rect = self.viewbox.sceneBoundingRect()
+
+            delta = rect.x()
             x_range = self.x_range
 
             no_brush = QtGui.QBrush()

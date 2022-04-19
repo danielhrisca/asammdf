@@ -53,11 +53,12 @@ class Cursor(pg.InfiniteLine):
 
             position = self.value()
 
-            if uuid:
+            rect = plot.viewbox.sceneBoundingRect()
+            delta = rect.x()
+            height = rect.height()
+            width = rect.x() + rect.width()
 
-                delta = plot.y_axis.width() + 1
-                height = plot.y_axis.height() + plot.x_axis.height()
-                width = delta + plot.x_axis.width()
+            if uuid:
 
                 signal, idx = plot.signal_by_uuid(uuid)
                 if signal.enable:
@@ -100,7 +101,6 @@ class Cursor(pg.InfiniteLine):
                             x_range=plot.viewbox.viewRange()[0],
                             delta=delta,
                         )
-                        height = plot.y_axis.height() + plot.x_axis.height()
                         paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
                 else:
                     x, y = plot.scale_curve_to_pixmap(
@@ -110,11 +110,9 @@ class Cursor(pg.InfiniteLine):
                         x_range=plot.viewbox.viewRange()[0],
                         delta=delta,
                     )
-                    height = plot.y_axis.height() + plot.x_axis.height()
                     paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
 
             else:
-                delta = plot.y_axis.width() + 1
                 x, y = plot.scale_curve_to_pixmap(
                     position,
                     0,
@@ -122,7 +120,6 @@ class Cursor(pg.InfiniteLine):
                     x_range=plot.viewbox.viewRange()[0],
                     delta=delta,
                 )
-                height = plot.y_axis.height() + plot.x_axis.height()
                 paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
 
 
@@ -188,7 +185,9 @@ class Region(pg.LinearRegionItem):
 
     def paint(self, p, *args, plot=None, uuid=None):
         if plot:
-            delta = plot.y_axis.width() + 1
+            rect = plot.viewbox.sceneBoundingRect()
+            delta = rect.x()
+            height = rect.height()
 
             x1, y1 = plot.scale_curve_to_pixmap(
                 self.lines[0].value(),
@@ -204,8 +203,6 @@ class Region(pg.LinearRegionItem):
                 x_range=plot.viewbox.viewRange()[0],
                 delta=delta,
             )
-
-            height = plot.y_axis.height() + plot.x_axis.height()
 
             rect = QtCore.QRectF(
                 x1,
