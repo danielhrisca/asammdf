@@ -1559,31 +1559,7 @@ class Plot(QtWidgets.QWidget):
             tooltip = "The Y axis is unlocked. Press to lock"
             png = ":/unlocked.png"
 
-        if locked:
-            iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
-
-            while True:
-                item = iterator.value()
-                if item is None:
-                    break
-                iterator += 1
-
-                if item.type() == ChannelsTreeItem.Channel:
-                    item.setData(2, QtCore.Qt.CheckStateRole, None)
-
-        else:
-            iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
-            while True:
-                item = iterator.value()
-                if item is None:
-                    break
-                iterator += 1
-
-                if item.type() == ChannelsTreeItem.Channel:
-                    state = (
-                        QtCore.Qt.Checked if item.signal.y_link else QtCore.Qt.Unchecked
-                    )
-                    item.setData(2, QtCore.Qt.CheckStateRole, state)
+        self.channel_selection.setColumnHidden(self.channel_selection.CommonAxisColumn, locked)
 
         self.locked = locked
         self.plot.set_locked(locked)
@@ -1654,10 +1630,7 @@ class Plot(QtWidgets.QWidget):
                 self.plot.set_signal_enable(item.uuid, item.checkState(column))
 
         elif column == 2:
-            if (
-                not self.locked
-                and item.data(column, QtCore.Qt.CheckStateRole) is not None
-            ):
+            if not self.locked:
                 enabled = item.checkState(column) == QtCore.Qt.Checked
                 if enabled != item.signal.y_link:
                     item.signal.y_link = enabled
@@ -2558,7 +2531,7 @@ class Plot(QtWidgets.QWidget):
             "common_axis_y_range": [float(e) for e in self.plot.common_axis_y_range],
             "channels_header": [
                 self.splitter.sizes()[0],
-                [self.channel_selection.columnWidth(i) for i in range(4)],
+                [self.channel_selection.columnWidth(i) for i in range(5)],
             ],
         }
 
