@@ -4311,6 +4311,8 @@ class _Plot(pg.PlotWidget):
                     x, y, y_range=sig.y_range, x_range=x_range, delta=delta
                 )
 
+                sig.pen.setWidth(1)
+
                 paint.resetTransform()
                 paint.translate(0, 0)
                 paint.setPen(sig.pen)
@@ -4324,7 +4326,8 @@ class _Plot(pg.PlotWidget):
                     y = y[pos]
                     x = x[pos]
 
-                    _pen = fn.mkPen(sig.color.name(), width=4, cap="round")
+                    _pen = fn.mkPen(sig.color.name())
+                    _pen.setWidth(4)
                     _pen.setCapStyle(QtCore.Qt.RoundCap)
                     paint.setPen(_pen)
 
@@ -4401,10 +4404,11 @@ class _Plot(pg.PlotWidget):
 
                             color = range_info["font_color"]
                             pen = fn.mkPen(color.name())
+                            pen.setWidth(1)
 
                             paint.resetTransform()
                             paint.translate(0, 0)
-                            paint.setPen(sig.pen)
+                            paint.setPen(pen)
                             paint.setBrush(no_brush)
                             paint.drawPath(self.generatePath(x, y))
                             paint.resetTransform()
