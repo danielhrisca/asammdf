@@ -1507,7 +1507,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 else:
                     self.resolved_ranges = [*self.ranges, *parent.get_ranges(tree)]
             else:
-                self.resolved_ranges = []
+                return self.ranges
         return self.resolved_ranges
 
     @property

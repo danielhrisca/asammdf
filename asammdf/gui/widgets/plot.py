@@ -1503,7 +1503,7 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.name_changed.connect(self.plot.set_name)
 
         self.channel_selection.itemsDeleted.connect(self.channel_selection_reduced)
-        self.channel_selection.itemPressed.connect(self.channel_selection_modified)
+        # self.channel_selection.itemPressed.connect(self.channel_selection_modified)
         self.channel_selection.currentItemChanged.connect(
             self.channel_selection_row_changed
         )
@@ -1704,13 +1704,7 @@ class Plot(QtWidgets.QWidget):
 
                 sig, index = self.plot.signal_by_uuid(uuid)
                 if sig.enable:
-
-                    sig.enable = False
-                    self.plot.update_plt()
-                    sleep(0.1)
                     self.plot.set_current_uuid(self.info_uuid)
-                    sig.enable = True
-                    self.plot.update_plt()
 
                     if self.info.isVisible():
                         stats = self.plot.get_stats(self.info_uuid)
@@ -4215,9 +4209,6 @@ class _Plot(pg.PlotWidget):
             self.layout.addItem(axis, 2, position)
 
             self.axes[index] = axis
-            axis.hide()
-
-            self.update()
 
         return axis
 
