@@ -4219,21 +4219,34 @@ class _Plot(pg.PlotWidget):
 
     def scale_curve_to_pixmap(self, x, y, y_range, x_range, delta):
 
-        y_scale = (float(y_range[1]) - float(y_range[0])) / self.py
-        x_scale = self.px
+        if not self.py:
+            all_bad = True
 
-        xs = x_range[0]
-        ys = y_range[1]
+        else:
+            y_scale = (float(y_range[1]) - float(y_range[0])) / self.py
+            x_scale = self.px
 
-        # x = (x - xs) / x_scale + delta
-        # y = (ys - y) / y_scale + 1
-        # is rewriten as
+            if y_scale * x_scale:
+                all_bad = False
+            else:
+                all_bad = True
 
-        xs = xs - delta * x_scale
-        ys = ys + y_scale
+        if all_bad:
+            y = np.full(len(y), np.inf)
+        else:
 
-        x = (x - xs) / x_scale
-        y = (ys - y) / y_scale
+            xs = x_range[0]
+            ys = y_range[1]
+
+            # x = (x - xs) / x_scale + delta
+            # y = (ys - y) / y_scale + 1
+            # is rewriten as
+
+            xs = xs - delta * x_scale
+            ys = ys + y_scale
+
+            x = (x - xs) / x_scale
+            y = (ys - y) / y_scale
 
         return x, y
 
@@ -4283,7 +4296,7 @@ class _Plot(pg.PlotWidget):
             self.auto_clip_rect(paint)
 
             delta = self.y_axis.width() + 1
-            x_range = self.viewbox.viewRange()[0]
+            x_range = self.x_range
 
             no_brush = QtGui.QBrush()
 

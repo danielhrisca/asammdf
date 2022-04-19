@@ -2029,7 +2029,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 layout.addItem(self.buttons_layout)
 
-                self.splitter.setSizes([1, sum(self._splitter_sizes)])
+                self.splitter.setSizes([1, max(sum(self._splitter_sizes), 2)])
+                self.splitter.setStretchFactor(0, 0)
+                self.splitter.setStretchFactor(1, 1)
                 self.splitter.handle(0).setEnabled(False)
                 self.splitter.handle(1).setEnabled(False)
 
@@ -2074,6 +2076,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 self.channel_view.show()
                 self.channels_tree.show()
+
+                self.splitter.setStretchFactor(0, 0)
+                self.splitter.setStretchFactor(1, 1)
 
                 self.splitter.setSizes(self._splitter_sizes)
                 self.splitter.handle(0).setEnabled(True)
