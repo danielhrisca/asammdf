@@ -1493,6 +1493,17 @@ class Plot(QtWidgets.QWidget):
         main_layout.addWidget(self.splitter)
 
         self.show()
+        size = sum(self.splitter.sizes())
+        self.splitter.setSizes([600, max(size - 600, 1)])
+        self.channel_selection.setColumnWidth(self.channel_selection.NameColumn, 386)
+        self.channel_selection.setColumnWidth(self.channel_selection.ValueColumn, 83)
+        self.channel_selection.setColumnWidth(self.channel_selection.UnitColumn, 62)
+        self.channel_selection.setColumnWidth(
+            self.channel_selection.CommonAxisColumn, 35
+        )
+        self.channel_selection.setColumnWidth(
+            self.channel_selection.IndividualAxisColumn, 35
+        )
         self.hide()
 
         if signals:
@@ -1559,7 +1570,9 @@ class Plot(QtWidgets.QWidget):
             tooltip = "The Y axis is unlocked. Press to lock"
             png = ":/unlocked.png"
 
-        self.channel_selection.setColumnHidden(self.channel_selection.CommonAxisColumn, locked)
+        self.channel_selection.setColumnHidden(
+            self.channel_selection.CommonAxisColumn, locked
+        )
 
         self.locked = locked
         self.plot.set_locked(locked)
@@ -1623,20 +1636,20 @@ class Plot(QtWidgets.QWidget):
 
         column = top_left.column()
 
-        if column == 0:
+        if column == item.NameColumn:
             enabled = item.checkState(column) == QtCore.Qt.Checked
             if enabled != item.signal.enable:
                 item.signal.enable = enabled
                 self.plot.set_signal_enable(item.uuid, item.checkState(column))
 
-        elif column == 2:
+        elif column == item.CommonAxisColumn:
             if not self.locked:
                 enabled = item.checkState(column) == QtCore.Qt.Checked
                 if enabled != item.signal.y_link:
                     item.signal.y_link = enabled
                     self.plot.set_common_axis(item.uuid, enabled)
 
-        elif column == 3:
+        elif column == item.IndividualAxisColumn:
             enabled = item.checkState(column) == QtCore.Qt.Checked
             if enabled != item.signal.individual_axis:
                 self.plot.set_individual_axis(item.uuid, enabled)
@@ -2146,20 +2159,21 @@ class Plot(QtWidgets.QWidget):
 
         self.region_removed_signal.emit(self)
 
-    def computation_channel_inserted(self):
-        sig = self.plot.signals[-1]
+    def computation_channel_inserted(self, sig):
         sig.enable = True
 
-        background_color = self.palette().color(QtGui.QPalette.Base)
+        self.add_new_channels({sig.name: sig})
 
-        item = ChannelsTreeItem(
-            ChannelsTreeItem.Channel,
-            signal=sig,
-            check=QtCore.Qt.Checked if sig.enable else QtCore.Qt.Unchecked,
-            background_color=background_color,
-        )
-
-        self.channel_selection.addTopLevelItem(item)
+        # background_color = self.palette().color(QtGui.QPalette.Base)
+        #
+        # item = ChannelsTreeItem(
+        #     ChannelsTreeItem.Channel,
+        #     signal=sig,
+        #     check=QtCore.Qt.Checked if sig.enable else QtCore.Qt.Unchecked,
+        #     background_color=background_color,
+        # )
+        #
+        # self.channel_selection.addTopLevelItem(item)
 
         self.info_uuid = sig.uuid
 
@@ -2261,8 +2275,7 @@ class Plot(QtWidgets.QWidget):
 
         channels = valid
 
-        self.adjust_splitter(list(channels.values()))
-        # QtCore.QCoreApplication.processEvents()
+        # self.adjust_splitter(list(channels.values()))
 
         channels = self.plot.add_new_channels(channels, descriptions=descriptions)
 
@@ -2711,7 +2724,7 @@ class _Plot(pg.PlotWidget):
     range_modified_finished = QtCore.Signal(object)
     cursor_move_finished = QtCore.Signal(object)
     xrange_changed = QtCore.Signal(object, object)
-    computation_channel_inserted = QtCore.Signal()
+    computation_channel_inserted = QtCore.Signal(object)
     curve_clicked = QtCore.Signal(str)
     signals_enable_changed = QtCore.Signal()
 
@@ -2808,7 +2821,7 @@ class _Plot(pg.PlotWidget):
         self.viewbox.border = None
         self.viewbox.disableAutoRange()
 
-        self.x_range = (0, 1)
+        self.x_range = self.y_range = (0, 1)
         self._curve = pg.PlotCurveItem(
             np.array([]),
             np.array([]),
@@ -2879,9 +2892,6 @@ class _Plot(pg.PlotWidget):
         self._enable_timer.setSingleShot(True)
         self._enable_timer.timeout.connect(self._signals_enabled_changed_handler)
 
-        # self._paint_timer = QtCore.QTimer()
-        # self._paint_timer.setSingleShot(True)
-        # self._paint_timer.timeout.connect(self._paint)
         self._inhibit = False
 
         if signals:
@@ -3812,10 +3822,6 @@ class _Plot(pg.PlotWidget):
                 sig.trim(start, stop, width, force)
 
     def xrange_changed_handle(self, *, force=False):
-        self.x_range = tuple(self.viewbox.viewRange()[0])
-        self.px = (self.viewport().width() - self.y_axis.width() - 2) / (
-            self.x_range[1] - self.x_range[0]
-        )
 
         if self._update_lines_allowed:
             self.trim(force=force)
@@ -3825,10 +3831,6 @@ class _Plot(pg.PlotWidget):
     def _resizeEvent(self, ev):
         new_size, last_size = self.geometry(), self._last_size
         if new_size != last_size:
-            self.px = (self.viewport().width() - self.y_axis.width() - 2) / (
-                self.x_range[1] - self.x_range[0]
-            )
-            self.py = self.viewport().height() - self.x_axis.height() - 2
             self._last_size = new_size
             super().resizeEvent(ev)
             self.xrange_changed_handle()
@@ -3939,9 +3941,19 @@ class _Plot(pg.PlotWidget):
                 if not computed:
                     sig.computation = {}
 
+        if initial_index == 0:
+            start_t, stop_t = 1, -1
+            for sig in channels.values():
+                if len(sig):
+                    start_t = min(start_t, sig.timestamps[0])
+                    stop_t = max(stop_t, sig.timestamps[-1])
+
+            if (start_t, stop_t) != (1, -1):
+                self.viewbox.setXRange(start_t, stop_t, update=False)
+
         (start, stop), _ = self.viewbox.viewRange()
 
-        width = self.width() - self.y_axis.width()
+        width = self.viewbox.sceneBoundingRect().width()
         trim_info = start, stop, width
 
         channels = [
@@ -3949,18 +3961,13 @@ class _Plot(pg.PlotWidget):
             for i, sig in enumerate(channels.values(), len(self.signals))
         ]
 
+        self.signals.extend(channels)
         for sig in channels:
             uuids = self._timebase_db.setdefault(id(sig.timestamps), set())
             uuids.add(sig.uuid)
-        self.signals.extend(channels)
-
-        self._uuid_map = {sig.uuid: (sig, i) for i, sig in enumerate(self.signals)}
-
         self._compute_all_timebase()
 
-        if initial_index == 0 and len(self.all_timebase):
-            start_t, stop_t = np.amin(self.all_timebase), np.amax(self.all_timebase)
-            self.viewbox.setXRange(start_t, stop_t, update=False)
+        self._uuid_map = {sig.uuid: (sig, i) for i, sig in enumerate(self.signals)}
 
         axis_uuid = None
 
@@ -3988,7 +3995,6 @@ class _Plot(pg.PlotWidget):
 
         self._update_lines_allowed = True
         self._can_paint = True
-        self.xrange_changed_handle(force=True)
 
         return {sig.uuid: sig for sig in channels}
 
@@ -4156,8 +4162,7 @@ class _Plot(pg.PlotWidget):
             sig.group_index = -1
             sig.channel_index = -1
             sig.origin_uuid = os.urandom(6).hex()
-            self.add_new_channels({sig.name: sig}, computed=True)
-            self.computation_channel_inserted.emit()
+            self.computation_channel_inserted.emit(sig)
 
     def get_axis(self, index):
         axis = self.axes[index]
@@ -4249,6 +4254,7 @@ class _Plot(pg.PlotWidget):
             paint.setRenderHint(paint.RenderHint.Antialiasing, True)
 
             self.x_range, self.y_range = self.viewbox.viewRange()
+
             rect = self.viewbox.sceneBoundingRect()
 
             self.px = (self.x_range[1] - self.x_range[0]) / rect.width()

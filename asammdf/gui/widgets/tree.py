@@ -229,7 +229,8 @@ class TreeWidget(QtWidgets.QTreeWidget):
                     item.setCheckState(self.NameColumn, QtCore.Qt.Checked)
             else:
                 if any(
-                    item.checkState(self.NameColumn) == QtCore.Qt.Unchecked for item in selected_items
+                    item.checkState(self.NameColumn) == QtCore.Qt.Unchecked
+                    for item in selected_items
                 ):
                     checked = QtCore.Qt.Checked
                 else:
@@ -413,8 +414,12 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.setMinimumWidth(5)
         self.header().resizeSection(self.CommonAxisColumn, 10)
         self.header().resizeSection(self.IndividualAxisColumn, 10)
-        self.header().setSectionResizeMode(self.CommonAxisColumn, QtWidgets.QHeaderView.Fixed)
-        self.header().setSectionResizeMode(self.IndividualAxisColumn, QtWidgets.QHeaderView.Fixed)
+        self.header().setSectionResizeMode(
+            self.CommonAxisColumn, QtWidgets.QHeaderView.Fixed
+        )
+        self.header().setSectionResizeMode(
+            self.IndividualAxisColumn, QtWidgets.QHeaderView.Fixed
+        )
 
         self.header().setStretchLastSection(False)
 
@@ -453,7 +458,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 self.verticalScrollBar().setValue(pos)
 
     def item_selection_changed(self):
-        print('item selection')
+        print("item selection")
         selection = list(self.selectedItems())
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self)
@@ -581,7 +586,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     item.setCheckState(self.NameColumn, QtCore.Qt.Checked)
             else:
                 if any(
-                    item.checkState(self.NameColumn) == QtCore.Qt.Unchecked for item in selected_items
+                    item.checkState(self.NameColumn) == QtCore.Qt.Unchecked
+                    for item in selected_items
                 ):
                     checked = QtCore.Qt.Checked
                 else:
@@ -1201,10 +1207,16 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             if item.type() == ChannelsTreeItem.Channel:
                 if hide_missing_channels and not item.exists:
                     hidden = True
-                if hide_disabled_channels and item.checkState(self.NameColumn) == QtCore.Qt.Unchecked:
+                if (
+                    hide_disabled_channels
+                    and item.checkState(self.NameColumn) == QtCore.Qt.Unchecked
+                ):
                     hidden = True
             else:
-                if hide_disabled_channels and item.checkState(self.NameColumn) == QtCore.Qt.Unchecked:
+                if (
+                    hide_disabled_channels
+                    and item.checkState(self.NameColumn) == QtCore.Qt.Unchecked
+                ):
                     hidden = True
 
             item.setHidden(hidden)
@@ -1489,7 +1501,8 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             "color": self.color.name(),
             "precision": self.precision,
             "ylink": self.checkState(self.CommonAxisColumn) == QtCore.Qt.Checked,
-            "individual_axis": self.checkState(self.IndividualAxisColumn) == QtCore.Qt.Checked,
+            "individual_axis": self.checkState(self.IndividualAxisColumn)
+            == QtCore.Qt.Checked,
             "format": "hex"
             if self.fmt.startswith("0x")
             else "bin"

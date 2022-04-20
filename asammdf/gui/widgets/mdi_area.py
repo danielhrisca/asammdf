@@ -2175,7 +2175,6 @@ class WithMDIArea:
         plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
 
         plot.show_properties.connect(self._show_info)
-        # TO DO plot.channel_selection.setCurrentRow(0)
 
         plot.add_new_channels(signals, mime_data)
 
