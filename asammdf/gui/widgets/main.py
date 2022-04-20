@@ -940,7 +940,9 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Text, brush)
             brush = QtGui.QBrush(QtGui.QColor(100, 100, 100))
             brush.setStyle(QtCore.Qt.SolidPattern)
-            palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.PlaceholderText, brush)
+            palette.setBrush(
+                QtGui.QPalette.Active, QtGui.QPalette.PlaceholderText, brush
+            )
             brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
             brush.setStyle(QtCore.Qt.SolidPattern)
             palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.BrightText, brush)
