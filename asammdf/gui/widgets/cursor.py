@@ -69,7 +69,7 @@ class Cursor(pg.InfiniteLine):
                         x, y = plot.scale_curve_to_pixmap(
                             position,
                             y_value,
-                            y_range=plot.viewbox.viewRange()[1],
+                            y_range=signal.y_range,
                             x_range=plot.viewbox.viewRange()[0],
                             delta=delta,
                         )

@@ -408,7 +408,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         self.setHeaderHidden(False)
         self.setColumnCount(5)
-        self.setHeaderLabels(["Name", "Value", "Unit", "\u22D5", "\u21A8"])
+        # self.setHeaderLabels(["Name", "Value", "Unit", "\u27f0", "\u21A8"])
+        self.setHeaderLabels(["Name", "Value", "Unit", "\u290a", "\u21A8"])
         self.setDragEnabled(True)
 
         self.setMinimumWidth(5)
@@ -1079,6 +1080,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                             signal=item.signal,
                         )
                         item.addChild(item.details)
+                        item.setExpanded(True)
                     iterator += 1
             else:
                 iterator = QtWidgets.QTreeWidgetItemIterator(self)

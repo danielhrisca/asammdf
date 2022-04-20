@@ -1284,6 +1284,7 @@ class Plot(QtWidgets.QWidget):
         self._range_stop = None
 
         self._can_switch_mode = True
+        self.can_edit_ranges = True
 
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setSpacing(1)
@@ -1655,7 +1656,7 @@ class Plot(QtWidgets.QWidget):
                 self.plot.set_individual_axis(item.uuid, enabled)
 
     def channel_selection_item_double_clicked(self, item, column):
-        if item is None:
+        if item is None or not self.can_edit_ranges:
             return
 
         type = item.type()
@@ -1667,6 +1668,7 @@ class Plot(QtWidgets.QWidget):
             if dlg.pressed_button == "apply":
                 item.set_ranges(dlg.result)
                 item.update_child_values()
+
         elif type == ChannelsTreeItem.Channel:
             dlg = RangeEditor(item.signal.name, item.unit, item.ranges, parent=self)
             dlg.exec_()
