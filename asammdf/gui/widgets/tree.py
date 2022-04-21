@@ -459,7 +459,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 self.verticalScrollBar().setValue(pos)
 
     def item_selection_changed(self):
-        print("item selection")
         selection = list(self.selectedItems())
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self)
@@ -490,7 +489,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
             root = self.invisibleRootItem()
             for item in selected_items:
-                (item.parent() or root).removeChild(item)
+                if item.type() != item.Info:
+                    (item.parent() or root).removeChild(item)
 
             self.refresh()
 
@@ -870,13 +870,15 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             count = self.topLevelItemCount()
             for i in range(count):
                 item = self.topLevelItem(i)
-                item.setCheckState(self.NameColumn, QtCore.Qt.Checked)
+                if item.type() != item.Info:
+                    item.setCheckState(self.NameColumn, QtCore.Qt.Checked)
 
         elif action.text() == "Disable all":
             count = self.topLevelItemCount()
             for i in range(count):
                 item = self.topLevelItem(i)
-                item.setCheckState(self.NameColumn, QtCore.Qt.Unchecked)
+                if item.type() != item.Info:
+                    item.setCheckState(self.NameColumn, QtCore.Qt.Unchecked)
 
         elif action.text() == "Enable all but this":
             selected_items = self.selectedItems()
@@ -887,85 +889,34 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 if not item:
                     break
 
-                if item in selected_items:
-                    item.setCheckState(self.NameColumn, QtCore.Qt.Unchecked)
-                else:
-                    item.setCheckState(self.NameColumn, QtCore.Qt.Checked)
+                if item.type() != item.Info:
+
+                    if item in selected_items:
+                        item.setCheckState(self.NameColumn, QtCore.Qt.Unchecked)
+                    else:
+                        item.setCheckState(self.NameColumn, QtCore.Qt.Checked)
 
                 iterator += 1
 
             count = self.topLevelItemCount()
             for i in range(count):
                 item = self.topLevelItem(i)
-                item.setCheckState(QtCore.Qt.Unchecked)
+                if item.type() != item.Info:
+                    item.setCheckState(QtCore.Qt.Unchecked)
 
             for item in selected_items:
-                item.setCheckState(QtCore.Qt.Checked)
+                if item.type() != item.Info:
+                    item.setCheckState(QtCore.Qt.Checked)
 
         elif action.text() == show_disabled_channels:
-            if self.hide_missing_channels:
-                iterator = QtWidgets.QTreeWidgetItemIterator(self)
-                while True:
-                    item = iterator.value()
-                    if not item:
-                        break
-
-                    if (
-                        item.type() == ChannelsTreeItem.Channel
-                        and self.hide_missing_channels
-                        and not item.exists
-                    ):
-                        pass
-                    elif item.checkState(self.NameColumn) == QtCore.Qt.Unchecked:
-                        item.setHidden(False)
-                    iterator += 1
-            else:
-                iterator = QtWidgets.QTreeWidgetItemIterator(self)
-                while True:
-                    item = iterator.value()
-                    if not item:
-                        break
-
-                    if (
-                        item.type() == ChannelsTreeItem.Channel
-                        and item.checkState(self.NameColumn) == QtCore.Qt.Unchecked
-                    ):
-                        item.setHidden(True)
-
-                    iterator += 1
 
             self.hide_disabled_channels = not self.hide_disabled_channels
+            self.update_hidden_states()
 
         elif action.text() == show_missing_channels:
-            if self.hide_missing_channels:
-                iterator = QtWidgets.QTreeWidgetItemIterator(self)
-                while True:
-                    item = iterator.value()
-                    if not item:
-                        break
-
-                    if (
-                        item.type() == ChannelsTreeItem.Channel
-                        and self.hide_disabled_channels
-                        and item.checkState(self.NameColumn) == QtCore.Qt.Unchecked
-                    ):
-                        pass
-                    else:
-                        item.setHidden(False)
-                    iterator += 1
-            else:
-                iterator = QtWidgets.QTreeWidgetItemIterator(self)
-                while True:
-                    item = iterator.value()
-                    if not item:
-                        break
-
-                    if item.type() == ChannelsTreeItem.Channel and not item.exists:
-                        item.setHidden(True)
-
-                    iterator += 1
 
             self.hide_missing_channels = not self.hide_missing_channels
+            self.update_hidden_states()
 
         elif action.text() == "Add to common Y axis":
             selected_items = self.selectedItems()
@@ -1227,6 +1178,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
     def refresh(self):
         self.updateGeometry()
+        self.update_hidden_states()
         self.update_visibility_status()
 
     def update_visibility_status(self, *args):

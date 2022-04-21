@@ -1747,18 +1747,17 @@ class Plot(QtWidgets.QWidget):
             self.cursor_info.update_value()
 
             for item in self._visible_items.values():
-                if item.type() == item.Channel:
 
-                    signal, idx = self.plot.signal_by_uuid(item.uuid)
-                    index = self.plot.get_timestamp_index(position, signal.timestamps)
+                signal, idx = self.plot.signal_by_uuid(item.uuid)
+                index = self.plot.get_timestamp_index(position, signal.timestamps)
 
-                    value, kind, fmt = signal.value_at_index(index)
+                value, kind, fmt = signal.value_at_index(index)
 
-                    item.set_prefix("= ")
-                    item.kind = kind
-                    item.set_fmt(fmt)
+                item.set_prefix("= ")
+                item.kind = kind
+                item.set_fmt(fmt)
 
-                    item.set_value(value, update=True)
+                item.set_value(value, update=True)
 
         if self.info.isVisible():
             stats = self.plot.get_stats(self.info_uuid)
@@ -1797,31 +1796,30 @@ class Plot(QtWidgets.QWidget):
         self.cursor_info.update_value()
 
         for item in self._visible_items.values():
-            if item.type() == item.Channel:
 
-                signal, i = self.plot.signal_by_uuid(item.uuid)
+            signal, i = self.plot.signal_by_uuid(item.uuid)
 
-                start_v, kind, fmt = signal.value_at_timestamp(start)
-                stop_v, kind, fmt = signal.value_at_timestamp(stop)
+            start_v, kind, fmt = signal.value_at_timestamp(start)
+            stop_v, kind, fmt = signal.value_at_timestamp(stop)
 
-                item.set_prefix("Δ = ")
-                item.set_fmt(signal.format)
+            item.set_prefix("Δ = ")
+            item.set_fmt(signal.format)
 
-                if "n.a." not in (start_v, stop_v):
-                    if kind in "ui":
-                        delta = np.int64(stop_v) - np.int64(start_v)
-                        item.kind = kind
-                        item.set_value(delta)
-                        item.set_fmt(fmt)
-                    elif kind == "f":
-                        delta = stop_v - start_v
-                        item.kind = kind
-                        item.set_value(delta)
-                        item.set_fmt(fmt)
-                    else:
-                        item.set_value("n.a.")
+            if "n.a." not in (start_v, stop_v):
+                if kind in "ui":
+                    delta = np.int64(stop_v) - np.int64(start_v)
+                    item.kind = kind
+                    item.set_value(delta)
+                    item.set_fmt(fmt)
+                elif kind == "f":
+                    delta = stop_v - start_v
+                    item.kind = kind
+                    item.set_value(delta)
+                    item.set_fmt(fmt)
                 else:
                     item.set_value("n.a.")
+            else:
+                item.set_value("n.a.")
 
         if self.info.isVisible():
             stats = self.plot.get_stats(self.info_uuid)
@@ -2668,7 +2666,8 @@ class Plot(QtWidgets.QWidget):
 
                 _item_cache[item.uuid] = item
 
-                if item.checkState(0) == QtCore.Qt.Checked and item.exists:
+                # if item.checkState(0) == QtCore.Qt.Checked and item.exists:
+                if item.exists:
                     entry = (item.origin_uuid, item.signal.name, item.uuid)
                     _visible_entries.add(entry)
                     _visible_items[entry] = item
