@@ -243,7 +243,9 @@ class MDF:
                     name = get_temporary_filename(original_name, dir=temporary_folder)
                     name.write_bytes(name.read())
                     file_stream = open(name, "rb")
+
                     do_close = True
+
                 elif isinstance(name, gzip.GzipFile):
 
                     original_name = Path(name.name)
@@ -251,6 +253,28 @@ class MDF:
                     name.write_bytes(name.read())
                     file_stream = open(name, "rb")
                     do_close = True
+
+            elif isinstance(name, zipfile.ZipFile):
+
+                archive = name
+                files = archive.namelist()
+                if len(files) != 1:
+                    raise Exception("invalid zipped MF4: must contain a single file")
+                fname = original_name = files[0]
+
+                name = get_temporary_filename(Path(original_name), dir=temporary_folder)
+
+                if Path(fname).suffix.lower() not in (".mdf", ".dat", ".mf4"):
+                    raise Exception(
+                        "invalid zipped MF4: must contain a single MDF file"
+                    )
+
+                tmpdir = mkdtemp()
+                output = archive.extract(fname, tmpdir)
+                move(output, name)
+
+                file_stream = open(name, "rb")
+                do_close = True
 
             else:
                 name = original_name = Path(name)
