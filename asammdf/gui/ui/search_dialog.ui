@@ -31,6 +31,42 @@
        <string>Search</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout">
+       <item row="0" column="0">
+        <widget class="QLineEdit" name="search_box">
+         <property name="focusPolicy">
+          <enum>Qt::StrongFocus</enum>
+         </property>
+         <property name="inputMask">
+          <string/>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="placeholderText">
+          <string>channel name pattern</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label_7">
+         <property name="text">
+          <string>Search results</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="1">
+        <widget class="QLabel" name="status">
+         <property name="minimumSize">
+          <size>
+           <width>100</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>No results</string>
+         </property>
+        </widget>
+       </item>
        <item row="0" column="2">
         <widget class="QComboBox" name="match_kind">
          <property name="currentIndex">
@@ -48,23 +84,119 @@
          </item>
         </widget>
        </item>
-       <item row="0" column="0">
-        <widget class="QLineEdit" name="search_box">
-         <property name="focusPolicy">
-          <enum>Qt::StrongFocus</enum>
-         </property>
-         <property name="inputMask">
-          <string/>
-         </property>
+       <item row="4" column="0">
+        <widget class="QLabel" name="label">
          <property name="text">
-          <string/>
-         </property>
-         <property name="placeholderText">
-          <string>channel name pattern</string>
+          <string>Final selection</string>
          </property>
         </widget>
        </item>
-       <item row="5" column="0" colspan="3">
+       <item row="0" column="3">
+        <widget class="QCheckBox" name="extended_search">
+         <property name="text">
+          <string>Extended search</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="0" colspan="4">
+        <widget class="QTreeWidget" name="matches">
+         <property name="selectionMode">
+          <enum>QAbstractItemView::ExtendedSelection</enum>
+         </property>
+         <property name="uniformRowHeights">
+          <bool>false</bool>
+         </property>
+         <property name="sortingEnabled">
+          <bool>false</bool>
+         </property>
+         <attribute name="headerMinimumSectionSize">
+          <number>40</number>
+         </attribute>
+         <attribute name="headerStretchLastSection">
+          <bool>true</bool>
+         </attribute>
+         <column>
+          <property name="text">
+           <string>Name</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Group</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Index</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Unit</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Source name</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Source path</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
+           <string>Comment</string>
+          </property>
+         </column>
+        </widget>
+       </item>
+       <item row="3" column="0" colspan="4">
+        <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <item>
+          <spacer name="horizontalSpacer_4">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>358</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QPushButton" name="add_btn">
+           <property name="focusPolicy">
+            <enum>Qt::TabFocus</enum>
+           </property>
+           <property name="text">
+            <string>Add to selection</string>
+           </property>
+           <property name="icon">
+            <iconset resource="resource.qrc">
+             <normaloff>:/shift_down.png</normaloff>:/shift_down.png</iconset>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_5">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>358</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item row="5" column="0" colspan="4">
         <widget class="QTreeWidget" name="selection">
          <property name="sortingEnabled">
           <bool>false</bool>
@@ -92,6 +224,11 @@
          </column>
          <column>
           <property name="text">
+           <string>Unit</string>
+          </property>
+         </column>
+         <column>
+          <property name="text">
            <string>Source name</string>
           </property>
          </column>
@@ -107,7 +244,7 @@
          </column>
         </widget>
        </item>
-       <item row="6" column="0" colspan="3">
+       <item row="6" column="0" colspan="4">
         <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,1,0,0,0">
          <item>
           <widget class="QPushButton" name="cancel_btn">
@@ -169,126 +306,6 @@
           </widget>
          </item>
         </layout>
-       </item>
-       <item row="2" column="0" colspan="3">
-        <widget class="QTreeWidget" name="matches">
-         <property name="selectionMode">
-          <enum>QAbstractItemView::ExtendedSelection</enum>
-         </property>
-         <property name="uniformRowHeights">
-          <bool>false</bool>
-         </property>
-         <property name="sortingEnabled">
-          <bool>false</bool>
-         </property>
-         <attribute name="headerMinimumSectionSize">
-          <number>40</number>
-         </attribute>
-         <attribute name="headerStretchLastSection">
-          <bool>true</bool>
-         </attribute>
-         <column>
-          <property name="text">
-           <string>Name</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Group</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Index</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Source name</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Source path</string>
-          </property>
-         </column>
-         <column>
-          <property name="text">
-           <string>Comment</string>
-          </property>
-         </column>
-        </widget>
-       </item>
-       <item row="3" column="0" colspan="3">
-        <layout class="QHBoxLayout" name="horizontalLayout_2">
-         <item>
-          <spacer name="horizontalSpacer_4">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>358</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item>
-          <widget class="QPushButton" name="add_btn">
-           <property name="focusPolicy">
-            <enum>Qt::TabFocus</enum>
-           </property>
-           <property name="text">
-            <string>Add to selection</string>
-           </property>
-           <property name="icon">
-            <iconset resource="resource.qrc">
-             <normaloff>:/shift_down.png</normaloff>:/shift_down.png</iconset>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="horizontalSpacer_5">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>358</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-        </layout>
-       </item>
-       <item row="4" column="0">
-        <widget class="QLabel" name="label">
-         <property name="text">
-          <string>Final selection</string>
-         </property>
-        </widget>
-       </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="label_7">
-         <property name="text">
-          <string>Search results</string>
-         </property>
-        </widget>
-       </item>
-       <item row="0" column="1">
-        <widget class="QLabel" name="status">
-         <property name="minimumSize">
-          <size>
-           <width>100</width>
-           <height>0</height>
-          </size>
-         </property>
-         <property name="text">
-          <string>No results</string>
-         </property>
-        </widget>
        </item>
       </layout>
      </widget>
