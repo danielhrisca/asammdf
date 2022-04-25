@@ -1318,6 +1318,7 @@ class Plot(QtWidgets.QWidget):
             allow_cursor=allow_cursor,
             plot_parent=self,
         )
+        self.lock = self.plot.lock
 
         self.cursor_info = CursorInfo(
             precision=QtCore.QSettings().value("plot_cursor_precision", 6),
@@ -2666,8 +2667,8 @@ class Plot(QtWidgets.QWidget):
 
                 _item_cache[item.uuid] = item
 
-                # if item.checkState(0) == QtCore.Qt.Checked and item.exists:
-                if item.exists:
+                if item.checkState(0) == QtCore.Qt.Checked and item.exists:
+                    # if item.exists:
                     entry = (item.origin_uuid, item.signal.name, item.uuid)
                     _visible_entries.add(entry)
                     _visible_items[entry] = item
@@ -3294,6 +3295,9 @@ class _Plot(pg.PlotWidget):
 
                         signal.y_range = min_, max_
 
+                        if signal.uuid == self.current_uuid:
+                            self.viewbox.setYRange(min_, max_, padding=0)
+
                 self.update_plt()
 
             elif (
@@ -3333,6 +3337,8 @@ class _Plot(pg.PlotWidget):
                             max_ = 1
 
                         signal.y_range = min_, max_
+                        if signal.uuid == self.current_uuid:
+                            self.viewbox.setYRange(min_, max_, padding=0)
 
                 self.update_plt()
 
@@ -3541,6 +3547,9 @@ class _Plot(pg.PlotWidget):
                             else:
                                 signal.y_range = min_, max_
 
+                            if signal.uuid == self.current_uuid:
+                                self.viewbox.setYRange(min_, max_, padding=0)
+
                             position += 1
 
                 else:
@@ -3651,6 +3660,9 @@ class _Plot(pg.PlotWidget):
 
                             else:
                                 signal.y_range = min_, max_
+
+                            if signal.uuid == self.current_uuid:
+                                self.viewbox.setYRange(min_, max_, padding=0)
 
                             position += 1
 
@@ -4410,7 +4422,8 @@ class _Plot(pg.PlotWidget):
             paint = QtGui.QPainter()
             vp = self.viewport()
             paint.begin(vp)
-            paint.setCompositionMode(QtGui.QPainter.CompositionMode_Source)
+            paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
+            paint.setRenderHint(paint.RenderHint.Antialiasing, True)
 
             rect = ev.rect()
 
