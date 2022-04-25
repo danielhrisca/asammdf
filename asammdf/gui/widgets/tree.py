@@ -665,8 +665,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
                         plot = item.treeWidget().plot.plot
                         sig, index = plot.signal_by_uuid(item.uuid)
-                        viewbox = plot.view_boxes[index]
-                        viewbox.setYRange(info["min"], info["max"], padding=0)
+                        sig.y_range = info["y_range"]
 
                         item.set_ranges(info["ranges"])
 
@@ -764,7 +763,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addSeparator()
 
         if item and item.type() == ChannelsTreeItem.Channel:
-            menu.addAction(self.tr("Copy name (Ctrl+C)"))
+            menu.addAction(self.tr("Copy name [Ctrl+C]"))
             menu.addAction(self.tr("Copy display properties [Ctrl+Shift+C]"))
             menu.addAction(self.tr("Paste display properties [Ctrl+Shift+P]"))
 
@@ -1470,10 +1469,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
         sig, index = plot.signal_by_uuid(self.uuid)
 
-        min_, max_ = plot.view_boxes[index].viewRange()[1]
-
-        info["min"] = float(min_)
-        info["max"] = float(max_)
+        info["y_range"] = tuple(float(e) for e in sig.y_range)
 
         return json.dumps(info)
 
