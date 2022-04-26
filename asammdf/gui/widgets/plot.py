@@ -2180,6 +2180,8 @@ class Plot(QtWidgets.QWidget):
     def add_new_channels(self, channels, mime_data=None, destination=None):
         def add_new_items(tree, root, items, items_pool):
             children = []
+            groups = []
+
             for info in items:
 
                 pattern = info.get("pattern", None)
@@ -2202,11 +2204,15 @@ class Plot(QtWidgets.QWidget):
                         pattern=pattern,
                         uuid=uuid,
                         origin_uuid=origin_uuid,
-                    )  # , root)
+                        expanded=info.get("expanded", True),
+                    )
                     children.append(item)
                     item.set_ranges(ranges)
 
-                    add_new_items(tree, item, info["channels"], items_pool)
+                    groups.extend(
+                        add_new_items(tree, item, info["channels"], items_pool)
+                    )
+                    groups.append(item)
 
                 else:
 
@@ -2217,6 +2223,7 @@ class Plot(QtWidgets.QWidget):
                         del items_pool[uuid]
 
             root.addChildren(children)
+            return groups
 
         descriptions = get_descriptions_by_uuid(mime_data)
 
@@ -2371,12 +2378,15 @@ class Plot(QtWidgets.QWidget):
             self.info_uuid = sig_uuid
 
         if mime_data:
-            add_new_items(
+            groups = add_new_items(
                 self.channel_selection,
                 destination or self.channel_selection.invisibleRootItem(),
                 mime_data,
                 new_items,
             )
+
+            for item in groups:
+                item.setExpanded(item._expanded)
 
             # still have simple signals to add
             if new_items:
@@ -2472,6 +2482,7 @@ class Plot(QtWidgets.QWidget):
             "pattern": pattern,
             "ranges": ranges,
             "origin_uuid": item.origin_uuid,
+            "expanded": item.isExpanded(),
         }
 
         return channel_group

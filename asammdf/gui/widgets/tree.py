@@ -1286,6 +1286,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         ranges=None,
         origin_uuid=None,
         background_color=None,
+        expanded=True,
     ):
         super().__init__(parent, type)
         self.exists = True
@@ -1295,6 +1296,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         self._name = ""
         self._count = 0
         self._background_color = background_color
+        self._expanded = expanded
 
         if type == self.Group:
 
