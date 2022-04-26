@@ -19,7 +19,7 @@ from ...blocks import v4_constants as v4c
 from ...blocks.conversion_utils import from_dict
 from ...blocks.utils import (
     csv_bytearray2hex,
-    extract_cncomment_xml,
+    extract_xml_comment,
     load_can_database,
     MdfException,
 )
@@ -57,20 +57,22 @@ def rename_origin_uuid(items):
 
 
 def get_origin_uuid(item):
-    if item.get("type", "channel") == "group":
-        for subitem in item["channels"]:
-            if subitem.get("type", "channel") == "channel":
-                return subitem["origin_uuid"]
-        for subitem in item["channels"]:
-            if subitem.get("type", "channel") == "group":
-                uuid = get_origin_uuid(subitem)
-                if uuid is not None:
-                    return uuid
-
-        return None
-
-    else:
-        return item["origin_uuid"]
+    # if item.get("type", "channel") == "group":
+    #     for subitem in item["channels"]:
+    #         if subitem.get("type", "channel") == "channel":
+    #             return subitem["origin_uuid"]
+    #
+    #     for subitem in item["channels"]:
+    #         if subitem.get("type", "channel") == "group":
+    #             uuid = get_origin_uuid(subitem)
+    #             if uuid is not None:
+    #                 return uuid
+    #
+    #     return None
+    #
+    # else:
+    #     return item["origin_uuid"]
+    return item["origin_uuid"]
 
 
 def build_mime_from_config(
@@ -79,9 +81,9 @@ def build_mime_from_config(
 
     if top:
         rename_origin_uuid(items)
-        for item in items:
-            if item.get("type", "channel") == "group":
-                item["origin_uuid"] = get_origin_uuid(item)
+        # for item in items:
+        #     if item.get("type", "channel") == "group":
+        #         item["origin_uuid"] = get_origin_uuid(item)
 
     descriptions = {}
     found = {}
@@ -2071,7 +2073,7 @@ class WithMDIArea:
                     description = event.name
                     if event.comment:
                         try:
-                            comment = extract_cncomment_xml(event.comment)
+                            comment = extract_xml_comment(event.comment)
                         except:
                             comment = event.comment
                         description += f" ({comment})"
@@ -2834,7 +2836,7 @@ class WithMDIArea:
                     description = event.name
                     if event.comment:
                         try:
-                            comment = extract_cncomment_xml(event.comment)
+                            comment = extract_xml_comment(event.comment)
                         except:
                             comment = event.comment
                         description += f" ({comment})"

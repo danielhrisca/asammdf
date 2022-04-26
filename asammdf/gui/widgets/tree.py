@@ -12,6 +12,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from .. import utils
 from ..dialogs.advanced_search import AdvancedSearch
+from ..dialogs.range_editor import RangeEditor
 from ..utils import (
     copy_ranges,
     extract_mime_names,
@@ -606,7 +607,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             color = QtWidgets.QColorDialog.getColor(selected_items[0].signal.color)
             if color.isValid():
                 for item in selected_items:
-                    item.color = color
+                    if item.type() == item.Channel:
+                        item.color = color
 
         elif modifiers == QtCore.Qt.ControlModifier and key == QtCore.Qt.Key_C:
             selected_items = self.selectedItems()
@@ -617,6 +619,46 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
             name = item.signal.name
             QtWidgets.QApplication.instance().clipboard().setText(name)
+
+        elif modifiers == QtCore.Qt.ControlModifier and key == QtCore.Qt.Key_R:
+            selected_items = self.selectedItems()
+            if not selected_items:
+                return
+
+            if len(selected_items) == 1:
+                item = selected_items[0]
+
+                type = item.type()
+                if type == ChannelsTreeItem.Group:
+                    dlg = RangeEditor(
+                        f"channels from <{item._name}>", ranges=item.ranges, parent=self
+                    )
+                    dlg.exec_()
+                    if dlg.pressed_button == "apply":
+                        item.set_ranges(dlg.result)
+                        item.update_child_values()
+
+                elif type == ChannelsTreeItem.Channel:
+                    dlg = RangeEditor(
+                        item.signal.name, item.unit, item.ranges, parent=self
+                    )
+                    dlg.exec_()
+                    if dlg.pressed_button == "apply":
+                        item.set_ranges(dlg.result)
+                        item.set_value(item._value, update=True)
+
+            else:
+                dlg = RangeEditor(f"<selected items>", ranges=[], parent=self)
+                dlg.exec_()
+                if dlg.pressed_button == "apply":
+                    for item in selected_items:
+                        if item.type() == item.Channel:
+                            item.set_ranges(dlg.result)
+                            item.set_value(item._value, update=True)
+
+                        elif item.type() == item.Group:
+                            item.set_ranges(dlg.result)
+                            item.update_child_values()
 
         elif (
             modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier)
@@ -772,10 +814,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         if item and item.type() == ChannelsTreeItem.Channel:
             menu.addAction(self.tr("Rename channel"))
-            menu.addSeparator()
         elif item and item.type() == ChannelsTreeItem.Group:
             menu.addAction(self.tr("Rename group"))
-            menu.addSeparator()
+        menu.addSeparator()
 
         menu.addAction(self.tr("Enable all"))
         menu.addAction(self.tr("Disable all"))
@@ -798,10 +839,13 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         if item and item.type() == ChannelsTreeItem.Channel:
             menu.addAction(self.tr("Add to common Y axis"))
             menu.addAction(self.tr("Remove from common Y axis"))
-            menu.addSeparator()
-            menu.addAction(self.tr("Set unit"))
+        menu.addSeparator()
 
+        menu.addAction(self.tr("Set color [C]"))
         menu.addAction(self.tr("Set precision"))
+        menu.addAction(self.tr("Set color ranges [Ctrl+R]"))
+        menu.addAction(self.tr("Set unit"))
+        menu.addSeparator()
 
         if item and item.type() == ChannelsTreeItem.Channel:
             menu.addSeparator()
@@ -830,6 +874,22 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         if action.text() == "Copy name [Ctrl+C]":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.KeyPress, QtCore.Qt.Key_C, QtCore.Qt.ControlModifier
+            )
+            self.keyPressEvent(event)
+
+        elif action.text() == "Set color [C]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.KeyPress,
+                QtCore.Qt.Key_C,
+                QtCore.Qt.NoModifier,
+            )
+            self.keyPressEvent(event)
+
+        elif action.text() == "Set color ranges [Ctrl+R]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.KeyPress,
+                QtCore.Qt.Key_R,
+                QtCore.Qt.ControlModifier,
             )
             self.keyPressEvent(event)
 
@@ -1242,7 +1302,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.set_pattern(pattern)
             self._is_visible = True
             self.uuid = uuid
-            self.origin_uuid = origin_uuid
+            self.origin_uuid = origin_uuid or os.urandom(6).hex()
 
             self.count = 0
 

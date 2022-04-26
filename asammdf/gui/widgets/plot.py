@@ -1657,25 +1657,17 @@ class Plot(QtWidgets.QWidget):
                 self.plot.set_individual_axis(item.uuid, enabled)
 
     def channel_selection_item_double_clicked(self, item, column):
-        if item is None or not self.can_edit_ranges:
+        if item is None:
             return
 
-        type = item.type()
-        if type == ChannelsTreeItem.Group:
-            dlg = RangeEditor(
-                f"channels from <{item._name}>", ranges=item.ranges, parent=self
-            )
-            dlg.exec_()
-            if dlg.pressed_button == "apply":
-                item.set_ranges(dlg.result)
-                item.update_child_values()
-
-        elif type == ChannelsTreeItem.Channel:
-            dlg = RangeEditor(item.signal.name, item.unit, item.ranges, parent=self)
-            dlg.exec_()
-            if dlg.pressed_button == "apply":
-                item.set_ranges(dlg.result)
-                item.set_value(item._value, update=True)
+        elif item.type() != item.Info and column not in (
+            item.CommonAxisColumn,
+            item.IndividualAxisColumn,
+        ):
+            if item.checkState(item.NameColumn) == QtCore.Qt.Checked:
+                item.setCheckState(item.NameColumn, QtCore.Qt.Unchecked)
+            else:
+                item.setCheckState(item.NameColumn, QtCore.Qt.Checked)
 
     def mousePressEvent(self, event):
         self.clicked.emit()
@@ -1691,13 +1683,11 @@ class Plot(QtWidgets.QWidget):
                 uuid = item.uuid
                 self.info_uuid = uuid
 
-                sig, index = self.plot.signal_by_uuid(uuid)
-                if sig.enable:
-                    self.plot.set_current_uuid(self.info_uuid)
+                self.plot.set_current_uuid(self.info_uuid)
 
-                    if self.info.isVisible():
-                        stats = self.plot.get_stats(self.info_uuid)
-                        self.info.set_stats(stats)
+                if self.info.isVisible():
+                    stats = self.plot.get_stats(self.info_uuid)
+                    self.info.set_stats(stats)
 
     def channel_selection_reduced(self, deleted):
 
@@ -2120,6 +2110,13 @@ class Plot(QtWidgets.QWidget):
         ):
             self.channel_selection.keyPressEvent(event)
 
+        elif (
+            key == QtCore.Qt.Key_R
+            and modifiers == QtCore.Qt.ControlModifier
+            and self.can_edit_ranges
+        ):
+            self.channel_selection.keyPressEvent(event)
+
         elif key == QtCore.Qt.Key_P and modifiers == (
             QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier
         ):
@@ -2188,6 +2185,7 @@ class Plot(QtWidgets.QWidget):
                 pattern = info.get("pattern", None)
                 uuid = info["uuid"]
                 name = info["name"]
+                origin_uuid = info["origin_uuid"]
 
                 ranges = copy_ranges(info["ranges"])
                 for range_info in ranges:
@@ -2199,7 +2197,11 @@ class Plot(QtWidgets.QWidget):
                 if info.get("type", "channel") == "group":
 
                     item = ChannelsTreeItem(
-                        ChannelsTreeItem.Group, name=name, pattern=pattern, uuid=uuid
+                        ChannelsTreeItem.Group,
+                        name=name,
+                        pattern=pattern,
+                        uuid=uuid,
+                        origin_uuid=origin_uuid,
                     )  # , root)
                     children.append(item)
                     item.set_ranges(ranges)
@@ -2288,7 +2290,7 @@ class Plot(QtWidgets.QWidget):
                 break
 
             if item.type() == item.Channel:
-                if item.checkState(2) == QtCore.Qt.Unchecked:
+                if item.checkState(item.CommonAxisColumn) == QtCore.Qt.Unchecked:
                     enforce_y_axis = False
                     break
                 else:
@@ -2400,7 +2402,7 @@ class Plot(QtWidgets.QWidget):
 
         channel["name"] = sig.name
         channel["unit"] = sig.unit
-        channel["enabled"] = item.checkState(0) == QtCore.Qt.Checked
+        channel["enabled"] = item.checkState(item.NameColumn) == QtCore.Qt.Checked
 
         if item.checkState(3) == QtCore.Qt.Checked:
             channel["individual_axis"] = True
@@ -2410,7 +2412,9 @@ class Plot(QtWidgets.QWidget):
         else:
             channel["individual_axis"] = False
 
-        channel["common_axis"] = item.checkState(2) == QtCore.Qt.Checked
+        channel["common_axis"] = (
+            item.checkState(item.CommonAxisColumn) == QtCore.Qt.Checked
+        )
         channel["color"] = sig.color.name()
         channel["computed"] = sig.computed
         channel["ranges"] = copy_ranges(widget.ranges)
@@ -2463,11 +2467,11 @@ class Plot(QtWidgets.QWidget):
 
         channel_group = {
             "type": "group",
-            "name": widget._name,
-            "enabled": item.checkState(0) == QtCore.Qt.Checked,
+            "name": widget.name,
+            "enabled": item.checkState(item.NameColumn) == QtCore.Qt.Checked,
             "pattern": pattern,
             "ranges": ranges,
-            "origin_uuid": None,
+            "origin_uuid": item.origin_uuid,
         }
 
         return channel_group
@@ -2667,8 +2671,11 @@ class Plot(QtWidgets.QWidget):
 
                 _item_cache[item.uuid] = item
 
-                if item.checkState(0) == QtCore.Qt.Checked and item.exists:
-                    # if item.exists:
+                # if (
+                #     item.checkState(item.NameColumn) == QtCore.Qt.Checked
+                #     and item.exists
+                # ):
+                if item.exists:
                     entry = (item.origin_uuid, item.signal.name, item.uuid)
                     _visible_entries.add(entry)
                     _visible_items[entry] = item

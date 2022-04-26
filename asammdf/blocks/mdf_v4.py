@@ -99,9 +99,9 @@ from .utils import (
     count_channel_groups,
     DataBlockInfo,
     debug_channel,
-    extract_cncomment_xml,
     extract_display_names,
     extract_encryption_information,
+    extract_xml_comment,
     fmt_to_datatype_v4,
     get_fmt_v4,
     get_text_v4,
@@ -9812,7 +9812,7 @@ class MDF4(MDF_Common):
 
         channel = grp.channels[ch_nr]
 
-        return extract_cncomment_xml(channel.comment)
+        return extract_xml_comment(channel.comment)
 
     def _finalize(self) -> None:
         """

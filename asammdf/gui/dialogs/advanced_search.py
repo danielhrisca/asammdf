@@ -4,7 +4,7 @@ import re
 from natsort import natsorted
 from PySide6 import QtCore, QtWidgets
 
-from ...blocks.utils import extract_cncomment_xml
+from ...blocks.utils import extract_xml_comment
 from ..ui import resource_rc
 from ..ui.search_dialog import Ui_SearchDialog
 from .range_editor import RangeEditor
@@ -150,7 +150,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                 {
                                     (group_index, channel_index): {
                                         "names": [ch.name],
-                                        "comment": extract_cncomment_xml(
+                                        "comment": extract_xml_comment(
                                             ch.comment
                                         ).strip(),
                                         "unit": ch.conversion
@@ -181,7 +181,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                         if entry not in matches:
                                             matches[entry] = {
                                                 "names": [target],
-                                                "comment": extract_cncomment_xml(
+                                                "comment": extract_xml_comment(
                                                     ch.comment
                                                 ).strip(),
                                                 "unit": ch.conversion
@@ -208,7 +208,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
                                             matches[entry] = {
                                                 "names": [ch.name],
-                                                "comment": extract_cncomment_xml(
+                                                "comment": extract_xml_comment(
                                                     ch.comment
                                                 ).strip(),
                                                 "unit": ch.conversion
@@ -243,9 +243,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
                                 matches[entry] = {
                                     "names": [],
-                                    "comment": extract_cncomment_xml(
-                                        ch.comment
-                                    ).strip(),
+                                    "comment": extract_xml_comment(ch.comment).strip(),
                                     "unit": ch.conversion
                                     and ch.conversion.unit
                                     or ch.unit,

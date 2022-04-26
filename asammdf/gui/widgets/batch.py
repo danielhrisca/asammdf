@@ -7,7 +7,7 @@ from natsort import natsorted
 import psutil
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ...blocks.utils import extract_cncomment_xml
+from ...blocks.utils import extract_xml_comment
 from ...blocks.v2_v3_blocks import HeaderBlock as HeaderBlockV3
 from ...blocks.v4_blocks import HeaderBlock as HeaderBlockV4
 from ...mdf import MDF, SUPPORTED_VERSIONS
@@ -1029,7 +1029,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                         entry = i, 0xFFFFFFFFFFFFFFFF
                         channel_group = TreeItem(entry, origin_uuid=uuid)
                         comment = group.channel_group.comment
-                        comment = extract_cncomment_xml(comment)
+                        comment = extract_xml_comment(comment)
 
                         if comment:
                             channel_group.setText(0, f"Channel group {i} ({comment})")

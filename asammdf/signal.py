@@ -17,7 +17,7 @@ from .blocks import v4_blocks as v4b
 from .blocks.conversion_utils import from_dict
 from .blocks.options import FloatInterpolation, IntegerInterpolation
 from .blocks.source_utils import Source
-from .blocks.utils import extract_cncomment_xml, MdfException
+from .blocks.utils import extract_xml_comment, MdfException
 from .types import (
     ChannelConversionType,
     FloatInterpolationModeType,
@@ -240,7 +240,7 @@ class Signal(object):
 
             if self.comment:
                 comment = self.comment.replace("$", "")
-                comment = extract_cncomment_xml(comment)
+                comment = extract_xml_comment(comment)
                 comment = fill(comment, 120).replace("\\n", " ")
 
                 title = f"{name}\n({comment})"

@@ -135,7 +135,7 @@ There are several keyboard shortcuts for handling the plots:
 ============ ====================== ================================================================================================================
 Shortcut     Action                 Description
 ============ ====================== ================================================================================================================
-C            Cursor                 Displays a movable cursor that will trigger the display of the current value for all plot channels
+C            Edit signal color      Opens a dialog to select the signal color [7]_
 F            Fit all                Y-axis fit all active channels on the screen, keeping the current X-axis range
 Shift+F      Fit selected           Y-axis fit all active selected channels on the screen; unselected channels are not fitted
 G            Grid                   Toggle grid lines
@@ -160,6 +160,8 @@ Ctrl+B       Bin                    Toggle binary representation of integer chan
 Ctrl+H       Hex                    Toggle hex representation of integer channels
 Ctrl+I       Insert cursor comment  Insert a visual vertical line and comment at the current cursor position [6]_
 Ctrl+P       Physical               Toggle physical representation of integer channels
+Ctrl+R       Edit color ranges      Opens a dialog to edit the channel or channel group color ranges [7]_
+Ctrl+G       Edit Y axis scaling    Opens a dialog to visually edit the Y axis ranges acoording to the expected signal values [7]_
 Ctrl+S       Save plot channels     Save channels from current active subplot in a new MF4 file
 Ctrl+Shift+S Save all channels      Save all channels from all sub-windows in a new MF4 file
 Shift+C      Cascade sub-windows    Cascade the sub plots    
@@ -435,6 +437,7 @@ with the measurement index.
 .. [4] the value is only displayed if the cursor or range are active. For the cursor is will show the current value, and for the range it will show the value delta between the range start and stop timestamps
 .. [5] New in *asammdf 5.7.0*
 .. [6] New in *asammdf 5.20.0*
+.. [7] New in *asammdf 7.1.0*
 
 
 
