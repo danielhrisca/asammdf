@@ -569,8 +569,8 @@ class MDF:
                         ev_type = v4c.EVENT_TYPE_START_RECORDING_TRIGGER
                     event = EventBlock(
                         event_type=ev_type,
-                        sync_base=int(timestamp * 10**9),
-                        sync_factor=10**-9,
+                        sync_base=int(timestamp * 10 ** 9),
+                        sync_factor=10 ** -9,
                         scope_0_addr=0,
                     )
                     event.comment = comment
@@ -728,7 +728,7 @@ class MDF:
             self._read_fragment_size = int(read_fragment_size)
 
         if write_fragment_size is not None:
-            self._write_fragment_size = min(int(write_fragment_size), 4 * 2**20)
+            self._write_fragment_size = min(int(write_fragment_size), 4 * 2 ** 20)
 
         if use_display_names is not None:
             self._use_display_names = bool(use_display_names)
@@ -2566,7 +2566,7 @@ class MDF:
         return stacked
 
     def iter_channels(
-        self, skip_master: bool = True, copy_master: bool = True
+        self, skip_master: bool = True, copy_master: bool = True, raw: bool = False
     ) -> Iterator[Signal]:
         """generator that yields a *Signal* for each non-master channel
 
@@ -2575,7 +2575,9 @@ class MDF:
         skip_master : bool
             do not yield master channels; default *True*
         copy_master : bool
-            copy master for each yielded channel
+            copy master for each yielded channel *True*
+        raw : bool
+            return raw channels instead of converted; default *False*
 
         """
 
@@ -2589,7 +2591,7 @@ class MDF:
                 for ch_index in channel_indexes
             ]
 
-            channels = self.select(channels, copy_master=copy_master)
+            channels = self.select(channels, copy_master=copy_master, raw=raw)
 
             yield from channels
 
