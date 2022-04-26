@@ -2414,43 +2414,13 @@ class WithMDIArea:
 
         else:
 
-            required = set(window_info["configuration"]["channels"])
+            required = window_info["configuration"]["channels"]
+
+            found = [elem for elem in required if elem["name"] in self.mdf]
 
             signals_ = [
-                (name, *self.mdf.whereis(name)[0])
-                for name in window_info["configuration"]["channels"]
-                if name in self.mdf
+                (elem["name"], *self.mdf.whereis(elem["name"])[0]) for elem in found
             ]
-
-            if window_info["configuration"].get("ranges", []):
-                ranges = [
-                    range
-                    for name, range in zip(
-                        window_info["configuration"]["channels"],
-                        window_info["configuration"]["ranges"],
-                    )
-                    if name in self.mdf
-                ]
-
-                for channel_ranges in ranges:
-                    for range in channel_ranges:
-                        range["font_color"] = QtGui.QBrush(
-                            QtGui.QColor(range["font_color"])
-                        )
-                        range["background_color"] = QtGui.QBrush(
-                            QtGui.QColor(range["background_color"])
-                        )
-            else:
-                ranges = [
-                    []
-                    for name in window_info["configuration"]["channels"]
-                    if name in self.mdf
-                ]
-
-            if window_info["configuration"].get("formats", None):
-                formats = window_info["configuration"]["formats"]
-            else:
-                formats = ["phys" for _ in ranges]
 
             if not signals_:
                 return
@@ -2463,14 +2433,21 @@ class WithMDIArea:
                 raw=True,
             )
 
-            for sig, sig_, channel_ranges, channel_format in zip(
-                signals, signals_, ranges, formats
-            ):
+            for sig, sig_, description in zip(signals, signals_, found):
                 sig.group_index = sig_[2]
                 sig.origin_uuid = uuid
                 sig.computation = None
-                sig.ranges = channel_ranges
-                sig.format = channel_format
+                ranges = description["ranges"]
+                for channel_ranges in ranges:
+                    for range in channel_ranges:
+                        range["font_color"] = QtGui.QBrush(
+                            QtGui.QColor(range["font_color"])
+                        )
+                        range["background_color"] = QtGui.QBrush(
+                            QtGui.QColor(range["background_color"])
+                        )
+                sig.ranges = ranges
+                sig.format = description["format"]
 
             signals = [
                 sig
@@ -2481,6 +2458,7 @@ class WithMDIArea:
             signals = natsorted(signals, key=lambda x: x.name)
 
             found = set(sig.name for sig in signals)
+            required = set(description["name"] for description in required)
             not_found = [Signal([], [], name=name) for name in sorted(required - found)]
             uuid = os.urandom(6).hex()
             for sig in not_found:

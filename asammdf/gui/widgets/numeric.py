@@ -1279,55 +1279,27 @@ class Numeric(QtWidgets.QWidget):
 
     def to_config(self):
 
-        if self.mode == "online":
+        channels = []
+        for signal in self.channels.backend.signals:
+            ranges = self.channels.dataView.ranges[signal.entry]
+            ranges = copy_ranges(ranges)
 
-            channels = []
-            for signal in self.channels.backend.signals:
-                ranges = self.channels.dataView.ranges[signal.entry]
-                ranges = copy_ranges(ranges)
-
-                for range_info in ranges:
-                    range_info["font_color"] = range_info["font_color"].color().name()
-                    range_info["background_color"] = (
-                        range_info["background_color"].color().name()
-                    )
-
-                channels.append(
-                    {
-                        "origin_uuid": str(signal.entry[0]),
-                        "name": signal.name,
-                        "ranges": ranges,
-                        "format": signal.format,
-                    }
+            for range_info in ranges:
+                range_info["font_color"] = range_info["font_color"].color().name()
+                range_info["background_color"] = (
+                    range_info["background_color"].color().name()
                 )
 
-            config = {
-                "format": "Physical",
-                "mode": "",
-                "channels": channels,
-                "float_precision": self.float_precision.currentIndex() - 1,
-                "header_sections_width": [
-                    self.channels.columnHeader.horizontalHeader().sectionSize(i)
-                    for i in range(
-                        self.channels.columnHeader.horizontalHeader().count()
-                    )
-                ],
-            }
+            channels.append(
+                {
+                    "origin_uuid": str(signal.entry[0]),
+                    "name": signal.name,
+                    "ranges": ranges,
+                    "format": signal.format,
+                }
+            )
 
-        else:
-            channels = {}
-            for signal in self.channels.backend.signals:
-                ranges = self.channels.dataView.ranges[signal.entry]
-                ranges = copy_ranges(ranges)
-
-                for range_info in ranges:
-                    range_info["font_color"] = range_info["font_color"].color().name()
-                    range_info["background_color"] = (
-                        range_info["background_color"].color().name()
-                    )
-
-                channels[signal.name] = (ranges, signal.format)
-
+        if self.mode == "offline":
             pattern = self.pattern
             if pattern:
                 ranges = copy_ranges(pattern["ranges"])
@@ -1339,26 +1311,20 @@ class Numeric(QtWidgets.QWidget):
                     )
 
                 pattern["ranges"] = ranges
+        else:
+            pattern = {}
 
-            config = {
-                "format": "Physical",
-                "mode": self.mode,
-                "channels": list(channels) if not self.pattern else [],
-                "ranges": [elem[0] for elem in channels.values()]
-                if not self.pattern
-                else [],
-                "formats": [elem[1] for elem in channels.values()]
-                if not self.pattern
-                else [],
-                "pattern": pattern,
-                "float_precision": self.float_precision.currentIndex() - 1,
-                "header_sections_width": [
-                    self.channels.columnHeader.horizontalHeader().sectionSize(i)
-                    for i in range(
-                        self.channels.columnHeader.horizontalHeader().count()
-                    )
-                ],
-            }
+        config = {
+            "format": "Physical",
+            "mode": self.mode,
+            "channels": channels,
+            "pattern": pattern,
+            "float_precision": self.float_precision.currentIndex() - 1,
+            "header_sections_width": [
+                self.channels.columnHeader.horizontalHeader().sectionSize(i)
+                for i in range(self.channels.columnHeader.horizontalHeader().count())
+            ],
+        }
 
         return config
 
