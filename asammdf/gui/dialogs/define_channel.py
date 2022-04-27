@@ -520,12 +520,16 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
         if names:
             try:
-                names = [
+                found_names = [
                     (None, *self.mdf.whereis(name)[0])
                     for name in names
                     if name in self.mdf
                 ]
-                signals = self.mdf.select(names)
+                if len(found_names) != len(names):
+                    raise Exception(
+                        f"The expression requires {len(names)} signals but only {len(found_names)} were found"
+                    )
+                signals = self.mdf.select(found_names)
                 common_timebase = reduce(
                     np.union1d, [sig.timestamps for sig in signals]
                 )
@@ -552,7 +556,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             except:
                 print(format_exc())
                 QtWidgets.QMessageBox.critical(
-                    self, "Function apply error", format_exc()
+                    self, "Expression apply error", format_exc()
                 )
                 self.result = None
 

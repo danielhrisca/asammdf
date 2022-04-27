@@ -1270,6 +1270,7 @@ class Plot(QtWidgets.QWidget):
         origin=None,
         mdf=None,
         line_interconnect="line",
+        line_width=1,
         hide_missing_channels=False,
         hide_disabled_channels=False,
         x_axis="time",
@@ -1571,8 +1572,19 @@ class Plot(QtWidgets.QWidget):
         )
 
         self.splitter.splitterMoved.connect(self.set_splitter)
+        self.line_width = line_width
 
         self.show()
+
+    @property
+    def line_width(self):
+        return self.plot.line_width
+
+    @line_width.setter
+    def line_width(self, value):
+        self.plot.line_width = value
+        self.plot.dot_width = value + 4
+        self.plot.update_plt()
 
     def set_locked(self, event=None, locked=None):
         if locked is None:
@@ -1702,7 +1714,6 @@ class Plot(QtWidgets.QWidget):
                     self.info.set_stats(stats)
 
     def channel_selection_reduced(self, deleted):
-
         self.plot.delete_channels(deleted)
 
         if self.info_uuid in deleted:
@@ -1750,17 +1761,18 @@ class Plot(QtWidgets.QWidget):
             self.cursor_info.update_value()
 
             for item in self._visible_items.values():
+                if item.type() == item.Channel:
 
-                signal, idx = self.plot.signal_by_uuid(item.uuid)
-                index = self.plot.get_timestamp_index(position, signal.timestamps)
+                    signal, idx = self.plot.signal_by_uuid(item.uuid)
+                    index = self.plot.get_timestamp_index(position, signal.timestamps)
 
-                value, kind, fmt = signal.value_at_index(index)
+                    value, kind, fmt = signal.value_at_index(index)
 
-                item.set_prefix("= ")
-                item.kind = kind
-                item.set_fmt(fmt)
+                    item.set_prefix("= ")
+                    item.kind = kind
+                    item.set_fmt(fmt)
 
-                item.set_value(value, update=True)
+                    item.set_value(value, update=True)
 
         if self.info.isVisible():
             stats = self.plot.get_stats(self.info_uuid)
@@ -1800,29 +1812,30 @@ class Plot(QtWidgets.QWidget):
 
         for item in self._visible_items.values():
 
-            signal, i = self.plot.signal_by_uuid(item.uuid)
+            if item.type() == item.Channel:
+                signal, i = self.plot.signal_by_uuid(item.uuid)
 
-            start_v, kind, fmt = signal.value_at_timestamp(start)
-            stop_v, kind, fmt = signal.value_at_timestamp(stop)
+                start_v, kind, fmt = signal.value_at_timestamp(start)
+                stop_v, kind, fmt = signal.value_at_timestamp(stop)
 
-            item.set_prefix("Δ = ")
-            item.set_fmt(signal.format)
+                item.set_prefix("Δ = ")
+                item.set_fmt(signal.format)
 
-            if "n.a." not in (start_v, stop_v):
-                if kind in "ui":
-                    delta = np.int64(stop_v) - np.int64(start_v)
-                    item.kind = kind
-                    item.set_value(delta)
-                    item.set_fmt(fmt)
-                elif kind == "f":
-                    delta = stop_v - start_v
-                    item.kind = kind
-                    item.set_value(delta)
-                    item.set_fmt(fmt)
+                if "n.a." not in (start_v, stop_v):
+                    if kind in "ui":
+                        delta = np.int64(stop_v) - np.int64(start_v)
+                        item.kind = kind
+                        item.set_value(delta)
+                        item.set_fmt(fmt)
+                    elif kind == "f":
+                        delta = stop_v - start_v
+                        item.kind = kind
+                        item.set_value(delta)
+                        item.set_fmt(fmt)
+                    else:
+                        item.set_value("n.a.")
                 else:
                     item.set_value("n.a.")
-            else:
-                item.set_value("n.a.")
 
         if self.info.isVisible():
             stats = self.plot.get_stats(self.info_uuid)
@@ -2692,7 +2705,6 @@ class Plot(QtWidgets.QWidget):
         return self._visible_items
 
     def _update_visibile_entries(self):
-
         _item_cache = self._item_cache = {}
         _visible_entries = self._visible_entries = set()
         _visible_items = self._visible_items = {}
@@ -2799,6 +2811,9 @@ class _Plot(pg.PlotWidget):
         self.copy_pixmap = True
         self.autoFillBackground()
 
+        self.line_width = 1
+        self.dot_width = 4
+
         self._pixmap = None
 
         self.locked = False
@@ -2825,7 +2840,7 @@ class _Plot(pg.PlotWidget):
         self.with_dots = with_dots
 
         self.info = None
-        self.current_uuid = 0
+        self.current_uuid = None
 
         self.standalone = kwargs.get("standalone", False)
 
@@ -2893,6 +2908,7 @@ class _Plot(pg.PlotWidget):
             self.cursor1 = Cursor(
                 pos=pos, angle=90, movable=True, pen=color, hoverPen=color
             )
+
             self.viewbox.addItem(self.cursor1, ignoreBounds=True)
 
             self.cursor1.sigPositionChanged.connect(self.cursor_moved.emit)
@@ -3076,7 +3092,6 @@ class _Plot(pg.PlotWidget):
         self.viewbox.setMouseEnabled(y=not self.locked)
 
     def set_dots(self, with_dots):
-
         self.with_dots = with_dots
         self.update_plt()
 
@@ -4125,8 +4140,11 @@ class _Plot(pg.PlotWidget):
 
         needs_timebase_compute = False
 
+        uuid_map = self._uuid_map
+
         indexes = sorted(
-            [(self.signal_by_uuid(uuid)[1], uuid) for uuid in deleted], reverse=True
+            [(uuid_map[uuid][1], uuid) for uuid in deleted if uuid in uuid_map],
+            reverse=True,
         )
 
         for i, uuid in indexes:
@@ -4315,7 +4333,7 @@ class _Plot(pg.PlotWidget):
             paint = QtGui.QPainter()
             paint.begin(self._pixmap)
             paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
-            paint.setRenderHint(paint.RenderHint.Antialiasing, True)
+            paint.setRenderHints(paint.RenderHint.Antialiasing, False)
 
             self.x_range, self.y_range = self.viewbox.viewRange()
 
@@ -4334,6 +4352,8 @@ class _Plot(pg.PlotWidget):
             x_range = self.x_range
 
             no_brush = QtGui.QBrush()
+            pen_width = self.line_width
+            dots_with = self.dot_width
 
             for i, sig in enumerate(self.signals):
                 if not sig.enable:
@@ -4346,7 +4366,7 @@ class _Plot(pg.PlotWidget):
                     x, y, y_range=sig.y_range, x_range=x_range, delta=delta
                 )
 
-                sig.pen.setWidth(1)
+                sig.pen.setWidth(pen_width)
 
                 paint.resetTransform()
                 paint.translate(0, 0)
@@ -4362,7 +4382,7 @@ class _Plot(pg.PlotWidget):
                     x = x[pos]
 
                     _pen = fn.mkPen(sig.color.name())
-                    _pen.setWidth(4)
+                    _pen.setWidth(dots_with)
                     _pen.setCapStyle(QtCore.Qt.RoundCap)
                     paint.setPen(_pen)
 
@@ -4439,7 +4459,7 @@ class _Plot(pg.PlotWidget):
 
                             color = range_info["font_color"]
                             pen = fn.mkPen(color.name())
-                            pen.setWidth(1)
+                            pen.setWidth(pen_width)
 
                             paint.resetTransform()
                             paint.translate(0, 0)
@@ -4450,7 +4470,7 @@ class _Plot(pg.PlotWidget):
                             paint.translate(0, 0)
 
                             if with_dots:
-                                pen.setWidth(4)
+                                pen.setWidth(dots_with)
                                 pen.setCapStyle(QtCore.Qt.RoundCap)
                                 paint.setPen(pen)
 
@@ -4484,8 +4504,6 @@ class _Plot(pg.PlotWidget):
                 paint.drawPixmap(rect, self._pixmap.copy(), rect)
             else:
                 paint.drawPixmap(rect, self._pixmap, rect)
-
-            paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
 
             if self.cursor1 is not None and self.cursor1.isVisible():
                 self.cursor1.paint(paint, plot=self, uuid=self.current_uuid)

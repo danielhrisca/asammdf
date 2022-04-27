@@ -78,6 +78,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         subplots_link=False,
         ignore_value2text_conversions=False,
         line_interconnect="line",
+        line_width=1,
         password=None,
         hide_missing_channels=False,
         hide_disabled_channels=False,
@@ -88,6 +89,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.default_folder = kwargs.get("default_folder", "")
         if "default_folder" in kwargs:
             kwargs.pop("default_folder")
+
+        self.line_width = line_width
 
         super(Ui_file_widget, self).__init__(*args, **kwargs)
         WithMDIArea.__init__(self)

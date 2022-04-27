@@ -1140,6 +1140,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 self.subplots_link,
                 self.ignore_value2text_conversions,
                 self.line_interconnect,
+                1,
                 None,
                 None,
                 self,

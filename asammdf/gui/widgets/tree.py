@@ -430,7 +430,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.itemCollapsed.connect(self.update_visibility_status)
         self.itemExpanded.connect(self.update_visibility_status)
         self.verticalScrollBar().valueChanged.connect(self.update_visibility_status)
-        self.itemsDeleted.connect(self.update_visibility_status)
 
         self.autoscroll_timer = QtCore.QTimer()
         self.autoscroll_timer.timeout.connect(self.autoscroll)
@@ -484,13 +483,17 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         if key == QtCore.Qt.Key_Delete and self.can_delete_items:
             selected_items = self.selectedItems()
-            deleted = get_data(self.plot, selected_items, uuids_only=True)
+            deleted = list(set(get_data(self.plot, selected_items, uuids_only=True)))
 
             self.plot.ignore_selection_change = True
 
             root = self.invisibleRootItem()
             for item in selected_items:
-                if item.type() != item.Info:
+                if item.type() == item.Channel:
+                    (item.parent() or root).removeChild(item)
+
+            for item in selected_items:
+                if item.type() == item.Group:
                     (item.parent() or root).removeChild(item)
 
             self.refresh()
@@ -498,8 +501,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             self.plot.ignore_selection_change = False
 
             if deleted:
-                self.itemsDeleted.emit(list(deleted))
-                self.update_channel_groups_count()
+                self.update_visibility_status()
+                self.itemsDeleted.emit(deleted)
+            self.update_channel_groups_count()
 
         elif key == QtCore.Qt.Key_Insert and modifiers == QtCore.Qt.ControlModifier:
 
@@ -1397,6 +1401,9 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.color = signal.color
             self.uuid = uuid
             self.origin_uuid = origin_uuid
+
+    def __repr__(self):
+        return f"ChannelTreeItem(type={self.type()}, uuid={self.uuid}, origin_uuid={self.origin_uuid})"
 
     @property
     def color(self):
