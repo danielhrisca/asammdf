@@ -821,7 +821,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addAction(self.tr("Enable all"))
         menu.addAction(self.tr("Disable all"))
         if item:
-            menu.addAction(self.tr("Enable all but this"))
+            menu.addAction(self.tr("Disable all but this"))
         menu.addSeparator()
         if self.hide_disabled_channels:
             show_disabled_channels = "Show disabled items"
@@ -939,33 +939,26 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 if item.type() != item.Info:
                     item.setCheckState(self.NameColumn, QtCore.Qt.Unchecked)
 
-        elif action.text() == "Enable all but this":
+        elif action.text() == "Disable all but this":
             selected_items = self.selectedItems()
-
-            iterator = QtWidgets.QTreeWidgetItemIterator(self)
-            while True:
-                item = iterator.value()
-                if not item:
-                    break
-
-                if item.type() != item.Info:
-
-                    if item in selected_items:
-                        item.setCheckState(self.NameColumn, QtCore.Qt.Unchecked)
-                    else:
-                        item.setCheckState(self.NameColumn, QtCore.Qt.Checked)
-
-                iterator += 1
 
             count = self.topLevelItemCount()
             for i in range(count):
                 item = self.topLevelItem(i)
                 if item.type() != item.Info:
-                    item.setCheckState(QtCore.Qt.Unchecked)
+                    item.setCheckState(item.NameColumn, QtCore.Qt.Unchecked)
 
             for item in selected_items:
-                if item.type() != item.Info:
-                    item.setCheckState(QtCore.Qt.Checked)
+                if item.type() == item.Channel:
+                    item.setCheckState(item.NameColumn, QtCore.Qt.Checked)
+                elif item.type() == item.Group:
+                    count = item.childCount()
+                    for i in range(count):
+                        child = item.child(i)
+                        if child in selected_items:
+                            break
+                    else:
+                        item.setCheckState(item.NameColumn, QtCore.Qt.Checked)
 
         elif action.text() == show_disabled_channels:
 
@@ -1090,8 +1083,12 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                             signal=item.signal,
                         )
                         item.addChild(item.details)
-                        item.setExpanded(True)
+
+                        if count <= 200:
+                            item.setExpanded(True)
+
                     iterator += 1
+
             else:
                 iterator = QtWidgets.QTreeWidgetItemIterator(self)
                 while True:
@@ -1286,7 +1283,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         ranges=None,
         origin_uuid=None,
         background_color=None,
-        expanded=True,
+        expanded=False,
     ):
         super().__init__(parent, type)
         self.exists = True
@@ -1296,7 +1293,8 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         self._name = ""
         self._count = 0
         self._background_color = background_color
-        self._expanded = expanded
+        self._current_background_color = background_color
+        self._current_font_color = background_color
 
         if type == self.Group:
 
@@ -1317,7 +1315,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 | QtCore.Qt.ItemIsDropEnabled
             )
 
-            self.setCheckState(self.NameColumn, QtCore.Qt.Checked)
+            self.setCheckState(self.NameColumn, QtCore.Qt.Unchecked)
             self.name = name.split("\t[")[0]
 
         elif type == self.Channel:
@@ -1640,6 +1638,24 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         else:
             self.setIcon(self.ValueColumn, utils.NO_ICON)
 
+            if self.type() == self.Channel:
+
+                brush = fn.mkBrush(self._background_color.name())
+                self.setBackground(self.NameColumn, brush)
+                self.setBackground(self.ValueColumn, brush)
+                self.setBackground(self.UnitColumn, brush)
+                self.setBackground(self.CommonAxisColumn, brush)
+                self.setBackground(self.IndividualAxisColumn, brush)
+                self._current_background_color = self._background_color
+
+                brush = fn.mkBrush(self.signal.color_name)
+                self.setForeground(self.NameColumn, brush)
+                self.setForeground(self.UnitColumn, brush)
+                self.setForeground(self.ValueColumn, brush)
+                self.setForeground(self.CommonAxisColumn, brush)
+                self.setForeground(self.IndividualAxisColumn, brush)
+                self._current_font_color = self.signal.color
+
         self.ranges = []
         for range_info in ranges:
             if isinstance(range_info["font_color"], str):
@@ -1673,46 +1689,54 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         default_background_color = None
         default_font_color = None
 
-        new_background_color, new_font_color = get_colors_using_ranges(
-            value,
-            ranges=self.get_ranges(),
-            default_background_color=default_background_color,
-            default_font_color=default_font_color,
-        )
+        ranges = self.get_ranges()
 
-        if new_background_color is None:
-            if self._background_color != self.background(0).color():
-                brush = fn.mkBrush(self._background_color.name())
-                self.setBackground(self.NameColumn, brush)
-                self.setBackground(self.ValueColumn, brush)
-                self.setBackground(self.UnitColumn, brush)
-                self.setBackground(self.CommonAxisColumn, brush)
-                self.setBackground(self.IndividualAxisColumn, brush)
-        else:
-            if new_background_color != self.background(0).color():
-                brush = fn.mkBrush(new_background_color.name())
-                self.setBackground(self.NameColumn, brush)
-                self.setBackground(self.ValueColumn, brush)
-                self.setBackground(self.UnitColumn, brush)
-                self.setBackground(self.CommonAxisColumn, brush)
-                self.setBackground(self.IndividualAxisColumn, brush)
+        if ranges:
 
-        if new_font_color is None:
-            if self.signal.color != self.foreground(0).color():
-                brush = fn.mkBrush(self.signal.color_name)
-                self.setForeground(self.NameColumn, brush)
-                self.setForeground(self.UnitColumn, brush)
-                self.setForeground(self.ValueColumn, brush)
-                self.setForeground(self.CommonAxisColumn, brush)
-                self.setForeground(self.IndividualAxisColumn, brush)
-        else:
-            if new_font_color != self.foreground(0).color():
-                brush = fn.mkBrush(new_font_color.name())
-                self.setForeground(self.NameColumn, brush)
-                self.setForeground(self.ValueColumn, brush)
-                self.setForeground(self.UnitColumn, brush)
-                self.setForeground(self.CommonAxisColumn, brush)
-                self.setForeground(self.IndividualAxisColumn, brush)
+            new_background_color, new_font_color = get_colors_using_ranges(
+                value,
+                ranges=self.get_ranges(),
+                default_background_color=default_background_color,
+                default_font_color=default_font_color,
+            )
+
+            if new_background_color is None:
+                if self._background_color != self._current_background_color:
+                    brush = fn.mkBrush(self._background_color.name())
+                    self.setBackground(self.NameColumn, brush)
+                    self.setBackground(self.ValueColumn, brush)
+                    self.setBackground(self.UnitColumn, brush)
+                    self.setBackground(self.CommonAxisColumn, brush)
+                    self.setBackground(self.IndividualAxisColumn, brush)
+                    self._current_background_color = self._background_color
+            else:
+                if new_background_color != self._current_background_color:
+                    brush = fn.mkBrush(new_background_color.name())
+                    self.setBackground(self.NameColumn, brush)
+                    self.setBackground(self.ValueColumn, brush)
+                    self.setBackground(self.UnitColumn, brush)
+                    self.setBackground(self.CommonAxisColumn, brush)
+                    self.setBackground(self.IndividualAxisColumn, brush)
+                    self._current_background_color = new_background_color
+
+            if new_font_color is None:
+                if self.signal.color != self._current_font_color:
+                    brush = fn.mkBrush(self.signal.color_name)
+                    self.setForeground(self.NameColumn, brush)
+                    self.setForeground(self.UnitColumn, brush)
+                    self.setForeground(self.ValueColumn, brush)
+                    self.setForeground(self.CommonAxisColumn, brush)
+                    self.setForeground(self.IndividualAxisColumn, brush)
+                    self._current_font_color = self.signal.color
+            else:
+                if new_font_color != self.foreground(0).color():
+                    brush = fn.mkBrush(new_font_color.name())
+                    self.setForeground(self.NameColumn, brush)
+                    self.setForeground(self.ValueColumn, brush)
+                    self.setForeground(self.UnitColumn, brush)
+                    self.setForeground(self.CommonAxisColumn, brush)
+                    self.setForeground(self.IndividualAxisColumn, brush)
+                    self._current_font_color = new_font_color
 
         if update_text:
 

@@ -226,6 +226,8 @@ class PlotSignal(Signal):
         self._plot_samples = np.empty(2 * PLOT_BUFFER_SIZE, dtype="i1")
         self._plot_timestamps = np.empty(2 * PLOT_BUFFER_SIZE, dtype="f8")
 
+        self.path = None
+
         self._dtype = "i1"
 
         self.duplication = duplication
@@ -394,6 +396,15 @@ class PlotSignal(Signal):
 
         self.mode = getattr(signal, "mode", "phys")
         self.trim(*(trim_info or (None, None, 1900)))
+
+    @property
+    def y_range(self):
+        return self._y_range
+
+    @y_range.setter
+    def y_range(self, value):
+        self.path = None
+        self._y_range = value
 
     @property
     def enable(self):
@@ -1161,6 +1172,7 @@ class PlotSignal(Signal):
 
     def trim(self, start=None, stop=None, width=1900, force=False):
         if self._enable:
+            self.path = None
             try:
                 return self.trim_c(start, stop, width, force)
             except:
@@ -2204,7 +2216,6 @@ class Plot(QtWidgets.QWidget):
                         pattern=pattern,
                         uuid=uuid,
                         origin_uuid=origin_uuid,
-                        expanded=info.get("expanded", True),
                     )
                     children.append(item)
                     item.set_ranges(ranges)
@@ -2212,7 +2223,7 @@ class Plot(QtWidgets.QWidget):
                     groups.extend(
                         add_new_items(tree, item, info["channels"], items_pool)
                     )
-                    groups.append(item)
+                    groups.append((item, info))
 
                 else:
 
@@ -2373,7 +2384,7 @@ class Plot(QtWidgets.QWidget):
                 item.precision = description.get("precision", 3)
 
             if enforce_y_axis:
-                item.setCheckState(2, QtCore.Qt.Checked)
+                item.setCheckState(item.CommonAxisColumn, QtCore.Qt.Checked)
 
             self.info_uuid = sig_uuid
 
@@ -2385,8 +2396,12 @@ class Plot(QtWidgets.QWidget):
                 new_items,
             )
 
-            for item in groups:
-                item.setExpanded(item._expanded)
+            for item, info in groups:
+                item.setExpanded(info.get("expanded", False))
+                item.setCheckState(
+                    item.NameColumn,
+                    QtCore.Qt.Checked if info["enabled"] else QtCore.Qt.Unchecked,
+                )
 
             # still have simple signals to add
             if new_items:
@@ -2731,7 +2746,6 @@ class Plot(QtWidgets.QWidget):
         self.plot.axes = None
         self.plot.plot_parent = None
         self.plot = None
-        del self.plot
 
         super().close()
 
@@ -3907,8 +3921,12 @@ class _Plot(pg.PlotWidget):
             axis.update()
 
         self.current_uuid = uuid
+
+        y = self.plotItem.ctrl.yGridCheck.isChecked()
+        x = self.plotItem.ctrl.xGridCheck.isChecked()
         viewbox.setYRange(*sig.y_range, padding=0)
-        self.update_plt()
+        if x or y:
+            self.update_plt()
 
     def _clicked(self, event):
         modifiers = QtWidgets.QApplication.keyboardModifiers()
@@ -4258,21 +4276,28 @@ class _Plot(pg.PlotWidget):
         return x, y
 
     def auto_clip_rect(self, painter):
-        painter.setClipRect(self.viewbox.sceneBoundingRect())
+        rect = self.viewbox.sceneBoundingRect()
+        painter.setClipRect(rect.x() + 5, rect.y(), rect.width() - 5, rect.height())
         painter.setClipping(True)
 
-    def generatePath(self, x, y):
-        if x is None or len(x) == 0 or y is None or len(y) == 0:
-            return QtGui.QPainterPath()
+    def generatePath(self, x, y, sig=None):
+        if sig is None or sig.path is None:
+            if x is None or len(x) == 0 or y is None or len(y) == 0:
+                path = QtGui.QPainterPath()
+            else:
+                path = self._curve.generatePath(x, y)
+            if sig is not None:
+                sig.path = path
         else:
-            return self._curve.generatePath(x, y)
+            path = sig.path
+
+        return path
 
     def paintEvent(self, ev):
         if not self._can_paint:
             return
 
-        if self._pixmap is None:
-            super().paintEvent(ev)
+        super().paintEvent(ev)
 
         if self._generate_pix:
             self._generate_pix = False
@@ -4319,7 +4344,7 @@ class _Plot(pg.PlotWidget):
                 paint.translate(0, 0)
                 paint.setPen(sig.pen)
                 paint.setBrush(no_brush)
-                paint.drawPath(self.generatePath(x, y))
+                paint.drawPath(self.generatePath(x, y, sig))
                 paint.resetTransform()
                 paint.translate(0, 0)
 
@@ -4443,6 +4468,8 @@ class _Plot(pg.PlotWidget):
             paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
             paint.setRenderHint(paint.RenderHint.Antialiasing, True)
 
+            self.auto_clip_rect(paint)
+
             rect = ev.rect()
 
             if self.copy_pixmap:
@@ -4451,8 +4478,6 @@ class _Plot(pg.PlotWidget):
                 paint.drawPixmap(rect, self._pixmap, rect)
 
             paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
-
-            self.auto_clip_rect(paint)
 
             if self.cursor1 is not None and self.cursor1.isVisible():
                 self.cursor1.paint(paint, plot=self, uuid=self.current_uuid)
