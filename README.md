@@ -132,21 +132,10 @@ If you enjoy this library please consider making a donation to the
 
 ## Contributors
 Thanks to all who contributed with commits to *asammdf*:
-* Julien Grave [JulienGrv](https://github.com/JulienGrv)
-* Jed Frey [jed-frey](https://github.com/jed-frey)
-* Mihai [yahym](https://github.com/yahym)
-* Jack Weinstein [jackjweinstein](https://github.com/jackjweinstein)
-* Isuru Fernando [isuruf](https://github.com/isuruf)
-* Felix Kohlgrüber [fkohlgrueber](https://github.com/fkohlgrueber)
-* Stanislav Frolov [stanifrolov](https://github.com/stanifrolov)
-* Thomas Kastl [kasuteru](https://github.com/kasuteru)
-* venden [venden](https://github.com/venden)
-* Marat K. [kopytjuk](https://github.com/kopytjuk>)
-* freakatzz [freakatzz](https://github.com/freakatzz)
-* Martin Falch [MartinF](https://github.com/MatinF)
-* dxpke [dxpke](https://github.com/dxpke)
-* Nick James [driftregion](https://github.com/driftregion)
-* tobiasandorfer [tobiasandorfer](https://github.com/tobiasandorfer)
+
+<a href="https://github.com/danielhrisca/asammdf/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=danielhrisca/asammdf" />
+</a>
 
 # Installation
 *asammdf* is available on

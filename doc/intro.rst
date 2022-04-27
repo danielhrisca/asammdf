@@ -133,19 +133,15 @@ Contributors
 ------------
 Thanks to all who contributed with commits to *asammdf*
 
-* Julien Grave `JulienGrv <https://github.com/JulienGrv>`_.
-* Jed Frey `jed-frey <https://github.com/jed-frey>`_.
-* Mihai `yahym <https://github.com/yahym>`_.
-* Jack Weinstein `jackjweinstein <https://github.com/jackjweinstein>`_.
-* Isuru Fernando `isuruf <https://github.com/isuruf>`_.
-* Felix Kohlgrüber `fkohlgrueber <https://github.com/fkohlgrueber>`_.
-* Stanislav Frolov `stanifrolov <https://github.com/stanifrolov>`_.
-* Thomas Kastl `kasuteru <https://github.com/kasuteru>`_.
-* venden `venden <https://github.com/venden>`_.
-* Marat K. `kopytjuk <https://github.com/kopytjuk>`_.
-* freakatzz `freakatzz <https://github.com/freakatzz>`_.
-* Martin Falch `MartinF <https://github.com/MatinF>`_.
-* dxpke `dxpke <https://github.com/dxpke>`_.
-* Nick James `driftregion <https://github.com/driftregion>`_.
+## Contributors
+Thanks to all who contributed with commits to *asammdf*:
+
+
+.. raw:: html
+
+    <a href="https://github.com/danielhrisca/asammdf/graphs/contributors">
+      <img src="https://contrib.rocks/image?repo=danielhrisca/asammdf" />
+    </a>
+
 
 
