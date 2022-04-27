@@ -2952,7 +2952,9 @@ class WithMDIArea:
 
             if item.type() == item.Group:
                 if item.pattern:
+                    state = item.checkState(item.NameColumn)
                     plot.pattern_group_added.emit(plot, item)
+                    item.setCheckState(item.NameColumn, state)
 
         if "common_axis_y_range" in window_info["configuration"]:
             plot.plot.common_axis_y_range = tuple(

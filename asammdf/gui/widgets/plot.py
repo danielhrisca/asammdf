@@ -2371,7 +2371,7 @@ class Plot(QtWidgets.QWidget):
             if description:
                 individual_axis = description.get("individual_axis", False)
                 if individual_axis:
-                    item.setCheckState(3, QtCore.Qt.Checked)
+                    item.setCheckState(item.IndividualAxisColumn, QtCore.Qt.Checked)
 
                     _, idx = self.plot.signal_by_uuid(sig_uuid)
                     axis = self.plot.get_axis(idx)
@@ -2379,7 +2379,7 @@ class Plot(QtWidgets.QWidget):
                         axis.setWidth(description["individual_axis_width"])
 
                 if description.get("common_axis", False):
-                    item.setCheckState(2, QtCore.Qt.Checked)
+                    item.setCheckState(item.CommonAxisColumn, QtCore.Qt.Checked)
 
                 item.precision = description.get("precision", 3)
 
@@ -2398,10 +2398,19 @@ class Plot(QtWidgets.QWidget):
 
             for item, info in groups:
                 item.setExpanded(info.get("expanded", False))
-                item.setCheckState(
-                    item.NameColumn,
-                    QtCore.Qt.Checked if info["enabled"] else QtCore.Qt.Unchecked,
-                )
+                if item.pattern:
+                    item.setCheckState(
+                        item.NameColumn,
+                        QtCore.Qt.Checked if info["enabled"] else QtCore.Qt.Unchecked,
+                    )
+                else:
+                    if not item.childCount():
+                        item.setCheckState(
+                            item.NameColumn,
+                            QtCore.Qt.Checked
+                            if info["enabled"]
+                            else QtCore.Qt.Unchecked,
+                        )
 
             # still have simple signals to add
             if new_items:
@@ -2745,7 +2754,6 @@ class Plot(QtWidgets.QWidget):
         self.plot._timebase_db.clear()
         self.plot.axes = None
         self.plot.plot_parent = None
-        self.plot = None
 
         super().close()
 
