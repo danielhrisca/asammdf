@@ -2972,7 +2972,7 @@ class WithMDIArea:
                 plot.channel_selection.setColumnWidth(i, size)
 
         if "locked" in window_info["configuration"]:
-            plot.set_locked(window_info["configuration"]["locked"])
+            plot.set_locked(locked=window_info["configuration"]["locked"])
 
         plot.channel_selection.refresh()
 

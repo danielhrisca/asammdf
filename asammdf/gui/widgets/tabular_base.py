@@ -494,6 +494,30 @@ class DataTableView(QtWidgets.QTableView):
             else:
                 return
 
+    def keyPressEvent(self, event):
+
+        key = event.key()
+        modifiers = event.modifiers()
+
+        if key == QtCore.Qt.Key_R and modifiers == QtCore.Qt.ControlModifier:
+            selected_items = set(
+                index.column() for index in self.selectedIndexes() if index.isValid()
+            )
+
+            if selected_items:
+
+                dlg = RangeEditor("<selected signals>", "", [], parent=self, brush=True)
+                dlg.exec_()
+                if dlg.pressed_button == "apply":
+                    ranges = dlg.result
+
+                    for index in selected_items:
+                        original_name = self.pgdf.df_unfiltered.columns[index]
+                        self.pgdf.tabular.ranges[original_name] = copy_ranges(ranges)
+
+        else:
+            super().keyPressEvent(event)
+
 
 class HeaderModel(QtCore.QAbstractTableModel):
     def __init__(self, parent, orientation):
@@ -2140,12 +2164,14 @@ class DataFrameViewer(QtWidgets.QWidget):
         if event.key() == Qt.Key_C and (mods & Qt.ControlModifier):
             self.copy()
         # Ctrl+Shift+C
-        if (
+        elif (
             event.key() == Qt.Key_C
             and (mods & Qt.ShiftModifier)
             and (mods & Qt.ControlModifier)
         ):
             self.copy(header=True)
+        else:
+            self.dataView.keyPressEvent(event)
 
     def copy(self, header=False):
         """

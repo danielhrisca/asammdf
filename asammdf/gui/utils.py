@@ -236,6 +236,7 @@ def load_dsp(file, background="#000000"):
                             "pattern": info,
                             "type": "group",
                             "ranges": [],
+                            "origin_uuid": "000000000000",
                         }
                     )
 

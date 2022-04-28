@@ -2212,7 +2212,7 @@ class Plot(QtWidgets.QWidget):
                 pattern = info.get("pattern", None)
                 uuid = info["uuid"]
                 name = info["name"]
-                origin_uuid = info["origin_uuid"]
+                origin_uuid = info.get("origin_uuid", "000000000000")
 
                 ranges = copy_ranges(info["ranges"])
                 for range_info in ranges:
@@ -2347,7 +2347,6 @@ class Plot(QtWidgets.QWidget):
                 check=QtCore.Qt.Checked if sig.enable else QtCore.Qt.Unchecked,
                 background_color=background_color,
             )
-            item.fmt = description.get("fmt", item.fmt)
 
             if len(sig):
                 value, kind, fmt = sig.value_at_timestamp(sig.timestamps[0])
@@ -2451,10 +2450,10 @@ class Plot(QtWidgets.QWidget):
         channel["unit"] = sig.unit
         channel["enabled"] = item.checkState(item.NameColumn) == QtCore.Qt.Checked
 
-        if item.checkState(3) == QtCore.Qt.Checked:
+        if item.checkState(item.IndividualAxis) == QtCore.Qt.Checked:
             channel["individual_axis"] = True
             channel["individual_axis_width"] = (
-                self.plot.axes[idx].boundingRect().width()
+                self.plot.get_axis(idx).boundingRect().width()
             )
         else:
             channel["individual_axis"] = False
@@ -2472,8 +2471,8 @@ class Plot(QtWidgets.QWidget):
 
         channel["precision"] = widget.precision
         channel["fmt"] = widget.fmt
-        channel["format"] = sig.format
-        channel["mode"] = sig.mode
+        channel["format"] = widget.format
+        channel["mode"] = widget.mode
         if sig.computed:
             channel["computation"] = sig.computation
 
@@ -3084,7 +3083,7 @@ class _Plot(pg.PlotWidget):
         self.hide()
         self._pixmap = None
         self._generate_pix = True
-        self.viewport().update()
+        self.viewbox.update()
         self.show()
 
     def set_locked(self, locked):
@@ -3859,9 +3858,7 @@ class _Plot(pg.PlotWidget):
             else:
                 handled = False
 
-            if handled:
-                self.update_plt()
-            else:
+            if not handled:
                 self.parent().keyPressEvent(event)
 
     def range_modified_finished_handler(self, region):
@@ -4047,6 +4044,7 @@ class _Plot(pg.PlotWidget):
             description = descriptions.get(sig.uuid, {})
             if description:
                 sig.enable = description.get("enabled", True)
+                sig.format = description.get("format", "phys")
 
             if not sig.empty:
                 if description.get("y_range", None):
@@ -4330,7 +4328,6 @@ class _Plot(pg.PlotWidget):
             self._generate_pix = False
             self._grabbing = True
             self._pixmap = self.grab()
-            # self._grabbing = False
             paint = QtGui.QPainter()
             paint.begin(self._pixmap)
             paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
@@ -4495,7 +4492,7 @@ class _Plot(pg.PlotWidget):
             vp = self.viewport()
             paint.begin(vp)
             paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
-            paint.setRenderHint(paint.RenderHint.Antialiasing, True)
+            paint.setRenderHint(paint.RenderHint.Antialiasing, False)
 
             self.auto_clip_rect(paint)
 

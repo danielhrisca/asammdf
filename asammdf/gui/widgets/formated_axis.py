@@ -328,4 +328,7 @@ class FormatedAxis(pg.AxisItem):
 
             event.accept()
         else:
-            super().wheelEvent(event)
+            if self.orientation in ("top", "bottom"):
+                super().wheelEvent(event)
+            elif lv.state["mouseEnabled"][1]:
+                super().wheelEvent(event)

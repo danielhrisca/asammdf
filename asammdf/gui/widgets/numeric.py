@@ -549,35 +549,67 @@ class TableModel(QtCore.QAbstractTableModel):
             else:
                 return int(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
 
-        elif role == QtCore.Qt.DecorationRole and col == 0:
-            if not signal.exists:
-                icon = utils.ERROR_ICON
-                if icon is None:
-                    utils.ERROR_ICON = QtGui.QIcon()
-                    utils.ERROR_ICON.addPixmap(
-                        QtGui.QPixmap(":/error.png"),
-                        QtGui.QIcon.Normal,
-                        QtGui.QIcon.Off,
-                    )
-
-                    utils.NO_ERROR_ICON = QtGui.QIcon()
-
+        elif role == QtCore.Qt.DecorationRole:
+            if col == 0:
+                if not signal.exists:
                     icon = utils.ERROR_ICON
-            else:
-                icon = utils.NO_ERROR_ICON
-                if icon is None:
-                    utils.ERROR_ICON = QtGui.QIcon()
-                    utils.ERROR_ICON.addPixmap(
-                        QtGui.QPixmap(":/error.png"),
-                        QtGui.QIcon.Normal,
-                        QtGui.QIcon.Off,
-                    )
+                    if icon is None:
+                        utils.ERROR_ICON = QtGui.QIcon()
+                        utils.ERROR_ICON.addPixmap(
+                            QtGui.QPixmap(":/error.png"),
+                            QtGui.QIcon.Normal,
+                            QtGui.QIcon.Off,
+                        )
 
-                    utils.NO_ERROR_ICON = QtGui.QIcon()
+                        utils.NO_ERROR_ICON = QtGui.QIcon()
 
+                        icon = utils.ERROR_ICON
+                else:
                     icon = utils.NO_ERROR_ICON
+                    if icon is None:
+                        utils.ERROR_ICON = QtGui.QIcon()
+                        utils.ERROR_ICON.addPixmap(
+                            QtGui.QPixmap(":/error.png"),
+                            QtGui.QIcon.Normal,
+                            QtGui.QIcon.Off,
+                        )
 
-            return icon
+                        utils.NO_ERROR_ICON = QtGui.QIcon()
+
+                        icon = utils.NO_ERROR_ICON
+
+                return icon
+
+            elif col in (1, 2):
+                has_ranges = bool(self.view.ranges.get(signal.entry, False))
+                if has_ranges:
+                    icon = utils.RANGE_INDICATOR_ICON
+                    if icon is None:
+                        utils.RANGE_INDICATOR_ICON = QtGui.QIcon()
+                        utils.RANGE_INDICATOR_ICON.addPixmap(
+                            QtGui.QPixmap(":/paint.png"),
+                            QtGui.QIcon.Normal,
+                            QtGui.QIcon.Off,
+                        )
+
+                        utils.NO_ERROR_ICON = QtGui.QIcon()
+
+                        icon = utils.RANGE_INDICATOR_ICON
+                else:
+                    icon = utils.NO_ERROR_ICON
+                    if icon is None:
+                        utils.RANGE_INDICATOR_ICON = QtGui.QIcon()
+                        utils.RANGE_INDICATOR_ICON.addPixmap(
+                            QtGui.QPixmap(":/paint.png"),
+                            QtGui.QIcon.Normal,
+                            QtGui.QIcon.Off,
+                        )
+
+                        utils.NO_ERROR_ICON = QtGui.QIcon()
+
+                        icon = utils.NO_ERROR_ICON
+
+                return icon
 
     def flags(self, index):
         return (
@@ -649,10 +681,10 @@ class TableView(QtWidgets.QTableView):
 
     def keyPressEvent(self, event):
 
-        if (
-            event.key() == QtCore.Qt.Key_Delete
-            and event.modifiers() == QtCore.Qt.NoModifier
-        ):
+        key = event.key()
+        modifiers = event.modifiers()
+
+        if key == QtCore.Qt.Key_Delete and modifiers == QtCore.Qt.NoModifier:
             selected_items = set(
                 index.row() for index in self.selectedIndexes() if index.isValid()
             )
@@ -662,6 +694,23 @@ class TableView(QtWidgets.QTableView):
                 del self.backend.map[signal.entry]
 
             self.backend.update()
+
+        elif key == QtCore.Qt.Key_R and modifiers == QtCore.Qt.ControlModifier:
+            selected_items = set(
+                index.row() for index in self.selectedIndexes() if index.isValid()
+            )
+
+            if selected_items:
+
+                dlg = RangeEditor("<selected items>", "", [], parent=self, brush=True)
+                dlg.exec_()
+                if dlg.pressed_button == "apply":
+                    ranges = dlg.result
+                    for row in selected_items:
+                        signal = self.backend.signals[row]
+                        self.ranges[signal.entry] = copy_ranges(ranges)
+
+                    self.backend.update()
 
         else:
             super().keyPressEvent(event)
@@ -739,7 +788,7 @@ class TableView(QtWidgets.QTableView):
         signal = self.backend.signals[row]
 
         dlg = RangeEditor(
-            signal.name, "", self.ranges[signal.entry], parent=self, brush=True
+            signal.name, signal.unit, self.ranges[signal.entry], parent=self, brush=True
         )
         dlg.exec_()
         if dlg.pressed_button == "apply":

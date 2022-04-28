@@ -657,7 +657,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 if dlg.pressed_button == "apply":
                     for item in selected_items:
                         if item.type() == item.Channel:
-                            item.set_ranges(dlg.result)
+                            item.set_ranges(copy_ranges(dlg.result))
                             item.set_value(item._value, update=True)
 
                         elif item.type() == item.Group:
@@ -695,7 +695,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 for item in selected_items:
                     try:
                         item.color = info["color"]
-                        item.set_fmt(info["format"])
+                        item.precision = info["precision"]
+                        item.format = info["format"]
+
                         item.setCheckState(
                             self.IndividualAxisColumn,
                             QtCore.Qt.Checked
@@ -706,8 +708,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                             self.CommonAxisColumn,
                             QtCore.Qt.Checked if info["ylink"] else QtCore.Qt.Unchecked,
                         )
-
-                        item.precision = info["precision"]
 
                         plot = item.treeWidget().plot.plot
                         sig, index = plot.signal_by_uuid(item.uuid)
@@ -1362,11 +1362,6 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             else:
                 self.fmt = f"{{:.{self._precision}f}}"
 
-            # if sig.computed:
-            #     font = QtGui.QFont()
-            #     font.setItalic(True)
-            #     it.name.setFont(font)
-
             self.entry = signal.group_index, signal.channel_index
 
             self.setText(self.NameColumn, self.name)
@@ -1510,6 +1505,21 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
         return children
 
+    @property
+    def format(self):
+        if self.type() == self.Channel:
+            return self.signal.format
+        else:
+            return "phys"
+
+    @format.setter
+    def format(self, format):
+        if self.type() == self.Channel:
+            self.signal.format = format
+            self.set_fmt(format)
+
+            self.set_value(update=True)
+
     @lru_cache(maxsize=1024)
     def get_color_using_ranges(self, value, pen=False):
         return get_color_using_ranges(
@@ -1554,6 +1564,20 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         return self.resolved_ranges
 
     @property
+    def mode(self):
+        if self.type() == self.Channel:
+            return self.signal.mode
+        else:
+            return "phys"
+
+    @mode.setter
+    def mode(self, mode):
+        if self.type() == self.Channel:
+            self.signal.mode = mode
+
+            self.set_value(update=True)
+
+    @property
     def name(self):
         type = self.type()
         if type == self.Channel:
@@ -1583,10 +1607,11 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
     @precision.setter
     def precision(self, precision):
         self._precision = precision
-        if self.kind == "f" and precision >= 0:
-            self.fmt = f"{{:.{self._precision}f}}"
-        else:
-            self.fmt = "{}"
+        if self.kind == "f":
+            if precision >= 0:
+                self.fmt = f"{{:.{self._precision}f}}"
+            else:
+                self.fmt = "{}"
         self.set_value(update=True)
 
     def reset_resolved_ranges(self):
