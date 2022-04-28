@@ -4259,6 +4259,7 @@ class _Plot(pg.PlotWidget):
             axis.setRange(*sig.y_range)
 
             axis.rangeChanged.connect(self.set_y_range)
+            axis.hide()
             self.layout.addItem(axis, 2, position)
 
             self.axes[index] = axis
