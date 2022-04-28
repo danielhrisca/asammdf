@@ -236,7 +236,7 @@ class PlotSignal(Signal):
 
         self.group_index = getattr(signal, "group_index", NOT_FOUND)
         self.channel_index = getattr(signal, "channel_index", NOT_FOUND)
-        self.precision = getattr(signal, "precision", 6)
+        self.precision = getattr(signal, "precision", 3)
 
         self._mode = "raw"
         self._enable = True
@@ -613,19 +613,22 @@ class PlotSignal(Signal):
                     stats["overall_gradient"] = 0
                     stats["overall_integral"] = 0
                 else:
-                    stats["overall_gradient"] = (sig.samples[-1] - sig.samples[0]) / (
-                        sig.timestamps[-1] - sig.timestamps[0]
+                    stats["overall_gradient"] = fmt.format(
+                        (sig.samples[-1] - sig.samples[0])
+                        / (sig.timestamps[-1] - sig.timestamps[0])
                     )
-                    stats["overall_integral"] = np.trapz(sig.samples, sig.timestamps)
+                    stats["overall_integral"] = fmt.format(
+                        np.trapz(sig.samples, sig.timestamps)
+                    )
 
                 stats["overall_min"] = fmt.format(sig.min)
                 stats["overall_max"] = fmt.format(sig.max)
-                stats["overall_average"] = sig.avg
-                stats["overall_rms"] = sig.rms
-                stats["overall_std"] = sig.std
+                stats["overall_average"] = fmt.format(sig.avg)
+                stats["overall_rms"] = fmt.format(sig.rms)
+                stats["overall_std"] = fmt.format(sig.std)
                 stats["overall_start"] = sig.timestamps[0]
                 stats["overall_stop"] = sig.timestamps[-1]
-                stats["overall_delta"] = sig.samples[-1] - sig.samples[0]
+                stats["overall_delta"] = fmt.format(sig.samples[-1] - sig.samples[0])
                 stats["overall_delta_t"] = x[-1] - x[0]
                 stats["unit"] = sig.unit
                 stats["color"] = sig.color
@@ -696,9 +699,11 @@ class PlotSignal(Signal):
 
                         new_stats["selected_min"] = fmt.format(np.nanmin(samples))
                         new_stats["selected_max"] = fmt.format(np.nanmax(samples))
-                        new_stats["selected_average"] = np.mean(samples)
-                        new_stats["selected_std"] = np.std(samples)
-                        new_stats["selected_rms"] = np.sqrt(np.mean(np.square(samples)))
+                        new_stats["selected_average"] = fmt.format(np.mean(samples))
+                        new_stats["selected_std"] = fmt.format(np.std(samples))
+                        new_stats["selected_rms"] = fmt.format(
+                            np.sqrt(np.mean(np.square(samples)))
+                        )
                         if kind in "ui":
                             new_stats["selected_delta"] = fmt.format(
                                 int(samples[-1]) - int(samples[0])
@@ -712,11 +717,12 @@ class PlotSignal(Signal):
                             new_stats["selected_gradient"] = 0
                             new_stats["selected_integral"] = 0
                         else:
-                            new_stats["selected_gradient"] = (
-                                samples[-1] - samples[0]
-                            ) / (timestamps[-1] - timestamps[0])
-                            new_stats["selected_integral"] = np.trapz(
-                                samples, timestamps
+                            new_stats["selected_gradient"] = fmt.format(
+                                (samples[-1] - samples[0])
+                                / (timestamps[-1] - timestamps[0])
+                            )
+                            new_stats["selected_integral"] = fmt.format(
+                                np.trapz(samples, timestamps)
                             )
 
                     else:
@@ -785,9 +791,11 @@ class PlotSignal(Signal):
 
                     new_stats["visible_min"] = fmt.format(np.nanmin(samples))
                     new_stats["visible_max"] = fmt.format(np.nanmax(samples))
-                    new_stats["visible_average"] = np.mean(samples)
-                    new_stats["visible_std"] = np.std(samples)
-                    new_stats["visible_rms"] = np.sqrt(np.mean(np.square(samples)))
+                    new_stats["visible_average"] = fmt.format(np.mean(samples))
+                    new_stats["visible_std"] = fmt.format(np.std(samples))
+                    new_stats["visible_rms"] = fmt.format(
+                        np.sqrt(np.mean(np.square(samples)))
+                    )
                     if kind in "ui":
                         new_stats["visible_delta"] = int(cut.samples[-1]) - int(
                             cut.samples[0]
@@ -801,10 +809,13 @@ class PlotSignal(Signal):
                         new_stats["visible_gradient"] = 0
                         new_stats["visible_integral"] = 0
                     else:
-                        new_stats["visible_gradient"] = (samples[-1] - samples[0]) / (
-                            timestamps[-1] - timestamps[0]
+                        new_stats["visible_gradient"] = fmt.format(
+                            (samples[-1] - samples[0])
+                            / (timestamps[-1] - timestamps[0])
                         )
-                        new_stats["visible_integral"] = np.trapz(samples, timestamps)
+                        new_stats["visible_integral"] = fmt.format(
+                            np.trapz(samples, timestamps)
+                        )
 
                 else:
                     new_stats["visible_min"] = "n.a."
@@ -1955,6 +1966,9 @@ class Plot(QtWidgets.QWidget):
                             axis.picture = None
                             axis.update()
 
+            if self.info.isVisible():
+                stats = self.plot.get_stats(self.info_uuid)
+                self.info.set_stats(stats)
             self.plot.update_plt()
 
         elif (
@@ -2450,7 +2464,7 @@ class Plot(QtWidgets.QWidget):
         channel["unit"] = sig.unit
         channel["enabled"] = item.checkState(item.NameColumn) == QtCore.Qt.Checked
 
-        if item.checkState(item.IndividualAxis) == QtCore.Qt.Checked:
+        if item.checkState(item.IndividualAxisColumn) == QtCore.Qt.Checked:
             channel["individual_axis"] = True
             channel["individual_axis_width"] = (
                 self.plot.get_axis(idx).boundingRect().width()

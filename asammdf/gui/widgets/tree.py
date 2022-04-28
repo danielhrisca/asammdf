@@ -1021,8 +1021,24 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         elif action.text() == "Set precision":
             selected_items = self.selectedItems()
 
+            if not selected_items:
+                return
+
+            for item in selected_items:
+                if item.type() == item.Channel:
+                    precision = item.precision
+                    break
+            else:
+                precision = 3
+
             precision, ok = QtWidgets.QInputDialog.getInt(
-                self, "Set new precision (float decimals)", "Precision:", 3, -1, 15, 1
+                self,
+                "Set new precision (float decimals)",
+                "Precision:",
+                precision,
+                -1,
+                15,
+                1,
             )
 
             if ok:
@@ -1033,6 +1049,12 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     elif item.type() == ChannelsTreeItem.Group:
                         for channel_item in item.get_all_channel_items():
                             channel_item.precision = precision
+
+                plot = self.plot.plot
+                if plot.region is not None:
+                    self.plot.range_modified(plot.region)
+                else:
+                    self.plot.cursor_moved(plot.cursor1)
 
         elif action.text() in (
             "Relative time base shift",
@@ -1328,7 +1350,6 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
             self._value_prefix = ""
             self._value = "n.a."
-            self._precision = 3
             self.uuid = signal.uuid
             self.origin_uuid = signal.origin_uuid
             self.set_ranges(ranges or [])
@@ -1357,10 +1378,10 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
             self.setText(self.UnitColumn, signal.unit)
 
-            if kind in "SUVui" or self._precision == -1:
+            if kind in "SUVui" or self.precision == -1:
                 self.fmt = "{}"
             else:
-                self.fmt = f"{{:.{self._precision}f}}"
+                self.fmt = f"{{:.{self.precision}f}}"
 
             self.entry = signal.group_index, signal.channel_index
 
@@ -1602,17 +1623,21 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
     @property
     def precision(self):
-        return self._precision
+        if self.type() == self.Channel:
+            return self.signal.precision
+        else:
+            return 3
 
     @precision.setter
     def precision(self, precision):
-        self._precision = precision
-        if self.kind == "f":
-            if precision >= 0:
-                self.fmt = f"{{:.{self._precision}f}}"
-            else:
-                self.fmt = "{}"
-        self.set_value(update=True)
+        if self.type() == self.Channel:
+            self.signal.precision = precision
+            if self.kind == "f":
+                if precision >= 0:
+                    self.fmt = f"{{:.{self.precision}f}}"
+                else:
+                    self.fmt = "{}"
+            self.set_value(update=True)
 
     def reset_resolved_ranges(self):
         self.resolved_ranges = None
@@ -1626,10 +1651,10 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         if self.kind in "SUV":
             self.fmt = "{}"
         elif self.kind == "f":
-            self.fmt = f"{{:.{self._precision}f}}"
+            self.fmt = f"{{:.{self.precision}f}}"
         else:
             if fmt == "hex":
-                self.fmt = "0x{:X}"
+                self.fmt = "0x{:x}"
             elif fmt == "bin":
                 self.fmt = "0b{:b}"
             elif fmt == "phys":
@@ -1776,7 +1801,41 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 text = f"{self._value_prefix}{value}"
                 self.setText(self.ValueColumn, text)
             else:
-                text = f"{self._value_prefix}{self.fmt}".format(value)
+                if self.kind in "ui":
+                    if self.format == "bin":
+                        if value < 0:
+                            sign = "-"
+                            value = -value
+                        else:
+                            sign = ""
+
+                        valuel_str = f"{value:b}"
+                        size = len(valuel_str)
+
+                        if isinstance(value, int):
+                            r = size % 4
+                            size += 4 - r
+                        else:
+                            size = value.itemsize * 4
+
+                        fmt = f"{{:0>{size}}}"
+                        valuel_str = fmt.format(valuel_str)
+
+                        nibles = [
+                            valuel_str[i * 4 : i * 4 + 4] for i in range(size // 4)
+                        ]
+                        text = f"{sign}0b {' '.join(nibles)}"
+
+                        self.setTextAlignment(self.ValueColumn, QtCore.Qt.AlignRight)
+                    elif self.format == "hex":
+                        self.setTextAlignment(self.ValueColumn, QtCore.Qt.AlignRight)
+                        text = f"{self._value_prefix}{self.fmt}".format(value)
+                    else:
+                        text = f"{self._value_prefix}{self.fmt}".format(value)
+                        self.setTextAlignment(self.ValueColumn, QtCore.Qt.AlignLeft)
+
+                else:
+                    text = f"{self._value_prefix}{self.fmt}".format(value)
 
                 try:
                     self.setText(self.ValueColumn, text)
