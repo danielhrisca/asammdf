@@ -2832,7 +2832,6 @@ class _Plot(pg.PlotWidget):
         self.setViewportUpdateMode(QtWidgets.QGraphicsView.FullViewportUpdate)
 
         self._generate_pix = False
-        self._grabbing = False
         self.copy_pixmap = True
         self.autoFillBackground()
 
@@ -4348,12 +4347,17 @@ class _Plot(pg.PlotWidget):
 
         if self._generate_pix:
             self._generate_pix = False
-            self._grabbing = True
-            self._pixmap = self.grab()
+            rect = ev.rect()
+            self._pixmap = QtGui.QPixmap(rect.width(), rect.height())
+            self._pixmap.fill(self.backgroundBrush().color())
+            # self._pixmap = self.grab()
             paint = QtGui.QPainter()
             paint.begin(self._pixmap)
             paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
             paint.setRenderHints(paint.RenderHint.Antialiasing, False)
+
+            # self.y_axis.paint(paint, None, None)
+            # self.x_axis.paint(paint, None, None)
 
             self.x_range, self.y_range = self.viewbox.viewRange()
 
@@ -4520,10 +4524,7 @@ class _Plot(pg.PlotWidget):
 
             rect = ev.rect()
 
-            if self.copy_pixmap:
-                paint.drawPixmap(rect, self._pixmap.copy(), rect)
-            else:
-                paint.drawPixmap(rect, self._pixmap, rect)
+            paint.drawPixmap(rect, self._pixmap, rect)
 
             if self.cursor1 is not None and self.cursor1.isVisible():
                 self.cursor1.paint(paint, plot=self, uuid=self.current_uuid)
@@ -4532,8 +4533,6 @@ class _Plot(pg.PlotWidget):
                 self.region.paint(paint, plot=self, uuid=self.current_uuid)
 
             paint.end()
-
-        self._grabbing = False
 
     def close(self):
         super().close()
