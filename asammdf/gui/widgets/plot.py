@@ -269,6 +269,8 @@ class PlotSignal(Signal):
         if self.timestamps.dtype != float64:
             self.timestamps = self.timestamps.astype(float64)
 
+        self.text_conversion = None
+
         if self.conversion:
             samples = self.conversion.convert(self.samples)
             if samples.dtype.kind not in "SUV":
@@ -282,6 +284,7 @@ class PlotSignal(Signal):
                     self.raw_samples = self.samples
                     self.phys_samples = samples
             else:
+                self.text_conversion = self.conversion
                 self.phys_samples = self.raw_samples = self.samples
         else:
             self.phys_samples = self.raw_samples = self.samples
@@ -2034,12 +2037,21 @@ class Plot(QtWidgets.QWidget):
                         else:
                             buttom, top = max_ - 1, max_ + 1
 
-                        # TO DO: view.setYRange(buttom, top, padding=0, update=True)
+                        signal.y_range = buttom, top
+                        item = self.item_by_uuid(signal.uuid)
+                        item._value = None
 
                         if self.plot.current_uuid == signal.uuid:
                             self.plot.y_axis.mode = mode
-                            self.plot.y_axis.hide()
-                            self.plot.y_axis.show()
+                            self.plot.y_axis.picture = None
+                            self.plot.y_axis.update()
+                            self.plot.viewbox.setYRange(
+                                buttom, top, padding=0, update=True
+                            )
+
+                        self.plot.get_axis(idx).mode = mode
+                        self.plot.get_axis(idx).picture = None
+                        self.plot.get_axis(idx).update()
 
             self.plot.update_lines()
             self.plot.update_plt()
@@ -2954,7 +2966,7 @@ class _Plot(pg.PlotWidget):
 
         self.viewbox_geometry = self.viewbox.sceneBoundingRect()
 
-        self.resizeEvent = self._resizeEvent
+        self.viewbox.sigResized.connect(self._resizeEvent)
 
         self._uuid_map = {}
 
@@ -3894,7 +3906,7 @@ class _Plot(pg.PlotWidget):
         else:
             start, stop = view_range
 
-        width = self.width() - self.y_axis.width()
+        width = self.viewbox.sceneBoundingRect().width()
 
         for sig in signals:
             if sig.enable:
@@ -3907,12 +3919,8 @@ class _Plot(pg.PlotWidget):
             self.update_lines()
             self.update_plt()
 
-    def _resizeEvent(self, ev):
-        new_size, last_size = self.geometry(), self._last_size
-        if new_size != last_size:
-            self._last_size = new_size
-            super().resizeEvent(ev)
-            self.xrange_changed_handle()
+    def _resizeEvent(self, view):
+        self.xrange_changed_handle(force=True)
 
     def set_current_uuid(self, uuid, force=False):
         axis = self.y_axis

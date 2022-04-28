@@ -1418,6 +1418,8 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.uuid = uuid
             self.origin_uuid = origin_uuid
 
+        self.setTextAlignment(self.ValueColumn, QtCore.Qt.AlignRight)
+
     def __repr__(self):
         return f"ChannelTreeItem(type={self.type()}, uuid={self.uuid}, origin_uuid={self.origin_uuid})"
 
@@ -1734,7 +1736,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
     #     super().setForeground(col, c)
 
     def set_value(self, value=None, update=False, force=False):
-        update_text = value != self._value
+        update_text = (value != self._value) or force
         if value is not None:
             if self._value == value and update is False:
                 return
@@ -1801,41 +1803,50 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 text = f"{self._value_prefix}{value}"
                 self.setText(self.ValueColumn, text)
             else:
-                if self.kind in "ui":
-                    if self.format == "bin":
-                        if value < 0:
-                            sign = "-"
-                            value = -value
-                        else:
-                            sign = ""
-
-                        valuel_str = f"{value:b}"
-                        size = len(valuel_str)
-
-                        if isinstance(value, int):
-                            r = size % 4
-                            size += 4 - r
-                        else:
-                            size = value.itemsize * 4
-
-                        fmt = f"{{:0>{size}}}"
-                        valuel_str = fmt.format(valuel_str)
-
-                        nibles = [
-                            valuel_str[i * 4 : i * 4 + 4] for i in range(size // 4)
-                        ]
-                        text = f"{sign}0b {' '.join(nibles)}"
-
-                        self.setTextAlignment(self.ValueColumn, QtCore.Qt.AlignRight)
-                    elif self.format == "hex":
-                        self.setTextAlignment(self.ValueColumn, QtCore.Qt.AlignRight)
-                        text = f"{self._value_prefix}{self.fmt}".format(value)
+                if self.signal.text_conversion and self.mode == "phys":
+                    value = self.signal.text_conversion.convert([value])[0]
+                    if isinstance(value, bytes):
+                        try:
+                            text = value.decode("utf-8", errors="replace")
+                        except:
+                            text = value.decode("latin-1", errors="replace")
+                        text = f"{self._value_prefix}{text}"
                     else:
-                        text = f"{self._value_prefix}{self.fmt}".format(value)
-                        self.setTextAlignment(self.ValueColumn, QtCore.Qt.AlignLeft)
+                        text = f"{self._value_prefix}{value}"
 
                 else:
-                    text = f"{self._value_prefix}{self.fmt}".format(value)
+                    if self.kind in "ui":
+                        if self.format == "bin":
+                            if value < 0:
+                                sign = "-"
+                                value = -value
+                            else:
+                                sign = ""
+
+                            valuel_str = f"{value:b}"
+                            size = len(valuel_str)
+
+                            if isinstance(value, int):
+                                r = size % 4
+                                size += 4 - r
+                            else:
+                                size = value.itemsize * 4
+
+                            fmt = f"{{:0>{size}}}"
+                            valuel_str = fmt.format(valuel_str)
+
+                            nibles = [
+                                valuel_str[i * 4 : i * 4 + 4] for i in range(size // 4)
+                            ]
+                            text = f"{sign}0b {' '.join(nibles)}"
+
+                        elif self.format == "hex":
+                            text = f"{self._value_prefix}{self.fmt}".format(value)
+                        else:
+                            text = f"{self._value_prefix}{self.fmt}".format(value)
+
+                    else:
+                        text = f"{self._value_prefix}{self.fmt}".format(value)
 
                 try:
                     self.setText(self.ValueColumn, text)
