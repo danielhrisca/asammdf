@@ -1979,7 +1979,7 @@ class Plot(QtWidgets.QWidget):
             and modifiers == QtCore.Qt.AltModifier
             and self._can_switch_mode
         ):
-            self.plot._pixmap = None
+
             selected_items = self.channel_selection.selectedItems()
             if not selected_items:
                 signals = [(sig, i) for i, sig in enumerate(self.plot.signals)]
@@ -3274,7 +3274,6 @@ class _Plot(pg.PlotWidget):
     def update_views(self):
         geometry = self.viewbox.sceneBoundingRect()
         if geometry != self.viewbox_geometry:
-            self._pixmap = None
             self.viewbox_geometry = geometry
 
     def get_stats(self, uuid):
