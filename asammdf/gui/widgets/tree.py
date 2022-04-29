@@ -7,6 +7,7 @@ import os
 from struct import pack
 from traceback import format_exc
 
+import numpy as np
 from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -19,6 +20,7 @@ from ..utils import (
     get_color_using_ranges,
     get_colors_using_ranges,
     timeit,
+    value_as_bin,
 )
 from .tree_item import TreeItem
 
@@ -1817,31 +1819,11 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 else:
                     if self.kind in "ui":
                         if self.format == "bin":
-                            if value < 0:
-                                sign = "-"
-                                value = -value
-                            else:
-                                sign = ""
-
-                            valuel_str = f"{value:b}"
-                            size = len(valuel_str)
-
-                            if isinstance(value, int):
-                                r = size % 4
-                                size += 4 - r
-                            else:
-                                size = value.itemsize * 4
-
-                            fmt = f"{{:0>{size}}}"
-                            valuel_str = fmt.format(valuel_str)
-
-                            nibles = [
-                                valuel_str[i * 4 : i * 4 + 4] for i in range(size // 4)
-                            ]
-                            text = f"{sign}0b {' '.join(nibles)}"
+                            text = value_as_bin(value, self.signal.plot_samples.dtype)
 
                         elif self.format == "hex":
                             text = f"{self._value_prefix}{self.fmt}".format(value)
+
                         else:
                             text = f"{self._value_prefix}{self.fmt}".format(value)
 

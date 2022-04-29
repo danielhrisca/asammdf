@@ -17,7 +17,12 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from asammdf import MDF
 from asammdf.gui import utils
 from asammdf.gui.dialogs.range_editor import RangeEditor
-from asammdf.gui.utils import copy_ranges, extract_mime_names, get_colors_using_ranges
+from asammdf.gui.utils import (
+    copy_ranges,
+    extract_mime_names,
+    get_colors_using_ranges,
+    value_as_bin,
+)
 from asammdf.gui.widgets.plot import PlotSignal
 
 from ..ui import resource_rc
@@ -469,26 +474,13 @@ class TableModel(QtCore.QAbstractTableModel):
                     return f"0x{cell:X}"
 
                 elif signal.format == "bin":
-                    if cell < 0:
-                        sign = "-"
-                        cell = -cell
-                    else:
-                        sign = ""
-
-                    cell_str = f"{cell:b}"
-                    size = len(cell_str)
 
                     if isinstance(cell, int):
-                        r = size % 4
-                        size += 4 - r
+                        dtype = np.min_scalar_type(cell)
                     else:
-                        size = cell.itemsize * 4
+                        dtype = cell.dtype
 
-                    fmt = f"{{:0>{size}}}"
-                    cell_str = fmt.format(cell_str)
-
-                    nibles = [cell_str[i * 4 : i * 4 + 4] for i in range(size // 4)]
-                    return f"{sign}0b {' '.join(nibles)}"
+                    return value_as_bin(cell, dtype)
 
                 elif signal.format == "ascii":
                     if 0 < cell < 0x110000:

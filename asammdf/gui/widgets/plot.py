@@ -30,7 +30,7 @@ PLOT_BUFFER_SIZE = 4000
 
 from ...blocks.utils import target_byte_order
 from ..dialogs.range_editor import RangeEditor
-from ..utils import FONT_SIZE
+from ..utils import FONT_SIZE, value_as_bin
 
 try:
     from ...blocks.cutils import positions
@@ -528,6 +528,8 @@ class PlotSignal(Signal):
         x = sig.timestamps
         size = len(x)
 
+        float_fmt = f"{{:.{self.precision}f}}"
+
         if size:
 
             if sig.is_string:
@@ -566,7 +568,10 @@ class PlotSignal(Signal):
                         elif format == "phys":
                             fmt = "{}"
 
-                    value = fmt.format(value)
+                    if format == "bin":
+                        value = value_as_bin(value, self.plot_samples.dtype)
+                    else:
+                        value = fmt.format(value)
 
                     stats["cursor_value"] = value
 
@@ -616,22 +621,36 @@ class PlotSignal(Signal):
                     stats["overall_gradient"] = 0
                     stats["overall_integral"] = 0
                 else:
-                    stats["overall_gradient"] = fmt.format(
+                    stats["overall_gradient"] = float_fmt.format(
                         (sig.samples[-1] - sig.samples[0])
                         / (sig.timestamps[-1] - sig.timestamps[0])
                     )
-                    stats["overall_integral"] = fmt.format(
+                    stats["overall_integral"] = float_fmt.format(
                         np.trapz(sig.samples, sig.timestamps)
                     )
 
-                stats["overall_min"] = fmt.format(sig.min)
-                stats["overall_max"] = fmt.format(sig.max)
-                stats["overall_average"] = fmt.format(sig.avg)
-                stats["overall_rms"] = fmt.format(sig.rms)
-                stats["overall_std"] = fmt.format(sig.std)
+                stats["overall_min"] = (
+                    fmt.format(sig.min)
+                    if format != "bin"
+                    else value_as_bin(sig.min, self.plot_samples.dtype)
+                )
+                stats["overall_max"] = (
+                    fmt.format(sig.max)
+                    if format != "bin"
+                    else value_as_bin(sig.max, self.plot_samples.dtype)
+                )
+                stats["overall_average"] = float_fmt.format(sig.avg)
+                stats["overall_rms"] = float_fmt.format(sig.rms)
+                stats["overall_std"] = float_fmt.format(sig.std)
                 stats["overall_start"] = sig.timestamps[0]
                 stats["overall_stop"] = sig.timestamps[-1]
-                stats["overall_delta"] = fmt.format(sig.samples[-1] - sig.samples[0])
+                stats["overall_delta"] = (
+                    fmt.format(sig.samples[-1] - sig.samples[0])
+                    if format != "bin"
+                    else value_as_bin(
+                        sig.samples[-1] - sig.samples[0], self.plot_samples.dtype
+                    )
+                )
                 stats["overall_delta_t"] = x[-1] - x[0]
                 stats["unit"] = sig.unit
                 stats["color"] = sig.color
@@ -655,7 +674,11 @@ class PlotSignal(Signal):
                         elif format == "phys":
                             fmt = "{}"
 
-                    value = fmt.format(value)
+                    value = (
+                        fmt.format(value)
+                        if format != "bin"
+                        else value_as_bin(value, self.plot_samples.dtype)
+                    )
 
                     stats["cursor_value"] = value
 
@@ -700,16 +723,35 @@ class PlotSignal(Signal):
                             elif format == "phys":
                                 fmt = "{}"
 
-                        new_stats["selected_min"] = fmt.format(np.nanmin(samples))
-                        new_stats["selected_max"] = fmt.format(np.nanmax(samples))
-                        new_stats["selected_average"] = fmt.format(np.mean(samples))
-                        new_stats["selected_std"] = fmt.format(np.std(samples))
-                        new_stats["selected_rms"] = fmt.format(
+                        new_stats["selected_min"] = (
+                            fmt.format(np.nanmin(samples))
+                            if format != "bin"
+                            else value_as_bin(
+                                np.nanmin(samples), self.plot_samples.dtype
+                            )
+                        )
+                        new_stats["selected_max"] = (
+                            fmt.format(np.nanmax(samples))
+                            if format != "bin"
+                            else value_as_bin(
+                                np.nanmax(samples), self.plot_samples.dtype
+                            )
+                        )
+                        new_stats["selected_average"] = float_fmt.format(
+                            np.mean(samples)
+                        )
+                        new_stats["selected_std"] = float_fmt.format(np.std(samples))
+                        new_stats["selected_rms"] = float_fmt.format(
                             np.sqrt(np.mean(np.square(samples)))
                         )
                         if kind in "ui":
-                            new_stats["selected_delta"] = fmt.format(
-                                int(samples[-1]) - int(samples[0])
+                            new_stats["selected_delta"] = (
+                                fmt.format(int(samples[-1]) - int(samples[0]))
+                                if format != "bin"
+                                else value_as_bin(
+                                    int(samples[-1]) - int(samples[0]),
+                                    self.plot_samples.dtype,
+                                )
                             )
                         else:
                             new_stats["selected_delta"] = fmt.format(
@@ -720,11 +762,11 @@ class PlotSignal(Signal):
                             new_stats["selected_gradient"] = 0
                             new_stats["selected_integral"] = 0
                         else:
-                            new_stats["selected_gradient"] = fmt.format(
+                            new_stats["selected_gradient"] = float_fmt.format(
                                 (samples[-1] - samples[0])
                                 / (timestamps[-1] - timestamps[0])
                             )
-                            new_stats["selected_integral"] = fmt.format(
+                            new_stats["selected_integral"] = float_fmt.format(
                                 np.trapz(samples, timestamps)
                             )
 
@@ -792,19 +834,32 @@ class PlotSignal(Signal):
                         elif format == "phys":
                             fmt = "{}"
 
-                    new_stats["visible_min"] = fmt.format(np.nanmin(samples))
-                    new_stats["visible_max"] = fmt.format(np.nanmax(samples))
-                    new_stats["visible_average"] = fmt.format(np.mean(samples))
-                    new_stats["visible_std"] = fmt.format(np.std(samples))
-                    new_stats["visible_rms"] = fmt.format(
+                    new_stats["visible_min"] = (
+                        fmt.format(np.nanmin(samples))
+                        if format != "bin"
+                        else value_as_bin(np.nanmin(samples), self.plot_samples.dtype)
+                    )
+                    new_stats["visible_max"] = (
+                        fmt.format(np.nanmax(samples))
+                        if format != "bin"
+                        else value_as_bin(np.nanmax(samples), self.plot_samples.dtype)
+                    )
+                    new_stats["visible_average"] = float_fmt.format(np.mean(samples))
+                    new_stats["visible_std"] = float_fmt.format(np.std(samples))
+                    new_stats["visible_rms"] = float_fmt.format(
                         np.sqrt(np.mean(np.square(samples)))
                     )
                     if kind in "ui":
-                        new_stats["visible_delta"] = int(cut.samples[-1]) - int(
-                            cut.samples[0]
+                        new_stats["visible_delta"] = (
+                            fmt.format(int(cut.samples[-1]) - int(cut.samples[0]))
+                            if format != "bin"
+                            else value_as_bin(
+                                int(cut.samples[-1]) - int(cut.samples[0]),
+                                self.plot_samples.dtype,
+                            )
                         )
                     else:
-                        new_stats["visible_delta"] = fmt.format(
+                        new_stats["visible_delta"] = float_fmt.format(
                             cut.samples[-1] - cut.samples[0]
                         )
 
@@ -812,11 +867,11 @@ class PlotSignal(Signal):
                         new_stats["visible_gradient"] = 0
                         new_stats["visible_integral"] = 0
                     else:
-                        new_stats["visible_gradient"] = fmt.format(
+                        new_stats["visible_gradient"] = float_fmt.format(
                             (samples[-1] - samples[0])
                             / (timestamps[-1] - timestamps[0])
                         )
-                        new_stats["visible_integral"] = fmt.format(
+                        new_stats["visible_integral"] = float_fmt.format(
                             np.trapz(samples, timestamps)
                         )
 
@@ -1782,7 +1837,7 @@ class Plot(QtWidgets.QWidget):
 
                     value, kind, fmt = signal.value_at_index(index)
 
-                    item.set_prefix("= ")
+                    item.set_prefix()
                     item.kind = kind
                     item.set_fmt(fmt)
 
@@ -1804,7 +1859,7 @@ class Plot(QtWidgets.QWidget):
 
             if item.type() == item.Channel and not self.plot.region:
                 self.cursor_info.update_value()
-                item.set_prefix("")
+                item.set_prefix()
                 item.set_value("")
 
             iterator += 1
@@ -2146,7 +2201,7 @@ class Plot(QtWidgets.QWidget):
                     break
 
                 if item.type() == item.Channel:
-                    item.set_prefix("")
+                    item.set_prefix()
                     item.set_value("")
 
                 iterator += 1
@@ -2189,7 +2244,7 @@ class Plot(QtWidgets.QWidget):
                 break
 
             if item.type() == item.Channel:
-                item.set_prefix("")
+                item.set_prefix()
                 item.set_value("")
 
             iterator += 1

@@ -49,6 +49,7 @@ from ..utils import (
     extract_mime_names,
     get_colors_using_ranges,
     run_thread_with_progress,
+    value_as_bin,
 )
 from .tabular_filter import TabularFilter
 
@@ -313,30 +314,36 @@ class DataTableModel(QtCore.QAbstractTableModel):
             cell_is_na = pd.isna(cell)
 
             if type(cell_is_na) == bool and cell_is_na:
-                if role == QtCore.Qt.DisplayRole:
-                    return "●"
-                elif role == QtCore.Qt.EditRole:
-                    return ""
-                elif role == QtCore.Qt.ToolTipRole:
-                    return "NaN"
+                return "●"
 
             # Float formatting
             if isinstance(cell, (float, np.floating)):
-                if role == QtCore.Qt.DisplayRole:
-                    if self.float_precision != -1:
-                        template = f"{{:.{self.float_precision}f}}"
-                        return template.format(cell)
+                if self.float_precision != -1:
+                    template = f"{{:.{self.float_precision}f}}"
+                    return template.format(cell)
+                else:
+                    return str(cell)
+
+            if isinstance(cell, (int, np.integer)):
+                if self.format == "hex":
+                    return f"{cell:X}"
+                elif self.format == "bin":
+
+                    if isinstance(cell, int):
+                        dtype = np.min_scalar_type(cell)
+                    else:
+                        dtype = cell.dtype
+
+                    return value_as_bin(cell, dtype)
+
+                elif self.format == "ascii":
+                    if 0 < cell < 0x110000:
+                        return chr(cell)
                     else:
                         return str(cell)
 
-            if isinstance(cell, (int, np.integer)):
-                if role == QtCore.Qt.DisplayRole:
-                    if self.format == "hex":
-                        return f"{cell:X}"
-                    elif self.format == "bin":
-                        return f"{cell:b}"
-                    else:
-                        return str(cell)
+                else:
+                    return str(cell)
 
             return str(cell)
 
