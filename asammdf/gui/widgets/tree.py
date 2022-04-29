@@ -20,8 +20,7 @@ from ..utils import (
     get_color_using_ranges,
     get_colors_using_ranges,
     timeit,
-    value_as_bin,
-    value_as_hex,
+    value_as_str,
 )
 from .tree_item import TreeItem
 
@@ -1818,20 +1817,13 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                         text = f"{self._value_prefix}{value}"
 
                 else:
-                    if self.kind in "ui":
-                        if self.format == "bin":
-                            text = value_as_bin(value, self.signal.plot_samples.dtype)
-                            text = f"{self._value_prefix}{text}"
-
-                        elif self.format == "hex":
-                            text = value_as_hex(value, self.signal.plot_samples.dtype)
-                            text = f"{self._value_prefix}{text}"
-
-                        else:
-                            text = f"{self._value_prefix}{value}"
-
-                    else:
-                        text = f"{self._value_prefix}{self.fmt}".format(value)
+                    string = value_as_str(
+                        value,
+                        self.format,
+                        self.signal.plot_samples.dtype,
+                        self.precision,
+                    )
+                    text = f"{self._value_prefix}{string}"
 
                 try:
                     self.setText(self.ValueColumn, text)

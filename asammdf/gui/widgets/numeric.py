@@ -21,8 +21,7 @@ from asammdf.gui.utils import (
     copy_ranges,
     extract_mime_names,
     get_colors_using_ranges,
-    value_as_bin,
-    value_as_hex,
+    value_as_str,
 )
 from asammdf.gui.widgets.plot import PlotSignal
 
@@ -462,45 +461,10 @@ class TableModel(QtCore.QAbstractTableModel):
 
             if cell is None:
                 return "●"
-
-            if isinstance(cell, (float, np.floating)):
-                if self.float_precision != -1:
-                    template = f"{{:.{self.float_precision}f}}"
-                    return template.format(cell)
-                else:
-                    return str(cell)
-
-            elif isinstance(cell, (int, np.integer)):
-                if signal.format == "hex":
-                    if isinstance(cell, int):
-                        dtype = np.min_scalar_type(cell)
-                    else:
-                        dtype = cell.dtype
-
-                    return value_as_hex(cell, dtype)
-
-                elif signal.format == "bin":
-
-                    if isinstance(cell, int):
-                        dtype = np.min_scalar_type(cell)
-                    else:
-                        dtype = cell.dtype
-
-                    return value_as_bin(cell, dtype)
-
-                elif signal.format == "ascii":
-                    if 0 < cell < 0x110000:
-                        return chr(cell)
-                    else:
-                        return str(cell)
-
-                else:
-                    return str(cell)
-
             elif isinstance(cell, (bytes, np.bytes_)):
                 return cell.decode("utf-8", "replace")
-
-            return str(cell)
+            else:
+                return value_as_str(cell, signal.format, None, self.float_precision)
 
         elif role == QtCore.Qt.BackgroundRole:
 

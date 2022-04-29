@@ -49,8 +49,7 @@ from ..utils import (
     extract_mime_names,
     get_colors_using_ranges,
     run_thread_with_progress,
-    value_as_bin,
-    value_as_hex,
+    value_as_str,
 )
 from .tabular_filter import TabularFilter
 
@@ -316,43 +315,10 @@ class DataTableModel(QtCore.QAbstractTableModel):
 
             if type(cell_is_na) == bool and cell_is_na:
                 return "●"
-
-            # Float formatting
-            if isinstance(cell, (float, np.floating)):
-                if self.float_precision != -1:
-                    template = f"{{:.{self.float_precision}f}}"
-                    return template.format(cell)
-                else:
-                    return str(cell)
-
-            if isinstance(cell, (int, np.integer)):
-                if self.format == "hex":
-                    if isinstance(cell, int):
-                        dtype = np.min_scalar_type(cell)
-                    else:
-                        dtype = cell.dtype
-
-                    return value_as_hex(cell, dtype)
-
-                elif self.format == "bin":
-
-                    if isinstance(cell, int):
-                        dtype = np.min_scalar_type(cell)
-                    else:
-                        dtype = cell.dtype
-
-                    return value_as_bin(cell, dtype)
-
-                elif self.format == "ascii":
-                    if 0 < cell < 0x110000:
-                        return chr(cell)
-                    else:
-                        return str(cell)
-
-                else:
-                    return str(cell)
-
-            return str(cell)
+            elif isinstance(cell, (bytes, np.bytes_)):
+                return cell.decode("utf-8", "replace")
+            else:
+                return value_as_str(cell, self.format, None, self.float_precision)
 
         elif role == QtCore.Qt.BackgroundRole:
 

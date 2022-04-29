@@ -758,5 +758,43 @@ def value_as_hex(value, dtype):
     return f"0x{byte_string.hex().upper()}"
 
 
+def value_as_str(value, format, dtype=None, precision=3):
+
+    float_fmt = f"{{:.{precision}f}}" if precision >= 0 else "{}"
+    if isinstance(value, (float, np.floating)):
+        kind = "f"
+
+    elif isinstance(value, int):
+        kind = "u"
+        value = np.min_scalar_type(value).type(value)
+        dtype = dtype or value.dtype
+
+    elif isinstance(value, np.integer):
+        kind = "u"
+        dtype = value.dtype
+
+    else:
+        kind = "S"
+
+    if kind in "ui":
+        if format == "bin":
+            string = value_as_bin(value, dtype)
+        elif format == "hex":
+            string = value_as_hex(value, dtype)
+        elif format == "ascii":
+            if 0 < value < 0x110000:
+                string = chr(value)
+            else:
+                string = str(value)
+        else:
+            string = str(value)
+    elif kind in "SUV":
+        string = str(value)
+    else:
+        string = float_fmt.format(value)
+
+    return string
+
+
 if __name__ == "__main__":
     pass

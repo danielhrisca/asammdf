@@ -30,7 +30,7 @@ PLOT_BUFFER_SIZE = 4000
 
 from ...blocks.utils import target_byte_order
 from ..dialogs.range_editor import RangeEditor
-from ..utils import FONT_SIZE, value_as_bin
+from ..utils import FONT_SIZE, value_as_str
 
 try:
     from ...blocks.cutils import positions
@@ -529,6 +529,7 @@ class PlotSignal(Signal):
         size = len(x)
 
         float_fmt = f"{{:.{self.precision}f}}"
+        format = sig.format
 
         if size:
 
@@ -554,26 +555,11 @@ class PlotSignal(Signal):
                     position = cursor
                     stats["cursor_t"] = position
 
-                    value, kind, format = self.value_at_timestamp(position)
+                    value, kind, _ = self.value_at_timestamp(position)
 
-                    if kind in "SUV":
-                        fmt = "{}"
-                    elif kind == "f":
-                        fmt = f"{{:.{self.precision}f}}"
-                    else:
-                        if format == "hex":
-                            fmt = "0x{:X}"
-                        elif format == "bin":
-                            fmt = "0b{:b}"
-                        elif format == "phys":
-                            fmt = "{}"
-
-                    if format == "bin":
-                        value = value_as_bin(value, self.plot_samples.dtype)
-                    else:
-                        value = fmt.format(value)
-
-                    stats["cursor_value"] = value
+                    stats["cursor_value"] = value_as_str(
+                        value, format, self.plot_samples.dtype, self.precision
+                    )
 
                 else:
                     stats["cursor_t"] = ""
@@ -599,24 +585,6 @@ class PlotSignal(Signal):
                 stats["visible_gradient"] = ""
                 stats["visible_integral"] = ""
             else:
-                if isinstance(sig.min, str):
-                    kind = "S"
-                    fmt = "{}"
-                else:
-                    kind = sig.min.dtype.kind
-                    format = sig.format
-                    if kind in "SUV":
-                        fmt = "{}"
-                    elif kind == "f":
-                        fmt = f"{{:.{self.precision}f}}"
-                    else:
-                        if format == "hex":
-                            fmt = "0x{:X}"
-                        elif format == "bin":
-                            fmt = "0b{:b}"
-                        elif format == "phys":
-                            fmt = "{}"
-
                 if size == 1:
                     stats["overall_gradient"] = 0
                     stats["overall_integral"] = 0
@@ -629,27 +597,22 @@ class PlotSignal(Signal):
                         np.trapz(sig.samples, sig.timestamps)
                     )
 
-                stats["overall_min"] = (
-                    fmt.format(sig.min)
-                    if format != "bin"
-                    else value_as_bin(sig.min, self.plot_samples.dtype)
+                stats["overall_min"] = value_as_str(
+                    self.min, format, self.plot_samples.dtype, self.precision
                 )
-                stats["overall_max"] = (
-                    fmt.format(sig.max)
-                    if format != "bin"
-                    else value_as_bin(sig.max, self.plot_samples.dtype)
+                stats["overall_max"] = value_as_str(
+                    self.max, format, self.plot_samples.dtype, self.precision
                 )
                 stats["overall_average"] = float_fmt.format(sig.avg)
                 stats["overall_rms"] = float_fmt.format(sig.rms)
                 stats["overall_std"] = float_fmt.format(sig.std)
                 stats["overall_start"] = sig.timestamps[0]
                 stats["overall_stop"] = sig.timestamps[-1]
-                stats["overall_delta"] = (
-                    fmt.format(sig.samples[-1] - sig.samples[0])
-                    if format != "bin"
-                    else value_as_bin(
-                        sig.samples[-1] - sig.samples[0], self.plot_samples.dtype
-                    )
+                stats["overall_delta"] = value_as_str(
+                    sig.samples[-1] - sig.samples[0],
+                    format,
+                    self.plot_samples.dtype,
+                    self.precision,
                 )
                 stats["overall_delta_t"] = x[-1] - x[0]
                 stats["unit"] = sig.unit
@@ -660,27 +623,11 @@ class PlotSignal(Signal):
                     position = cursor
                     stats["cursor_t"] = position
 
-                    value, kind, format = self.value_at_timestamp(position)
+                    value, kind, _ = self.value_at_timestamp(position)
 
-                    if kind in "SUV":
-                        fmt = "{}"
-                    elif kind == "f":
-                        fmt = f"{{:.{self.precision}f}}"
-                    else:
-                        if format == "hex":
-                            fmt = "0x{:X}"
-                        elif format == "bin":
-                            fmt = "0b{:b}"
-                        elif format == "phys":
-                            fmt = "{}"
-
-                    value = (
-                        fmt.format(value)
-                        if format != "bin"
-                        else value_as_bin(value, self.plot_samples.dtype)
+                    stats["cursor_value"] = value_as_str(
+                        value, format, self.plot_samples.dtype, self.precision
                     )
-
-                    stats["cursor_value"] = value
 
                 else:
                     stats["cursor_t"] = ""
@@ -708,34 +655,12 @@ class PlotSignal(Signal):
                     size = len(samples)
 
                     if size:
-                        kind = samples.dtype.kind
-                        format = self.format
 
-                        if kind in "SUV":
-                            fmt = "{}"
-                        elif kind == "f":
-                            fmt = f"{{:.{self.precision}f}}"
-                        else:
-                            if format == "hex":
-                                fmt = "0x{:X}"
-                            elif format == "bin":
-                                fmt = "0b{:b}"
-                            elif format == "phys":
-                                fmt = "{}"
-
-                        new_stats["selected_min"] = (
-                            fmt.format(np.nanmin(samples))
-                            if format != "bin"
-                            else value_as_bin(
-                                np.nanmin(samples), self.plot_samples.dtype
-                            )
+                        new_stats["selected_min"] = value_as_str(
+                            np.nanmin(samples), format, samples.dtype, self.precision
                         )
-                        new_stats["selected_max"] = (
-                            fmt.format(np.nanmax(samples))
-                            if format != "bin"
-                            else value_as_bin(
-                                np.nanmax(samples), self.plot_samples.dtype
-                            )
+                        new_stats["selected_max"] = value_as_str(
+                            np.nanmax(samples), format, samples.dtype, self.precision
                         )
                         new_stats["selected_average"] = float_fmt.format(
                             np.mean(samples)
@@ -744,18 +669,19 @@ class PlotSignal(Signal):
                         new_stats["selected_rms"] = float_fmt.format(
                             np.sqrt(np.mean(np.square(samples)))
                         )
-                        if kind in "ui":
-                            new_stats["selected_delta"] = (
-                                fmt.format(int(samples[-1]) - int(samples[0]))
-                                if format != "bin"
-                                else value_as_bin(
-                                    int(samples[-1]) - int(samples[0]),
-                                    self.plot_samples.dtype,
-                                )
+                        if samples.dtype.kind in "ui":
+                            new_stats["selected_delta"] = value_as_str(
+                                int(samples[-1]) - int(samples[0]),
+                                format,
+                                samples.dtype,
+                                self.precision,
                             )
                         else:
-                            new_stats["selected_delta"] = fmt.format(
-                                (samples[-1] - samples[0])
+                            new_stats["selected_delta"] = value_as_str(
+                                samples[-1] - samples[0],
+                                format,
+                                samples.dtype,
+                                self.precision,
                             )
 
                         if size == 1:
@@ -820,29 +746,12 @@ class PlotSignal(Signal):
 
                 if size:
                     kind = samples.dtype.kind
-                    format = self.format
 
-                    if kind in "SUV":
-                        fmt = "{}"
-                    elif kind == "f":
-                        fmt = f"{{:.{self.precision}f}}"
-                    else:
-                        if format == "hex":
-                            fmt = "0x{:X}"
-                        elif format == "bin":
-                            fmt = "0b{:b}"
-                        elif format == "phys":
-                            fmt = "{}"
-
-                    new_stats["visible_min"] = (
-                        fmt.format(np.nanmin(samples))
-                        if format != "bin"
-                        else value_as_bin(np.nanmin(samples), self.plot_samples.dtype)
+                    new_stats["visible_min"] = value_as_str(
+                        np.nanmin(samples), format, samples.dtype, self.precision
                     )
-                    new_stats["visible_max"] = (
-                        fmt.format(np.nanmax(samples))
-                        if format != "bin"
-                        else value_as_bin(np.nanmax(samples), self.plot_samples.dtype)
+                    new_stats["visible_max"] = value_as_str(
+                        np.nanmax(samples), format, samples.dtype, self.precision
                     )
                     new_stats["visible_average"] = float_fmt.format(np.mean(samples))
                     new_stats["visible_std"] = float_fmt.format(np.std(samples))
@@ -850,17 +759,18 @@ class PlotSignal(Signal):
                         np.sqrt(np.mean(np.square(samples)))
                     )
                     if kind in "ui":
-                        new_stats["visible_delta"] = (
-                            fmt.format(int(cut.samples[-1]) - int(cut.samples[0]))
-                            if format != "bin"
-                            else value_as_bin(
-                                int(cut.samples[-1]) - int(cut.samples[0]),
-                                self.plot_samples.dtype,
-                            )
+                        new_stats["visible_delta"] = value_as_str(
+                            int(cut.samples[-1]) - int(cut.samples[0]),
+                            format,
+                            samples.dtype,
+                            self.precision,
                         )
                     else:
-                        new_stats["visible_delta"] = float_fmt.format(
-                            cut.samples[-1] - cut.samples[0]
+                        new_stats["visible_delta"] = value_as_str(
+                            cut.samples[-1] - cut.samples[0],
+                            format,
+                            samples.dtype,
+                            self.precision,
                         )
 
                     if size == 1:
@@ -960,7 +870,6 @@ class PlotSignal(Signal):
             stats["visible_gradient"] = "n.a."
             stats["visible_integral"] = "n.a."
 
-        #        sig._stats["fmt"] = fmt
         return stats
 
     def trim_c(self, start=None, stop=None, width=1900, force=False):
@@ -1273,9 +1182,11 @@ class PlotSignal(Signal):
 
             if kind == "S":
                 try:
-                    value = value.decode("utf-8").strip(" \r\n\t\v\0")
+                    value = value.decode("utf-8", errors="replace").strip(" \r\n\t\v\0")
                 except:
-                    value = value.decode("latin-1").strip(" \r\n\t\v\0")
+                    value = value.decode("latin-1", errors="replace").strip(
+                        " \r\n\t\v\0"
+                    )
 
                 value = value or "<empty string>"
             elif kind == "f":
