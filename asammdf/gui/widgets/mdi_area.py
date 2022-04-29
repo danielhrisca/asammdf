@@ -2935,8 +2935,6 @@ class WithMDIArea:
 
         plot.add_new_channels(signals, mime_data)
 
-        plot.plot.update_lines()
-
         # plot.show()
 
         plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))

@@ -1820,6 +1820,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                     if self.kind in "ui":
                         if self.format == "bin":
                             text = value_as_bin(value, self.signal.plot_samples.dtype)
+                            text = f"{self._value_prefix}{text}"
 
                         elif self.format == "hex":
                             text = f"{self._value_prefix}{self.fmt}".format(value)
