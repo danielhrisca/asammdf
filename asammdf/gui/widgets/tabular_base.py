@@ -50,6 +50,7 @@ from ..utils import (
     get_colors_using_ranges,
     run_thread_with_progress,
     value_as_bin,
+    value_as_hex,
 )
 from .tabular_filter import TabularFilter
 
@@ -326,7 +327,13 @@ class DataTableModel(QtCore.QAbstractTableModel):
 
             if isinstance(cell, (int, np.integer)):
                 if self.format == "hex":
-                    return f"{cell:X}"
+                    if isinstance(cell, int):
+                        dtype = np.min_scalar_type(cell)
+                    else:
+                        dtype = cell.dtype
+
+                    return value_as_hex(cell, dtype)
+
                 elif self.format == "bin":
 
                     if isinstance(cell, int):

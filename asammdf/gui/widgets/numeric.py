@@ -22,6 +22,7 @@ from asammdf.gui.utils import (
     extract_mime_names,
     get_colors_using_ranges,
     value_as_bin,
+    value_as_hex,
 )
 from asammdf.gui.widgets.plot import PlotSignal
 
@@ -471,7 +472,12 @@ class TableModel(QtCore.QAbstractTableModel):
 
             elif isinstance(cell, (int, np.integer)):
                 if signal.format == "hex":
-                    return f"0x{cell:X}"
+                    if isinstance(cell, int):
+                        dtype = np.min_scalar_type(cell)
+                    else:
+                        dtype = cell.dtype
+
+                    return value_as_hex(cell, dtype)
 
                 elif signal.format == "bin":
 

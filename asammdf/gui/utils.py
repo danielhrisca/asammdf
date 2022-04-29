@@ -738,14 +738,24 @@ def timeit(func):
 
 
 def value_as_bin(value, dtype):
-    bin_string = np.array([value], dtype=dtype).tobytes()[::-1]
+    byte_string = np.array([value], dtype=dtype).tobytes()
+    if dtype.byteorder != ">":
+        byte_string = byte_string[::-1]
 
     nibles = []
-    for byte in bin_string:
+    for byte in byte_string:
         nibles.append(f"{byte >> 4:04b}")
         nibles.append(f"{byte & 0xf:04b}")
 
     return ".".join(nibles)
+
+
+def value_as_hex(value, dtype):
+    byte_string = np.array([value], dtype=dtype).tobytes()
+    if dtype.byteorder != ">":
+        byte_string = byte_string[::-1]
+
+    return f"0x{byte_string.hex().upper()}"
 
 
 if __name__ == "__main__":

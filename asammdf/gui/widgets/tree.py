@@ -21,6 +21,7 @@ from ..utils import (
     get_colors_using_ranges,
     timeit,
     value_as_bin,
+    value_as_hex,
 )
 from .tree_item import TreeItem
 
@@ -1823,10 +1824,11 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                             text = f"{self._value_prefix}{text}"
 
                         elif self.format == "hex":
-                            text = f"{self._value_prefix}{self.fmt}".format(value)
+                            text = value_as_hex(value, self.signal.plot_samples.dtype)
+                            text = f"{self._value_prefix}{text}"
 
                         else:
-                            text = f"{self._value_prefix}{self.fmt}".format(value)
+                            text = f"{self._value_prefix}{value}"
 
                     else:
                         text = f"{self._value_prefix}{self.fmt}".format(value)
