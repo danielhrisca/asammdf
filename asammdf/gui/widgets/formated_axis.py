@@ -29,10 +29,7 @@ class FormatedAxis(pg.AxisItem):
         self.text_conversion = None
         self.origin = None
 
-        self.setStyle(autoExpandTextSpace=False, autoReduceTextSpace=False)
-        self.adjuster = None
-
-        self.geometryChanged.connect(self.handle_geometry_changed)
+        self.locked = kwargs.pop("locked", False)
 
         if self.orientation in ("left", "right"):
 
@@ -55,11 +52,6 @@ class FormatedAxis(pg.AxisItem):
     def decrease_width(self):
         width = max(self.width() - 10, 48)
         self.setWidth(width)
-
-    def handle_geometry_changed(self):
-        if self.adjuster is not None:
-            self.adjuster.setRect(self.boundingRect())
-            self.adjuster.setPos(self.pos())
 
     def tickStrings(self, values, scale, spacing):
         strns = []
@@ -181,6 +173,7 @@ class FormatedAxis(pg.AxisItem):
             return lv.mouseClickEvent(event)
 
     def resizeEvent(self, ev=None):
+
         if self.orientation in ("left", "right"):
             nudge = 5
 
@@ -208,7 +201,7 @@ class FormatedAxis(pg.AxisItem):
 
                 self.plus.setPos(p)
 
-        super().resizeEvent(ev)
+        return super().resizeEvent(ev)
 
     def close(self):
         if self.plus is not None:
@@ -314,6 +307,9 @@ class FormatedAxis(pg.AxisItem):
         self.rangeChanged.emit(self.uuid, (mn, mx))
 
     def wheelEvent(self, event):
+        if self.locked:
+            return
+
         lv = self.linkedView()
         if lv is None:
             mid = sum(self.range) / 2
@@ -332,3 +328,5 @@ class FormatedAxis(pg.AxisItem):
                 super().wheelEvent(event)
             elif lv.state["mouseEnabled"][1]:
                 super().wheelEvent(event)
+            else:
+                event.ignore()

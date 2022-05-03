@@ -2926,6 +2926,12 @@ class _Plot(pg.PlotWidget):
 
         self.plot_item.setAxisItems({"left": self.y_axis, "bottom": self.x_axis})
 
+        def plot_item_wheel_event(event):
+            if event is not None:
+                self.y_axis.wheelEvent(event)
+
+        self.plot_item.wheelEvent = plot_item_wheel_event
+
         self.viewbox_geometry = self.viewbox.sceneBoundingRect()
 
         self.viewbox.sigResized.connect(partial(self.xrange_changed_handle, force=True))
@@ -3079,6 +3085,10 @@ class _Plot(pg.PlotWidget):
 
     def set_locked(self, locked):
         self.locked = locked
+        for axis in self.axes:
+            if isinstance(axis, FormatedAxis):
+                axis.locked = locked
+
         self.viewbox.setMouseEnabled(y=not self.locked)
 
     def set_dots(self, with_dots):
@@ -4227,6 +4237,7 @@ class _Plot(pg.PlotWidget):
                 text=sig.name if len(sig.name) <= 32 else "{sig.name[:29]}...",
                 units=sig.unit,
                 uuid=sig.uuid,
+                locked=self.locked,
             )
             if sig.conversion and hasattr(sig.conversion, "text_0"):
                 axis.text_conversion = sig.conversion
