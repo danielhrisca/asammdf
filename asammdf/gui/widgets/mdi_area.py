@@ -547,6 +547,9 @@ class WithMDIArea:
         self._window_counter = 0
         self._frameless_windows = False
 
+        self.cursor_circle = True
+        self.cursor_horizontal_line = True
+
     def add_pattern_group(self, plot, group):
 
         signals = extract_signals_using_pattern(
@@ -2122,6 +2125,8 @@ class WithMDIArea:
             parent=self,
             hide_missing_channels=self.hide_missing_channels,
             hide_disabled_channels=self.hide_disabled_channels,
+            show_cursor_circle=self.cursor_circle,
+            show_cursor_horizontal_line=self.cursor_horizontal_line,
         )
         plot.pattern_group_added.connect(self.add_pattern_group)
         plot.pattern = {}
@@ -2863,6 +2868,8 @@ class WithMDIArea:
             parent=self,
             hide_missing_channels=self.hide_missing_channels,
             hide_disabled_channels=self.hide_disabled_channels,
+            show_cursor_circle=self.cursor_circle,
+            show_cursor_horizontal_line=self.cursor_horizontal_line,
         )
         plot.pattern_group_added.connect(self.add_pattern_group)
         plot.pattern = pattern_info
@@ -3430,3 +3437,14 @@ class WithMDIArea:
 
     def window_closed_handler(self):
         self.windows_modified.emit()
+
+    def set_cursor_options(self, cursor_circle, cursor_horizontal_line):
+        self.cursor_circle = cursor_circle
+        self.cursor_horizontal_line = cursor_horizontal_line
+
+        for i, mdi in enumerate(self.mdi_area.subWindowList()):
+            widget = mdi.widget()
+            if isinstance(widget, Plot):
+                widget.plot.cursor1.show_circle = cursor_circle
+                widget.plot.cursor1.show_horizontal_line = cursor_horizontal_line
+                widget.plot.update()

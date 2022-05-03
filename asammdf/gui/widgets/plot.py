@@ -1255,6 +1255,8 @@ class Plot(QtWidgets.QWidget):
         hide_disabled_channels=False,
         x_axis="time",
         allow_cursor=True,
+        show_cursor_circle=True,
+        show_cursor_horizontal_line=True,
         *args,
         **kwargs,
     ):
@@ -1311,6 +1313,8 @@ class Plot(QtWidgets.QWidget):
             allow_cursor=allow_cursor,
             plot_parent=self,
         )
+        self.plot.cursor1.show_circle = show_cursor_circle
+        self.plot.cursor1.show_horizontal_line = show_cursor_horizontal_line
         self.lock = self.plot.lock
 
         self.cursor_info = CursorInfo(

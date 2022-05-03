@@ -7,7 +7,7 @@ from PySide6 import QtCore, QtGui
 
 
 class Cursor(pg.InfiniteLine):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, show_circle=True, show_horizontal_line=True, **kwargs):
 
         super().__init__(
             *args,
@@ -18,7 +18,7 @@ class Cursor(pg.InfiniteLine):
         self.hoverPen.setWidth(1)
 
         color = self.pen.color()
-        color.setAlpha(128)
+        color.setAlpha(200)
         self.pen.setColor(color)
 
         self.setCursor(QtCore.Qt.SplitHCursor)
@@ -26,6 +26,8 @@ class Cursor(pg.InfiniteLine):
         self.sigPositionChangeFinished.connect(self.update_mouse_cursor)
 
         self._cursor_override = False
+        self.show_circle = show_circle
+        self.show_horizontal_line = show_horizontal_line
 
     def update_mouse_cursor(self, obj):
         if self.moving:
@@ -58,7 +60,17 @@ class Cursor(pg.InfiniteLine):
             height = rect.height()
             width = rect.x() + rect.width()
 
-            if uuid:
+            if not self.show_circle and not self.show_horizontal_line or not uuid:
+                x, y = plot.scale_curve_to_pixmap(
+                    position,
+                    0,
+                    y_range=plot.viewbox.viewRange()[1],
+                    x_range=plot.viewbox.viewRange()[0],
+                    delta=delta,
+                )
+                paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
+
+            else:
 
                 signal, idx = plot.signal_by_uuid(uuid)
                 if signal.enable:
@@ -74,25 +86,39 @@ class Cursor(pg.InfiniteLine):
                             delta=delta,
                         )
 
-                        paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, y - 5))
-                        paint.drawLine(
-                            QtCore.QPointF(x, y + 5), QtCore.QPointF(x, height)
-                        )
-
                         pen.setWidth(1)
                         paint.setPen(pen)
 
-                        paint.drawLine(
-                            QtCore.QPointF(delta, y), QtCore.QPointF(x - 5, y)
-                        )
-                        paint.drawLine(
-                            QtCore.QPointF(x + 5, y), QtCore.QPointF(width, y)
-                        )
+                        if self.show_circle:
+                            paint.drawLine(
+                                QtCore.QPointF(x, 0), QtCore.QPointF(x, y - 5)
+                            )
+                            paint.drawLine(
+                                QtCore.QPointF(x, y + 5), QtCore.QPointF(x, height)
+                            )
 
-                        pen.setWidth(2)
-                        paint.setPen(pen)
+                            if self.show_horizontal_line:
+                                paint.drawLine(
+                                    QtCore.QPointF(delta, y), QtCore.QPointF(x - 5, y)
+                                )
+                                paint.drawLine(
+                                    QtCore.QPointF(x + 5, y), QtCore.QPointF(width, y)
+                                )
 
-                        paint.drawEllipse(QtCore.QPointF(x, y), 5, 5)
+                            pen.setWidth(2)
+                            paint.setPen(pen)
+
+                            paint.drawEllipse(QtCore.QPointF(x, y), 5, 5)
+
+                        else:
+                            paint.drawLine(
+                                QtCore.QPointF(x, 0), QtCore.QPointF(x, height)
+                            )
+                            if self.show_horizontal_line:
+                                paint.drawLine(
+                                    QtCore.QPointF(delta, y), QtCore.QPointF(width, y)
+                                )
+
                     else:
                         x, y = plot.scale_curve_to_pixmap(
                             position,
@@ -111,16 +137,6 @@ class Cursor(pg.InfiniteLine):
                         delta=delta,
                     )
                     paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
-
-            else:
-                x, y = plot.scale_curve_to_pixmap(
-                    position,
-                    0,
-                    y_range=plot.viewbox.viewRange()[1],
-                    x_range=plot.viewbox.viewRange()[0],
-                    delta=delta,
-                )
-                paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
 
 
 class Region(pg.LinearRegionItem):
