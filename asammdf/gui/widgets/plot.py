@@ -1313,9 +1313,10 @@ class Plot(QtWidgets.QWidget):
             allow_cursor=allow_cursor,
             plot_parent=self,
         )
-        self.plot.cursor1.show_circle = show_cursor_circle
-        self.plot.cursor1.show_horizontal_line = show_cursor_horizontal_line
-        self.lock = self.plot.lock
+        if self.plot.cursor1 is not None:
+            self.plot.cursor1.show_circle = show_cursor_circle
+            self.plot.cursor1.show_horizontal_line = show_cursor_horizontal_line
+            self.lock = self.plot.lock
 
         self.cursor_info = CursorInfo(
             precision=QtCore.QSettings().value("plot_cursor_precision", 6),
@@ -2241,7 +2242,18 @@ class Plot(QtWidgets.QWidget):
 
                         del items_pool[uuid]
 
-            root.addChildren(children)
+            if root is None:
+                root = self.channel_selection.invisibleRootItem()
+                root.addChildren(children)
+            else:
+
+                if root.type() == ChannelsTreeItem.Group:
+                    root.addChildren(children)
+                else:
+                    parent = root.parent() or self.channel_selection.invisibleRootItem()
+                    index = parent.indexOfChild(root)
+                    parent.insertChildren(index, children)
+
             return groups
 
         descriptions = get_descriptions_by_uuid(mime_data)
@@ -2396,9 +2408,11 @@ class Plot(QtWidgets.QWidget):
             self.info_uuid = sig_uuid
 
         if mime_data:
+            destination = destination or self.channel_selection.drop_target
+
             groups = add_new_items(
                 self.channel_selection,
-                destination or self.channel_selection.invisibleRootItem(),
+                destination,
                 mime_data,
                 new_items,
             )
@@ -2424,11 +2438,21 @@ class Plot(QtWidgets.QWidget):
                 self.channel_selection.addTopLevelItems(list(new_items.values()))
 
         elif children:
+            destination = destination or self.channel_selection.drop_target
 
             if destination is None:
                 self.channel_selection.addTopLevelItems(children)
             else:
-                destination.addChildren(children)
+
+                if destination.type() == ChannelsTreeItem.Group:
+                    destination.addChildren(children)
+                else:
+                    parent = (
+                        destination.parent()
+                        or self.channel_selection.invisibleRootItem()
+                    )
+                    index = parent.indexOfChild(destination)
+                    parent.insertChildren(index, children)
 
         self.channel_selection.update_channel_groups_count()
         self.channel_selection.refresh()

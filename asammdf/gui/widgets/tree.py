@@ -437,6 +437,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.autoscroll_timer.timeout.connect(self.autoscroll)
         self.autoscroll_timer.setInterval(33)
         self.autoscroll_mouse_pos = None
+        self.drop_target = None
 
     def autoscroll(self):
 
@@ -770,6 +771,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     def dropEvent(self, e):
         self.autoscroll_timer.stop()
         self.autoscroll_mouse_pos = None
+        self.drop_target = None
 
         uuids = get_data(self.plot, self.selectedItems(), uuids_only=True)
 
@@ -781,6 +783,12 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             data = e.mimeData()
             if data.hasFormat("application/octet-stream-asammdf"):
                 names = extract_mime_names(data)
+                item = self.itemAt(e.pos())
+
+                if item and item.type() == item.Info:
+                    item = item.parent()
+                self.drop_target = item
+
                 self.add_channels_request.emit(names)
             else:
                 super().dropEvent(e)

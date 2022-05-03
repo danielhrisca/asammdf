@@ -907,7 +907,14 @@ class WithMDIArea:
 
                     signals[sig.uuid] = sig
 
-                widget.add_new_channels(signals, mime_data=mime_data)
+                if widget.channel_selection.selectedItems():
+                    item = widget.channel_selection.selectedItems()[0]
+                    destination = widget.channel_selection.itemBelow(item) or item
+                else:
+                    destination = None
+                widget.add_new_channels(
+                    signals, mime_data=mime_data, destination=destination
+                )
 
         except MdfException:
             print(format_exc())
