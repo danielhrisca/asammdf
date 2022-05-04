@@ -44,6 +44,7 @@ class FormatedAxis(pg.AxisItem):
                 self.scene().addItem(self.minus)
 
         self.set_pen(self._pen)
+        self.setWidth(48)
 
     def increase_width(self):
         width = self.width() + 10

@@ -2956,7 +2956,17 @@ class _Plot(pg.PlotWidget):
 
         def plot_item_wheel_event(event):
             if event is not None:
-                self.y_axis.wheelEvent(event)
+                x = event.pos().x()
+
+                if x <= self.y_axis.width():
+                    self.y_axis.wheelEvent(event)
+                else:
+                    for axis in self.axes:
+                        if isinstance(axis, FormatedAxis) and axis.isVisible():
+                            rect = axis.sceneBoundingRect()
+                            if rect.x() <= x <= rect.x() + rect.width():
+                                axis.wheelEvent(event)
+                                break
 
         self.plot_item.wheelEvent = plot_item_wheel_event
 
