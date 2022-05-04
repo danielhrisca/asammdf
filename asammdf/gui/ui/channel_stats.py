@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'channel_stats.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.2.3
+## Created by: Qt User Interface Compiler version 6.3.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -49,64 +49,33 @@ class Ui_ChannelStats(object):
         self.gridLayout_5.setSpacing(0)
         self.gridLayout_5.setObjectName(u"gridLayout_5")
         self.gridLayout_5.setContentsMargins(2, 2, 2, 2)
-        self.selected_average = QLabel(self.range_group)
-        self.selected_average.setObjectName(u"selected_average")
-        self.selected_average.setAutoFillBackground(False)
-        self.selected_average.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
-
-        self.gridLayout_5.addWidget(self.selected_average, 6, 1, 1, 1)
-
-        self.selected_delta_t = QLabel(self.range_group)
-        self.selected_delta_t.setObjectName(u"selected_delta_t")
-        self.selected_delta_t.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
-
-        self.gridLayout_5.addWidget(self.selected_delta_t, 3, 1, 1, 1)
-
         self.label_13 = QLabel(self.range_group)
         self.label_13.setObjectName(u"label_13")
 
         self.gridLayout_5.addWidget(self.label_13, 0, 0, 1, 1)
 
-        self.xunit3 = QLabel(self.range_group)
-        self.xunit3.setObjectName(u"xunit3")
+        self.selected_integral_unit = QLabel(self.range_group)
+        self.selected_integral_unit.setObjectName(u"selected_integral_unit")
+        self.selected_integral_unit.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
-        self.gridLayout_5.addWidget(self.xunit3, 3, 2, 1, 1)
+        self.gridLayout_5.addWidget(self.selected_integral_unit, 13, 2, 1, 1)
 
-        self.unit10 = QLabel(self.range_group)
-        self.unit10.setObjectName(u"unit10")
+        self.selected_rms = QLabel(self.range_group)
+        self.selected_rms.setObjectName(u"selected_rms")
+        self.selected_rms.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
-        self.gridLayout_5.addWidget(self.unit10, 6, 2, 1, 1)
-
-        self.label_14 = QLabel(self.range_group)
-        self.label_14.setObjectName(u"label_14")
-
-        self.gridLayout_5.addWidget(self.label_14, 4, 0, 1, 1)
+        self.gridLayout_5.addWidget(self.selected_rms, 9, 1, 1, 1)
 
         self.label_29 = QLabel(self.range_group)
         self.label_29.setObjectName(u"label_29")
 
-        self.gridLayout_5.addWidget(self.label_29, 7, 0, 1, 1)
+        self.gridLayout_5.addWidget(self.label_29, 9, 0, 1, 1)
 
-        self.xunit1 = QLabel(self.range_group)
-        self.xunit1.setObjectName(u"xunit1")
+        self.selected_gradient_unit = QLabel(self.range_group)
+        self.selected_gradient_unit.setObjectName(u"selected_gradient_unit")
+        self.selected_gradient_unit.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
-        self.gridLayout_5.addWidget(self.xunit1, 0, 2, 1, 1)
-
-        self.label_37 = QLabel(self.range_group)
-        self.label_37.setObjectName(u"label_37")
-
-        self.gridLayout_5.addWidget(self.label_37, 10, 0, 1, 1)
-
-        self.label_18 = QLabel(self.range_group)
-        self.label_18.setObjectName(u"label_18")
-
-        self.gridLayout_5.addWidget(self.label_18, 9, 0, 1, 1)
-
-        self.selected_std = QLabel(self.range_group)
-        self.selected_std.setObjectName(u"selected_std")
-        self.selected_std.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
-
-        self.gridLayout_5.addWidget(self.selected_std, 8, 1, 1, 1)
+        self.gridLayout_5.addWidget(self.selected_gradient_unit, 12, 2, 1, 1)
 
         self.selected_start = QLabel(self.range_group)
         self.selected_start.setObjectName(u"selected_start")
@@ -114,32 +83,31 @@ class Ui_ChannelStats(object):
 
         self.gridLayout_5.addWidget(self.selected_start, 0, 1, 1, 1)
 
-        self.label_34 = QLabel(self.range_group)
-        self.label_34.setObjectName(u"label_34")
+        self.label_15 = QLabel(self.range_group)
+        self.label_15.setObjectName(u"label_15")
 
-        self.gridLayout_5.addWidget(self.label_34, 8, 0, 1, 1)
+        self.gridLayout_5.addWidget(self.label_15, 1, 0, 1, 1)
 
-        self.selected_max = QLabel(self.range_group)
-        self.selected_max.setObjectName(u"selected_max")
-        self.selected_max.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+        self.selected_delta_t = QLabel(self.range_group)
+        self.selected_delta_t.setObjectName(u"selected_delta_t")
+        self.selected_delta_t.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
-        self.gridLayout_5.addWidget(self.selected_max, 5, 1, 1, 1)
+        self.gridLayout_5.addWidget(self.selected_delta_t, 3, 1, 1, 1)
+
+        self.label_2 = QLabel(self.range_group)
+        self.label_2.setObjectName(u"label_2")
+
+        self.gridLayout_5.addWidget(self.label_2, 4, 0, 1, 1)
+
+        self.label_14 = QLabel(self.range_group)
+        self.label_14.setObjectName(u"label_14")
+
+        self.gridLayout_5.addWidget(self.label_14, 6, 0, 1, 1)
 
         self.label = QLabel(self.range_group)
         self.label.setObjectName(u"label")
 
-        self.gridLayout_5.addWidget(self.label, 6, 0, 1, 1)
-
-        self.selected_min = QLabel(self.range_group)
-        self.selected_min.setObjectName(u"selected_min")
-        self.selected_min.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
-
-        self.gridLayout_5.addWidget(self.selected_min, 4, 1, 1, 1)
-
-        self.xunit2 = QLabel(self.range_group)
-        self.xunit2.setObjectName(u"xunit2")
-
-        self.gridLayout_5.addWidget(self.xunit2, 1, 2, 1, 1)
+        self.gridLayout_5.addWidget(self.label, 8, 0, 1, 1)
 
         self.selected_stop = QLabel(self.range_group)
         self.selected_stop.setObjectName(u"selected_stop")
@@ -147,84 +115,161 @@ class Ui_ChannelStats(object):
 
         self.gridLayout_5.addWidget(self.selected_stop, 1, 1, 1, 1)
 
-        self.unit3 = QLabel(self.range_group)
-        self.unit3.setObjectName(u"unit3")
+        self.unit16 = QLabel(self.range_group)
+        self.unit16.setObjectName(u"unit16")
+        self.unit16.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
-        self.gridLayout_5.addWidget(self.unit3, 5, 2, 1, 1)
+        self.gridLayout_5.addWidget(self.unit16, 10, 2, 1, 1)
+
+        self.label_34 = QLabel(self.range_group)
+        self.label_34.setObjectName(u"label_34")
+
+        self.gridLayout_5.addWidget(self.label_34, 10, 0, 1, 1)
+
+        self.xunit1 = QLabel(self.range_group)
+        self.xunit1.setObjectName(u"xunit1")
+        self.xunit1.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+
+        self.gridLayout_5.addWidget(self.xunit1, 0, 2, 1, 1)
+
+        self.xunit3 = QLabel(self.range_group)
+        self.xunit3.setObjectName(u"xunit3")
+        self.xunit3.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+
+        self.gridLayout_5.addWidget(self.xunit3, 3, 2, 1, 1)
 
         self.label_21 = QLabel(self.range_group)
         self.label_21.setObjectName(u"label_21")
 
         self.gridLayout_5.addWidget(self.label_21, 3, 0, 1, 1)
 
-        self.selected_delta = QLabel(self.range_group)
-        self.selected_delta.setObjectName(u"selected_delta")
-        self.selected_delta.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+        self.selected_max = QLabel(self.range_group)
+        self.selected_max.setObjectName(u"selected_max")
+        self.selected_max.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
-        self.gridLayout_5.addWidget(self.selected_delta, 9, 1, 1, 1)
-
-        self.unit4 = QLabel(self.range_group)
-        self.unit4.setObjectName(u"unit4")
-
-        self.gridLayout_5.addWidget(self.unit4, 9, 2, 1, 1)
-
-        self.selected_rms = QLabel(self.range_group)
-        self.selected_rms.setObjectName(u"selected_rms")
-        self.selected_rms.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
-
-        self.gridLayout_5.addWidget(self.selected_rms, 7, 1, 1, 1)
-
-        self.label_15 = QLabel(self.range_group)
-        self.label_15.setObjectName(u"label_15")
-
-        self.gridLayout_5.addWidget(self.label_15, 1, 0, 1, 1)
-
-        self.unit2 = QLabel(self.range_group)
-        self.unit2.setObjectName(u"unit2")
-
-        self.gridLayout_5.addWidget(self.unit2, 4, 2, 1, 1)
+        self.gridLayout_5.addWidget(self.selected_max, 7, 1, 1, 1)
 
         self.label_17 = QLabel(self.range_group)
         self.label_17.setObjectName(u"label_17")
 
-        self.gridLayout_5.addWidget(self.label_17, 5, 0, 1, 1)
+        self.gridLayout_5.addWidget(self.label_17, 7, 0, 1, 1)
 
-        self.unit16 = QLabel(self.range_group)
-        self.unit16.setObjectName(u"unit16")
+        self.label_37 = QLabel(self.range_group)
+        self.label_37.setObjectName(u"label_37")
 
-        self.gridLayout_5.addWidget(self.unit16, 8, 2, 1, 1)
+        self.gridLayout_5.addWidget(self.label_37, 12, 0, 1, 1)
+
+        self.selected_std = QLabel(self.range_group)
+        self.selected_std.setObjectName(u"selected_std")
+        self.selected_std.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+
+        self.gridLayout_5.addWidget(self.selected_std, 10, 1, 1, 1)
+
+        self.label_18 = QLabel(self.range_group)
+        self.label_18.setObjectName(u"label_18")
+
+        self.gridLayout_5.addWidget(self.label_18, 11, 0, 1, 1)
+
+        self.xunit2 = QLabel(self.range_group)
+        self.xunit2.setObjectName(u"xunit2")
+        self.xunit2.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+
+        self.gridLayout_5.addWidget(self.xunit2, 1, 2, 1, 1)
 
         self.unit11 = QLabel(self.range_group)
         self.unit11.setObjectName(u"unit11")
+        self.unit11.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
-        self.gridLayout_5.addWidget(self.unit11, 7, 2, 1, 1)
+        self.gridLayout_5.addWidget(self.unit11, 9, 2, 1, 1)
+
+        self.selected_min = QLabel(self.range_group)
+        self.selected_min.setObjectName(u"selected_min")
+        self.selected_min.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+
+        self.gridLayout_5.addWidget(self.selected_min, 6, 1, 1, 1)
 
         self.label_38 = QLabel(self.range_group)
         self.label_38.setObjectName(u"label_38")
 
-        self.gridLayout_5.addWidget(self.label_38, 11, 0, 1, 1)
+        self.gridLayout_5.addWidget(self.label_38, 13, 0, 1, 1)
 
-        self.selected_gradient = QLabel(self.range_group)
-        self.selected_gradient.setObjectName(u"selected_gradient")
-        self.selected_gradient.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+        self.unit3 = QLabel(self.range_group)
+        self.unit3.setObjectName(u"unit3")
+        self.unit3.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
-        self.gridLayout_5.addWidget(self.selected_gradient, 10, 1, 1, 1)
+        self.gridLayout_5.addWidget(self.unit3, 7, 2, 1, 1)
+
+        self.selected_delta = QLabel(self.range_group)
+        self.selected_delta.setObjectName(u"selected_delta")
+        self.selected_delta.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+
+        self.gridLayout_5.addWidget(self.selected_delta, 11, 1, 1, 1)
 
         self.selected_integral = QLabel(self.range_group)
         self.selected_integral.setObjectName(u"selected_integral")
         self.selected_integral.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
-        self.gridLayout_5.addWidget(self.selected_integral, 11, 1, 1, 1)
+        self.gridLayout_5.addWidget(self.selected_integral, 13, 1, 1, 1)
 
-        self.selected_gradient_unit = QLabel(self.range_group)
-        self.selected_gradient_unit.setObjectName(u"selected_gradient_unit")
+        self.unit4 = QLabel(self.range_group)
+        self.unit4.setObjectName(u"unit4")
+        self.unit4.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
-        self.gridLayout_5.addWidget(self.selected_gradient_unit, 10, 2, 1, 1)
+        self.gridLayout_5.addWidget(self.unit4, 11, 2, 1, 1)
 
-        self.selected_integral_unit = QLabel(self.range_group)
-        self.selected_integral_unit.setObjectName(u"selected_integral_unit")
+        self.selected_average = QLabel(self.range_group)
+        self.selected_average.setObjectName(u"selected_average")
+        self.selected_average.setAutoFillBackground(False)
+        self.selected_average.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
-        self.gridLayout_5.addWidget(self.selected_integral_unit, 11, 2, 1, 1)
+        self.gridLayout_5.addWidget(self.selected_average, 8, 1, 1, 1)
+
+        self.selected_gradient = QLabel(self.range_group)
+        self.selected_gradient.setObjectName(u"selected_gradient")
+        self.selected_gradient.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+
+        self.gridLayout_5.addWidget(self.selected_gradient, 12, 1, 1, 1)
+
+        self.unit10 = QLabel(self.range_group)
+        self.unit10.setObjectName(u"unit10")
+        self.unit10.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+
+        self.gridLayout_5.addWidget(self.unit10, 8, 2, 1, 1)
+
+        self.unit2 = QLabel(self.range_group)
+        self.unit2.setObjectName(u"unit2")
+        self.unit2.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+
+        self.gridLayout_5.addWidget(self.unit2, 6, 2, 1, 1)
+
+        self.label_20 = QLabel(self.range_group)
+        self.label_20.setObjectName(u"label_20")
+
+        self.gridLayout_5.addWidget(self.label_20, 5, 0, 1, 1)
+
+        self.selected_left = QLabel(self.range_group)
+        self.selected_left.setObjectName(u"selected_left")
+        self.selected_left.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+
+        self.gridLayout_5.addWidget(self.selected_left, 4, 1, 1, 1)
+
+        self.selected_right = QLabel(self.range_group)
+        self.selected_right.setObjectName(u"selected_right")
+        self.selected_right.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+
+        self.gridLayout_5.addWidget(self.selected_right, 5, 1, 1, 1)
+
+        self.unit21 = QLabel(self.range_group)
+        self.unit21.setObjectName(u"unit21")
+        self.unit21.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+
+        self.gridLayout_5.addWidget(self.unit21, 4, 2, 1, 1)
+
+        self.unit22 = QLabel(self.range_group)
+        self.unit22.setObjectName(u"unit22")
+        self.unit22.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
+
+        self.gridLayout_5.addWidget(self.unit22, 5, 2, 1, 1)
 
         self.gridLayout_5.setColumnStretch(1, 1)
 
@@ -238,6 +283,7 @@ class Ui_ChannelStats(object):
         self.gridLayout_2.setContentsMargins(2, 2, 2, 2)
         self.xunit7 = QLabel(self.overall_group)
         self.xunit7.setObjectName(u"xunit7")
+        self.xunit7.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
         self.gridLayout_2.addWidget(self.xunit7, 0, 2, 1, 1)
 
@@ -287,6 +333,7 @@ class Ui_ChannelStats(object):
 
         self.unit9 = QLabel(self.overall_group)
         self.unit9.setObjectName(u"unit9")
+        self.unit9.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
         self.gridLayout_2.addWidget(self.unit9, 5, 2, 1, 1)
 
@@ -303,6 +350,7 @@ class Ui_ChannelStats(object):
 
         self.xunit8 = QLabel(self.overall_group)
         self.xunit8.setObjectName(u"xunit8")
+        self.xunit8.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
         self.gridLayout_2.addWidget(self.xunit8, 1, 2, 1, 1)
 
@@ -314,6 +362,7 @@ class Ui_ChannelStats(object):
 
         self.unit8 = QLabel(self.overall_group)
         self.unit8.setObjectName(u"unit8")
+        self.unit8.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
         self.gridLayout_2.addWidget(self.unit8, 4, 2, 1, 1)
 
@@ -329,26 +378,31 @@ class Ui_ChannelStats(object):
 
         self.unit18 = QLabel(self.overall_group)
         self.unit18.setObjectName(u"unit18")
+        self.unit18.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
         self.gridLayout_2.addWidget(self.unit18, 8, 2, 1, 1)
 
         self.overall_integral_unit = QLabel(self.overall_group)
         self.overall_integral_unit.setObjectName(u"overall_integral_unit")
+        self.overall_integral_unit.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
         self.gridLayout_2.addWidget(self.overall_integral_unit, 11, 2, 1, 1)
 
         self.unit19 = QLabel(self.overall_group)
         self.unit19.setObjectName(u"unit19")
+        self.unit19.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
         self.gridLayout_2.addWidget(self.unit19, 9, 2, 1, 1)
 
         self.overall_gradient_unit = QLabel(self.overall_group)
         self.overall_gradient_unit.setObjectName(u"overall_gradient_unit")
+        self.overall_gradient_unit.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
         self.gridLayout_2.addWidget(self.overall_gradient_unit, 10, 2, 1, 1)
 
         self.unit14 = QLabel(self.overall_group)
         self.unit14.setObjectName(u"unit14")
+        self.unit14.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
         self.gridLayout_2.addWidget(self.unit14, 6, 2, 1, 1)
 
@@ -359,6 +413,7 @@ class Ui_ChannelStats(object):
 
         self.unit15 = QLabel(self.overall_group)
         self.unit15.setObjectName(u"unit15")
+        self.unit15.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
         self.gridLayout_2.addWidget(self.unit15, 7, 2, 1, 1)
 
@@ -468,11 +523,13 @@ class Ui_ChannelStats(object):
 
         self.xunit0 = QLabel(self.cursor_group)
         self.xunit0.setObjectName(u"xunit0")
+        self.xunit0.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
         self.gridLayout_4.addWidget(self.xunit0, 0, 2, 1, 1)
 
         self.unit1 = QLabel(self.cursor_group)
         self.unit1.setObjectName(u"unit1")
+        self.unit1.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
         self.gridLayout_4.addWidget(self.unit1, 1, 2, 1, 1)
 
@@ -494,6 +551,7 @@ class Ui_ChannelStats(object):
 
         self.unit7 = QLabel(self.visible_group)
         self.unit7.setObjectName(u"unit7")
+        self.unit7.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
         self.gridLayout_3.addWidget(self.unit7, 8, 2, 1, 1)
 
@@ -509,6 +567,7 @@ class Ui_ChannelStats(object):
 
         self.unit5 = QLabel(self.visible_group)
         self.unit5.setObjectName(u"unit5")
+        self.unit5.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
         self.gridLayout_3.addWidget(self.unit5, 3, 2, 1, 1)
 
@@ -536,6 +595,7 @@ class Ui_ChannelStats(object):
 
         self.unit17 = QLabel(self.visible_group)
         self.unit17.setObjectName(u"unit17")
+        self.unit17.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
         self.gridLayout_3.addWidget(self.unit17, 7, 2, 1, 1)
 
@@ -558,6 +618,7 @@ class Ui_ChannelStats(object):
 
         self.xunit4 = QLabel(self.visible_group)
         self.xunit4.setObjectName(u"xunit4")
+        self.xunit4.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
         self.gridLayout_3.addWidget(self.xunit4, 0, 2, 1, 1)
 
@@ -578,11 +639,13 @@ class Ui_ChannelStats(object):
 
         self.unit6 = QLabel(self.visible_group)
         self.unit6.setObjectName(u"unit6")
+        self.unit6.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
         self.gridLayout_3.addWidget(self.unit6, 4, 2, 1, 1)
 
         self.xunit6 = QLabel(self.visible_group)
         self.xunit6.setObjectName(u"xunit6")
+        self.xunit6.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
         self.gridLayout_3.addWidget(self.xunit6, 2, 2, 1, 1)
 
@@ -599,6 +662,7 @@ class Ui_ChannelStats(object):
 
         self.unit12 = QLabel(self.visible_group)
         self.unit12.setObjectName(u"unit12")
+        self.unit12.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
         self.gridLayout_3.addWidget(self.unit12, 5, 2, 1, 1)
 
@@ -627,11 +691,13 @@ class Ui_ChannelStats(object):
 
         self.xunit5 = QLabel(self.visible_group)
         self.xunit5.setObjectName(u"xunit5")
+        self.xunit5.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
         self.gridLayout_3.addWidget(self.xunit5, 1, 2, 1, 1)
 
         self.unit13 = QLabel(self.visible_group)
         self.unit13.setObjectName(u"unit13")
+        self.unit13.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
         self.gridLayout_3.addWidget(self.unit13, 6, 2, 1, 1)
 
@@ -642,11 +708,13 @@ class Ui_ChannelStats(object):
 
         self.visible_gradient_unit = QLabel(self.visible_group)
         self.visible_gradient_unit.setObjectName(u"visible_gradient_unit")
+        self.visible_gradient_unit.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
         self.gridLayout_3.addWidget(self.visible_gradient_unit, 9, 2, 1, 1)
 
         self.visible_integral_unit = QLabel(self.visible_group)
         self.visible_integral_unit.setObjectName(u"visible_integral_unit")
+        self.visible_integral_unit.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
 
         self.gridLayout_3.addWidget(self.visible_integral_unit, 10, 2, 1, 1)
 
@@ -687,39 +755,45 @@ class Ui_ChannelStats(object):
     def retranslateUi(self, ChannelStats):
         ChannelStats.setWindowTitle(QCoreApplication.translate("ChannelStats", u"Form", None))
         self.range_group.setTitle(QCoreApplication.translate("ChannelStats", u"Selected range", None))
-        self.selected_average.setText("")
-        self.selected_delta_t.setText("")
         self.label_13.setText(QCoreApplication.translate("ChannelStats", u"First timestamp", None))
-        self.xunit3.setText(QCoreApplication.translate("ChannelStats", u" s", None))
-        self.unit10.setText("")
-        self.label_14.setText(QCoreApplication.translate("ChannelStats", u"Min", None))
-        self.label_29.setText(QCoreApplication.translate("ChannelStats", u"RMS", None))
-        self.xunit1.setText(QCoreApplication.translate("ChannelStats", u" s", None))
-        self.label_37.setText(QCoreApplication.translate("ChannelStats", u"Gradient", None))
-        self.label_18.setText(QCoreApplication.translate("ChannelStats", u"\u0394", None))
-        self.selected_std.setText("")
-        self.selected_start.setText("")
-        self.label_34.setText(QCoreApplication.translate("ChannelStats", u"STD", None))
-        self.selected_max.setText("")
-        self.label.setText(QCoreApplication.translate("ChannelStats", u"Average", None))
-        self.selected_min.setText("")
-        self.xunit2.setText(QCoreApplication.translate("ChannelStats", u" s", None))
-        self.selected_stop.setText("")
-        self.unit3.setText("")
-        self.label_21.setText(QCoreApplication.translate("ChannelStats", u"\u0394t", None))
-        self.selected_delta.setText("")
-        self.unit4.setText("")
-        self.selected_rms.setText("")
-        self.label_15.setText(QCoreApplication.translate("ChannelStats", u"Last timestamp", None))
-        self.unit2.setText("")
-        self.label_17.setText(QCoreApplication.translate("ChannelStats", u"Max", None))
-        self.unit16.setText("")
-        self.unit11.setText("")
-        self.label_38.setText(QCoreApplication.translate("ChannelStats", u"Integral", None))
-        self.selected_gradient.setText("")
-        self.selected_integral.setText("")
-        self.selected_gradient_unit.setText("")
         self.selected_integral_unit.setText("")
+        self.selected_rms.setText("")
+        self.label_29.setText(QCoreApplication.translate("ChannelStats", u"RMS", None))
+        self.selected_gradient_unit.setText("")
+        self.selected_start.setText("")
+        self.label_15.setText(QCoreApplication.translate("ChannelStats", u"Last timestamp", None))
+        self.selected_delta_t.setText("")
+        self.label_2.setText(QCoreApplication.translate("ChannelStats", u"Left value", None))
+        self.label_14.setText(QCoreApplication.translate("ChannelStats", u"Min", None))
+        self.label.setText(QCoreApplication.translate("ChannelStats", u"Average", None))
+        self.selected_stop.setText("")
+        self.unit16.setText("")
+        self.label_34.setText(QCoreApplication.translate("ChannelStats", u"STD", None))
+        self.xunit1.setText(QCoreApplication.translate("ChannelStats", u" s", None))
+        self.xunit3.setText(QCoreApplication.translate("ChannelStats", u" s", None))
+        self.label_21.setText(QCoreApplication.translate("ChannelStats", u"\u0394t", None))
+        self.selected_max.setText("")
+        self.label_17.setText(QCoreApplication.translate("ChannelStats", u"Max", None))
+        self.label_37.setText(QCoreApplication.translate("ChannelStats", u"Gradient", None))
+        self.selected_std.setText("")
+        self.label_18.setText(QCoreApplication.translate("ChannelStats", u"\u0394", None))
+        self.xunit2.setText(QCoreApplication.translate("ChannelStats", u" s", None))
+        self.unit11.setText("")
+        self.selected_min.setText("")
+        self.label_38.setText(QCoreApplication.translate("ChannelStats", u"Integral", None))
+        self.unit3.setText("")
+        self.selected_delta.setText("")
+        self.selected_integral.setText("")
+        self.unit4.setText("")
+        self.selected_average.setText("")
+        self.selected_gradient.setText("")
+        self.unit10.setText("")
+        self.unit2.setText("")
+        self.label_20.setText(QCoreApplication.translate("ChannelStats", u"Right value", None))
+        self.selected_left.setText("")
+        self.selected_right.setText("")
+        self.unit21.setText("")
+        self.unit22.setText("")
         self.overall_group.setTitle(QCoreApplication.translate("ChannelStats", u"Overall", None))
         self.xunit7.setText(QCoreApplication.translate("ChannelStats", u" s", None))
         self.overall_delta.setText("")

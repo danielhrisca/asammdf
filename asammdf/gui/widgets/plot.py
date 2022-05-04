@@ -565,9 +565,32 @@ class PlotSignal(Signal):
                     stats["cursor_t"] = ""
                     stats["cursor_value"] = ""
 
-                stats["selected_start"] = ""
-                stats["selected_stop"] = ""
-                stats["selected_delta_t"] = ""
+                if region:
+                    start, stop = region
+                    stats["selected_start"] = start
+                    stats["selected_stop"] = stop
+                    stats["selected_delta_t"] = stop - start
+
+                    value, kind, _ = self.value_at_timestamp(start)
+
+                    stats["selected_left"] = value_as_str(
+                        value, format, self.plot_samples.dtype, self.precision
+                    )
+
+                    value, kind, _ = self.value_at_timestamp(stop)
+
+                    stats["selected_right"] = value_as_str(
+                        value, format, self.plot_samples.dtype, self.precision
+                    )
+
+                else:
+
+                    stats["selected_start"] = ""
+                    stats["selected_stop"] = ""
+                    stats["selected_delta_t"] = ""
+                    stats["selected_left"] = ""
+                    stats["selected_right"] = ""
+
                 stats["selected_min"] = ""
                 stats["selected_max"] = ""
                 stats["selected_average"] = ""
@@ -656,6 +679,14 @@ class PlotSignal(Signal):
 
                     if size:
 
+                        new_stats["selected_left"] = value_as_str(
+                            samples[0], format, self.plot_samples.dtype, self.precision
+                        )
+
+                        new_stats["selected_right"] = value_as_str(
+                            samples[-1], format, self.plot_samples.dtype, self.precision
+                        )
+
                         new_stats["selected_min"] = value_as_str(
                             np.nanmin(samples), format, samples.dtype, self.precision
                         )
@@ -700,6 +731,8 @@ class PlotSignal(Signal):
                         new_stats["selected_min"] = "n.a."
                         new_stats["selected_max"] = "n.a."
                         new_stats["selected_average"] = "n.a."
+                        new_stats["selected_left"] = "n.a."
+                        new_stats["selected_right"] = "n.a."
                         new_stats["selected_rms"] = "n.a."
                         new_stats["selected_std"] = "n.a."
                         new_stats["selected_gradient"] = "n.a."
@@ -715,6 +748,8 @@ class PlotSignal(Signal):
                     stats["selected_start"] = ""
                     stats["selected_stop"] = ""
                     stats["selected_delta_t"] = ""
+                    stats["selected_left"] = ""
+                    stats["selected_right"] = ""
                     stats["selected_min"] = ""
                     stats["selected_max"] = ""
                     stats["selected_average"] = ""
@@ -835,6 +870,8 @@ class PlotSignal(Signal):
 
                 stats["selected_min"] = "n.a."
                 stats["selected_max"] = "n.a."
+                stats["selected_left"] = "n.a."
+                stats["selected_right"] = "n.a."
                 stats["selected_average"] = "n.a."
                 stats["selected_rms"] = "n.a."
                 stats["selected_std"] = "n.a."
@@ -848,6 +885,8 @@ class PlotSignal(Signal):
                 stats["selected_delta_t"] = ""
                 stats["selected_min"] = ""
                 stats["selected_max"] = ""
+                stats["selected_left"] = ""
+                stats["selected_right"] = ""
                 stats["selected_average"] = "n.a."
                 stats["selected_rms"] = "n.a."
                 stats["selected_std"] = "n.a."

@@ -76,9 +76,10 @@ class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
                 #                        value = value
 
                 if name == "unit":
-                    for i in range(1, 20):
+                    for i in range(1, 23):
                         label = self.findChild(QtWidgets.QLabel, f"unit{i}")
-                        label.setText(f" {value}")
+                        if label:
+                            label.setText(f" {value}")
                     self.selected_gradient_unit.setText(f" {value}/{self.xunit}")
                     self.visible_gradient_unit.setText(f" {value}/{self.xunit}")
                     self.overall_gradient_unit.setText(f" {value}/{self.xunit}")
