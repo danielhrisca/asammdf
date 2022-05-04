@@ -370,7 +370,6 @@ class SearchTreeWidget(QtWidgets.QTreeWidget):
 class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     itemsDeleted = QtCore.Signal(list)
     set_time_offset = QtCore.Signal(list)
-    items_rearranged = QtCore.Signal(list)
     add_channels_request = QtCore.Signal(list)
     show_properties = QtCore.Signal(object)
     insert_computation = QtCore.Signal(str)
@@ -379,6 +378,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     color_changed = QtCore.Signal(str, object)
     unit_changed = QtCore.Signal(str, str)
     name_changed = QtCore.Signal(str, str)
+    visible_items_changed = QtCore.Signal()
 
     NameColumn = 0
     ValueColumn = 1
@@ -504,7 +504,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             self.plot.ignore_selection_change = False
 
             if deleted:
-                self.update_visibility_status()
                 self.itemsDeleted.emit(deleted)
             self.update_channel_groups_count()
 
@@ -793,7 +792,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             else:
                 super().dropEvent(e)
 
-        self.items_rearranged.emit(list(uuids))
+        self.refresh()
 
     def open_menu(self, position):
 
@@ -1282,10 +1281,16 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             item = iterator.value()
             if item is None:
                 break
-            rect = self.visualItemRect(item)
-            item._is_visible = rect.intersects(tree_rect)
+
+            if item.type() == item.Channel:
+                rect = self.visualItemRect(item)
+                item._is_visible = rect.intersects(tree_rect)
+            else:
+                item._is_visible = False
 
             iterator += 1
+
+        self.visible_items_changed.emit()
 
     def is_item_visible(self, item):
         return item._is_visible

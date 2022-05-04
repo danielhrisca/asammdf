@@ -1511,7 +1511,6 @@ class Plot(QtWidgets.QWidget):
             self.computation_channel_inserted
         )
         self.plot.curve_clicked.connect(self.curve_clicked)
-        self.plot.signals_enable_changed.connect(self._update_visibile_entries)
         self._visible_entries = set()
         self._visible_items = {}
         self._item_cache = {}
@@ -1565,9 +1564,11 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.model().dataChanged.connect(
             self.channel_selection_item_changed
         )
-        self.channel_selection.items_rearranged.connect(
-            self.channel_selection_rearranged
+
+        self.channel_selection.visible_items_changed.connect(
+            self._update_visibile_entries
         )
+
         self.channel_selection.pattern_group_added.connect(self.pattern_group_added_req)
         self.channel_selection.itemDoubleClicked.connect(
             self.channel_selection_item_double_clicked
@@ -1672,9 +1673,6 @@ class Plot(QtWidgets.QWidget):
 
             iterator += 1
 
-    def channel_selection_rearranged(self, uuids):
-        self._update_visibile_entries()
-
     def channel_selection_item_changed(self, top_left, bottom_right, roles):
         if QtCore.Qt.CheckStateRole not in roles:
             return
@@ -1752,8 +1750,6 @@ class Plot(QtWidgets.QWidget):
 
         if not count:
             self.close_request.emit()
-
-        self._update_visibile_entries()
 
     def cursor_move_finished(self, cursor=None):
         x = self.plot.get_current_timebase()
@@ -2295,6 +2291,8 @@ class Plot(QtWidgets.QWidget):
 
             return groups
 
+        self.plot._can_paint = False
+
         descriptions = get_descriptions_by_uuid(mime_data)
 
         invalid = []
@@ -2495,7 +2493,8 @@ class Plot(QtWidgets.QWidget):
 
         self.channel_selection.update_channel_groups_count()
         self.channel_selection.refresh()
-        self._update_visibile_entries()
+        self.plot._can_paint = True
+        self.plot.update()
 
     def channel_item_to_config(self, item):
         widget = item
@@ -2677,7 +2676,7 @@ class Plot(QtWidgets.QWidget):
                 super().dropEvent(e)
 
     def item_by_uuid(self, uuid):
-        return self._item_cache[uuid]
+        return self._item_cache.get(uuid, None)
 
     def _show_properties(self, uuid):
         for sig in self.plot.signals:
@@ -2766,6 +2765,7 @@ class Plot(QtWidgets.QWidget):
         _visible_entries = self._visible_entries = set()
         _visible_items = self._visible_items = {}
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+
         while True:
             item = iterator.value()
             if item is None:
@@ -2775,14 +2775,14 @@ class Plot(QtWidgets.QWidget):
 
                 _item_cache[item.uuid] = item
 
-                # if (
-                #     item.checkState(item.NameColumn) == QtCore.Qt.Checked
-                #     and item.exists
-                # ):
-                if item.exists:
+                if item.exists and (
+                    item.checkState(item.NameColumn) == QtCore.Qt.Checked
+                    or item._is_visible
+                ):
                     entry = (item.origin_uuid, item.signal.name, item.uuid)
                     _visible_entries.add(entry)
                     _visible_items[entry] = item
+
                 else:
                     item.set_value("")
 
@@ -2880,6 +2880,7 @@ class _Plot(pg.PlotWidget):
 
         self._can_trim = True
         self._can_paint = True
+        self._can_paint_global = True
         self.mdf = mdf
 
         self._can_paint = True
@@ -3158,7 +3159,8 @@ class _Plot(pg.PlotWidget):
 
     def update(self, *args, **kwargs):
         self._pixmap = None
-        super().update()
+        self.viewbox.update()
+        # super().update()
 
     def set_locked(self, locked):
         self.locked = locked
@@ -3317,6 +3319,7 @@ class _Plot(pg.PlotWidget):
         self._enable_timer.start(50)
 
     def _signals_enabled_changed_handler(self):
+        # print('signals enabled')
 
         self._compute_all_timebase()
         if self.cursor1:
@@ -4060,7 +4063,6 @@ class _Plot(pg.PlotWidget):
                 break
 
     def add_new_channels(self, channels, computed=False, descriptions=None):
-        self._can_paint = False
         descriptions = descriptions or {}
 
         initial_index = len(self.signals)
@@ -4124,9 +4126,6 @@ class _Plot(pg.PlotWidget):
 
         if axis_uuid is not None:
             self.set_current_uuid(sig.uuid)
-
-        self._can_paint = True
-        self._can_paint = True
 
         return {sig.uuid: sig for sig in channels}
 
@@ -4384,7 +4383,7 @@ class _Plot(pg.PlotWidget):
         return path
 
     def paintEvent(self, ev):
-        if not self._can_paint:
+        if not self._can_paint or not self._can_paint_global:
             return
 
         event_rect = ev.rect()
@@ -4459,7 +4458,12 @@ class _Plot(pg.PlotWidget):
 
                     paint.setBrush(no_brush)
 
-                item = self.plot_parent.item_by_uuid(sig.uuid)
+                try:
+                    item = self.plot_parent.item_by_uuid(sig.uuid)
+                except:
+                    # print(sig.name, sig.uuid)
+                    # raise
+                    pass
                 if not item:
                     continue
 

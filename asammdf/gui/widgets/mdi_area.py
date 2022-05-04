@@ -2882,6 +2882,8 @@ class WithMDIArea:
         plot.pattern = pattern_info
         plot.line_width = self.line_width
 
+        plot.plot._can_paint_global = False
+
         plot.show()
 
         sub = MdiSubWindow(parent=self)
@@ -2986,6 +2988,7 @@ class WithMDIArea:
         if "locked" in window_info["configuration"]:
             plot.set_locked(locked=window_info["configuration"]["locked"])
 
+        plot.plot._can_paint_global = True
         plot.channel_selection.refresh()
 
         return w, pattern_info

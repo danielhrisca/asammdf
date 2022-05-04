@@ -2682,4 +2682,3 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
     def update_selected_filter_channels(self):
         self.selected_filter_channels.clear()
         self.selected_filter_channels.addItems(sorted(self._selected_filter))
-

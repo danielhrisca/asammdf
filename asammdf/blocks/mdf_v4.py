@@ -7443,6 +7443,8 @@ class MDF4(MDF_Common):
                     v4c.DATA_TYPE_BYTEARRAY,
                     v4c.DATA_TYPE_UNSIGNED_INTEL,
                     v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                    v4c.DATA_TYPE_MIME_SAMPLE,
+                    v4c.DATA_TYPE_MIME_STREAM,
                 ):
                     vals = extract(signal_data, 1, vals - vals[0])
                 else:
@@ -7452,6 +7454,8 @@ class MDF4(MDF_Common):
                     v4c.DATA_TYPE_BYTEARRAY,
                     v4c.DATA_TYPE_UNSIGNED_INTEL,
                     v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                    v4c.DATA_TYPE_MIME_SAMPLE,
+                    v4c.DATA_TYPE_MIME_STREAM,
                 ):
 
                     if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
