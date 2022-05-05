@@ -2979,7 +2979,9 @@ class _Plot(pg.PlotWidget):
         self.viewbox.sigYRangeChanged.connect(self.y_changed)
         self.viewbox.sigRangeChangedManually.connect(self.y_changed)
 
-        self.x_axis = FormatedAxis("bottom")
+        self.x_axis = FormatedAxis(
+            "bottom", maxTickLength=5, background=self.backgroundBrush().color()
+        )
 
         if x_axis == "time":
             fmt = self._settings.value("plot_xaxis")
@@ -2990,7 +2992,9 @@ class _Plot(pg.PlotWidget):
         self.x_axis.format = fmt
         self.x_axis.origin = origin
 
-        self.y_axis = FormatedAxis("left")
+        self.y_axis = FormatedAxis(
+            "left", maxTickLength=-5, background=self.backgroundBrush().color()
+        )
         self.y_axis.setWidth(48)
 
         self.plot_item.setAxisItems({"left": self.y_axis, "bottom": self.x_axis})
@@ -4008,11 +4012,7 @@ class _Plot(pg.PlotWidget):
 
         self.current_uuid = uuid
 
-        y = self.plotItem.ctrl.yGridCheck.isChecked()
-        x = self.plotItem.ctrl.xGridCheck.isChecked()
         viewbox.setYRange(*sig.y_range, padding=0)
-        if x or y:
-            self.update()
 
     def _clicked(self, event):
         modifiers = QtWidgets.QApplication.keyboardModifiers()
@@ -4315,6 +4315,8 @@ class _Plot(pg.PlotWidget):
                 units=sig.unit,
                 uuid=sig.uuid,
                 locked=self.locked,
+                maxTickLength=5,
+                background=self.backgroundBrush().color(),
             )
             if sig.conversion and hasattr(sig.conversion, "text_0"):
                 axis.text_conversion = sig.conversion
@@ -4457,12 +4459,7 @@ class _Plot(pg.PlotWidget):
                     arr[:, 1] = y
                     paint.drawPoints(poly)
 
-                try:
-                    item = self.plot_parent.item_by_uuid(sig.uuid)
-                except:
-                    # print(sig.name, sig.uuid)
-                    # raise
-                    pass
+                item = self.plot_parent.item_by_uuid(sig.uuid)
                 if not item:
                     continue
 
@@ -4554,6 +4551,22 @@ class _Plot(pg.PlotWidget):
         paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
         paint.setRenderHint(paint.RenderHint.Antialiasing, False)
 
+        if self.y_axis.picture is None:
+            self.y_axis.paint(paint, None, None)
+        if self.x_axis.picture is None:
+            self.x_axis.paint(paint, None, None)
+
+        paint.drawPixmap(
+            self.y_axis.sceneBoundingRect(),
+            self.y_axis.picture,
+            self.y_axis.boundingRect(),
+        )
+        paint.drawPixmap(
+            self.x_axis.sceneBoundingRect(),
+            self.x_axis.picture,
+            self.x_axis.boundingRect(),
+        )
+
         self.auto_clip_rect(paint)
 
         paint.drawPixmap(event_rect, self._pixmap, event_rect)
@@ -4563,6 +4576,30 @@ class _Plot(pg.PlotWidget):
 
         if self.region is not None:
             self.region.paint(paint, plot=self, uuid=self.current_uuid)
+
+        if self.y_axis.grid or self.x_axis.grid:
+
+            rect = self.viewbox.sceneBoundingRect()
+            y_delta = rect.y()
+            x_delta = rect.x()
+
+            if self.y_axis.grid:
+                for pen, p1, p2 in self.y_axis.tickSpecs:
+                    y_pos = p1.y() + y_delta
+                    paint.setPen(pen)
+                    paint.drawLine(
+                        QtCore.QPointF(0, y_pos),
+                        QtCore.QPointF(event_rect.x() + event_rect.width(), y_pos),
+                    )
+
+            if self.x_axis.grid:
+                for pen, p1, p2 in self.x_axis.tickSpecs:
+                    x_pos = p1.x() + x_delta
+                    paint.setPen(pen)
+                    paint.drawLine(
+                        QtCore.QPointF(x_pos, 0),
+                        QtCore.QPointF(x_pos, event_rect.y() + event_rect.height()),
+                    )
 
         paint.end()
 
