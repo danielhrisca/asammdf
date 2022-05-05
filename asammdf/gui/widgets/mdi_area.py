@@ -118,14 +118,16 @@ def build_mime_from_config(
         else:
             descriptions[uuid] = item
 
-            occurrences = mdf.whereis(item["name"]) if mdf else None
-            if occurrences:
-                group_index, channel_index = occurrences[0]
-                found[uuid] = item["name"], group_index, channel_index
+            if item.get("computed", False):
+                group_index, channel_index = -1, -1
+                computed[uuid] = item
             else:
-                if isinstance(item["name"], dict):
-                    group_index, channel_index = -1, -1
-                    computed[uuid] = item["name"]
+
+                occurrences = mdf.whereis(item["name"]) if mdf else None
+                if occurrences:
+                    group_index, channel_index = occurrences[0]
+                    found[uuid] = item["name"], group_index, channel_index
+
                 else:
                     group_index, channel_index = default_index, default_index
                     not_found[item["name"]] = uuid
@@ -2749,6 +2751,7 @@ class WithMDIArea:
                 required_channels.extend(get_required_from_computed(ch))
 
             required_channels = set(required_channels)
+
             required_channels = [
                 (None, *self.mdf.whereis(channel)[0])
                 for channel in required_channels

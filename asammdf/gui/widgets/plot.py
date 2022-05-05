@@ -2233,7 +2233,7 @@ class Plot(QtWidgets.QWidget):
 
         self.plot.set_current_uuid(self.info_uuid, True)
 
-    def add_new_channels(self, channels, mime_data=None, destination=None):
+    def add_new_channels(self, channels, mime_data=None, destination=None, update=True):
         def add_new_items(tree, root, items, items_pool):
             children = []
             groups = []
@@ -2491,8 +2491,9 @@ class Plot(QtWidgets.QWidget):
                     index = parent.indexOfChild(destination)
                     parent.insertChildren(index, children)
 
-        self.channel_selection.update_channel_groups_count()
-        self.channel_selection.refresh()
+        if update:
+            self.channel_selection.update_channel_groups_count()
+            self.channel_selection.refresh()
         self.plot._can_paint = True
         self.plot.update()
 
@@ -4334,7 +4335,7 @@ class _Plot(pg.PlotWidget):
             all_bad = True
 
         else:
-            y_scale = (float(y_range[1]) - float(y_range[0])) / self.py
+            y_scale = (y_range[1] - y_range[0]) / self.py
             x_scale = self.px
 
             if y_scale * x_scale:
@@ -4419,6 +4420,10 @@ class _Plot(pg.PlotWidget):
             pen_width = self.line_width
             dots_with = self.dot_width
 
+            paint.resetTransform()
+            paint.translate(0, 0)
+            paint.setBrush(no_brush)
+
             for i, sig in enumerate(self.signals):
                 if not sig.enable:
                     continue
@@ -4432,13 +4437,9 @@ class _Plot(pg.PlotWidget):
 
                 sig.pen.setWidth(pen_width)
 
-                paint.resetTransform()
-                paint.translate(0, 0)
                 paint.setPen(sig.pen)
-                paint.setBrush(no_brush)
+
                 paint.drawPath(self.generatePath(x, y, sig))
-                paint.resetTransform()
-                paint.translate(0, 0)
 
                 if with_dots:
                     pos = np.isfinite(y)
@@ -4455,8 +4456,6 @@ class _Plot(pg.PlotWidget):
                     arr[:, 0] = x
                     arr[:, 1] = y
                     paint.drawPoints(poly)
-
-                    paint.setBrush(no_brush)
 
                 try:
                     item = self.plot_parent.item_by_uuid(sig.uuid)
@@ -4530,13 +4529,8 @@ class _Plot(pg.PlotWidget):
                             pen = fn.mkPen(color.name())
                             pen.setWidth(pen_width)
 
-                            paint.resetTransform()
-                            paint.translate(0, 0)
                             paint.setPen(pen)
-                            paint.setBrush(no_brush)
                             paint.drawPath(self.generatePath(x, y))
-                            paint.resetTransform()
-                            paint.translate(0, 0)
 
                             if with_dots:
                                 pen.setWidth(dots_with)
@@ -4552,9 +4546,6 @@ class _Plot(pg.PlotWidget):
                                 arr[:, 0] = x
                                 arr[:, 1] = y
                                 paint.drawPoints(poly)
-
-                                paint.setBrush(no_brush)
-
             paint.end()
 
         paint = QtGui.QPainter()
