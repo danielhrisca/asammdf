@@ -4567,6 +4567,16 @@ class _Plot(pg.PlotWidget):
             self.x_axis.boundingRect(),
         )
 
+        for ax in self.axes:
+            if isinstance(ax, FormatedAxis) and ax.isVisible():
+                if ax.picture is None:
+                    ax.paint(paint, None, None)
+                paint.drawPixmap(
+                    ax.sceneBoundingRect(),
+                    ax.picture,
+                    ax.boundingRect(),
+                )
+
         self.auto_clip_rect(paint)
 
         paint.drawPixmap(event_rect, self._pixmap, event_rect)

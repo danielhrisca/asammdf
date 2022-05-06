@@ -250,15 +250,15 @@ class FormatedAxis(pg.AxisItem):
             p = QtGui.QPainter(self.minus.pixmap)
             self.minus.pixmap.fill(color)
             p.setBrush(self.background)
-            p.drawRect(QtCore.QRect(0, 24, 64, 15))
+            p.drawRect(QtCore.QRect(4, 24, 56, 15))
             p.end()
 
         if self.plus is not None:
             p = QtGui.QPainter(self.plus.pixmap)
             self.plus.pixmap.fill(color)
             p.setBrush(self.background)
-            p.drawRect(QtCore.QRect(0, 24, 64, 15))
-            p.drawRect(QtCore.QRect(24, 0, 15, 64))
+            p.drawRect(QtCore.QRect(4, 24, 56, 15))
+            p.drawRect(QtCore.QRect(24, 4, 15, 56))
             p.end()
 
         if pen is not self._pen:
@@ -362,7 +362,8 @@ class FormatedAxis(pg.AxisItem):
                 event.ignore()
 
     def paint(self, p, opt, widget):
-        rect = self.sceneBoundingRect()
+        rect = self.boundingRect()
+        print("rect ", rect)
         width = rect.width()
         if self.picture is None:
             try:
@@ -380,10 +381,18 @@ class FormatedAxis(pg.AxisItem):
                     self.drawPicture(painter, *specs)
 
                 if self.minus is not None:
+                    print(
+                        "draw buton at",
+                        BUTTON_SIZE,
+                        QtCore.QPoint(int(rect.x()) + 5, 6),
+                    )
                     painter.drawPixmap(
                         QtCore.QPoint(int(rect.x()) + 5, 6),
                         self.minus.pixmap.scaled(BUTTON_SIZE, BUTTON_SIZE),
                     )
+                    from time import perf_counter
+
+                    self.minus.pixmap.save(rf"D:\TMP\but{perf_counter()}.png")
                     painter.drawPixmap(
                         QtCore.QPoint(int(rect.x()) + 5, 27),
                         self.plus.pixmap.scaled(BUTTON_SIZE, BUTTON_SIZE),
