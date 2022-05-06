@@ -551,6 +551,8 @@ class WithMDIArea:
 
         self.cursor_circle = True
         self.cursor_horizontal_line = True
+        self.cursor_line_width = 1
+        self.cursor_color = "#ffffff"
 
     def add_pattern_group(self, plot, group):
 
@@ -2136,6 +2138,8 @@ class WithMDIArea:
             hide_disabled_channels=self.hide_disabled_channels,
             show_cursor_circle=self.cursor_circle,
             show_cursor_horizontal_line=self.cursor_horizontal_line,
+            cursor_line_width=self.cursor_line_width,
+            cursor_color=self.cursor_color,
         )
         plot.pattern_group_added.connect(self.add_pattern_group)
         plot.pattern = {}
@@ -2880,6 +2884,8 @@ class WithMDIArea:
             hide_disabled_channels=self.hide_disabled_channels,
             show_cursor_circle=self.cursor_circle,
             show_cursor_horizontal_line=self.cursor_horizontal_line,
+            cursor_line_width=self.cursor_line_width,
+            cursor_color=self.cursor_color,
         )
         plot.pattern_group_added.connect(self.add_pattern_group)
         plot.pattern = pattern_info
@@ -3451,13 +3457,19 @@ class WithMDIArea:
     def window_closed_handler(self):
         self.windows_modified.emit()
 
-    def set_cursor_options(self, cursor_circle, cursor_horizontal_line):
+    def set_cursor_options(
+        self, cursor_circle, cursor_horizontal_line, cursor_line_width, cursor_color
+    ):
         self.cursor_circle = cursor_circle
         self.cursor_horizontal_line = cursor_horizontal_line
+        self.cursor_line_width = cursor_line_width
+        self.cursor_color = cursor_color
 
         for i, mdi in enumerate(self.mdi_area.subWindowList()):
             widget = mdi.widget()
             if isinstance(widget, Plot):
                 widget.plot.cursor1.show_circle = cursor_circle
                 widget.plot.cursor1.show_horizontal_line = cursor_horizontal_line
+                widget.plot.cursor1.line_width = cursor_line_width
+                widget.plot.cursor1.color = cursor_color
                 widget.plot.update()

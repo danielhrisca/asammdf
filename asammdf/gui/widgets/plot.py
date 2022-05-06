@@ -1296,6 +1296,8 @@ class Plot(QtWidgets.QWidget):
         allow_cursor=True,
         show_cursor_circle=True,
         show_cursor_horizontal_line=True,
+        cursor_line_width=1,
+        cursor_color="#ffffff",
         *args,
         **kwargs,
     ):
@@ -1355,6 +1357,10 @@ class Plot(QtWidgets.QWidget):
         if self.plot.cursor1 is not None:
             self.plot.cursor1.show_circle = show_cursor_circle
             self.plot.cursor1.show_horizontal_line = show_cursor_horizontal_line
+            self.plot.cursor1.line_with = cursor_line_width
+            self.plot.cursor1.color = cursor_color
+
+            print(cursor_line_width, self.plot.cursor1.line_with)
             self.lock = self.plot.lock
 
         self.cursor_info = CursorInfo(
@@ -4581,12 +4587,6 @@ class _Plot(pg.PlotWidget):
 
         paint.drawPixmap(event_rect, self._pixmap, event_rect)
 
-        if self.cursor1 is not None and self.cursor1.isVisible():
-            self.cursor1.paint(paint, plot=self, uuid=self.current_uuid)
-
-        if self.region is not None:
-            self.region.paint(paint, plot=self, uuid=self.current_uuid)
-
         if self.y_axis.grid or self.x_axis.grid:
 
             rect = self.viewbox.sceneBoundingRect()
@@ -4610,6 +4610,12 @@ class _Plot(pg.PlotWidget):
                         QtCore.QPointF(x_pos, 0),
                         QtCore.QPointF(x_pos, event_rect.y() + event_rect.height()),
                     )
+
+        if self.cursor1 is not None and self.cursor1.isVisible():
+            self.cursor1.paint(paint, plot=self, uuid=self.current_uuid)
+
+        if self.region is not None:
+            self.region.paint(paint, plot=self, uuid=self.current_uuid)
 
         paint.end()
 

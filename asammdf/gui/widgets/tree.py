@@ -772,11 +772,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.autoscroll_mouse_pos = None
         self.drop_target = None
 
-        uuids = get_data(self.plot, self.selectedItems(), uuids_only=True)
-
         if e.source() is self:
-            uuids = get_data(self.plot, self.selectedItems(), uuids_only=True)
+            item = self.itemAt(6, 6)
             super().dropEvent(e)
+            self.scrollToItem(item)
 
         else:
             data = e.mimeData()

@@ -7,19 +7,23 @@ from PySide6 import QtCore, QtGui
 
 
 class Cursor(pg.InfiniteLine):
-    def __init__(self, *args, show_circle=True, show_horizontal_line=True, **kwargs):
+    def __init__(
+        self,
+        *args,
+        show_circle=True,
+        show_horizontal_line=True,
+        line_width=1,
+        color="#ffffff",
+        **kwargs
+    ):
 
         super().__init__(
             *args,
             **kwargs,
         )
 
-        self.pen.setWidth(1)
-        self.hoverPen.setWidth(1)
-
-        color = self.pen.color()
-        color.setAlpha(200)
-        self.pen.setColor(color)
+        self.line_width = line_width
+        self.color = color
 
         self.setCursor(QtCore.Qt.SplitHCursor)
         self.sigDragged.connect(self.update_mouse_cursor)
@@ -28,6 +32,27 @@ class Cursor(pg.InfiniteLine):
         self._cursor_override = False
         self.show_circle = show_circle
         self.show_horizontal_line = show_horizontal_line
+
+    @property
+    def color(self):
+        return self.pen.color().name()
+
+    @color.setter
+    def color(self, value):
+        color = pg.mkColor(value)
+        color.setAlpha(200)
+        self.pen.setColor(color)
+        self.hoverPen.setColor(color)
+        self.update()
+
+    @property
+    def line_width(self):
+        return self._line_width
+
+    @line_width.setter
+    def line_width(self, value):
+        self._line_width = value
+        self.update()
 
     def update_mouse_cursor(self, obj):
         if self.moving:
@@ -46,11 +71,8 @@ class Cursor(pg.InfiniteLine):
         if plot:
             paint.setRenderHint(paint.RenderHint.Antialiasing, False)
 
-            pen = self.currentPen
-            pen.setJoinStyle(QtCore.Qt.PenJoinStyle.MiterJoin)
-            paint.setPen(pen)
-
             pen = self.pen
+            pen.setWidth(self.line_width)
             paint.setPen(pen)
 
             position = self.value()
@@ -86,9 +108,6 @@ class Cursor(pg.InfiniteLine):
                             delta=delta,
                         )
 
-                        pen.setWidth(1)
-                        paint.setPen(pen)
-
                         if self.show_circle:
                             paint.drawLine(
                                 QtCore.QPointF(x, 0), QtCore.QPointF(x, y - 5)
@@ -104,9 +123,6 @@ class Cursor(pg.InfiniteLine):
                                 paint.drawLine(
                                     QtCore.QPointF(x + 5, y), QtCore.QPointF(width, y)
                                 )
-
-                            pen.setWidth(2)
-                            paint.setPen(pen)
 
                             paint.drawEllipse(QtCore.QPointF(x, y), 5, 5)
 
