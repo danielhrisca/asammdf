@@ -381,31 +381,24 @@ class FormatedAxis(pg.AxisItem):
                     self.drawPicture(painter, *specs)
 
                 if self.minus is not None:
-                    print(
-                        "draw buton at",
-                        BUTTON_SIZE,
-                        QtCore.QPoint(int(rect.x()) + 5, 6),
-                    )
                     painter.drawPixmap(
                         QtCore.QPoint(int(rect.x()) + 5, 6),
                         self.minus.pixmap.scaled(BUTTON_SIZE, BUTTON_SIZE),
                     )
-                    from time import perf_counter
-
-                    self.minus.pixmap.save(rf"D:\TMP\but{perf_counter()}.png")
                     painter.drawPixmap(
                         QtCore.QPoint(int(rect.x()) + 5, 27),
                         self.plus.pixmap.scaled(BUTTON_SIZE, BUTTON_SIZE),
                     )
 
                 if self.orientation in ("left", "right"):
+                    painter.setPen(self._pen)
 
                     label_rect = QtCore.QRectF(
                         1, 1, rect.height() - (28 + BUTTON_SIZE), rect.width()
                     )
                     painter.translate(rect.bottomLeft())
                     painter.rotate(-90)
-                    painter.setPen(self._pen)
+
                     painter.setRenderHint(painter.RenderHint.TextAntialiasing, True)
                     painter.drawText(
                         label_rect,

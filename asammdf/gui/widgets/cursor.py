@@ -44,7 +44,7 @@ class Cursor(pg.InfiniteLine):
 
     def paint(self, paint, *args, plot=None, uuid=None):
         if plot:
-            paint.setRenderHint(paint.RenderHint.Antialiasing, True)
+            paint.setRenderHint(paint.RenderHint.Antialiasing, False)
 
             pen = self.currentPen
             pen.setJoinStyle(QtCore.Qt.PenJoinStyle.MiterJoin)
