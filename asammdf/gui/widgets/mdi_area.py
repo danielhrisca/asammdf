@@ -2997,14 +2997,13 @@ class WithMDIArea:
         if "locked" in window_info["configuration"]:
             plot.set_locked(locked=window_info["configuration"]["locked"])
 
-        if "hide_axes" in window_info["configuration"]:
-            plot.hide_axes(hide=window_info["configuration"]["hide_axes"])
+        plot.hide_axes(hide=window_info["configuration"].get("hide_axes", False))
 
-        if "hide_selected_channel_value_panel" in window_info["configuration"]:
-            plot.hide_selected_channel_value(
-                hide=window_info["configuration"]["hide_selected_channel_value_panel"]
+        plot.hide_selected_channel_value(
+            hide=window_info["configuration"].get(
+                "hide_selected_channel_value_panel", True
             )
-
+        )
         plot.plot._can_paint_global = True
         plot.channel_selection.refresh()
 

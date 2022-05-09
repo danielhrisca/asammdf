@@ -13,6 +13,7 @@ from textwrap import wrap
 from traceback import format_exc
 from typing import Any
 
+import dateutil
 from numexpr import evaluate
 
 try:
@@ -2923,10 +2924,10 @@ class HeaderBlock:
     @start_time.setter
     def start_time(self, timestamp: datetime) -> None:
         if timestamp.tzinfo is None:
-            # the user porvided a naive datetime
+            # the user provided a naive datetime
             # use the local time zone
-            tzinfo = datetime.tz.tzlocal()
-            timestamp = datetime.fromtimestamp(timestamp.timestamp(), tzinfo=tzinfo)
+            tzinfo = dateutil.tz.tzlocal()
+            timestamp = datetime.fromtimestamp(timestamp.timestamp(), tzinfo)
 
         self.date = timestamp.strftime("%d:%m:%Y").encode("ascii")
         self.time = timestamp.strftime("%H:%M:%S").encode("ascii")
