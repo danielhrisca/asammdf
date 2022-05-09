@@ -1461,6 +1461,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
             if self.details is not None:
                 self.details.color = value
+
             tree = self.treeWidget()
             if tree:
                 tree.color_changed.emit(self.uuid, value)

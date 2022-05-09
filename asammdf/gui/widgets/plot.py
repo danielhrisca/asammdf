@@ -1360,7 +1360,6 @@ class Plot(QtWidgets.QWidget):
             self.plot.cursor1.line_with = cursor_line_width
             self.plot.cursor1.color = cursor_color
 
-            print(cursor_line_width, self.plot.cursor1.line_with)
             self.lock = self.plot.lock
 
         self.cursor_info = CursorInfo(
@@ -1494,7 +1493,39 @@ class Plot(QtWidgets.QWidget):
 
         self.locked = False
 
+        self.hide_axes_btn = btn = QtWidgets.QPushButton("")
+        self.hide_axes_btn.clicked.connect(self.hide_axes)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/axis.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        btn.setIcon(icon)
+        btn.setToolTip("Hide axis")
+        hbox.addWidget(self.hide_axes_btn)
+
+        self.selected_channel_value_btn = btn = QtWidgets.QPushButton("")
+        self.selected_channel_value_btn.clicked.connect(
+            self.hide_selected_channel_value
+        )
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/number.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        btn.setIcon(icon)
+        btn.setToolTip("Hide axis")
+        hbox.addWidget(self.selected_channel_value_btn)
+
         hbox.addStretch()
+
+        self.selected_channel_value = QtWidgets.QLabel("")
+        self.selected_channel_value.setAlignment(
+            QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter
+        )
+        self.selected_channel_value.setAutoFillBackground(True)
+        font = self.selected_channel_value.font()
+        font.setBold(True)
+        font.setPointSize(24)
+        self.selected_channel_value.setFont(font)
+
+        vbox.addWidget(self.selected_channel_value)
 
         vbox.addWidget(self.channel_selection)
         vbox.addWidget(self.cursor_info)
@@ -1506,6 +1537,7 @@ class Plot(QtWidgets.QWidget):
         self.plot.range_removed.connect(self.range_removed)
         self.plot.range_modified_finished.connect(self.range_modified_finished)
         self.plot.cursor_removed.connect(self.cursor_removed)
+        self.plot.current_uuid_changed.connect(self.current_uuid_changed)
 
         self.cursor_proxy = pg.SignalProxy(
             self.plot.cursor_moved, rateLimit=16, slot=self.cursor_moved
@@ -1617,15 +1649,49 @@ class Plot(QtWidgets.QWidget):
         self.plot.dot_width = value + 4
         self.plot.update()
 
+    def hide_axes(self, event=None, hide=None):
+        if hide is None:
+            hide = not self.hide_axes_btn.isFlat()
+
+        if hide:
+            self.plot.y_axis.hide()
+            self.plot.x_axis.hide()
+            self.hide_axes_btn.setFlat(True)
+            self.hide_axes_btn.setToolTip("Show axes")
+        else:
+            self.plot.y_axis.show()
+            self.plot.x_axis.show()
+            self.hide_axes_btn.setFlat(False)
+            self.hide_axes_btn.setToolTip("Hide axes")
+
+    def hide_selected_channel_value(self, event=None, hide=None):
+        if hide is None:
+            hide = not self.selected_channel_value_btn.isFlat()
+
+        if hide:
+            self.selected_channel_value.hide()
+            self.selected_channel_value_btn.setFlat(True)
+            self.selected_channel_value_btn.setToolTip(
+                "Show selected channel value panel"
+            )
+        else:
+            self.selected_channel_value.show()
+            self.selected_channel_value_btn.setFlat(False)
+            self.selected_channel_value_btn.setToolTip(
+                "Hide selected channel value panel"
+            )
+
     def set_locked(self, event=None, locked=None):
         if locked is None:
             locked = not self.locked
         if locked:
             tooltip = "The Y axis is locked. Press to unlock"
             png = ":/locked.png"
+            self.lock_btn.setFlat(True)
         else:
             tooltip = "The Y axis is unlocked. Press to lock"
             png = ":/unlocked.png"
+            self.lock_btn.setFlat(False)
 
         self.channel_selection.setColumnHidden(
             self.channel_selection.CommonAxisColumn, locked
@@ -1680,10 +1746,27 @@ class Plot(QtWidgets.QWidget):
             iterator += 1
 
     def channel_selection_item_changed(self, top_left, bottom_right, roles):
+        item = self.channel_selection.itemFromIndex(top_left)
+
+        if item.uuid == self.info_uuid:
+            palette = self.selected_channel_value.palette()
+
+            brush = QtGui.QBrush(item.foreground(item.NameColumn))
+            brush.setStyle(QtCore.Qt.SolidPattern)
+            palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.WindowText, brush)
+
+            brush = QtGui.QBrush(item.background(item.NameColumn))
+            brush.setStyle(QtCore.Qt.SolidPattern)
+            palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Window, brush)
+
+            self.selected_channel_value.setPalette(palette)
+
+            value = item.text(item.ValueColumn)
+            unit = item.text(item.UnitColumn)
+            self.selected_channel_value.setText(f"{value} {unit}")
+
         if QtCore.Qt.CheckStateRole not in roles:
             return
-
-        item = self.channel_selection.itemFromIndex(top_left)
 
         if item.type() != item.Channel:
             return
@@ -1725,6 +1808,22 @@ class Plot(QtWidgets.QWidget):
         self.clicked.emit()
         super().mousePressEvent(event)
 
+    def current_uuid_changed(self, uuid):
+        self.info_uuid = uuid
+        palette = self.selected_channel_value.palette()
+        sig, idx = self.plot.signal_by_uuid(uuid)
+        brush = QtGui.QBrush(sig.color)
+        brush.setStyle(QtCore.Qt.SolidPattern)
+        palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.WindowText, brush)
+        self.selected_channel_value.setPalette(palette)
+
+        item = self.item_by_uuid(uuid)
+        if item is not None:
+
+            value = item.text(item.ValueColumn)
+            unit = item.text(item.UnitColumn)
+            self.selected_channel_value.setText(f"{value} {unit}")
+
     def channel_selection_modified(self, item):
         self.channel_selection_row_changed(item, None)
 
@@ -1755,6 +1854,8 @@ class Plot(QtWidgets.QWidget):
             iterator += 1
 
         if not count:
+            self.info_uuid = None
+            self.selected_channel_value.setText("")
             self.close_request.emit()
 
     def cursor_move_finished(self, cursor=None):
@@ -1799,6 +1900,11 @@ class Plot(QtWidgets.QWidget):
                     item.set_fmt(fmt)
 
                     item.set_value(value, update=True)
+
+                    if item.uuid == self.info_uuid:
+                        value = item.text(item.ValueColumn)
+                        unit = signal.unit
+                        self.selected_channel_value.setText(f"{value} {unit}")
 
         if self.info.isVisible():
             stats = self.plot.get_stats(self.info_uuid)
@@ -1984,6 +2090,8 @@ class Plot(QtWidgets.QWidget):
             if self.info.isVisible():
                 stats = self.plot.get_stats(self.info_uuid)
                 self.info.set_stats(stats)
+
+            self.current_uuid_changed(self.plot.current_uuid)
             self.plot.update()
 
         elif (
@@ -2500,6 +2608,8 @@ class Plot(QtWidgets.QWidget):
         if update:
             self.channel_selection.update_channel_groups_count()
             self.channel_selection.refresh()
+
+        self.current_uuid_changed(self.plot.current_uuid)
         self.plot._can_paint = True
         self.plot.update()
 
@@ -2662,6 +2772,8 @@ class Plot(QtWidgets.QWidget):
                 self.splitter.sizes()[0],
                 [self.channel_selection.columnWidth(i) for i in range(5)],
             ],
+            "hide_axes": not self.plot.y_axis.isVisible(),
+            "hide_selected_channel_value_panel": not self.selected_channel_value.isVisible(),
         }
 
         return config
@@ -2845,6 +2957,7 @@ class _Plot(pg.PlotWidget):
     computation_channel_inserted = QtCore.Signal(object)
     curve_clicked = QtCore.Signal(str)
     signals_enable_changed = QtCore.Signal()
+    current_uuid_changed = QtCore.Signal(str)
 
     add_channels_request = QtCore.Signal(list)
 
@@ -3330,7 +3443,6 @@ class _Plot(pg.PlotWidget):
         self._enable_timer.start(50)
 
     def _signals_enabled_changed_handler(self):
-        # print('signals enabled')
 
         self._compute_all_timebase()
         if self.cursor1:
@@ -4020,6 +4132,8 @@ class _Plot(pg.PlotWidget):
 
         viewbox.setYRange(*sig.y_range, padding=0)
 
+        self.current_uuid_changed.emit(uuid)
+
     def _clicked(self, event):
         modifiers = QtWidgets.QApplication.keyboardModifiers()
 
@@ -4050,7 +4164,7 @@ class _Plot(pg.PlotWidget):
                     self.cursor1.setPos(pos)
                     self.cursor1.sigPositionChangeFinished.emit(self.cursor1)
 
-        delta = self.y_axis.width() + 1
+        delta = self.viewbox.sceneBoundingRect().x()
         x_range = self.viewbox.viewRange()[0]
         for sig in self.signals:
             if not sig.enable:

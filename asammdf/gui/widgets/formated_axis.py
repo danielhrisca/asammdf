@@ -363,7 +363,7 @@ class FormatedAxis(pg.AxisItem):
 
     def paint(self, p, opt, widget):
         rect = self.boundingRect()
-        print("rect ", rect)
+
         width = rect.width()
         if self.picture is None:
             try:
@@ -372,41 +372,45 @@ class FormatedAxis(pg.AxisItem):
 
                 painter = QtGui.QPainter()
                 painter.begin(picture)
-                painter.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
-                if self.style["tickFont"]:
-                    painter.setFont(self.style["tickFont"])
-                specs = self.generateDrawSpecs(painter)
 
-                if specs is not None:
-                    self.drawPicture(painter, *specs)
-
-                if self.minus is not None:
-                    painter.drawPixmap(
-                        QtCore.QPoint(int(rect.x()) + 5, 6),
-                        self.minus.pixmap.scaled(BUTTON_SIZE, BUTTON_SIZE),
+                if self.isVisible():
+                    painter.setCompositionMode(
+                        QtGui.QPainter.CompositionMode_SourceOver
                     )
-                    painter.drawPixmap(
-                        QtCore.QPoint(int(rect.x()) + 5, 27),
-                        self.plus.pixmap.scaled(BUTTON_SIZE, BUTTON_SIZE),
-                    )
+                    if self.style["tickFont"]:
+                        painter.setFont(self.style["tickFont"])
+                    specs = self.generateDrawSpecs(painter)
 
-                if self.orientation in ("left", "right"):
-                    painter.setPen(self._pen)
+                    if specs is not None:
+                        self.drawPicture(painter, *specs)
 
-                    label_rect = QtCore.QRectF(
-                        1, 1, rect.height() - (28 + BUTTON_SIZE), rect.width()
-                    )
-                    painter.translate(rect.bottomLeft())
-                    painter.rotate(-90)
+                    if self.minus is not None:
+                        painter.drawPixmap(
+                            QtCore.QPoint(int(rect.x()) + 5, 6),
+                            self.minus.pixmap.scaled(BUTTON_SIZE, BUTTON_SIZE),
+                        )
+                        painter.drawPixmap(
+                            QtCore.QPoint(int(rect.x()) + 5, 27),
+                            self.plus.pixmap.scaled(BUTTON_SIZE, BUTTON_SIZE),
+                        )
 
-                    painter.setRenderHint(painter.RenderHint.TextAntialiasing, True)
-                    painter.drawText(
-                        label_rect,
-                        QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop,
-                        self._label_with_unit,
-                    )
-                    painter.rotate(90)
-                    painter.resetTransform()
+                    if self.orientation in ("left", "right"):
+                        painter.setPen(self._pen)
+
+                        label_rect = QtCore.QRectF(
+                            1, 1, rect.height() - (28 + BUTTON_SIZE), rect.width()
+                        )
+                        painter.translate(rect.bottomLeft())
+                        painter.rotate(-90)
+
+                        painter.setRenderHint(painter.RenderHint.TextAntialiasing, True)
+                        painter.drawText(
+                            label_rect,
+                            QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop,
+                            self._label_with_unit,
+                        )
+                        painter.rotate(90)
+                        painter.resetTransform()
 
             finally:
                 painter.end()
