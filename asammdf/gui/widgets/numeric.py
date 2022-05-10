@@ -1200,6 +1200,9 @@ class Numeric(QtWidgets.QWidget):
         if self.mode == "offline":
             self.pattern = {}
 
+            self._min = float("inf")
+            self._max = -float("inf")
+
             self.timestamp.valueChanged.connect(self._timestamp_changed)
             self.timestamp_slider.valueChanged.connect(self._timestamp_slider_changed)
 

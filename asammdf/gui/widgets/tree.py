@@ -379,6 +379,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     unit_changed = QtCore.Signal(str, str)
     name_changed = QtCore.Signal(str, str)
     visible_items_changed = QtCore.Signal()
+    group_activation_changed = QtCore.Signal()
 
     NameColumn = 0
     ValueColumn = 1
@@ -448,7 +449,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         )
 
         if self.autoscroll_mouse_pos is not None:
-            height = self.rect().height()
+
+            height = self.viewport().rect().height()
             y = self.autoscroll_mouse_pos
 
             if y <= 15:
@@ -830,6 +832,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             menu.addAction(self.tr("Rename group"))
         menu.addSeparator()
 
+        if item is not None and item.type() == item.Group and item.isDisabled():
+            menu.addAction(self.tr("Activate group"))
+        menu.addAction(self.tr("Deactivate groups"))
         menu.addAction(self.tr("Enable all"))
         menu.addAction(self.tr("Disable all"))
         if item:
@@ -888,6 +893,16 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 QtCore.QEvent.KeyPress, QtCore.Qt.Key_C, QtCore.Qt.ControlModifier
             )
             self.keyPressEvent(event)
+
+        elif action.text() == "Activate group":
+            item.set_disabled(False)
+            self.group_activation_changed.emit()
+
+        elif action.text() == "Deactivate groups":
+            for item in self.selectedItems():
+                if item.type() == item.Group:
+                    item.set_disabled(True)
+            self.group_activation_changed.emit()
 
         elif action.text() == "Set color [C]":
             event = QtGui.QKeyEvent(
@@ -1663,6 +1678,25 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         for row in range(count):
             item = self.child(row)
             item.reset_resolved_ranges()
+
+    def set_disabled(self, disabled):
+        if self.type() == self.Channel:
+            self.setDisabled(disabled)
+            if self.details is not None:
+                self.details.setDisabled(disabled)
+
+            if disabled:
+                self.signal.enable = False
+            else:
+                enable = self.checkState(self.NameColumn) == QtCore.Qt.Checked
+                self.signal.enable = enable
+
+        elif self.type() == self.Group:
+            self.setDisabled(disabled)
+            count = self.childCount()
+            for i in range(count):
+                child = self.child(i)
+                child.set_disabled(disabled)
 
     def set_fmt(self, fmt):
         if self.kind in "SUV":

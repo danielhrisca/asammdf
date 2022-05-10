@@ -1590,6 +1590,7 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.name_changed.connect(self.plot.set_name)
 
         self.channel_selection.itemsDeleted.connect(self.channel_selection_reduced)
+        self.channel_selection.group_activation_changed.connect(self.plot.update)
         # self.channel_selection.itemPressed.connect(self.channel_selection_modified)
         self.channel_selection.currentItemChanged.connect(
             self.channel_selection_row_changed
@@ -1768,7 +1769,7 @@ class Plot(QtWidgets.QWidget):
         if QtCore.Qt.CheckStateRole not in roles:
             return
 
-        if item.type() != item.Channel:
+        if item.type() != item.Channel or item.isDisabled():
             return
 
         column = top_left.column()
@@ -1792,7 +1793,7 @@ class Plot(QtWidgets.QWidget):
                 self.plot.set_individual_axis(item.uuid, enabled)
 
     def channel_selection_item_double_clicked(self, item, column):
-        if item is None:
+        if item is None or item.isDisabled():
             return
 
         elif item.type() != item.Info and column not in (
@@ -2693,6 +2694,7 @@ class Plot(QtWidgets.QWidget):
             "ranges": ranges,
             "origin_uuid": item.origin_uuid,
             "expanded": item.isExpanded(),
+            "disabled": item.isDisabled(),
         }
 
         return channel_group
