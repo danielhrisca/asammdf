@@ -1887,7 +1887,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
     def unit(self):
         type = self.type()
         if type == self.Channel:
-            return self.signal.unit
+            return self.signal.unit if self.signal.mode != "raw" else ""
         else:
             return ""
 

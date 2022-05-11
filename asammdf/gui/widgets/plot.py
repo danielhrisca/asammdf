@@ -7,10 +7,12 @@ from functools import lru_cache, partial, reduce
 import logging
 import os
 from pathlib import Path
+from tempfile import gettempdir
 from threading import Lock
 from time import perf_counter, sleep, time
 from traceback import format_exc
 import weakref
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import numpy as np
 import pyqtgraph as pg
@@ -1765,7 +1767,7 @@ class Plot(QtWidgets.QWidget):
             self.selected_channel_value.setPalette(palette)
 
             value = item.text(item.ValueColumn)
-            unit = item.text(item.UnitColumn)
+            unit = item.unit
             self.selected_channel_value.setText(f"{value} {unit}")
 
         if QtCore.Qt.CheckStateRole not in roles:
@@ -1824,7 +1826,7 @@ class Plot(QtWidgets.QWidget):
         if item is not None:
 
             value = item.text(item.ValueColumn)
-            unit = item.text(item.UnitColumn)
+            unit = item.unit
             self.selected_channel_value.setText(f"{value} {unit}")
 
     def channel_selection_modified(self, item):
@@ -1906,7 +1908,7 @@ class Plot(QtWidgets.QWidget):
 
                     if item.uuid == self.info_uuid:
                         value = item.text(item.ValueColumn)
-                        unit = signal.unit
+                        unit = item.unit
                         self.selected_channel_value.setText(f"{value} {unit}")
 
         if self.info.isVisible():
@@ -2106,6 +2108,7 @@ class Plot(QtWidgets.QWidget):
             selected_items = self.channel_selection.selectedItems()
             if not selected_items:
                 signals = [(sig, i) for i, sig in enumerate(self.plot.signals)]
+                uuids = [sig.uuid for sig in self.plot.signals]
 
             else:
                 uuids = [
@@ -2175,6 +2178,10 @@ class Plot(QtWidgets.QWidget):
                         self.plot.get_axis(idx).mode = mode
                         self.plot.get_axis(idx).picture = None
                         self.plot.get_axis(idx).update()
+
+            for uuid in uuids:
+                item = self.item_by_uuid(uuid)
+                item.setText(item.UnitColumn, item.unit)
 
             self.plot.update()
 
@@ -3669,7 +3676,7 @@ class _Plot(pg.PlotWidget):
                     self,
                     "Select output measurement file",
                     "",
-                    "MDF version 4 files (*.mf4)",
+                    "MDF version 4 files (*.mf4 *.mf4z)",
                 )
 
                 if file_name:
@@ -3692,7 +3699,27 @@ class _Plot(pg.PlotWidget):
                                     else:
                                         sigs.append(signal)
                                 mdf.append(sigs, common_timebase=True)
-                            mdf.save(file_name, overwrite=True)
+
+                            file_name = Path(file_name)
+
+                            if file_name.suffix.lower() in (".zip", ".mf4z"):
+
+                                tmpf = Path(gettempdir()) / f"{perf_counter()}.mf4"
+                                mdf.save(tmpf, overwrite=True, compression=2)
+
+                                zipped_mf4 = ZipFile(
+                                    file_name, "w", compression=ZIP_DEFLATED
+                                )
+                                zipped_mf4.write(
+                                    str(tmpf),
+                                    file_name.with_suffix(".mf4").name,
+                                    compresslevel=1,
+                                )
+
+                                tmpf.unlink()
+
+                            else:
+                                mdf.save(file_name, overwrite=True, compression=2)
 
             elif (
                 key == QtCore.Qt.Key_S
