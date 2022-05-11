@@ -1638,6 +1638,8 @@ class Plot(QtWidgets.QWidget):
         self.splitter.splitterMoved.connect(self.set_splitter)
         self.line_width = line_width
 
+        self.hide_selected_channel_value(hide=True)
+
         self.show()
 
     @property
