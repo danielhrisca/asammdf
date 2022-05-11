@@ -472,18 +472,6 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
                 if dialog.result():
                     window_type = dialog.selected_type()
 
-                    if window_type == "Plot" and count(names) > 200:
-                        ret = QtWidgets.QMessageBox.question(
-                            self,
-                            "Continue plotting large number of channels?",
-                            "For optimal performance it is advised not plot more than 200 channels. "
-                            f"You are attempting to plot {count(names)} channels.\n"
-                            "Do you wish to continue?",
-                        )
-
-                        if ret != QtWidgets.QMessageBox.Yes:
-                            return
-
                     self.add_window_request.emit([window_type, names])
 
     def tile_horizontally(self):

@@ -146,6 +146,7 @@ class Channel:
         "display_names",
         "comment",
         "conversion",
+        "unit",
         "source",
         "address",
         "id",
@@ -174,7 +175,7 @@ class Channel:
     def __init__(self, **kwargs) -> None:
         super().__init__()
 
-        self.name = self.comment = ""
+        self.name = self.comment = self.unit = ""
         self.display_names = {}
         self.conversion = self.source = None
         self.dtype_fmt = None

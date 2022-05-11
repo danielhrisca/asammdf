@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'define_channel_dialog.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.2.3
+## Created by: Qt User Interface Compiler version 6.3.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -17,18 +17,20 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QGridLayout,
     QLabel, QLineEdit, QPlainTextEdit, QPushButton,
-    QSizePolicy, QSpacerItem, QTabWidget, QWidget)
+    QSizePolicy, QSpacerItem, QTabWidget, QTextEdit,
+    QWidget)
 from . import resource_rc
 
 class Ui_ComputedChannel(object):
     def setupUi(self, ComputedChannel):
         if not ComputedChannel.objectName():
             ComputedChannel.setObjectName(u"ComputedChannel")
-        ComputedChannel.resize(702, 395)
-        ComputedChannel.setMaximumSize(QSize(16777215, 400))
+        ComputedChannel.resize(937, 384)
+        ComputedChannel.setMaximumSize(QSize(16777215, 16777215))
         icon = QIcon()
         icon.addFile(u":/plus.png", QSize(), QIcon.Normal, QIcon.Off)
         ComputedChannel.setWindowIcon(icon)
+        ComputedChannel.setSizeGripEnabled(True)
         self.gridLayout = QGridLayout(ComputedChannel)
         self.gridLayout.setObjectName(u"gridLayout")
         self.apply_btn = QPushButton(ComputedChannel)
@@ -100,40 +102,45 @@ class Ui_ComputedChannel(object):
         self.tabs.addTab(self.tab, "")
         self.tab_2 = QWidget()
         self.tab_2.setObjectName(u"tab_2")
-        self.gridLayout_4 = QGridLayout(self.tab_2)
-        self.gridLayout_4.setObjectName(u"gridLayout_4")
-        self.function_unit = QLineEdit(self.tab_2)
-        self.function_unit.setObjectName(u"function_unit")
-
-        self.gridLayout_4.addWidget(self.function_unit, 3, 0, 1, 1)
-
-        self.horizontalSpacer_10 = QSpacerItem(92, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        self.gridLayout_4.addItem(self.horizontalSpacer_10, 1, 2, 1, 1)
-
-        self.horizontalSpacer_11 = QSpacerItem(184, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        self.gridLayout_4.addItem(self.horizontalSpacer_11, 3, 1, 1, 1)
-
+        self.function_layout = QGridLayout(self.tab_2)
+        self.function_layout.setObjectName(u"function_layout")
         self.channel = QComboBox(self.tab_2)
         self.channel.setObjectName(u"channel")
 
-        self.gridLayout_4.addWidget(self.channel, 1, 0, 1, 2)
+        self.function_layout.addWidget(self.channel, 1, 0, 1, 2)
 
-        self.function_name = QLineEdit(self.tab_2)
-        self.function_name.setObjectName(u"function_name")
+        self.horizontalSpacer_10 = QSpacerItem(92, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
-        self.gridLayout_4.addWidget(self.function_name, 2, 0, 1, 3)
+        self.function_layout.addItem(self.horizontalSpacer_10, 1, 2, 1, 1)
+
+        self.horizontalSpacer_11 = QSpacerItem(184, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.function_layout.addItem(self.horizontalSpacer_11, 3, 1, 1, 1)
+
+        self.function_unit = QLineEdit(self.tab_2)
+        self.function_unit.setObjectName(u"function_unit")
+
+        self.function_layout.addWidget(self.function_unit, 3, 0, 1, 1)
 
         self.function = QComboBox(self.tab_2)
         self.function.setObjectName(u"function")
         self.function.setMinimumSize(QSize(380, 20))
 
-        self.gridLayout_4.addWidget(self.function, 0, 0, 1, 2)
+        self.function_layout.addWidget(self.function, 0, 0, 1, 2)
 
-        self.verticalSpacer_2 = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.function_name = QLineEdit(self.tab_2)
+        self.function_name.setObjectName(u"function_name")
 
-        self.gridLayout_4.addItem(self.verticalSpacer_2, 4, 0, 1, 1)
+        self.function_layout.addWidget(self.function_name, 2, 0, 1, 3)
+
+        self.horizontalSpacer_6 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.function_layout.addItem(self.horizontalSpacer_6, 1, 3, 1, 1)
+
+        self.help = QTextEdit(self.tab_2)
+        self.help.setObjectName(u"help")
+
+        self.function_layout.addWidget(self.help, 4, 0, 1, 4)
 
         self.tabs.addTab(self.tab_2, "")
         self.tab_3 = QWidget()
@@ -176,7 +183,7 @@ class Ui_ComputedChannel(object):
 
         self.retranslateUi(ComputedChannel)
 
-        self.tabs.setCurrentIndex(0)
+        self.tabs.setCurrentIndex(1)
 
 
         QMetaObject.connectSlotsByName(ComputedChannel)
@@ -192,10 +199,10 @@ class Ui_ComputedChannel(object):
         self.name.setPlaceholderText(QCoreApplication.translate("ComputedChannel", u"channel name", None))
         self.tabs.setTabText(self.tabs.indexOf(self.tab), QCoreApplication.translate("ComputedChannel", u"Simple computation", None))
         self.function_unit.setPlaceholderText(QCoreApplication.translate("ComputedChannel", u"channel unit", None))
-        self.function_name.setPlaceholderText(QCoreApplication.translate("ComputedChannel", u"channel name", None))
 #if QT_CONFIG(tooltip)
         self.function.setToolTip(QCoreApplication.translate("ComputedChannel", u"see numpy documentation", None))
 #endif // QT_CONFIG(tooltip)
+        self.function_name.setPlaceholderText(QCoreApplication.translate("ComputedChannel", u"channel name", None))
         self.tabs.setTabText(self.tabs.indexOf(self.tab_2), QCoreApplication.translate("ComputedChannel", u"Function", None))
         self.expression_name.setPlaceholderText(QCoreApplication.translate("ComputedChannel", u"channel name", None))
         self.expression_unit.setPlaceholderText(QCoreApplication.translate("ComputedChannel", u"channel unit", None))

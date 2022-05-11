@@ -349,6 +349,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
     def function_changed(self, index):
         function = self.function.currentText()
+        self.help.setText(getattr(np, function).__doc__)
         if function in [
             "arccos",
             "arcsin",
@@ -387,13 +388,13 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 self.func_arg1.setDecimals(6)
                 self.func_arg1.setMinimum(-np.inf)
                 self.func_arg1.setMaximum(np.inf)
-                self.gridLayout_4.addWidget(self.func_arg1, 0, 2)
+                self.function_layout.addWidget(self.func_arg1, 0, 2)
 
                 self.func_arg2 = QtWidgets.QDoubleSpinBox()
                 self.func_arg2.setDecimals(6)
                 self.func_arg2.setMinimum(-np.inf)
                 self.func_arg2.setMaximum(np.inf)
-                self.gridLayout_4.addWidget(self.func_arg2, 0, 3)
+                self.function_layout.addWidget(self.func_arg2, 0, 3)
 
             if function == "round":
                 self.func_arg2.setEnabled(False)

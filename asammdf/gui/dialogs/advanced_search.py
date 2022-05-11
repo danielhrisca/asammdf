@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
+from traceback import format_exc
 
 from natsort import natsorted
 from PySide6 import QtCore, QtWidgets
@@ -307,6 +308,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                 self.matches.expandAll()
 
             except Exception as err:
+                print(format_exc())
                 self.status.setText(str(err))
 
             self.matches.setSortingEnabled(True)
