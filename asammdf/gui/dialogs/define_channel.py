@@ -482,7 +482,8 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             self.result = AsamSignal(
                 samples=samples, timestamps=timestamps, name=name, unit=unit
             )
-            self.result.enabled = True
+            self.result.enable = True
+            self.result.computed = True
             self.result.computation = {
                 "type": "function",
                 "channel": channel.computation or channel_name,
@@ -547,7 +548,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                     samples=samples,
                     timestamps=common_timebase,
                 )
-                self.result.enabled = True
+                self.result.enable = True
                 self.result.computed = True
                 self.result.computation = {
                     "type": "expression",

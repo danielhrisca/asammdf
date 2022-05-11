@@ -81,9 +81,6 @@ def build_mime_from_config(
 
     if top:
         rename_origin_uuid(items)
-        # for item in items:
-        #     if item.get("type", "channel") == "group":
-        #         item["origin_uuid"] = get_origin_uuid(item)
 
     descriptions = {}
     found = {}
@@ -572,18 +569,6 @@ class WithMDIArea:
             ignore_value2text_conversions = False
             current_count = len(widget.plot.signals)
             count = len(names)
-            if current_count + count > 200:
-                ret = QtWidgets.QMessageBox.question(
-                    self,
-                    "Continue plotting large number of channels?",
-                    "For optimal performance it is advised not plot more than 200 channels. "
-                    f"You are attempting to add {count} new channels to a plot that already "
-                    f"contains {current_count} channels.\n"
-                    "Do you wish to continue?",
-                )
-
-                if ret != QtWidgets.QMessageBox.Yes:
-                    return
         else:
             ignore_value2text_conversions = self.ignore_value2text_conversions
 

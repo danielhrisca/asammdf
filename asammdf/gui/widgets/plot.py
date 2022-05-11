@@ -2340,18 +2340,13 @@ class Plot(QtWidgets.QWidget):
     def computation_channel_inserted(self, sig):
         sig.enable = True
 
-        self.add_new_channels({sig.name: sig})
+        if self.channel_selection.selectedItems():
+            item = self.channel_selection.selectedItems()[0]
+            destination = self.channel_selection.itemBelow(item) or item
+        else:
+            destination = None
 
-        # background_color = self.palette().color(QtGui.QPalette.Base)
-        #
-        # item = ChannelsTreeItem(
-        #     ChannelsTreeItem.Channel,
-        #     signal=sig,
-        #     check=QtCore.Qt.Checked if sig.enable else QtCore.Qt.Unchecked,
-        #     background_color=background_color,
-        # )
-        #
-        # self.channel_selection.addTopLevelItem(item)
+        self.add_new_channels({sig.name: sig}, destination=destination)
 
         self.info_uuid = sig.uuid
 
@@ -2812,10 +2807,16 @@ class Plot(QtWidgets.QWidget):
         for sig in self.plot.signals:
             if sig.uuid == uuid:
                 if sig.computed:
-                    view = ComputedChannelInfoWindow(sig, self)
-                    view.show()
+                    print(1)
+                    try:
+                        view = ComputedChannelInfoWindow(sig, self)
+                        view.show()
+                    except:
+                        print(format_exc())
+                        raise
 
                 else:
+                    print(2)
                     self.show_properties.emit(
                         [sig.group_index, sig.channel_index, sig.origin_uuid]
                     )
@@ -2912,9 +2913,6 @@ class Plot(QtWidgets.QWidget):
                     entry = (item.origin_uuid, item.signal.name, item.uuid)
                     _visible_entries.add(entry)
                     _visible_items[entry] = item
-
-                else:
-                    item.set_value("")
 
         if self.plot.cursor1 is not None:
             self.cursor_moved()

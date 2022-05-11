@@ -1166,6 +1166,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             if len(selected_items) == 1:
                 item = selected_items[0]
                 if item.type() == ChannelsTreeItem.Channel:
+                    self.drop_target = item
                     self.insert_computation.emit(item.name)
 
         elif action.text() == "Compute FFT":
