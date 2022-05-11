@@ -463,6 +463,66 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 )
                 self.verticalScrollBar().setValue(pos)
 
+    def startDrag(self, supportedActions):
+
+        selected_items = validate_drag_items(
+            self.invisibleRootItem(), self.selectedItems(), []
+        )
+
+        mimeData = QtCore.QMimeData()
+
+        data = get_data(self.plot, selected_items, uuids_only=False)
+        data = json.dumps(data).encode("utf-8")
+
+        mimeData.setData("application/octet-stream-asammdf", QtCore.QByteArray(data))
+
+        drag = QtGui.QDrag(self)
+        drag.setMimeData(mimeData)
+        drag.exec_(QtCore.Qt.MoveAction)
+
+    def dragEnterEvent(self, e):
+        self.autoscroll_timer.start()
+        self.autoscroll_mouse_pos = e.answerRect().y()
+        e.accept()
+
+    def dragLeaveEvent(self, e):
+        self.autoscroll_timer.stop()
+        self.autoscroll_mouse_pos = None
+        e.accept()
+
+    def dragMoveEvent(self, e):
+        self.autoscroll_mouse_pos = e.answerRect().y()
+        e.accept()
+
+    def dropEvent(self, e):
+        self.autoscroll_timer.stop()
+        self.autoscroll_mouse_pos = None
+        self.drop_target = None
+
+        if e.source() is self:
+            item = self.itemAt(6, 6)
+            super().dropEvent(e)
+            self.scrollToItem(item)
+
+        else:
+            data = e.mimeData()
+            if data.hasFormat("application/octet-stream-asammdf"):
+                names = extract_mime_names(data)
+                item = self.itemAt(e.pos())
+
+                if item and item.type() == item.Info:
+                    item = item.parent()
+                self.drop_target = item
+
+                self.add_channels_request.emit(names)
+            else:
+                super().dropEvent(e)
+
+        self.refresh()
+
+    def is_item_visible(self, item):
+        return item._is_visible
+
     def item_selection_changed(self):
         selection = list(self.selectedItems())
 
@@ -737,63 +797,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             event.ignore()
         else:
             super().keyPressEvent(event)
-
-    def startDrag(self, supportedActions):
-
-        selected_items = validate_drag_items(
-            self.invisibleRootItem(), self.selectedItems(), []
-        )
-
-        mimeData = QtCore.QMimeData()
-
-        data = get_data(self.plot, selected_items, uuids_only=False)
-        data = json.dumps(data).encode("utf-8")
-
-        mimeData.setData("application/octet-stream-asammdf", QtCore.QByteArray(data))
-
-        drag = QtGui.QDrag(self)
-        drag.setMimeData(mimeData)
-        drag.exec_(QtCore.Qt.MoveAction)
-
-    def dragEnterEvent(self, e):
-        self.autoscroll_timer.start()
-        self.autoscroll_mouse_pos = e.answerRect().y()
-        e.accept()
-
-    def dragLeaveEvent(self, e):
-        self.autoscroll_timer.stop()
-        self.autoscroll_mouse_pos = None
-        e.accept()
-
-    def dragMoveEvent(self, e):
-        self.autoscroll_mouse_pos = e.answerRect().y()
-        e.accept()
-
-    def dropEvent(self, e):
-        self.autoscroll_timer.stop()
-        self.autoscroll_mouse_pos = None
-        self.drop_target = None
-
-        if e.source() is self:
-            item = self.itemAt(6, 6)
-            super().dropEvent(e)
-            self.scrollToItem(item)
-
-        else:
-            data = e.mimeData()
-            if data.hasFormat("application/octet-stream-asammdf"):
-                names = extract_mime_names(data)
-                item = self.itemAt(e.pos())
-
-                if item and item.type() == item.Info:
-                    item = item.parent()
-                self.drop_target = item
-
-                self.add_channels_request.emit(names)
-            else:
-                super().dropEvent(e)
-
-        self.refresh()
 
     def open_menu(self, position):
 
@@ -1241,6 +1244,15 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         self.update_channel_groups_count()
 
+    def refresh(self):
+        self.updateGeometry()
+        self.update_hidden_states()
+        self.update_visibility_status()
+
+    def resizeEvent(self, e: QtGui.QResizeEvent) -> None:
+        super().resizeEvent(e)
+        self.update_visibility_status()
+
     def update_channel_groups_count(self):
         iterator = QtWidgets.QTreeWidgetItemIterator(self)
         while True:
@@ -1282,11 +1294,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
             iterator += 1
 
-    def refresh(self):
-        self.updateGeometry()
-        self.update_hidden_states()
-        self.update_visibility_status()
-
     def update_visibility_status(self, *args):
 
         tree_rect = self.viewport().rect()
@@ -1306,13 +1313,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             iterator += 1
 
         self.visible_items_changed.emit()
-
-    def is_item_visible(self, item):
-        return item._is_visible
-
-    def resizeEvent(self, e: QtGui.QResizeEvent) -> None:
-        super().resizeEvent(e)
-        self.update_visibility_status()
 
 
 class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
