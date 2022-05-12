@@ -41,8 +41,8 @@ class Cursor(pg.InfiniteLine):
     def color(self, value):
         color = pg.mkColor(value)
         color.setAlpha(200)
-        self.pen.setColor(color)
-        self.hoverPen.setColor(color)
+        self.pen = QtGui.QPen(color.name())
+        self.hoverPen = QtGui.QPen(color.name())
         self.update()
 
     @property

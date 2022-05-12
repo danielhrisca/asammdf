@@ -1338,7 +1338,7 @@ class Plot(QtWidgets.QWidget):
         if self.plot.cursor1 is not None:
             self.plot.cursor1.show_circle = show_cursor_circle
             self.plot.cursor1.show_horizontal_line = show_cursor_horizontal_line
-            self.plot.cursor1.line_with = cursor_line_width
+            self.plot.cursor1.line_width = cursor_line_width
             self.plot.cursor1.color = cursor_color
 
             self.lock = self.plot.lock

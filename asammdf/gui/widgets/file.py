@@ -90,6 +90,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         if "default_folder" in kwargs:
             kwargs.pop("default_folder")
 
+        self.loaded_display_file = ""
+
         self.line_width = line_width
 
         super(Ui_file_widget, self).__init__(*args, **kwargs)
@@ -1143,9 +1145,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         info = json.load(infile)
                     channels = info.get("selected_channels", [])
 
+                self.loaded_display_file = file_name
+
             else:
                 info = file_name
                 channels = info.get("selected_channels", [])
+                self.loaded_display_file = info.get("display_file_name", "")
 
             if channels:
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)

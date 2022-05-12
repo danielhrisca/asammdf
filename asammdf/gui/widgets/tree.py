@@ -1465,10 +1465,11 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
     def color(self, value):
         if self.type() == self.Channel:
             value = fn.mkColor(value)
+            color_name = value.name()
 
             self.signal.color = value
-            self.signal.pen.setColor(value)
-            self.signal.color_name = value.name()
+            self.signal.pen = fn.mkPen(color_name)
+            self.signal.color_name = color_name
             self.setForeground(self.NameColumn, value)
             self.setForeground(self.ValueColumn, value)
             self.setForeground(self.CommonAxisColumn, value)
@@ -1587,14 +1588,13 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             "ylink": self.checkState(self.CommonAxisColumn) == QtCore.Qt.Checked,
             "individual_axis": self.checkState(self.IndividualAxisColumn)
             == QtCore.Qt.Checked,
-            "format": "hex"
-            if self.fmt.startswith("0x")
-            else "bin"
-            if self.fmt.startswith("0b")
-            else "phys",
-            # "display": self.display.checkState() == QtCore.Qt.Checked,
-            "ranges": self.ranges,
+            "format": self.format,
+            "ranges": copy_ranges(self.ranges),
         }
+
+        for range_info in info["ranges"]:
+            range_info["background_color"] = range_info["background_color"].name()
+            range_info["font_color"] = range_info["font_color"].name()
 
         plot = self.treeWidget().plot.plot
 
