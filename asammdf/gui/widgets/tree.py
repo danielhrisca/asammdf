@@ -1871,6 +1871,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                         self.signal.plot_samples.dtype,
                         self.precision,
                     )
+
                     text = f"{self._value_prefix}{string}"
 
                 try:

@@ -41,12 +41,6 @@ class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
 
         self.signal_selected(self.signal.currentText())
 
-        self._y_top = y_range[1]
-        self._y_bottom = y_range[0]
-
-        self.y_top.setValue(y_range[1])
-        self.y_bottom.setValue(y_range[0])
-
         self.apply_btn.clicked.connect(self.apply)
         self.cancel_btn.clicked.connect(self.cancel)
         self.zoom_in_btn.clicked.connect(self.zoom_in)
@@ -79,6 +73,12 @@ class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
         self.plot.setFocus()
 
         self._inhibit = False
+
+        self._y_top = y_range[1]
+        self._y_bottom = y_range[0]
+
+        self.y_top.setValue(y_range[1])
+        self.y_bottom.setValue(y_range[0])
 
         self.draw_plot()
 

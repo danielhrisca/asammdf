@@ -2356,7 +2356,7 @@ class Plot(QtWidgets.QWidget):
                 )
 
         elif (
-            key in (QtCore.Qt.Key_B, QtCore.Qt.Key_H, QtCore.Qt.Key_P)
+            key in (QtCore.Qt.Key_B, QtCore.Qt.Key_H, QtCore.Qt.Key_P, QtCore.Qt.Key_T)
             and modifiers == QtCore.Qt.ControlModifier
         ):
 
@@ -2379,8 +2379,10 @@ class Plot(QtWidgets.QWidget):
                     fmt = "bin"
                 elif key == QtCore.Qt.Key_H:
                     fmt = "hex"
-                else:
+                elif key == QtCore.Qt.Key_P:
                     fmt = "phys"
+                else:
+                    fmt = "ascii"
 
                 for signal, idx in signals:
                     if signal.plot_samples.dtype.kind in "ui":
@@ -3101,6 +3103,9 @@ class _Plot(pg.PlotWidget):
         )
         self.y_axis.setWidth(48)
 
+        self.y_axis.scale_editor_requested.connect(self.open_scale_editor)
+        self.y_axis.rangeChanged.connect(self.set_y_range)
+
         self.plot_item.setAxisItems({"left": self.y_axis, "bottom": self.x_axis})
 
         def plot_item_wheel_event(event):
@@ -3117,7 +3122,61 @@ class _Plot(pg.PlotWidget):
                                 axis.wheelEvent(event)
                                 break
 
+        def plot_item_mousePressEvent(event):
+            if event is not None:
+                x = event.pos().x()
+
+                if x <= self.y_axis.width():
+                    self.y_axis.mousePressEvent(event)
+                else:
+                    for axis in self.axes:
+                        if isinstance(axis, FormatedAxis) and axis.isVisible():
+                            rect = axis.sceneBoundingRect()
+                            if rect.x() <= x <= rect.x() + rect.width():
+                                axis.mousePressEvent(event)
+                                break
+                    else:
+                        self.plot_item._mousePressEvent(event)
+
+        def plot_item_mouseMoveEvent(event):
+            if event is not None:
+                x = event.pos().x()
+
+                if x <= self.y_axis.width():
+                    self.y_axis.mouseMoveEvent(event)
+                else:
+                    for axis in self.axes:
+                        if isinstance(axis, FormatedAxis) and axis.isVisible():
+                            rect = axis.sceneBoundingRect()
+                            if rect.x() <= x <= rect.x() + rect.width():
+                                axis.mouseMoveEvent(event)
+                                break
+                    else:
+                        self.plot_item._mouseMoveEvent(event)
+
+        def plot_item_mouseReleaseEvent(event):
+            if event is not None:
+                x = event.pos().x()
+
+                if x <= self.y_axis.width():
+                    self.y_axis.mouseReleaseEvent(event)
+                else:
+                    for axis in self.axes:
+                        if isinstance(axis, FormatedAxis) and axis.isVisible():
+                            rect = axis.sceneBoundingRect()
+                            if rect.x() <= x <= rect.x() + rect.width():
+                                axis.mouseReleaseEvent(event)
+                                break
+                    else:
+                        self.plot_item._mouseReleaseEvent(event)
+
         self.plot_item.wheelEvent = plot_item_wheel_event
+        self.plot_item._mousePressEvent = self.plot_item.mousePressEvent
+        self.plot_item._mouseMoveEvent = self.plot_item.mouseMoveEvent
+        self.plot_item._mouseReleaseEvent = self.plot_item.mouseReleaseEvent
+        self.plot_item.mousePressEvent = plot_item_mousePressEvent
+        self.plot_item.mouseMoveEvent = plot_item_mouseMoveEvent
+        self.plot_item.mouseReleaseEvent = plot_item_mouseReleaseEvent
 
         self.viewbox_geometry = self.viewbox.sceneBoundingRect()
 
@@ -3458,6 +3517,7 @@ class _Plot(pg.PlotWidget):
                 maxTickLength=5,
                 background=self.backgroundBrush().color(),
             )
+            axis.scale_editor_requested.connect(self.open_scale_editor)
             if sig.conversion and hasattr(sig.conversion, "text_0"):
                 axis.text_conversion = sig.conversion
 
@@ -4134,6 +4194,26 @@ class _Plot(pg.PlotWidget):
             if not handled:
                 self.parent().keyPressEvent(event)
 
+    def open_scale_editor(self, uuid):
+        uuid = uuid or self.current_uuid
+
+        if uuid is None:
+            return
+
+        signal, idx = self.signal_by_uuid(uuid)
+        signals = {signal.name: signal}
+
+        diag = ScaleDialog(signals, signal.y_range, parent=self)
+
+        if diag.exec():
+            y_range = (
+                diag.y_bottom.value(),
+                diag.y_top.value(),
+            )
+            signal.y_range = y_range
+
+            self.update()
+
     def paintEvent(self, ev):
         if not self._can_paint or not self._can_paint_global:
             return
@@ -4647,6 +4727,10 @@ class _Plot(pg.PlotWidget):
         self.update()
 
     def set_y_range(self, uuid, y_range):
+        uuid = uuid or self.current_uuid
+        if uuid is None:
+            return
+
         sig, _ = self.signal_by_uuid(uuid)
         if (
             uuid == self.current_uuid

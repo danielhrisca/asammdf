@@ -19,6 +19,7 @@ BUTTON_SIZE = 16
 class FormatedAxis(pg.AxisItem):
 
     rangeChanged = QtCore.Signal(object, object)
+    scale_editor_requested = QtCore.Signal(object)
 
     def __init__(self, *args, **kwargs):
 
@@ -180,10 +181,56 @@ class FormatedAxis(pg.AxisItem):
         return lsbl
 
     def mouseDragEvent(self, event):
-        if self.linkedView() is None:
+        if self.locked:
             return
-        if self.orientation in ["left", "right"]:
-            return self.linkedView().mouseDragEvent(event)
+
+        if self.orientation in ("left", "right"):
+
+            ev = event
+            ev.accept()
+
+            pos = ev.pos()
+            lastPos = ev.lastPos()
+            dif = pos - lastPos
+            dif = dif * -1
+
+            if ev.button() in [
+                QtCore.Qt.MouseButton.LeftButton,
+                QtCore.Qt.MouseButton.MiddleButton,
+            ]:
+
+                if self.orientation in ("left", "right"):
+                    scale = (
+                        self.range[1] - self.range[0]
+                    ) / self.sceneBoundingRect().height()
+                    delta = scale * dif.y()
+                else:
+                    scale = (
+                        self.range[1] - self.range[0]
+                    ) / self.sceneBoundingRect().width()
+                    delta = scale * dif.x()
+
+                self.setRange(self.range[0] - delta, self.range[1] - delta)
+
+            elif ev.button() & QtCore.Qt.MouseButton.RightButton:
+
+                mid = sum(self.range) / 2
+                delta = self.range[-1] - self.range[0]
+
+                if self.orientation in ("left", "right"):
+
+                    if dif.y() > 0:
+                        delta = 0.94 * delta
+                    else:
+                        delta = 1.06 * delta
+
+                else:
+                    if dif.x() > 0:
+                        delta = 0.94 * delta
+                    else:
+                        delta = 1.06 * delta
+
+                self.setRange(mid - delta / 2, mid + delta / 2)
         else:
             return self.linkedView().mouseDragEvent(event)
 
@@ -265,13 +312,11 @@ class FormatedAxis(pg.AxisItem):
             self.setPen(pen)
 
     def raiseContextMenu(self, ev):
-        view = self.linkedView()
-        if self.orientation in ("left", "right"):
-            low, high = view.viewRange()[1]
-        else:
-            low, high = view.viewRange()[0]
+        low, high = self.range
 
         menu = QtWidgets.QMenu()
+        menu.addAction("Edit Y axis scaling")
+        menu.addSeparator()
         menu.addAction("Apply new axis limits")
         menu.addSeparator()
 
@@ -312,11 +357,14 @@ class FormatedAxis(pg.AxisItem):
         if action is None:
             return
 
-        if action.text() == "Apply new axis limits":
+        elif action.text() == "Apply new axis limits":
             if self.orientation in ("left", "right"):
-                view.setYRange(lower.value(), upper.value(), padding=0)
+                self.setRange(lower.value(), upper.value())
             else:
-                view.setXRange(lower.value(), upper.value(), padding=0)
+                self.setRange(lower.value(), upper.value())
+
+        elif action.text() == "Edit Y axis scaling":
+            self.scale_editor_requested.emit(self.uuid)
 
     def set_font_size(self, size):
         font = self.font()
