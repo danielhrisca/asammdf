@@ -1767,7 +1767,9 @@ class Plot(QtWidgets.QWidget):
 
         background_color = self.palette().color(QtGui.QPalette.Base)
 
-        new_items = defaultdict(list)
+        new_items = {}
+
+        items_map = {}
         for sig_uuid, sig in channels.items():
 
             description = descriptions.get(sig_uuid, {})
@@ -1792,6 +1794,7 @@ class Plot(QtWidgets.QWidget):
                 children.append(item)
             else:
                 new_items[sig_uuid] = item
+                items_map[sig_uuid] = item
 
             try:
                 item.set_ranges(
@@ -1813,24 +1816,6 @@ class Plot(QtWidgets.QWidget):
             for range in item.ranges:
                 range["font_color"] = fn.mkColor(range["font_color"])
                 range["background_color"] = fn.mkColor(range["background_color"])
-
-            if description:
-                individual_axis = description.get("individual_axis", False)
-                if individual_axis:
-                    item.setCheckState(item.IndividualAxisColumn, QtCore.Qt.Checked)
-
-                    _, idx = self.plot.signal_by_uuid(sig_uuid)
-                    axis = self.plot.get_axis(idx)
-                    if isinstance(axis, FormatedAxis):
-                        axis.setWidth(description["individual_axis_width"])
-
-                if description.get("common_axis", False):
-                    item.setCheckState(item.CommonAxisColumn, QtCore.Qt.Checked)
-
-                item.precision = description.get("precision", 3)
-
-            if enforce_y_axis:
-                item.setCheckState(item.CommonAxisColumn, QtCore.Qt.Checked)
 
             self.info_uuid = sig_uuid
 
@@ -1880,6 +1865,27 @@ class Plot(QtWidgets.QWidget):
                     )
                     index = parent.indexOfChild(destination)
                     parent.insertChildren(index, children)
+
+        for sig_uuid, sig in channels.items():
+            description = descriptions.get(sig_uuid, {})
+            item = items_map[sig_uuid]
+            if description:
+                individual_axis = description.get("individual_axis", False)
+                if individual_axis:
+                    item.setCheckState(item.IndividualAxisColumn, QtCore.Qt.Checked)
+
+                    _, idx = self.plot.signal_by_uuid(sig_uuid)
+                    axis = self.plot.get_axis(idx)
+                    if isinstance(axis, FormatedAxis):
+                        axis.setWidth(description["individual_axis_width"])
+
+                if description.get("common_axis", False):
+                    item.setCheckState(item.CommonAxisColumn, QtCore.Qt.Checked)
+
+                item.precision = description.get("precision", 3)
+
+            if enforce_y_axis:
+                item.setCheckState(item.CommonAxisColumn, QtCore.Qt.Checked)
 
         if update:
             self.channel_selection.update_channel_groups_count()
@@ -4727,24 +4733,39 @@ class _Plot(pg.PlotWidget):
         self.update()
 
     def set_y_range(self, uuid, y_range):
-        uuid = uuid or self.current_uuid
+        update = False
         if uuid is None:
-            return
+            # y axis was changed
+            if self.current_uuid is None:
+                return
+            uuid = self.current_uuid
+            sig, idx = self.signal_by_uuid(uuid)
+            if sig.y_range != y_range:
+                sig.y_range = y_range
+                axis = self.axes[idx]
+                if isinstance(axis, FormatedAxis):
+                    axis.setRange(*y_range)
+                update = True
+        else:
 
-        sig, _ = self.signal_by_uuid(uuid)
-        if (
-            uuid == self.current_uuid
-            or self.current_uuid in self.common_axis_items
-            and uuid in self.common_axis_items
-        ):
+            sig, idx = self.signal_by_uuid(uuid)
             if sig.y_range != y_range:
                 sig.y_range = y_range
                 self.y_axis.setRange(*y_range)
-                self.update()
-        else:
-            if sig.y_range != y_range:
-                sig.y_range = y_range
-                self.update()
+                update = True
+
+        if uuid in self.common_axis_items:
+            for uuid in self.common_axis_items:
+                sig, idx = self.signal_by_uuid(uuid)
+                if sig.y_range != y_range:
+                    sig.y_range = y_range
+                    axis = self.axes[idx]
+                    if isinstance(axis, FormatedAxis):
+                        axis.setRange(*y_range)
+                    update = True
+
+        if update:
+            self.update()
 
     def signal_by_name(self, name):
         for i, sig in enumerate(self.signals):
