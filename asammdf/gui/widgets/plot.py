@@ -1320,6 +1320,8 @@ class Plot(QtWidgets.QWidget):
 
         widget.setLayout(vbox)
 
+        self.focused_mode = False
+
         self.splitter = QtWidgets.QSplitter()
         self.splitter.addWidget(widget)
         self.splitter.setOpaqueResize(False)
@@ -1494,6 +1496,16 @@ class Plot(QtWidgets.QWidget):
         btn.setToolTip("Hide axis")
         hbox.addWidget(self.selected_channel_value_btn)
 
+        self.focused_mode_btn = btn = QtWidgets.QPushButton("")
+        self.focused_mode_btn.clicked.connect(self.toggle_focused_mode)
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/focus.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        btn.setIcon(icon)
+        btn.setToolTip("Toggle focused mode")
+        hbox.addWidget(self.focused_mode_btn)
+
         hbox.addStretch()
 
         self.selected_channel_value = QtWidgets.QLabel("")
@@ -1572,9 +1584,11 @@ class Plot(QtWidgets.QWidget):
 
         self.channel_selection.itemsDeleted.connect(self.channel_selection_reduced)
         self.channel_selection.group_activation_changed.connect(self.plot.update)
-        # self.channel_selection.itemPressed.connect(self.channel_selection_modified)
         self.channel_selection.currentItemChanged.connect(
             self.channel_selection_row_changed
+        )
+        self.channel_selection.itemSelectionChanged.connect(
+            self.channel_selection_changed
         )
         self.channel_selection.add_channels_request.connect(self.add_channels_request)
         self.channel_selection.set_time_offset.connect(self.plot.set_time_offset)
@@ -1611,6 +1625,7 @@ class Plot(QtWidgets.QWidget):
                     (QtCore.Qt.Key_P, int(QtCore.Qt.ControlModifier)),
                     (QtCore.Qt.Key_T, int(QtCore.Qt.ControlModifier)),
                     (QtCore.Qt.Key_G, int(QtCore.Qt.ControlModifier)),
+                    (QtCore.Qt.Key_2, int(QtCore.Qt.NoModifier)),
                 ]
             )
             | self.plot.keyboard_events
@@ -1620,6 +1635,7 @@ class Plot(QtWidgets.QWidget):
         self.line_width = line_width
 
         self.hide_selected_channel_value(hide=True)
+        self.toggle_focused_mode(focused=False)
 
         self.show()
 
@@ -1794,7 +1810,7 @@ class Plot(QtWidgets.QWidget):
                 children.append(item)
             else:
                 new_items[sig_uuid] = item
-                items_map[sig_uuid] = item
+            items_map[sig_uuid] = item
 
             try:
                 item.set_ranges(
@@ -2005,6 +2021,40 @@ class Plot(QtWidgets.QWidget):
 
         return channel
 
+    def channel_selection_changed(self, update=False):
+        if self.focused_mode:
+            for signal in self.plot.signals:
+                signal.enable = False
+            for item in self.channel_selection.selectedItems():
+                if (
+                    item.type() == item.Channel
+                    and item.checkState(item.NameColumn) == QtCore.Qt.Checked
+                    and not item.isDisabled()
+                ):
+                    item.signal.enable = True
+            self.plot.update()
+        else:
+            if update:
+                for signal in self.plot.signals:
+                    signal.enable = False
+
+                iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+                while True:
+                    item = iterator.value()
+                    if item is None:
+                        break
+
+                    if (
+                        item.type() == item.Channel
+                        and item.checkState(item.NameColumn) == QtCore.Qt.Checked
+                        and not item.isDisabled()
+                    ):
+                        item.signal.enable = True
+
+                    iterator += 1
+
+                self.plot.update()
+
     def channel_selection_item_changed(self, top_left, bottom_right, roles):
         item = self.channel_selection.itemFromIndex(top_left)
 
@@ -2064,9 +2114,6 @@ class Plot(QtWidgets.QWidget):
             else:
                 item.setCheckState(item.NameColumn, QtCore.Qt.Checked)
 
-    def channel_selection_modified(self, item):
-        self.channel_selection_row_changed(item, None)
-
     def channel_selection_reduced(self, deleted):
         self.plot.delete_channels(deleted)
 
@@ -2086,6 +2133,7 @@ class Plot(QtWidgets.QWidget):
             self.close_request.emit()
 
     def channel_selection_row_changed(self, current, previous):
+
         if not self.closed and not self.ignore_selection_change:
             if current and current.type() == ChannelsTreeItem.Channel:
                 item = current
@@ -2360,6 +2408,10 @@ class Plot(QtWidgets.QWidget):
                         int(0.2 * (plt_size + info_size)),
                     )
                 )
+
+        elif key == QtCore.Qt.Key_2 and modifiers == QtCore.Qt.NoModifier:
+            self.focused_mode = not self.focused_mode
+            self.channel_selection_changed(update=True)
 
         elif (
             key in (QtCore.Qt.Key_B, QtCore.Qt.Key_H, QtCore.Qt.Key_P, QtCore.Qt.Key_T)
@@ -2894,6 +2946,23 @@ class Plot(QtWidgets.QWidget):
         }
 
         return config
+
+    def toggle_focused_mode(self, event=None, focused=None):
+        if focused is not None:
+            # invert so that the key press event will set the desider focused mode
+            self.focused_mode = not focused
+
+        event = QtGui.QKeyEvent(
+            QtCore.QEvent.KeyPress, QtCore.Qt.Key_2, QtCore.Qt.NoModifier
+        )
+        self.keyPressEvent(event)
+
+        if not self.focused_mode:
+            self.focused_mode_btn.setFlat(True)
+            self.focused_mode_btn.setToolTip("Switch on focused mode")
+        else:
+            self.focused_mode_btn.setFlat(False)
+            self.focused_mode_btn.setToolTip("Switch off focused mode")
 
     def update_current_values(self, *args):
         if self.plot.region:

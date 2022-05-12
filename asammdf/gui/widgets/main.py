@@ -397,6 +397,15 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/focus.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        action = QtGui.QAction(icon, "{: <20}\t2".format("Focused mdoe"), menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_2))
+        action.setShortcut(QtCore.Qt.Key_2)
+        plot_actions.addAction(action)
+
+        icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/plus.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         action = QtGui.QAction(icon, "{: <20}\tIns".format("Insert computation"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_Insert))
