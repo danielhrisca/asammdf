@@ -3819,12 +3819,16 @@ class _Plot(pg.PlotWidget):
 
             elif key == QtCore.Qt.Key_R and modifier == QtCore.Qt.NoModifier:
                 if self.region is None:
-                    if pg.getConfigOption("background") == "k":
-                        color = "white"
-                    else:
-                        color = "black"
+                    color = self.cursor1.pen.color().name()
 
-                    self.region = Region((0, 0), pen=color, hoverPen=color)
+                    self.region = Region(
+                        (0, 0),
+                        pen=color,
+                        hoverPen=color,
+                        show_circle=self.cursor1.show_circle,
+                        show_horizontal_line=self.cursor1.show_horizontal_line,
+                        line_width=self.cursor1.line_width,
+                    )
                     self.region.setZValue(-10)
                     self.viewbox.addItem(self.region)
                     self.region.sigRegionChanged.connect(self.range_modified.emit)

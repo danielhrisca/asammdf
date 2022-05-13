@@ -169,6 +169,9 @@ class Region(pg.LinearRegionItem):
         span=(0, 1),
         swapMode="sort",
         clipItem=None,
+        show_circle=True,
+        show_horizontal_line=True,
+        line_width=1,
     ):
         pg.GraphicsObject.__init__(self)
         self.orientation = orientation
@@ -190,6 +193,10 @@ class Region(pg.LinearRegionItem):
             span=span,
             pen=pen,
             hoverPen=hoverPen,
+            show_circle=show_circle,
+            show_horizontal_line=show_horizontal_line,
+            line_width=line_width,
+            color=pen,
         )
 
         self.lines = [

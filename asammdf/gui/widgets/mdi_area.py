@@ -3461,4 +3461,10 @@ class WithMDIArea:
                 widget.plot.cursor1.show_horizontal_line = cursor_horizontal_line
                 widget.plot.cursor1.line_width = cursor_line_width
                 widget.plot.cursor1.color = cursor_color
+                if widget.plot.region is not None:
+                    for cursor in widget.plot.region.lines:
+                        cursor.show_circle = cursor_circle
+                        cursor.show_horizontal_line = cursor_horizontal_line
+                        cursor.line_width = cursor_line_width
+                        cursor.color = cursor_color
                 widget.plot.update()
