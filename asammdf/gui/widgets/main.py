@@ -28,6 +28,8 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self._settings = QtCore.QSettings()
         self._light_palette = self.palette()
 
+        self.line_width = 1
+
         self.ignore_value2text_conversions = self._settings.value(
             "ignore_value2text_conversions", False, type=bool
         )
@@ -1344,13 +1346,20 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                             uuid = self.files.widget(file_index).uuid
                             name = mdf.groups[group].channels[ch_index].name
                             names.append(
-                                (
-                                    name,
-                                    *entry,
-                                    uuid,
-                                    "channel",
-                                    [],
-                                )
+                                {
+                                    "name": name,
+                                    "origin_uuid": uuid,
+                                    "type": "channel",
+                                    "ranges": [],
+                                    "group_index": group,
+                                    "channel_index": ch_index,
+                                    "uuid": os.urandom(6),
+                                    "computed": False,
+                                    "computation": {},
+                                    "precision": 3,
+                                    "common_axis": False,
+                                    "individual_axis": False,
+                                }
                             )
                         self.add_window((ret, names))
 

@@ -18,6 +18,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..mdf import MDF, MDF2, MDF3, MDF4
 from ..signal import Signal
+from .dialogs.define_channel import FUNCTIONS, MULTIPLE_ARGS_FUNCTIONS
 from .dialogs.error_dialog import ErrorDialog
 
 ERROR_ICON = None
@@ -472,34 +473,7 @@ def compute_signal(description, measured_signals, all_timebase):
 
         func = getattr(np, function)
 
-        if function in [
-            "arccos",
-            "arcsin",
-            "arctan",
-            "cos",
-            "deg2rad",
-            "degrees",
-            "rad2deg",
-            "radians",
-            "sin",
-            "tan",
-            "floor",
-            "rint",
-            "fix",
-            "trunc",
-            "cumprod",
-            "cumsum",
-            "diff",
-            "exp",
-            "log10",
-            "log",
-            "log2",
-            "absolute",
-            "cbrt",
-            "sqrt",
-            "square",
-            "gradient",
-        ]:
+        if function not in MULTIPLE_ARGS_FUNCTIONS:
 
             samples = func(channel.samples)
             if function == "diff":
@@ -507,7 +481,7 @@ def compute_signal(description, measured_signals, all_timebase):
             else:
                 timestamps = channel.timestamps
 
-        elif function == "around":
+        elif function == "round":
             samples = func(channel.samples, *args)
             timestamps = channel.timestamps
         elif function == "clip":

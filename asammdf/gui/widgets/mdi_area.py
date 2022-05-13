@@ -842,6 +842,10 @@ class WithMDIArea:
 
                     required_channels.update(measured_signals)
 
+                    required_channels = {
+                        key: sig.physical() for key, sig in required_channels.items()
+                    }
+
                     computed_signals = {}
 
                     for channel in computed:
@@ -2745,6 +2749,10 @@ class WithMDIArea:
             }
 
             required_channels.update(measured_signals)
+
+            required_channels = {
+                key: sig.physical() for key, sig in required_channels.items()
+            }
 
             for sig_uuid, channel in computed.items():
                 computation = channel["computation"]

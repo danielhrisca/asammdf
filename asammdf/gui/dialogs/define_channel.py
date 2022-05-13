@@ -31,6 +31,45 @@ OPS_TO_STR = {
 SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
 
 
+FUNCTIONS = [
+    "absolute",
+    "arccos",
+    "arcsin",
+    "arctan",
+    "cbrt",
+    "ceil",
+    "clip",
+    "cos",
+    "cumprod",
+    "cumsum",
+    "deg2rad",
+    "degrees",
+    "diff",
+    "exp",
+    "fix",
+    "floor",
+    "gradient",
+    "log",
+    "log10",
+    "log2",
+    "rad2deg",
+    "radians",
+    "rint",
+    "round",
+    "sin",
+    "sqrt",
+    "square",
+    "tan",
+    "trunc",
+]
+
+
+MULTIPLE_ARGS_FUNCTIONS = {
+    "clip",
+    "round",
+}
+
+
 class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
     def __init__(self, channels, all_timebase, name="", mdf=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -85,41 +124,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             ]
         )
 
-        self.function.addItems(
-            sorted(
-                [
-                    "absolute",
-                    "arccos",
-                    "arcsin",
-                    "arctan",
-                    "around",
-                    "cbrt",
-                    "ceil",
-                    "clip",
-                    "cos",
-                    "cumprod",
-                    "cumsum",
-                    "deg2rad",
-                    "degrees",
-                    "diff",
-                    "exp",
-                    "fix",
-                    "floor",
-                    "gradient",
-                    "log",
-                    "log10",
-                    "log2",
-                    "rad2deg",
-                    "radians",
-                    "rint",
-                    "sin",
-                    "sqrt",
-                    "square",
-                    "tan",
-                    "trunc",
-                ]
-            )
-        )
+        self.function.addItems(sorted(FUNCTIONS))
         self.function.setCurrentIndex(-1)
         self.channel.addItems(sorted(self.channels))
 
@@ -350,34 +355,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
     def function_changed(self, index):
         function = self.function.currentText()
         self.help.setText(getattr(np, function).__doc__)
-        if function in [
-            "arccos",
-            "arcsin",
-            "arctan",
-            "cos",
-            "ceil",
-            "deg2rad",
-            "degrees",
-            "rad2deg",
-            "radians",
-            "sin",
-            "tan",
-            "floor",
-            "rint",
-            "fix",
-            "trunc",
-            "cumprod",
-            "cumsum",
-            "diff",
-            "exp",
-            "log10",
-            "log",
-            "log2",
-            "absolute",
-            "cbrt",
-            "sqrt",
-            "square",
-        ]:
+        if function not in MULTIPLE_ARGS_FUNCTIONS:
             if self.func_arg1 is not None:
                 self.func_arg1.setParent(None)
                 self.func_arg1 = None
@@ -426,35 +404,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
         try:
 
-            if function in [
-                "arccos",
-                "arcsin",
-                "arctan",
-                "cos",
-                "ceil",
-                "deg2rad",
-                "degrees",
-                "rad2deg",
-                "radians",
-                "sin",
-                "tan",
-                "floor",
-                "rint",
-                "fix",
-                "trunc",
-                "cumprod",
-                "cumsum",
-                "diff",
-                "exp",
-                "log10",
-                "log",
-                "log2",
-                "absolute",
-                "cbrt",
-                "sqrt",
-                "square",
-                "gradient",
-            ]:
+            if function not in MULTIPLE_ARGS_FUNCTIONS:
 
                 samples = func(channel.samples)
                 if function == "diff":
@@ -464,7 +414,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 name = f"{function}_{channel.name}"
                 args = []
 
-            elif function == "around":
+            elif function == "round":
                 decimals = int(self.func_arg1.value())
                 samples = func(channel.samples, decimals)
                 timestamps = channel.timestamps
