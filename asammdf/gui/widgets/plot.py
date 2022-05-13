@@ -2198,7 +2198,11 @@ class Plot(QtWidgets.QWidget):
 
         if self.channel_selection.selectedItems():
             item = self.channel_selection.selectedItems()[0]
-            destination = self.channel_selection.itemBelow(item) or item
+            item_below = self.channel_selection.itemBelow(item)
+            if item_below is None or item_below.parent() != item.parent():
+                destination = item.parent()
+            else:
+                destination = item_below
         else:
             destination = None
 

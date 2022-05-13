@@ -106,6 +106,7 @@ def build_mime_from_config(
                 descriptions.update(new_descriptions)
                 found.update(new_found)
                 not_found.update(new_not_found)
+                computed.update(new_computed)
 
                 item["channels"] = new_mine
 
