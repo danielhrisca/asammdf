@@ -1257,6 +1257,7 @@ class Plot(QtWidgets.QWidget):
     clicked = QtCore.Signal()
     cursor_moved_signal = QtCore.Signal(object, float)
     cursor_removed_signal = QtCore.Signal(object)
+    edit_channel_request = QtCore.Signal(object, object)
     region_moved_signal = QtCore.Signal(object, list)
     region_removed_signal = QtCore.Signal(object)
     show_properties = QtCore.Signal(list)
@@ -1557,6 +1558,7 @@ class Plot(QtWidgets.QWidget):
         self.splitter.setStretchFactor(2, 0)
 
         self.plot.add_channels_request.connect(self.add_channels_request)
+        self.plot.edit_channel_request.connect(self.edit_channel_request)
         self.setAcceptDrops(True)
 
         main_layout.addWidget(self.splitter)
@@ -1594,6 +1596,7 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.set_time_offset.connect(self.plot.set_time_offset)
         self.channel_selection.show_properties.connect(self._show_properties)
         self.channel_selection.insert_computation.connect(self.plot.insert_computation)
+        self.channel_selection.edit_computation.connect(self.plot.edit_computation)
 
         self.channel_selection.model().dataChanged.connect(
             self.channel_selection_item_changed
@@ -2704,7 +2707,7 @@ class Plot(QtWidgets.QWidget):
     def pattern_group_added_req(self, group):
         self.pattern_group_added.emit(self, group)
 
-    def range_modified(self, region):
+    def range_modified(self, region=None):
 
         if self.plot.region is None:
             return
@@ -3024,6 +3027,7 @@ class _Plot(pg.PlotWidget):
     curve_clicked = QtCore.Signal(str)
     signals_enable_changed = QtCore.Signal()
     current_uuid_changed = QtCore.Signal(str)
+    edit_channel_request = QtCore.Signal(object, object)
 
     add_channels_request = QtCore.Signal(list)
 
@@ -3565,6 +3569,29 @@ class _Plot(pg.PlotWidget):
                 self.add_channels_request.emit(names)
             else:
                 super().dropEvent(e)
+
+    def edit_computation(self, item):
+
+        signal = item.signal
+
+        computed_signals = {
+            sig.name: sig
+            for sig in self.signals
+            if sig.computed and sig.uuid != signal.uuid
+        }
+        dlg = DefineChannel(
+            mdf=self.mdf,
+            name=signal.name,
+            computation=signal.computation,
+            computed_signals=computed_signals,
+            parent=self,
+        )
+        dlg.setModal(True)
+        dlg.exec_()
+        computed_channel = dlg.result
+
+        if computed_channel is not None:
+            self.edit_channel_request.emit(computed_channel, item)
 
     def generatePath(self, x, y, sig=None):
         if sig is None or sig.path is None:

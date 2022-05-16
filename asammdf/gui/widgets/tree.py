@@ -373,6 +373,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     add_channels_request = QtCore.Signal(list)
     show_properties = QtCore.Signal(object)
     insert_computation = QtCore.Signal(str)
+    edit_computation = QtCore.Signal(object)
     pattern_group_added = QtCore.Signal(object)
     compute_fft_request = QtCore.Signal(str)
     color_changed = QtCore.Signal(str, object)
@@ -873,6 +874,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             menu.addAction(self.tr("Set time base start offset"))
             menu.addSeparator()
             menu.addAction(self.tr("Insert computation using this channel"))
+
+            if item.signal.computed:
+                menu.addAction(self.tr("Edit this computed channel"))
             menu.addAction(self.tr("Compute FFT"))
             menu.addSeparator()
         if item:
@@ -1171,6 +1175,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 if item.type() == ChannelsTreeItem.Channel:
                     self.drop_target = item
                     self.insert_computation.emit(item.name)
+
+        elif action.text() == "Edit this computed channel":
+            self.edit_computation.emit(item)
 
         elif action.text() == "Compute FFT":
             selected_items = self.selectedItems()

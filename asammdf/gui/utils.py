@@ -524,6 +524,21 @@ def compute_signal(description, measured_signals, all_timebase):
     return result
 
 
+def replace_computation_dependency(computation, old_name, new_name):
+    new_computation = {}
+    for key, val in computation:
+        if isinstance(val, str) and old_name in val:
+            new_computation[key] = val.replace(old_name, new_name)
+        elif isinstance(val, dict):
+            new_computation[key] = replace_computation_dependency(
+                val, old_name, new_name
+            )
+        else:
+            new_computation[key] = val
+
+    return new_computation
+
+
 class HelperChannel:
 
     __slots__ = "entry", "name", "added"

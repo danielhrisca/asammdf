@@ -27,7 +27,12 @@ from ...mdf import MDF
 from ...signal import Signal
 from ..dialogs.channel_info import ChannelInfoDialog
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
-from ..utils import compute_signal, copy_ranges, extract_mime_names
+from ..utils import (
+    compute_signal,
+    copy_ranges,
+    extract_mime_names,
+    replace_computation_dependency,
+)
 from .bar import Bar
 from .can_bus_trace import CANBusTrace
 from .flexray_bus_trace import FlexRayBusTrace
@@ -2176,6 +2181,7 @@ class WithMDIArea:
                     continue
 
         plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
+        plot.edit_channel_request.connect(partial(self.edit_channel, widget=plot))
 
         plot.show_properties.connect(self._show_info)
 
@@ -2328,6 +2334,92 @@ class WithMDIArea:
         tabular.tree.auto_size_header()
 
         self.windows_modified.emit()
+
+    def edit_channel(self, channel, item, widget):
+        required_channels = set(get_required_from_computed(channel))
+
+        required_channels = [
+            (None, *self.mdf.whereis(channel)[0])
+            for channel in required_channels
+            if channel in self.mdf
+        ]
+        required_channels = {
+            sig.name: sig
+            for sig in self.mdf.select(
+                required_channels,
+                ignore_value2text_conversions=self.ignore_value2text_conversions,
+                copy_master=False,
+            )
+        }
+
+        if required_channels:
+            all_timebase = np.unique(
+                np.concatenate([sig.timestamps for sig in required_channels.values()])
+            )
+        else:
+            all_timebase = []
+
+        required_channels = {
+            key: sig.physical() for key, sig in required_channels.items()
+        }
+
+        computation = channel["computation"]
+
+        try:
+
+            signal = compute_signal(computation, required_channels, all_timebase)
+            signal.color = channel["color"]
+            signal.computed = True
+            signal.computation = channel["computation"]
+            signal.name = channel["name"]
+            signal.unit = channel["unit"]
+            signal.group_index = -1
+            signal.channel_index = -1
+            signal.origin_uuid = self.uuid
+            signal.comment = channel["computation"].get("channel_comment", "")
+            signal.uuid = channel.get("uuid", os.urandom(6).hex())
+
+            if "conversion" in channel:
+                signal.conversion = from_dict(channel["conversion"])
+                signal.name = channel["user_defined_name"]
+        except:
+            print(format_exc())
+            return
+
+        old_name = item.name
+        new_name = signal.name
+        uuid = item.uuid
+
+        item.signal.samples = (
+            item.signal.raw_samples
+        ) = item.signal.phys_samples = signal.samples
+        item.signal.timestamps = signal.timestamps
+        item.signal.trim(force=True)
+        item.signal.computation = signal.computation
+
+        item.setToolTip(item.NameColumn, f"{signal.name}\n{signal.comment}")
+        item.name = new_name
+        item.unit = signal.unit
+        widget.cursor_moved()
+        widget.range_modified()
+
+        widget.plot.update()
+
+        for channel in widget.plot.signals:
+            if channel.uuid == uuid:
+                continue
+
+            if channel.computed:
+                required_channels = set(get_required_from_computed(channel.computation))
+                if old_name in required_channels:
+                    item = widget.item_by_uuid
+
+                    computed_channel = widget.plot.channel_item_to_config(item)
+                    computed_channel["computation"] = replace_computation_dependency(
+                        computed_channel["computation"], old_name, new_name
+                    )
+
+                    widget.edit_channel_request.emit(computed_channel, item)
 
     def get_current_widget(self):
         mdi = self.mdi_area.activeSubWindow()
@@ -2949,6 +3041,7 @@ class WithMDIArea:
         # plot.show()
 
         plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
+        plot.edit_channel_request.connect(partial(self.edit_channel, widget=plot))
 
         self.set_subplots_link(self.subplots_link)
 

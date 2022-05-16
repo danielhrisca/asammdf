@@ -134,7 +134,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
             self.name.setText(computation["channel_name"])
             self.unit.setText(computation["channel_unit"])
-            self.comment.setText(computation.get("channel_comment", ""))
+            self.comment.setPlainText(computation.get("channel_comment", ""))
 
             if computation["type"] == "arithmetic":
                 if isinstance(computation["operand1"], str):
