@@ -139,7 +139,8 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             if computation["type"] == "arithmetic":
                 if isinstance(computation["operand1"], str):
                     self.operand1_as_signal.setChecked(True)
-                    self.operand1_name.setText(computation["operand1"])
+                    if not isinstance(computation["operand1"], dict):
+                        self.operand1_name.setText(computation["operand1"])
                 elif isinstance(computation["operand1"], int):
                     self.operand1_as_integer.setChecked(True)
                     self.operand1_integer.setValue(computation["operand1"])
@@ -149,7 +150,8 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
                 if isinstance(computation["operand2"], str):
                     self.operand2_as_signal.setChecked(True)
-                    self.operand2_name.setText(computation["operand2"])
+                    if not isinstance(computation["operand2"], dict):
+                        self.operand2_name.setText(computation["operand2"])
                 elif isinstance(computation["operand2"], int):
                     self.operand2_as_integer.setChecked(True)
                     self.operand2_integer.setValue(computation["operand2"])
@@ -160,8 +162,10 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 self.op.setCurrentIndex(SHORT_OPS.index(computation["op"]))
 
             elif computation["type"] == "function":
+                self.tabs.setCurrentIndex(1)
                 self.function.setCurrentText(computation["name"])
-                self.function_channel.setText(computation["channel"])
+                if not isinstance(computation["channel"], dict):
+                    self.function_channel.setText(computation["channel"])
 
                 for arg, arg_value in zip(
                     [self.first_function_argument, self.second_function_argument],
@@ -170,6 +174,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                     arg.setValue(arg_value)
 
             else:
+                self.tabs.setCurrentIndex(2)
                 self.expression.setPlainText(computation["expression"])
 
     def apply_simple_computation(self):
@@ -232,7 +237,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             "unit": self.unit.text().strip(),
             "computed": True,
             "color": f"#{os.urandom(3).hex()}",
-            "origin_uuid": self.mdf.uuid,
+            "origin_uuid": self.mdf.uuid if self.mdf else None,
             "uuid": os.urandom(6).hex(),
             "group_index": -1,
             "channel_index": -1,

@@ -898,8 +898,14 @@ class WithMDIArea:
                     signals[sig.uuid] = sig
 
                 if widget.channel_selection.selectedItems():
+
                     item = widget.channel_selection.selectedItems()[0]
-                    destination = widget.channel_selection.itemBelow(item) or item
+                    item_below = widget.channel_selection.itemBelow(item)
+                    if item_below is None or item_below.parent() != item.parent():
+                        destination = item.parent()
+                    else:
+                        destination = item_below
+
                 else:
                     destination = None
                 widget.add_new_channels(
@@ -2365,26 +2371,21 @@ class WithMDIArea:
 
         computation = channel["computation"]
 
-        try:
+        signal = compute_signal(computation, required_channels, all_timebase)
+        signal.color = channel["color"]
+        signal.computed = True
+        signal.computation = channel["computation"]
+        signal.name = channel["name"]
+        signal.unit = channel["unit"]
+        signal.group_index = -1
+        signal.channel_index = -1
+        signal.origin_uuid = self.uuid
+        signal.comment = channel["computation"].get("channel_comment", "")
+        signal.uuid = channel.get("uuid", os.urandom(6).hex())
 
-            signal = compute_signal(computation, required_channels, all_timebase)
-            signal.color = channel["color"]
-            signal.computed = True
-            signal.computation = channel["computation"]
-            signal.name = channel["name"]
-            signal.unit = channel["unit"]
-            signal.group_index = -1
-            signal.channel_index = -1
-            signal.origin_uuid = self.uuid
-            signal.comment = channel["computation"].get("channel_comment", "")
-            signal.uuid = channel.get("uuid", os.urandom(6).hex())
-
-            if "conversion" in channel:
-                signal.conversion = from_dict(channel["conversion"])
-                signal.name = channel["user_defined_name"]
-        except:
-            print(format_exc())
-            return
+        if "conversion" in channel:
+            signal.conversion = from_dict(channel["conversion"])
+            signal.name = channel["user_defined_name"]
 
         old_name = item.name
         new_name = signal.name
