@@ -3649,17 +3649,21 @@ class _Plot(pg.PlotWidget):
             return index
 
     def insert_computation(self, name=""):
-        dlg = DefineChannel(self.signals, self.all_timebase, name, self.mdf, self)
+
+        computed_signals = {sig.name: sig for sig in self.signals if sig.computed}
+        dlg = DefineChannel(
+            mdf=self.mdf,
+            name=name,
+            computation=None,
+            computed_signals=computed_signals,
+            parent=self,
+        )
         dlg.setModal(True)
         dlg.exec_()
-        sig = dlg.result
+        computed_channel = dlg.result
 
-        if sig is not None:
-            sig.uuid = os.urandom(6).hex()
-            sig.group_index = -1
-            sig.channel_index = -1
-            sig.origin_uuid = os.urandom(6).hex()
-            self.computation_channel_inserted.emit(sig)
+        if computed_channel is not None:
+            self.add_channels_request.emit([computed_channel])
 
     def keyPressEvent(self, event):
         key = event.key()

@@ -1439,6 +1439,12 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.setCheckState(self.CommonAxisColumn, QtCore.Qt.Unchecked)
             self.setCheckState(self.IndividualAxisColumn, QtCore.Qt.Unchecked)
 
+            if signal.computed:
+                font = self.font(0)
+                font.setItalic(True)
+                for column in (self.NameColumn, self.ValueColumn, self.UnitColumn):
+                    self.setFont(column, font)
+
             if signal.group_index == NOT_FOUND:
                 self.does_not_exist()
 

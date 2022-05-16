@@ -809,8 +809,7 @@ class WithMDIArea:
 
                 sigs = signals
 
-                if computed and 0:
-                    # TO DO : handle computed channels
+                if computed:
                     measured_signals = {sig.name: sig for sig in sigs}
                     if measured_signals:
                         all_timebase = np.unique(
@@ -865,15 +864,19 @@ class WithMDIArea:
                             signal.group_index = -1
                             signal.channel_index = -1
                             signal.origin_uuid = self.uuid
+                            signal.comment = channel["computation"].get(
+                                "channel_comment", ""
+                            )
+                            signal.uuid = channel.get("uuid", os.urandom(6).hex())
 
                             if "conversion" in channel:
                                 signal.conversion = from_dict(channel["conversion"])
                                 signal.name = channel["user_defined_name"]
 
-                            computed_signals[signal.name] = signal
+                            computed_signals[signal.uuid] = signal
                         except:
                             pass
-                    signals.update(computed_signals.values())
+                    signals.update(computed_signals)
 
                 not_found_uuid = os.urandom(6).hex()
 
@@ -1994,10 +1997,8 @@ class WithMDIArea:
                 if signal.name.endswith("CAN_DataFrame.ID"):
                     signal.samples = signal.samples.astype("<u4") & 0x1FFFFFFF
 
-            # signals = natsorted(signals, key=lambda x: x.name)
-
         if computed:
-            measured_signals = {sig.name: sig for sig in signals.values()}
+            measured_signals = {sig.uuid: sig for sig in signals.values()}
             if measured_signals:
                 all_timebase = np.unique(
                     np.concatenate(
@@ -2008,48 +2009,51 @@ class WithMDIArea:
                 all_timebase = []
 
             required_channels = []
-            for ch in computed:
-                required_channels.extend(get_required_from_computed(ch[0]))
+
+            for ch in computed.values():
+                required_channels.extend(get_required_from_computed(ch))
 
             required_channels = set(required_channels)
-            required_channels = [
+            required_channels_list = [
                 (None, *self.mdf.whereis(channel)[0])
                 for channel in required_channels
-                if channel not in list(measured_signals) and channel in self.mdf
+                if channel in self.mdf
             ]
-            required_channels = {
-                sig.name: sig
-                for sig in self.mdf.select(
-                    required_channels,
-                    ignore_value2text_conversions=self.ignore_value2text_conversions,
-                    copy_master=False,
-                )
-            }
+            required_channels = {}
+
+            for sig in self.mdf.select(
+                required_channels_list,
+                ignore_value2text_conversions=self.ignore_value2text_conversions,
+                copy_master=False,
+            ):
+                required_channels[sig.name] = sig
 
             required_channels.update(measured_signals)
 
-            # computed_signals = {}
-            #
-            # for channel in computed:
-            #     computation = channel["computation"]
-            #
-            #     try:
-            #
-            #         signal = compute_signal(
-            #             computation, required_channels, all_timebase
-            #         )
-            #         signal.color = channel["color"]
-            #         signal.computed = True
-            #         signal.computation = channel["computation"]
-            #         signal.name = channel["name"]
-            #         signal.unit = channel["unit"]
-            #         signal.group_index = -1
-            #         signal.channel_index = -1
-            #
-            #         computed_signals[signal.name] = signal
-            #     except:
-            #         pass
-            # signals = list(computed_signals.values())
+            computed_signals = {}
+
+            for channel in computed.values():
+                computation = channel["computation"]
+
+                try:
+
+                    signal = compute_signal(
+                        computation, required_channels, all_timebase
+                    )
+                    signal.color = channel["color"]
+                    signal.computed = True
+                    signal.computation = channel["computation"]
+                    signal.name = channel["name"]
+                    signal.unit = channel["unit"]
+                    signal.group_index = -1
+                    signal.channel_index = -1
+                    signal.uuid = channel.get("uuid", os.urandom(6).hex())
+
+                    computed_signals[signal.uuid] = signal
+                except:
+                    print(format_exc())
+                    pass
+            signals.update(computed_signals)
 
         if hasattr(self, "mdf"):
             events = []

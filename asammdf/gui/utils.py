@@ -18,7 +18,6 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..mdf import MDF, MDF2, MDF3, MDF4
 from ..signal import Signal
-from .dialogs.define_channel import FUNCTIONS, MULTIPLE_ARGS_FUNCTIONS
 from .dialogs.error_dialog import ErrorDialog
 
 ERROR_ICON = None
@@ -432,6 +431,9 @@ class WorkerThread(Thread):
             self.output = self._target(*self._args, **self._kwargs)
         except:
             self.error = traceback.format_exc()
+
+
+from .dialogs.define_channel import FUNCTIONS, MULTIPLE_ARGS_FUNCTIONS
 
 
 def compute_signal(description, measured_signals, all_timebase):

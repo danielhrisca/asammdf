@@ -154,6 +154,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 )
                 self.mdf = MDF(mdf_path)
                 self.mdf.original_name = file_name
+                self.mdf.uuid = self.uuid
 
             elif file_name.suffix.lower() == ".csv":
                 try:
@@ -174,6 +175,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         df.set_index(df[names[0]], inplace=True)
                         self.mdf = MDF()
                         self.mdf.append(df, units=units)
+                        self.mdf.uuid = self.uuid
                 except:
                     progress.cancel()
                     print(format_exc())
@@ -244,6 +246,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     return
 
                 self.mdf.original_name = original_name
+                self.mdf.uuid = self.uuid
 
             self.mdf.configure(raise_on_multiple_occurrences=False)
 
