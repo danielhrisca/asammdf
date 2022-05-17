@@ -642,6 +642,7 @@ class MDF:
         | None = None,
         raise_on_multiple_occurrences: bool | None = None,
         temporary_folder: str | None = None,
+        fill_0_for_missing_computation_channels: bool | None = None,
     ) -> None:
         """configure MDF parameters
 
@@ -655,6 +656,7 @@ class MDF:
         * copy_on_get = False
         * raise_on_multiple_occurrences = True
         * temporary_folder = ""
+        * fill_0_for_missing_computation_channels = False
 
         Parameters
         ----------
@@ -710,6 +712,11 @@ class MDF:
 
             .. versionadded:: 7.0.0
 
+        fill_0_for_missing_computation_channels : bool
+            when a channel required by a computed channel is missing, then fill with 0 values.
+            If false then the computation will fail and the computed channel will be marked as not existing.
+
+            .. versionadded:: 7.1.0
         """
 
         if from_other is not None:
@@ -722,6 +729,9 @@ class MDF:
             self._float_interpolation = from_other._float_interpolation
             self._raise_on_multiple_occurrences = (
                 from_other._raise_on_multiple_occurrences
+            )
+            self._fill_0_for_missing_computation_channels = (
+                from_other._fill_0_for_missing_computation_channels
             )
 
         if read_fragment_size is not None:
@@ -754,6 +764,11 @@ class MDF:
 
         if raise_on_multiple_occurrences is not None:
             self._raise_on_multiple_occurrences = bool(raise_on_multiple_occurrences)
+
+        if fill_0_for_missing_computation_channels is not None:
+            self._fill_0_for_missing_computation_channels = bool(
+                fill_0_for_missing_computation_channels
+            )
 
     def convert(self, version: str) -> MDF:
         """convert *MDF* to other version

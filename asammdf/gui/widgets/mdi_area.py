@@ -830,6 +830,33 @@ class WithMDIArea:
                         required_channels.extend(get_required_from_computed(ch))
 
                     required_channels = set(required_channels)
+
+                    not_found_for_computed = [
+                        channel
+                        for channel in required_channels
+                        if channel not in list(measured_signals)
+                        and channel not in self.mdf
+                    ]
+
+                    if self.mdf._fill_0_for_missing_computation_channels:
+                        for channel in not_found_for_computed:
+                            signal = Signal(
+                                samples=np.zeros(len(all_timebase), dtype="f8"),
+                                timestamps=all_timebase,
+                                name=channel,
+                            )
+                            signal.color = "#000000"
+                            signal.computed = False
+                            signal.computation = {}
+                            signal.unit = ""
+                            signal.group_index = -1
+                            signal.channel_index = -1
+                            signal.origin_uuid = self.uuid
+                            signal.comment = ""
+                            signal.uuid = os.urandom(6).hex()
+
+                            measured_signals[signal.uuid] = signal
+
                     required_channels = [
                         (None, *self.mdf.whereis(channel)[0])
                         for channel in required_channels
@@ -2030,6 +2057,34 @@ class WithMDIArea:
                 for channel in required_channels
                 if channel in self.mdf
             ]
+
+            not_found_for_computed = [
+                channel
+                for channel in required_channels
+                if channel not in list(measured_signals) and channel not in self.mdf
+            ]
+
+            if self.mdf._fill_0_for_missing_computation_channels:
+                for channel in not_found_for_computed:
+                    signal = Signal(
+                        samples=np.zeros(len(all_timebase), dtype="f8"),
+                        timestamps=all_timebase,
+                        name=channel,
+                    )
+                    signal.color = "#000000"
+                    signal.computed = False
+                    signal.computation = {}
+                    signal.unit = ""
+                    signal.group_index = -1
+                    signal.channel_index = -1
+                    signal.origin_uuid = self.uuid
+                    signal.comment = ""
+                    signal.uuid = os.urandom(6).hex()
+
+                    measured_signals[signal.uuid] = signal
+
+                    measured_signals[signal.uuid] = signal
+
             required_channels = {}
 
             for sig in self.mdf.select(
@@ -2208,6 +2263,8 @@ class WithMDIArea:
 
         self.windows_modified.emit()
 
+        plot.ttb.setFocus()
+
         return w, plot
 
     def _add_tabular_window(self, names):
@@ -2344,6 +2401,10 @@ class WithMDIArea:
     def edit_channel(self, channel, item, widget):
         required_channels = set(get_required_from_computed(channel))
 
+        not_found_for_computed = [
+            channel for channel in required_channels if channel not in self.mdf
+        ]
+
         required_channels = [
             (None, *self.mdf.whereis(channel)[0])
             for channel in required_channels
@@ -2364,6 +2425,25 @@ class WithMDIArea:
             )
         else:
             all_timebase = []
+
+        if self.mdf._fill_0_for_missing_computation_channels:
+            for channel in not_found_for_computed:
+                signal = Signal(
+                    samples=np.zeros(len(all_timebase), dtype="f8"),
+                    timestamps=all_timebase,
+                    name=channel,
+                )
+                signal.color = "#000000"
+                signal.computed = False
+                signal.computation = {}
+                signal.unit = ""
+                signal.group_index = -1
+                signal.channel_index = -1
+                signal.origin_uuid = self.uuid
+                signal.comment = ""
+                signal.uuid = os.urandom(6).hex()
+
+                required_channels[signal.uuid] = signal
 
         required_channels = {
             key: sig.physical() for key, sig in required_channels.items()

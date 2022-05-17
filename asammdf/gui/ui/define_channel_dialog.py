@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QDoubleSpinBox,
     QPlainTextEdit, QPushButton, QRadioButton, QSizePolicy,
     QSpacerItem, QSpinBox, QTabWidget, QTextEdit,
     QWidget)
-from  . import resource_rc
+from . import resource_rc
 
 class Ui_ComputedChannel(object):
     def setupUi(self, ComputedChannel):
@@ -71,6 +71,9 @@ class Ui_ComputedChannel(object):
         self.operand1_integer = QSpinBox(self.groupBox)
         self.operand1_integer.setObjectName(u"operand1_integer")
         self.operand1_integer.setMinimumSize(QSize(200, 0))
+        self.operand1_integer.setMinimum(0)
+        self.operand1_integer.setMaximum(10)
+        self.operand1_integer.setValue(0)
 
         self.gridLayout_4.addWidget(self.operand1_integer, 1, 1, 1, 1)
 

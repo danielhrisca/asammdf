@@ -2418,6 +2418,10 @@ class Plot(QtWidgets.QWidget):
 
         elif key == QtCore.Qt.Key_2 and modifiers == QtCore.Qt.NoModifier:
             self.focused_mode = not self.focused_mode
+            if self.focused_mode:
+                self.focused_mode_btn.setFlat(False)
+            else:
+                self.focused_mode_btn.setFlat(True)
             self.channel_selection_changed(update=True)
 
         elif (

@@ -23,6 +23,7 @@ _GLOBAL_OPTIONS = {
     "copy_on_get": True,
     "temporary_folder": None,
     "raise_on_multiple_occurrences": True,
+    "fill_0_for_missing_computation_channels": False,
 }
 
 
@@ -39,6 +40,7 @@ def set_global_option(opt, value):
         "single_bit_uint_as_bool",
         "copy_on_get",
         "raise_on_multiple_occurrences",
+        "fill_0_for_missing_computation_channels",
     ):
         value = bool(value)
     elif opt == "integer_interpolation":

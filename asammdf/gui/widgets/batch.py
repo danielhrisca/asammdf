@@ -77,6 +77,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         ):
 
             widget.insertItems(0, ("no compression", "deflate", "transposed deflate"))
+            widget.setCurrentText("transposed deflate")
 
         self.concatenate_btn.clicked.connect(self.concatenate)
         self.scramble_btn.clicked.connect(self.scramble)

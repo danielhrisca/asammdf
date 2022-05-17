@@ -306,6 +306,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.mdf_compression.insertItems(
                 0, ("no compression", "deflate", "transposed deflate")
             )
+            self.mdf_compression.setCurrentText("transposed deflate")
             self.mdf_split_size.setValue(4)
 
             self.extract_bus_format.insertItems(0, SUPPORTED_VERSIONS)
@@ -316,6 +317,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.extract_bus_compression.insertItems(
                 0, ("no compression", "deflate", "transposed deflate")
             )
+            self.extract_bus_compression.setCurrentText("transposed deflate")
             self.extract_bus_btn.clicked.connect(self.extract_bus_logging)
             self.extract_bus_csv_btn.clicked.connect(self.extract_bus_csv_logging)
             self.load_can_database_btn.clicked.connect(self.load_can_database)

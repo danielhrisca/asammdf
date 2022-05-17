@@ -76,7 +76,14 @@ MULTIPLE_ARGS_FUNCTIONS = {
 
 class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
     def __init__(
-        self, mdf, name="", computation=None, computed_signals=None, *args, **kwargs
+        self,
+        mdf,
+        name="",
+        computation=None,
+        computed_signals=None,
+        origin_uuid=None,
+        *args,
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
@@ -85,6 +92,33 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         self.result = None
         self.pressed_button = None
         self.computed_signals = computed_signals or {}
+        self.origin_uuid = origin_uuid or (mdf.uuid if mdf else os.urandom(6).hex())
+
+        self.operand1_float.setMaximum(np.inf)
+        self.operand1_float.setMinimum(-np.inf)
+        self.operand1_integer.setMaximum(2**31 - 1)
+        self.operand1_integer.setMinimum(-(2**31) + 1)
+
+        self.operand2_float.setMaximum(np.inf)
+        self.operand2_float.setMinimum(-np.inf)
+        self.operand2_integer.setMaximum(2**31 - 1)
+        self.operand2_integer.setMinimum(-(2**31) + 1)
+
+        self.first_function_argument.setMaximum(np.inf)
+        self.first_function_argument.setMinimum(-np.inf)
+        self.second_function_argument.setMaximum(np.inf)
+        self.second_function_argument.setMinimum(-np.inf)
+
+        for widget in (
+            self.apply_btn,
+            self.cancel_btn,
+            self.operand1_search_btn,
+            self.operand2_search_btn,
+            self.function_search_btn,
+            self.expression_search_btn,
+        ):
+            widget.setDefault(False)
+            widget.setAutoDefault(False)
 
         self.op.addItems(
             [
@@ -237,7 +271,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             "unit": self.unit.text().strip(),
             "computed": True,
             "color": f"#{os.urandom(3).hex()}",
-            "origin_uuid": self.mdf.uuid if self.mdf else None,
+            "origin_uuid": self.origin_uuid,
             "uuid": os.urandom(6).hex(),
             "group_index": -1,
             "channel_index": -1,
@@ -317,7 +351,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             "computed": True,
             "color": f"#{os.urandom(3).hex()}",
             "uuid": os.urandom(6).hex(),
-            "origin_uuid": self.mdf.uuid,
+            "origin_uuid": self.origin_uuid,
             "group_index": -1,
             "channel_index": -1,
             "name": self.name.text().strip() or f"{function}({function_channel})",
@@ -364,7 +398,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             "computed": True,
             "color": f"#{os.urandom(3).hex()}",
             "uuid": os.urandom(6).hex(),
-            "origin_uuid": self.mdf.uuid,
+            "origin_uuid": self.origin_uuid,
             "group_index": -1,
             "channel_index": -1,
             "name": self.name.text().strip() or "expression",

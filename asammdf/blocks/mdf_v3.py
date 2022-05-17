@@ -214,6 +214,10 @@ class MDF3(MDF_Common):
         self._use_display_names = kwargs.get(
             "use_display_names", get_global_option("use_display_names")
         )
+        self._fill_0_for_missing_computation_channels = kwargs.get(
+            "fill_0_for_missing_computation_channels",
+            get_global_option("fill_0_for_missing_computation_channels"),
+        )
         self.copy_on_get = False
 
         self._si_map = {}
