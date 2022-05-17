@@ -2263,8 +2263,6 @@ class WithMDIArea:
 
         self.windows_modified.emit()
 
-        plot.ttb.setFocus()
-
         return w, plot
 
     def _add_tabular_window(self, names):
@@ -3116,6 +3114,7 @@ class WithMDIArea:
         plot.setContentsMargins(1, 1, 1, 1)
 
         # plot.hide()
+        plot.show_properties.connect(self._show_info)
 
         plot.add_new_channels(signals, mime_data)
 
@@ -3617,7 +3616,6 @@ class WithMDIArea:
         if file_info:
             _, file = file_info
             channel = file.mdf.get_channel_metadata(group=group_index, index=index)
-
             msg = ChannelInfoDialog(channel, self)
             msg.show()
 

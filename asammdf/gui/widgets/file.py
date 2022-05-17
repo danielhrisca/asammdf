@@ -2098,6 +2098,15 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             version=self.mdf.version,
                         )
 
+                for w in self.mdi_area.subWindowList():
+                    widget = w.widget()
+                    if isinstance(widget, Plot):
+                        if widget.plot.region is not None:
+                            start, stop = widget.plot.region.getRegion()
+                            self.cut_start.setValue(start)
+                            self.cut_stop.setValue(stop)
+                            break
+
     def toggle_frames(self, event=None):
         self._frameless_windows = not self._frameless_windows
 
