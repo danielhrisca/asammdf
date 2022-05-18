@@ -367,6 +367,19 @@ class SearchTreeWidget(QtWidgets.QTreeWidget):
                 (item.parent() or root).removeChild(item)
 
 
+class Delegate(QtWidgets.QItemDelegate):
+
+    def __init__(self, *args):
+        super().__init__(*args)
+
+    def paint(self, pinter, option, index):
+        model = index.model()
+        color = model.data(index, QtCore.Qt.ForegroundRole)
+        # option.palette.setColor(QtGui.QPalette.HighlightedText, color.color())
+
+        option.palette.setColor(QtGui.QPalette.Highlight, color.color())
+        super().paint(pinter, option, index)
+
 class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     itemsDeleted = QtCore.Signal(list)
     set_time_offset = QtCore.Signal(list)
@@ -440,6 +453,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.autoscroll_timer.setInterval(33)
         self.autoscroll_mouse_pos = None
         self.drop_target = None
+        self.idel = Delegate(self)
+        self.setItemDelegate(self.idel)
 
     def autoscroll(self):
 
