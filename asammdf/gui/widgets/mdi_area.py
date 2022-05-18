@@ -957,6 +957,9 @@ class WithMDIArea:
             return self._add_tabular_window(names)
 
     def _add_can_bus_trace_window(self, ranges=None):
+        if self.mdf.version < "4.00":
+            return
+
         items = []
         groups_count = len(self.mdf.groups)
 
@@ -1160,6 +1163,9 @@ class WithMDIArea:
         return trace
 
     def _add_flexray_bus_trace_window(self, ranges=None):
+        if self.mdf.version < "4.00":
+            return
+
         items = []
         groups_count = len(self.mdf.groups)
 
@@ -1425,6 +1431,9 @@ class WithMDIArea:
         self.windows_modified.emit()
 
     def _add_lin_bus_trace_window(self, ranges=None):
+        if self.mdf.version < "4.00":
+            return
+
         items = []
         groups_count = len(self.mdf.groups)
 
@@ -3363,6 +3372,8 @@ class WithMDIArea:
         return w, pattern_info
 
     def _load_can_bus_trace_window(self, window_info):
+        if self.mdf.version < "4.00":
+            return
 
         ranges = window_info["configuration"].get("ranges", {})
         for channel_ranges in ranges.values():
@@ -3388,6 +3399,8 @@ class WithMDIArea:
         return None, False
 
     def _load_flexray_bus_trace_window(self, window_info):
+        if self.mdf.version < "4.00":
+            return
 
         ranges = window_info["configuration"].get("ranges", {})
         for channel_ranges in ranges.values():
@@ -3413,6 +3426,8 @@ class WithMDIArea:
         return None, False
 
     def _load_lin_bus_trace_window(self, window_info):
+        if self.mdf.version < "4.00":
+            return
 
         ranges = window_info["configuration"].get("ranges", {})
         for channel_ranges in ranges.values():

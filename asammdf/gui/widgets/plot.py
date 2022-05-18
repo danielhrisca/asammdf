@@ -4481,7 +4481,9 @@ class _Plot(pg.PlotWidget):
                             paint.drawPath(self.generatePath(x, y))
 
                             if with_dots:
-                                paint.setRenderHints(paint.RenderHint.Antialiasing, True)
+                                paint.setRenderHints(
+                                    paint.RenderHint.Antialiasing, True
+                                )
                                 pen.setWidth(dots_with)
                                 pen.setCapStyle(QtCore.Qt.RoundCap)
                                 paint.setPen(pen)
@@ -4495,7 +4497,9 @@ class _Plot(pg.PlotWidget):
                                 arr[:, 0] = x
                                 arr[:, 1] = y
                                 paint.drawPoints(poly)
-                                paint.setRenderHints(paint.RenderHint.Antialiasing, False)
+                                paint.setRenderHints(
+                                    paint.RenderHint.Antialiasing, False
+                                )
             paint.end()
 
         paint = QtGui.QPainter()

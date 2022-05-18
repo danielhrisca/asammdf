@@ -225,15 +225,14 @@ class TreeWidget(QtWidgets.QTreeWidget):
                 return
             elif len(selected_items) == 1:
                 item = selected_items[0]
-                checked = item.checkState(self.NameColumn)
+                checked = item.checkState(0)
                 if checked == QtCore.Qt.Checked:
                     item.setCheckState(self.NameColumn, QtCore.Qt.Unchecked)
                 else:
                     item.setCheckState(self.NameColumn, QtCore.Qt.Checked)
             else:
                 if any(
-                    item.checkState(self.NameColumn) == QtCore.Qt.Unchecked
-                    for item in selected_items
+                    item.checkState(0) == QtCore.Qt.Unchecked for item in selected_items
                 ):
                     checked = QtCore.Qt.Checked
                 else:
@@ -368,7 +367,6 @@ class SearchTreeWidget(QtWidgets.QTreeWidget):
 
 
 class Delegate(QtWidgets.QItemDelegate):
-
     def __init__(self, *args):
         super().__init__(*args)
 
@@ -379,6 +377,7 @@ class Delegate(QtWidgets.QItemDelegate):
 
         option.palette.setColor(QtGui.QPalette.Highlight, color.color())
         super().paint(pinter, option, index)
+
 
 class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     itemsDeleted = QtCore.Signal(list)
