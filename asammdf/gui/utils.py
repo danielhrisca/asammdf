@@ -439,86 +439,96 @@ from .dialogs.define_channel import FUNCTIONS, MULTIPLE_ARGS_FUNCTIONS
 def compute_signal(description, measured_signals, all_timebase):
     type_ = description["type"]
 
-    if type_ == "arithmetic":
-        op = description["op"]
+    try:
 
-        operand1 = description["operand1"]
-        if isinstance(operand1, dict):
-            operand1 = compute_signal(operand1, measured_signals, all_timebase)
-        elif isinstance(operand1, str):
-            operand1 = measured_signals[operand1]
+        if type_ == "arithmetic":
+            op = description["op"]
 
-        operand2 = description["operand2"]
-        if isinstance(operand2, dict):
-            operand2 = compute_signal(operand2, measured_signals, all_timebase)
-        elif isinstance(operand2, str):
-            operand2 = measured_signals[operand2]
+            operand1 = description["operand1"]
+            if isinstance(operand1, dict):
+                operand1 = compute_signal(operand1, measured_signals, all_timebase)
+            elif isinstance(operand1, str):
+                operand1 = measured_signals[operand1]
 
-        result = eval(f"operand1 {op} operand2")
-        if not hasattr(result, "name"):
-            result = Signal(
-                name="_",
-                samples=np.ones(len(all_timebase)) * result,
-                timestamps=all_timebase,
-            )
+            operand2 = description["operand2"]
+            if isinstance(operand2, dict):
+                operand2 = compute_signal(operand2, measured_signals, all_timebase)
+            elif isinstance(operand2, str):
+                operand2 = measured_signals[operand2]
 
-    elif type_ == "function":
-        function = description["name"]
-        args = description["args"]
+            result = eval(f"operand1 {op} operand2")
+            if not hasattr(result, "name"):
+                result = Signal(
+                    name="_",
+                    samples=np.ones(len(all_timebase)) * result,
+                    timestamps=all_timebase,
+                )
 
-        channel = description["channel"]
+        elif type_ == "function":
+            function = description["name"]
+            args = description["args"]
 
-        if isinstance(channel, dict):
-            channel = compute_signal(channel, measured_signals, all_timebase)
-        else:
-            channel = measured_signals[channel]
+            channel = description["channel"]
 
-        func = getattr(np, function)
-
-        if function not in MULTIPLE_ARGS_FUNCTIONS:
-
-            samples = func(channel.samples)
-            if function == "diff":
-                timestamps = channel.timestamps[1:]
+            if isinstance(channel, dict):
+                channel = compute_signal(channel, measured_signals, all_timebase)
             else:
+                channel = measured_signals[channel]
+
+            func = getattr(np, function)
+
+            if function not in MULTIPLE_ARGS_FUNCTIONS:
+
+                samples = func(channel.samples)
+                if function == "diff":
+                    timestamps = channel.timestamps[1:]
+                else:
+                    timestamps = channel.timestamps
+
+            elif function == "round":
+                samples = func(channel.samples, *args)
+                timestamps = channel.timestamps
+            elif function == "clip":
+                samples = func(channel.samples, *args)
                 timestamps = channel.timestamps
 
-        elif function == "round":
-            samples = func(channel.samples, *args)
-            timestamps = channel.timestamps
-        elif function == "clip":
-            samples = func(channel.samples, *args)
-            timestamps = channel.timestamps
+            result = Signal(samples=samples, timestamps=timestamps, name="_")
 
-        result = Signal(samples=samples, timestamps=timestamps, name="_")
+        elif type_ == "expression":
+            expression_string = description["expression"]
+            expression_string = "".join(expression_string.splitlines())
+            names = [
+                match.group("name") for match in SIG_RE.finditer(expression_string)
+            ]
+            positions = [
+                (i, match.start(), match.end())
+                for i, match in enumerate(SIG_RE.finditer(expression_string))
+            ]
+            positions.reverse()
 
-    elif type_ == "expression":
-        expression_string = description["expression"]
-        expression_string = "".join(expression_string.splitlines())
-        names = [match.group("name") for match in SIG_RE.finditer(expression_string)]
-        positions = [
-            (i, match.start(), match.end())
-            for i, match in enumerate(SIG_RE.finditer(expression_string))
-        ]
-        positions.reverse()
+            expression = expression_string
+            for idx, start, end in positions:
+                expression = expression[:start] + f"X_{idx}" + expression[end:]
 
-        expression = expression_string
-        for idx, start, end in positions:
-            expression = expression[:start] + f"X_{idx}" + expression[end:]
+            signals = [measured_signals[name] for name in names]
+            common_timebase = reduce(np.union1d, [sig.timestamps for sig in signals])
+            signals = {
+                f"X_{i}": sig.interp(common_timebase).samples
+                for i, sig in enumerate(signals)
+            }
 
-        signals = [measured_signals[name] for name in names]
-        common_timebase = reduce(np.union1d, [sig.timestamps for sig in signals])
-        signals = {
-            f"X_{i}": sig.interp(common_timebase).samples
-            for i, sig in enumerate(signals)
-        }
+            samples = evaluate(expression, local_dict=signals)
 
-        samples = evaluate(expression, local_dict=signals)
-
+            result = Signal(
+                name="_",
+                samples=samples,
+                timestamps=common_timebase,
+            )
+    except:
         result = Signal(
             name="_",
-            samples=samples,
-            timestamps=common_timebase,
+            samples=[],
+            timestamps=[],
         )
 
     return result

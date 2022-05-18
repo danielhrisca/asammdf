@@ -2011,16 +2011,18 @@ class Plot(QtWidgets.QWidget):
         channel["y_range"] = [float(e) for e in sig.y_range]
         channel["origin_uuid"] = str(sig.origin_uuid)
 
-        if sig.computed and sig.conversion:
-            channel["user_defined_name"] = sig.name
-            channel["name"] = sig.computation["expression"].strip("}{")
+        # TO DO: virtual channels with conversion rule
 
-            channel["conversion"] = {}
-            for i in range(sig.conversion.val_param_nr):
-                channel["conversion"][f"text_{i}"] = sig.conversion.referenced_blocks[
-                    f"text_{i}"
-                ].decode("utf-8")
-                channel["conversion"][f"val_{i}"] = sig.conversion[f"val_{i}"]
+        # if sig.computed and sig.conversion:
+        #     channel["user_defined_name"] = sig.name
+        #     channel["name"] = sig.computation["expression"]
+        #
+        #     channel["conversion"] = {}
+        #     for i in range(sig.conversion.val_param_nr):
+        #         channel["conversion"][f"text_{i}"] = sig.conversion.referenced_blocks[
+        #             f"text_{i}"
+        #         ].decode("utf-8")
+        #         channel["conversion"][f"val_{i}"] = sig.conversion[f"val_{i}"]
 
         return channel
 

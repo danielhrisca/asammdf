@@ -855,7 +855,7 @@ class WithMDIArea:
                             signal.comment = ""
                             signal.uuid = os.urandom(6).hex()
 
-                            measured_signals[signal.uuid] = signal
+                            measured_signals[signal.name] = signal
 
                     required_channels = [
                         (None, *self.mdf.whereis(channel)[0])
@@ -883,31 +883,27 @@ class WithMDIArea:
 
                         computation = channel["computation"]
 
-                        try:
+                        signal = compute_signal(
+                            computation, required_channels, all_timebase
+                        )
+                        signal.name = channel["name"]
+                        signal.unit = channel["unit"]
+                        signal.color = channel["color"]
+                        signal.computed = True
+                        signal.computation = channel["computation"]
+                        signal.group_index = -1
+                        signal.channel_index = -1
+                        signal.origin_uuid = self.uuid
+                        signal.comment = channel["computation"].get(
+                            "channel_comment", ""
+                        )
+                        signal.uuid = channel.get("uuid", os.urandom(6).hex())
 
-                            signal = compute_signal(
-                                computation, required_channels, all_timebase
-                            )
-                            signal.color = channel["color"]
-                            signal.computed = True
-                            signal.computation = channel["computation"]
-                            signal.name = channel["name"]
-                            signal.unit = channel["unit"]
-                            signal.group_index = -1
-                            signal.channel_index = -1
-                            signal.origin_uuid = self.uuid
-                            signal.comment = channel["computation"].get(
-                                "channel_comment", ""
-                            )
-                            signal.uuid = channel.get("uuid", os.urandom(6).hex())
+                        if "conversion" in channel:
+                            signal.conversion = from_dict(channel["conversion"])
+                            signal.name = channel["user_defined_name"]
 
-                            if "conversion" in channel:
-                                signal.conversion = from_dict(channel["conversion"])
-                                signal.name = channel["user_defined_name"]
-
-                            computed_signals[signal.uuid] = signal
-                        except:
-                            pass
+                        computed_signals[signal.uuid] = signal
                     signals.update(computed_signals)
 
                 not_found_uuid = os.urandom(6).hex()
@@ -2081,9 +2077,7 @@ class WithMDIArea:
                     signal.comment = ""
                     signal.uuid = os.urandom(6).hex()
 
-                    measured_signals[signal.uuid] = signal
-
-                    measured_signals[signal.uuid] = signal
+                    measured_signals[signal.name] = signal
 
             required_channels = {}
 
@@ -2101,24 +2095,24 @@ class WithMDIArea:
             for channel in computed.values():
                 computation = channel["computation"]
 
-                try:
+                signal = compute_signal(computation, required_channels, all_timebase)
+                signal.name = channel["name"]
+                signal.unit = channel["unit"]
+                signal.color = channel["color"]
+                signal.computed = True
+                signal.computation = channel["computation"]
+                signal.group_index = -1
+                signal.channel_index = -1
+                signal.origin_uuid = self.uuid
+                signal.comment = channel["computation"].get("channel_comment", "")
+                signal.uuid = channel.get("uuid", os.urandom(6).hex())
 
-                    signal = compute_signal(
-                        computation, required_channels, all_timebase
-                    )
-                    signal.color = channel["color"]
-                    signal.computed = True
-                    signal.computation = channel["computation"]
-                    signal.name = channel["name"]
-                    signal.unit = channel["unit"]
-                    signal.group_index = -1
-                    signal.channel_index = -1
-                    signal.uuid = channel.get("uuid", os.urandom(6).hex())
+                if "conversion" in channel:
+                    signal.conversion = from_dict(channel["conversion"])
+                    signal.name = channel["user_defined_name"]
 
-                    computed_signals[signal.uuid] = signal
-                except:
-                    print(format_exc())
-                    pass
+                computed_signals[signal.uuid] = signal
+
             signals.update(computed_signals)
 
         if hasattr(self, "mdf"):
@@ -2441,7 +2435,7 @@ class WithMDIArea:
                 signal.comment = ""
                 signal.uuid = os.urandom(6).hex()
 
-                required_channels[signal.uuid] = signal
+                required_channels[signal.name] = signal
 
         required_channels = {
             key: sig.physical() for key, sig in required_channels.items()
@@ -2450,11 +2444,11 @@ class WithMDIArea:
         computation = channel["computation"]
 
         signal = compute_signal(computation, required_channels, all_timebase)
+        signal.name = channel["name"]
+        signal.unit = channel["unit"]
         signal.color = channel["color"]
         signal.computed = True
         signal.computation = channel["computation"]
-        signal.name = channel["name"]
-        signal.unit = channel["unit"]
         signal.group_index = -1
         signal.channel_index = -1
         signal.origin_uuid = self.uuid
@@ -2909,6 +2903,31 @@ class WithMDIArea:
 
             required_channels = set(required_channels)
 
+            not_found_for_computed = [
+                channel
+                for channel in required_channels
+                if channel not in list(measured_signals) and channel not in self.mdf
+            ]
+
+            if self.mdf._fill_0_for_missing_computation_channels:
+                for channel in not_found_for_computed:
+                    signal = Signal(
+                        samples=np.zeros(len(all_timebase), dtype="f8"),
+                        timestamps=all_timebase,
+                        name=channel,
+                    )
+                    signal.color = "#000000"
+                    signal.computed = False
+                    signal.computation = {}
+                    signal.unit = ""
+                    signal.group_index = -1
+                    signal.channel_index = -1
+                    signal.origin_uuid = self.uuid
+                    signal.comment = ""
+                    signal.uuid = os.urandom(6).hex()
+
+                    measured_signals[signal.name] = signal
+
             required_channels = [
                 (None, *self.mdf.whereis(channel)[0])
                 for channel in required_channels
@@ -2929,31 +2948,31 @@ class WithMDIArea:
                 key: sig.physical() for key, sig in required_channels.items()
             }
 
+            print(
+                measured_signals.keys(),
+                required_channels.keys(),
+                self.mdf._fill_0_for_missing_computation_channels,
+            )
+
             for sig_uuid, channel in computed.items():
                 computation = channel["computation"]
 
-                try:
+                signal = compute_signal(computation, required_channels, all_timebase)
+                signal.color = channel["color"]
+                signal.computed = True
+                signal.computation = channel["computation"]
+                signal.name = channel["name"]
+                signal.unit = channel["unit"]
+                signal.group_index = -1
+                signal.channel_index = -1
+                signal.origin_uuid = self.uuid
+                signal.uuid = sig_uuid
 
-                    signal = compute_signal(
-                        computation, required_channels, all_timebase
-                    )
-                    signal.color = channel["color"]
-                    signal.computed = True
-                    signal.computation = channel["computation"]
-                    signal.name = channel["name"]
-                    signal.unit = channel["unit"]
-                    signal.group_index = -1
-                    signal.channel_index = -1
-                    signal.origin_uuid = self.uuid
-                    signal.uuid = sig_uuid
+                if "conversion" in channel:
+                    signal.conversion = from_dict(channel["conversion"])
+                    signal.name = channel["user_defined_name"]
 
-                    if "conversion" in channel:
-                        signal.conversion = from_dict(channel["conversion"])
-                        signal.name = channel["user_defined_name"]
-
-                    plot_signals[sig_uuid] = signal
-                except:
-                    pass
+                plot_signals[sig_uuid] = signal
 
         signals = {
             sig_uuid: sig
