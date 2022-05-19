@@ -227,9 +227,9 @@ class TreeWidget(QtWidgets.QTreeWidget):
                 item = selected_items[0]
                 checked = item.checkState(0)
                 if checked == QtCore.Qt.Checked:
-                    item.setCheckState(self.NameColumn, QtCore.Qt.Unchecked)
+                    item.setCheckState(0, QtCore.Qt.Unchecked)
                 else:
-                    item.setCheckState(self.NameColumn, QtCore.Qt.Checked)
+                    item.setCheckState(0, QtCore.Qt.Checked)
             else:
                 if any(
                     item.checkState(0) == QtCore.Qt.Unchecked for item in selected_items
@@ -238,7 +238,7 @@ class TreeWidget(QtWidgets.QTreeWidget):
                 else:
                     checked = QtCore.Qt.Unchecked
                 for item in selected_items:
-                    item.setCheckState(self.NameColumn, checked)
+                    item.setCheckState(0, checked)
         else:
             super().keyPressEvent(event)
 
@@ -372,10 +372,12 @@ class Delegate(QtWidgets.QItemDelegate):
 
     def paint(self, pinter, option, index):
         model = index.model()
-        color = model.data(index, QtCore.Qt.ForegroundRole)
-        # option.palette.setColor(QtGui.QPalette.HighlightedText, color.color())
 
-        option.palette.setColor(QtGui.QPalette.Highlight, color.color())
+        color = model.data(index, QtCore.Qt.ForegroundRole)
+        if color is not None:
+            # option.palette.setColor(QtGui.QPalette.HighlightedText, color.color())
+            option.palette.setColor(QtGui.QPalette.Highlight, color.color())
+
         super().paint(pinter, option, index)
 
 
@@ -891,7 +893,13 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
             if item.signal.computed:
                 menu.addAction(self.tr("Edit this computed channel"))
-            menu.addAction(self.tr("Compute FFT"))
+
+            try:
+                import scipy
+
+                menu.addAction(self.tr("Compute FFT"))
+            except ImportError:
+                pass
             menu.addSeparator()
         if item:
             menu.addAction(self.tr("Delete [Del]"))

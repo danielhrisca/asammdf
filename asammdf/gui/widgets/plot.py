@@ -2219,8 +2219,11 @@ class Plot(QtWidgets.QWidget):
 
     def compute_fft(self, uuid):
         signal, index = self.plot.signal_by_uuid(uuid)
-        window = FFTWindow(PlotSignal(signal), parent=self)
-        window.show()
+        try:
+            window = FFTWindow(PlotSignal(signal), parent=self)
+            window.show()
+        except:
+            pass
 
     def current_uuid_changed(self, uuid):
         self.info_uuid = uuid
@@ -5089,4 +5092,9 @@ class CursorInfo(QtWidgets.QLabel):
         self.update_value()
 
 
-from .fft_window import FFTWindow
+try:
+    import scipy
+
+    from .fft_window import FFTWindow
+except ImportError:
+    pass

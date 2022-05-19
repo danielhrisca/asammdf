@@ -2957,12 +2957,6 @@ class WithMDIArea:
                 key: sig.physical() for key, sig in required_channels.items()
             }
 
-            print(
-                measured_signals.keys(),
-                required_channels.keys(),
-                self.mdf._fill_0_for_missing_computation_channels,
-            )
-
             for sig_uuid, channel in computed.items():
                 computation = channel["computation"]
 

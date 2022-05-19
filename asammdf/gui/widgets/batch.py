@@ -107,7 +107,12 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.empty_channels_bus.insertItems(0, ("skip", "zeros"))
         self.empty_channels_mat.insertItems(0, ("skip", "zeros"))
         self.empty_channels_csv.insertItems(0, ("skip", "zeros"))
-        self.mat_format.insertItems(0, ("4", "5", "7.3"))
+        try:
+            import scipy
+
+            self.mat_format.insertItems(0, ("4", "5", "7.3"))
+        except:
+            self.mat_format.insertItems(0, ("7.3",))
         self.oned_as.insertItems(0, ("row", "column"))
 
         self.aspects.setCurrentIndex(0)
@@ -199,20 +204,20 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         database_files = {}
 
-        count = self.can_database_list.count()
-        if count:
+        count1 = self.can_database_list.count()
+        if count1:
             database_files["CAN"] = []
-            for i in range(count):
+            for i in range(count1):
                 item = self.can_database_list.item(i)
                 widget = self.can_database_list.itemWidget(item)
                 database_files["CAN"].append(
                     (widget.database.text(), widget.bus.currentIndex())
                 )
 
-        count = self.lin_database_list.count()
-        if count:
+        count2 = self.lin_database_list.count()
+        if count2:
             database_files["LIN"] = []
-            for i in range(count):
+            for i in range(count2):
                 item = self.lin_database_list.item(i)
                 widget = self.lin_database_list.itemWidget(item)
                 database_files["LIN"].append(
@@ -222,6 +227,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         compression = self.extract_bus_compression.currentIndex()
 
         count = self.files_list.count()
+
+        if not count or not (count1 + count2):
+            return
 
         delta = 100 / count
 
@@ -353,20 +361,20 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         database_files = {}
 
-        count = self.can_database_list.count()
-        if count:
+        count1 = self.can_database_list.count()
+        if count1:
             database_files["CAN"] = []
-            for i in range(count):
+            for i in range(count1):
                 item = self.can_database_list.item(i)
                 widget = self.can_database_list.itemWidget(item)
                 database_files["CAN"].append(
                     (widget.database.text(), widget.bus.currentIndex())
                 )
 
-        count = self.lin_database_list.count()
-        if count:
+        count2 = self.lin_database_list.count()
+        if count2:
             database_files["LIN"] = []
-            for i in range(count):
+            for i in range(count2):
                 item = self.lin_database_list.item(i)
                 widget = self.lin_database_list.itemWidget(item)
                 database_files["LIN"].append(
@@ -389,6 +397,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         add_units = self.add_units_bus.checkState() == QtCore.Qt.Checked
 
         count = self.files_list.count()
+
+        if not count or not (count1 + count2):
+            return
 
         delta = 100 / count
 
@@ -898,7 +909,12 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             view = self.filter_view
 
             dlg = AdvancedSearch(
-                mdf, show_add_window=False, show_pattern=False, parent=self
+                mdf,
+                show_add_window=False,
+                show_pattern=False,
+                parent=self,
+                show_apply=True,
+                apply_text="Check signals",
             )
             dlg.setModal(True)
             dlg.exec_()

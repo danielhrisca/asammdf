@@ -329,7 +329,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.empty_channels_bus.insertItems(0, ("skip", "zeros"))
             self.empty_channels_mat.insertItems(0, ("skip", "zeros"))
             self.empty_channels_csv.insertItems(0, ("skip", "zeros"))
-            self.mat_format.insertItems(0, ("4", "5", "7.3"))
+            try:
+                import scipy
+
+                self.mat_format.insertItems(0, ("4", "5", "7.3"))
+            except:
+                self.mat_format.insertItems(0, ("7.3",))
             self.oned_as.insertItems(0, ("row", "column"))
 
             self.output_format.currentTextChanged.connect(self.output_format_changed)
@@ -1615,20 +1620,20 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         database_files = {}
 
-        count = self.can_database_list.count()
-        if count:
+        count1 = self.can_database_list.count()
+        if count1:
             database_files["CAN"] = []
-            for i in range(count):
+            for i in range(count1):
                 item = self.can_database_list.item(i)
                 widget = self.can_database_list.itemWidget(item)
                 database_files["CAN"].append(
                     (widget.database.text(), widget.bus.currentIndex())
                 )
 
-        count = self.lin_database_list.count()
-        if count:
+        count2 = self.lin_database_list.count()
+        if count2:
             database_files["LIN"] = []
-            for i in range(count):
+            for i in range(count2):
                 item = self.lin_database_list.item(i)
                 widget = self.lin_database_list.itemWidget(item)
                 database_files["LIN"].append(
@@ -1644,7 +1649,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             filter = "MDF version 4 files (*.mf4)"
             suffix = ".mf4"
 
-        if not database_files:
+        if not (count1 + count2):
             return
 
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
@@ -1772,25 +1777,28 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         database_files = {}
 
-        count = self.can_database_list.count()
-        if count:
+        count1 = self.can_database_list.count()
+        if count1:
             database_files["CAN"] = []
-            for i in range(count):
+            for i in range(count1):
                 item = self.can_database_list.item(i)
                 widget = self.can_database_list.itemWidget(item)
                 database_files["CAN"].append(
                     (widget.database.text(), widget.bus.currentIndex())
                 )
 
-        count = self.lin_database_list.count()
-        if count:
+        count2 = self.lin_database_list.count()
+        if count2:
             database_files["LIN"] = []
-            for i in range(count):
+            for i in range(count2):
                 item = self.lin_database_list.item(i)
                 widget = self.lin_database_list.itemWidget(item)
                 database_files["LIN"].append(
                     (widget.database.text(), widget.bus.currentIndex())
                 )
+
+        if not (count1 + count2):
+            return
 
         single_time_base = self.single_time_base_bus.checkState() == QtCore.Qt.Checked
         time_from_zero = self.time_from_zero_bus.checkState() == QtCore.Qt.Checked
