@@ -1003,7 +1003,7 @@ class MDF:
                         if start_index == 0 and stop_index == len(master):
                             needs_cutting = False
 
-                # update the signal is this is not the first yield
+                # update the signal if this is not the first yield
                 if j:
                     for signal, (samples, invalidation) in zip(signals, sigs[1:]):
                         signal.samples = samples
