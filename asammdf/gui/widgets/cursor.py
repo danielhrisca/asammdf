@@ -124,7 +124,9 @@ class Cursor(pg.InfiniteLine):
                                     QtCore.QPointF(x + 5, y), QtCore.QPointF(width, y)
                                 )
 
+                            paint.setRenderHints(paint.RenderHint.Antialiasing, True)
                             paint.drawEllipse(QtCore.QPointF(x, y), 5, 5)
+                            paint.setRenderHints(paint.RenderHint.Antialiasing, False)
 
                         else:
                             paint.drawLine(

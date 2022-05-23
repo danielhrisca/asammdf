@@ -3672,10 +3672,12 @@ class _Plot(pg.PlotWidget):
             return self._timestamps_indexes[key]
         else:
             if timestamps.size:
-                if timestamp > timestamps[-1]:
+                if timestamp >= timestamps[-1]:
                     index = -1
+                elif timestamp <= timestamps[0]:
+                    index = 0
                 else:
-                    index = np.searchsorted(timestamps, timestamp, side="left")
+                    index = np.searchsorted(timestamps, timestamp, side="right") - 1
             else:
                 index = None
 

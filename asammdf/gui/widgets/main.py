@@ -794,22 +794,6 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
                 current_plot = widget
                 count = len(current_plot.plot.signals)
-                if (
-                    new_setting_has_dots
-                    and not self.allways_accept_dots
-                    and count >= 200
-                ):
-                    ret = QtWidgets.QMessageBox.question(
-                        self,
-                        "Continue enabling dots?",
-                        "Enabling dots for plots with large channel count will have a big performance hit.\n\n"
-                        "Do you wish to continue?",
-                    )
-
-                    if ret != QtWidgets.QMessageBox.Yes:
-                        return
-                    else:
-                        self.allways_accept_dots = True
 
                 self.with_dots = new_setting_has_dots
                 self._settings.setValue("dots", self.with_dots)
