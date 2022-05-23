@@ -4,6 +4,7 @@ from functools import partial
 import json
 import os
 from pathlib import Path
+import re
 from tempfile import gettempdir
 from traceback import format_exc
 
@@ -1506,8 +1507,40 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             signals = []
         elif window_type == "GPS":
 
+            target = "latitude"
+            sig = re.compile(target, re.IGNORECASE)
+
+            latitude = ""
+
+            for name in self.mdf.channels_db:
+                if sig.fullmatch(name):
+                    latitude = name
+                    break
+            else:
+                for name in self.mdf.channels_db:
+                    if sig.search(name):
+                        latitude = name
+                        break
+
+            target = "latitude"
+            sig = re.compile(target, re.IGNORECASE)
+
+            longitude = ""
+
+            for name in self.mdf.channels_db:
+                if sig.fullmatch(name):
+                    longitude = name
+                    break
+            else:
+                for name in self.mdf.channels_db:
+                    if sig.search(name):
+                        longitude = name
+                        break
+
             dlg = GPSDialog(
                 self.mdf,
+                latitude=latitude,
+                longitude=longitude,
                 parent=self,
             )
             dlg.setModal(True)
