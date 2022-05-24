@@ -1453,6 +1453,23 @@ class MDF:
                             group.attrs["master"] = (
                                 self.groups[group_index].channels[master_index].name
                             )
+                            master = self.get(group.attrs["master"], group_index)
+                            if reduce_memory_usage:
+                                master.timestamps = downcast(master.timestamps)
+                            if compression:
+                                dataset = group.create_dataset(
+                                    group.attrs["master"], data=master.timestamps, compression=compression
+                                )
+                            else:
+                                dataset = group.create_dataset(
+                                    group.attrs["master"], data=master.timestamps, dtype=master.timestamps.dtype
+                                )
+                            unit = master.unit.replace("\0", "")
+                            if unit:
+                                dataset.attrs["unit"] = unit
+                            comment = master.comment.replace("\0", "")
+                            if comment:
+                                dataset.attrs["comment"] = comment
 
                         channels = [
                             (None, gp_index, ch_index)
