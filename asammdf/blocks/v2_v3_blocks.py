@@ -12,6 +12,7 @@ import sys
 from textwrap import wrap
 from traceback import format_exc
 from typing import Any
+import xml.etree.ElementTree as ET
 
 import dateutil
 from numexpr import evaluate
@@ -2730,38 +2731,13 @@ class HeaderBlock:
 
     """
 
-    __slots__ = (
-        "address",
-        "program",
-        "comment",
-        "description",
-        "id",
-        "block_len",
-        "first_dg_addr",
-        "comment_addr",
-        "program_addr",
-        "dg_nr",
-        "date",
-        "time",
-        "author",
-        "department",
-        "project",
-        "subject",
-        "abs_time",
-        "tz_offset",
-        "time_quality",
-        "timer_identification",
-        "author_field",
-        "department_field",
-        "project_field",
-        "subject_field",
-    )
-
     def __init__(self, **kwargs) -> None:
         super().__init__()
 
         self.address = 64
         self.program = None
+        self._common_properties = {}
+        self.description = ""
         self.comment = ""
         try:
 
@@ -2836,7 +2812,80 @@ class HeaderBlock:
         self.department = self.department_field.strip(b" \r\n\t\0").decode("latin-1")
         self.project = self.project_field.strip(b" \r\n\t\0").decode("latin-1")
         self.subject = self.subject_field.strip(b" \r\n\t\0").decode("latin-1")
-        self.description = self.comment
+
+    @property
+    def comment(self):
+        root = ET.Element("HDcomment")
+        text = ET.SubElement(root, "TX")
+        text.text = self.description
+        common = ET.SubElement(root, "common_properties")
+        for name, value in self._common_properties.items():
+            ET.SubElement(common, "e", name=name).text = value
+
+        return (
+            ET.tostring(root, encoding="utf8", method="xml")
+            .replace(b"<?xml version='1.0' encoding='utf8'?>\n", b"")
+            .decode("utf-8")
+        )
+
+    @comment.setter
+    def comment(self, string):
+        self._common_properties.clear()
+
+        if string.startswith("<HDcomment"):
+            comment = string
+            try:
+                comment_xml = ET.fromstring(
+                    comment.replace(' xmlns="http://www.asam.net/mdf/v4"', "")
+                )
+            except ET.ParseError as e:
+                self.description = string
+            else:
+                description = comment_xml.find(".//TX")
+                if description is None:
+                    self.description = ""
+                else:
+                    self.description = description.text or ""
+
+                common_properties = comment_xml.find(".//common_properties")
+                if common_properties is not None:
+                    for e in common_properties:
+                        name = e.get("name")
+                        self._common_properties[name] = e.text or ""
+        else:
+            self.description = string
+
+    @property
+    def author(self):
+        return self._common_properties.get("author", "")
+
+    @author.setter
+    def author(self, value):
+        self._common_properties["author"] = value
+
+    @property
+    def project(self):
+        return self._common_properties.get("project", "")
+
+    @project.setter
+    def project(self, value):
+        self._common_properties["project"] = value
+
+    @property
+    def department(self):
+        return self._common_properties.get("department", "")
+
+    @department.setter
+    def department(self, value):
+        self._common_properties["department"] = value
+
+    @property
+    def subject(self):
+        return self._common_properties.get("subject", "")
+
+    @subject.setter
+    def subject(self, value):
+        self._common_properties["subject"] = value
 
     def to_blocks(
         self,

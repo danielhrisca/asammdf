@@ -373,10 +373,18 @@ class Delegate(QtWidgets.QItemDelegate):
     def paint(self, pinter, option, index):
         model = index.model()
 
-        color = model.data(index, QtCore.Qt.ForegroundRole)
-        if color is not None:
-            # option.palette.setColor(QtGui.QPalette.HighlightedText, color.color())
-            option.palette.setColor(QtGui.QPalette.Highlight, color.color())
+        brush = model.data(index, QtCore.Qt.ForegroundRole)
+
+        if brush is not None:
+            color = brush.color()
+
+            light = sum(color.getRgb()[:-1]) / 2
+            if light >= 383:
+                complementary = fn.mkColor("#000000")
+            else:
+                complementary = fn.mkColor("#ffffff")
+            option.palette.setColor(QtGui.QPalette.Highlight, color)
+            option.palette.setColor(QtGui.QPalette.HighlightedText, complementary)
 
         super().paint(pinter, option, index)
 
@@ -688,8 +696,15 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             selected_items = self.selectedItems()
             if not selected_items:
                 return
+            else:
+                for item in selected_items:
+                    if item.type() == item.Channel:
+                        color = item.color
+                        break
+                else:
+                    color = QtGui.QColor("#ffffff")
 
-            color = QtWidgets.QColorDialog.getColor(selected_items[0].signal.color)
+            color = QtWidgets.QColorDialog.getColor(color)
             if color.isValid():
                 for item in selected_items:
                     if item.type() == item.Channel:
