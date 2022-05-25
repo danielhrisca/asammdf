@@ -2820,7 +2820,12 @@ class HeaderBlock:
         text.text = self.description
         common = ET.SubElement(root, "common_properties")
         for name, value in self._common_properties.items():
-            ET.SubElement(common, "e", name=name).text = value
+            if isinstance(value, dict):
+                tree = ET.SubElement(common, "tree", name=name)
+                for subname, subvalue in value.items():
+                    ET.SubElement(tree, "e", name=subname).text = subvalue
+            else:
+                ET.SubElement(common, "e", name=name).text = value
 
         return (
             ET.tostring(root, encoding="utf8", method="xml")
@@ -2850,8 +2855,18 @@ class HeaderBlock:
                 common_properties = comment_xml.find(".//common_properties")
                 if common_properties is not None:
                     for e in common_properties:
-                        name = e.get("name")
-                        self._common_properties[name] = e.text or ""
+                        if e.tag == "e":
+                            name = e.get("name")
+                            self._common_properties[name] = e.text or ""
+                        else:
+                            name = e.get("name")
+                            subattibutes = {}
+                            tree = e
+                            self._common_properties[name] = subattibutes
+
+                            for e in tree:
+                                name = e.get("name")
+                                subattibutes[name] = e.text or ""
         else:
             self.description = string
 

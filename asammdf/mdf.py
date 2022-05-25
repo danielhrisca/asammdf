@@ -1458,11 +1458,15 @@ class MDF:
                                 master.timestamps = downcast(master.timestamps)
                             if compression:
                                 dataset = group.create_dataset(
-                                    group.attrs["master"], data=master.timestamps, compression=compression
+                                    group.attrs["master"],
+                                    data=master.timestamps,
+                                    compression=compression,
                                 )
                             else:
                                 dataset = group.create_dataset(
-                                    group.attrs["master"], data=master.timestamps, dtype=master.timestamps.dtype
+                                    group.attrs["master"],
+                                    data=master.timestamps,
+                                    dtype=master.timestamps.dtype,
                                 )
                             unit = master.unit.replace("\0", "")
                             if unit:

@@ -2107,17 +2107,24 @@ class Plot(QtWidgets.QWidget):
                 self.plot.set_individual_axis(item.uuid, enabled)
 
     def channel_selection_item_double_clicked(self, item, column):
-        if item is None or item.isDisabled():
+        if item is None:
             return
 
         elif item.type() != item.Info and column not in (
             item.CommonAxisColumn,
             item.IndividualAxisColumn,
         ):
-            if item.checkState(item.NameColumn) == QtCore.Qt.Checked:
-                item.setCheckState(item.NameColumn, QtCore.Qt.Unchecked)
-            else:
-                item.setCheckState(item.NameColumn, QtCore.Qt.Checked)
+            if item.type() == item.Channel:
+                if not item.isDisabled():
+                    if item.checkState(item.NameColumn) == QtCore.Qt.Checked:
+                        item.setCheckState(item.NameColumn, QtCore.Qt.Unchecked)
+                    else:
+                        item.setCheckState(item.NameColumn, QtCore.Qt.Checked)
+            elif item.type() == item.Group:
+                if item.isDisabled():
+                    item.setDisabled(False)
+                else:
+                    item.setDisabled(True)
 
     def channel_selection_reduced(self, deleted):
         self.plot.delete_channels(deleted)

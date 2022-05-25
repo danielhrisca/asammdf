@@ -66,6 +66,27 @@ def _process_dict(d):
     return new_d
 
 
+FRIENDLY_ATRRIBUTES = {
+    "author": "Author",
+    "subject": "Subject",
+    "department": "Department",
+    "pr_project": "Project",
+    "project": "Project Name",
+    "pr_location": "Location",
+    "pr_surface": "Surface",
+    "pr_manover": "Maneuver",
+    "pr_manufacturer": "Manufacturere",
+    "pr_platform": "Platform",
+    "pr_vehicle": "Vehicle",
+    "pr_weight": "Vehicle Weight",
+    "pr_tire": "Tire Make and Size",
+    "pr_transmission": "Transmission",
+    "pr_transm_mode": "Transmission Mode",
+    "pr_specification": "Specification",
+    "pr_test_report": "Test report",
+}
+
+
 class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
     open_new_file = QtCore.Signal(str)
@@ -417,9 +438,39 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             item = QtWidgets.QTreeWidgetItem()
             item.setText(0, "Measurement comment")
-            item.setText(1, self.mdf.header.comment)
+            item.setText(1, self.mdf.header.description)
             item.setTextAlignment(0, QtCore.Qt.AlignTop)
             children.append(item)
+
+            mesaurement_attributes = QtWidgets.QTreeWidgetItem()
+            mesaurement_attributes.setText(0, "Measurement attributes")
+            attributes = []
+            children.append(mesaurement_attributes)
+
+            for name, value in self.mdf.header._common_properties.items():
+                if isinstance(value, dict):
+                    tree = QtWidgets.QTreeWidgetItem()
+                    item.setText(0, name)
+                    item.setTextAlignment(0, QtCore.Qt.AlignTop)
+                    mesaurement_attributes.addChild(tree)
+
+                    subattributes = []
+
+                    for subname, subvalue in value.items():
+                        item = QtWidgets.QTreeWidgetItem()
+                        item.setText(0, subname)
+                        item.setText(1, subvalue)
+                        item.setTextAlignment(0, QtCore.Qt.AlignTop)
+                        subattributes.append(item)
+
+                    tree.addChildren(subattributes)
+
+                else:
+                    item = QtWidgets.QTreeWidgetItem()
+                    item.setText(0, FRIENDLY_ATRRIBUTES.get(name, name))
+                    item.setText(1, value)
+                    item.setTextAlignment(0, QtCore.Qt.AlignTop)
+                    mesaurement_attributes.addChild(item)
 
             channel_groups = QtWidgets.QTreeWidgetItem()
             channel_groups.setText(0, "Channel groups")
