@@ -2031,11 +2031,7 @@ class Plot(QtWidgets.QWidget):
             for signal in self.plot.signals:
                 signal.enable = False
             for item in self.channel_selection.selectedItems():
-                if (
-                    item.type() == item.Channel
-                    and item.checkState(item.NameColumn) == QtCore.Qt.Checked
-                    and not item.isDisabled()
-                ):
+                if item.type() == item.Channel:
                     item.signal.enable = True
             self.plot.update()
         else:
