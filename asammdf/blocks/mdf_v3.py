@@ -3925,6 +3925,9 @@ class MDF3(MDF_Common):
             self._set_temporary_master(None)
             yield signals
 
+    def reload_header(self):
+        self.header = HeaderBlock(address=0x40, stream=self._file)
+
 
 if __name__ == "__main__":
     pass

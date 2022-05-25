@@ -3547,7 +3547,6 @@ class ChannelConversion(_ChannelConversionBase):
                         try:
                             ret[idx_eq[idx_]] = item.convert(values[idx_eq[idx_]])
                         except:
-                            print(self)
                             raise
 
             try:
@@ -5409,8 +5408,6 @@ class HeaderBlock:
                                 subattibutes[name] = e.text or ""
         else:
             self.description = string
-
-        print(self._common_properties)
 
     @property
     def author(self):

@@ -10791,3 +10791,6 @@ class MDF4(MDF_Common):
 
                             self.extend(index, sigs)
                 self._set_temporary_master(None)
+
+    def reload_header(self):
+        self.header = HeaderBlock(address=0x40, stream=self._file)

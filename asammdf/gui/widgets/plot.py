@@ -2123,8 +2123,10 @@ class Plot(QtWidgets.QWidget):
             elif item.type() == item.Group:
                 if item.isDisabled():
                     item.setDisabled(False)
+                    item.setIcon(item.NameColumn, QtGui.QIcon(":/open.png"))
                 else:
                     item.setDisabled(True)
+                    item.setIcon(item.NameColumn, QtGui.QIcon(":/erase.png"))
 
     def channel_selection_reduced(self, deleted):
         self.plot.delete_channels(deleted)

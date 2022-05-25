@@ -69,6 +69,7 @@ def _process_dict(d):
 FRIENDLY_ATRRIBUTES = {
     "author": "Author",
     "subject": "Subject",
+    "host": "Host",
     "department": "Department",
     "pr_project": "Project",
     "project": "Project Name",
@@ -360,221 +361,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.oned_as.insertItems(0, ("row", "column"))
 
             self.output_format.currentTextChanged.connect(self.output_format_changed)
-
-            # info tab
-            try:
-                file_stats = os.stat(self.mdf.name)
-            except:
-                file_stats = None
-            file_info = QtWidgets.QTreeWidgetItem()
-            file_info.setText(0, "File information")
-
-            self.info.addTopLevelItem(file_info)
-
-            children = []
-
-            item = QtWidgets.QTreeWidgetItem()
-            item.setText(0, "Path")
-            item.setText(1, str(self.mdf.name))
-            children.append(item)
-
-            item = QtWidgets.QTreeWidgetItem()
-            item.setText(0, "Size")
-            if file_stats is not None:
-                item.setText(1, f"{file_stats.st_size / 1024 / 1024:.1f} MB")
-            else:
-                try:
-                    item.setText(1, f"{self.mdf.file_limit / 1024 / 1024:.1f} MB")
-                except:
-                    item.setText(1, f"Unknown size")
-            children.append(item)
-
-            if file_stats is not None:
-                date_ = datetime.fromtimestamp(file_stats.st_ctime)
-            else:
-                date_ = datetime.now()
-            item = QtWidgets.QTreeWidgetItem()
-            item.setText(0, "Created")
-            item.setText(1, date_.strftime("%d-%b-%Y %H-%M-%S"))
-            children.append(item)
-
-            if file_stats is not None:
-                date_ = datetime.fromtimestamp(file_stats.st_mtime)
-            else:
-                date_ = datetime.now()
-            item = QtWidgets.QTreeWidgetItem()
-            item.setText(0, "Last modified")
-            item.setText(1, date_.strftime("%d-%b-%Y %H:%M:%S"))
-            children.append(item)
-
-            file_info.addChildren(children)
-
-            mdf_info = QtWidgets.QTreeWidgetItem()
-            mdf_info.setText(0, "MDF information")
-
-            self.info.addTopLevelItem(mdf_info)
-
-            children = []
-
-            item = QtWidgets.QTreeWidgetItem()
-            item.setText(0, "Version")
-            item.setText(1, self.mdf.version)
-            children.append(item)
-
-            item = QtWidgets.QTreeWidgetItem()
-            item.setText(0, "Program identification")
-            item.setText(
-                1,
-                self.mdf.identification.program_identification.decode("ascii").strip(
-                    " \r\n\t\0"
-                ),
-            )
-            children.append(item)
-
-            item = QtWidgets.QTreeWidgetItem()
-            item.setText(0, "Measurement start time")
-            item.setText(1, self.mdf.header.start_time_string())
-            children.append(item)
-
-            item = QtWidgets.QTreeWidgetItem()
-            item.setText(0, "Measurement comment")
-            item.setText(1, self.mdf.header.description)
-            item.setTextAlignment(0, QtCore.Qt.AlignTop)
-            children.append(item)
-
-            mesaurement_attributes = QtWidgets.QTreeWidgetItem()
-            mesaurement_attributes.setText(0, "Measurement attributes")
-            attributes = []
-            children.append(mesaurement_attributes)
-
-            for name, value in self.mdf.header._common_properties.items():
-                if isinstance(value, dict):
-                    tree = QtWidgets.QTreeWidgetItem()
-                    item.setText(0, name)
-                    item.setTextAlignment(0, QtCore.Qt.AlignTop)
-                    mesaurement_attributes.addChild(tree)
-
-                    subattributes = []
-
-                    for subname, subvalue in value.items():
-                        item = QtWidgets.QTreeWidgetItem()
-                        item.setText(0, subname)
-                        item.setText(1, subvalue)
-                        item.setTextAlignment(0, QtCore.Qt.AlignTop)
-                        subattributes.append(item)
-
-                    tree.addChildren(subattributes)
-
-                else:
-                    item = QtWidgets.QTreeWidgetItem()
-                    item.setText(0, FRIENDLY_ATRRIBUTES.get(name, name))
-                    item.setText(1, value)
-                    item.setTextAlignment(0, QtCore.Qt.AlignTop)
-                    mesaurement_attributes.addChild(item)
-
-            channel_groups = QtWidgets.QTreeWidgetItem()
-            channel_groups.setText(0, "Channel groups")
-            channel_groups.setText(1, str(len(self.mdf.groups)))
-            children.append(channel_groups)
-
-            channel_groups_children = []
-            for i, group in enumerate(self.mdf.groups):
-                channel_group = group.channel_group
-                if hasattr(channel_group, "comment"):
-                    comment = extract_xml_comment(channel_group.comment)
-                else:
-                    comment = ""
-                if comment:
-                    name = f"Channel group {i} ({comment})"
-                else:
-                    name = f"Channel group {i}"
-
-                cycles = channel_group.cycles_nr
-
-                channel_group_item = QtWidgets.QTreeWidgetItem()
-                channel_group_item.setText(0, name)
-
-                if self.mdf.version < "4.00":
-                    size = channel_group.samples_byte_nr * cycles
-                else:
-                    if channel_group.flags & 0x1:
-                        size = channel_group.samples_byte_nr + (
-                            channel_group.invalidation_bytes_nr << 32
-                        )
-                    else:
-                        size = (
-                            channel_group.samples_byte_nr
-                            + channel_group.invalidation_bytes_nr
-                        ) * cycles
-
-                    if group.channel_group.acq_source:
-                        source = group.channel_group.acq_source
-                        if source.bus_type == BUS_TYPE_CAN:
-                            ico = ":/bus_can.png"
-                        elif source.bus_type == BUS_TYPE_LIN:
-                            ico = ":/bus_lin.png"
-                        elif source.bus_type == BUS_TYPE_ETHERNET:
-                            ico = ":/bus_eth.png"
-                        elif source.bus_type == BUS_TYPE_USB:
-                            ico = ":/bus_usb.png"
-                        elif source.bus_type == BUS_TYPE_FLEXRAY:
-                            ico = ":/bus_flx.png"
-                        else:
-                            ico = None
-
-                        if ico is not None:
-                            icon = QtGui.QIcon()
-                            icon.addPixmap(
-                                QtGui.QPixmap(ico), QtGui.QIcon.Normal, QtGui.QIcon.Off
-                            )
-                            channel_group_item.setIcon(0, icon)
-
-                item = QtWidgets.QTreeWidgetItem()
-                item.setText(0, "Channels")
-                item.setText(1, f"{len(group.channels)}")
-                channel_group_item.addChild(item)
-
-                item = QtWidgets.QTreeWidgetItem()
-                item.setText(0, "Cycles")
-                item.setText(1, str(cycles))
-                if cycles:
-                    item.setForeground(1, QtGui.QBrush(QtCore.Qt.darkGreen))
-                channel_group_item.addChild(item)
-
-                if size <= 1 << 10:
-                    text = f"{size} B"
-                elif size <= 1 << 20:
-                    text = f"{size / 1024:.1f} KB"
-                elif size <= 1 << 30:
-                    text = f"{size / 1024 / 1024:.1f} MB"
-                else:
-                    text = f"{size / 1024 / 1024 / 1024:.1f} GB"
-
-                item = QtWidgets.QTreeWidgetItem()
-                item.setText(0, "Raw size")
-                item.setText(1, text)
-                if cycles:
-                    item.setForeground(1, QtGui.QBrush(QtCore.Qt.darkGreen))
-                channel_group_item.addChild(item)
-
-                channel_groups_children.append(channel_group_item)
-
-            channel_groups.addChildren(channel_groups_children)
-
-            channels = QtWidgets.QTreeWidgetItem()
-            channels.setText(0, "Channels")
-            channels.setText(
-                1, str(sum(len(entry) for entry in self.mdf.channels_db.values()))
-            )
-            children.append(channels)
-
-            mdf_info.addChildren(children)
-
-            self.info.expandAll()
-
-            self.info.header().setSectionResizeMode(
-                0, QtWidgets.QHeaderView.ResizeToContents
-            )
 
             # self.channels_tree.itemChanged.connect(self.select)
             self.create_window_btn.clicked.connect(self._create_window)
@@ -1558,7 +1344,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             signals = []
         elif window_type == "GPS":
 
-            target = "latitude"
+            target = "(latitude|gps_y)"
             sig = re.compile(target, re.IGNORECASE)
 
             latitude = ""
@@ -1573,7 +1359,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         latitude = name
                         break
 
-            target = "latitude"
+            target = "(longitude|gps_x)"
             sig = re.compile(target, re.IGNORECASE)
 
             longitude = ""
@@ -2198,6 +1984,221 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             self.cut_start.setValue(start)
                             self.cut_stop.setValue(stop)
                             break
+
+        elif self.aspects.tabText(self.aspects.currentIndex()) == "Info":
+            self.info.clear()
+            # self.mdf.reload_header()
+            # info tab
+            try:
+                file_stats = os.stat(self.mdf.name)
+            except:
+                file_stats = None
+            file_info = QtWidgets.QTreeWidgetItem()
+            file_info.setText(0, "File information")
+
+            self.info.addTopLevelItem(file_info)
+
+            children = []
+
+            item = QtWidgets.QTreeWidgetItem()
+            item.setText(0, "Path")
+            item.setText(1, str(self.mdf.name))
+            children.append(item)
+
+            item = QtWidgets.QTreeWidgetItem()
+            item.setText(0, "Size")
+            if file_stats is not None:
+                item.setText(1, f"{file_stats.st_size / 1024 / 1024:.1f} MB")
+            else:
+                try:
+                    item.setText(1, f"{self.mdf.file_limit / 1024 / 1024:.1f} MB")
+                except:
+                    item.setText(1, f"Unknown size")
+            children.append(item)
+
+            if file_stats is not None:
+                date_ = datetime.fromtimestamp(file_stats.st_ctime)
+            else:
+                date_ = datetime.now()
+            item = QtWidgets.QTreeWidgetItem()
+            item.setText(0, "Created")
+            item.setText(1, date_.strftime("%d-%b-%Y %H-%M-%S"))
+            children.append(item)
+
+            if file_stats is not None:
+                date_ = datetime.fromtimestamp(file_stats.st_mtime)
+            else:
+                date_ = datetime.now()
+            item = QtWidgets.QTreeWidgetItem()
+            item.setText(0, "Last modified")
+            item.setText(1, date_.strftime("%d-%b-%Y %H:%M:%S"))
+            children.append(item)
+
+            file_info.addChildren(children)
+
+            mdf_info = QtWidgets.QTreeWidgetItem()
+            mdf_info.setText(0, "MDF information")
+
+            self.info.addTopLevelItem(mdf_info)
+
+            children = []
+
+            item = QtWidgets.QTreeWidgetItem()
+            item.setText(0, "Version")
+            item.setText(1, self.mdf.version)
+            children.append(item)
+
+            item = QtWidgets.QTreeWidgetItem()
+            item.setText(0, "Program identification")
+            item.setText(
+                1,
+                self.mdf.identification.program_identification.decode("ascii").strip(
+                    " \r\n\t\0"
+                ),
+            )
+            children.append(item)
+
+            item = QtWidgets.QTreeWidgetItem()
+            item.setText(0, "Measurement start time")
+            item.setText(1, self.mdf.header.start_time_string())
+            children.append(item)
+
+            item = QtWidgets.QTreeWidgetItem()
+            item.setText(0, "Measurement comment")
+            item.setText(1, self.mdf.header.description)
+            item.setTextAlignment(0, QtCore.Qt.AlignTop)
+            children.append(item)
+
+            mesaurement_attributes = QtWidgets.QTreeWidgetItem()
+            mesaurement_attributes.setText(0, "Measurement attributes")
+            children.append(mesaurement_attributes)
+
+            for name, value in self.mdf.header._common_properties.items():
+                if isinstance(value, dict):
+                    tree = QtWidgets.QTreeWidgetItem()
+                    tree.setText(0, name)
+                    tree.setTextAlignment(0, QtCore.Qt.AlignTop)
+
+                    for subname, subvalue in value.items():
+                        item = QtWidgets.QTreeWidgetItem()
+                        item.setText(0, subname)
+                        item.setText(1, str(subvalue).strip())
+                        item.setTextAlignment(0, QtCore.Qt.AlignTop)
+
+                        tree.addChild(item)
+
+                    mesaurement_attributes.addChild(tree)
+
+                else:
+                    item = QtWidgets.QTreeWidgetItem()
+                    item.setText(0, FRIENDLY_ATRRIBUTES.get(name, name))
+                    item.setText(1, str(value).strip())
+                    item.setTextAlignment(0, QtCore.Qt.AlignTop)
+                    mesaurement_attributes.addChild(item)
+
+            channel_groups = QtWidgets.QTreeWidgetItem()
+            channel_groups.setText(0, "Channel groups")
+            channel_groups.setText(1, str(len(self.mdf.groups)))
+            children.append(channel_groups)
+
+            channel_groups_children = []
+            for i, group in enumerate(self.mdf.groups):
+                channel_group = group.channel_group
+                if hasattr(channel_group, "comment"):
+                    comment = extract_xml_comment(channel_group.comment)
+                else:
+                    comment = ""
+                if comment:
+                    name = f"Channel group {i} ({comment})"
+                else:
+                    name = f"Channel group {i}"
+
+                cycles = channel_group.cycles_nr
+
+                channel_group_item = QtWidgets.QTreeWidgetItem()
+                channel_group_item.setText(0, name)
+
+                if self.mdf.version < "4.00":
+                    size = channel_group.samples_byte_nr * cycles
+                else:
+                    if channel_group.flags & 0x1:
+                        size = channel_group.samples_byte_nr + (
+                            channel_group.invalidation_bytes_nr << 32
+                        )
+                    else:
+                        size = (
+                            channel_group.samples_byte_nr
+                            + channel_group.invalidation_bytes_nr
+                        ) * cycles
+
+                    if group.channel_group.acq_source:
+                        source = group.channel_group.acq_source
+                        if source.bus_type == BUS_TYPE_CAN:
+                            ico = ":/bus_can.png"
+                        elif source.bus_type == BUS_TYPE_LIN:
+                            ico = ":/bus_lin.png"
+                        elif source.bus_type == BUS_TYPE_ETHERNET:
+                            ico = ":/bus_eth.png"
+                        elif source.bus_type == BUS_TYPE_USB:
+                            ico = ":/bus_usb.png"
+                        elif source.bus_type == BUS_TYPE_FLEXRAY:
+                            ico = ":/bus_flx.png"
+                        else:
+                            ico = None
+
+                        if ico is not None:
+                            icon = QtGui.QIcon()
+                            icon.addPixmap(
+                                QtGui.QPixmap(ico), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                            )
+                            channel_group_item.setIcon(0, icon)
+
+                item = QtWidgets.QTreeWidgetItem()
+                item.setText(0, "Channels")
+                item.setText(1, f"{len(group.channels)}")
+                channel_group_item.addChild(item)
+
+                item = QtWidgets.QTreeWidgetItem()
+                item.setText(0, "Cycles")
+                item.setText(1, str(cycles))
+                if cycles:
+                    item.setForeground(1, QtGui.QBrush(QtCore.Qt.darkGreen))
+                channel_group_item.addChild(item)
+
+                if size <= 1 << 10:
+                    text = f"{size} B"
+                elif size <= 1 << 20:
+                    text = f"{size / 1024:.1f} KB"
+                elif size <= 1 << 30:
+                    text = f"{size / 1024 / 1024:.1f} MB"
+                else:
+                    text = f"{size / 1024 / 1024 / 1024:.1f} GB"
+
+                item = QtWidgets.QTreeWidgetItem()
+                item.setText(0, "Raw size")
+                item.setText(1, text)
+                if cycles:
+                    item.setForeground(1, QtGui.QBrush(QtCore.Qt.darkGreen))
+                channel_group_item.addChild(item)
+
+                channel_groups_children.append(channel_group_item)
+
+            channel_groups.addChildren(channel_groups_children)
+
+            channels = QtWidgets.QTreeWidgetItem()
+            channels.setText(0, "Channels")
+            channels.setText(
+                1, str(sum(len(entry) for entry in self.mdf.channels_db.values()))
+            )
+            children.append(channels)
+
+            mdf_info.addChildren(children)
+
+            self.info.expandAll()
+
+            self.info.header().setSectionResizeMode(
+                0, QtWidgets.QHeaderView.ResizeToContents
+            )
 
     def toggle_frames(self, event=None):
         self._frameless_windows = not self._frameless_windows
