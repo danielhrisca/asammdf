@@ -466,6 +466,89 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.idel = Delegate(self)
         self.setItemDelegate(self.idel)
 
+        palette = self.palette()
+        background = palette.brush(QtGui.QPalette.Window).color().name()
+        if palette.brush(QtGui.QPalette.Window).color().red() < 0x80:
+            self.setStyleSheet(
+                f"""
+                QScrollBar:vertical {{
+                    border: 1px solid #61b2e2;
+                    background: {background};
+                    width:14px;    
+                    margin: 0px 0px 0px 0px;
+                }}
+                QScrollBar::handle:vertical {{
+                    border: 1px solid  {background};
+                    margin: 14px 0px 14px 0px;
+                    background: #61b2e2;
+                    min-height: 0px;
+                    width: 6px;    
+                }}
+                QScrollBar::add-line:vertical {{
+                    border: 1px solid #61b2e2;
+                    background: {background};
+                    height: 13px;
+                    subcontrol-position: bottom;
+                    subcontrol-origin: margin;
+                }}
+                QScrollBar::sub-line:vertical {{
+                    border: 1px solid #61b2e2;
+                    background: {background};
+                    height: 13px;
+                    subcontrol-position: top;
+                    subcontrol-origin: margin;
+                }}
+                QScrollBar:up-arrow:vertical {{
+                    image: url(:up.png);
+                    width: 11px;
+                    height: 11px;
+                }} 
+                QScrollBar:down-arrow:vertical {{
+                    image: url(:down.png);
+                    width: 11px;
+                    height: 11px;
+                }} 
+                
+                
+                QScrollBar:horizontal {{
+                    border: 1px solid #61b2e2;
+                    background: {background};
+                    height: 14px;    
+                    margin: 0px 0px 0px 0px;
+                }}
+                QScrollBar::handle:horizontal {{
+                    border: 1px solid  {background};
+                    margin: 0px 14px 0px 14px;
+                    background: #61b2e2;
+                    min-width: 0px;
+                    height: 14px;    
+                }}
+                QScrollBar::add-line:horizontal {{
+                    border: 1px solid #61b2e2;
+                    background: {background};
+                    width: 13px;
+                    subcontrol-position: right;
+                    subcontrol-origin: margin;
+                }}
+                QScrollBar::sub-line:horizontal {{
+                    border: 1px solid #61b2e2;
+                    background: {background};
+                    width: 13 px;
+                    subcontrol-position: left;
+                    subcontrol-origin: margin;
+                }}
+                QScrollBar:left-arrow:horizontal {{
+                    image: url(:left2.png);
+                    width: 11px;
+                    height: 11px;
+                }} 
+                QScrollBar:right-arrow:horizontal {{
+                    image: url(:right2.png);
+                    width: 11px;
+                    height: 11px;
+                }}"""
+            )
+
     def autoscroll(self):
 
         step = max(
