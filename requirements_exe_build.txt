@@ -4,7 +4,6 @@ numexpr
 numpy>=1.21
 pandas
 typing_extensions
-pywin32; sys_platform=="windows"
 isal; platform_machine == "x86_64" or platform_machine == "AMD64"
 lxml 
 natsort 

@@ -155,20 +155,22 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         progress.show()
 
         try:
-            if file_name.suffix.lower() in (".erg", ".bsig"):
+            if file_name.suffix.lower() in (".erg", ".bsig", ".dl3"):
 
                 extension = file_name.suffix.lower().strip(".")
                 progress.setLabelText(f"Converting from {extension} to mdf")
 
                 try:
-                    from mfile import BSIG, ERG
+                    from mfile import BSIG, ERG, DL3
                 except ImportError:
                     from cmerg import BSIG, ERG
 
                 if file_name.suffix.lower() == ".erg":
                     cls = ERG
-                else:
+                elif file_name.suffix.lower() == ".bsig":
                     cls = BSIG
+                else:
+                    cls = DL3
 
                 out_file = Path(gettempdir()) / file_name.name
 
@@ -210,43 +212,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             else:
 
                 original_name = file_name
-                if file_name.suffix.lower() == ".dl3":
-                    progress.setLabelText("Converting from dl3 to mdf")
-                    datalyser_active = any(
-                        proc.name() == "Datalyser3.exe"
-                        for proc in psutil.process_iter()
-                    )
-
-                    out_file = Path(gettempdir()) / file_name.name
-
-                    import win32com.client
-
-                    index = 0
-                    while True:
-                        mdf_name = out_file.with_suffix(f".{index}.mdf")
-                        if mdf_name.exists():
-                            index += 1
-                        else:
-                            break
-
-                    try:
-                        datalyser = win32com.client.Dispatch(
-                            "Datalyser3.Datalyser3_COM"
-                        )
-                    except:
-                        raise Exception(
-                            "Datalyser must be installed if you want to open DL3 files"
-                        )
-                    if not datalyser_active:
-                        try:
-                            datalyser.DCOM_set_datalyser_visibility(False)
-                        except:
-                            pass
-                    datalyser.DCOM_convert_file_mdf_dl3(file_name, str(mdf_name), 0)
-                    if not datalyser_active:
-                        datalyser.DCOM_TerminateDAS()
-
-                    file_name = mdf_name
 
                 target = MDF
                 kwargs = {
