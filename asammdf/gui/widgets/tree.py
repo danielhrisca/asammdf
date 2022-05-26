@@ -474,16 +474,16 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 QScrollBar:vertical {{
                     border: 1px solid #61b2e2;
                     background: {background};
-                    width:14px;    
-                    margin: 0px 0px 0px 0px;
+                    width: 14px;    
+                    margin: 14px 0px 14px 0px;
                 }}
                 QScrollBar::handle:vertical {{
                     border: 1px solid  {background};
-                    margin: 14px 0px 14px 0px;
                     background: #61b2e2;
                     min-height: 0px;
                     width: 6px;    
                 }}
+                
                 QScrollBar::add-line:vertical {{
                     border: 1px solid #61b2e2;
                     background: {background};
@@ -498,15 +498,16 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     subcontrol-position: top;
                     subcontrol-origin: margin;
                 }}
+
                 QScrollBar:up-arrow:vertical {{
                     image: url(:up.png);
-                    width: 11px;
-                    height: 11px;
+                    width: 13px;
+                    height: 13px;
                 }} 
                 QScrollBar:down-arrow:vertical {{
                     image: url(:down.png);
-                    width: 11px;
-                    height: 11px;
+                    width: 13px;
+                    height: 13px;
                 }} 
                 
                 
@@ -514,11 +515,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     border: 1px solid #61b2e2;
                     background: {background};
                     height: 14px;    
-                    margin: 0px 0px 0px 0px;
+                    margin: 0px 14px 0px 14px;
                 }}
                 QScrollBar::handle:horizontal {{
                     border: 1px solid  {background};
-                    margin: 0px 14px 0px 14px;
                     background: #61b2e2;
                     min-width: 0px;
                     height: 14px;    
@@ -537,15 +537,16 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     subcontrol-position: left;
                     subcontrol-origin: margin;
                 }}
+
                 QScrollBar:left-arrow:horizontal {{
                     image: url(:left2.png);
-                    width: 11px;
-                    height: 11px;
+                    width: 13px;
+                    height: 13px;
                 }} 
                 QScrollBar:right-arrow:horizontal {{
                     image: url(:right2.png);
-                    width: 11px;
-                    height: 11px;
+                    width: 13px;
+                    height: 13px;
                 }}"""
             )
 
