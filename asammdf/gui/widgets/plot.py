@@ -231,6 +231,7 @@ class PlotSignal(Signal):
 
         self.y_link = False
         self.y_range = (0, -1)
+        self.home = (0, -1)
 
         self.trim_info = None
 
@@ -290,6 +291,18 @@ class PlotSignal(Signal):
         self.color_name = self.color.name()
         self.pen = fn.mkPen(color=color, style=QtCore.Qt.SolidLine)
 
+        self._min = None
+        self._max = None
+        self._rms = None
+        self._avg = None
+        self._std = None
+        self._min_raw = None
+        self._max_raw = None
+        self._avg_raw = None
+        self._rms_raw = None
+        self._std_raw = None
+        self._stats_available = False
+
         if len(self.phys_samples):
 
             if self.raw_samples.dtype.kind in "SUV":
@@ -304,15 +317,9 @@ class PlotSignal(Signal):
                 if len(samples):
                     self._min_raw = np.nanmin(samples)
                     self._max_raw = np.nanmax(samples)
-                    self._avg_raw = np.mean(samples)
-                    self._rms_raw = np.sqrt(np.mean(np.square(samples)))
-                    self._std_raw = np.std(samples)
                 else:
                     self._min_raw = "n.a."
                     self._max_raw = "n.a."
-                    self._avg_raw = "n.a."
-                    self._rms_raw = "n.a."
-                    self._std_raw = "n.a."
 
             if self.phys_samples is self.raw_samples:
                 if self.phys_samples.dtype.kind in "SUV":
@@ -322,9 +329,6 @@ class PlotSignal(Signal):
 
                 self._min = self._min_raw
                 self._max = self._max_raw
-                self._avg = self._avg_raw
-                self._rms = self._rms_raw
-                self._std = self._std_raw
 
             else:
                 if self.phys_samples.dtype.kind in "SUV":
@@ -340,9 +344,6 @@ class PlotSignal(Signal):
                     if len(samples):
                         self._min = np.nanmin(samples)
                         self._max = np.nanmax(samples)
-                        self._avg = np.mean(samples)
-                        self._rms = np.sqrt(np.mean(np.square(samples)))
-                        self._std = np.std(samples)
                     else:
                         self._min = "n.a."
                         self._max = "n.a."
@@ -384,11 +385,100 @@ class PlotSignal(Signal):
 
     @property
     def avg(self):
+        if not self._stats_available:
+            self._compute_stats()
         return self._avg if self._mode == "phys" else self._avg_raw
 
     @avg.setter
     def avg(self, avg):
         self._avg = avg
+        
+    def _compute_stats(self):
+        if len(self.phys_samples):
+
+            if self.raw_samples.dtype.kind in "SUV":
+                self._min_raw = ""
+                self._max_raw = ""
+                self._avg_raw = ""
+                self._rms_raw = ""
+                self._std_raw = ""
+            else:
+
+                samples = self.raw_samples[np.isfinite(self.raw_samples)]
+                if len(samples):
+                    self._avg_raw = np.mean(samples)
+                    self._rms_raw = np.sqrt(np.mean(np.square(samples)))
+                    self._std_raw = np.std(samples)
+                else:
+                    self._min_raw = "n.a."
+                    self._max_raw = "n.a."
+                    self._avg_raw = "n.a."
+                    self._rms_raw = "n.a."
+                    self._std_raw = "n.a."
+
+            if self.phys_samples is self.raw_samples:
+                if self.phys_samples.dtype.kind in "SUV":
+                    self.is_string = True
+                else:
+                    self.is_string = False
+
+                self._min = self._min_raw
+                self._max = self._max_raw
+                self._avg = self._avg_raw
+                self._rms = self._rms_raw
+                self._std = self._std_raw
+
+            else:
+                if self.phys_samples.dtype.kind in "SUV":
+                    self.is_string = True
+                    self._min = ""
+                    self._max = ""
+                    self._avg = ""
+                    self._rms = ""
+                    self._std = ""
+                else:
+                    self.is_string = False
+                    samples = self.phys_samples[np.isfinite(self.phys_samples)]
+                    if len(samples):
+                        self._avg = np.mean(samples)
+                        self._rms = np.sqrt(np.mean(np.square(samples)))
+                        self._std = np.std(samples)
+                    else:
+                        self._min = "n.a."
+                        self._max = "n.a."
+                        self._avg = "n.a."
+                        self._rms = "n.a."
+                        self._std = "n.a."
+
+            self.empty = False
+
+        else:
+            self.empty = True
+            if self.phys_samples.dtype.kind in "SUV":
+                self.is_string = True
+                self._min = ""
+                self._max = ""
+                self._rms = ""
+                self._avg = ""
+                self._std = ""
+                self._min_raw = ""
+                self._max_raw = ""
+                self._avg_raw = ""
+                self._rms_raw = ""
+                self._std_raw = ""
+            else:
+                self.is_string = False
+                self._min = "n.a."
+                self._max = "n.a."
+                self._rms = "n.a."
+                self._avg = "n.a."
+                self._std = "n.a."
+                self._min_raw = "n.a."
+                self._max_raw = "n.a."
+                self._avg_raw = "n.a."
+                self._rms_raw = "n.a."
+                self._std_raw = "n.a."
+        self._stats_available = True
 
     def cut(self, start=None, stop=None, include_ends=True, interpolation_mode=0):
         cut_sig = super().cut(start, stop, include_ends, interpolation_mode)
@@ -510,7 +600,7 @@ class PlotSignal(Signal):
                     stats["overall_integral"] = 0
                 else:
                     stats["overall_gradient"] = float_fmt.format(
-                        (sig.samples[-1] - sig.samples[0])
+                        (float(sig.samples[-1]) - float(sig.samples[0]))
                         / (sig.timestamps[-1] - sig.timestamps[0])
                     )
                     stats["overall_integral"] = float_fmt.format(
@@ -617,7 +707,7 @@ class PlotSignal(Signal):
                             new_stats["selected_integral"] = 0
                         else:
                             new_stats["selected_gradient"] = float_fmt.format(
-                                (samples[-1] - samples[0])
+                                (float(samples[-1]) - float(samples[0]))
                                 / (timestamps[-1] - timestamps[0])
                             )
                             new_stats["selected_integral"] = float_fmt.format(
@@ -710,7 +800,7 @@ class PlotSignal(Signal):
                         new_stats["visible_integral"] = 0
                     else:
                         new_stats["visible_gradient"] = float_fmt.format(
-                            (samples[-1] - samples[0])
+                            (float(samples[-1]) - float(samples[0]))
                             / (timestamps[-1] - timestamps[0])
                         )
                         new_stats["visible_integral"] = float_fmt.format(
@@ -870,6 +960,8 @@ class PlotSignal(Signal):
 
     @property
     def rms(self):
+        if not self._stats_available:
+            self._compute_stats()
         return self._rms if self.mode == "phys" else self._rms_raw
 
     @rms.setter
@@ -880,8 +972,13 @@ class PlotSignal(Signal):
         self.color = color
         self.pen = fn.mkPen(color=color, style=QtCore.Qt.SolidLine)
 
+    def set_home(self, y_range=None):
+        self.home = y_range or self.y_range
+
     @property
     def std(self):
+        if not self._stats_available:
+            self._compute_stats()
         return self._std if self.mode == "phys" else self._std_raw
 
     def trim_c(self, start=None, stop=None, width=1900, force=False):

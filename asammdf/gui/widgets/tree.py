@@ -474,16 +474,16 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 QScrollBar:vertical {{
                     border: 1px solid #61b2e2;
                     background: {background};
-                    width: 14px;    
+                    width: 14px;
                     margin: 14px 0px 14px 0px;
                 }}
                 QScrollBar::handle:vertical {{
                     border: 1px solid  {background};
                     background: #61b2e2;
                     min-height: 40px;
-                    width: 6px;    
+                    width: 6px;
                 }}
-                
+
                 QScrollBar::add-line:vertical {{
                     border: 1px solid #61b2e2;
                     background: {background};
@@ -503,25 +503,25 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     image: url(:up.png);
                     width: 13px;
                     height: 13px;
-                }} 
+                }}
                 QScrollBar:down-arrow:vertical {{
                     image: url(:down.png);
                     width: 13px;
                     height: 13px;
-                }} 
-                
-                
+                }}
+
+
                 QScrollBar:horizontal {{
                     border: 1px solid #61b2e2;
                     background: {background};
-                    height: 14px;    
+                    height: 14px;
                     margin: 0px 14px 0px 14px;
                 }}
                 QScrollBar::handle:horizontal {{
                     border: 1px solid  {background};
                     background: #61b2e2;
                     min-width: 40px;
-                    height: 14px;    
+                    height: 14px;
                 }}
                 QScrollBar::add-line:horizontal {{
                     border: 1px solid #61b2e2;
@@ -542,7 +542,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     image: url(:left2.png);
                     width: 13px;
                     height: 13px;
-                }} 
+                }}
                 QScrollBar:right-arrow:horizontal {{
                     image: url(:right2.png);
                     width: 13px;
@@ -1511,10 +1511,11 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.set_ranges(ranges or [])
             self.resolved_ranges = None
 
-            if len(signal.samples) and signal.conversion:
-                kind = signal.conversion.convert(signal.samples[:1]).dtype.kind
-            else:
-                kind = signal.samples.dtype.kind
+            kind = signal.phys_samples.dtype.kind
+            # if len(signal.samples) and signal.conversion:
+            #     kind = signal.conversion.convert(signal.samples[:1]).dtype.kind
+            # else:
+            #     kind = signal.samples.dtype.kind
 
             self.kind = kind
 
