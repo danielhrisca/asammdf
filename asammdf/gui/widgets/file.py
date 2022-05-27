@@ -161,7 +161,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 progress.setLabelText(f"Converting from {extension} to mdf")
 
                 try:
-                    from mfile import BSIG, ERG, DL3
+                    from mfile import BSIG, DL3, ERG
                 except ImportError:
                     from cmerg import BSIG, ERG
 

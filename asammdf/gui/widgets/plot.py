@@ -1291,8 +1291,6 @@ class Plot(QtWidgets.QWidget):
         self.pattern = {}
         self.mdf = mdf
 
-        self.ignore_selection_change = False
-
         self.x_name = "t" if x_axis == "time" else "f"
         self.x_unit = "s" if x_axis == "time" else "Hz"
 
@@ -2144,7 +2142,7 @@ class Plot(QtWidgets.QWidget):
 
     def channel_selection_row_changed(self, current, previous):
 
-        if not self.closed and not self.ignore_selection_change:
+        if not self.closed:
             if current and current.type() == ChannelsTreeItem.Channel:
                 item = current
                 uuid = item.uuid

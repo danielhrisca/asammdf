@@ -480,7 +480,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 QScrollBar::handle:vertical {{
                     border: 1px solid  {background};
                     background: #61b2e2;
-                    min-height: 0px;
+                    min-height: 40px;
                     width: 6px;    
                 }}
                 
@@ -520,7 +520,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 QScrollBar::handle:horizontal {{
                     border: 1px solid  {background};
                     background: #61b2e2;
-                    min-width: 0px;
+                    min-width: 40px;
                     height: 14px;    
                 }}
                 QScrollBar::add-line:horizontal {{
@@ -660,20 +660,16 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             selected_items = self.selectedItems()
             deleted = list(set(get_data(self.plot, selected_items, uuids_only=True)))
 
-            self.plot.ignore_selection_change = True
+            self.setUpdatesEnabled(False)
+            self.clearSelection()
 
             root = self.invisibleRootItem()
-            for item in selected_items:
-                if item.type() == item.Channel:
-                    (item.parent() or root).removeChild(item)
 
             for item in selected_items:
-                if item.type() == item.Group:
-                    (item.parent() or root).removeChild(item)
+                (item.parent() or root).removeChild(item)
 
+            self.setUpdatesEnabled(True)
             self.refresh()
-
-            self.plot.ignore_selection_change = False
 
             if deleted:
                 self.itemsDeleted.emit(deleted)
@@ -948,7 +944,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         if item and item.type() == ChannelsTreeItem.Channel:
             menu.addAction(self.tr("Rename channel"))
-        elif item and item.type() == ChannelsTreeItem.Group:
+        elif item and item.type() == ChannelsTreeItem.Group and not item.pattern:
             menu.addAction(self.tr("Rename group"))
         menu.addSeparator()
 
@@ -1379,8 +1375,9 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.update_visibility_status()
 
     def resizeEvent(self, e: QtGui.QResizeEvent) -> None:
-        super().resizeEvent(e)
-        self.update_visibility_status()
+        if self.updatesEnabled():
+            super().resizeEvent(e)
+            self.update_visibility_status()
 
     def update_channel_groups_count(self):
         iterator = QtWidgets.QTreeWidgetItemIterator(self)
@@ -1785,9 +1782,10 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self._name = text
         self.setText(self.NameColumn, self.name)
 
-        tree = self.treeWidget()
-        if tree:
-            tree.name_changed.emit(self.uuid, text)
+        if type == self.Channel:
+            tree = self.treeWidget()
+            if tree:
+                tree.name_changed.emit(self.uuid, text)
 
     @property
     def precision(self):
