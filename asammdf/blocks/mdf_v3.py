@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterator, Sequence
 from copy import deepcopy
+from datetime import datetime
 from io import BufferedReader, BytesIO
 from itertools import product
 import logging
@@ -3376,6 +3377,24 @@ class MDF3(MDF_Common):
                 inf[f"channel {j}"] = f'name="{name}" type={ch_type}'
 
         return info
+
+    @property
+    def start_time(self) -> datetime:
+        """getter and setter the measurement start timestamp
+
+        Returns
+        -------
+        timestamp : datetime.datetime
+            start timestamp
+
+        """
+
+        return self.header.start_time
+
+    @start_time.setter
+    def start_time(self, timestamp: datetime) -> None:
+        self.header.start_time = timestamp
+
 
     def save(
         self,
