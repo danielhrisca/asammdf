@@ -239,7 +239,7 @@ class MDF3(MDF_Common):
                 self._from_filelike = True
                 self._read(mapped=False)
             else:
-                if sys.maxsize < 2**32:
+                if sys.maxsize < 2 ** 32:
                     self.name = Path(name)
                     self._file = open(self.name, "rb")
                     self._from_filelike = False
@@ -3394,7 +3394,6 @@ class MDF3(MDF_Common):
     @start_time.setter
     def start_time(self, timestamp: datetime) -> None:
         self.header.start_time = timestamp
-
 
     def save(
         self,
