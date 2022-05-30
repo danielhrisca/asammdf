@@ -913,9 +913,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             )
 
         if file_name:
-            Path(file_name).write_text(
-                json.dumps(self.to_config(), indent=4, sort_keys=True)
-            )
+            Path(file_name).write_text(json.dumps(self.to_config(), indent=2))
 
     def load_channel_list(self, event=None, file_name=None):
         if file_name is None:
