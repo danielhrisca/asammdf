@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1002</width>
-    <height>840</height>
+    <width>785</width>
+    <height>722</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -24,7 +24,7 @@
        <enum>QTabWidget::West</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <property name="documentMode">
        <bool>false</bool>
@@ -37,7 +37,7 @@
        <attribute name="title">
         <string>Concatenate</string>
        </attribute>
-       <layout class="QGridLayout" name="gridLayout_7">
+       <layout class="QGridLayout" name="gridLayout_7" columnstretch="0,1">
         <item row="0" column="0" colspan="2">
          <widget class="QCheckBox" name="concatenate_sync">
           <property name="text">
@@ -138,7 +138,7 @@
           <property name="sizeHint" stdset="0">
            <size>
             <width>20</width>
-            <height>502</height>
+            <height>2</height>
            </size>
           </property>
          </spacer>
@@ -366,13 +366,6 @@
                </property>
               </widget>
              </item>
-             <item row="3" column="0">
-              <widget class="QCheckBox" name="whence">
-               <property name="text">
-                <string>Start relative to first time stamp</string>
-               </property>
-              </widget>
-             </item>
              <item row="1" column="0">
               <widget class="QLabel" name="label_63">
                <property name="text">
@@ -393,7 +386,14 @@
                </property>
               </widget>
              </item>
-             <item row="4" column="0">
+             <item row="3" column="0" colspan="2">
+              <widget class="QCheckBox" name="whence">
+               <property name="text">
+                <string>Start relative to first time stamp</string>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="0" colspan="2">
               <widget class="QCheckBox" name="cut_time_from_zero">
                <property name="text">
                 <string>Time from 0s</string>
@@ -444,7 +444,7 @@
               <widget class="QDoubleSpinBox" name="raster">
                <property name="minimumSize">
                 <size>
-                 <width>100</width>
+                 <width>0</width>
                  <height>0</height>
                 </size>
                </property>
@@ -456,13 +456,6 @@
                </property>
                <property name="minimum">
                 <double>0.000001000000000</double>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="0">
-              <widget class="QCheckBox" name="resample_time_from_zero">
-               <property name="text">
-                <string>Time from 0s</string>
                </property>
               </widget>
              </item>
@@ -497,6 +490,13 @@
                <property name="icon">
                 <iconset resource="resource.qrc">
                  <normaloff>:/search.png</normaloff>:/search.png</iconset>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="0" colspan="3">
+              <widget class="QCheckBox" name="resample_time_from_zero">
+               <property name="text">
+                <string>Time from 0s</string>
                </property>
               </widget>
              </item>
@@ -560,6 +560,33 @@
                </property>
                <widget class="QWidget" name="MDF_2">
                 <layout class="QGridLayout" name="gridLayout_25" columnstretch="0,0">
+                 <item row="3" column="0" colspan="2">
+                  <widget class="QCheckBox" name="mdf_split">
+                   <property name="text">
+                    <string>Split data blocks</string>
+                   </property>
+                   <property name="checked">
+                    <bool>true</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="1">
+                  <widget class="QComboBox" name="mdf_compression"/>
+                 </item>
+                 <item row="2" column="0">
+                  <widget class="QLabel" name="label_39">
+                   <property name="text">
+                    <string>Compression</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="0">
+                  <widget class="QLabel" name="label_40">
+                   <property name="text">
+                    <string>Version</string>
+                   </property>
+                  </widget>
+                 </item>
                  <item row="1" column="0" colspan="2">
                   <widget class="Line" name="line_17">
                    <property name="orientation">
@@ -574,59 +601,28 @@
                    </property>
                   </widget>
                  </item>
-                 <item row="2" column="1">
-                  <widget class="QComboBox" name="mdf_compression"/>
-                 </item>
-                 <item row="3" column="0">
-                  <widget class="QCheckBox" name="mdf_split">
-                   <property name="text">
-                    <string>Split data blocks</string>
-                   </property>
-                   <property name="checked">
-                    <bool>true</bool>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="2" column="0">
-                  <widget class="QLabel" name="label_39">
-                   <property name="text">
-                    <string>Compression</string>
-                   </property>
-                  </widget>
-                 </item>
                  <item row="0" column="1">
                   <widget class="QComboBox" name="mdf_version">
                    <property name="minimumSize">
                     <size>
-                     <width>200</width>
+                     <width>0</width>
                      <height>0</height>
                     </size>
                    </property>
                   </widget>
                  </item>
-                 <item row="4" column="1">
-                  <widget class="QDoubleSpinBox" name="mdf_split_size">
-                   <property name="suffix">
-                    <string>MB</string>
-                   </property>
-                   <property name="maximum">
-                    <double>4.000000000000000</double>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="0" column="0">
-                  <widget class="QLabel" name="label_40">
-                   <property name="text">
-                    <string>Version</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="6" column="0" colspan="2">
+                 <item row="5" column="0" colspan="2">
                   <widget class="QGroupBox" name="groupBox_12">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
                    <property name="title">
                     <string>Scramble</string>
                    </property>
-                   <layout class="QGridLayout" name="gridLayout_26">
+                   <layout class="QGridLayout" name="gridLayout_26" rowstretch="1,0" columnstretch="0,1">
                     <item row="1" column="0">
                      <widget class="QPushButton" name="scramble_btn">
                       <property name="text">
@@ -653,6 +649,12 @@
                     </item>
                     <item row="0" column="0" colspan="2">
                      <widget class="QLabel" name="label_64">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
                       <property name="text">
                        <string>Anonymize the measurements: scramble all texts and replace them with random strings</string>
                       </property>
@@ -664,18 +666,15 @@
                    </layout>
                   </widget>
                  </item>
-                 <item row="5" column="1">
-                  <spacer name="verticalSpacer_11">
-                   <property name="orientation">
-                    <enum>Qt::Vertical</enum>
+                 <item row="4" column="1">
+                  <widget class="QDoubleSpinBox" name="mdf_split_size">
+                   <property name="suffix">
+                    <string>MB</string>
                    </property>
-                   <property name="sizeHint" stdset="0">
-                    <size>
-                     <width>20</width>
-                     <height>40</height>
-                    </size>
+                   <property name="maximum">
+                    <double>4.000000000000000</double>
                    </property>
-                  </spacer>
+                  </widget>
                  </item>
                 </layout>
                </widget>
@@ -696,22 +695,8 @@
                  <property name="spacing">
                   <number>2</number>
                  </property>
-                 <item row="2" column="0">
-                  <widget class="QCheckBox" name="time_as_date">
-                   <property name="text">
-                    <string>Time as date</string>
-                   </property>
-                  </widget>
-                 </item>
                  <item row="8" column="1">
                   <widget class="QComboBox" name="empty_channels"/>
-                 </item>
-                 <item row="1" column="0">
-                  <widget class="QCheckBox" name="time_from_zero">
-                   <property name="text">
-                    <string>Time from 0s</string>
-                   </property>
-                  </widget>
                  </item>
                  <item row="9" column="0">
                   <spacer name="verticalSpacer_12">
@@ -725,13 +710,6 @@
                     </size>
                    </property>
                   </spacer>
-                 </item>
-                 <item row="6" column="0">
-                  <widget class="QCheckBox" name="reduce_memory_usage">
-                   <property name="text">
-                    <string>Reduce  memory usage</string>
-                   </property>
-                  </widget>
                  </item>
                  <item row="7" column="0">
                   <widget class="QLabel" name="label_71">
@@ -757,24 +735,45 @@
                    </property>
                   </widget>
                  </item>
-                 <item row="0" column="0">
+                 <item row="3" column="0" colspan="2">
+                  <widget class="QCheckBox" name="raw">
+                   <property name="text">
+                    <string>Raw values</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="0" colspan="2">
+                  <widget class="QCheckBox" name="time_as_date">
+                   <property name="text">
+                    <string>Time as date</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="0" colspan="2">
+                  <widget class="QCheckBox" name="time_from_zero">
+                   <property name="text">
+                    <string>Time from 0s</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="0" colspan="2">
                   <widget class="QCheckBox" name="single_time_base">
                    <property name="text">
                     <string>Single time base</string>
                    </property>
                   </widget>
                  </item>
-                 <item row="5" column="0">
+                 <item row="5" column="0" colspan="2">
                   <widget class="QCheckBox" name="use_display_names">
                    <property name="text">
                     <string>Use display names</string>
                    </property>
                   </widget>
                  </item>
-                 <item row="3" column="0">
-                  <widget class="QCheckBox" name="raw">
+                 <item row="6" column="0" colspan="2">
+                  <widget class="QCheckBox" name="reduce_memory_usage">
                    <property name="text">
-                    <string>Raw values</string>
+                    <string>Reduce  memory usage</string>
                    </property>
                   </widget>
                  </item>
@@ -797,24 +796,10 @@
                  <property name="spacing">
                   <number>2</number>
                  </property>
-                 <item row="5" column="0">
-                  <widget class="QCheckBox" name="use_display_names_mat">
-                   <property name="text">
-                    <string>Use display names</string>
-                   </property>
-                  </widget>
-                 </item>
                  <item row="10" column="0">
                   <widget class="QLabel" name="label_41">
                    <property name="text">
                     <string>.mat oned_as</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="0">
-                  <widget class="QCheckBox" name="time_from_zero_mat">
-                   <property name="text">
-                    <string>Time from 0s</string>
                    </property>
                   </widget>
                  </item>
@@ -855,35 +840,14 @@
                    </property>
                   </widget>
                  </item>
-                 <item row="0" column="0">
-                  <widget class="QCheckBox" name="single_time_base_mat">
-                   <property name="text">
-                    <string>Single time base</string>
-                   </property>
-                  </widget>
-                 </item>
                  <item row="8" column="1">
                   <widget class="QComboBox" name="empty_channels_mat"/>
                  </item>
                  <item row="9" column="1">
                   <widget class="QComboBox" name="mat_format"/>
                  </item>
-                 <item row="6" column="0">
-                  <widget class="QCheckBox" name="reduce_memory_usage_mat">
-                   <property name="text">
-                    <string>Reduce  memory usage</string>
-                   </property>
-                  </widget>
-                 </item>
                  <item row="10" column="1">
                   <widget class="QComboBox" name="oned_as"/>
-                 </item>
-                 <item row="2" column="0">
-                  <widget class="QCheckBox" name="time_as_date_mat">
-                   <property name="text">
-                    <string>Time as date</string>
-                   </property>
-                  </widget>
                  </item>
                  <item row="8" column="0">
                   <widget class="QLabel" name="label_74">
@@ -892,10 +856,45 @@
                    </property>
                   </widget>
                  </item>
-                 <item row="3" column="0">
+                 <item row="3" column="0" colspan="2">
                   <widget class="QCheckBox" name="raw_mat">
                    <property name="text">
                     <string>Raw values</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="5" column="0" colspan="2">
+                  <widget class="QCheckBox" name="use_display_names_mat">
+                   <property name="text">
+                    <string>Use display names</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="6" column="0" colspan="2">
+                  <widget class="QCheckBox" name="reduce_memory_usage_mat">
+                   <property name="text">
+                    <string>Reduce  memory usage</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="0" colspan="2">
+                  <widget class="QCheckBox" name="time_as_date_mat">
+                   <property name="text">
+                    <string>Time as date</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="0" colspan="2">
+                  <widget class="QCheckBox" name="time_from_zero_mat">
+                   <property name="text">
+                    <string>Time from 0s</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="0" colspan="2">
+                  <widget class="QCheckBox" name="single_time_base_mat">
+                   <property name="text">
+                    <string>Single time base</string>
                    </property>
                   </widget>
                  </item>
@@ -1180,7 +1179,7 @@
        <attribute name="title">
         <string>Stack</string>
        </attribute>
-       <layout class="QGridLayout" name="gridLayout_8">
+       <layout class="QGridLayout" name="gridLayout_8" columnstretch="0,1">
         <item row="0" column="0" colspan="2">
          <widget class="QCheckBox" name="stack_sync">
           <property name="text">
@@ -1394,7 +1393,7 @@
            <widget class="QLineEdit" name="prefix">
             <property name="minimumSize">
              <size>
-              <width>215</width>
+              <width>0</width>
               <height>0</height>
              </size>
             </property>
@@ -1491,27 +1490,6 @@
              </property>
             </widget>
            </item>
-           <item row="2" column="1">
-            <widget class="QCheckBox" name="bus_time_as_date">
-             <property name="text">
-              <string>Time as date</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <widget class="QCheckBox" name="time_from_zero_bus">
-             <property name="text">
-              <string>Time from 0s</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QCheckBox" name="single_time_base_bus">
-             <property name="text">
-              <string>Single time base</string>
-             </property>
-            </widget>
-           </item>
            <item row="7" column="1">
             <widget class="QLabel" name="label_8">
              <property name="text">
@@ -1529,16 +1507,6 @@
              </property>
              <property name="clearButtonEnabled">
               <bool>false</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="8" column="1">
-            <widget class="QCheckBox" name="doublequote_bus">
-             <property name="text">
-              <string>Double quote</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
              </property>
             </widget>
            </item>
@@ -1617,7 +1585,28 @@
              </property>
             </widget>
            </item>
-           <item row="3" column="1">
+           <item row="0" column="1" colspan="2">
+            <widget class="QCheckBox" name="single_time_base_bus">
+             <property name="text">
+              <string>Single time base</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1" colspan="2">
+            <widget class="QCheckBox" name="time_from_zero_bus">
+             <property name="text">
+              <string>Time from 0s</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1" colspan="2">
+            <widget class="QCheckBox" name="bus_time_as_date">
+             <property name="text">
+              <string>Time as date</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1" colspan="2">
             <widget class="QCheckBox" name="ignore_invalid_signals_csv">
              <property name="toolTip">
               <string>checks if all samples are eauql to the maximum teoretical signal value</string>
@@ -1627,10 +1616,20 @@
              </property>
             </widget>
            </item>
-           <item row="4" column="1">
+           <item row="4" column="1" colspan="2">
             <widget class="QCheckBox" name="add_units_bus">
              <property name="text">
               <string>Add units</string>
+             </property>
+            </widget>
+           </item>
+           <item row="8" column="1" colspan="2">
+            <widget class="QCheckBox" name="doublequote_bus">
+             <property name="text">
+              <string>Double quote</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
              </property>
             </widget>
            </item>
@@ -1734,31 +1733,7 @@
       <widget class="MinimalListWidget" name="files_list"/>
      </item>
      <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_2">
-       <item>
-        <spacer name="horizontalSpacer_2">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item>
-        <widget class="QPushButton" name="sort_alphabetically_btn">
-         <property name="text">
-          <string>Sort alphabetically</string>
-         </property>
-         <property name="icon">
-          <iconset resource="resource.qrc">
-           <normaloff>:/alphabetical_sorting.png</normaloff>:/alphabetical_sorting.png</iconset>
-         </property>
-        </widget>
-       </item>
+      <layout class="QVBoxLayout" name="verticalLayout_3">
        <item>
         <widget class="QPushButton" name="sort_by_start_time_btn">
          <property name="text">
@@ -1771,17 +1746,15 @@
         </widget>
        </item>
        <item>
-        <spacer name="horizontalSpacer_3">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
+        <widget class="QPushButton" name="sort_alphabetically_btn">
+         <property name="text">
+          <string>Sort alphabetically</string>
          </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>40</width>
-           <height>20</height>
-          </size>
+         <property name="icon">
+          <iconset resource="resource.qrc">
+           <normaloff>:/alphabetical_sorting.png</normaloff>:/alphabetical_sorting.png</iconset>
          </property>
-        </spacer>
+        </widget>
        </item>
       </layout>
      </item>

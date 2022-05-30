@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'file_widget.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.2.3
+## Created by: Qt User Interface Compiler version 6.3.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -231,11 +231,6 @@ class Ui_file_widget(object):
 
         self.gridLayout_19.addWidget(self.cut_stop, 1, 1, 1, 1)
 
-        self.whence = QCheckBox(self.cut_group)
-        self.whence.setObjectName(u"whence")
-
-        self.gridLayout_19.addWidget(self.whence, 3, 0, 1, 1)
-
         self.label_60 = QLabel(self.cut_group)
         self.label_60.setObjectName(u"label_60")
 
@@ -248,10 +243,15 @@ class Ui_file_widget(object):
 
         self.gridLayout_19.addWidget(self.cut_start, 0, 1, 1, 1)
 
+        self.whence = QCheckBox(self.cut_group)
+        self.whence.setObjectName(u"whence")
+
+        self.gridLayout_19.addWidget(self.whence, 3, 0, 1, 2)
+
         self.cut_time_from_zero = QCheckBox(self.cut_group)
         self.cut_time_from_zero.setObjectName(u"cut_time_from_zero")
 
-        self.gridLayout_19.addWidget(self.cut_time_from_zero, 4, 0, 1, 1)
+        self.gridLayout_19.addWidget(self.cut_time_from_zero, 4, 0, 1, 2)
 
 
         self.verticalLayout_3.addWidget(self.cut_group)
@@ -272,16 +272,16 @@ class Ui_file_widget(object):
 
         self.raster = QDoubleSpinBox(self.resample_group)
         self.raster.setObjectName(u"raster")
-        self.raster.setMinimumSize(QSize(100, 0))
+        sizePolicy = QSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.raster.sizePolicy().hasHeightForWidth())
+        self.raster.setSizePolicy(sizePolicy)
+        self.raster.setMinimumSize(QSize(0, 0))
         self.raster.setDecimals(6)
         self.raster.setMinimum(0.000001000000000)
 
         self.gridLayout_21.addWidget(self.raster, 0, 1, 1, 1)
-
-        self.resample_time_from_zero = QCheckBox(self.resample_group)
-        self.resample_time_from_zero.setObjectName(u"resample_time_from_zero")
-
-        self.gridLayout_21.addWidget(self.resample_time_from_zero, 3, 0, 1, 1)
 
         self.raster_type_channel = QRadioButton(self.resample_group)
         self.raster_type_channel.setObjectName(u"raster_type_channel")
@@ -301,6 +301,11 @@ class Ui_file_widget(object):
         self.raster_search_btn.setIcon(icon4)
 
         self.gridLayout_21.addWidget(self.raster_search_btn, 2, 2, 1, 1)
+
+        self.resample_time_from_zero = QCheckBox(self.resample_group)
+        self.resample_time_from_zero.setObjectName(u"resample_time_from_zero")
+
+        self.gridLayout_21.addWidget(self.resample_time_from_zero, 3, 0, 1, 3)
 
         self.gridLayout_21.setColumnStretch(1, 1)
 
@@ -351,12 +356,6 @@ class Ui_file_widget(object):
 
         self.gridLayout_22.addWidget(self.mdf_compression, 2, 1, 1, 1)
 
-        self.mdf_split = QCheckBox(self.MDF)
-        self.mdf_split.setObjectName(u"mdf_split")
-        self.mdf_split.setChecked(True)
-
-        self.gridLayout_22.addWidget(self.mdf_split, 3, 0, 1, 1)
-
         self.label_27 = QLabel(self.MDF)
         self.label_27.setObjectName(u"label_27")
 
@@ -374,7 +373,7 @@ class Ui_file_widget(object):
 
         self.gridLayout_20.addWidget(self.scramble_btn, 1, 0, 1, 1)
 
-        self.horizontalSpacer_23 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+        self.horizontalSpacer_23 = QSpacerItem(2, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
 
         self.gridLayout_20.addItem(self.horizontalSpacer_23, 1, 1, 1, 1)
 
@@ -394,9 +393,15 @@ class Ui_file_widget(object):
 
         self.mdf_version = QComboBox(self.MDF)
         self.mdf_version.setObjectName(u"mdf_version")
-        self.mdf_version.setMinimumSize(QSize(200, 0))
+        self.mdf_version.setMinimumSize(QSize(0, 0))
 
         self.gridLayout_22.addWidget(self.mdf_version, 0, 1, 1, 1)
+
+        self.mdf_split = QCheckBox(self.MDF)
+        self.mdf_split.setObjectName(u"mdf_split")
+        self.mdf_split.setChecked(True)
+
+        self.gridLayout_22.addWidget(self.mdf_split, 3, 0, 1, 2)
 
         self.output_options.addWidget(self.MDF)
         self.HDF5 = QWidget()
@@ -405,29 +410,14 @@ class Ui_file_widget(object):
         self.gridLayout_2.setSpacing(2)
         self.gridLayout_2.setObjectName(u"gridLayout_2")
         self.gridLayout_2.setContentsMargins(2, 2, 2, 2)
-        self.time_as_date = QCheckBox(self.HDF5)
-        self.time_as_date.setObjectName(u"time_as_date")
-
-        self.gridLayout_2.addWidget(self.time_as_date, 2, 0, 1, 1)
-
         self.empty_channels = QComboBox(self.HDF5)
         self.empty_channels.setObjectName(u"empty_channels")
 
         self.gridLayout_2.addWidget(self.empty_channels, 8, 1, 1, 1)
 
-        self.time_from_zero = QCheckBox(self.HDF5)
-        self.time_from_zero.setObjectName(u"time_from_zero")
-
-        self.gridLayout_2.addWidget(self.time_from_zero, 1, 0, 1, 1)
-
         self.verticalSpacer_3 = QSpacerItem(20, 40, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
         self.gridLayout_2.addItem(self.verticalSpacer_3, 9, 0, 1, 1)
-
-        self.reduce_memory_usage = QCheckBox(self.HDF5)
-        self.reduce_memory_usage.setObjectName(u"reduce_memory_usage")
-
-        self.gridLayout_2.addWidget(self.reduce_memory_usage, 6, 0, 1, 1)
 
         self.label_67 = QLabel(self.HDF5)
         self.label_67.setObjectName(u"label_67")
@@ -454,17 +444,32 @@ class Ui_file_widget(object):
         self.single_time_base = QCheckBox(self.HDF5)
         self.single_time_base.setObjectName(u"single_time_base")
 
-        self.gridLayout_2.addWidget(self.single_time_base, 0, 0, 1, 1)
+        self.gridLayout_2.addWidget(self.single_time_base, 0, 0, 1, 2)
 
-        self.use_display_names = QCheckBox(self.HDF5)
-        self.use_display_names.setObjectName(u"use_display_names")
+        self.time_from_zero = QCheckBox(self.HDF5)
+        self.time_from_zero.setObjectName(u"time_from_zero")
 
-        self.gridLayout_2.addWidget(self.use_display_names, 5, 0, 1, 1)
+        self.gridLayout_2.addWidget(self.time_from_zero, 1, 0, 1, 2)
+
+        self.time_as_date = QCheckBox(self.HDF5)
+        self.time_as_date.setObjectName(u"time_as_date")
+
+        self.gridLayout_2.addWidget(self.time_as_date, 2, 0, 1, 2)
 
         self.raw = QCheckBox(self.HDF5)
         self.raw.setObjectName(u"raw")
 
-        self.gridLayout_2.addWidget(self.raw, 3, 0, 1, 1)
+        self.gridLayout_2.addWidget(self.raw, 3, 0, 1, 2)
+
+        self.use_display_names = QCheckBox(self.HDF5)
+        self.use_display_names.setObjectName(u"use_display_names")
+
+        self.gridLayout_2.addWidget(self.use_display_names, 5, 0, 1, 2)
+
+        self.reduce_memory_usage = QCheckBox(self.HDF5)
+        self.reduce_memory_usage.setObjectName(u"reduce_memory_usage")
+
+        self.gridLayout_2.addWidget(self.reduce_memory_usage, 6, 0, 1, 2)
 
         self.output_options.addWidget(self.HDF5)
         self.MAT = QWidget()
@@ -473,20 +478,10 @@ class Ui_file_widget(object):
         self.gridLayout_3.setSpacing(2)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
         self.gridLayout_3.setContentsMargins(2, 2, 2, 2)
-        self.use_display_names_mat = QCheckBox(self.MAT)
-        self.use_display_names_mat.setObjectName(u"use_display_names_mat")
-
-        self.gridLayout_3.addWidget(self.use_display_names_mat, 5, 0, 1, 1)
-
         self.label_19 = QLabel(self.MAT)
         self.label_19.setObjectName(u"label_19")
 
         self.gridLayout_3.addWidget(self.label_19, 10, 0, 1, 1)
-
-        self.time_from_zero_mat = QCheckBox(self.MAT)
-        self.time_from_zero_mat.setObjectName(u"time_from_zero_mat")
-
-        self.gridLayout_3.addWidget(self.time_from_zero_mat, 1, 0, 1, 1)
 
         self.label_70 = QLabel(self.MAT)
         self.label_70.setObjectName(u"label_70")
@@ -514,11 +509,6 @@ class Ui_file_widget(object):
 
         self.gridLayout_3.addWidget(self.line_31, 4, 0, 1, 2)
 
-        self.single_time_base_mat = QCheckBox(self.MAT)
-        self.single_time_base_mat.setObjectName(u"single_time_base_mat")
-
-        self.gridLayout_3.addWidget(self.single_time_base_mat, 0, 0, 1, 1)
-
         self.empty_channels_mat = QComboBox(self.MAT)
         self.empty_channels_mat.setObjectName(u"empty_channels_mat")
 
@@ -529,30 +519,45 @@ class Ui_file_widget(object):
 
         self.gridLayout_3.addWidget(self.mat_format, 9, 1, 1, 1)
 
-        self.reduce_memory_usage_mat = QCheckBox(self.MAT)
-        self.reduce_memory_usage_mat.setObjectName(u"reduce_memory_usage_mat")
-
-        self.gridLayout_3.addWidget(self.reduce_memory_usage_mat, 6, 0, 1, 1)
-
         self.oned_as = QComboBox(self.MAT)
         self.oned_as.setObjectName(u"oned_as")
 
         self.gridLayout_3.addWidget(self.oned_as, 10, 1, 1, 1)
-
-        self.time_as_date_mat = QCheckBox(self.MAT)
-        self.time_as_date_mat.setObjectName(u"time_as_date_mat")
-
-        self.gridLayout_3.addWidget(self.time_as_date_mat, 2, 0, 1, 1)
 
         self.label_68 = QLabel(self.MAT)
         self.label_68.setObjectName(u"label_68")
 
         self.gridLayout_3.addWidget(self.label_68, 8, 0, 1, 1)
 
+        self.single_time_base_mat = QCheckBox(self.MAT)
+        self.single_time_base_mat.setObjectName(u"single_time_base_mat")
+
+        self.gridLayout_3.addWidget(self.single_time_base_mat, 0, 0, 1, 2)
+
+        self.time_from_zero_mat = QCheckBox(self.MAT)
+        self.time_from_zero_mat.setObjectName(u"time_from_zero_mat")
+
+        self.gridLayout_3.addWidget(self.time_from_zero_mat, 1, 0, 1, 2)
+
+        self.time_as_date_mat = QCheckBox(self.MAT)
+        self.time_as_date_mat.setObjectName(u"time_as_date_mat")
+
+        self.gridLayout_3.addWidget(self.time_as_date_mat, 2, 0, 1, 2)
+
         self.raw_mat = QCheckBox(self.MAT)
         self.raw_mat.setObjectName(u"raw_mat")
 
-        self.gridLayout_3.addWidget(self.raw_mat, 3, 0, 1, 1)
+        self.gridLayout_3.addWidget(self.raw_mat, 3, 0, 1, 2)
+
+        self.use_display_names_mat = QCheckBox(self.MAT)
+        self.use_display_names_mat.setObjectName(u"use_display_names_mat")
+
+        self.gridLayout_3.addWidget(self.use_display_names_mat, 5, 0, 1, 2)
+
+        self.reduce_memory_usage_mat = QCheckBox(self.MAT)
+        self.reduce_memory_usage_mat.setObjectName(u"reduce_memory_usage_mat")
+
+        self.gridLayout_3.addWidget(self.reduce_memory_usage_mat, 6, 0, 1, 2)
 
         self.output_options.addWidget(self.MAT)
         self.CSV = QWidget()
@@ -711,7 +716,7 @@ class Ui_file_widget(object):
 
         self.prefix = QLineEdit(self.extract_bus_tab)
         self.prefix.setObjectName(u"prefix")
-        self.prefix.setMinimumSize(QSize(215, 0))
+        self.prefix.setMinimumSize(QSize(0, 0))
 
         self.horizontalLayout_3.addWidget(self.prefix)
 
@@ -834,20 +839,10 @@ class Ui_file_widget(object):
 
         self.gridLayout_6.addWidget(self.quoting_bus, 13, 3, 1, 1)
 
-        self.time_from_zero_bus = QCheckBox(self.groupBox_3)
-        self.time_from_zero_bus.setObjectName(u"time_from_zero_bus")
-
-        self.gridLayout_6.addWidget(self.time_from_zero_bus, 1, 0, 1, 3)
-
         self.label_7 = QLabel(self.groupBox_3)
         self.label_7.setObjectName(u"label_7")
 
         self.gridLayout_6.addWidget(self.label_7, 13, 0, 1, 1)
-
-        self.ignore_invalid_signals_csv = QCheckBox(self.groupBox_3)
-        self.ignore_invalid_signals_csv.setObjectName(u"ignore_invalid_signals_csv")
-
-        self.gridLayout_6.addWidget(self.ignore_invalid_signals_csv, 3, 0, 1, 3)
 
         self.quotechar_bus = QLineEdit(self.groupBox_3)
         self.quotechar_bus.setObjectName(u"quotechar_bus")
@@ -860,21 +855,10 @@ class Ui_file_widget(object):
 
         self.gridLayout_6.addWidget(self.label_8, 7, 0, 1, 1)
 
-        self.bus_time_as_date = QCheckBox(self.groupBox_3)
-        self.bus_time_as_date.setObjectName(u"bus_time_as_date")
-
-        self.gridLayout_6.addWidget(self.bus_time_as_date, 2, 0, 1, 3)
-
         self.label_23 = QLabel(self.groupBox_3)
         self.label_23.setObjectName(u"label_23")
 
         self.gridLayout_6.addWidget(self.label_23, 5, 0, 1, 1)
-
-        self.doublequote_bus = QCheckBox(self.groupBox_3)
-        self.doublequote_bus.setObjectName(u"doublequote_bus")
-        self.doublequote_bus.setChecked(True)
-
-        self.gridLayout_6.addWidget(self.doublequote_bus, 8, 0, 1, 1)
 
         self.escapechar_bus = QLineEdit(self.groupBox_3)
         self.escapechar_bus.setObjectName(u"escapechar_bus")
@@ -949,6 +933,27 @@ class Ui_file_widget(object):
         self.add_units_bus.setObjectName(u"add_units_bus")
 
         self.gridLayout_6.addWidget(self.add_units_bus, 4, 0, 1, 4)
+
+        self.time_from_zero_bus = QCheckBox(self.groupBox_3)
+        self.time_from_zero_bus.setObjectName(u"time_from_zero_bus")
+
+        self.gridLayout_6.addWidget(self.time_from_zero_bus, 1, 0, 1, 4)
+
+        self.bus_time_as_date = QCheckBox(self.groupBox_3)
+        self.bus_time_as_date.setObjectName(u"bus_time_as_date")
+
+        self.gridLayout_6.addWidget(self.bus_time_as_date, 2, 0, 1, 4)
+
+        self.ignore_invalid_signals_csv = QCheckBox(self.groupBox_3)
+        self.ignore_invalid_signals_csv.setObjectName(u"ignore_invalid_signals_csv")
+
+        self.gridLayout_6.addWidget(self.ignore_invalid_signals_csv, 3, 0, 1, 4)
+
+        self.doublequote_bus = QCheckBox(self.groupBox_3)
+        self.doublequote_bus.setObjectName(u"doublequote_bus")
+        self.doublequote_bus.setChecked(True)
+
+        self.gridLayout_6.addWidget(self.doublequote_bus, 8, 0, 1, 4)
 
         self.gridLayout_6.setColumnStretch(0, 1)
 
@@ -1080,19 +1085,19 @@ class Ui_file_widget(object):
         self.cut_group.setTitle(QCoreApplication.translate("file_widget", u"Cut", None))
         self.label_59.setText(QCoreApplication.translate("file_widget", u"Start", None))
         self.cut_stop.setSuffix(QCoreApplication.translate("file_widget", u"s", None))
-        self.whence.setText(QCoreApplication.translate("file_widget", u"Start relative to first time stamp", None))
         self.label_60.setText(QCoreApplication.translate("file_widget", u"End", None))
         self.cut_start.setSuffix(QCoreApplication.translate("file_widget", u"s", None))
+        self.whence.setText(QCoreApplication.translate("file_widget", u"Start relative to first time stamp", None))
         self.cut_time_from_zero.setText(QCoreApplication.translate("file_widget", u"Time from 0s", None))
         self.resample_group.setTitle(QCoreApplication.translate("file_widget", u"Resample", None))
         self.raster_type_step.setText(QCoreApplication.translate("file_widget", u"step", None))
         self.raster.setSuffix(QCoreApplication.translate("file_widget", u"s", None))
-        self.resample_time_from_zero.setText(QCoreApplication.translate("file_widget", u"Time from 0s", None))
         self.raster_type_channel.setText(QCoreApplication.translate("file_widget", u"channel", None))
 #if QT_CONFIG(tooltip)
         self.raster_search_btn.setToolTip(QCoreApplication.translate("file_widget", u"Search raster channel", None))
 #endif // QT_CONFIG(tooltip)
         self.raster_search_btn.setText("")
+        self.resample_time_from_zero.setText(QCoreApplication.translate("file_widget", u"Time from 0s", None))
         self.groupBox_10.setTitle(QCoreApplication.translate("file_widget", u"Ouput format", None))
         self.output_format.setItemText(0, QCoreApplication.translate("file_widget", u"MDF", None))
         self.output_format.setItemText(1, QCoreApplication.translate("file_widget", u"CSV", None))
@@ -1102,30 +1107,30 @@ class Ui_file_widget(object):
 
         self.mdf_split_size.setSuffix(QCoreApplication.translate("file_widget", u"MB", None))
         self.label_29.setText(QCoreApplication.translate("file_widget", u"Compression", None))
-        self.mdf_split.setText(QCoreApplication.translate("file_widget", u"Split data blocks", None))
         self.label_27.setText(QCoreApplication.translate("file_widget", u"Version", None))
         self.groupBox_9.setTitle(QCoreApplication.translate("file_widget", u"Scramble", None))
         self.scramble_btn.setText(QCoreApplication.translate("file_widget", u"Scramble texts", None))
         self.label_61.setText(QCoreApplication.translate("file_widget", u"Anonymize the measurements: scramble all texts and replace them with random strings", None))
         self.label_28.setText(QCoreApplication.translate("file_widget", u"Split size ", None))
-        self.time_as_date.setText(QCoreApplication.translate("file_widget", u"Time as date", None))
-        self.time_from_zero.setText(QCoreApplication.translate("file_widget", u"Time from 0s", None))
-        self.reduce_memory_usage.setText(QCoreApplication.translate("file_widget", u"Reduce  memory usage", None))
+        self.mdf_split.setText(QCoreApplication.translate("file_widget", u"Split data blocks", None))
         self.label_67.setText(QCoreApplication.translate("file_widget", u"Compression", None))
         self.label_65.setText(QCoreApplication.translate("file_widget", u"Empty channels", None))
         self.single_time_base.setText(QCoreApplication.translate("file_widget", u"Single time base", None))
-        self.use_display_names.setText(QCoreApplication.translate("file_widget", u"Use display names", None))
+        self.time_from_zero.setText(QCoreApplication.translate("file_widget", u"Time from 0s", None))
+        self.time_as_date.setText(QCoreApplication.translate("file_widget", u"Time as date", None))
         self.raw.setText(QCoreApplication.translate("file_widget", u"Raw values", None))
-        self.use_display_names_mat.setText(QCoreApplication.translate("file_widget", u"Use display names", None))
+        self.use_display_names.setText(QCoreApplication.translate("file_widget", u"Use display names", None))
+        self.reduce_memory_usage.setText(QCoreApplication.translate("file_widget", u"Reduce  memory usage", None))
         self.label_19.setText(QCoreApplication.translate("file_widget", u".mat oned_as", None))
-        self.time_from_zero_mat.setText(QCoreApplication.translate("file_widget", u"Time from 0s", None))
         self.label_70.setText(QCoreApplication.translate("file_widget", u"Compression", None))
         self.label_69.setText(QCoreApplication.translate("file_widget", u".mat format", None))
-        self.single_time_base_mat.setText(QCoreApplication.translate("file_widget", u"Single time base", None))
-        self.reduce_memory_usage_mat.setText(QCoreApplication.translate("file_widget", u"Reduce  memory usage", None))
-        self.time_as_date_mat.setText(QCoreApplication.translate("file_widget", u"Time as date", None))
         self.label_68.setText(QCoreApplication.translate("file_widget", u"Empty channels", None))
+        self.single_time_base_mat.setText(QCoreApplication.translate("file_widget", u"Single time base", None))
+        self.time_from_zero_mat.setText(QCoreApplication.translate("file_widget", u"Time from 0s", None))
+        self.time_as_date_mat.setText(QCoreApplication.translate("file_widget", u"Time as date", None))
         self.raw_mat.setText(QCoreApplication.translate("file_widget", u"Raw values", None))
+        self.use_display_names_mat.setText(QCoreApplication.translate("file_widget", u"Use display names", None))
+        self.reduce_memory_usage_mat.setText(QCoreApplication.translate("file_widget", u"Reduce  memory usage", None))
         self.label_66.setText(QCoreApplication.translate("file_widget", u"Empty channels", None))
         self.doublequote.setText(QCoreApplication.translate("file_widget", u"Double quote", None))
         self.time_from_zero_csv.setText(QCoreApplication.translate("file_widget", u"Time from 0s", None))
@@ -1167,17 +1172,10 @@ class Ui_file_widget(object):
         self.quoting_bus.setItemText(2, QCoreApplication.translate("file_widget", u"NONNUMERIC", None))
         self.quoting_bus.setItemText(3, QCoreApplication.translate("file_widget", u"NONE", None))
 
-        self.time_from_zero_bus.setText(QCoreApplication.translate("file_widget", u"Time from 0s", None))
         self.label_7.setText(QCoreApplication.translate("file_widget", u"Quoting", None))
-#if QT_CONFIG(tooltip)
-        self.ignore_invalid_signals_csv.setToolTip(QCoreApplication.translate("file_widget", u"checks if all samples are eauql to the maximum teoretical signal value", None))
-#endif // QT_CONFIG(tooltip)
-        self.ignore_invalid_signals_csv.setText(QCoreApplication.translate("file_widget", u"Ignore invalid signals", None))
         self.quotechar_bus.setText(QCoreApplication.translate("file_widget", u"\"", None))
         self.label_8.setText(QCoreApplication.translate("file_widget", u"Delimiter", None))
-        self.bus_time_as_date.setText(QCoreApplication.translate("file_widget", u"Time as date", None))
         self.label_23.setText(QCoreApplication.translate("file_widget", u"Raster", None))
-        self.doublequote_bus.setText(QCoreApplication.translate("file_widget", u"Double quote", None))
         self.escapechar_bus.setInputMask("")
         self.escapechar_bus.setPlaceholderText(QCoreApplication.translate("file_widget", u"None", None))
         self.extract_bus_csv_btn.setText(QCoreApplication.translate("file_widget", u"Export to CSV         ", None))
@@ -1190,6 +1188,13 @@ class Ui_file_widget(object):
         self.label_11.setText(QCoreApplication.translate("file_widget", u"Line Terminator", None))
         self.lineterminator_bus.setText(QCoreApplication.translate("file_widget", u"\\r\\n", None))
         self.add_units_bus.setText(QCoreApplication.translate("file_widget", u"Add units", None))
+        self.time_from_zero_bus.setText(QCoreApplication.translate("file_widget", u"Time from 0s", None))
+        self.bus_time_as_date.setText(QCoreApplication.translate("file_widget", u"Time as date", None))
+#if QT_CONFIG(tooltip)
+        self.ignore_invalid_signals_csv.setToolTip(QCoreApplication.translate("file_widget", u"checks if all samples are eauql to the maximum teoretical signal value", None))
+#endif // QT_CONFIG(tooltip)
+        self.ignore_invalid_signals_csv.setText(QCoreApplication.translate("file_widget", u"Ignore invalid signals", None))
+        self.doublequote_bus.setText(QCoreApplication.translate("file_widget", u"Double quote", None))
         self.consolidated_j1939.setText(QCoreApplication.translate("file_widget", u"Consolidated J1939 (single group for all messages with common PGN)", None))
         self.aspects.setTabText(self.aspects.indexOf(self.extract_bus_tab), QCoreApplication.translate("file_widget", u"Bus Logging", None))
         ___qtreewidgetitem2 = self.info.headerItem()
