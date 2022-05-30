@@ -392,7 +392,7 @@ class PlotSignal(Signal):
     @avg.setter
     def avg(self, avg):
         self._avg = avg
-        
+
     def _compute_stats(self):
         if len(self.phys_samples):
 
@@ -2924,6 +2924,7 @@ class Plot(QtWidgets.QWidget):
         font = self.font()
         font.setPointSize(size)
         self.setFont(font)
+        self.channel_selection.set_font_size(size)
         self.plot.y_axis.set_font_size(size)
         self.plot.x_axis.set_font_size(size)
 

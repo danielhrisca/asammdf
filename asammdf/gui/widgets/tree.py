@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
-from collections import defaultdict
 from datetime import date, datetime
 from functools import lru_cache
 import json
 import os
-from struct import pack
 from traceback import format_exc
 
-import numpy as np
 from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
@@ -19,7 +16,6 @@ from ..utils import (
     extract_mime_names,
     get_color_using_ranges,
     get_colors_using_ranges,
-    timeit,
     value_as_str,
 )
 from .tree_item import TreeItem
@@ -469,8 +465,12 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         palette = self.palette()
         background = palette.brush(QtGui.QPalette.Window).color().name()
         if palette.brush(QtGui.QPalette.Window).color().red() < 0x80:
-            self.setStyleSheet(
-                f"""
+            self._dark = True
+            self._font_size = self.font().pointSize()
+            self._background = background
+            self._style = """
+                QTreeWidget {{ font-size: {font_size}pt; }}
+                
                 QScrollBar:vertical {{
                     border: 1px solid #61b2e2;
                     background: {background};
@@ -548,7 +548,13 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     width: 13px;
                     height: 13px;
                 }}"""
+            self.setStyleSheet(
+                self._style.format(
+                    font_size=self._font_size, background=self._background
+                )
             )
+        else:
+            self._dark = False
 
     def autoscroll(self):
 
@@ -1378,6 +1384,15 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         if self.updatesEnabled():
             super().resizeEvent(e)
             self.update_visibility_status()
+
+    def set_font_size(self, size):
+        if self._dark:
+            self._font_size = size
+            self.setStyleSheet(
+                self._style.format(
+                    font_size=self._font_size, background=self._background
+                )
+            )
 
     def update_channel_groups_count(self):
         iterator = QtWidgets.QTreeWidgetItemIterator(self)
