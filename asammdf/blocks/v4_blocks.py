@@ -5355,15 +5355,17 @@ class HeaderBlock:
     def comment(self):
         root = ET.Element("HDcomment")
         text = ET.SubElement(root, "TX")
-        text.text = self.description
+        text.text = escape_xml_string(self.description)
         common = ET.SubElement(root, "common_properties")
         for name, value in self._common_properties.items():
             if isinstance(value, dict):
                 tree = ET.SubElement(common, "tree", name=name)
                 for subname, subvalue in value.items():
-                    ET.SubElement(tree, "e", name=subname).text = subvalue
+                    ET.SubElement(tree, "e", name=subname).text = escape_xml_string(
+                        subvalue
+                    )
             else:
-                ET.SubElement(common, "e", name=name).text = value
+                ET.SubElement(common, "e", name=name).text = escape_xml_string(value)
 
         return (
             ET.tostring(root, encoding="utf8", method="xml")
