@@ -1683,9 +1683,22 @@ class Plot(QtWidgets.QWidget):
         self.show()
         size = sum(self.splitter.sizes())
         self.splitter.setSizes([600, max(size - 600, 1)])
-        self.channel_selection.setColumnWidth(self.channel_selection.NameColumn, 386)
+
+        nameColumnWidth = 5 * self.font().pointSize()
+        if signals:
+            nameColumnWidth = max([len(signal.name) + 10 for signal in signals])
+
+        unitColumnWidth = 3 * self.font().pointSize()
+        if signals:
+            unitColumnWidth = max([len(signal.unit) + 10 for signal in signals])
+
+        self.channel_selection.setColumnWidth(
+            self.channel_selection.NameColumn, nameColumnWidth
+        )
         self.channel_selection.setColumnWidth(self.channel_selection.ValueColumn, 83)
-        self.channel_selection.setColumnWidth(self.channel_selection.UnitColumn, 62)
+        self.channel_selection.setColumnWidth(
+            self.channel_selection.UnitColumn, unitColumnWidth
+        )
         self.channel_selection.setColumnWidth(
             self.channel_selection.CommonAxisColumn, 35
         )
@@ -1851,6 +1864,51 @@ class Plot(QtWidgets.QWidget):
                 f"The following channels do not have monotonous increasing time stamps:\n{errors}",
             )
             self.plot._can_trim = can_trim
+
+        nameColumnWidth = max(
+            [
+                (len(channel.name) + 5) * self.font().pointSize()
+                for channel in channels.values()
+            ]
+        )
+        if (
+            nameColumnWidth
+            > self.channel_selection.columnWidth(self.channel_selection.NameColumn)
+            and nameColumnWidth < 35 * self.font().pointSize()
+        ):
+            self.channel_selection.setColumnWidth(
+                self.channel_selection.NameColumn, nameColumnWidth
+            )
+
+        unitColumnWidth = max(
+            [
+                (len(channel.unit) + 5) * self.font().pointSize()
+                for channel in channels.values()
+            ]
+        )
+        if (
+            unitColumnWidth
+            > self.channel_selection.columnWidth(self.channel_selection.UnitColumn)
+            and unitColumnWidth < 9 * self.font().pointSize()
+        ):
+            self.channel_selection.setColumnWidth(
+                self.channel_selection.UnitColumn, unitColumnWidth
+            )
+
+        totalSize = (
+            max(
+                nameColumnWidth,
+                self.channel_selection.columnWidth(self.channel_selection.NameColumn),
+            )
+            + max(
+                unitColumnWidth,
+                self.channel_selection.columnWidth(self.channel_selection.UnitColumn),
+            )
+            + 83
+            + 2 * 35
+        )
+
+        self.splitter.setSizes([totalSize, self.frameGeometry().width() - totalSize])
 
         valid = {}
         invalid = []
