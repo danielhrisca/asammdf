@@ -247,7 +247,7 @@ class TestSignal(unittest.TestCase):
         self.assertTrue(np.array_equal(np.arange(5, dtype="<f8"), res.timestamps))
 
         res = s.cut(start=0.5)
-        self.assertTrue(np.array_equal([0.5, 1, 2, 3, 4], res.samples))
+        self.assertTrue(np.allclose([0.5, 1, 2, 3, 4], res.samples))
         self.assertTrue(
             np.array_equal(np.array([0.5, 1, 2, 3, 4], dtype="<f8"), res.timestamps)
         )
@@ -293,7 +293,7 @@ class TestSignal(unittest.TestCase):
         self.assertTrue(np.array_equal(np.array([0], dtype="<f8"), res.timestamps))
 
         res = s.cut(stop=0.5)
-        self.assertTrue(np.array_equal([0, 0.5], res.samples))
+        self.assertTrue(np.allclose([0, 0.5], res.samples))
         self.assertTrue(np.array_equal(np.array([0, 0.5], dtype="<f8"), res.timestamps))
 
         res = s.cut(stop=0.5, include_ends=False)
@@ -343,7 +343,7 @@ class TestSignal(unittest.TestCase):
         self.assertTrue(np.array_equal(np.array([0], dtype="<f8"), res.timestamps))
 
         res = s.cut(start=-2, stop=0.5)
-        self.assertTrue(np.array_equal([0, 0.5], res.samples))
+        self.assertTrue(np.allclose([0, 0.5], res.samples))
         self.assertTrue(np.array_equal(np.array([0, 0.5], dtype="<f8"), res.timestamps))
 
         res = s.cut(start=-2, stop=0.5, include_ends=False)
@@ -351,7 +351,7 @@ class TestSignal(unittest.TestCase):
         self.assertTrue(np.array_equal(np.array([0], dtype="<f8"), res.timestamps))
 
         res = s.cut(start=-2, stop=1.1)
-        self.assertTrue(np.array_equal([0, 1, 1.1], res.samples))
+        self.assertTrue(np.allclose([0, 1, 1.1], res.samples))
         self.assertTrue(
             np.array_equal(np.array([0, 1, 1.1], dtype="<f8"), res.timestamps)
         )
@@ -369,9 +369,9 @@ class TestSignal(unittest.TestCase):
         self.assertTrue(np.array_equal(np.array([0, 1], dtype="<f8"), res.timestamps))
 
         res = s.cut(start=0.1, stop=3.5)
-        self.assertTrue(np.array_equal([0.1, 1, 2, 3, 3.5], res.samples))
+        self.assertTrue(np.allclose([0.1, 1, 2, 3, 3.5], res.samples))
         self.assertTrue(
-            np.array_equal(np.array([0.1, 1, 2, 3, 3.5], dtype="<f8"), res.timestamps)
+            np.allclose(np.array([0.1, 1, 2, 3, 3.5], dtype="<f8"), res.timestamps)
         )
 
         res = s.cut(start=0.1, stop=3.5, include_ends=False)
@@ -381,9 +381,9 @@ class TestSignal(unittest.TestCase):
         )
 
         res = s.cut(start=1.1, stop=1.9)
-        self.assertTrue(np.array_equal([1.1, 1.9], res.samples))
+        self.assertTrue(np.allclose([1.1, 1.9], res.samples))
         self.assertTrue(
-            np.array_equal(np.array([1.1, 1.9], dtype="<f8"), res.timestamps)
+            np.allclose(np.array([1.1, 1.9], dtype="<f8"), res.timestamps)
         )
 
         res = s.cut(start=1.1, stop=1.9, include_ends=False)
@@ -391,8 +391,8 @@ class TestSignal(unittest.TestCase):
         self.assertTrue(np.array_equal(np.array([], dtype="<f8"), res.timestamps))
 
         res = s.cut(start=3.5, stop=4.5)
-        self.assertTrue(np.array_equal([3.5, 4], res.samples))
-        self.assertTrue(np.array_equal(np.array([3.5, 4], dtype="<f8"), res.timestamps))
+        self.assertTrue(np.allclose([3.5, 4], res.samples))
+        self.assertTrue(np.allclose(np.array([3.5, 4], dtype="<f8"), res.timestamps))
 
         res = s.cut(start=3.5, stop=4.5, include_ends=False)
         self.assertTrue(np.array_equal([4], res.samples))
