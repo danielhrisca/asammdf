@@ -1377,6 +1377,7 @@ class Plot(QtWidgets.QWidget):
         show_cursor_horizontal_line=True,
         cursor_line_width=1,
         cursor_color="#ffffff",
+        region_values_display_mode="delta",
         *args,
         **kwargs,
     ):
@@ -1393,11 +1394,10 @@ class Plot(QtWidgets.QWidget):
 
         self.info_uuid = None
 
-        self._range_start = None
-        self._range_stop = None
-
         self._can_switch_mode = True
         self.can_edit_ranges = True
+
+        self.region_values_display_mode = region_values_display_mode
 
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setSpacing(1)
@@ -1602,6 +1602,26 @@ class Plot(QtWidgets.QWidget):
         btn.setToolTip("Toggle focused mode")
         hbox.addWidget(self.focused_mode_btn)
 
+        self.delta_btn = btn = QtWidgets.QPushButton("")
+        self.delta_btn.clicked.connect(self.toggle_region_values_display_mode)
+        icon = QtGui.QIcon()
+        pix = QtGui.QPixmap(64, 64)
+        color = QtGui.QColor("#000000")
+        color.setAlpha(0)
+        pix.fill(color)
+        painter = QtGui.QPainter(pix)
+        font = painter.font()
+        font.setPointSize(48)
+        font.setBold(True)
+        painter.setFont(font)
+        painter.setPen(QtGui.QColor("#61b2e2"))
+        painter.drawText(QtCore.QPoint(12, 52), "Δ")
+        painter.end()
+        icon.addPixmap(pix, QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        btn.setIcon(icon)
+        btn.setToolTip("Toggle region values display mode")
+        hbox.addWidget(self.delta_btn)
+
         hbox.addStretch()
 
         self.selected_channel_value = QtWidgets.QLabel("")
@@ -1641,6 +1661,8 @@ class Plot(QtWidgets.QWidget):
         self._visible_entries = set()
         self._visible_items = {}
         self._item_cache = {}
+
+        self._prev_region = None
 
         self.splitter.addWidget(self.plot)
 
@@ -2821,7 +2843,7 @@ class Plot(QtWidgets.QWidget):
         if self.plot.region is None:
             return
 
-        start, stop = self.plot.region.getRegion()
+        start, stop = sorted(self.plot.region.getRegion())
 
         self.cursor_info.update_value()
 
@@ -2833,28 +2855,60 @@ class Plot(QtWidgets.QWidget):
                 start_v, kind, fmt = signal.value_at_timestamp(start)
                 stop_v, kind, fmt = signal.value_at_timestamp(stop)
 
-                item.set_prefix("Δ = ")
-                item.set_fmt(signal.format)
+                if self.region_values_display_mode == "delta":
+                    item.set_prefix("Δ = ")
+                    item.set_fmt(signal.format)
 
-                if "n.a." not in (start_v, stop_v):
-                    if kind in "ui":
-                        delta = np.int64(stop_v) - np.int64(start_v)
-                        item.kind = kind
-                        item.set_value(delta)
-                        item.set_fmt(fmt)
-                    elif kind == "f":
-                        delta = stop_v - start_v
-                        item.kind = kind
-                        item.set_value(delta)
-                        item.set_fmt(fmt)
+                    if "n.a." not in (start_v, stop_v):
+                        if kind in "ui":
+                            delta = np.int64(stop_v) - np.int64(start_v)
+                            item.kind = kind
+                            item.set_value(delta)
+                            item.set_fmt(fmt)
+                        elif kind == "f":
+                            delta = stop_v - start_v
+                            item.kind = kind
+                            item.set_value(delta)
+                            item.set_fmt(fmt)
+                        else:
+                            item.set_value("n.a.")
                     else:
                         item.set_value("n.a.")
+
                 else:
-                    item.set_value("n.a.")
+                    if self.plot.region_lock is not None:
+                        if start == self.plot.region_lock:
+                            value = stop_v
+                        else:
+                            value = start_v
+
+                    else:
+                        if self._prev_region is None:
+                            value = start_v
+                        else:
+                            if stop == self._prev_region[1]:
+                                value = start_v
+                            else:
+                                value = stop_v
+
+                    item.set_prefix()
+                    item.set_fmt(signal.format)
+
+                    if value != "n.a.":
+                        if kind in "uif":
+                            item.kind = kind
+                            item.set_value(value)
+                            item.set_fmt(fmt)
+                        else:
+                            item.set_value("n.a.")
+                    else:
+                        item.set_value("n.a.")
 
         if self.info.isVisible():
             stats = self.plot.get_stats(self.info_uuid)
             self.info.set_stats(stats)
+
+        self._prev_region = (start, stop)
 
         self.region_moved_signal.emit(self, [start, stop])
 
@@ -2895,6 +2949,7 @@ class Plot(QtWidgets.QWidget):
             self.plot.region.setRegion((start, stop))
 
     def range_removed(self):
+        self._prev_region = None
         iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
         while True:
             item = iterator.value()
@@ -2906,9 +2961,6 @@ class Plot(QtWidgets.QWidget):
                 item.set_value("")
 
             iterator += 1
-
-        self._range_start = None
-        self._range_stop = None
 
         self.cursor_info.update_value()
 
@@ -3080,6 +3132,23 @@ class Plot(QtWidgets.QWidget):
         else:
             self.focused_mode_btn.setFlat(False)
             self.focused_mode_btn.setToolTip("Switch off focused mode")
+
+    def toggle_region_values_display_mode(self, event=None, mode=None):
+        if mode is None:
+            self.region_values_display_mode = (
+                "delta" if self.region_values_display_mode == "value" else "value"
+            )
+
+        if self.region_values_display_mode == "value":
+            self.delta_btn.setFlat(True)
+            self.delta_btn.setToolTip("Switch to region cursors delta display mode")
+        else:
+            self.delta_btn.setFlat(False)
+            self.delta_btn.setToolTip(
+                "Switch to active region cursor value display mode"
+            )
+
+        self.range_modified()
 
     def update_current_values(self, *args):
         if self.plot.region:

@@ -794,7 +794,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             color = QtWidgets.QColorDialog.getColor(color)
             if color.isValid():
                 for item in selected_items:
-                    if item.type() == item.Channel:
+                    if item.type() != item.Info:
                         item.color = color
 
         elif modifiers == QtCore.Qt.ControlModifier and key == QtCore.Qt.Key_C:
@@ -1630,9 +1630,11 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             tree = self.treeWidget()
             if tree:
                 tree.color_changed.emit(self.uuid, value)
-        else:
-            value = fn.mkColor(value)
-            self.setForeground(self.NameColumn, value)
+        elif self.type() == self.Group:
+            count = self.childCount()
+            for row in range(count):
+                child = self.child(row)
+                child.color = value
 
     def copy(self):
         type = self.type()
