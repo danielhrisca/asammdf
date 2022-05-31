@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from math import atan2, degrees
-
 import pyqtgraph as pg
 from PySide6 import QtCore, QtGui
 

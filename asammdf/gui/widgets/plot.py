@@ -3887,9 +3887,15 @@ class _Plot(pg.PlotWidget):
                         self.region_lock = None
                         self.region.lines[0].pen.setStyle(QtCore.Qt.SolidLine)
                         self.region.lines[1].pen.setStyle(QtCore.Qt.SolidLine)
+                        self.region.lines[0].setMovable(True)
+                        self.region.movable = True
                     else:
                         self.region_lock = self.region.getRegion()[0]
                         self.region.lines[0].pen.setStyle(QtCore.Qt.DashDotDotLine)
+                        self.region.lines[0].setMovable(False)
+                        self.region.movable = False
+
+                    self.update()
 
                 else:
                     self.region_lock = None

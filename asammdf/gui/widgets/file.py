@@ -173,10 +173,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     cls = DL3
 
                 out_file = Path(gettempdir()) / file_name.name
+                meas_file = cls(file_name)
 
-                mdf_path = (
-                    cls(file_name).export_mdf().save(out_file.with_suffix(".tmp.mf4"))
-                )
+                mdf_path = meas_file.export_mdf().save(out_file.with_suffix(".tmp.mf4"))
+                meas_file.close()
                 self.mdf = MDF(mdf_path)
                 self.mdf.original_name = file_name
                 self.mdf.uuid = self.uuid
