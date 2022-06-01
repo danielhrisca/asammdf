@@ -2998,7 +2998,7 @@ class MDF:
                 for ch_index in channel_indexes
             ]
 
-            if len(channels) == 0:
+            if not channels:
                 continue
 
             sigs = self.select(channels, raw=True)
