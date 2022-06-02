@@ -759,6 +759,9 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.show()
         self.fullscreen = None
 
+    def sizeHint(self):
+        return QtCore.QSize(1, 1)
+
     def help(self, event):
         webbrowser.open_new(r"http://asammdf.readthedocs.io/en/master/gui.html")
 

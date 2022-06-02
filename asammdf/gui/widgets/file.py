@@ -447,6 +447,9 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         self._splitter_sizes = None
 
+    def sizeHint(self):
+        return QtCore.QSize(1, 1)
+
     def set_raster_type(self, event):
         if self.raster_type_channel.isChecked():
             self.raster_channel.setEnabled(True)
@@ -1876,7 +1879,18 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
     def aspect_changed(self, index):
 
-        if self.aspects.tabText(self.aspects.currentIndex()) == "Modify && Export":
+        current_index = self.aspects.currentIndex()
+        count = self.aspects.count()
+        for i in range(count):
+            widget = self.aspects.widget(i)
+            if i == current_index:
+                widget.show()
+            else:
+                widget.hide()
+
+        print(self.modify.isHidden(), self.channels_tab.isHidden(), self.sizeHint())
+
+        if self.aspects.tabText(current_index) == "Modify && Export":
 
             if not self.raster_channel.count():
                 self.raster_channel.setSizeAdjustPolicy(
@@ -1948,7 +1962,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             self.cut_stop.setValue(stop)
                             break
 
-        elif self.aspects.tabText(self.aspects.currentIndex()) == "Info":
+        elif self.aspects.tabText(current_index) == "Info":
             self.info.clear()
             # self.mdf.reload_header()
             # info tab

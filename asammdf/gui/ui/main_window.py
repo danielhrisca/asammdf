@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'main_window.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.2.3
+## Created by: Qt User Interface Compiler version 6.3.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -26,6 +26,11 @@ class Ui_PyMDFMainWindow(object):
         if not PyMDFMainWindow.objectName():
             PyMDFMainWindow.setObjectName(u"PyMDFMainWindow")
         PyMDFMainWindow.resize(800, 723)
+        sizePolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(PyMDFMainWindow.sizePolicy().hasHeightForWidth())
+        PyMDFMainWindow.setSizePolicy(sizePolicy)
         icon = QIcon()
         icon.addFile(u":/asammdf.png", QSize(), QIcon.Normal, QIcon.Off)
         PyMDFMainWindow.setWindowIcon(icon)
@@ -67,7 +72,7 @@ class Ui_PyMDFMainWindow(object):
         PyMDFMainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(PyMDFMainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 800, 26))
+        self.menubar.setGeometry(QRect(0, 0, 800, 21))
         PyMDFMainWindow.setMenuBar(self.menubar)
 
         self.retranslateUi(PyMDFMainWindow)

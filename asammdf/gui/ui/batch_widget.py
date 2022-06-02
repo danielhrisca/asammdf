@@ -19,9 +19,9 @@ from PySide6.QtWidgets import (QApplication, QCheckBox, QComboBox, QDoubleSpinBo
     QFrame, QGridLayout, QGroupBox, QHBoxLayout,
     QHeaderView, QLabel, QLineEdit, QListView,
     QListWidget, QListWidgetItem, QPushButton, QRadioButton,
-    QSizePolicy, QSpacerItem, QSplitter, QStackedWidget,
-    QTabWidget, QTextEdit, QTreeWidgetItem, QVBoxLayout,
-    QWidget)
+    QScrollArea, QSizePolicy, QSpacerItem, QSplitter,
+    QStackedWidget, QTabWidget, QTextEdit, QTreeWidgetItem,
+    QVBoxLayout, QWidget)
 
 from asammdf.gui.widgets.list import MinimalListWidget
 from asammdf.gui.widgets.tree import TreeWidget
@@ -207,11 +207,19 @@ class Ui_batch_widget(object):
 
         self.horizontalLayout_3.addItem(self.horizontalSpacer_4)
 
+        self.scrollArea_2 = QScrollArea(self.convert_tab)
+        self.scrollArea_2.setObjectName(u"scrollArea_2")
+        self.scrollArea_2.setWidgetResizable(True)
+        self.scrollAreaWidgetContents_2 = QWidget()
+        self.scrollAreaWidgetContents_2.setObjectName(u"scrollAreaWidgetContents_2")
+        self.scrollAreaWidgetContents_2.setGeometry(QRect(0, 0, 215, 661))
+        self.verticalLayout_5 = QVBoxLayout(self.scrollAreaWidgetContents_2)
+        self.verticalLayout_5.setObjectName(u"verticalLayout_5")
         self.verticalLayout_15 = QVBoxLayout()
         self.verticalLayout_15.setSpacing(2)
         self.verticalLayout_15.setObjectName(u"verticalLayout_15")
         self.verticalLayout_15.setContentsMargins(2, 2, 2, 2)
-        self.cut_group = QGroupBox(self.convert_tab)
+        self.cut_group = QGroupBox(self.scrollAreaWidgetContents_2)
         self.cut_group.setObjectName(u"cut_group")
         self.cut_group.setCheckable(True)
         self.cut_group.setChecked(False)
@@ -256,7 +264,7 @@ class Ui_batch_widget(object):
 
         self.verticalLayout_15.addWidget(self.cut_group)
 
-        self.resample_group = QGroupBox(self.convert_tab)
+        self.resample_group = QGroupBox(self.scrollAreaWidgetContents_2)
         self.resample_group.setObjectName(u"resample_group")
         self.resample_group.setCheckable(True)
         self.resample_group.setChecked(False)
@@ -306,7 +314,7 @@ class Ui_batch_widget(object):
 
         self.verticalLayout_15.addWidget(self.resample_group)
 
-        self.groupBox_11 = QGroupBox(self.convert_tab)
+        self.groupBox_11 = QGroupBox(self.scrollAreaWidgetContents_2)
         self.groupBox_11.setObjectName(u"groupBox_11")
         self.verticalLayout_21 = QVBoxLayout(self.groupBox_11)
         self.verticalLayout_21.setSpacing(2)
@@ -688,7 +696,7 @@ class Ui_batch_widget(object):
 
         self.verticalLayout_15.addWidget(self.groupBox_11)
 
-        self.groupBox = QGroupBox(self.convert_tab)
+        self.groupBox = QGroupBox(self.scrollAreaWidgetContents_2)
         self.groupBox.setObjectName(u"groupBox")
         self.gridLayout = QGridLayout(self.groupBox)
         self.gridLayout.setSpacing(2)
@@ -713,7 +721,7 @@ class Ui_batch_widget(object):
 
         self.verticalLayout_15.addItem(self.verticalSpacer_14)
 
-        self.apply_btn = QPushButton(self.convert_tab)
+        self.apply_btn = QPushButton(self.scrollAreaWidgetContents_2)
         self.apply_btn.setObjectName(u"apply_btn")
         icon6 = QIcon()
         icon6.addFile(u":/checkmark.png", QSize(), QIcon.Normal, QIcon.Off)
@@ -723,7 +731,11 @@ class Ui_batch_widget(object):
 
         self.verticalLayout_15.setStretch(4, 1)
 
-        self.horizontalLayout_3.addLayout(self.verticalLayout_15)
+        self.verticalLayout_5.addLayout(self.verticalLayout_15)
+
+        self.scrollArea_2.setWidget(self.scrollAreaWidgetContents_2)
+
+        self.horizontalLayout_3.addWidget(self.scrollArea_2)
 
         self.horizontalLayout_3.setStretch(0, 1)
         self.horizontalLayout_3.setStretch(1, 1)
@@ -813,15 +825,90 @@ class Ui_batch_widget(object):
         self.aspects.addTab(self.stack_tab, icon8, "")
         self.extract_bus_tab = QWidget()
         self.extract_bus_tab.setObjectName(u"extract_bus_tab")
-        self.gridLayout_11 = QGridLayout(self.extract_bus_tab)
-        self.gridLayout_11.setObjectName(u"gridLayout_11")
-        self.output_info_bus = QTextEdit(self.extract_bus_tab)
+        self.verticalLayout_4 = QVBoxLayout(self.extract_bus_tab)
+        self.verticalLayout_4.setObjectName(u"verticalLayout_4")
+        self.scrollArea = QScrollArea(self.extract_bus_tab)
+        self.scrollArea.setObjectName(u"scrollArea")
+        self.scrollArea.setWidgetResizable(True)
+        self.scrollAreaWidgetContents = QWidget()
+        self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 592, 678))
+        self.gridLayout_3 = QGridLayout(self.scrollAreaWidgetContents)
+        self.gridLayout_3.setObjectName(u"gridLayout_3")
+        self.tabWidget = QTabWidget(self.scrollAreaWidgetContents)
+        self.tabWidget.setObjectName(u"tabWidget")
+        self.tab = QWidget()
+        self.tab.setObjectName(u"tab")
+        self.verticalLayout = QVBoxLayout(self.tab)
+        self.verticalLayout.setSpacing(2)
+        self.verticalLayout.setObjectName(u"verticalLayout")
+        self.verticalLayout.setContentsMargins(2, 2, 2, 2)
+        self.load_can_database_btn = QPushButton(self.tab)
+        self.load_can_database_btn.setObjectName(u"load_can_database_btn")
+        self.load_can_database_btn.setIcon(icon1)
+
+        self.verticalLayout.addWidget(self.load_can_database_btn)
+
+        self.can_database_list = MinimalListWidget(self.tab)
+        self.can_database_list.setObjectName(u"can_database_list")
+
+        self.verticalLayout.addWidget(self.can_database_list)
+
+        self.tabWidget.addTab(self.tab, "")
+        self.tab_2 = QWidget()
+        self.tab_2.setObjectName(u"tab_2")
+        self.verticalLayout_2 = QVBoxLayout(self.tab_2)
+        self.verticalLayout_2.setSpacing(2)
+        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
+        self.verticalLayout_2.setContentsMargins(2, 2, 2, 2)
+        self.load_lin_database_btn = QPushButton(self.tab_2)
+        self.load_lin_database_btn.setObjectName(u"load_lin_database_btn")
+        self.load_lin_database_btn.setIcon(icon1)
+
+        self.verticalLayout_2.addWidget(self.load_lin_database_btn)
+
+        self.lin_database_list = MinimalListWidget(self.tab_2)
+        self.lin_database_list.setObjectName(u"lin_database_list")
+
+        self.verticalLayout_2.addWidget(self.lin_database_list)
+
+        self.tabWidget.addTab(self.tab_2, "")
+
+        self.gridLayout_3.addWidget(self.tabWidget, 0, 0, 1, 2)
+
+        self.output_info_bus = QTextEdit(self.scrollAreaWidgetContents)
         self.output_info_bus.setObjectName(u"output_info_bus")
         self.output_info_bus.setReadOnly(True)
 
-        self.gridLayout_11.addWidget(self.output_info_bus, 0, 2, 4, 1)
+        self.gridLayout_3.addWidget(self.output_info_bus, 0, 2, 4, 1)
 
-        self.groupBox_2 = QGroupBox(self.extract_bus_tab)
+        self.horizontalLayout = QHBoxLayout()
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.label = QLabel(self.scrollAreaWidgetContents)
+        self.label.setObjectName(u"label")
+
+        self.horizontalLayout.addWidget(self.label)
+
+        self.prefix = QLineEdit(self.scrollAreaWidgetContents)
+        self.prefix.setObjectName(u"prefix")
+        self.prefix.setMinimumSize(QSize(0, 0))
+
+        self.horizontalLayout.addWidget(self.prefix)
+
+        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.horizontalLayout.addItem(self.horizontalSpacer)
+
+        self.horizontalLayout.setStretch(2, 1)
+
+        self.gridLayout_3.addLayout(self.horizontalLayout, 1, 0, 1, 2)
+
+        self.consolidated_j1939 = QCheckBox(self.scrollAreaWidgetContents)
+        self.consolidated_j1939.setObjectName(u"consolidated_j1939")
+
+        self.gridLayout_3.addWidget(self.consolidated_j1939, 2, 0, 1, 2)
+
+        self.groupBox_2 = QGroupBox(self.scrollAreaWidgetContents)
         self.groupBox_2.setObjectName(u"groupBox_2")
         self.gridLayout_5 = QGridLayout(self.groupBox_2)
         self.gridLayout_5.setSpacing(2)
@@ -870,30 +957,9 @@ class Ui_batch_widget(object):
         self.gridLayout_5.addWidget(self.label_27, 2, 0, 1, 1)
 
 
-        self.gridLayout_11.addWidget(self.groupBox_2, 3, 0, 1, 1)
+        self.gridLayout_3.addWidget(self.groupBox_2, 3, 0, 1, 1)
 
-        self.horizontalLayout = QHBoxLayout()
-        self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.label = QLabel(self.extract_bus_tab)
-        self.label.setObjectName(u"label")
-
-        self.horizontalLayout.addWidget(self.label)
-
-        self.prefix = QLineEdit(self.extract_bus_tab)
-        self.prefix.setObjectName(u"prefix")
-        self.prefix.setMinimumSize(QSize(0, 0))
-
-        self.horizontalLayout.addWidget(self.prefix)
-
-        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        self.horizontalLayout.addItem(self.horizontalSpacer)
-
-        self.horizontalLayout.setStretch(2, 1)
-
-        self.gridLayout_11.addLayout(self.horizontalLayout, 1, 0, 1, 2)
-
-        self.groupBox_3 = QGroupBox(self.extract_bus_tab)
+        self.groupBox_3 = QGroupBox(self.scrollAreaWidgetContents)
         self.groupBox_3.setObjectName(u"groupBox_3")
         self.gridLayout_10 = QGridLayout(self.groupBox_3)
         self.gridLayout_10.setSpacing(2)
@@ -1025,53 +1091,12 @@ class Ui_batch_widget(object):
         self.gridLayout_10.addWidget(self.doublequote_bus, 8, 1, 1, 2)
 
 
-        self.gridLayout_11.addWidget(self.groupBox_3, 3, 1, 1, 1)
+        self.gridLayout_3.addWidget(self.groupBox_3, 3, 1, 1, 1)
 
-        self.tabWidget = QTabWidget(self.extract_bus_tab)
-        self.tabWidget.setObjectName(u"tabWidget")
-        self.tab = QWidget()
-        self.tab.setObjectName(u"tab")
-        self.verticalLayout = QVBoxLayout(self.tab)
-        self.verticalLayout.setSpacing(2)
-        self.verticalLayout.setObjectName(u"verticalLayout")
-        self.verticalLayout.setContentsMargins(2, 2, 2, 2)
-        self.load_can_database_btn = QPushButton(self.tab)
-        self.load_can_database_btn.setObjectName(u"load_can_database_btn")
-        self.load_can_database_btn.setIcon(icon1)
+        self.gridLayout_3.setColumnStretch(2, 1)
+        self.scrollArea.setWidget(self.scrollAreaWidgetContents)
 
-        self.verticalLayout.addWidget(self.load_can_database_btn)
-
-        self.can_database_list = MinimalListWidget(self.tab)
-        self.can_database_list.setObjectName(u"can_database_list")
-
-        self.verticalLayout.addWidget(self.can_database_list)
-
-        self.tabWidget.addTab(self.tab, "")
-        self.tab_2 = QWidget()
-        self.tab_2.setObjectName(u"tab_2")
-        self.verticalLayout_2 = QVBoxLayout(self.tab_2)
-        self.verticalLayout_2.setSpacing(2)
-        self.verticalLayout_2.setObjectName(u"verticalLayout_2")
-        self.verticalLayout_2.setContentsMargins(2, 2, 2, 2)
-        self.load_lin_database_btn = QPushButton(self.tab_2)
-        self.load_lin_database_btn.setObjectName(u"load_lin_database_btn")
-        self.load_lin_database_btn.setIcon(icon1)
-
-        self.verticalLayout_2.addWidget(self.load_lin_database_btn)
-
-        self.lin_database_list = MinimalListWidget(self.tab_2)
-        self.lin_database_list.setObjectName(u"lin_database_list")
-
-        self.verticalLayout_2.addWidget(self.lin_database_list)
-
-        self.tabWidget.addTab(self.tab_2, "")
-
-        self.gridLayout_11.addWidget(self.tabWidget, 0, 0, 1, 2)
-
-        self.consolidated_j1939 = QCheckBox(self.extract_bus_tab)
-        self.consolidated_j1939.setObjectName(u"consolidated_j1939")
-
-        self.gridLayout_11.addWidget(self.consolidated_j1939, 2, 0, 1, 2)
+        self.verticalLayout_4.addWidget(self.scrollArea)
 
         self.aspects.addTab(self.extract_bus_tab, icon9, "")
         self.splitter.addWidget(self.aspects)
@@ -1115,8 +1140,8 @@ class Ui_batch_widget(object):
         self.aspects.setCurrentIndex(1)
         self.output_options.setCurrentIndex(0)
         self.quoting.setCurrentIndex(1)
-        self.quoting_bus.setCurrentIndex(1)
         self.tabWidget.setCurrentIndex(0)
+        self.quoting_bus.setCurrentIndex(1)
 
 
         QMetaObject.connectSlotsByName(batch_widget)
@@ -1248,12 +1273,17 @@ class Ui_batch_widget(object):
         self.stack_split_size.setSuffix(QCoreApplication.translate("batch_widget", u"MB", None))
         self.stack_btn.setText(QCoreApplication.translate("batch_widget", u"Stack", None))
         self.aspects.setTabText(self.aspects.indexOf(self.stack_tab), QCoreApplication.translate("batch_widget", u"Stack", None))
+        self.load_can_database_btn.setText(QCoreApplication.translate("batch_widget", u"Load CAN database", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("batch_widget", u"CAN", None))
+        self.load_lin_database_btn.setText(QCoreApplication.translate("batch_widget", u"Load LIN database", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("batch_widget", u"LIN", None))
+        self.label.setText(QCoreApplication.translate("batch_widget", u"Prefix", None))
+        self.consolidated_j1939.setText(QCoreApplication.translate("batch_widget", u"Consolidated J1939 (single group for all messages with common PGN)", None))
         self.groupBox_2.setTitle(QCoreApplication.translate("batch_widget", u"MDF", None))
         self.label_24.setText(QCoreApplication.translate("batch_widget", u"Version", None))
         self.label__1.setText(QCoreApplication.translate("batch_widget", u"Compression", None))
         self.extract_bus_btn.setText(QCoreApplication.translate("batch_widget", u"Extract Bus signals", None))
         self.label_27.setText("")
-        self.label.setText(QCoreApplication.translate("batch_widget", u"Prefix", None))
         self.groupBox_3.setTitle(QCoreApplication.translate("batch_widget", u"CSV", None))
         self.label_28.setText(QCoreApplication.translate("batch_widget", u"Raster", None))
         self.quoting_bus.setItemText(0, QCoreApplication.translate("batch_widget", u"ALL", None))
@@ -1283,11 +1313,6 @@ class Ui_batch_widget(object):
         self.ignore_invalid_signals_csv.setText(QCoreApplication.translate("batch_widget", u"Ignore invalid signals", None))
         self.add_units_bus.setText(QCoreApplication.translate("batch_widget", u"Add units", None))
         self.doublequote_bus.setText(QCoreApplication.translate("batch_widget", u"Double quote", None))
-        self.load_can_database_btn.setText(QCoreApplication.translate("batch_widget", u"Load CAN database", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("batch_widget", u"CAN", None))
-        self.load_lin_database_btn.setText(QCoreApplication.translate("batch_widget", u"Load LIN database", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("batch_widget", u"LIN", None))
-        self.consolidated_j1939.setText(QCoreApplication.translate("batch_widget", u"Consolidated J1939 (single group for all messages with common PGN)", None))
         self.aspects.setTabText(self.aspects.indexOf(self.extract_bus_tab), QCoreApplication.translate("batch_widget", u"Bus logging", None))
         self.sort_by_start_time_btn.setText(QCoreApplication.translate("batch_widget", u"Sort by start time", None))
         self.sort_alphabetically_btn.setText(QCoreApplication.translate("batch_widget", u"Sort alphabetically", None))
