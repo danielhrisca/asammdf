@@ -382,9 +382,7 @@ class TestSignal(unittest.TestCase):
 
         res = s.cut(start=1.1, stop=1.9)
         self.assertTrue(np.allclose([1.1, 1.9], res.samples))
-        self.assertTrue(
-            np.allclose(np.array([1.1, 1.9], dtype="<f8"), res.timestamps)
-        )
+        self.assertTrue(np.allclose(np.array([1.1, 1.9], dtype="<f8"), res.timestamps))
 
         res = s.cut(start=1.1, stop=1.9, include_ends=False)
         self.assertTrue(np.array_equal([], res.samples))

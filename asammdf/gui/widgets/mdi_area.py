@@ -1921,7 +1921,14 @@ class WithMDIArea:
         signals_ = {
             entry["uuid"]: entry
             for entry in flatten_entries
-            if (entry["group_index"], entry["channel_index"]) != (-1, -1)
+            if (entry["group_index"], entry["channel_index"])
+            not in ((-1, -1), (NOT_FOUND, NOT_FOUND))
+        }
+
+        not_found = {
+            entry["uuid"]: entry
+            for entry in flatten_entries
+            if (entry["group_index"], entry["channel_index"]) == (NOT_FOUND, NOT_FOUND)
         }
 
         computed = {
@@ -2073,6 +2080,20 @@ class WithMDIArea:
 
                 if signal.name.endswith("CAN_DataFrame.ID"):
                     signal.samples = signal.samples.astype("<u4") & 0x1FFFFFFF
+
+        for uuid, sig_ in not_found.items():
+            sig = Signal([], [], name=sig_["name"])
+            sig.uuid = uuid
+            sig.computed = False
+            sig.computation = {}
+            sig.origin_uuid = sig_.get("origin_uuid", self.uuid)
+            sig.origin_uuid = self.uuid
+            sig.group_index = NOT_FOUND
+            sig.channel_index = NOT_FOUND
+            if "color" in sig_:
+                sig.color = sig_["color"]
+
+            signals[uuid] = sig
 
         if computed:
             measured_signals = {sig.uuid: sig for sig in signals.values()}

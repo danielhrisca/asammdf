@@ -569,8 +569,8 @@ class MDF:
                         ev_type = v4c.EVENT_TYPE_START_RECORDING_TRIGGER
                     event = EventBlock(
                         event_type=ev_type,
-                        sync_base=int(timestamp * 10 ** 9),
-                        sync_factor=10 ** -9,
+                        sync_base=int(timestamp * 10**9),
+                        sync_factor=10**-9,
                         scope_0_addr=0,
                     )
                     event.comment = comment
@@ -738,7 +738,7 @@ class MDF:
             self._read_fragment_size = int(read_fragment_size)
 
         if write_fragment_size is not None:
-            self._write_fragment_size = min(int(write_fragment_size), 4 * 2 ** 20)
+            self._write_fragment_size = min(int(write_fragment_size), 4 * 2**20)
 
         if use_display_names is not None:
             self._use_display_names = bool(use_display_names)
@@ -4810,6 +4810,9 @@ class MDF:
                                             invalidation_bits=signal[
                                                 "invalidation_bits"
                                             ],
+                                            display_names={
+                                                f"CAN{bus}.{message.name}.{signal_name}": "display"
+                                            },
                                         )
 
                                         sig.comment = f"""\
@@ -5101,13 +5104,16 @@ class MDF:
                                             invalidation_bits=signal[
                                                 "invalidation_bits"
                                             ],
+                                            display_names={
+                                                f"LIN{bus}.{message.name}.{signal_name}": "display"
+                                            },
                                         )
 
                                         sig.comment = f"""\
 <CNcomment>
     <TX>{sig.comment}</TX>
     <names>
-        <display>LIN.{message.name}.{signal_name}</display>
+        <display>LIN{bus}.{message.name}.{signal_name}</display>
     </names>
 </CNcomment>"""
                                         sigs.append(sig)
