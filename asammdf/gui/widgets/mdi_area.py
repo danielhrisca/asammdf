@@ -479,6 +479,8 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
 
     def tile_horizontally(self):
         sub_windows = self.subWindowList()
+        if not sub_windows:
+            return
 
         position = QtCore.QPoint(0, 0)
 
@@ -497,6 +499,8 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
 
     def tile_vertically(self):
         sub_windows = self.subWindowList()
+        if not sub_windows:
+            return
 
         position = QtCore.QPoint(0, 0)
 
@@ -606,6 +610,17 @@ class WithMDIArea:
                 mime_data = substitude_mime_uuids(mime_data, self.uuid)
 
                 entries = get_flatten_entries_from_mime(mime_data)
+
+                uuids = set(entry["origin_uuid"] for entry in entries)
+                for uuid in uuids:
+                    if self.file_by_uuid(uuid):
+                        break
+                else:
+                    mime_data = substitude_mime_uuids(
+                        mime_data, uuid=self.uuid, force=True
+                    )
+                    entries = get_flatten_entries_from_mime(mime_data)
+
                 signals_ = [
                     entry
                     for entry in entries
@@ -1715,6 +1730,16 @@ class WithMDIArea:
 
         else:
             flatten_entries = get_flatten_entries_from_mime(names)
+
+            uuids = set(entry["origin_uuid"] for entry in flatten_entries)
+
+            for uuid in uuids:
+                if self.file_by_uuid(uuid):
+                    break
+            else:
+                names = substitude_mime_uuids(names, uuid=self.uuid, force=True)
+                flatten_entries = get_flatten_entries_from_mime(names)
+
             signals_ = [
                 entry
                 for entry in flatten_entries
@@ -1884,6 +1909,15 @@ class WithMDIArea:
             mime_data = signals
 
         flatten_entries = get_flatten_entries_from_mime(mime_data)
+        uuids = set(entry["origin_uuid"] for entry in flatten_entries)
+
+        for uuid in uuids:
+            if self.file_by_uuid(uuid):
+                break
+        else:
+            mime_data = substitude_mime_uuids(mime_data, uuid=self.uuid, force=True)
+            flatten_entries = get_flatten_entries_from_mime(mime_data)
+
         signals_ = {
             entry["uuid"]: entry
             for entry in flatten_entries
@@ -2248,9 +2282,7 @@ class WithMDIArea:
         plot.edit_channel_request.connect(partial(self.edit_channel, widget=plot))
 
         plot.show_properties.connect(self._show_info)
-
         plot.add_new_channels(signals, mime_data)
-
         self.set_subplots_link(self.subplots_link)
 
         iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
@@ -2285,6 +2317,16 @@ class WithMDIArea:
             ]
         else:
             flatten_entries = get_flatten_entries_from_mime(names)
+
+            uuids = set(entry["origin_uuid"] for entry in flatten_entries)
+
+            for uuid in uuids:
+                if self.file_by_uuid(uuid):
+                    break
+            else:
+                names = substitude_mime_uuids(names, uuid=self.uuid, force=True)
+                flatten_entries = get_flatten_entries_from_mime(names)
+
             signals_ = [
                 entry
                 for entry in flatten_entries

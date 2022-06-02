@@ -2349,18 +2349,22 @@ class Plot(QtWidgets.QWidget):
 
     def current_uuid_changed(self, uuid):
         self.info_uuid = uuid
-        palette = self.selected_channel_value.palette()
-        sig, idx = self.plot.signal_by_uuid(uuid)
-        brush = QtGui.QBrush(sig.color)
-        brush.setStyle(QtCore.Qt.SolidPattern)
-        palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.WindowText, brush)
-        self.selected_channel_value.setPalette(palette)
 
-        item = self.item_by_uuid(uuid)
-        if item is not None:
-            value = item.text(item.ValueColumn)
-            unit = item.unit
-            self.selected_channel_value.setText(f"{value} {unit}")
+        if uuid:
+            palette = self.selected_channel_value.palette()
+            sig, idx = self.plot.signal_by_uuid(uuid)
+            brush = QtGui.QBrush(sig.color)
+            brush.setStyle(QtCore.Qt.SolidPattern)
+            palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.WindowText, brush)
+            self.selected_channel_value.setPalette(palette)
+
+            item = self.item_by_uuid(uuid)
+            if item is not None:
+                value = item.text(item.ValueColumn)
+                unit = item.unit
+                self.selected_channel_value.setText(f"{value} {unit}")
+        else:
+            self.selected_channel_value.setText("")
 
     def cursor_moved(self, cursor=None):
 
