@@ -422,7 +422,7 @@ def parse_matrix_component(name):
 
 
 class MdiSubWindow(QtWidgets.QMdiSubWindow):
-    sigClosed = QtCore.Signal()
+    sigClosed = QtCore.Signal(object)
     titleModified = QtCore.Signal()
 
     def __init__(self, *args, **kwargs):
@@ -430,8 +430,8 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
     def closeEvent(self, event):
+        self.sigClosed.emit(self)
         super().closeEvent(event)
-        self.sigClosed.emit()
 
 
 class MdiAreaWidget(QtWidgets.QMdiArea):
@@ -3647,7 +3647,7 @@ class WithMDIArea:
             msg = ChannelInfoDialog(channel, self)
             msg.show()
 
-    def window_closed_handler(self):
+    def window_closed_handler(self, obj=None):
         self.windows_modified.emit()
 
     def set_cursor_options(
