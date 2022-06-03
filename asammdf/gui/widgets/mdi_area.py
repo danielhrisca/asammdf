@@ -830,7 +830,7 @@ class WithMDIArea:
                 sigs = signals
 
                 if computed:
-                    measured_signals = {sig.name: sig for sig in sigs}
+                    measured_signals = {sig.name: sig for sig in sigs.values()}
                     if measured_signals:
                         all_timebase = np.unique(
                             np.concatenate(

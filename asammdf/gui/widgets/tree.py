@@ -16,6 +16,7 @@ from ..utils import (
     extract_mime_names,
     get_color_using_ranges,
     get_colors_using_ranges,
+    SCROLLBAR_STYLE,
     value_as_str,
 )
 from .tree_item import TreeItem
@@ -468,86 +469,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             self._dark = True
             self._font_size = self.font().pointSize()
             self._background = background
-            self._style = """
-                QTreeWidget {{ font-size: {font_size}pt; }}
-                
-                QScrollBar:vertical {{
-                    border: 1px solid #61b2e2;
-                    background: {background};
-                    width: 14px;
-                    margin: 14px 0px 14px 0px;
-                }}
-                QScrollBar::handle:vertical {{
-                    border: 1px solid  {background};
-                    background: #61b2e2;
-                    min-height: 40px;
-                    width: 6px;
-                }}
-
-                QScrollBar::add-line:vertical {{
-                    border: 1px solid #61b2e2;
-                    background: {background};
-                    height: 13px;
-                    subcontrol-position: bottom;
-                    subcontrol-origin: margin;
-                }}
-                QScrollBar::sub-line:vertical {{
-                    border: 1px solid #61b2e2;
-                    background: {background};
-                    height: 13px;
-                    subcontrol-position: top;
-                    subcontrol-origin: margin;
-                }}
-
-                QScrollBar:up-arrow:vertical {{
-                    image: url(:up.png);
-                    width: 13px;
-                    height: 13px;
-                }}
-                QScrollBar:down-arrow:vertical {{
-                    image: url(:down.png);
-                    width: 13px;
-                    height: 13px;
-                }}
-
-
-                QScrollBar:horizontal {{
-                    border: 1px solid #61b2e2;
-                    background: {background};
-                    height: 14px;
-                    margin: 0px 14px 0px 14px;
-                }}
-                QScrollBar::handle:horizontal {{
-                    border: 1px solid  {background};
-                    background: #61b2e2;
-                    min-width: 40px;
-                    height: 14px;
-                }}
-                QScrollBar::add-line:horizontal {{
-                    border: 1px solid #61b2e2;
-                    background: {background};
-                    width: 13px;
-                    subcontrol-position: right;
-                    subcontrol-origin: margin;
-                }}
-                QScrollBar::sub-line:horizontal {{
-                    border: 1px solid #61b2e2;
-                    background: {background};
-                    width: 13 px;
-                    subcontrol-position: left;
-                    subcontrol-origin: margin;
-                }}
-
-                QScrollBar:left-arrow:horizontal {{
-                    image: url(:left2.png);
-                    width: 13px;
-                    height: 13px;
-                }}
-                QScrollBar:right-arrow:horizontal {{
-                    image: url(:right2.png);
-                    width: 13px;
-                    height: 13px;
-                }}"""
+            self._style = SCROLLBAR_STYLE
             self.setStyleSheet(
                 self._style.format(
                     font_size=self._font_size, background=self._background
