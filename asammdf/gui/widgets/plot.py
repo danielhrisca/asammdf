@@ -1867,48 +1867,28 @@ class Plot(QtWidgets.QWidget):
 
         nameColumnWidth = max(
             [
-                (len(channel.name) + 5) * self.font().pointSize()
-                for channel in channels.values()
+                self.channel_selection.fontMetrics().boundingRect(f"{channel.name}AAAA").width() + 35 # AAAA extra characters
+                for channel in (list(channels.values()) + self.plot.signals)
             ]
         )
-        if (
-            nameColumnWidth
-            > self.channel_selection.columnWidth(self.channel_selection.NameColumn)
-            and nameColumnWidth < 35 * self.font().pointSize()
-        ):
+        if (nameColumnWidth < (35 * self.font().pointSize())):
             self.channel_selection.setColumnWidth(
                 self.channel_selection.NameColumn, nameColumnWidth
             )
 
         unitColumnWidth = max(
             [
-                (len(channel.unit) + 5) * self.font().pointSize()
-                for channel in channels.values()
+                self.channel_selection.fontMetrics().boundingRect(f"{channel.unit}AA").width() + 35 # AA extra characters
+                for channel in (list(channels.values()) + self.plot.signals)
             ]
         )
-        if (
-            unitColumnWidth
-            > self.channel_selection.columnWidth(self.channel_selection.UnitColumn)
-            and unitColumnWidth < 9 * self.font().pointSize()
-        ):
+        
+        if (unitColumnWidth < 9 * self.font().pointSize()):
             self.channel_selection.setColumnWidth(
                 self.channel_selection.UnitColumn, unitColumnWidth
             )
-
-        totalSize = (
-            max(
-                nameColumnWidth,
-                self.channel_selection.columnWidth(self.channel_selection.NameColumn),
-            )
-            + max(
-                unitColumnWidth,
-                self.channel_selection.columnWidth(self.channel_selection.UnitColumn),
-            )
-            + 83
-            + 2 * 35
-        )
-
-        self.splitter.setSizes([totalSize, self.frameGeometry().width() - totalSize])
+        
+        self.adjust_splitter(list(channels.values()))
 
         valid = {}
         invalid = []
@@ -2092,6 +2072,7 @@ class Plot(QtWidgets.QWidget):
     def adjust_splitter(self, channels=None):
         channels = channels or self.plot.signals
 
+        channels.extend(self.plot.signals)
         size = sum(self.splitter.sizes())
 
         width = 0
@@ -2099,10 +2080,14 @@ class Plot(QtWidgets.QWidget):
             width = max(
                 width,
                 self.channel_selection.fontMetrics()
-                .boundingRect(f"{ch.name} ({ch.unit})")
-                .width(),
+                .boundingRect(f"{ch.name}AAAA") # To simulate extra characters missing
+                .width() + 35 + # 35 to simulate checkbox
+                (self.channel_selection.fontMetrics()
+                .boundingRect(f"{ch.unit}AA")   # To simulate extra characters
+                .width() if ch.unit else (8 * self.font().pointSize())),
             )
-        width += 170
+        
+        width += 85 + 70 # 70 - two checkboxes
 
         if width > self.splitter.sizes()[0]:
 
@@ -2113,6 +2098,8 @@ class Plot(QtWidgets.QWidget):
                     self.splitter.setSizes([size - 300, 300, 0])
                 elif size >= 100:
                     self.splitter.setSizes([50, size - 50, 0])
+        else:
+            self.splitter.setSizes([width, size - width, 0])
 
     def channel_group_item_to_config(self, item):
         widget = item
