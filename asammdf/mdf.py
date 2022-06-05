@@ -2475,8 +2475,7 @@ class MDF:
                 mdf.close()
 
             if (
-                mdf_index == mdf_nr
-                and reorder_channel_groups
+                (mdf_index + 1) == mdf_nr
                 and not isinstance(files[0], MDF)
             ):
                 first_mdf.close()
