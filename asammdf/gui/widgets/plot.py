@@ -1454,55 +1454,67 @@ class Plot(QtWidgets.QWidget):
 
         vbox.addLayout(hbox)
 
-        btn = QtWidgets.QPushButton("")
-        btn.clicked.connect(
-            lambda x: self.plot.keyPressEvent(
+        btn = QtWidgets.QPushButton("Cmd")
+
+        menu = QtWidgets.QMenu()
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/home.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        menu.addAction(
+            icon,
+            "Home",
+            lambda: self.plot.keyPressEvent(
                 QtGui.QKeyEvent(
                     QtCore.QEvent.KeyPress,
                     QtCore.Qt.Key_H,
                     QtCore.Qt.NoModifier,
                 )
-            )
+            ),
         )
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/home.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        btn.setIcon(icon)
-        btn.setToolTip("Home")
-        hbox.addWidget(btn)
-
-        btn = QtWidgets.QPushButton("")
-        btn.clicked.connect(
-            lambda x: self.plot.keyPressEvent(
+        icon.addPixmap(QtGui.QPixmap(":/fit.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        menu.addAction(
+            icon,
+            "Fit",
+            lambda: self.plot.keyPressEvent(
                 QtGui.QKeyEvent(
                     QtCore.QEvent.KeyPress,
                     QtCore.Qt.Key_F,
                     QtCore.Qt.NoModifier,
                 )
-            )
+            ),
         )
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/fit.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        btn.setIcon(icon)
-        btn.setToolTip("Fit")
-        hbox.addWidget(btn)
-
-        btn = QtWidgets.QPushButton("")
-        btn.clicked.connect(
-            lambda x: self.plot.keyPressEvent(
+        icon.addPixmap(
+            QtGui.QPixmap(":/stack.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        menu.addAction(
+            icon,
+            "Stack",
+            lambda: self.plot.keyPressEvent(
                 QtGui.QKeyEvent(
                     QtCore.QEvent.KeyPress,
                     QtCore.Qt.Key_S,
                     QtCore.Qt.NoModifier,
                 )
-            )
+            ),
         )
+
         icon = QtGui.QIcon()
         icon.addPixmap(
-            QtGui.QPixmap(":/list2.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+            QtGui.QPixmap(":/increase-font.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
         )
-        btn.setIcon(icon)
-        btn.setToolTip("Stack")
+        menu.addAction(icon, "Increase font", self.increase_font)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/decrease-font.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        menu.addAction(icon, "Decrease font", self.decrease_font)
+
+        btn.setMenu(menu)
         hbox.addWidget(btn)
+        btn.menu()
 
         btn = QtWidgets.QPushButton("")
         btn.clicked.connect(
@@ -1538,26 +1550,6 @@ class Plot(QtWidgets.QWidget):
         )
         btn.setIcon(icon)
         btn.setToolTip("Zoom out")
-        hbox.addWidget(btn)
-
-        btn = QtWidgets.QPushButton("")
-        btn.clicked.connect(self.increase_font)
-        icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/increase-font.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
-        btn.setIcon(icon)
-        btn.setToolTip("Increase font")
-        hbox.addWidget(btn)
-
-        btn = QtWidgets.QPushButton("")
-        btn.clicked.connect(self.decrease_font)
-        icon = QtGui.QIcon()
-        icon.addPixmap(
-            QtGui.QPixmap(":/decrease-font.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-        )
-        btn.setIcon(icon)
-        btn.setToolTip("Decrease font")
         hbox.addWidget(btn)
 
         self.lock_btn = btn = QtWidgets.QPushButton("")
