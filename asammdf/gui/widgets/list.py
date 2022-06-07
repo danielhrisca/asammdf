@@ -3,6 +3,7 @@
 import json
 from struct import pack
 
+from natsort import natsorted
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..utils import extract_mime_names
@@ -399,6 +400,7 @@ class ListWidget(QtWidgets.QListWidget):
 class MinimalListWidget(QtWidgets.QListWidget):
 
     itemsDeleted = QtCore.Signal(list)
+    itemsDeleted = QtCore.Signal(list)
     itemsPasted = QtCore.Signal()
 
     def __init__(self, *args, **kwargs):
@@ -461,7 +463,7 @@ class MinimalListWidget(QtWidgets.QListWidget):
                     all_texts.add(item.text())
 
                 self.clear()
-                self.addItems(sorted(all_texts - to_delete))
+                self.addItems(natsorted(all_texts - to_delete))
 
             else:
                 for item in selected_items:

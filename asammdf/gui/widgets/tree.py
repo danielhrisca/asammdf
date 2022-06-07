@@ -1246,7 +1246,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         elif action.text() == "Rename group":
             text, ok = QtWidgets.QInputDialog.getText(
-                self, "Rename group", "New channel group name:"
+                self,
+                "Rename group",
+                "New channel group name:",
+                text=item.text(item.NameColumn),
             )
             if ok and text.strip():
                 text = text.strip()
@@ -1254,7 +1257,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         elif action.text() == "Rename channel":
             text, ok = QtWidgets.QInputDialog.getText(
-                self, "Rename channel", "New channel name:"
+                self,
+                "Rename channel",
+                "New channel name:",
+                text=item.text(item.NameColumn),
             )
             if ok and text.strip():
                 text = text.strip()
