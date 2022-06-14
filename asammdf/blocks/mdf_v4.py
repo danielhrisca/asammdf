@@ -911,6 +911,13 @@ class MDF4(MDF_Common):
                     message = f'Expected "##CN" block @{hex(ch_addr)} but found "{id_}"'
                     raise MdfException(message)
 
+                if self._remove_source_from_channel_names:
+                    name = name.split(path_separator, 1)[0]
+                    display_names = {
+                        _name.split(path_separator, 1)[0]: val
+                        for _name, val in display_names.items()
+                    }
+
                 if (
                     channel_composition
                     or channel_type in v4c.MASTER_TYPES

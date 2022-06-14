@@ -844,6 +844,13 @@ class MDF3(MDF_Common):
                             )
                             raise MdfException(message)
 
+                        if self._remove_source_from_channel_names:
+                            name = name.split("\\", 1)[0]
+                            display_names = {
+                                _name.split("\\", 1)[0]: val
+                                for _name, val in display_names.items()
+                            }
+
                         if (
                             channel_type == v23c.CHANNEL_TYPE_MASTER
                             or name in self.load_filter

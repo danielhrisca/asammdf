@@ -3146,6 +3146,16 @@ class Plot(QtWidgets.QWidget):
 
         self.range_modified()
 
+        iterator = QtWidgets.QTreeWidgetItemIterator(self.channel_selection)
+        while True:
+            item = iterator.value()
+            if item is None:
+                break
+            if item.type() == ChannelsTreeItem.Channel:
+                item.set_value(update=True, force=True)
+
+            iterator += 1
+
     def update_current_values(self, *args):
         if self.plot.region:
             self.range_modified(None)
