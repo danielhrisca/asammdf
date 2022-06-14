@@ -2474,11 +2474,7 @@ class MDF:
             if not input_types[mdf_index]:
                 mdf.close()
 
-            if (
-                mdf_index == mdf_nr
-                and reorder_channel_groups
-                and not isinstance(files[0], MDF)
-            ):
+            if (mdf_index + 1) == mdf_nr and not isinstance(files[0], MDF):
                 first_mdf.close()
 
             if callback:
