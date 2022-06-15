@@ -1032,35 +1032,54 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self,
             "Select output filter list file",
             self.default_folder,
-            "TXT files (*.txt)",
+            "CANape Lab file (*.lab);;TXT files (*.txt);;All file types (*.lab *.txt)",
+            "CANape Lab file (*.lab)",
         )
 
         if file_name:
+            file_name = Path(file_name)
+
+            iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
+
+            signals = []
+            if self.filter_view.currentText() == "Internal file structure":
+                while True:
+                    item = iterator.value()
+                    if item is None:
+                        break
+
+                    iterator += 1
+
+                    if item.parent() is None:
+                        continue
+
+                    if item.checkState(0) == QtCore.Qt.Checked:
+                        signals.append(item.text(0))
+            else:
+                while True:
+                    item = iterator.value()
+                    if item is None:
+                        break
+
+                    iterator += 1
+
+                    if item.checkState(0) == QtCore.Qt.Checked:
+                        signals.append(item.text(0))
+
+            suffix = file_name.suffix.lower()
+            if suffix == ".lab":
+                section_name, ok = QtWidgets.QInputDialog.getText(
+                    self,
+                    "Provide .lab file section name",
+                    "Section name:",
+                )
+                if not ok:
+                    section_name = "Selected channels"
+
             with open(file_name, "w") as output:
-                iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
-
-                signals = []
-                if self.filter_view.currentText() == "Internal file structure":
-                    while iterator.value():
-                        item = iterator.value()
-                        if item.parent() is None:
-                            iterator += 1
-                            continue
-
-                        if item.checkState(0) == QtCore.Qt.Checked:
-                            signals.append(item.text(0))
-
-                        iterator += 1
-                else:
-                    while iterator.value():
-                        item = iterator.value()
-
-                        if item.checkState(0) == QtCore.Qt.Checked:
-                            signals.append(item.text(0))
-
-                        iterator += 1
-
-                output.write("\n".join(signals))
+                if suffix == ".lab":
+                    output.write(f"[{section_name}]\n")
+                output.write("\n".join(natsorted(signals)))
 
     def load_filter_list(self, event=None, file_name=None):
         if file_name is None:
@@ -1069,7 +1088,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "Select channel list file",
                 self.default_folder,
                 "Config file (*.cfg);;TXT files (*.txt);;Display files (*.dsp);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.lab *.txt)",
-                "All file types (*.cfg *.dsp *.lab *.txt)",
+                "CANape Lab file (*.lab)",
             )
 
         if file_name:
@@ -1084,18 +1103,21 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 elif extension == ".lab":
                     info = load_lab(file_name)
                     if info:
-                        section, ok = QtWidgets.QInputDialog.getItem(
-                            None,
-                            "Select section",
-                            "Available sections:",
-                            list(info),
-                            0,
-                            False,
-                        )
-                        if ok:
-                            channels = info[section]
+                        if len(info) > 1:
+                            section, ok = QtWidgets.QInputDialog.getItem(
+                                None,
+                                "Please select the section",
+                                "Available sections:",
+                                list(info),
+                                0,
+                                False,
+                            )
+                            if ok:
+                                channels = info[section]
+                            else:
+                                return
                         else:
-                            return
+                            channels = list(info.values())[0]
 
                 elif extension == ".cfg":
                     with open(file_name, "r") as infile:
@@ -1119,7 +1141,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
 
-                if self.channel_view.currentText() == "Internal file structure":
+                if self.filter_view.currentText() == "Internal file structure":
                     while iterator.value():
                         item = iterator.value()
                         if item.parent() is None:
@@ -1134,7 +1156,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             item.setCheckState(0, QtCore.Qt.Unchecked)
 
                         iterator += 1
-                elif self.channel_view.currentText() == "Natural sort":
+                elif self.filter_view.currentText() == "Natural sort":
                     while iterator.value():
                         item = iterator.value()
 
