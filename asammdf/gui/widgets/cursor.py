@@ -85,7 +85,7 @@ class Cursor(pg.InfiniteLine):
                     position,
                     0,
                     y_range=plot.viewbox.viewRange()[1],
-                    x_range=plot.viewbox.viewRange()[0],
+                    x_start=plot.viewbox.viewRange()[0][0],
                     delta=delta,
                 )
                 paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
@@ -102,7 +102,7 @@ class Cursor(pg.InfiniteLine):
                             position,
                             y_value,
                             y_range=signal.y_range,
-                            x_range=plot.viewbox.viewRange()[0],
+                            x_start=plot.viewbox.viewRange()[0][0],
                             delta=delta,
                         )
 
@@ -140,7 +140,7 @@ class Cursor(pg.InfiniteLine):
                             position,
                             0,
                             y_range=plot.viewbox.viewRange()[1],
-                            x_range=plot.viewbox.viewRange()[0],
+                            x_start=plot.viewbox.viewRange()[0][0],
                             delta=delta,
                         )
                         paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
@@ -149,7 +149,7 @@ class Cursor(pg.InfiniteLine):
                         position,
                         0,
                         y_range=plot.viewbox.viewRange()[1],
-                        x_range=plot.viewbox.viewRange()[0],
+                        x_start=plot.viewbox.viewRange()[0][0],
                         delta=delta,
                     )
                     paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
@@ -232,14 +232,14 @@ class Region(pg.LinearRegionItem):
                 self.lines[0].value(),
                 0,
                 y_range=plot.viewbox.viewRange()[1],
-                x_range=plot.viewbox.viewRange()[0],
+                x_start=plot.viewbox.viewRange()[0][0],
                 delta=delta,
             )
             x2, y2 = plot.scale_curve_to_pixmap(
                 self.lines[1].value(),
                 0,
                 y_range=plot.viewbox.viewRange()[1],
-                x_range=plot.viewbox.viewRange()[0],
+                x_start=plot.viewbox.viewRange()[0][0],
                 delta=delta,
             )
 

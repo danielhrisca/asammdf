@@ -2227,11 +2227,12 @@ class Plot(QtWidgets.QWidget):
                         item.setCheckState(item.NameColumn, QtCore.Qt.Checked)
             elif item.type() == item.Group:
                 if item.isDisabled():
-                    item.setDisabled(False)
+                    item.set_disabled(False)
                     item.setIcon(item.NameColumn, QtGui.QIcon(":/open.png"))
                 else:
-                    item.setDisabled(True)
+                    item.set_disabled(True)
                     item.setIcon(item.NameColumn, QtGui.QIcon(":/erase.png"))
+                self.plot.update()
 
     def channel_selection_reduced(self, deleted):
         self.plot.delete_channels(deleted)
@@ -3636,7 +3637,7 @@ class _Plot(pg.PlotWidget):
                     self.cursor1.sigPositionChangeFinished.emit(self.cursor1)
 
         delta = self.viewbox.sceneBoundingRect().x()
-        x_range = self.viewbox.viewRange()[0]
+        x_start = self.viewbox.viewRange()[0][0]
         for sig in self.signals:
             if not sig.enable:
                 continue
@@ -3647,7 +3648,7 @@ class _Plot(pg.PlotWidget):
                 continue
 
             x_val, y_val = self.scale_curve_to_pixmap(
-                x, val, y_range=sig.y_range, x_range=x_range, delta=delta
+                x, val, y_range=sig.y_range, x_start=x_start, delta=delta
             )
 
             if abs(y_val - y) <= 15:
@@ -4552,7 +4553,7 @@ class _Plot(pg.PlotWidget):
             rect = self.viewbox.sceneBoundingRect()
 
             delta = rect.x()
-            x_range = self.x_range
+            x_start = self.x_range[0]
 
             no_brush = QtGui.QBrush()
             pen_width = self.line_width
@@ -4570,7 +4571,7 @@ class _Plot(pg.PlotWidget):
                 x = sig.plot_timestamps
 
                 x, y = self.scale_curve_to_pixmap(
-                    x, y, y_range=sig.y_range, x_range=x_range, delta=delta
+                    x, y, y_range=sig.y_range, x_start=x_start, delta=delta
                 )
 
                 sig.pen.setWidth(pen_width)
@@ -4657,7 +4658,7 @@ class _Plot(pg.PlotWidget):
                             x = sig.plot_timestamps
 
                             x, y = self.scale_curve_to_pixmap(
-                                x, y, y_range=sig.y_range, x_range=x_range, delta=delta
+                                x, y, y_range=sig.y_range, x_start=x_start, delta=delta
                             )
 
                             color = range_info["font_color"]
@@ -4766,19 +4767,19 @@ class _Plot(pg.PlotWidget):
                     self.region.lines[i].pen.setStyle(QtCore.Qt.SolidLine)
         self.range_modified_finished.emit(region)
 
-    def scale_curve_to_pixmap(self, x, y, y_range, x_range, delta):
+    def scale_curve_to_pixmap(self, x, y, y_range, x_start, delta):
 
-        if not self.py:
-            all_bad = True
-
-        else:
-            y_scale = (y_range[1] - y_range[0]) / self.py
+        if self.py:
+            y_low, y_high = y_range
+            y_scale = (y_high - y_low) / self.py
             x_scale = self.px
 
             if y_scale * x_scale:
                 all_bad = False
             else:
                 all_bad = True
+        else:
+            all_bad = True
 
         if all_bad:
             try:
@@ -4787,15 +4788,14 @@ class _Plot(pg.PlotWidget):
                 y = np.inf
         else:
 
-            xs = x_range[0]
-            ys = y_range[1]
-
+            # xs = x_start
+            # ys = y_high
             # x = (x - xs) / x_scale + delta
             # y = (ys - y) / y_scale + 1
             # is rewriten as
 
-            xs = xs - delta * x_scale
-            ys = ys + y_scale
+            xs = x_start - delta * x_scale
+            ys = y_high + y_scale
 
             x = (x - xs) / x_scale
             y = (ys - y) / y_scale
