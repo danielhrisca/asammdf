@@ -1070,7 +1070,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             if suffix == ".lab":
                 section_name, ok = QtWidgets.QInputDialog.getText(
                     self,
-                    "Provide .lab file section name",
+                    "Provide .lab file ASAP section name",
                     "Section name:",
                 )
                 if not ok:
@@ -1106,7 +1106,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         if len(info) > 1:
                             section, ok = QtWidgets.QInputDialog.getItem(
                                 None,
-                                "Please select the section",
+                                "Please select the ASAP section name",
                                 "Available sections:",
                                 list(info),
                                 0,

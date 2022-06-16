@@ -1957,21 +1957,29 @@ class Plot(QtWidgets.QWidget):
                 new_items,
             )
 
-            for item, info in groups:
-                item.setExpanded(info.get("expanded", False))
-                if item.pattern:
-                    item.setCheckState(
-                        item.NameColumn,
-                        QtCore.Qt.Checked if info["enabled"] else QtCore.Qt.Unchecked,
-                    )
-                else:
-                    if not item.childCount():
+            if groups:
+                self.channel_selection.blockSignals(True)
+
+                for item, info in groups:
+                    item.setExpanded(info.get("expanded", False))
+                    if item.pattern:
                         item.setCheckState(
                             item.NameColumn,
                             QtCore.Qt.Checked
                             if info["enabled"]
                             else QtCore.Qt.Unchecked,
                         )
+                    else:
+                        if not item.childCount():
+                            item.setCheckState(
+                                item.NameColumn,
+                                QtCore.Qt.Checked
+                                if info["enabled"]
+                                else QtCore.Qt.Unchecked,
+                            )
+
+                self.channel_selection.blockSignals(False)
+                self.channel_selection.refresh()
 
             # still have simple signals to add
             if new_items:
