@@ -3646,6 +3646,8 @@ class _Plot(pg.PlotWidget):
 
         delta = self.viewbox.sceneBoundingRect().x()
         x_start = self.viewbox.viewRange()[0][0]
+
+        candidates = []
         for sig in self.signals:
             if not sig.enable:
                 continue
@@ -3659,9 +3661,11 @@ class _Plot(pg.PlotWidget):
                 x, val, y_range=sig.y_range, x_start=x_start, delta=delta
             )
 
-            if abs(y_val - y) <= 15:
-                self.curve_clicked.emit(sig.uuid)
-                break
+            candidates.append((abs(y_val - y), sig.uuid))
+
+        if candidates:
+            candidates.sort()
+            self.curve_clicked.emit(candidates[0][1])
 
     def close(self):
         super().close()
