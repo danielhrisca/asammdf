@@ -240,18 +240,25 @@ class MDF:
 
                 elif isinstance(name, bz2.BZ2File):
                     original_name = Path(name._fp.name)
-                    name = get_temporary_filename(original_name, dir=temporary_folder)
-                    name.write_bytes(name.read())
-                    file_stream = open(name, "rb")
+                    tmp_name = get_temporary_filename(
+                        original_name, dir=temporary_folder
+                    )
+                    tmp_name.write_bytes(name.read())
+                    file_stream = open(tmp_name, "rb")
+                    name = tmp_name
 
                     do_close = True
 
                 elif isinstance(name, gzip.GzipFile):
 
                     original_name = Path(name.name)
-                    name = get_temporary_filename(original_name, dir=temporary_folder)
-                    name.write_bytes(name.read())
-                    file_stream = open(name, "rb")
+                    tmp_name = get_temporary_filename(
+                        original_name, dir=temporary_folder
+                    )
+                    tmp_name.write_bytes(name.read())
+                    file_stream = open(tmp_name, "rb")
+                    name = tmp_name
+
                     do_close = True
 
             elif isinstance(name, zipfile.ZipFile):

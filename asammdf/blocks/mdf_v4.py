@@ -2882,7 +2882,11 @@ class MDF4(MDF_Common):
                         if signal.attachment:
                             at_data, at_name, hash_sum = signal.attachment
                             attachment_index = self.attach(
-                                at_data, at_name, hash_sum, mime="video/avi", embedded=False
+                                at_data,
+                                at_name,
+                                hash_sum,
+                                mime="video/avi",
+                                embedded=False,
                             )
                             attachment = attachment_index
                         else:
@@ -2934,7 +2938,9 @@ class MDF4(MDF_Common):
 
                     # conversions for channel
                     if signal.raw:
-                        ch.conversion = conversion_transfer(signal.conversion, version=4)
+                        ch.conversion = conversion_transfer(
+                            signal.conversion, version=4
+                        )
 
                     # source for channel
 
