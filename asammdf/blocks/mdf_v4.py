@@ -2760,114 +2760,225 @@ class MDF4(MDF_Common):
                 # compute additional byte offset for large records size
                 s_type, s_size = fmt_to_datatype_v4(sig_dtype, sig_shape)
 
-                byte_size = s_size // 8 or 1
-                data_block_addr = 0
+                if (s_type, s_size) == (v4c.DATA_TYPE_BYTEARRAY, 0):
+                    offsets = arange(len(samples), dtype=uint64) * (sig_shape[1] + 4)
 
-                if sig_dtype.kind == "u" and signal.bit_count <= 4:
-                    s_size = signal.bit_count
+                    values = [
+                        full(len(samples), sig_shape[1], dtype=uint32),
+                        samples,
+                    ]
 
-                if signal.stream_sync:
-                    channel_type = v4c.CHANNEL_TYPE_SYNC
-                    if signal.attachment:
-                        at_data, at_name, hash_sum = signal.attachment
-                        attachment_index = self.attach(
-                            at_data, at_name, hash_sum, mime="video/avi", embedded=False
+                    types_ = [("o", uint32), ("s", sig_dtype, sig_shape[1:])]
+
+                    data = fromarrays(values, dtype=types_)
+
+                    data_size = len(data) * data.itemsize
+                    if data_size:
+                        data_addr = tell()
+                        info = SignalDataBlockInfo(
+                            address=data_addr,
+                            compressed_size=data_size,
+                            original_size=data_size,
+                            location=v4c.LOCATION_TEMPORARY_FILE,
                         )
-                        attachment = attachment_index
-                    else:
-                        attachment = None
-
-                    sync_type = v4c.SYNC_TYPE_TIME
-                else:
-                    channel_type = v4c.CHANNEL_TYPE_VALUE
-                    sync_type = v4c.SYNC_TYPE_NONE
-
-                    if signal.attachment:
-                        at_data, at_name, hash_sum = signal.attachment
-
-                        attachment_index = self.attach(at_data, at_name, hash_sum)
-                        attachment = attachment_index
-                    else:
-                        attachment = None
-
-                kwargs = {
-                    "channel_type": channel_type,
-                    "sync_type": sync_type,
-                    "bit_count": s_size,
-                    "byte_offset": offset,
-                    "bit_offset": 0,
-                    "data_type": s_type,
-                    "data_block_addr": data_block_addr,
-                    "flags": 0,
-                }
-
-                if attachment is not None:
-                    kwargs["attachment_addr"] = 0
-
-                if invalidation_bytes_nr and signal.invalidation_bits is not None:
-                    inval_bits.append(signal.invalidation_bits)
-                    kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
-                    kwargs["pos_invalidation_bit"] = inval_cntr
-                    inval_cntr += 1
-
-                ch = Channel(**kwargs)
-                ch.name = name
-                ch.unit = signal.unit
-                ch.comment = signal.comment
-                ch.display_names = signal.display_names
-                if len(sig_shape) > 1:
-                    ch.dtype_fmt = dtype((sig_dtype, sig_shape[1:]))
-                else:
-                    ch.dtype_fmt = sig_dtype
-                ch.attachment = attachment
-
-                # conversions for channel
-                if signal.raw:
-                    ch.conversion = conversion_transfer(signal.conversion, version=4)
-
-                # source for channel
-
-                source = signal.source
-                if source:
-                    if source in si_map:
-                        ch.source = si_map[source]
-                    else:
-                        new_source = SourceInformation(
-                            source_type=source.source_type, bus_type=source.bus_type
+                        gp_sdata.append(
+                            (
+                                [info],
+                                iter(EMPTY_TUPLE),
+                            )
                         )
-                        new_source.name = source.name
-                        new_source.path = source.path
-                        new_source.comment = source.comment
+                        data.tofile(file)
+                    else:
+                        data_addr = 0
+                        gp_sdata.append(
+                            (
+                                [],
+                                iter(EMPTY_TUPLE),
+                            )
+                        )
 
-                        si_map[source] = new_source
+                    byte_size = 8
+                    kwargs = {
+                        "channel_type": v4c.CHANNEL_TYPE_VLSD,
+                        "bit_count": 64,
+                        "byte_offset": offset,
+                        "bit_offset": 0,
+                        "data_type": s_type,
+                        "data_block_addr": data_addr,
+                        "flags": 0,
+                    }
 
-                        ch.source = new_source
+                    if invalidation_bytes_nr:
+                        if signal.invalidation_bits is not None:
+                            inval_bits.append(signal.invalidation_bits)
+                            kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                            kwargs["pos_invalidation_bit"] = inval_cntr
+                            inval_cntr += 1
 
-                gp_channels.append(ch)
+                    ch = Channel(**kwargs)
+                    ch.name = name
+                    ch.unit = signal.unit
+                    ch.comment = signal.comment
+                    ch.display_names = signal.display_names
+                    ch.dtype_fmt = dtype("<u8")
 
-                record.append(
-                    (
-                        ch.dtype_fmt,
-                        ch.dtype_fmt.itemsize,
-                        offset,
-                        0,
+                    # conversions for channel
+                    conversion = conversion_transfer(signal.conversion, version=4)
+                    if signal.raw:
+                        ch.conversion = conversion
+
+                    # source for channel
+                    source = signal.source
+                    if source:
+                        if source in si_map:
+                            ch.source = si_map[source]
+                        else:
+                            new_source = SourceInformation(
+                                source_type=source.source_type, bus_type=source.bus_type
+                            )
+                            new_source.name = source.name
+                            new_source.path = source.path
+                            new_source.comment = source.comment
+
+                            si_map[source] = new_source
+
+                            ch.source = new_source
+
+                    gp_channels.append(ch)
+
+                    record.append(
+                        (
+                            uint64,
+                            8,
+                            offset,
+                            0,
+                        )
                     )
-                )
 
-                offset += byte_size
+                    offset += byte_size
 
-                fields.append((samples.tobytes(), byte_size))
+                    entry = (dg_cntr, ch_cntr)
+                    self.channels_db.add(name, entry)
+                    for _name in ch.display_names:
+                        self.channels_db.add(_name, entry)
 
-                gp_sdata.append(None)
-                entry = (dg_cntr, ch_cntr)
-                self.channels_db.add(name, entry)
-                for _name in ch.display_names:
-                    self.channels_db.add(_name, entry)
+                    fields.append((offsets.tobytes(), 8))
 
-                ch_cntr += 1
+                    ch_cntr += 1
 
-                # simple channels don't have channel dependencies
-                gp_dep.append(None)
+                    # simple channels don't have channel dependencies
+                    gp_dep.append(None)
+
+                else:
+
+                    byte_size = s_size // 8 or 1
+                    data_block_addr = 0
+
+                    if sig_dtype.kind == "u" and signal.bit_count <= 4:
+                        s_size = signal.bit_count
+
+                    if signal.stream_sync:
+                        channel_type = v4c.CHANNEL_TYPE_SYNC
+                        if signal.attachment:
+                            at_data, at_name, hash_sum = signal.attachment
+                            attachment_index = self.attach(
+                                at_data, at_name, hash_sum, mime="video/avi", embedded=False
+                            )
+                            attachment = attachment_index
+                        else:
+                            attachment = None
+
+                        sync_type = v4c.SYNC_TYPE_TIME
+                    else:
+                        channel_type = v4c.CHANNEL_TYPE_VALUE
+                        sync_type = v4c.SYNC_TYPE_NONE
+
+                        if signal.attachment:
+                            at_data, at_name, hash_sum = signal.attachment
+
+                            attachment_index = self.attach(at_data, at_name, hash_sum)
+                            attachment = attachment_index
+                        else:
+                            attachment = None
+
+                    kwargs = {
+                        "channel_type": channel_type,
+                        "sync_type": sync_type,
+                        "bit_count": s_size,
+                        "byte_offset": offset,
+                        "bit_offset": 0,
+                        "data_type": s_type,
+                        "data_block_addr": data_block_addr,
+                        "flags": 0,
+                    }
+
+                    if attachment is not None:
+                        kwargs["attachment_addr"] = 0
+
+                    if invalidation_bytes_nr and signal.invalidation_bits is not None:
+                        inval_bits.append(signal.invalidation_bits)
+                        kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["pos_invalidation_bit"] = inval_cntr
+                        inval_cntr += 1
+
+                    ch = Channel(**kwargs)
+                    ch.name = name
+                    ch.unit = signal.unit
+                    ch.comment = signal.comment
+                    ch.display_names = signal.display_names
+                    if len(sig_shape) > 1:
+                        ch.dtype_fmt = dtype((sig_dtype, sig_shape[1:]))
+                    else:
+                        ch.dtype_fmt = sig_dtype
+                    ch.attachment = attachment
+
+                    # conversions for channel
+                    if signal.raw:
+                        ch.conversion = conversion_transfer(signal.conversion, version=4)
+
+                    # source for channel
+
+                    source = signal.source
+                    if source:
+                        if source in si_map:
+                            ch.source = si_map[source]
+                        else:
+                            new_source = SourceInformation(
+                                source_type=source.source_type, bus_type=source.bus_type
+                            )
+                            new_source.name = source.name
+                            new_source.path = source.path
+                            new_source.comment = source.comment
+
+                            si_map[source] = new_source
+
+                            ch.source = new_source
+
+                    gp_channels.append(ch)
+
+                    record.append(
+                        (
+                            ch.dtype_fmt,
+                            ch.dtype_fmt.itemsize,
+                            offset,
+                            0,
+                        )
+                    )
+
+                    offset += byte_size
+
+                    fields.append((samples.tobytes(), byte_size))
+
+                    gp_sdata.append(None)
+                    entry = (dg_cntr, ch_cntr)
+                    self.channels_db.add(name, entry)
+                    for _name in ch.display_names:
+                        self.channels_db.add(_name, entry)
+
+                    ch_cntr += 1
+
+                    # simple channels don't have channel dependencies
+                    gp_dep.append(None)
 
             elif sig_type == v4c.SIGNAL_TYPE_CANOPEN:
 
@@ -7206,6 +7317,7 @@ class MDF4(MDF_Common):
                 vals = channel.conversion.convert(vals)
 
         else:
+
             channel_group = grp.channel_group
 
             record_size = channel_group.samples_byte_nr
@@ -7483,7 +7595,7 @@ class MDF4(MDF_Common):
 
                     else:
                         raise MdfException(
-                            f'wrong data type "{data_type}" for vlsd channel'
+                            f'wrong data type "{data_type}" for vlsd channel "{channel.name}"'
                         )
             else:
                 if len(vals):
@@ -7508,7 +7620,7 @@ class MDF4(MDF_Common):
 
                     else:
                         raise MdfException(
-                            f'wrong data type "{data_type}" for vlsd channel'
+                            f'wrong data type "{data_type}" for vlsd channel "{channel.name}"'
                         )
                 else:
                     vals = array(
