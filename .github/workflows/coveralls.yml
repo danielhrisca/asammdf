@@ -16,13 +16,13 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
-          python-version: "3.7"
+          python-version: "3.8"
 
       - name: Install packages
         run: pip install tox coveralls
 
       - name: Run coverage
-        run: tox -e py37
+        run: tox -e py38
 
       # see: https://coveralls-python.readthedocs.io/en/latest/usage/configuration.html#github-actions-support
       - name: Upload coverage data to coveralls.io
