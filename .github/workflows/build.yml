@@ -34,6 +34,7 @@ jobs:
         run: python -m build --wheel
 
       - name: Build an executable
+        shell: cmd
         if: ${{ matrix.python-version == '3.10' }}
         run: |
             pip install build pyinstaller==4.10 numpy wheel
