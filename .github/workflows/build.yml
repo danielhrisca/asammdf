@@ -42,8 +42,8 @@ jobs:
             pip install -e . --no-deps
             pip install cmerg
             if [ "$RUNNER_OS" == "Linux" ]; then
-                 apt update
-                 apt install libegl1
+                 sudo apt update
+                 sudo apt install libegl1
             fi
             pyinstaller asammdf.spec --distpath dist/${RUNNER_OS} --noconfirm --clean --onefile
 
