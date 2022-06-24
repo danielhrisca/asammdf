@@ -1,7 +1,7 @@
 canmatrix[arxml,dbc]>=0.8
 lz4
 numexpr
-numpy>=1.21
+numpy==1.22
 pandas
 typing_extensions
 python-dateutil

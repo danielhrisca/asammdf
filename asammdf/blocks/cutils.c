@@ -1,3 +1,5 @@
+#define NPY_NO_DEPRECATED_API NPY_1_22_API_VERSION
+
 #define PY_SSIZE_T_CLEAN 1
 #include <Python.h>
 #include "numpy/arrayobject.h"
@@ -7,8 +9,6 @@
 
 #define PY_PRINTF(o) \
     PyObject_Print(o, stdout, 0); printf("\n");
-
-#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 
 char err_string[1024];
 
