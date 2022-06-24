@@ -12,6 +12,5 @@ xlwt
 canmatrix
 pandas
 numexpr
-numexpr3;sys_platform != 'darwin'
 lz4
 numpy>=1.23.0
