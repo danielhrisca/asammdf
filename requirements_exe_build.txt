@@ -13,7 +13,7 @@ pyqtgraph>=0.12.4
 pyqtlet2 
 h5py 
 fastparquet 
-scipy<1.8.0
+scipy
 hdf5storage 
 snappy 
 cChardet==2.1.5 
