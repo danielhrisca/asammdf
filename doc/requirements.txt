@@ -14,4 +14,4 @@ pandas
 numexpr
 numexpr3;sys_platform != 'darwin'
 lz4
-numpy
+numpy==1.22
