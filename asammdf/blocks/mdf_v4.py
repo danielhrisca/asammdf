@@ -6324,33 +6324,22 @@ class MDF4(MDF_Common):
             else:
 
                 # for external attachments read the file and return the content
-                if flags & v4c.FLAG_AT_MD5_VALID:
-                    data = open(file_path, "rb").read()
+                data = file_path.read_bytes()
 
-                    md5_worker = md5()
-                    md5_worker.update(data)
-                    md5_sum = md5_worker.digest()
-                    if attachment["md5_sum"] == md5_sum:
-                        if attachment.mime.startswith("text"):
-                            with open(file_path, "r") as f:
-                                data = f.read()
-                    else:
-                        message = (
-                            f'ATBLOCK md5sum="{attachment["md5_sum"]}" '
-                            f"and external attachment data ({file_path}) "
-                            f'md5sum="{md5_sum}"'
-                        )
-                        logger.warning(message)
-                else:
-                    if attachment.mime.startswith("text"):
-                        mode = "r"
-                    else:
-                        mode = "rb"
-                    with open(file_path, mode) as f:
-                        data = f.read()
-                        md5_worker = md5()
-                        md5_worker.update(data)
-                        md5_sum = md5_worker.digest()
+                md5_worker = md5()
+                md5_worker.update(data)
+                md5_sum = md5_worker.digest()
+
+                if attachment.mime.startswith("text"):
+                    data = data.decode('utf-8', errors='replace')
+
+                if flags & v4c.FLAG_AT_MD5_VALID and attachment["md5_sum"] != md5_sum:
+                    message = (
+                        f'ATBLOCK md5sum="{attachment["md5_sum"]}" '
+                        f"and external attachment data ({file_path}) "
+                        f'md5sum="{md5_sum}"'
+                    )
+                    logger.warning(message)
 
         except Exception as err:
             os.chdir(current_path)
