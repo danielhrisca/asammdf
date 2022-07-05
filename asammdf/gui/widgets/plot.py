@@ -1675,9 +1675,22 @@ class Plot(QtWidgets.QWidget):
         self.show()
         size = sum(self.splitter.sizes())
         self.splitter.setSizes([600, max(size - 600, 1)])
-        self.channel_selection.setColumnWidth(self.channel_selection.NameColumn, 386)
+
+        nameColumnWidth = 5 * self.font().pointSize()
+        if signals:
+            nameColumnWidth = max([len(signal.name) + 10 for signal in signals])
+
+        unitColumnWidth = 3 * self.font().pointSize()
+        if signals:
+            unitColumnWidth = max([len(signal.unit) + 10 for signal in signals])
+
+        self.channel_selection.setColumnWidth(
+            self.channel_selection.NameColumn, nameColumnWidth
+        )
         self.channel_selection.setColumnWidth(self.channel_selection.ValueColumn, 83)
-        self.channel_selection.setColumnWidth(self.channel_selection.UnitColumn, 62)
+        self.channel_selection.setColumnWidth(
+            self.channel_selection.UnitColumn, unitColumnWidth
+        )
         self.channel_selection.setColumnWidth(
             self.channel_selection.CommonAxisColumn, 35
         )
@@ -1843,6 +1856,31 @@ class Plot(QtWidgets.QWidget):
                 f"The following channels do not have monotonous increasing time stamps:\n{errors}",
             )
             self.plot._can_trim = can_trim
+
+        nameColumnWidth = max(
+            [
+                self.channel_selection.fontMetrics().boundingRect(f"{channel.name}AAAA").width() + 35 # AAAA extra characters
+                for channel in (list(channels.values()) + self.plot.signals)
+            ]
+        )
+        if (nameColumnWidth < (35 * self.font().pointSize())):
+            self.channel_selection.setColumnWidth(
+                self.channel_selection.NameColumn, nameColumnWidth
+            )
+
+        unitColumnWidth = max(
+            [
+                self.channel_selection.fontMetrics().boundingRect(f"{channel.unit}AA").width() + 35 # AA extra characters
+                for channel in (list(channels.values()) + self.plot.signals)
+            ]
+        )
+        
+        if (unitColumnWidth < 9 * self.font().pointSize()):
+            self.channel_selection.setColumnWidth(
+                self.channel_selection.UnitColumn, unitColumnWidth
+            )
+        
+        self.adjust_splitter(list(channels.values()))
 
         valid = {}
         invalid = []
@@ -2034,6 +2072,7 @@ class Plot(QtWidgets.QWidget):
     def adjust_splitter(self, channels=None):
         channels = channels or self.plot.signals
 
+        channels.extend(self.plot.signals)
         size = sum(self.splitter.sizes())
 
         width = 0
@@ -2041,10 +2080,14 @@ class Plot(QtWidgets.QWidget):
             width = max(
                 width,
                 self.channel_selection.fontMetrics()
-                .boundingRect(f"{ch.name} ({ch.unit})")
-                .width(),
+                .boundingRect(f"{ch.name}AAAA") # To simulate extra characters missing
+                .width() + 35 + # 35 to simulate checkbox
+                (self.channel_selection.fontMetrics()
+                .boundingRect(f"{ch.unit}AA")   # To simulate extra characters
+                .width() if ch.unit else (8 * self.font().pointSize())),
             )
-        width += 170
+        
+        width += 85 + 70 # 70 - two checkboxes
 
         if width > self.splitter.sizes()[0]:
 
@@ -2055,6 +2098,8 @@ class Plot(QtWidgets.QWidget):
                     self.splitter.setSizes([size - 300, 300, 0])
                 elif size >= 100:
                     self.splitter.setSizes([50, size - 50, 0])
+        else:
+            self.splitter.setSizes([width, size - width, 0])
 
     def channel_group_item_to_config(self, item):
         widget = item

@@ -7,6 +7,7 @@ from __future__ import annotations
 import bisect
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Iterator, Sequence, Sized
+from datetime import datetime
 from functools import lru_cache
 from hashlib import md5
 from io import BufferedReader, BytesIO
@@ -377,7 +378,7 @@ class MDF4(MDF_Common):
                     self._read(mapped=False)
                 else:
 
-                    if sys.maxsize < 2**32:
+                    if sys.maxsize < 2 ** 32:
                         self.name = Path(name)
                         self._file = open(self.name, "rb")
                         self._from_filelike = False
@@ -647,8 +648,8 @@ class MDF4(MDF_Common):
                 self.identification["unfinalized_standard_flags"]
                 & v4c.FLAG_UNFIN_UPDATE_CG_COUNTER
             ):
-                total_size = int(10**12)
-                inval_total_size = int(10**12)
+                total_size = int(10 ** 12)
+                inval_total_size = int(10 ** 12)
 
             data_blocks_info = self._get_data_blocks_info(
                 address=address,
@@ -8891,6 +8892,23 @@ class MDF4(MDF_Common):
                 inf[f"channel {j}"] = f'name="{name}" type={ch_type}'
 
         return info
+
+    @property
+    def start_time(self) -> datetime:
+        """getter and setter the measurement start timestamp
+
+        Returns
+        -------
+        timestamp : datetime.datetime
+            start timestamp
+
+        """
+
+        return self.header.start_time
+
+    @start_time.setter
+    def start_time(self, timestamp: datetime) -> None:
+        self.header.start_time = timestamp
 
     def save(
         self,
