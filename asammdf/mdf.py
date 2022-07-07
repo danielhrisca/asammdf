@@ -1180,7 +1180,7 @@ class MDF:
             * `compression` : str
               compression to be used
 
-              * for ``parquet`` : "GZIP" or "SANPPY"
+              * for ``parquet`` : "GZIP" or "SNAPPY"
               * for ``hfd5`` : "gzip", "lzf" or "szip"
               * for ``mat`` : bool
 
