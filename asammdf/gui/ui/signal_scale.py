@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'signal_scale.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.2.3
+## Created by: Qt User Interface Compiler version 6.3.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -25,7 +25,7 @@ class Ui_ScaleDialog(object):
     def setupUi(self, ScaleDialog):
         if not ScaleDialog.objectName():
             ScaleDialog.setObjectName(u"ScaleDialog")
-        ScaleDialog.resize(1091, 660)
+        ScaleDialog.resize(1091, 676)
         self.gridLayout_3 = QGridLayout(ScaleDialog)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
         self.horizontalLayout = QHBoxLayout()
@@ -213,34 +213,15 @@ class Ui_ScaleDialog(object):
         self.groupBox_4.setObjectName(u"groupBox_4")
         self.gridLayout_2 = QGridLayout(self.groupBox_4)
         self.gridLayout_2.setObjectName(u"gridLayout_2")
-        self.label_4 = QLabel(self.groupBox_4)
-        self.label_4.setObjectName(u"label_4")
+        self.label_10 = QLabel(self.groupBox_4)
+        self.label_10.setObjectName(u"label_10")
 
-        self.gridLayout_2.addWidget(self.label_4, 0, 0, 1, 1)
-
-        self.y_top = QDoubleSpinBox(self.groupBox_4)
-        self.y_top.setObjectName(u"y_top")
-        self.y_top.setMinimum(0.000000000000000)
-        self.y_top.setMaximum(1.000000000000000)
-
-        self.gridLayout_2.addWidget(self.y_top, 0, 1, 1, 1)
+        self.gridLayout_2.addWidget(self.label_10, 3, 0, 1, 1)
 
         self.label_8 = QLabel(self.groupBox_4)
         self.label_8.setObjectName(u"label_8")
 
         self.gridLayout_2.addWidget(self.label_8, 1, 0, 1, 1)
-
-        self.y_bottom = QDoubleSpinBox(self.groupBox_4)
-        self.y_bottom.setObjectName(u"y_bottom")
-        self.y_bottom.setMinimum(0.000000000000000)
-        self.y_bottom.setMaximum(1.000000000000000)
-
-        self.gridLayout_2.addWidget(self.y_bottom, 1, 1, 1, 1)
-
-        self.label_10 = QLabel(self.groupBox_4)
-        self.label_10.setObjectName(u"label_10")
-
-        self.gridLayout_2.addWidget(self.label_10, 2, 0, 1, 1)
 
         self.offset = QDoubleSpinBox(self.groupBox_4)
         self.offset.setObjectName(u"offset")
@@ -248,7 +229,32 @@ class Ui_ScaleDialog(object):
         self.offset.setMinimum(0.000000000000000)
         self.offset.setMaximum(1.000000000000000)
 
-        self.gridLayout_2.addWidget(self.offset, 2, 1, 1, 1)
+        self.gridLayout_2.addWidget(self.offset, 3, 1, 1, 1)
+
+        self.label_4 = QLabel(self.groupBox_4)
+        self.label_4.setObjectName(u"label_4")
+
+        self.gridLayout_2.addWidget(self.label_4, 0, 0, 1, 1)
+
+        self.label_13 = QLabel(self.groupBox_4)
+        self.label_13.setObjectName(u"label_13")
+
+        self.gridLayout_2.addWidget(self.label_13, 2, 0, 1, 1)
+
+        self.scaling = QDoubleSpinBox(self.groupBox_4)
+        self.scaling.setObjectName(u"scaling")
+
+        self.gridLayout_2.addWidget(self.scaling, 2, 1, 1, 1)
+
+        self.y_top = QLabel(self.groupBox_4)
+        self.y_top.setObjectName(u"y_top")
+
+        self.gridLayout_2.addWidget(self.y_top, 0, 1, 1, 1)
+
+        self.y_bottom = QLabel(self.groupBox_4)
+        self.y_bottom.setObjectName(u"y_bottom")
+
+        self.gridLayout_2.addWidget(self.y_bottom, 1, 1, 1, 1)
 
 
         self.gridLayout_3.addWidget(self.groupBox_4, 3, 1, 1, 1)
@@ -288,9 +294,12 @@ class Ui_ScaleDialog(object):
         self.label_5.setText(QCoreApplication.translate("ScaleDialog", u"Signal max", None))
         self.label_9.setText(QCoreApplication.translate("ScaleDialog", u"Signal min", None))
         self.groupBox_4.setTitle(QCoreApplication.translate("ScaleDialog", u"Screen levels", None))
-        self.label_4.setText(QCoreApplication.translate("ScaleDialog", u"Y axis top value", None))
-        self.label_8.setText(QCoreApplication.translate("ScaleDialog", u"Y axis bottom value", None))
         self.label_10.setText(QCoreApplication.translate("ScaleDialog", u"0 level on screen", None))
+        self.label_8.setText(QCoreApplication.translate("ScaleDialog", u"Y axis bottom value", None))
         self.offset.setSuffix(QCoreApplication.translate("ScaleDialog", u"%", None))
+        self.label_4.setText(QCoreApplication.translate("ScaleDialog", u"Y axis top value", None))
+        self.label_13.setText(QCoreApplication.translate("ScaleDialog", u"Scaling [units/screen]", None))
+        self.y_top.setText("")
+        self.y_bottom.setText("")
     # retranslateUi
 

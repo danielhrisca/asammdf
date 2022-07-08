@@ -378,7 +378,7 @@ class MDF4(MDF_Common):
                     self._read(mapped=False)
                 else:
 
-                    if sys.maxsize < 2 ** 32:
+                    if sys.maxsize < 2**32:
                         self.name = Path(name)
                         self._file = open(self.name, "rb")
                         self._from_filelike = False
@@ -648,8 +648,8 @@ class MDF4(MDF_Common):
                 self.identification["unfinalized_standard_flags"]
                 & v4c.FLAG_UNFIN_UPDATE_CG_COUNTER
             ):
-                total_size = int(10 ** 12)
-                inval_total_size = int(10 ** 12)
+                total_size = int(10**12)
+                inval_total_size = int(10**12)
 
             data_blocks_info = self._get_data_blocks_info(
                 address=address,
@@ -6332,7 +6332,7 @@ class MDF4(MDF_Common):
                 md5_sum = md5_worker.digest()
 
                 if attachment.mime.startswith("text"):
-                    data = data.decode('utf-8', errors='replace')
+                    data = data.decode("utf-8", errors="replace")
 
                 if flags & v4c.FLAG_AT_MD5_VALID and attachment["md5_sum"] != md5_sum:
                     message = (

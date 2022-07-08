@@ -1859,27 +1859,33 @@ class Plot(QtWidgets.QWidget):
 
         nameColumnWidth = max(
             [
-                self.channel_selection.fontMetrics().boundingRect(f"{channel.name}AAAA").width() + 35 # AAAA extra characters
+                self.channel_selection.fontMetrics()
+                .boundingRect(f"{channel.name}AAAA")
+                .width()
+                + 35  # AAAA extra characters
                 for channel in (list(channels.values()) + self.plot.signals)
             ]
         )
-        if (nameColumnWidth < (35 * self.font().pointSize())):
+        if nameColumnWidth < (35 * self.font().pointSize()):
             self.channel_selection.setColumnWidth(
                 self.channel_selection.NameColumn, nameColumnWidth
             )
 
         unitColumnWidth = max(
             [
-                self.channel_selection.fontMetrics().boundingRect(f"{channel.unit}AA").width() + 35 # AA extra characters
+                self.channel_selection.fontMetrics()
+                .boundingRect(f"{channel.unit}AA")
+                .width()
+                + 35  # AA extra characters
                 for channel in (list(channels.values()) + self.plot.signals)
             ]
         )
-        
-        if (unitColumnWidth < 9 * self.font().pointSize()):
+
+        if unitColumnWidth < 9 * self.font().pointSize():
             self.channel_selection.setColumnWidth(
                 self.channel_selection.UnitColumn, unitColumnWidth
             )
-        
+
         self.adjust_splitter(list(channels.values()))
 
         valid = {}
@@ -2080,14 +2086,19 @@ class Plot(QtWidgets.QWidget):
             width = max(
                 width,
                 self.channel_selection.fontMetrics()
-                .boundingRect(f"{ch.name}AAAA") # To simulate extra characters missing
-                .width() + 35 + # 35 to simulate checkbox
-                (self.channel_selection.fontMetrics()
-                .boundingRect(f"{ch.unit}AA")   # To simulate extra characters
-                .width() if ch.unit else (8 * self.font().pointSize())),
+                .boundingRect(f"{ch.name}AAAA")  # To simulate extra characters missing
+                .width()
+                + 35
+                + (  # 35 to simulate checkbox
+                    self.channel_selection.fontMetrics()
+                    .boundingRect(f"{ch.unit}AA")  # To simulate extra characters
+                    .width()
+                    if ch.unit
+                    else (8 * self.font().pointSize())
+                ),
             )
-        
-        width += 85 + 70 # 70 - two checkboxes
+
+        width += 85 + 70  # 70 - two checkboxes
 
         if width > self.splitter.sizes()[0]:
 
@@ -2819,10 +2830,14 @@ class Plot(QtWidgets.QWidget):
                 diag = ScaleDialog(signals, y_range, parent=self)
 
                 if diag.exec():
-                    y_range = (
-                        diag.y_bottom.value(),
-                        diag.y_top.value(),
-                    )
+                    offset = diag.offset.value()
+                    scale = diag.scaling.value()
+
+                    y_bottom = -offset * scale / 100
+                    y_top = y_bottom + scale
+
+                    y_range = y_bottom, y_top
+
                     for idx in indexes:
                         self.plot.signals[idx].y_range = y_range
 
@@ -4571,11 +4586,13 @@ class _Plot(pg.PlotWidget):
         diag = ScaleDialog(signals, signal.y_range, parent=self)
 
         if diag.exec():
-            y_range = (
-                diag.y_bottom.value(),
-                diag.y_top.value(),
-            )
-            signal.y_range = y_range
+            offset = diag.offset.value()
+            scale = diag.scaling.value()
+
+            y_bottom = -offset * scale / 100
+            y_top = y_bottom + scale
+
+            signal.y_range = y_bottom, y_top
 
             self.update()
 
