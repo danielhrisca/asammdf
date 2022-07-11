@@ -219,14 +219,6 @@ class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
             self.zoom_out()
         elif key == QtCore.Qt.Key_F and modifiers == QtCore.Qt.NoModifier:
             self.fit()
-        elif key == QtCore.Qt.Key_Up and modifiers == QtCore.Qt.ShiftModifier:
-            self.offset.stepUp()
-        elif key == QtCore.Qt.Key_Down and modifiers == QtCore.Qt.ShiftModifier:
-            self.offset.stepDown()
-        elif key == QtCore.Qt.Key_PageUp and modifiers == QtCore.Qt.ShiftModifier:
-            self.offset.stepBy(10)
-        elif key == QtCore.Qt.Key_PageDown and modifiers == QtCore.Qt.ShiftModifier:
-            self.offset.stepBy(-10)
         else:
             super().keyPressEvent(event)
 

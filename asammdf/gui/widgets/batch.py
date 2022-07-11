@@ -605,13 +605,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             self.concatenate_add_samples_origin.checkState() == QtCore.Qt.Checked
         )
 
-        if version < "4.00":
-            filter = "MDF version 3 files (*.dat *.mdf)"
-            suffix = ".mdf"
-        else:
-            filter = "MDF version 4 files (*.mf4)"
-            suffix = ".mf4"
-
         split = self.concatenate_split.checkState() == QtCore.Qt.Checked
         if split:
             split_size = int(self.concatenate_split_size.value() * 1024 * 1024)
@@ -620,16 +613,25 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         compression = self.concatenate_compression.currentIndex()
 
-        output_file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self,
-            "Select output measurement file",
-            "",
-            f"{filter};;All files (*.*)",
-            filter,
-        )
+        if version < "4.00":
+            output_file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
+                self,
+                "Select output measurement file",
+                "",
+                "MDF version 3 files (*.dat *.mdf);;All files (*.*)",
+                "MDF version 3 files (*.dat *.mdf)",
+            )
+        else:
+            output_file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
+                self,
+                "Select output measurement file",
+                "",
+                f"MDF version 4 files (*.mf4 *.mf4z);;All files (*.*)",
+                "MDF version 4 files (*.mf4 *.mf4z)",
+            )
 
         if output_file_name:
-            output_file_name = Path(output_file_name).with_suffix(suffix)
+            output_file_name = Path(output_file_name)
 
             progress = setup_progress(
                 parent=self,
@@ -701,13 +703,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             self.stack_add_samples_origin.checkState() == QtCore.Qt.Checked
         )
 
-        if version < "4.00":
-            filter = "MDF version 3 files (*.dat *.mdf)"
-            suffix = ".mdf"
-        else:
-            filter = "MDF version 4 files (*.mf4)"
-            suffix = ".mf4"
-
         split = self.stack_split.checkState() == QtCore.Qt.Checked
         if split:
             split_size = int(self.stack_split_size.value() * 1024 * 1024)
@@ -716,16 +711,25 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         compression = self.stack_compression.currentIndex()
 
-        output_file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self,
-            "Select output measurement file",
-            "",
-            f"{filter};;All files (*.*)",
-            filter,
-        )
+        if version < "4.00":
+            output_file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
+                self,
+                "Select output measurement file",
+                "",
+                "MDF version 3 files (*.dat *.mdf);;All files (*.*)",
+                "MDF version 3 files (*.dat *.mdf)",
+            )
+        else:
+            output_file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
+                self,
+                "Select output measurement file",
+                "",
+                f"MDF version 4 files (*.mf4 *.mf4z);;All files (*.*)",
+                "MDF version 4 files (*.mf4 *.mf4z)",
+            )
 
         if output_file_name:
-            output_file_name = Path(output_file_name).with_suffix(suffix)
+            output_file_name = Path(output_file_name)
 
             progress = setup_progress(
                 parent=self,
