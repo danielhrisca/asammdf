@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from datetime import date, datetime
+from enum import IntFlag
 from functools import lru_cache
 import json
 import os
@@ -375,15 +376,19 @@ class Delegate(QtWidgets.QItemDelegate):
         if brush is not None:
             color = brush.color()
 
-            light = sum(color.getRgb()[:-1]) / 2
-            if light >= 383:
-                complementary = fn.mkColor("#000000")
-            else:
-                complementary = fn.mkColor("#ffffff")
+            complementary = fn.mkColor("#000000")
             option.palette.setColor(QtGui.QPalette.Highlight, color)
             option.palette.setColor(QtGui.QPalette.HighlightedText, complementary)
 
         super().paint(pinter, option, index)
+
+
+class ChannelsTreeFlags(IntFlag):
+    DetailsEnabled = 1
+    HideMissingChannels = 1 << 1
+    HideDisabledChannels = 1 << 2
+    CanDeleteItems = 1 << 3
+    CanInsertItems = 1 << 4
 
 
 class ChannelsTreeWidget(QtWidgets.QTreeWidget):
@@ -429,6 +434,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.hide_missing_channels = hide_missing_channels
         self.hide_disabled_channels = hide_disabled_channels
         self.can_delete_items = True
+        self.can_insert_computed_items = True
 
         self.setHeaderHidden(False)
         self.setColumnCount(5)
@@ -438,6 +444,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.setExpandsOnDoubleClick(False)
 
         self.setMinimumWidth(5)
+        self.header().setMinimumSectionSize(10)
         self.header().resizeSection(self.CommonAxisColumn, 10)
         self.header().resizeSection(self.IndividualAxisColumn, 10)
         self.header().setSectionResizeMode(
@@ -912,11 +919,12 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             menu.addSeparator()
             menu.addAction(self.tr("Relative time base shift"))
             menu.addAction(self.tr("Set time base start offset"))
-            menu.addSeparator()
-            menu.addAction(self.tr("Insert computation using this channel"))
+            if self.can_insert_computed_items:
+                menu.addSeparator()
+                menu.addAction(self.tr("Insert computation using this channel"))
 
-            if item.signal.computed:
-                menu.addAction(self.tr("Edit this computed channel"))
+                if item.signal.computed:
+                    menu.addAction(self.tr("Edit this computed channel"))
 
             try:
                 import scipy

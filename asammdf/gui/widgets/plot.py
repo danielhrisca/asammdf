@@ -1857,37 +1857,6 @@ class Plot(QtWidgets.QWidget):
             )
             self.plot._can_trim = can_trim
 
-        nameColumnWidth = max(
-            [
-                self.channel_selection.fontMetrics()
-                .boundingRect(f"{channel.name}AAAA")
-                .width()
-                + 35  # AAAA extra characters
-                for channel in (list(channels.values()) + self.plot.signals)
-            ]
-        )
-        if nameColumnWidth < (35 * self.font().pointSize()):
-            self.channel_selection.setColumnWidth(
-                self.channel_selection.NameColumn, nameColumnWidth
-            )
-
-        unitColumnWidth = max(
-            [
-                self.channel_selection.fontMetrics()
-                .boundingRect(f"{channel.unit}AA")
-                .width()
-                + 35  # AA extra characters
-                for channel in (list(channels.values()) + self.plot.signals)
-            ]
-        )
-
-        if unitColumnWidth < 9 * self.font().pointSize():
-            self.channel_selection.setColumnWidth(
-                self.channel_selection.UnitColumn, unitColumnWidth
-            )
-
-        self.adjust_splitter(list(channels.values()))
-
         valid = {}
         invalid = []
         for uuid, channel in channels.items():
@@ -1914,8 +1883,6 @@ class Plot(QtWidgets.QWidget):
             )
 
         channels = valid
-
-        # self.adjust_splitter(list(channels.values()))
 
         channels = self.plot.add_new_channels(channels, descriptions=descriptions)
 
@@ -2071,34 +2038,22 @@ class Plot(QtWidgets.QWidget):
             self.channel_selection.update_channel_groups_count()
             self.channel_selection.refresh()
 
+        self.adjust_splitter()
+
         self.current_uuid_changed(self.plot.current_uuid)
         self.plot._can_paint = True
         self.plot.update()
 
-    def adjust_splitter(self, channels=None):
-        channels = channels or self.plot.signals
-
-        channels.extend(self.plot.signals)
+    def adjust_splitter(self):
         size = sum(self.splitter.sizes())
 
-        width = 0
-        for ch in channels:
-            width = max(
-                width,
-                self.channel_selection.fontMetrics()
-                .boundingRect(f"{ch.name}AAAA")  # To simulate extra characters missing
-                .width()
-                + 35
-                + (  # 35 to simulate checkbox
-                    self.channel_selection.fontMetrics()
-                    .boundingRect(f"{ch.unit}AA")  # To simulate extra characters
-                    .width()
-                    if ch.unit
-                    else (8 * self.font().pointSize())
-                ),
-            )
+        self.channel_selection.resizeColumnToContents(self.channel_selection.NameColumn)
+        self.channel_selection.resizeColumnToContents(self.channel_selection.UnitColumn)
 
-        width += 85 + 70  # 70 - two checkboxes
+        width = sum(
+            self.channel_selection.columnWidth(col)
+            for col in range(self.channel_selection.columnCount())
+        )
 
         if width > self.splitter.sizes()[0]:
 

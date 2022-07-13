@@ -2,17 +2,14 @@
 from copy import deepcopy
 from functools import partial
 import itertools
-import json
 import os
 import re
 import sys
 from traceback import format_exc
-from typing import Type
 
 from natsort import natsorted
 import numpy as np
 import pandas as pd
-import pyqtgraph as pg
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...blocks import v4_constants as v4c
@@ -33,10 +30,8 @@ from ..utils import (
     extract_mime_names,
     replace_computation_dependency,
 )
-from .bar import Bar
 from .can_bus_trace import CANBusTrace
 from .flexray_bus_trace import FlexRayBusTrace
-from .formated_axis import FormatedAxis
 from .gps import GPS
 from .lin_bus_trace import LINBusTrace
 from .numeric import Numeric
@@ -339,6 +334,12 @@ def get_required_from_computed(channel):
                     pass
                 else:
                     names.extend(get_required_from_computed(op))
+
+        elif channel["type"] == "expression":
+            expression_string = channel["expression"]
+            names.extend(
+                [match.group("name") for match in SIG_RE.finditer(expression_string)]
+            )
         else:
             op = channel["channel"]
             if isinstance(op, str):
