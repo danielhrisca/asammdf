@@ -1,8 +1,9 @@
 matplotlib
 numpydoc
-sphinx==4.3.2
+sphinx
 sphinx-argparse
 sphinx-rtd-theme
+sphinxcontrib-mermaid
 # canmatrix ImportError workaround
 PyYAML
 xlrd
@@ -11,6 +12,5 @@ xlwt
 canmatrix
 pandas
 numexpr
-numexpr3;sys_platform != 'darwin'
 lz4
-numpy
+numpy>=1.23.0

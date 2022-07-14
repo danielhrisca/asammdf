@@ -240,17 +240,48 @@ class MDF:
 
                 elif isinstance(name, bz2.BZ2File):
                     original_name = Path(name._fp.name)
-                    name = get_temporary_filename(original_name, dir=temporary_folder)
-                    name.write_bytes(name.read())
-                    file_stream = open(name, "rb")
+                    tmp_name = get_temporary_filename(
+                        original_name, dir=temporary_folder
+                    )
+                    tmp_name.write_bytes(name.read())
+                    file_stream = open(tmp_name, "rb")
+                    name = tmp_name
+
                     do_close = True
+
                 elif isinstance(name, gzip.GzipFile):
 
                     original_name = Path(name.name)
-                    name = get_temporary_filename(original_name, dir=temporary_folder)
-                    name.write_bytes(name.read())
-                    file_stream = open(name, "rb")
+                    tmp_name = get_temporary_filename(
+                        original_name, dir=temporary_folder
+                    )
+                    tmp_name.write_bytes(name.read())
+                    file_stream = open(tmp_name, "rb")
+                    name = tmp_name
+
                     do_close = True
+
+            elif isinstance(name, zipfile.ZipFile):
+
+                archive = name
+                files = archive.namelist()
+                if len(files) != 1:
+                    raise Exception("invalid zipped MF4: must contain a single file")
+                fname = original_name = files[0]
+
+                name = get_temporary_filename(Path(original_name), dir=temporary_folder)
+
+                if Path(fname).suffix.lower() not in (".mdf", ".dat", ".mf4"):
+                    raise Exception(
+                        "invalid zipped MF4: must contain a single MDF file"
+                    )
+
+                tmpdir = mkdtemp()
+                output = archive.extract(fname, tmpdir)
+                move(output, name)
+
+                file_stream = open(name, "rb")
+                do_close = True
 
             else:
                 name = original_name = Path(name)
@@ -618,6 +649,7 @@ class MDF:
         | None = None,
         raise_on_multiple_occurrences: bool | None = None,
         temporary_folder: str | None = None,
+        fill_0_for_missing_computation_channels: bool | None = None,
     ) -> None:
         """configure MDF parameters
 
@@ -631,6 +663,7 @@ class MDF:
         * copy_on_get = False
         * raise_on_multiple_occurrences = True
         * temporary_folder = ""
+        * fill_0_for_missing_computation_channels = False
 
         Parameters
         ----------
@@ -686,6 +719,11 @@ class MDF:
 
             .. versionadded:: 7.0.0
 
+        fill_0_for_missing_computation_channels : bool
+            when a channel required by a computed channel is missing, then fill with 0 values.
+            If false then the computation will fail and the computed channel will be marked as not existing.
+
+            .. versionadded:: 7.1.0
         """
 
         if from_other is not None:
@@ -698,6 +736,9 @@ class MDF:
             self._float_interpolation = from_other._float_interpolation
             self._raise_on_multiple_occurrences = (
                 from_other._raise_on_multiple_occurrences
+            )
+            self._fill_0_for_missing_computation_channels = (
+                from_other._fill_0_for_missing_computation_channels
             )
 
         if read_fragment_size is not None:
@@ -730,6 +771,11 @@ class MDF:
 
         if raise_on_multiple_occurrences is not None:
             self._raise_on_multiple_occurrences = bool(raise_on_multiple_occurrences)
+
+        if fill_0_for_missing_computation_channels is not None:
+            self._fill_0_for_missing_computation_channels = bool(
+                fill_0_for_missing_computation_channels
+            )
 
     def convert(self, version: str) -> MDF:
         """convert *MDF* to other version
@@ -964,7 +1010,7 @@ class MDF:
                         if start_index == 0 and stop_index == len(master):
                             needs_cutting = False
 
-                # update the signal is this is not the first yield
+                # update the signal if this is not the first yield
                 if j:
                     for signal, (samples, invalidation) in zip(signals, sigs[1:]):
                         signal.samples = samples
@@ -1414,6 +1460,27 @@ class MDF:
                             group.attrs["master"] = (
                                 self.groups[group_index].channels[master_index].name
                             )
+                            master = self.get(group.attrs["master"], group_index)
+                            if reduce_memory_usage:
+                                master.timestamps = downcast(master.timestamps)
+                            if compression:
+                                dataset = group.create_dataset(
+                                    group.attrs["master"],
+                                    data=master.timestamps,
+                                    compression=compression,
+                                )
+                            else:
+                                dataset = group.create_dataset(
+                                    group.attrs["master"],
+                                    data=master.timestamps,
+                                    dtype=master.timestamps.dtype,
+                                )
+                            unit = master.unit.replace("\0", "")
+                            if unit:
+                                dataset.attrs["unit"] = unit
+                            comment = master.comment.replace("\0", "")
+                            if comment:
+                                dataset.attrs["comment"] = comment
 
                         channels = [
                             (None, gp_index, ch_index)
@@ -1779,6 +1846,7 @@ class MDF:
 
             if self._callback:
                 self._callback(80, 100)
+
             if format == "7.3":
 
                 savemat(
@@ -2194,17 +2262,78 @@ class MDF:
 
             mdf.configure(copy_on_get=False)
 
+            reorder_channel_groups = False
+            cg_translations = {}
+
             if mdf_index == 0:
                 last_timestamps = [None for gp in mdf.virtual_groups]
                 groups_nr = len(last_timestamps)
+                first_mdf = mdf
+                input_types[0] = True
 
             else:
                 if len(mdf.virtual_groups) != groups_nr:
                     raise MdfException(
                         f"internal structure of file <{mdf.name}> is different; different channel groups count"
                     )
+                else:
+                    cg_translations = dict.fromkeys(range(0, groups_nr))
+
+                    make_translation = False
+
+                    # check if the order of the channel groups is the same
+                    for i, group_index in enumerate(mdf.virtual_groups):
+                        included_channels = mdf.included_channels(group_index)[
+                            group_index
+                        ]
+                        names = [
+                            mdf.groups[gp_index].channels[ch_index].name
+                            for gp_index, channels in included_channels.items()
+                            for ch_index in channels
+                        ]
+
+                        if names != included_channel_names[i]:
+                            if sorted(names) != sorted(included_channel_names[i]):
+                                make_translation = reorder_channel_groups = True
+                                break
+
+                    # Make a channel group translation dictionary if the order is different
+                    if make_translation:
+                        for i, org_group in enumerate(first_mdf.groups):
+
+                            org_group_source = org_group.channel_group.acq_source
+                            for j, new_group in enumerate(mdf.groups):
+                                new_group_source = new_group.channel_group.acq_source
+                                if (
+                                    new_group.channel_group.acq_name
+                                    == org_group.channel_group.acq_name
+                                    and (new_group_source and org_group_source)
+                                    and new_group_source.name == org_group_source.name
+                                    and new_group_source.path == org_group_source.path
+                                    and new_group.channel_group.samples_byte_nr
+                                    == org_group.channel_group.samples_byte_nr
+                                ):
+                                    new_included_channels = mdf.included_channels(j)[j]
+
+                                    new_names = [
+                                        mdf.groups[gp_index].channels[ch_index].name
+                                        for gp_index, channels in new_included_channels.items()
+                                        for ch_index in channels
+                                    ]
+
+                                    if sorted(new_names) == sorted(
+                                        included_channel_names[i]
+                                    ):
+                                        cg_translations[i] = j
+                                        break
 
             for i, group_index in enumerate(mdf.virtual_groups):
+                # save original group index for extension
+                # replace with the translated group index
+                if reorder_channel_groups:
+                    origin_gp_idx = group_index
+                    group_index = cg_translations[group_index]
+
                 included_channels = mdf.included_channels(group_index)[group_index]
 
                 if mdf_index == 0:
@@ -2334,6 +2463,9 @@ class MDF:
                                     )
                                 )
                             cg_nr = cg_map[group_index]
+                            # set the original channel group number back for extension
+                            if reorder_channel_groups:
+                                cg_nr = cg_map[origin_gp_idx]
                             merged.extend(cg_nr, signals)
 
                             if first_timestamp is None:
@@ -2348,6 +2480,9 @@ class MDF:
 
             if not input_types[mdf_index]:
                 mdf.close()
+
+            if (mdf_index + 1) == mdf_nr and not isinstance(files[0], MDF):
+                first_mdf.close()
 
             if callback:
                 callback(i + 1 + mdf_index * groups_nr, groups_nr * mdf_nr)
@@ -2541,7 +2676,7 @@ class MDF:
         return stacked
 
     def iter_channels(
-        self, skip_master: bool = True, copy_master: bool = True
+        self, skip_master: bool = True, copy_master: bool = True, raw: bool = False
     ) -> Iterator[Signal]:
         """generator that yields a *Signal* for each non-master channel
 
@@ -2550,7 +2685,9 @@ class MDF:
         skip_master : bool
             do not yield master channels; default *True*
         copy_master : bool
-            copy master for each yielded channel
+            copy master for each yielded channel *True*
+        raw : bool
+            return raw channels instead of converted; default *False*
 
         """
 
@@ -2564,7 +2701,7 @@ class MDF:
                 for ch_index in channel_indexes
             ]
 
-            channels = self.select(channels, copy_master=copy_master)
+            channels = self.select(channels, copy_master=copy_master, raw=raw)
 
             yield from channels
 
@@ -2863,6 +3000,10 @@ class MDF:
                 ].items()
                 for ch_index in channel_indexes
             ]
+
+            if not channels:
+                continue
+
             sigs = self.select(channels, raw=True)
 
             sigs = [
@@ -4672,6 +4813,9 @@ class MDF:
                                             invalidation_bits=signal[
                                                 "invalidation_bits"
                                             ],
+                                            display_names={
+                                                f"CAN{bus}.{message.name}.{signal_name}": "display"
+                                            },
                                         )
 
                                         sig.comment = f"""\
@@ -4963,13 +5107,16 @@ class MDF:
                                             invalidation_bits=signal[
                                                 "invalidation_bits"
                                             ],
+                                            display_names={
+                                                f"LIN{bus}.{message.name}.{signal_name}": "display"
+                                            },
                                         )
 
                                         sig.comment = f"""\
 <CNcomment>
     <TX>{sig.comment}</TX>
     <names>
-        <display>LIN.{message.name}.{signal_name}</display>
+        <display>LIN{bus}.{message.name}.{signal_name}</display>
     </names>
 </CNcomment>"""
                                         sigs.append(sig)

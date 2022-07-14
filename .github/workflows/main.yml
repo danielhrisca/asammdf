@@ -7,8 +7,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        os: [ubuntu-22.04, macos-latest, windows-latest]
+        python-version: ["3.8", "3.9", "3.10"]
 
     steps:
       - uses: actions/checkout@v2
@@ -19,8 +19,8 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install packages
-        run: pip install tox==4.0.0b1 tox-gh-actions==3.0.0a2
+        run: pip install tox tox-gh-actions
 
       # see: https://github.com/ymyzk/tox-gh-actions
       - name: Run tests
-        run: tox4
+        run: tox

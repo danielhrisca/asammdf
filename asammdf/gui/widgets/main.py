@@ -28,6 +28,8 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self._settings = QtCore.QSettings()
         self._light_palette = self.palette()
 
+        self.line_width = 1
+
         self.ignore_value2text_conversions = self._settings.value(
             "ignore_value2text_conversions", False, type=bool
         )
@@ -153,7 +155,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         subplot_action = QtGui.QAction("Sub-windows", menu)
         subplot_action.setCheckable(True)
 
-        state = self._settings.value("subplots", False, type=bool)
+        state = self._settings.value("subplots", True, type=bool)
         subplot_action.toggled.connect(self.set_subplot_option)
         subplot_action.triggered.connect(self.set_subplot_option)
         subplot_action.setChecked(state)
@@ -162,7 +164,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         # Link sub-windows X-axis
         subplot_action = QtGui.QAction("Link sub-windows X-axis", menu)
         subplot_action.setCheckable(True)
-        state = self._settings.value("subplots_link", False, type=bool)
+        state = self._settings.value("subplots_link", True, type=bool)
         subplot_action.toggled.connect(self.set_subplot_link_option)
         subplot_action.setChecked(state)
         menu.addAction(subplot_action)
@@ -403,6 +405,15 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action = QtGui.QAction("{: <20}\t.".format("Toggle dots"), menu)
         action.triggered.connect(partial(self.toggle_dots, key=QtCore.Qt.Key_Period))
         action.setShortcut(QtCore.Qt.Key_Period)
+        plot_actions.addAction(action)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/focus.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        action = QtGui.QAction(icon, "{: <20}\t2".format("Focused mdoe"), menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_2))
+        action.setShortcut(QtCore.Qt.Key_2)
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
@@ -757,6 +768,9 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.show()
         self.fullscreen = None
 
+    def sizeHint(self):
+        return QtCore.QSize(1, 1)
+
     def help(self, event):
         webbrowser.open_new(r"http://asammdf.readthedocs.io/en/master/gui.html")
 
@@ -792,22 +806,6 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
                 current_plot = widget
                 count = len(current_plot.plot.signals)
-                if (
-                    new_setting_has_dots
-                    and not self.allways_accept_dots
-                    and count >= 200
-                ):
-                    ret = QtWidgets.QMessageBox.question(
-                        self,
-                        "Continue enabling dots?",
-                        "Enabling dots for plots with large channel count will have a big performance hit.\n\n"
-                        "Do you wish to continue?",
-                    )
-
-                    if ret != QtWidgets.QMessageBox.Yes:
-                        return
-                    else:
-                        self.allways_accept_dots = True
 
                 self.with_dots = new_setting_has_dots
                 self._settings.setValue("dots", self.with_dots)
@@ -947,6 +945,11 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
             brush.setStyle(QtCore.Qt.SolidPattern)
             palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.Text, brush)
+            brush = QtGui.QBrush(QtGui.QColor(100, 100, 100))
+            brush.setStyle(QtCore.Qt.SolidPattern)
+            palette.setBrush(
+                QtGui.QPalette.Active, QtGui.QPalette.PlaceholderText, brush
+            )
             brush = QtGui.QBrush(QtGui.QColor(255, 255, 255))
             brush.setStyle(QtCore.Qt.SolidPattern)
             palette.setBrush(QtGui.QPalette.Active, QtGui.QPalette.BrightText, brush)
@@ -1158,6 +1161,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 self.ignore_value2text_conversions,
                 self.display_cg_name,
                 self.line_interconnect,
+                1,
                 None,
                 None,
                 self,
@@ -1352,13 +1356,20 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                             uuid = self.files.widget(file_index).uuid
                             name = mdf.groups[group].channels[ch_index].name
                             names.append(
-                                (
-                                    name,
-                                    *entry,
-                                    uuid,
-                                    "channel",
-                                    [],
-                                )
+                                {
+                                    "name": name,
+                                    "origin_uuid": uuid,
+                                    "type": "channel",
+                                    "ranges": [],
+                                    "group_index": group,
+                                    "channel_index": ch_index,
+                                    "uuid": os.urandom(6),
+                                    "computed": False,
+                                    "computation": {},
+                                    "precision": 3,
+                                    "common_axis": False,
+                                    "individual_axis": False,
+                                }
                             )
                         self.add_window((ret, names))
 

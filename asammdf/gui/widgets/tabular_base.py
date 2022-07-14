@@ -49,6 +49,7 @@ from ..utils import (
     extract_mime_names,
     get_colors_using_ranges,
     run_thread_with_progress,
+    value_as_str,
 )
 from .tabular_filter import TabularFilter
 
@@ -313,32 +314,11 @@ class DataTableModel(QtCore.QAbstractTableModel):
             cell_is_na = pd.isna(cell)
 
             if type(cell_is_na) == bool and cell_is_na:
-                if role == QtCore.Qt.DisplayRole:
-                    return "●"
-                elif role == QtCore.Qt.EditRole:
-                    return ""
-                elif role == QtCore.Qt.ToolTipRole:
-                    return "NaN"
-
-            # Float formatting
-            if isinstance(cell, (float, np.floating)):
-                if role == QtCore.Qt.DisplayRole:
-                    if self.float_precision != -1:
-                        template = f"{{:.{self.float_precision}f}}"
-                        return template.format(cell)
-                    else:
-                        return str(cell)
-
-            if isinstance(cell, (int, np.integer)):
-                if role == QtCore.Qt.DisplayRole:
-                    if self.format == "hex":
-                        return f"{cell:X}"
-                    elif self.format == "bin":
-                        return f"{cell:b}"
-                    else:
-                        return str(cell)
-
-            return str(cell)
+                return "●"
+            elif isinstance(cell, (bytes, np.bytes_)):
+                return cell.decode("utf-8", "replace")
+            else:
+                return value_as_str(cell, self.format, None, self.float_precision)
 
         elif role == QtCore.Qt.BackgroundRole:
 
@@ -493,6 +473,30 @@ class DataTableView(QtWidgets.QTableView):
                 self.add_channels_request.emit(names)
             else:
                 return
+
+    def keyPressEvent(self, event):
+
+        key = event.key()
+        modifiers = event.modifiers()
+
+        if key == QtCore.Qt.Key_R and modifiers == QtCore.Qt.ControlModifier:
+            selected_items = set(
+                index.column() for index in self.selectedIndexes() if index.isValid()
+            )
+
+            if selected_items:
+
+                dlg = RangeEditor("<selected signals>", "", [], parent=self, brush=True)
+                dlg.exec_()
+                if dlg.pressed_button == "apply":
+                    ranges = dlg.result
+
+                    for index in selected_items:
+                        original_name = self.pgdf.df_unfiltered.columns[index]
+                        self.pgdf.tabular.ranges[original_name] = copy_ranges(ranges)
+
+        else:
+            super().keyPressEvent(event)
 
 
 class HeaderModel(QtCore.QAbstractTableModel):
@@ -2140,12 +2144,14 @@ class DataFrameViewer(QtWidgets.QWidget):
         if event.key() == Qt.Key_C and (mods & Qt.ControlModifier):
             self.copy()
         # Ctrl+Shift+C
-        if (
+        elif (
             event.key() == Qt.Key_C
             and (mods & Qt.ShiftModifier)
             and (mods & Qt.ControlModifier)
         ):
             self.copy(header=True)
+        else:
+            self.dataView.keyPressEvent(event)
 
     def copy(self, header=False):
         """
@@ -2199,19 +2205,29 @@ class DataFrameViewer(QtWidgets.QWidget):
                 if isinstance(col.values[0], np.floating):
                     col = col.round(decimals)
                     df[name] = col
+            float_format = f"%.{decimals}f"
+        else:
+            float_format = "%.16f"
 
         # If I try to use df.to_clipboard without starting new thread, large selections give access denied error
         if df.shape == (1, 1):
             # Special case for single-cell copy, excel=False removes the trailing \n character.
             threading.Thread(
                 target=lambda df: df.to_clipboard(
-                    index=header, header=header, excel=False
+                    index=header,
+                    header=header,
+                    excel=False,
+                    float_format=float_format,
                 ),
                 args=(df,),
             ).start()
         else:
             threading.Thread(
-                target=lambda df: df.to_clipboard(index=header, header=header),
+                target=lambda df: df.to_clipboard(
+                    index=header,
+                    header=header,
+                    float_format=float_format,
+                ),
                 args=(df,),
             ).start()
 

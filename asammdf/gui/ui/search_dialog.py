@@ -36,101 +36,11 @@ class Ui_SearchDialog(object):
         self.tab.setObjectName(u"tab")
         self.gridLayout = QGridLayout(self.tab)
         self.gridLayout.setObjectName(u"gridLayout")
-        self.match_kind = QComboBox(self.tab)
-        self.match_kind.addItem("")
-        self.match_kind.addItem("")
-        self.match_kind.setObjectName(u"match_kind")
-
-        self.gridLayout.addWidget(self.match_kind, 0, 2, 1, 1)
-
         self.search_box = QLineEdit(self.tab)
         self.search_box.setObjectName(u"search_box")
         self.search_box.setFocusPolicy(Qt.StrongFocus)
 
         self.gridLayout.addWidget(self.search_box, 0, 0, 1, 1)
-
-        self.selection = QTreeWidget(self.tab)
-        self.selection.setObjectName(u"selection")
-        self.selection.setSortingEnabled(False)
-        self.selection.header().setMinimumSectionSize(25)
-        self.selection.header().setProperty("showSortIndicator", False)
-
-        self.gridLayout.addWidget(self.selection, 5, 0, 1, 3)
-
-        self.horizontalLayout = QHBoxLayout()
-        self.horizontalLayout.setObjectName(u"horizontalLayout")
-        self.cancel_btn = QPushButton(self.tab)
-        self.cancel_btn.setObjectName(u"cancel_btn")
-        icon = QIcon()
-        icon.addFile(u":/erase.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.cancel_btn.setIcon(icon)
-
-        self.horizontalLayout.addWidget(self.cancel_btn)
-
-        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        self.horizontalLayout.addItem(self.horizontalSpacer_2)
-
-        self.apply_btn = QPushButton(self.tab)
-        self.apply_btn.setObjectName(u"apply_btn")
-        icon1 = QIcon()
-        icon1.addFile(u":/checkmark.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.apply_btn.setIcon(icon1)
-
-        self.horizontalLayout.addWidget(self.apply_btn)
-
-        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        self.horizontalLayout.addItem(self.horizontalSpacer)
-
-        self.add_window_btn = QPushButton(self.tab)
-        self.add_window_btn.setObjectName(u"add_window_btn")
-        icon2 = QIcon()
-        icon2.addFile(u":/plus.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.add_window_btn.setIcon(icon2)
-
-        self.horizontalLayout.addWidget(self.add_window_btn)
-
-        self.horizontalLayout.setStretch(1, 1)
-
-        self.gridLayout.addLayout(self.horizontalLayout, 6, 0, 1, 3)
-
-        self.matches = QTreeWidget(self.tab)
-        self.matches.setObjectName(u"matches")
-        self.matches.setSelectionMode(QAbstractItemView.ExtendedSelection)
-        self.matches.setUniformRowHeights(False)
-        self.matches.setSortingEnabled(False)
-        self.matches.header().setMinimumSectionSize(40)
-        self.matches.header().setStretchLastSection(True)
-
-        self.gridLayout.addWidget(self.matches, 2, 0, 1, 3)
-
-        self.horizontalLayout_2 = QHBoxLayout()
-        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
-        self.horizontalSpacer_4 = QSpacerItem(358, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        self.horizontalLayout_2.addItem(self.horizontalSpacer_4)
-
-        self.add_btn = QPushButton(self.tab)
-        self.add_btn.setObjectName(u"add_btn")
-        self.add_btn.setFocusPolicy(Qt.TabFocus)
-        icon3 = QIcon()
-        icon3.addFile(u":/shift_down.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.add_btn.setIcon(icon3)
-
-        self.horizontalLayout_2.addWidget(self.add_btn)
-
-        self.horizontalSpacer_5 = QSpacerItem(358, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        self.horizontalLayout_2.addItem(self.horizontalSpacer_5)
-
-
-        self.gridLayout.addLayout(self.horizontalLayout_2, 3, 0, 1, 3)
-
-        self.label = QLabel(self.tab)
-        self.label.setObjectName(u"label")
-
-        self.gridLayout.addWidget(self.label, 4, 0, 1, 1)
 
         self.label_7 = QLabel(self.tab)
         self.label_7.setObjectName(u"label_7")
@@ -142,6 +52,101 @@ class Ui_SearchDialog(object):
         self.status.setMinimumSize(QSize(100, 0))
 
         self.gridLayout.addWidget(self.status, 0, 1, 1, 1)
+
+        self.match_kind = QComboBox(self.tab)
+        self.match_kind.addItem("")
+        self.match_kind.addItem("")
+        self.match_kind.setObjectName(u"match_kind")
+
+        self.gridLayout.addWidget(self.match_kind, 0, 2, 1, 1)
+
+        self.label = QLabel(self.tab)
+        self.label.setObjectName(u"label")
+
+        self.gridLayout.addWidget(self.label, 4, 0, 1, 1)
+
+        self.extended_search = QCheckBox(self.tab)
+        self.extended_search.setObjectName(u"extended_search")
+
+        self.gridLayout.addWidget(self.extended_search, 0, 3, 1, 1)
+
+        self.matches = QTreeWidget(self.tab)
+        self.matches.setObjectName(u"matches")
+        self.matches.setSelectionMode(QAbstractItemView.ExtendedSelection)
+        self.matches.setUniformRowHeights(False)
+        self.matches.setSortingEnabled(False)
+        self.matches.header().setMinimumSectionSize(40)
+        self.matches.header().setStretchLastSection(True)
+
+        self.gridLayout.addWidget(self.matches, 2, 0, 1, 4)
+
+        self.horizontalLayout_2 = QHBoxLayout()
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.horizontalSpacer_4 = QSpacerItem(358, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.horizontalLayout_2.addItem(self.horizontalSpacer_4)
+
+        self.add_btn = QPushButton(self.tab)
+        self.add_btn.setObjectName(u"add_btn")
+        self.add_btn.setFocusPolicy(Qt.TabFocus)
+        icon = QIcon()
+        icon.addFile(u":/shift_down.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.add_btn.setIcon(icon)
+
+        self.horizontalLayout_2.addWidget(self.add_btn)
+
+        self.horizontalSpacer_5 = QSpacerItem(358, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.horizontalLayout_2.addItem(self.horizontalSpacer_5)
+
+
+        self.gridLayout.addLayout(self.horizontalLayout_2, 3, 0, 1, 4)
+
+        self.selection = QTreeWidget(self.tab)
+        self.selection.setObjectName(u"selection")
+        self.selection.setSortingEnabled(False)
+        self.selection.header().setMinimumSectionSize(25)
+        self.selection.header().setProperty("showSortIndicator", False)
+
+        self.gridLayout.addWidget(self.selection, 5, 0, 1, 4)
+
+        self.horizontalLayout = QHBoxLayout()
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.cancel_btn = QPushButton(self.tab)
+        self.cancel_btn.setObjectName(u"cancel_btn")
+        icon1 = QIcon()
+        icon1.addFile(u":/erase.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.cancel_btn.setIcon(icon1)
+
+        self.horizontalLayout.addWidget(self.cancel_btn)
+
+        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.horizontalLayout.addItem(self.horizontalSpacer_2)
+
+        self.apply_btn = QPushButton(self.tab)
+        self.apply_btn.setObjectName(u"apply_btn")
+        icon2 = QIcon()
+        icon2.addFile(u":/checkmark.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.apply_btn.setIcon(icon2)
+
+        self.horizontalLayout.addWidget(self.apply_btn)
+
+        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.horizontalLayout.addItem(self.horizontalSpacer)
+
+        self.add_window_btn = QPushButton(self.tab)
+        self.add_window_btn.setObjectName(u"add_window_btn")
+        icon3 = QIcon()
+        icon3.addFile(u":/plus.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.add_window_btn.setIcon(icon3)
+
+        self.horizontalLayout.addWidget(self.add_window_btn)
+
+        self.horizontalLayout.setStretch(1, 1)
+
+        self.gridLayout.addLayout(self.horizontalLayout, 6, 0, 1, 4)
 
         icon4 = QIcon()
         icon4.addFile(u":/search.png", QSize(), QIcon.Normal, QIcon.Off)
@@ -200,13 +205,13 @@ class Ui_SearchDialog(object):
 
         self.apply_pattern_btn = QPushButton(self.tab_2)
         self.apply_pattern_btn.setObjectName(u"apply_pattern_btn")
-        self.apply_pattern_btn.setIcon(icon1)
+        self.apply_pattern_btn.setIcon(icon2)
 
         self.gridLayout_3.addWidget(self.apply_pattern_btn, 8, 4, 1, 1)
 
         self.cancel_pattern_btn = QPushButton(self.tab_2)
         self.cancel_pattern_btn.setObjectName(u"cancel_pattern_btn")
-        self.cancel_pattern_btn.setIcon(icon)
+        self.cancel_pattern_btn.setIcon(icon1)
 
         self.gridLayout_3.addWidget(self.cancel_pattern_btn, 8, 1, 1, 1)
 
@@ -278,33 +283,36 @@ class Ui_SearchDialog(object):
 
     def retranslateUi(self, SearchDialog):
         SearchDialog.setWindowTitle(QCoreApplication.translate("SearchDialog", u"Dialog", None))
-        self.match_kind.setItemText(0, QCoreApplication.translate("SearchDialog", u"Wildcard", None))
-        self.match_kind.setItemText(1, QCoreApplication.translate("SearchDialog", u"Regex", None))
-
         self.search_box.setInputMask("")
         self.search_box.setText("")
         self.search_box.setPlaceholderText(QCoreApplication.translate("SearchDialog", u"channel name pattern", None))
-        ___qtreewidgetitem = self.selection.headerItem()
-        ___qtreewidgetitem.setText(5, QCoreApplication.translate("SearchDialog", u"Comment", None));
-        ___qtreewidgetitem.setText(4, QCoreApplication.translate("SearchDialog", u"Source path", None));
-        ___qtreewidgetitem.setText(3, QCoreApplication.translate("SearchDialog", u"Source name", None));
+        self.label_7.setText(QCoreApplication.translate("SearchDialog", u"Search results", None))
+        self.status.setText(QCoreApplication.translate("SearchDialog", u"No results", None))
+        self.match_kind.setItemText(0, QCoreApplication.translate("SearchDialog", u"Wildcard", None))
+        self.match_kind.setItemText(1, QCoreApplication.translate("SearchDialog", u"Regex", None))
+
+        self.label.setText(QCoreApplication.translate("SearchDialog", u"Final selection", None))
+        self.extended_search.setText(QCoreApplication.translate("SearchDialog", u"Extended search", None))
+        ___qtreewidgetitem = self.matches.headerItem()
+        ___qtreewidgetitem.setText(6, QCoreApplication.translate("SearchDialog", u"Comment", None));
+        ___qtreewidgetitem.setText(5, QCoreApplication.translate("SearchDialog", u"Source path", None));
+        ___qtreewidgetitem.setText(4, QCoreApplication.translate("SearchDialog", u"Source name", None));
+        ___qtreewidgetitem.setText(3, QCoreApplication.translate("SearchDialog", u"Unit", None));
         ___qtreewidgetitem.setText(2, QCoreApplication.translate("SearchDialog", u"Index", None));
         ___qtreewidgetitem.setText(1, QCoreApplication.translate("SearchDialog", u"Group", None));
         ___qtreewidgetitem.setText(0, QCoreApplication.translate("SearchDialog", u"Name", None));
-        self.cancel_btn.setText(QCoreApplication.translate("SearchDialog", u"Cancel", None))
-        self.apply_btn.setText(QCoreApplication.translate("SearchDialog", u"Apply", None))
-        self.add_window_btn.setText(QCoreApplication.translate("SearchDialog", u"Add window", None))
-        ___qtreewidgetitem1 = self.matches.headerItem()
-        ___qtreewidgetitem1.setText(5, QCoreApplication.translate("SearchDialog", u"Comment", None));
-        ___qtreewidgetitem1.setText(4, QCoreApplication.translate("SearchDialog", u"Source path", None));
-        ___qtreewidgetitem1.setText(3, QCoreApplication.translate("SearchDialog", u"Source name", None));
+        self.add_btn.setText(QCoreApplication.translate("SearchDialog", u"Add to selection", None))
+        ___qtreewidgetitem1 = self.selection.headerItem()
+        ___qtreewidgetitem1.setText(6, QCoreApplication.translate("SearchDialog", u"Comment", None));
+        ___qtreewidgetitem1.setText(5, QCoreApplication.translate("SearchDialog", u"Source path", None));
+        ___qtreewidgetitem1.setText(4, QCoreApplication.translate("SearchDialog", u"Source name", None));
+        ___qtreewidgetitem1.setText(3, QCoreApplication.translate("SearchDialog", u"Unit", None));
         ___qtreewidgetitem1.setText(2, QCoreApplication.translate("SearchDialog", u"Index", None));
         ___qtreewidgetitem1.setText(1, QCoreApplication.translate("SearchDialog", u"Group", None));
         ___qtreewidgetitem1.setText(0, QCoreApplication.translate("SearchDialog", u"Name", None));
-        self.add_btn.setText(QCoreApplication.translate("SearchDialog", u"Add to selection", None))
-        self.label.setText(QCoreApplication.translate("SearchDialog", u"Final selection", None))
-        self.label_7.setText(QCoreApplication.translate("SearchDialog", u"Search results", None))
-        self.status.setText(QCoreApplication.translate("SearchDialog", u"No results", None))
+        self.cancel_btn.setText(QCoreApplication.translate("SearchDialog", u"Cancel", None))
+        self.apply_btn.setText(QCoreApplication.translate("SearchDialog", u"Apply", None))
+        self.add_window_btn.setText(QCoreApplication.translate("SearchDialog", u"Add window", None))
         self.tabs.setTabText(self.tabs.indexOf(self.tab), QCoreApplication.translate("SearchDialog", u"Search", None))
         self.raw.setText(QCoreApplication.translate("SearchDialog", u"Asses the raw channel values", None))
         self.filter_type.setItemText(0, QCoreApplication.translate("SearchDialog", u"Unspecified", None))

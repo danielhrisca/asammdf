@@ -1,10 +1,9 @@
 canmatrix[arxml,dbc]>=0.8
 lz4
 numexpr
-numpy>=1.21
+numpy>=1.23.0
 pandas
 typing_extensions
-pywin32; sys_platform=="windows"
 isal; platform_machine == "x86_64" or platform_machine == "AMD64"
 lxml 
 natsort 
@@ -14,11 +13,11 @@ pyqtgraph>=0.12.4
 pyqtlet2 
 h5py 
 fastparquet 
-scipy<1.8.0
+scipy
 hdf5storage 
 snappy 
 cChardet==2.1.5 
 chardet
 cryptography
 keyring
-pyinstaller
+pyinstaller==4.10

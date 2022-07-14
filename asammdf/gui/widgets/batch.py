@@ -7,14 +7,21 @@ from natsort import natsorted
 import psutil
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ...blocks.utils import extract_cncomment_xml
+from ...blocks.utils import extract_xml_comment
 from ...blocks.v2_v3_blocks import HeaderBlock as HeaderBlockV3
 from ...blocks.v4_blocks import HeaderBlock as HeaderBlockV4
 from ...mdf import MDF, SUPPORTED_VERSIONS
 from ..dialogs.advanced_search import AdvancedSearch
 from ..ui import resource_rc
 from ..ui.batch_widget import Ui_batch_widget
-from ..utils import HelperChannel, run_thread_with_progress, setup_progress, TERMINATED
+from ..utils import (
+    HelperChannel,
+    load_dsp,
+    load_lab,
+    run_thread_with_progress,
+    setup_progress,
+    TERMINATED,
+)
 from .database_item import DatabaseItem
 from .list import MinimalListWidget
 from .tree import add_children
@@ -77,6 +84,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         ):
 
             widget.insertItems(0, ("no compression", "deflate", "transposed deflate"))
+            widget.setCurrentText("transposed deflate")
 
         self.concatenate_btn.clicked.connect(self.concatenate)
         self.scramble_btn.clicked.connect(self.scramble)
@@ -101,12 +109,20 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.load_can_database_btn.clicked.connect(self.load_can_database)
         self.load_lin_database_btn.clicked.connect(self.load_lin_database)
 
+        self.load_filter_list_btn.clicked.connect(self.load_filter_list)
+        self.save_filter_list_btn.clicked.connect(self.save_filter_list)
+
         self.empty_channels_bus.insertItems(0, ("skip", "zeros"))
         self.empty_channels.insertItems(0, ("skip", "zeros"))
         self.empty_channels_bus.insertItems(0, ("skip", "zeros"))
         self.empty_channels_mat.insertItems(0, ("skip", "zeros"))
         self.empty_channels_csv.insertItems(0, ("skip", "zeros"))
-        self.mat_format.insertItems(0, ("4", "5", "7.3"))
+        try:
+            import scipy
+
+            self.mat_format.insertItems(0, ("4", "5", "7.3"))
+        except:
+            self.mat_format.insertItems(0, ("7.3",))
         self.oned_as.insertItems(0, ("row", "column"))
 
         self.aspects.setCurrentIndex(0)
@@ -198,20 +214,20 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         database_files = {}
 
-        count = self.can_database_list.count()
-        if count:
+        count1 = self.can_database_list.count()
+        if count1:
             database_files["CAN"] = []
-            for i in range(count):
+            for i in range(count1):
                 item = self.can_database_list.item(i)
                 widget = self.can_database_list.itemWidget(item)
                 database_files["CAN"].append(
                     (widget.database.text(), widget.bus.currentIndex())
                 )
 
-        count = self.lin_database_list.count()
-        if count:
+        count2 = self.lin_database_list.count()
+        if count2:
             database_files["LIN"] = []
-            for i in range(count):
+            for i in range(count2):
                 item = self.lin_database_list.item(i)
                 widget = self.lin_database_list.itemWidget(item)
                 database_files["LIN"].append(
@@ -221,6 +237,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         compression = self.extract_bus_compression.currentIndex()
 
         count = self.files_list.count()
+
+        if not count or not (count1 + count2):
+            return
 
         delta = 100 / count
 
@@ -352,20 +371,20 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         database_files = {}
 
-        count = self.can_database_list.count()
-        if count:
+        count1 = self.can_database_list.count()
+        if count1:
             database_files["CAN"] = []
-            for i in range(count):
+            for i in range(count1):
                 item = self.can_database_list.item(i)
                 widget = self.can_database_list.itemWidget(item)
                 database_files["CAN"].append(
                     (widget.database.text(), widget.bus.currentIndex())
                 )
 
-        count = self.lin_database_list.count()
-        if count:
+        count2 = self.lin_database_list.count()
+        if count2:
             database_files["LIN"] = []
-            for i in range(count):
+            for i in range(count2):
                 item = self.lin_database_list.item(i)
                 widget = self.lin_database_list.itemWidget(item)
                 database_files["LIN"].append(
@@ -388,6 +407,9 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         add_units = self.add_units_bus.checkState() == QtCore.Qt.Checked
 
         count = self.files_list.count()
+
+        if not count or not (count1 + count2):
+            return
 
         delta = 100 / count
 
@@ -583,13 +605,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             self.concatenate_add_samples_origin.checkState() == QtCore.Qt.Checked
         )
 
-        if version < "4.00":
-            filter = "MDF version 3 files (*.dat *.mdf)"
-            suffix = ".mdf"
-        else:
-            filter = "MDF version 4 files (*.mf4)"
-            suffix = ".mf4"
-
         split = self.concatenate_split.checkState() == QtCore.Qt.Checked
         if split:
             split_size = int(self.concatenate_split_size.value() * 1024 * 1024)
@@ -598,16 +613,25 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         compression = self.concatenate_compression.currentIndex()
 
-        output_file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self,
-            "Select output measurement file",
-            "",
-            f"{filter};;All files (*.*)",
-            filter,
-        )
+        if version < "4.00":
+            output_file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
+                self,
+                "Select output measurement file",
+                "",
+                "MDF version 3 files (*.dat *.mdf);;All files (*.*)",
+                "MDF version 3 files (*.dat *.mdf)",
+            )
+        else:
+            output_file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
+                self,
+                "Select output measurement file",
+                "",
+                f"MDF version 4 files (*.mf4 *.mf4z);;All files (*.*)",
+                "MDF version 4 files (*.mf4 *.mf4z)",
+            )
 
         if output_file_name:
-            output_file_name = Path(output_file_name).with_suffix(suffix)
+            output_file_name = Path(output_file_name)
 
             progress = setup_progress(
                 parent=self,
@@ -679,13 +703,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             self.stack_add_samples_origin.checkState() == QtCore.Qt.Checked
         )
 
-        if version < "4.00":
-            filter = "MDF version 3 files (*.dat *.mdf)"
-            suffix = ".mdf"
-        else:
-            filter = "MDF version 4 files (*.mf4)"
-            suffix = ".mf4"
-
         split = self.stack_split.checkState() == QtCore.Qt.Checked
         if split:
             split_size = int(self.stack_split_size.value() * 1024 * 1024)
@@ -694,16 +711,25 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         compression = self.stack_compression.currentIndex()
 
-        output_file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
-            self,
-            "Select output measurement file",
-            "",
-            f"{filter};;All files (*.*)",
-            filter,
-        )
+        if version < "4.00":
+            output_file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
+                self,
+                "Select output measurement file",
+                "",
+                "MDF version 3 files (*.dat *.mdf);;All files (*.*)",
+                "MDF version 3 files (*.dat *.mdf)",
+            )
+        else:
+            output_file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
+                self,
+                "Select output measurement file",
+                "",
+                f"MDF version 4 files (*.mf4 *.mf4z);;All files (*.*)",
+                "MDF version 4 files (*.mf4 *.mf4z)",
+            )
 
         if output_file_name:
-            output_file_name = Path(output_file_name).with_suffix(suffix)
+            output_file_name = Path(output_file_name)
 
             progress = setup_progress(
                 parent=self,
@@ -897,7 +923,12 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             view = self.filter_view
 
             dlg = AdvancedSearch(
-                mdf, show_add_window=False, show_pattern=False, parent=self
+                mdf,
+                show_add_window=False,
+                show_pattern=False,
+                parent=self,
+                show_apply=True,
+                apply_text="Check signals",
             )
             dlg.setModal(True)
             dlg.exec_()
@@ -1029,7 +1060,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                         entry = i, 0xFFFFFFFFFFFFFFFF
                         channel_group = TreeItem(entry, origin_uuid=uuid)
                         comment = group.channel_group.comment
-                        comment = extract_cncomment_xml(comment)
+                        comment = extract_xml_comment(comment)
 
                         if comment:
                             channel_group.setText(0, f"Channel group {i} ({comment})")
@@ -1694,3 +1725,168 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         icon.addPixmap(QtGui.QPixmap(":/file.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         for row in range(count):
             self.files_list.item(row).setIcon(icon)
+
+    def save_filter_list(self):
+        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self,
+            "Select output filter list file",
+            self.default_folder,
+            "CANape Lab file (*.lab);;TXT files (*.txt);;All file types (*.lab *.txt)",
+            "CANape Lab file (*.lab)",
+        )
+
+        if file_name:
+            file_name = Path(file_name)
+
+            iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
+
+            signals = []
+            if self.filter_view.currentText() == "Internal file structure":
+                while True:
+                    item = iterator.value()
+                    if item is None:
+                        break
+
+                    iterator += 1
+
+                    if item.parent() is None:
+                        continue
+
+                    if item.checkState(0) == QtCore.Qt.Checked:
+                        signals.append(item.text(0))
+            else:
+                while True:
+                    item = iterator.value()
+                    if item is None:
+                        break
+
+                    iterator += 1
+
+                    if item.checkState(0) == QtCore.Qt.Checked:
+                        signals.append(item.text(0))
+
+            suffix = file_name.suffix.lower()
+            if suffix == ".lab":
+                section_name, ok = QtWidgets.QInputDialog.getText(
+                    self,
+                    "Provide .lab file section name",
+                    "Section name:",
+                )
+                if not ok:
+                    section_name = "Selected channels"
+
+            with open(file_name, "w") as output:
+                if suffix == ".lab":
+                    output.write(f"[{section_name}]\n")
+                output.write("\n".join(natsorted(signals)))
+
+    def load_filter_list(self, event=None, file_name=None):
+        if file_name is None:
+            file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
+                self,
+                "Select channel list file",
+                "",
+                "Config file (*.cfg);;TXT files (*.txt);;Display files (*.dsp);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.lab *.txt)",
+                "CANape Lab file (*.lab)",
+            )
+
+        if file_name:
+            if not isinstance(file_name, dict):
+                file_name = Path(file_name)
+
+                extension = file_name.suffix.lower()
+                if extension == ".dsp":
+                    info = load_dsp(file_name)
+                    channels = info.get("display", [])
+
+                elif extension == ".lab":
+                    info = load_lab(file_name)
+                    if info:
+                        if len(info) > 1:
+                            section, ok = QtWidgets.QInputDialog.getItem(
+                                None,
+                                "Please select the section",
+                                "Available sections:",
+                                list(info),
+                                0,
+                                False,
+                            )
+                            if ok:
+                                channels = info[section]
+                            else:
+                                return
+                        else:
+                            channels = list(info.values())[0]
+
+                elif extension == ".cfg":
+                    with open(file_name, "r") as infile:
+                        info = json.load(infile)
+                    channels = info.get("selected_channels", [])
+                elif extension == ".txt":
+                    try:
+                        with open(file_name, "r") as infile:
+                            info = json.load(infile)
+                        channels = info.get("selected_channels", [])
+                    except:
+                        with open(file_name, "r") as infile:
+                            channels = [line.strip() for line in infile.readlines()]
+                            channels = [name for name in channels if name]
+
+            else:
+                info = file_name
+                channels = info.get("selected_channels", [])
+
+            if channels:
+
+                iterator = QtWidgets.QTreeWidgetItemIterator(self.filter_tree)
+
+                if self.filter_view.currentText() == "Internal file structure":
+                    while iterator.value():
+                        item = iterator.value()
+                        if item.parent() is None:
+                            iterator += 1
+                            continue
+
+                        channel_name = item.text(0)
+                        if channel_name in channels:
+                            item.setCheckState(0, QtCore.Qt.Checked)
+                            channels.pop(channels.index(channel_name))
+                        else:
+                            item.setCheckState(0, QtCore.Qt.Unchecked)
+
+                        iterator += 1
+                elif self.filter_view.currentText() == "Natural sort":
+                    while iterator.value():
+                        item = iterator.value()
+
+                        channel_name = item.text(0)
+                        if channel_name in channels:
+                            item.setCheckState(0, QtCore.Qt.Checked)
+                            channels.pop(channels.index(channel_name))
+                        else:
+                            item.setCheckState(0, QtCore.Qt.Unchecked)
+
+                        iterator += 1
+
+                else:
+                    items = []
+                    self.filter_tree.clear()
+
+                    for i, gp in enumerate(self.mdf.groups):
+                        for j, ch in enumerate(gp.channels):
+                            if ch.name in channels:
+                                entry = i, j
+                                channel = TreeItem(
+                                    entry, ch.name, origin_uuid=self.uuid
+                                )
+                                channel.setText(0, ch.name)
+                                channel.setCheckState(0, QtCore.Qt.Checked)
+                                items.append(channel)
+
+                                channels.pop(channels.index(ch.name))
+
+                    if len(items) < 30000:
+                        items = natsorted(items, key=lambda x: x.name)
+                    else:
+                        items.sort(key=lambda x: x.name)
+                    self.filter_tree.addTopLevelItems(items)

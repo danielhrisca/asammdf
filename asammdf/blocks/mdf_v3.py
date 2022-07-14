@@ -6,6 +6,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterator, Sequence
 from copy import deepcopy
+from datetime import datetime
 from io import BufferedReader, BytesIO
 from itertools import product
 import logging
@@ -213,6 +214,10 @@ class MDF3(MDF_Common):
         )
         self._use_display_names = kwargs.get(
             "use_display_names", get_global_option("use_display_names")
+        )
+        self._fill_0_for_missing_computation_channels = kwargs.get(
+            "fill_0_for_missing_computation_channels",
+            get_global_option("fill_0_for_missing_computation_channels"),
         )
         self.copy_on_get = False
 
@@ -839,6 +844,13 @@ class MDF3(MDF_Common):
                                 f'Expected "CN" block @{hex(ch_addr)} but found "{id_}"'
                             )
                             raise MdfException(message)
+
+                        if self._remove_source_from_channel_names:
+                            name = name.split("\\", 1)[0]
+                            display_names = {
+                                _name.split("\\", 1)[0]: val
+                                for _name, val in display_names.items()
+                            }
 
                         if (
                             channel_type == v23c.CHANNEL_TYPE_MASTER
@@ -3373,6 +3385,23 @@ class MDF3(MDF_Common):
 
         return info
 
+    @property
+    def start_time(self) -> datetime:
+        """getter and setter the measurement start timestamp
+
+        Returns
+        -------
+        timestamp : datetime.datetime
+            start timestamp
+
+        """
+
+        return self.header.start_time
+
+    @start_time.setter
+    def start_time(self, timestamp: datetime) -> None:
+        self.header.start_time = timestamp
+
     def save(
         self,
         dst: StrPathType,
@@ -3920,6 +3949,9 @@ class MDF3(MDF_Common):
 
             self._set_temporary_master(None)
             yield signals
+
+    def reload_header(self):
+        self.header = HeaderBlock(address=0x40, stream=self._file)
 
 
 if __name__ == "__main__":

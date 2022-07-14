@@ -13,6 +13,8 @@ class GPSDialog(Ui_GPSDialog, QtWidgets.QDialog):
     def __init__(
         self,
         mdf,
+        latitude="",
+        longitude="",
         *args,
         **kwargs,
     ):
@@ -21,6 +23,9 @@ class GPSDialog(Ui_GPSDialog, QtWidgets.QDialog):
         self.setupUi(self)
 
         self.mdf = mdf
+
+        self.latitude.setText(latitude)
+        self.longitude.setText(longitude)
 
         self.apply_btn.clicked.connect(self._apply)
         self.cancel_btn.clicked.connect(self._cancel)

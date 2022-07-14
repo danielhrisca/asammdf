@@ -1,45 +1,158 @@
 # -*- coding: utf-8 -*-
 
-from math import atan2, degrees
-
 import pyqtgraph as pg
 from PySide6 import QtCore, QtGui
 
 
 class Cursor(pg.InfiniteLine):
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self,
+        *args,
+        show_circle=True,
+        show_horizontal_line=True,
+        line_width=1,
+        color="#ffffff",
+        **kwargs
+    ):
 
         super().__init__(
             *args,
             **kwargs,
         )
 
-        self.pen.setWidth(3)
-        self.hoverPen.setWidth(3)
+        self.line_width = line_width
+        self.color = color
+
+        self.setCursor(QtCore.Qt.SplitHCursor)
+        self.sigDragged.connect(self.update_mouse_cursor)
+        self.sigPositionChangeFinished.connect(self.update_mouse_cursor)
+
+        self._cursor_override = False
+        self.show_circle = show_circle
+        self.show_horizontal_line = show_horizontal_line
+
+    @property
+    def color(self):
+        return self.pen.color().name()
+
+    @color.setter
+    def color(self, value):
+        color = pg.mkColor(value)
+        color.setAlpha(200)
+        self.pen = QtGui.QPen(color.name())
+        self.hoverPen = QtGui.QPen(color.name())
+        self.update()
+
+    @property
+    def line_width(self):
+        return self._line_width
+
+    @line_width.setter
+    def line_width(self, value):
+        self._line_width = value
+        self.update()
+
+    def update_mouse_cursor(self, obj):
+        if self.moving:
+            if not self._cursor_override:
+                QtGui.QGuiApplication.setOverrideCursor(QtCore.Qt.SplitHCursor)
+                self._cursor_override = True
+        else:
+            if self._cursor_override is not None:
+                self._cursor_override = False
+                QtGui.QGuiApplication.restoreOverrideCursor()
 
     def set_value(self, value):
         self.setPos(value)
 
-    def paint(self, p, *args, skip=True, x_delta=0, height=0, vb=None):
-        if not skip:
-            p.setRenderHint(p.RenderHint.Antialiasing)
+    def paint(self, paint, *args, plot=None, uuid=None):
+        if plot:
+            paint.setRenderHint(paint.RenderHint.Antialiasing, False)
 
-            pen = self.currentPen
-            pen.setJoinStyle(QtCore.Qt.PenJoinStyle.MiterJoin)
-            p.setPen(pen)
+            pen = self.pen
+            pen.setWidth(self.line_width)
+            paint.setPen(pen)
 
-            xs = vb.state["viewRange"][0][0]
-            x_scale, y_scale = vb.viewPixelSize()
+            position = self.value()
 
-            # x = (x - xs) / x_scale + x_delta
-            # is rewriten as
+            rect = plot.viewbox.sceneBoundingRect()
+            delta = rect.x()
+            height = rect.height()
+            width = rect.x() + rect.width()
 
-            xs = xs - x_delta * x_scale
+            if not self.show_circle and not self.show_horizontal_line or not uuid:
+                x, y = plot.scale_curve_to_pixmap(
+                    position,
+                    0,
+                    y_range=plot.viewbox.viewRange()[1],
+                    x_start=plot.viewbox.viewRange()[0][0],
+                    delta=delta,
+                )
+                paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
 
-            x = (self.value() - xs) / x_scale
+            else:
 
-            p.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
-            p.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
+                signal, idx = plot.signal_by_uuid(uuid)
+                if signal.enable:
+                    index = plot.get_timestamp_index(position, signal.timestamps)
+                    y_value, kind, fmt = signal.value_at_index(index)
+                    if y_value != "n.a.":
+
+                        x, y = plot.scale_curve_to_pixmap(
+                            position,
+                            y_value,
+                            y_range=signal.y_range,
+                            x_start=plot.viewbox.viewRange()[0][0],
+                            delta=delta,
+                        )
+
+                        if self.show_circle:
+                            paint.drawLine(
+                                QtCore.QPointF(x, 0), QtCore.QPointF(x, y - 5)
+                            )
+                            paint.drawLine(
+                                QtCore.QPointF(x, y + 5), QtCore.QPointF(x, height)
+                            )
+
+                            if self.show_horizontal_line:
+                                paint.drawLine(
+                                    QtCore.QPointF(delta, y), QtCore.QPointF(x - 5, y)
+                                )
+                                paint.drawLine(
+                                    QtCore.QPointF(x + 5, y), QtCore.QPointF(width, y)
+                                )
+
+                            paint.setRenderHints(paint.RenderHint.Antialiasing, True)
+                            paint.drawEllipse(QtCore.QPointF(x, y), 5, 5)
+                            paint.setRenderHints(paint.RenderHint.Antialiasing, False)
+
+                        else:
+                            paint.drawLine(
+                                QtCore.QPointF(x, 0), QtCore.QPointF(x, height)
+                            )
+                            if self.show_horizontal_line:
+                                paint.drawLine(
+                                    QtCore.QPointF(delta, y), QtCore.QPointF(width, y)
+                                )
+
+                    else:
+                        x, y = plot.scale_curve_to_pixmap(
+                            position,
+                            0,
+                            y_range=plot.viewbox.viewRange()[1],
+                            x_start=plot.viewbox.viewRange()[0][0],
+                            delta=delta,
+                        )
+                        paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
+                else:
+                    x, y = plot.scale_curve_to_pixmap(
+                        position,
+                        0,
+                        y_range=plot.viewbox.viewRange()[1],
+                        x_start=plot.viewbox.viewRange()[0][0],
+                        delta=delta,
+                    )
+                    paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
 
 
 class Region(pg.LinearRegionItem):
@@ -56,6 +169,9 @@ class Region(pg.LinearRegionItem):
         span=(0, 1),
         swapMode="sort",
         clipItem=None,
+        show_circle=True,
+        show_horizontal_line=True,
+        line_width=1,
     ):
         pg.GraphicsObject.__init__(self)
         self.orientation = orientation
@@ -77,6 +193,10 @@ class Region(pg.LinearRegionItem):
             span=span,
             pen=pen,
             hoverPen=hoverPen,
+            show_circle=show_circle,
+            show_horizontal_line=show_horizontal_line,
+            line_width=line_width,
+            color=pen,
         )
 
         self.lines = [
@@ -102,17 +222,31 @@ class Region(pg.LinearRegionItem):
 
         self.setMovable(movable)
 
-    def paint(self, p, *args, skip=True, x_delta=0, height=0, vb=None):
-        if not skip:
+    def paint(self, p, *args, plot=None, uuid=None):
+        if plot:
+            rect = plot.viewbox.sceneBoundingRect()
+            delta = rect.x()
+            height = rect.height()
 
-            xs = vb.state["viewRange"][0][0]
-            x_scale, y_scale = vb.viewPixelSize()
-            xs = xs - x_delta * x_scale
+            x1, y1 = plot.scale_curve_to_pixmap(
+                self.lines[0].value(),
+                0,
+                y_range=plot.viewbox.viewRange()[1],
+                x_start=plot.viewbox.viewRange()[0][0],
+                delta=delta,
+            )
+            x2, y2 = plot.scale_curve_to_pixmap(
+                self.lines[1].value(),
+                0,
+                y_range=plot.viewbox.viewRange()[1],
+                x_start=plot.viewbox.viewRange()[0][0],
+                delta=delta,
+            )
 
             rect = QtCore.QRectF(
-                (self.lines[0].value() - xs) / x_scale,
+                x1,
                 0,
-                (self.lines[1].value() - self.lines[0].value()) / x_scale,
+                x2 - x1,
                 height,
             )
 
@@ -121,4 +255,4 @@ class Region(pg.LinearRegionItem):
             p.setCompositionMode(QtGui.QPainter.CompositionMode_SourceAtop)
             p.drawRect(rect)
             for line in self.lines:
-                line.paint(p, *args, skip=skip, x_delta=x_delta, height=height, vb=vb)
+                line.paint(p, *args, plot=plot, uuid=uuid)

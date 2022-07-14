@@ -12,7 +12,9 @@ import sys
 from textwrap import wrap
 from traceback import format_exc
 from typing import Any
+import xml.etree.ElementTree as ET
 
+import dateutil
 from numexpr import evaluate
 
 try:
@@ -23,7 +25,14 @@ import numpy as np
 
 from . import v2_v3_constants as v23c
 from ..version import __version__
-from .utils import get_fields, get_text_v3, MdfException, UINT16_u, UINT16_uf
+from .utils import (
+    escape_xml_string,
+    get_fields,
+    get_text_v3,
+    MdfException,
+    UINT16_u,
+    UINT16_uf,
+)
 
 SEEK_START = v23c.SEEK_START
 SEEK_END = v23c.SEEK_END
@@ -145,6 +154,7 @@ class Channel:
         "display_names",
         "comment",
         "conversion",
+        "unit",
         "source",
         "address",
         "id",
@@ -173,7 +183,7 @@ class Channel:
     def __init__(self, **kwargs) -> None:
         super().__init__()
 
-        self.name = self.comment = ""
+        self.name = self.comment = self.unit = ""
         self.display_names = {}
         self.conversion = self.source = None
         self.dtype_fmt = None
@@ -1457,7 +1467,7 @@ address: {hex(self.address)}
 
         return "\n".join(metadata)
 
-    def convert(self, values):
+    def convert(self, values, as_object=False):
         conversion_type = self.conversion_type
 
         if conversion_type == v23c.CONVERSION_TYPE_NONE:
@@ -2728,37 +2738,13 @@ class HeaderBlock:
 
     """
 
-    __slots__ = (
-        "address",
-        "program",
-        "comment",
-        "id",
-        "block_len",
-        "first_dg_addr",
-        "comment_addr",
-        "program_addr",
-        "dg_nr",
-        "date",
-        "time",
-        "author",
-        "department",
-        "project",
-        "subject",
-        "abs_time",
-        "tz_offset",
-        "time_quality",
-        "timer_identification",
-        "author_field",
-        "department_field",
-        "project_field",
-        "subject_field",
-    )
-
     def __init__(self, **kwargs) -> None:
         super().__init__()
 
         self.address = 64
         self.program = None
+        self._common_properties = {}
+        self.description = ""
         self.comment = ""
         try:
 
@@ -2833,6 +2819,95 @@ class HeaderBlock:
         self.department = self.department_field.strip(b" \r\n\t\0").decode("latin-1")
         self.project = self.project_field.strip(b" \r\n\t\0").decode("latin-1")
         self.subject = self.subject_field.strip(b" \r\n\t\0").decode("latin-1")
+
+    @property
+    def comment(self):
+        root = ET.Element("HDcomment")
+        text = ET.SubElement(root, "TX")
+        text.text = self.description
+        common = ET.SubElement(root, "common_properties")
+        for name, value in self._common_properties.items():
+            if isinstance(value, dict):
+                tree = ET.SubElement(common, "tree", name=name)
+                for subname, subvalue in value.items():
+                    ET.SubElement(tree, "e", name=subname).text = subvalue
+            else:
+                ET.SubElement(common, "e", name=name).text = value
+
+        return (
+            ET.tostring(root, encoding="utf8", method="xml")
+            .replace(b"<?xml version='1.0' encoding='utf8'?>\n", b"")
+            .decode("utf-8")
+        )
+
+    @comment.setter
+    def comment(self, string):
+        self._common_properties.clear()
+
+        if string.startswith("<HDcomment"):
+            comment = string
+            try:
+                comment_xml = ET.fromstring(
+                    comment.replace(' xmlns="http://www.asam.net/mdf/v4"', "")
+                )
+            except ET.ParseError as e:
+                self.description = string
+            else:
+                description = comment_xml.find(".//TX")
+                if description is None:
+                    self.description = ""
+                else:
+                    self.description = description.text or ""
+
+                common_properties = comment_xml.find(".//common_properties")
+                if common_properties is not None:
+                    for e in common_properties:
+                        if e.tag == "e":
+                            name = e.get("name")
+                            self._common_properties[name] = e.text or ""
+                        else:
+                            name = e.get("name")
+                            subattibutes = {}
+                            tree = e
+                            self._common_properties[name] = subattibutes
+
+                            for e in tree:
+                                name = e.get("name")
+                                subattibutes[name] = e.text or ""
+        else:
+            self.description = string
+
+    @property
+    def author(self):
+        return self._common_properties.get("author", "")
+
+    @author.setter
+    def author(self, value):
+        self._common_properties["author"] = value
+
+    @property
+    def project(self):
+        return self._common_properties.get("project", "")
+
+    @project.setter
+    def project(self, value):
+        self._common_properties["project"] = value
+
+    @property
+    def department(self):
+        return self._common_properties.get("department", "")
+
+    @department.setter
+    def department(self, value):
+        self._common_properties["department"] = value
+
+    @property
+    def subject(self):
+        return self._common_properties.get("subject", "")
+
+    @subject.setter
+    def subject(self, value):
+        self._common_properties["subject"] = value
 
     def to_blocks(
         self,
@@ -2921,10 +2996,10 @@ class HeaderBlock:
     @start_time.setter
     def start_time(self, timestamp: datetime) -> None:
         if timestamp.tzinfo is None:
-            # the user porvided a naive datetime
+            # the user provided a naive datetime
             # use the local time zone
-            tzinfo = datetime.tz.tzlocal()
-            timestamp = datetime.fromtimestamp(timestamp.timestamp(), tzinfo=tzinfo)
+            tzinfo = dateutil.tz.tzlocal()
+            timestamp = datetime.fromtimestamp(timestamp.timestamp(), tzinfo)
 
         self.date = timestamp.strftime("%d:%m:%Y").encode("ascii")
         self.time = timestamp.strftime("%H:%M:%S").encode("ascii")

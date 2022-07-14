@@ -2,24 +2,21 @@
 from copy import deepcopy
 from functools import partial
 import itertools
-import json
 import os
 import re
 import sys
 from traceback import format_exc
-from typing import Type
 
 from natsort import natsorted
 import numpy as np
 import pandas as pd
-import pyqtgraph as pg
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...blocks import v4_constants as v4c
 from ...blocks.conversion_utils import from_dict
 from ...blocks.utils import (
     csv_bytearray2hex,
-    extract_cncomment_xml,
+    extract_xml_comment,
     load_can_database,
     MdfException,
 )
@@ -27,17 +24,19 @@ from ...mdf import MDF
 from ...signal import Signal
 from ..dialogs.channel_info import ChannelInfoDialog
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
-from ..utils import compute_signal, copy_ranges, extract_mime_names
-from .bar import Bar
+from ..utils import (
+    compute_signal,
+    copy_ranges,
+    extract_mime_names,
+    replace_computation_dependency,
+)
 from .can_bus_trace import CANBusTrace
-from .channel_display import ChannelDisplay
 from .flexray_bus_trace import FlexRayBusTrace
 from .gps import GPS
 from .lin_bus_trace import LINBusTrace
 from .numeric import Numeric
 from .plot import get_descriptions_by_uuid, Plot
 from .tabular import Tabular
-from .tree import ChannelsGroupTreeItem
 
 COMPONENT = re.compile(r"\[(?P<index>\d+)\]$")
 SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
@@ -58,20 +57,22 @@ def rename_origin_uuid(items):
 
 
 def get_origin_uuid(item):
-    if item.get("type", "channel") == "group":
-        for subitem in item["channels"]:
-            if subitem.get("type", "channel") == "channel":
-                return subitem["origin_uuid"]
-        for subitem in item["channels"]:
-            if subitem.get("type", "channel") == "group":
-                uuid = get_origin_uuid(subitem)
-                if uuid is not None:
-                    return uuid
-
-        return None
-
-    else:
-        return item["origin_uuid"]
+    # if item.get("type", "channel") == "group":
+    #     for subitem in item["channels"]:
+    #         if subitem.get("type", "channel") == "channel":
+    #             return subitem["origin_uuid"]
+    #
+    #     for subitem in item["channels"]:
+    #         if subitem.get("type", "channel") == "group":
+    #             uuid = get_origin_uuid(subitem)
+    #             if uuid is not None:
+    #                 return uuid
+    #
+    #     return None
+    #
+    # else:
+    #     return item["origin_uuid"]
+    return item["origin_uuid"]
 
 
 def build_mime_from_config(
@@ -80,9 +81,6 @@ def build_mime_from_config(
 
     if top:
         rename_origin_uuid(items)
-        for item in items:
-            if item.get("type", "channel") == "group":
-                item["origin_uuid"] = get_origin_uuid(item)
 
     descriptions = {}
     found = {}
@@ -108,6 +106,7 @@ def build_mime_from_config(
                 descriptions.update(new_descriptions)
                 found.update(new_found)
                 not_found.update(new_not_found)
+                computed.update(new_computed)
 
                 item["channels"] = new_mine
 
@@ -117,14 +116,16 @@ def build_mime_from_config(
         else:
             descriptions[uuid] = item
 
-            occurrences = mdf.whereis(item["name"]) if mdf else None
-            if occurrences:
-                group_index, channel_index = occurrences[0]
-                found[uuid] = item["name"], group_index, channel_index
+            if item.get("computed", False):
+                group_index, channel_index = -1, -1
+                computed[uuid] = item
             else:
-                if isinstance(item["name"], dict):
-                    group_index, channel_index = -1, -1
-                    computed[uuid] = item["name"]
+
+                occurrences = mdf.whereis(item["name"]) if mdf else None
+                if occurrences:
+                    group_index, channel_index = occurrences[0]
+                    found[uuid] = item["name"], group_index, channel_index
+
                 else:
                     group_index, channel_index = default_index, default_index
                     not_found[item["name"]] = uuid
@@ -333,6 +334,12 @@ def get_required_from_computed(channel):
                     pass
                 else:
                     names.extend(get_required_from_computed(op))
+
+        elif channel["type"] == "expression":
+            expression_string = channel["expression"]
+            names.extend(
+                [match.group("name") for match in SIG_RE.finditer(expression_string)]
+            )
         else:
             op = channel["channel"]
             if isinstance(op, str):
@@ -416,7 +423,7 @@ def parse_matrix_component(name):
 
 
 class MdiSubWindow(QtWidgets.QMdiSubWindow):
-    sigClosed = QtCore.Signal()
+    sigClosed = QtCore.Signal(object)
     titleModified = QtCore.Signal()
 
     def __init__(self, *args, **kwargs):
@@ -424,8 +431,8 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
     def closeEvent(self, event):
+        self.sigClosed.emit(self)
         super().closeEvent(event)
-        self.sigClosed.emit()
 
 
 class MdiAreaWidget(QtWidgets.QMdiArea):
@@ -469,22 +476,12 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
                 if dialog.result():
                     window_type = dialog.selected_type()
 
-                    if window_type == "Plot" and count(names) > 200:
-                        ret = QtWidgets.QMessageBox.question(
-                            self,
-                            "Continue plotting large number of channels?",
-                            "For optimal performance it is advised not plot more than 200 channels. "
-                            f"You are attempting to plot {count(names)} channels.\n"
-                            "Do you wish to continue?",
-                        )
-
-                        if ret != QtWidgets.QMessageBox.Yes:
-                            return
-
                     self.add_window_request.emit([window_type, names])
 
     def tile_horizontally(self):
         sub_windows = self.subWindowList()
+        if not sub_windows:
+            return
 
         position = QtCore.QPoint(0, 0)
 
@@ -503,6 +500,8 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
 
     def tile_vertically(self):
         sub_windows = self.subWindowList()
+        if not sub_windows:
+            return
 
         position = QtCore.QPoint(0, 0)
 
@@ -546,6 +545,11 @@ class WithMDIArea:
         self._window_counter = 0
         self._frameless_windows = False
 
+        self.cursor_circle = True
+        self.cursor_horizontal_line = True
+        self.cursor_line_width = 1
+        self.cursor_color = "#ffffff"
+
     def add_pattern_group(self, plot, group):
 
         signals = extract_signals_using_pattern(
@@ -576,18 +580,6 @@ class WithMDIArea:
             ignore_value2text_conversions = False
             current_count = len(widget.plot.signals)
             count = len(names)
-            if current_count + count > 200:
-                ret = QtWidgets.QMessageBox.question(
-                    self,
-                    "Continue plotting large number of channels?",
-                    "For optimal performance it is advised not plot more than 200 channels. "
-                    f"You are attempting to add {count} new channels to a plot that already "
-                    f"contains {current_count} channels.\n"
-                    "Do you wish to continue?",
-                )
-
-                if ret != QtWidgets.QMessageBox.Yes:
-                    return
         else:
             ignore_value2text_conversions = self.ignore_value2text_conversions
 
@@ -619,6 +611,17 @@ class WithMDIArea:
                 mime_data = substitude_mime_uuids(mime_data, self.uuid)
 
                 entries = get_flatten_entries_from_mime(mime_data)
+
+                uuids = set(entry["origin_uuid"] for entry in entries)
+                for uuid in uuids:
+                    if self.file_by_uuid(uuid):
+                        break
+                else:
+                    mime_data = substitude_mime_uuids(
+                        mime_data, uuid=self.uuid, force=True
+                    )
+                    entries = get_flatten_entries_from_mime(mime_data)
+
                 signals_ = [
                     entry
                     for entry in entries
@@ -744,13 +747,14 @@ class WithMDIArea:
 
                 signals = {}
 
+                not_found = []
+
                 for uuid in uuids:
                     uuids_entries = [
                         entry for entry in signals_ if entry["origin_uuid"] == uuid
                     ]
 
                     uuids_signals = []
-                    not_found = []
 
                     for entry in uuids_entries:
                         if entry["name"] in self.mdf:
@@ -826,9 +830,8 @@ class WithMDIArea:
 
                 sigs = signals
 
-                if computed and 0:
-                    # TO DO : handle computed channels
-                    measured_signals = {sig.name: sig for sig in sigs}
+                if computed:
+                    measured_signals = {sig.name: sig for sig in sigs.values()}
                     if measured_signals:
                         all_timebase = np.unique(
                             np.concatenate(
@@ -843,6 +846,33 @@ class WithMDIArea:
                         required_channels.extend(get_required_from_computed(ch))
 
                     required_channels = set(required_channels)
+
+                    not_found_for_computed = [
+                        channel
+                        for channel in required_channels
+                        if channel not in list(measured_signals)
+                        and channel not in self.mdf
+                    ]
+
+                    if self.mdf._fill_0_for_missing_computation_channels:
+                        for channel in not_found_for_computed:
+                            signal = Signal(
+                                samples=np.zeros(len(all_timebase), dtype="f8"),
+                                timestamps=all_timebase,
+                                name=channel,
+                            )
+                            signal.color = "#000000"
+                            signal.computed = False
+                            signal.computation = {}
+                            signal.unit = ""
+                            signal.group_index = -1
+                            signal.channel_index = -1
+                            signal.origin_uuid = self.uuid
+                            signal.comment = ""
+                            signal.uuid = os.urandom(6).hex()
+
+                            measured_signals[signal.name] = signal
+
                     required_channels = [
                         (None, *self.mdf.whereis(channel)[0])
                         for channel in required_channels
@@ -859,34 +889,38 @@ class WithMDIArea:
 
                     required_channels.update(measured_signals)
 
+                    required_channels = {
+                        key: sig.physical() for key, sig in required_channels.items()
+                    }
+
                     computed_signals = {}
 
                     for channel in computed:
 
                         computation = channel["computation"]
 
-                        try:
+                        signal = compute_signal(
+                            computation, required_channels, all_timebase
+                        )
+                        signal.name = channel["name"]
+                        signal.unit = channel["unit"]
+                        signal.color = channel["color"]
+                        signal.computed = True
+                        signal.computation = channel["computation"]
+                        signal.group_index = -1
+                        signal.channel_index = -1
+                        signal.origin_uuid = self.uuid
+                        signal.comment = channel["computation"].get(
+                            "channel_comment", ""
+                        )
+                        signal.uuid = channel.get("uuid", os.urandom(6).hex())
 
-                            signal = compute_signal(
-                                computation, required_channels, all_timebase
-                            )
-                            signal.color = channel["color"]
-                            signal.computed = True
-                            signal.computation = channel["computation"]
-                            signal.name = channel["name"]
-                            signal.unit = channel["unit"]
-                            signal.group_index = -1
-                            signal.channel_index = -1
-                            signal.origin_uuid = self.uuid
+                        if "conversion" in channel:
+                            signal.conversion = from_dict(channel["conversion"])
+                            signal.name = channel["user_defined_name"]
 
-                            if "conversion" in channel:
-                                signal.conversion = from_dict(channel["conversion"])
-                                signal.name = channel["user_defined_name"]
-
-                            computed_signals[signal.name] = signal
-                        except:
-                            pass
-                    signals.update(computed_signals.values())
+                        computed_signals[signal.uuid] = signal
+                    signals.update(computed_signals)
 
                 not_found_uuid = os.urandom(6).hex()
 
@@ -902,7 +936,20 @@ class WithMDIArea:
 
                     signals[sig.uuid] = sig
 
-                widget.add_new_channels(signals, mime_data=mime_data)
+                if widget.channel_selection.selectedItems():
+
+                    item = widget.channel_selection.selectedItems()[0]
+                    item_below = widget.channel_selection.itemBelow(item)
+                    if item_below is None or item_below.parent() != item.parent():
+                        destination = item.parent()
+                    else:
+                        destination = item_below
+
+                else:
+                    destination = None
+                widget.add_new_channels(
+                    signals, mime_data=mime_data, destination=destination
+                )
 
         except MdfException:
             print(format_exc())
@@ -926,6 +973,9 @@ class WithMDIArea:
             return self._add_tabular_window(names)
 
     def _add_can_bus_trace_window(self, ranges=None):
+        if self.mdf.version < "4.00":
+            return
+
         items = []
         groups_count = len(self.mdf.groups)
 
@@ -1129,6 +1179,9 @@ class WithMDIArea:
         return trace
 
     def _add_flexray_bus_trace_window(self, ranges=None):
+        if self.mdf.version < "4.00":
+            return
+
         items = []
         groups_count = len(self.mdf.groups)
 
@@ -1394,6 +1447,9 @@ class WithMDIArea:
         self.windows_modified.emit()
 
     def _add_lin_bus_trace_window(self, ranges=None):
+        if self.mdf.version < "4.00":
+            return
+
         items = []
         groups_count = len(self.mdf.groups)
 
@@ -1675,6 +1731,16 @@ class WithMDIArea:
 
         else:
             flatten_entries = get_flatten_entries_from_mime(names)
+
+            uuids = set(entry["origin_uuid"] for entry in flatten_entries)
+
+            for uuid in uuids:
+                if self.file_by_uuid(uuid):
+                    break
+            else:
+                names = substitude_mime_uuids(names, uuid=self.uuid, force=True)
+                flatten_entries = get_flatten_entries_from_mime(names)
+
             signals_ = [
                 entry
                 for entry in flatten_entries
@@ -1844,10 +1910,26 @@ class WithMDIArea:
             mime_data = signals
 
         flatten_entries = get_flatten_entries_from_mime(mime_data)
+        uuids = set(entry["origin_uuid"] for entry in flatten_entries)
+
+        for uuid in uuids:
+            if self.file_by_uuid(uuid):
+                break
+        else:
+            mime_data = substitude_mime_uuids(mime_data, uuid=self.uuid, force=True)
+            flatten_entries = get_flatten_entries_from_mime(mime_data)
+
         signals_ = {
             entry["uuid"]: entry
             for entry in flatten_entries
-            if (entry["group_index"], entry["channel_index"]) != (-1, -1)
+            if (entry["group_index"], entry["channel_index"])
+            not in ((-1, -1), (NOT_FOUND, NOT_FOUND))
+        }
+
+        not_found = {
+            entry["uuid"]: entry
+            for entry in flatten_entries
+            if (entry["group_index"], entry["channel_index"]) == (NOT_FOUND, NOT_FOUND)
         }
 
         computed = {
@@ -2000,10 +2082,22 @@ class WithMDIArea:
                 if signal.name.endswith("CAN_DataFrame.ID"):
                     signal.samples = signal.samples.astype("<u4") & 0x1FFFFFFF
 
-            # signals = natsorted(signals, key=lambda x: x.name)
+        for uuid, sig_ in not_found.items():
+            sig = Signal([], [], name=sig_["name"])
+            sig.uuid = uuid
+            sig.computed = False
+            sig.computation = {}
+            sig.origin_uuid = sig_.get("origin_uuid", self.uuid)
+            sig.origin_uuid = self.uuid
+            sig.group_index = NOT_FOUND
+            sig.channel_index = NOT_FOUND
+            if "color" in sig_:
+                sig.color = sig_["color"]
+
+            signals[uuid] = sig
 
         if computed:
-            measured_signals = {sig.name: sig for sig in signals.values()}
+            measured_signals = {sig.uuid: sig for sig in signals.values()}
             if measured_signals:
                 all_timebase = np.unique(
                     np.concatenate(
@@ -2014,48 +2108,77 @@ class WithMDIArea:
                 all_timebase = []
 
             required_channels = []
-            for ch in computed:
-                required_channels.extend(get_required_from_computed(ch[0]))
+
+            for ch in computed.values():
+                required_channels.extend(get_required_from_computed(ch))
 
             required_channels = set(required_channels)
-            required_channels = [
+            required_channels_list = [
                 (None, *self.mdf.whereis(channel)[0])
                 for channel in required_channels
-                if channel not in list(measured_signals) and channel in self.mdf
+                if channel in self.mdf
             ]
-            required_channels = {
-                sig.name: sig
-                for sig in self.mdf.select(
-                    required_channels,
-                    ignore_value2text_conversions=self.ignore_value2text_conversions,
-                    copy_master=False,
-                )
-            }
+
+            not_found_for_computed = [
+                channel
+                for channel in required_channels
+                if channel not in list(measured_signals) and channel not in self.mdf
+            ]
+
+            if self.mdf._fill_0_for_missing_computation_channels:
+                for channel in not_found_for_computed:
+                    signal = Signal(
+                        samples=np.zeros(len(all_timebase), dtype="f8"),
+                        timestamps=all_timebase,
+                        name=channel,
+                    )
+                    signal.color = "#000000"
+                    signal.computed = False
+                    signal.computation = {}
+                    signal.unit = ""
+                    signal.group_index = -1
+                    signal.channel_index = -1
+                    signal.origin_uuid = self.uuid
+                    signal.comment = ""
+                    signal.uuid = os.urandom(6).hex()
+
+                    measured_signals[signal.name] = signal
+
+            required_channels = {}
+
+            for sig in self.mdf.select(
+                required_channels_list,
+                ignore_value2text_conversions=self.ignore_value2text_conversions,
+                copy_master=False,
+            ):
+                required_channels[sig.name] = sig
 
             required_channels.update(measured_signals)
 
-            # computed_signals = {}
-            #
-            # for channel in computed:
-            #     computation = channel["computation"]
-            #
-            #     try:
-            #
-            #         signal = compute_signal(
-            #             computation, required_channels, all_timebase
-            #         )
-            #         signal.color = channel["color"]
-            #         signal.computed = True
-            #         signal.computation = channel["computation"]
-            #         signal.name = channel["name"]
-            #         signal.unit = channel["unit"]
-            #         signal.group_index = -1
-            #         signal.channel_index = -1
-            #
-            #         computed_signals[signal.name] = signal
-            #     except:
-            #         pass
-            # signals = list(computed_signals.values())
+            computed_signals = {}
+
+            for channel in computed.values():
+                computation = channel["computation"]
+
+                signal = compute_signal(computation, required_channels, all_timebase)
+                signal.name = channel["name"]
+                signal.unit = channel["unit"]
+                signal.color = channel["color"]
+                signal.computed = True
+                signal.computation = channel["computation"]
+                signal.group_index = -1
+                signal.channel_index = -1
+                signal.origin_uuid = self.uuid
+                signal.comment = channel["computation"].get("channel_comment", "")
+                signal.uuid = channel.get("uuid", os.urandom(6).hex())
+
+                if "conversion" in channel:
+                    signal.conversion = from_dict(channel["conversion"])
+                    signal.name = channel["user_defined_name"]
+
+                computed_signals[signal.uuid] = signal
+
+            signals.update(computed_signals)
 
         if hasattr(self, "mdf"):
             events = []
@@ -2071,7 +2194,7 @@ class WithMDIArea:
                     description = event.name
                     if event.comment:
                         try:
-                            comment = extract_cncomment_xml(event.comment)
+                            comment = extract_xml_comment(event.comment)
                         except:
                             comment = event.comment
                         description += f" ({comment})"
@@ -2114,11 +2237,16 @@ class WithMDIArea:
             events=events,
             with_dots=self.with_dots,
             line_interconnect=self.line_interconnect,
+            line_width=self.line_width,
             origin=origin,
             mdf=mdf,
             parent=self,
             hide_missing_channels=self.hide_missing_channels,
             hide_disabled_channels=self.hide_disabled_channels,
+            show_cursor_circle=self.cursor_circle,
+            show_cursor_horizontal_line=self.cursor_horizontal_line,
+            cursor_line_width=self.cursor_line_width,
+            cursor_color=self.cursor_color,
         )
         plot.pattern_group_added.connect(self.add_pattern_group)
         plot.pattern = {}
@@ -2173,12 +2301,10 @@ class WithMDIArea:
                     continue
 
         plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
+        plot.edit_channel_request.connect(partial(self.edit_channel, widget=plot))
 
         plot.show_properties.connect(self._show_info)
-        # TO DO plot.channel_selection.setCurrentRow(0)
-
         plot.add_new_channels(signals, mime_data)
-
         self.set_subplots_link(self.subplots_link)
 
         iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
@@ -2188,7 +2314,7 @@ class WithMDIArea:
                 break
             iterator += 1
 
-            if isinstance(item, ChannelsGroupTreeItem):
+            if item.type() == item.Group:
                 if item.pattern:
                     plot.pattern_group_added.emit(plot, item)
 
@@ -2213,6 +2339,16 @@ class WithMDIArea:
             ]
         else:
             flatten_entries = get_flatten_entries_from_mime(names)
+
+            uuids = set(entry["origin_uuid"] for entry in flatten_entries)
+
+            for uuid in uuids:
+                if self.file_by_uuid(uuid):
+                    break
+            else:
+                names = substitude_mime_uuids(names, uuid=self.uuid, force=True)
+                flatten_entries = get_flatten_entries_from_mime(names)
+
             signals_ = [
                 entry
                 for entry in flatten_entries
@@ -2327,6 +2463,110 @@ class WithMDIArea:
 
         self.windows_modified.emit()
 
+    def edit_channel(self, channel, item, widget):
+        required_channels = set(get_required_from_computed(channel))
+
+        not_found_for_computed = [
+            channel for channel in required_channels if channel not in self.mdf
+        ]
+
+        required_channels = [
+            (None, *self.mdf.whereis(channel)[0])
+            for channel in required_channels
+            if channel in self.mdf
+        ]
+        required_channels = {
+            sig.name: sig
+            for sig in self.mdf.select(
+                required_channels,
+                ignore_value2text_conversions=self.ignore_value2text_conversions,
+                copy_master=False,
+            )
+        }
+
+        if required_channels:
+            all_timebase = np.unique(
+                np.concatenate([sig.timestamps for sig in required_channels.values()])
+            )
+        else:
+            all_timebase = []
+
+        if self.mdf._fill_0_for_missing_computation_channels:
+            for channel in not_found_for_computed:
+                signal = Signal(
+                    samples=np.zeros(len(all_timebase), dtype="f8"),
+                    timestamps=all_timebase,
+                    name=channel,
+                )
+                signal.color = "#000000"
+                signal.computed = False
+                signal.computation = {}
+                signal.unit = ""
+                signal.group_index = -1
+                signal.channel_index = -1
+                signal.origin_uuid = self.uuid
+                signal.comment = ""
+                signal.uuid = os.urandom(6).hex()
+
+                required_channels[signal.name] = signal
+
+        required_channels = {
+            key: sig.physical() for key, sig in required_channels.items()
+        }
+
+        computation = channel["computation"]
+
+        signal = compute_signal(computation, required_channels, all_timebase)
+        signal.name = channel["name"]
+        signal.unit = channel["unit"]
+        signal.color = channel["color"]
+        signal.computed = True
+        signal.computation = channel["computation"]
+        signal.group_index = -1
+        signal.channel_index = -1
+        signal.origin_uuid = self.uuid
+        signal.comment = channel["computation"].get("channel_comment", "")
+        signal.uuid = channel.get("uuid", os.urandom(6).hex())
+
+        if "conversion" in channel:
+            signal.conversion = from_dict(channel["conversion"])
+            signal.name = channel["user_defined_name"]
+
+        old_name = item.name
+        new_name = signal.name
+        uuid = item.uuid
+
+        item.signal.samples = (
+            item.signal.raw_samples
+        ) = item.signal.phys_samples = signal.samples
+        item.signal.timestamps = signal.timestamps
+        item.signal.trim(force=True)
+        item.signal.computation = signal.computation
+
+        item.setToolTip(item.NameColumn, f"{signal.name}\n{signal.comment}")
+        item.name = new_name
+        item.unit = signal.unit
+        widget.cursor_moved()
+        widget.range_modified()
+
+        widget.plot.update()
+
+        for channel in widget.plot.signals:
+            if channel.uuid == uuid:
+                continue
+
+            if channel.computed:
+                required_channels = set(get_required_from_computed(channel.computation))
+                if old_name in required_channels:
+                    item = widget.item_by_uuid
+
+                    computed_channel = widget.plot.channel_item_to_config(item)
+                    computed_channel["computation"] = replace_computation_dependency(
+                        computed_channel["computation"], old_name, new_name
+                    )
+
+                    widget.edit_channel_request.emit(computed_channel, item)
+
     def get_current_widget(self):
         mdi = self.mdi_area.activeSubWindow()
         if mdi is not None:
@@ -2413,43 +2653,13 @@ class WithMDIArea:
 
         else:
 
-            required = set(window_info["configuration"]["channels"])
+            required = window_info["configuration"]["channels"]
+
+            found = [elem for elem in required if elem["name"] in self.mdf]
 
             signals_ = [
-                (name, *self.mdf.whereis(name)[0])
-                for name in window_info["configuration"]["channels"]
-                if name in self.mdf
+                (elem["name"], *self.mdf.whereis(elem["name"])[0]) for elem in found
             ]
-
-            if window_info["configuration"].get("ranges", []):
-                ranges = [
-                    range
-                    for name, range in zip(
-                        window_info["configuration"]["channels"],
-                        window_info["configuration"]["ranges"],
-                    )
-                    if name in self.mdf
-                ]
-
-                for channel_ranges in ranges:
-                    for range in channel_ranges:
-                        range["font_color"] = QtGui.QBrush(
-                            QtGui.QColor(range["font_color"])
-                        )
-                        range["background_color"] = QtGui.QBrush(
-                            QtGui.QColor(range["background_color"])
-                        )
-            else:
-                ranges = [
-                    []
-                    for name in window_info["configuration"]["channels"]
-                    if name in self.mdf
-                ]
-
-            if window_info["configuration"].get("formats", None):
-                formats = window_info["configuration"]["formats"]
-            else:
-                formats = ["phys" for _ in ranges]
 
             if not signals_:
                 return
@@ -2462,14 +2672,21 @@ class WithMDIArea:
                 raw=True,
             )
 
-            for sig, sig_, channel_ranges, channel_format in zip(
-                signals, signals_, ranges, formats
-            ):
+            for sig, sig_, description in zip(signals, signals_, found):
                 sig.group_index = sig_[2]
                 sig.origin_uuid = uuid
                 sig.computation = None
-                sig.ranges = channel_ranges
-                sig.format = channel_format
+                ranges = description["ranges"]
+                for channel_ranges in ranges:
+                    for range in channel_ranges:
+                        range["font_color"] = QtGui.QBrush(
+                            QtGui.QColor(range["font_color"])
+                        )
+                        range["background_color"] = QtGui.QBrush(
+                            QtGui.QColor(range["background_color"])
+                        )
+                sig.ranges = ranges
+                sig.format = description["format"]
 
             signals = [
                 sig
@@ -2480,6 +2697,7 @@ class WithMDIArea:
             signals = natsorted(signals, key=lambda x: x.name)
 
             found = set(sig.name for sig in signals)
+            required = set(description["name"] for description in required)
             not_found = [Signal([], [], name=name) for name in sorted(required - found)]
             uuid = os.urandom(6).hex()
             for sig in not_found:
@@ -2757,6 +2975,32 @@ class WithMDIArea:
                 required_channels.extend(get_required_from_computed(ch))
 
             required_channels = set(required_channels)
+
+            not_found_for_computed = [
+                channel
+                for channel in required_channels
+                if channel not in list(measured_signals) and channel not in self.mdf
+            ]
+
+            if self.mdf._fill_0_for_missing_computation_channels:
+                for channel in not_found_for_computed:
+                    signal = Signal(
+                        samples=np.zeros(len(all_timebase), dtype="f8"),
+                        timestamps=all_timebase,
+                        name=channel,
+                    )
+                    signal.color = "#000000"
+                    signal.computed = False
+                    signal.computation = {}
+                    signal.unit = ""
+                    signal.group_index = -1
+                    signal.channel_index = -1
+                    signal.origin_uuid = self.uuid
+                    signal.comment = ""
+                    signal.uuid = os.urandom(6).hex()
+
+                    measured_signals[signal.name] = signal
+
             required_channels = [
                 (None, *self.mdf.whereis(channel)[0])
                 for channel in required_channels
@@ -2773,31 +3017,29 @@ class WithMDIArea:
 
             required_channels.update(measured_signals)
 
+            required_channels = {
+                key: sig.physical() for key, sig in required_channels.items()
+            }
+
             for sig_uuid, channel in computed.items():
                 computation = channel["computation"]
 
-                try:
+                signal = compute_signal(computation, required_channels, all_timebase)
+                signal.color = channel["color"]
+                signal.computed = True
+                signal.computation = channel["computation"]
+                signal.name = channel["name"]
+                signal.unit = channel["unit"]
+                signal.group_index = -1
+                signal.channel_index = -1
+                signal.origin_uuid = self.uuid
+                signal.uuid = sig_uuid
 
-                    signal = compute_signal(
-                        computation, required_channels, all_timebase
-                    )
-                    signal.color = channel["color"]
-                    signal.computed = True
-                    signal.computation = channel["computation"]
-                    signal.name = channel["name"]
-                    signal.unit = channel["unit"]
-                    signal.group_index = -1
-                    signal.channel_index = -1
-                    signal.origin_uuid = self.uuid
-                    signal.uuid = sig_uuid
+                if "conversion" in channel:
+                    signal.conversion = from_dict(channel["conversion"])
+                    signal.name = channel["user_defined_name"]
 
-                    if "conversion" in channel:
-                        signal.conversion = from_dict(channel["conversion"])
-                        signal.name = channel["user_defined_name"]
-
-                    plot_signals[sig_uuid] = signal
-                except:
-                    pass
+                plot_signals[sig_uuid] = signal
 
         signals = {
             sig_uuid: sig
@@ -2835,7 +3077,7 @@ class WithMDIArea:
                     description = event.name
                     if event.comment:
                         try:
-                            comment = extract_cncomment_xml(event.comment)
+                            comment = extract_xml_comment(event.comment)
                         except:
                             comment = event.comment
                         description += f" ({comment})"
@@ -2876,15 +3118,23 @@ class WithMDIArea:
             [],
             with_dots=self.with_dots,
             line_interconnect=self.line_interconnect,
+            line_width=self.line_width,
             events=events,
             origin=origin,
             mdf=mdf,
             parent=self,
             hide_missing_channels=self.hide_missing_channels,
             hide_disabled_channels=self.hide_disabled_channels,
+            show_cursor_circle=self.cursor_circle,
+            show_cursor_horizontal_line=self.cursor_horizontal_line,
+            cursor_line_width=self.cursor_line_width,
+            cursor_color=self.cursor_color,
         )
         plot.pattern_group_added.connect(self.add_pattern_group)
         plot.pattern = pattern_info
+        plot.line_width = self.line_width
+
+        plot.plot._can_paint_global = False
 
         plot.show()
 
@@ -2946,100 +3196,18 @@ class WithMDIArea:
         if "font_size" in window_info["configuration"]:
             plot.set_font_size(window_info["configuration"]["font_size"])
 
-        if "locked" in window_info["configuration"]:
-            plot.set_locked(window_info["configuration"]["locked"])
-
         plot.splitter.setContentsMargins(1, 1, 1, 1)
         plot.setContentsMargins(1, 1, 1, 1)
 
         # plot.hide()
+        plot.show_properties.connect(self._show_info)
 
         plot.add_new_channels(signals, mime_data)
-
-        # iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
-        # while iterator.value():
-        #     item = iterator.value()
-        #     iterator += 1
-        #
-        #     widget = plot.channel_selection.itemWidget(item, 1)
-        #
-        #     if isinstance(widget, ChannelDisplay):
-        #         sig, index = plot.plot.signal_by_uuid(widget.uuid)
-        #         if sig.group_index == NOT_FOUND:
-        #             widget.does_not_exist()
-
-        plot.plot.update_lines()
 
         # plot.show()
 
         plot.add_channels_request.connect(partial(self.add_new_channels, widget=plot))
-
-        iterator = QtWidgets.QTreeWidgetItemIterator(plot.channel_selection)
-        while iterator.value():
-            item = iterator.value()
-            iterator += 1
-            wid = plot.channel_selection.itemWidget(item, 1)
-            if isinstance(wid, ChannelDisplay):
-
-                description = descriptions.get(wid.uuid, None)
-                if description is not None:
-
-                    _, _idx = plot.plot.signal_by_uuid(wid.uuid)
-
-                    # if "y_range" in description:
-                    #     plot.plot.view_boxes[_idx].setYRange(
-                    #         *description["y_range"], padding=0
-                    #     )
-                    #
-                    # wid.set_fmt(description["fmt"])
-                    # wid.set_precision(description["precision"])
-                    # try:
-                    #     wid.set_ranges(
-                    #         [
-                    #             {
-                    #                 "font_color": range["color"],
-                    #                 "background_color": range["color"],
-                    #                 "op1": "<=",
-                    #                 "op2": "<=",
-                    #                 "value1": float(range["start"]),
-                    #                 "value2": float(range["stop"]),
-                    #             }
-                    #             for range in description["ranges"]
-                    #         ]
-                    #     )
-                    # except KeyError:
-                    #     wid.set_ranges(description["ranges"])
-                    #
-                    # for range in wid.ranges:
-                    #     range["font_color"] = QtGui.QColor(range["font_color"])
-                    #     range["background_color"] = QtGui.QColor(
-                    #         range["background_color"]
-                    #     )
-
-                    # wid.ylink.setCheckState(
-                    #     QtCore.Qt.Checked
-                    #     if description["common_axis"]
-                    #     else QtCore.Qt.Unchecked
-                    # )
-                    # wid.individual_axis.setCheckState(
-                    #     QtCore.Qt.Checked
-                    #     if description.get("individual_axis", False)
-                    #     else QtCore.Qt.Unchecked
-                    # )
-                    # width = description.get("individual_axis_width", 0)
-                    # if width:
-                    #     plot.plot.axes[_idx].setWidth(width)
-                    item.setCheckState(
-                        0,
-                        QtCore.Qt.Checked
-                        if description["enabled"]
-                        else QtCore.Qt.Unchecked,
-                    )
-
-                elif pattern_info:
-                    wid.set_ranges(pattern_info["ranges"])
-
-                wid.set_value(update=True)
+        plot.edit_channel_request.connect(partial(self.edit_channel, widget=plot))
 
         self.set_subplots_link(self.subplots_link)
 
@@ -3053,15 +3221,35 @@ class WithMDIArea:
             item = iterator.value()
             iterator += 1
 
-            if isinstance(item, ChannelsGroupTreeItem):
+            if item.type() == item.Group:
                 if item.pattern:
+                    state = item.checkState(item.NameColumn)
                     plot.pattern_group_added.emit(plot, item)
+                    item.setCheckState(item.NameColumn, state)
 
         if "common_axis_y_range" in window_info["configuration"]:
-            plot.plot.common_viewbox.setYRange(
-                *window_info["configuration"]["common_axis_y_range"], padding=0
+            plot.plot.common_axis_y_range = tuple(
+                window_info["configuration"]["common_axis_y_range"]
             )
 
+        if "channels_header" in window_info["configuration"]:
+            width, sizes = window_info["configuration"]["channels_header"]
+            current_width = sum(plot.splitter.sizes())
+            plot.splitter.setSizes([width, current_width - width])
+            for i, size in enumerate(sizes):
+                plot.channel_selection.setColumnWidth(i, size)
+
+        if "locked" in window_info["configuration"]:
+            plot.set_locked(locked=window_info["configuration"]["locked"])
+
+        plot.hide_axes(hide=window_info["configuration"].get("hide_axes", False))
+
+        plot.hide_selected_channel_value(
+            hide=window_info["configuration"].get(
+                "hide_selected_channel_value_panel", True
+            )
+        )
+        plot.plot._can_paint_global = True
         plot.channel_selection.refresh()
 
         return w, pattern_info
@@ -3242,6 +3430,8 @@ class WithMDIArea:
         return w, pattern_info
 
     def _load_can_bus_trace_window(self, window_info):
+        if self.mdf.version < "4.00":
+            return
 
         ranges = window_info["configuration"].get("ranges", {})
         for channel_ranges in ranges.values():
@@ -3267,6 +3457,8 @@ class WithMDIArea:
         return None, False
 
     def _load_flexray_bus_trace_window(self, window_info):
+        if self.mdf.version < "4.00":
+            return
 
         ranges = window_info["configuration"].get("ranges", {})
         for channel_ranges in ranges.values():
@@ -3292,6 +3484,8 @@ class WithMDIArea:
         return None, False
 
     def _load_lin_bus_trace_window(self, window_info):
+        if self.mdf.version < "4.00":
+            return
 
         ranges = window_info["configuration"].get("ranges", {})
         for channel_ranges in ranges.values():
@@ -3337,6 +3531,14 @@ class WithMDIArea:
             if isinstance(widget, Plot):
                 widget.line_interconnect = line_interconnect
                 widget.plot.set_line_interconnect(line_interconnect)
+
+    def set_line_width(self, line_width):
+
+        self.line_width = line_width
+        for i, mdi in enumerate(self.mdi_area.subWindowList()):
+            widget = mdi.widget()
+            if isinstance(widget, Plot):
+                widget.line_width = line_width
 
     def set_subplots(self, option):
         self.subplots = option
@@ -3506,9 +3708,31 @@ class WithMDIArea:
         if file_info:
             _, file = file_info
             channel = file.mdf.get_channel_metadata(group=group_index, index=index)
-
             msg = ChannelInfoDialog(channel, self)
             msg.show()
 
-    def window_closed_handler(self):
+    def window_closed_handler(self, obj=None):
         self.windows_modified.emit()
+
+    def set_cursor_options(
+        self, cursor_circle, cursor_horizontal_line, cursor_line_width, cursor_color
+    ):
+        self.cursor_circle = cursor_circle
+        self.cursor_horizontal_line = cursor_horizontal_line
+        self.cursor_line_width = cursor_line_width
+        self.cursor_color = cursor_color
+
+        for i, mdi in enumerate(self.mdi_area.subWindowList()):
+            widget = mdi.widget()
+            if isinstance(widget, Plot):
+                widget.plot.cursor1.show_circle = cursor_circle
+                widget.plot.cursor1.show_horizontal_line = cursor_horizontal_line
+                widget.plot.cursor1.line_width = cursor_line_width
+                widget.plot.cursor1.color = cursor_color
+                if widget.plot.region is not None:
+                    for cursor in widget.plot.region.lines:
+                        cursor.show_circle = cursor_circle
+                        cursor.show_horizontal_line = cursor_horizontal_line
+                        cursor.line_width = cursor_line_width
+                        cursor.color = cursor_color
+                widget.plot.update()

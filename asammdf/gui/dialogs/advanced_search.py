@@ -1,16 +1,28 @@
 # -*- coding: utf-8 -*-
 import re
+from traceback import format_exc
 
 from natsort import natsorted
 from PySide6 import QtCore, QtWidgets
 
-from ...blocks.utils import extract_cncomment_xml
+from ...blocks.utils import extract_xml_comment
 from ..ui import resource_rc
 from ..ui.search_dialog import Ui_SearchDialog
 from .range_editor import RangeEditor
 
 
 class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
+
+    NameColumn = 0
+    GroupColumn = 1
+    ChannelColumn = 2
+    UnitColumn = 3
+    SourceNameColumn = 4
+    SourcePathColumn = 5
+    CommentColumn = 6
+
+    columns = 7
+
     def __init__(
         self,
         mdf,
@@ -23,6 +35,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         show_search=True,
         window_title="Search & select channels",
         pattern=None,
+        computed_signals=None,
         *args,
         **kwargs,
     ):
@@ -31,6 +44,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.setupUi(self)
 
         self.selection.all_texts = True
+        self.computed_signals = computed_signals or {}
 
         self.result = {}
         self.add_window_request = False
@@ -95,15 +109,24 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
         self.setWindowTitle(window_title)
 
-        self.matches.setColumnWidth(0, 450)
-        self.matches.setColumnWidth(1, 40)
-        self.matches.setColumnWidth(2, 40)
-        self.matches.setColumnWidth(3, 170)
-        self.matches.setColumnWidth(4, 170)
+        self.matches.setColumnWidth(self.NameColumn, 450)
+        self.matches.setColumnWidth(self.GroupColumn, 40)
+        self.matches.setColumnWidth(self.ChannelColumn, 40)
+        self.matches.setColumnWidth(self.UnitColumn, 40)
+        self.matches.setColumnWidth(self.SourceNameColumn, 170)
+        self.matches.setColumnWidth(self.SourcePathColumn, 170)
+
+        self.showMaximized()
 
     def search_text_changed(self):
         text = self.search_box.text().strip()
+        extened_search = self.extended_search.checkState() == QtCore.Qt.Checked
+
         if len(text) >= 2:
+
+            self.matches.setSortingEnabled(False)
+            self.matches.clear()
+
             if self.match_kind.currentText() == "Wildcard":
                 pattern = text.replace("*", "_WILDCARD_")
                 pattern = re.escape(pattern)
@@ -113,40 +136,153 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
 
             try:
                 pattern = re.compile(f"(?i){pattern}")
-                found_names = [
-                    name for name in self.channels_db if pattern.fullmatch(name)
-                ]
 
-                matches = {}
-                for name in found_names:
-                    for entry in self.channels_db[name]:
+                if extened_search:
+                    matches = {}
 
-                        if entry not in matches:
-                            (group_index, channel_index) = entry
-                            ch = self.mdf.groups[group_index].channels[channel_index]
-                            cg = self.mdf.groups[group_index].channel_group
+                    for group_index, group in enumerate(self.mdf.groups):
+                        cg_source = group.channel_group.acq_source
 
-                            source = ch.source or cg.acq_source
+                        # check channel group source name
+
+                        if cg_source and (
+                            pattern.fullmatch(cg_source.name or "")
+                            or pattern.fullmatch(cg_source.path or "")
+                        ):
+                            matches.update(
+                                {
+                                    (group_index, channel_index): {
+                                        "names": [ch.name],
+                                        "comment": extract_xml_comment(
+                                            ch.comment
+                                        ).strip(),
+                                        "unit": ch.conversion
+                                        and ch.conversion.unit
+                                        or ch.unit,
+                                        "source_name": cg_source.name,
+                                        "source_path": cg_source.path,
+                                    }
+                                    for channel_index, ch in enumerate(group.channels)
+                                }
+                            )
+
+                        else:
+
+                            for channel_index, ch in enumerate(group.channels):
+
+                                entry = group_index, channel_index
+                                source = ch.source
+
+                                targets = [
+                                    ch.name,
+                                    *ch.display_names.values(),
+                                ]
+
+                                for target in targets:
+                                    if pattern.fullmatch(target):
+
+                                        if entry not in matches:
+                                            matches[entry] = {
+                                                "names": [target],
+                                                "comment": extract_xml_comment(
+                                                    ch.comment
+                                                ).strip(),
+                                                "unit": ch.conversion
+                                                and ch.conversion.unit
+                                                or ch.unit,
+                                                "source_name": source.name
+                                                if source
+                                                else "",
+                                                "source_path": source.path
+                                                if source
+                                                else "",
+                                            }
+                                        else:
+                                            matches[entry]["name"].append(target)
+
+                                if entry not in matches:
+                                    targets = [ch.unit, ch.comment]
+                                    if source:
+                                        targets.append(source.name)
+                                        targets.append(source.path)
+
+                                    for target in targets:
+                                        if pattern.fullmatch(target):
+
+                                            matches[entry] = {
+                                                "names": [ch.name],
+                                                "comment": extract_xml_comment(
+                                                    ch.comment
+                                                ).strip(),
+                                                "unit": ch.conversion
+                                                and ch.conversion.unit
+                                                or ch.unit,
+                                                "source_name": source.name
+                                                if source
+                                                else "",
+                                                "source_path": source.path
+                                                if source
+                                                else "",
+                                            }
+                                            break
+
+                else:
+                    found_names = [
+                        name for name in self.channels_db if pattern.fullmatch(name)
+                    ]
+
+                    matches = {}
+                    for name in found_names:
+                        for entry in self.channels_db[name]:
+
+                            if entry not in matches:
+                                (group_index, channel_index) = entry
+                                ch = self.mdf.groups[group_index].channels[
+                                    channel_index
+                                ]
+                                cg = self.mdf.groups[group_index].channel_group
+
+                                source = ch.source or cg.acq_source
+
+                                matches[entry] = {
+                                    "names": [],
+                                    "comment": extract_xml_comment(ch.comment).strip(),
+                                    "unit": ch.conversion
+                                    and ch.conversion.unit
+                                    or ch.unit,
+                                    "source_name": source.name if source else "",
+                                    "source_path": source.path if source else "",
+                                }
+
+                            info = matches[entry]
+
+                            if name == ch.name:
+                                info["names"].insert(0, name)
+                            else:
+                                info["names"].append(name)
+
+                    # computed channels search
+                    comp_ch_index = -1
+                    for sig in self.computed_signals.values():
+                        if pattern.fullmatch(sig.name):
+                            entry = -1, comp_ch_index
+                            comp_ch_index -= 1
 
                             matches[entry] = {
-                                "names": [],
-                                "comment": extract_cncomment_xml(ch.comment).strip(),
-                                "source_name": source.name if source else "",
-                                "source_path": source.path if source else "",
+                                "names": [sig.name],
+                                "comment": extract_xml_comment(sig.comment).strip(),
+                                "unit": sig.conversion
+                                and sig.conversion.unit
+                                or sig.unit,
+                                "source_name": "computed channel",
+                                "source_path": "",
                             }
-
-                        info = matches[entry]
-
-                        if name == ch.name:
-                            info["names"].insert(0, name)
-                        else:
-                            info["names"].append(name)
 
                 matches = [
                     (group_index, channel_index, info)
                     for (group_index, channel_index), info in matches.items()
                 ]
-                matches.sort(key=lambda x: info["names"][0])
+                matches.sort(key=lambda x: x[-1]["names"][0])
 
                 self.matches.clear()
                 for group_index, channel_index, info in matches:
@@ -157,6 +293,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                             names[0],
                             group_index,
                             channel_index,
+                            info["unit"],
                             info["source_name"],
                             info["source_path"],
                             info["comment"],
@@ -170,6 +307,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                 name,
                                 group_index,
                                 channel_index,
+                                info["unit"],
                                 info["source_name"],
                                 info["source_path"],
                                 info["comment"],
@@ -182,70 +320,70 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                         item.addChildren(children)
 
                 if matches:
-                    self.status.setText(f"{len(found_names)} results")
+                    self.status.setText(f"{self.matches.topLevelItemCount()} results")
                 else:
                     self.status.setText("No results")
 
                 self.matches.expandAll()
 
             except Exception as err:
+                print(format_exc())
                 self.status.setText(str(err))
-                self.matches.clear()
+
+            self.matches.setSortingEnabled(True)
 
     def _add(self, event):
         selection = set()
 
         iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
-        while iterator.value():
+        while True:
             item = iterator.value()
-            data = (
-                item.text(0),
-                item.text(1),
-                item.text(2),
-                item.text(3),
-                item.text(4),
-                item.text(5),
-            )
+
+            if item is None:
+                break
+
+            data = tuple(item.text(i) for i in range(self.columns))
             selection.add(data)
 
             iterator += 1
 
         for item in self.matches.selectedItems():
-            data = (
-                item.text(0),
-                item.text(1),
-                item.text(2),
-                item.text(3),
-                item.text(4),
-                item.text(5),
-            )
+            data = tuple(item.text(i) for i in range(self.columns))
             selection.add(data)
 
         selection = natsorted(selection)
 
         items = [QtWidgets.QTreeWidgetItem(texts) for texts in selection]
 
+        self.selection.setSortingEnabled(False)
         self.selection.clear()
         self.selection.addTopLevelItems(items)
+        self.selection.setSortingEnabled(True)
 
     def _apply(self, event=None):
         if self._return_names:
             self.result = set()
 
             iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
-            while iterator.value():
+            while True:
                 item = iterator.value()
-                self.result.add(item.text(0))
+                if item is None:
+                    break
+                self.result.add(item.text(self.NameColumn))
                 iterator += 1
         else:
             self.result = {}
 
             iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
-            while iterator.value():
+            while True:
                 item = iterator.value()
+                if item is None:
+                    break
 
-                entry = int(item.text(1)), int(item.text(2))
-                name = item.text(0)
+                entry = int(item.text(self.GroupColumn)), int(
+                    item.text(self.ChannelColumn)
+                )
+                name = item.text(self.NameColumn)
                 self.result[entry] = name
                 iterator += 1
 
@@ -303,26 +441,15 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         iterator = QtWidgets.QTreeWidgetItemIterator(self.selection)
         while iterator.value():
             item = iterator.value()
-            data = (
-                item.text(0),
-                item.text(1),
-                item.text(2),
-                item.text(3),
-                item.text(4),
-                item.text(5),
-            )
+            if item is None:
+                break
+
+            data = tuple(item.text(i) for i in range(self.columns))
             selection.add(data)
 
             iterator += 1
 
-        new_data = (
-            new_item.text(0),
-            new_item.text(1),
-            new_item.text(2),
-            new_item.text(3),
-            new_item.text(4),
-            new_item.text(5),
-        )
+        new_data = tuple(new_item.text(i) for i in range(self.columns))
 
         if new_data not in selection:
             selection.add(new_data)

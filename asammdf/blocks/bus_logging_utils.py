@@ -28,7 +28,7 @@ MAX_VALID_J1939 = {
 
 def defined_j1939_bit_count(signal):
     size = signal.size
-    for defined_size in (2, 4, 8, 10, 12, 16, 20, 24, 28, 32):
+    for defined_size in (2, 4, 8, 10, 12, 16, 20, 24, 28, 32, 64):
         if size <= defined_size:
             return defined_size
     return size

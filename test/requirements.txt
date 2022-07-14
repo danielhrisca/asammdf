@@ -1,5 +1,5 @@
 numexpr
-numpy>=1.16.1
+numpy>=1.23.0
 pandas
 pytest
 pytest-cov

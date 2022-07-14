@@ -17,7 +17,12 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from asammdf import MDF
 from asammdf.gui import utils
 from asammdf.gui.dialogs.range_editor import RangeEditor
-from asammdf.gui.utils import copy_ranges, extract_mime_names, get_colors_using_ranges
+from asammdf.gui.utils import (
+    copy_ranges,
+    extract_mime_names,
+    get_colors_using_ranges,
+    value_as_str,
+)
 from asammdf.gui.widgets.plot import PlotSignal
 
 from ..ui import resource_rc
@@ -456,53 +461,10 @@ class TableModel(QtCore.QAbstractTableModel):
 
             if cell is None:
                 return "●"
-
-            if isinstance(cell, (float, np.floating)):
-                if self.float_precision != -1:
-                    template = f"{{:.{self.float_precision}f}}"
-                    return template.format(cell)
-                else:
-                    return str(cell)
-
-            elif isinstance(cell, (int, np.integer)):
-                if signal.format == "hex":
-                    return f"0x{cell:X}"
-
-                elif signal.format == "bin":
-                    if cell < 0:
-                        sign = "-"
-                        cell = -cell
-                    else:
-                        sign = ""
-
-                    cell_str = f"{cell:b}"
-                    size = len(cell_str)
-
-                    if isinstance(cell, int):
-                        r = size % 4
-                        size += 4 - r
-                    else:
-                        size = cell.itemsize * 4
-
-                    fmt = f"{{:0>{size}}}"
-                    cell_str = fmt.format(cell_str)
-
-                    nibles = [cell_str[i * 4 : i * 4 + 4] for i in range(size // 4)]
-                    return f"{sign}0b {' '.join(nibles)}"
-
-                elif signal.format == "ascii":
-                    if 0 < cell < 0x110000:
-                        return chr(cell)
-                    else:
-                        return str(cell)
-
-                else:
-                    return str(cell)
-
             elif isinstance(cell, (bytes, np.bytes_)):
                 return cell.decode("utf-8", "replace")
-
-            return str(cell)
+            else:
+                return value_as_str(cell, signal.format, None, self.float_precision)
 
         elif role == QtCore.Qt.BackgroundRole:
 
@@ -549,35 +511,67 @@ class TableModel(QtCore.QAbstractTableModel):
             else:
                 return int(QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
 
-        elif role == QtCore.Qt.DecorationRole and col == 0:
-            if not signal.exists:
-                icon = utils.ERROR_ICON
-                if icon is None:
-                    utils.ERROR_ICON = QtGui.QIcon()
-                    utils.ERROR_ICON.addPixmap(
-                        QtGui.QPixmap(":/error.png"),
-                        QtGui.QIcon.Normal,
-                        QtGui.QIcon.Off,
-                    )
-
-                    utils.NO_ERROR_ICON = QtGui.QIcon()
-
+        elif role == QtCore.Qt.DecorationRole:
+            if col == 0:
+                if not signal.exists:
                     icon = utils.ERROR_ICON
-            else:
-                icon = utils.NO_ERROR_ICON
-                if icon is None:
-                    utils.ERROR_ICON = QtGui.QIcon()
-                    utils.ERROR_ICON.addPixmap(
-                        QtGui.QPixmap(":/error.png"),
-                        QtGui.QIcon.Normal,
-                        QtGui.QIcon.Off,
-                    )
+                    if icon is None:
+                        utils.ERROR_ICON = QtGui.QIcon()
+                        utils.ERROR_ICON.addPixmap(
+                            QtGui.QPixmap(":/error.png"),
+                            QtGui.QIcon.Normal,
+                            QtGui.QIcon.Off,
+                        )
 
-                    utils.NO_ERROR_ICON = QtGui.QIcon()
+                        utils.NO_ERROR_ICON = QtGui.QIcon()
 
+                        icon = utils.ERROR_ICON
+                else:
                     icon = utils.NO_ERROR_ICON
+                    if icon is None:
+                        utils.ERROR_ICON = QtGui.QIcon()
+                        utils.ERROR_ICON.addPixmap(
+                            QtGui.QPixmap(":/error.png"),
+                            QtGui.QIcon.Normal,
+                            QtGui.QIcon.Off,
+                        )
 
-            return icon
+                        utils.NO_ERROR_ICON = QtGui.QIcon()
+
+                        icon = utils.NO_ERROR_ICON
+
+                return icon
+
+            elif col in (1, 2):
+                has_ranges = bool(self.view.ranges.get(signal.entry, False))
+                if has_ranges:
+                    icon = utils.RANGE_INDICATOR_ICON
+                    if icon is None:
+                        utils.RANGE_INDICATOR_ICON = QtGui.QIcon()
+                        utils.RANGE_INDICATOR_ICON.addPixmap(
+                            QtGui.QPixmap(":/paint.png"),
+                            QtGui.QIcon.Normal,
+                            QtGui.QIcon.Off,
+                        )
+
+                        utils.NO_ERROR_ICON = QtGui.QIcon()
+
+                        icon = utils.RANGE_INDICATOR_ICON
+                else:
+                    icon = utils.NO_ERROR_ICON
+                    if icon is None:
+                        utils.RANGE_INDICATOR_ICON = QtGui.QIcon()
+                        utils.RANGE_INDICATOR_ICON.addPixmap(
+                            QtGui.QPixmap(":/paint.png"),
+                            QtGui.QIcon.Normal,
+                            QtGui.QIcon.Off,
+                        )
+
+                        utils.NO_ERROR_ICON = QtGui.QIcon()
+
+                        icon = utils.NO_ERROR_ICON
+
+                return icon
 
     def flags(self, index):
         return (
@@ -649,10 +643,10 @@ class TableView(QtWidgets.QTableView):
 
     def keyPressEvent(self, event):
 
-        if (
-            event.key() == QtCore.Qt.Key_Delete
-            and event.modifiers() == QtCore.Qt.NoModifier
-        ):
+        key = event.key()
+        modifiers = event.modifiers()
+
+        if key == QtCore.Qt.Key_Delete and modifiers == QtCore.Qt.NoModifier:
             selected_items = set(
                 index.row() for index in self.selectedIndexes() if index.isValid()
             )
@@ -662,6 +656,23 @@ class TableView(QtWidgets.QTableView):
                 del self.backend.map[signal.entry]
 
             self.backend.update()
+
+        elif key == QtCore.Qt.Key_R and modifiers == QtCore.Qt.ControlModifier:
+            selected_items = set(
+                index.row() for index in self.selectedIndexes() if index.isValid()
+            )
+
+            if selected_items:
+
+                dlg = RangeEditor("<selected items>", "", [], parent=self, brush=True)
+                dlg.exec_()
+                if dlg.pressed_button == "apply":
+                    ranges = dlg.result
+                    for row in selected_items:
+                        signal = self.backend.signals[row]
+                        self.ranges[signal.entry] = copy_ranges(ranges)
+
+                    self.backend.update()
 
         else:
             super().keyPressEvent(event)
@@ -739,7 +750,7 @@ class TableView(QtWidgets.QTableView):
         signal = self.backend.signals[row]
 
         dlg = RangeEditor(
-            signal.name, "", self.ranges[signal.entry], parent=self, brush=True
+            signal.name, signal.unit, self.ranges[signal.entry], parent=self, brush=True
         )
         dlg.exec_()
         if dlg.pressed_button == "apply":
@@ -1189,6 +1200,9 @@ class Numeric(QtWidgets.QWidget):
         if self.mode == "offline":
             self.pattern = {}
 
+            self._min = float("inf")
+            self._max = -float("inf")
+
             self.timestamp.valueChanged.connect(self._timestamp_changed)
             self.timestamp_slider.valueChanged.connect(self._timestamp_slider_changed)
 
@@ -1279,55 +1293,27 @@ class Numeric(QtWidgets.QWidget):
 
     def to_config(self):
 
-        if self.mode == "online":
+        channels = []
+        for signal in self.channels.backend.signals:
+            ranges = self.channels.dataView.ranges[signal.entry]
+            ranges = copy_ranges(ranges)
 
-            channels = []
-            for signal in self.channels.backend.signals:
-                ranges = self.channels.dataView.ranges[signal.entry]
-                ranges = copy_ranges(ranges)
-
-                for range_info in ranges:
-                    range_info["font_color"] = range_info["font_color"].color().name()
-                    range_info["background_color"] = (
-                        range_info["background_color"].color().name()
-                    )
-
-                channels.append(
-                    {
-                        "origin_uuid": str(signal.entry[0]),
-                        "name": signal.name,
-                        "ranges": ranges,
-                        "format": signal.format,
-                    }
+            for range_info in ranges:
+                range_info["font_color"] = range_info["font_color"].color().name()
+                range_info["background_color"] = (
+                    range_info["background_color"].color().name()
                 )
 
-            config = {
-                "format": "Physical",
-                "mode": "",
-                "channels": channels,
-                "float_precision": self.float_precision.currentIndex() - 1,
-                "header_sections_width": [
-                    self.channels.columnHeader.horizontalHeader().sectionSize(i)
-                    for i in range(
-                        self.channels.columnHeader.horizontalHeader().count()
-                    )
-                ],
-            }
+            channels.append(
+                {
+                    "origin_uuid": str(signal.entry[0]),
+                    "name": signal.name,
+                    "ranges": ranges,
+                    "format": signal.format,
+                }
+            )
 
-        else:
-            channels = {}
-            for signal in self.channels.backend.signals:
-                ranges = self.channels.dataView.ranges[signal.entry]
-                ranges = copy_ranges(ranges)
-
-                for range_info in ranges:
-                    range_info["font_color"] = range_info["font_color"].color().name()
-                    range_info["background_color"] = (
-                        range_info["background_color"].color().name()
-                    )
-
-                channels[signal.name] = (ranges, signal.format)
-
+        if self.mode == "offline":
             pattern = self.pattern
             if pattern:
                 ranges = copy_ranges(pattern["ranges"])
@@ -1339,26 +1325,20 @@ class Numeric(QtWidgets.QWidget):
                     )
 
                 pattern["ranges"] = ranges
+        else:
+            pattern = {}
 
-            config = {
-                "format": "Physical",
-                "mode": self.mode,
-                "channels": list(channels) if not self.pattern else [],
-                "ranges": [elem[0] for elem in channels.values()]
-                if not self.pattern
-                else [],
-                "formats": [elem[1] for elem in channels.values()]
-                if not self.pattern
-                else [],
-                "pattern": pattern,
-                "float_precision": self.float_precision.currentIndex() - 1,
-                "header_sections_width": [
-                    self.channels.columnHeader.horizontalHeader().sectionSize(i)
-                    for i in range(
-                        self.channels.columnHeader.horizontalHeader().count()
-                    )
-                ],
-            }
+        config = {
+            "format": "Physical",
+            "mode": self.mode,
+            "channels": channels,
+            "pattern": pattern,
+            "float_precision": self.float_precision.currentIndex() - 1,
+            "header_sections_width": [
+                self.channels.columnHeader.horizontalHeader().sectionSize(i)
+                for i in range(self.channels.columnHeader.horizontalHeader().count())
+            ],
+        }
 
         return config
 

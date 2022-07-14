@@ -48,37 +48,12 @@ class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
     def set_stats(self, stats):
         if stats:
             for name, value in stats.items():
-                #                try:
-                #                    if value.dtype.kind in "ui":
-                #                        sign = "-" if value < 0 else ""
-                #                        value = abs(value)
-                #                        if self.fmt == "hex":
-                #                            value = f"{sign}0x{value:X}"
-                #                        elif self.fmt == "bin":
-                #                            value = f"{sign}0b{value:b}"
-                #                        else:
-                #                            value = f"{sign}{value}"
-                #                    else:
-                #                        value = f"{value:.6f}"
-                #                except AttributeError:
-                #                    if isinstance(value, int):
-                #                        sign = "-" if value < 0 else ""
-                #                        value = abs(value)
-                #                        if self.fmt == "hex":
-                #                            value = f"{sign}0x{value:X}"
-                #                        elif self.fmt == "bin":
-                #                            value = f"{sign}0b{value:b}"
-                #                        else:
-                #                            value = f"{sign}{value}"
-                #                    elif isinstance(value, float):
-                #                        value = f"{value:.6f}"
-                #                    else:
-                #                        value = value
 
                 if name == "unit":
-                    for i in range(1, 20):
+                    for i in range(1, 23):
                         label = self.findChild(QtWidgets.QLabel, f"unit{i}")
-                        label.setText(f" {value}")
+                        if label:
+                            label.setText(f" {value}")
                     self.selected_gradient_unit.setText(f" {value}/{self.xunit}")
                     self.visible_gradient_unit.setText(f" {value}/{self.xunit}")
                     self.overall_gradient_unit.setText(f" {value}/{self.xunit}")

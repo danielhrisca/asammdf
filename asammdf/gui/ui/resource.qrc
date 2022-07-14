@@ -62,5 +62,10 @@
     <file alias="increase-font.png">images/increase-font.png</file>
     <file alias="locked.png">images/locked.png</file>
     <file alias="unlocked.png">images/unlocked.png</file>
+    <file alias="axis.png">images/axis.png</file>
+    <file alias="number.png">images/number.png</file>
+    <file alias="focus.png">images/focus.png</file>
+    <file alias="right2.png">images/right2.png</file>
+    <file alias="left2.png">images/left2.png</file>
 </qresource>
 </RCC>

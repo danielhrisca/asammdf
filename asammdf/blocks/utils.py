@@ -99,7 +99,7 @@ __all__ = [
     "fmt_to_datatype_v3",
     "fmt_to_datatype_v4",
     "matlab_compatible",
-    "extract_cncomment_xml",
+    "extract_xml_comment",
     "validate_version_argument",
     "MDF2_VERSIONS",
     "MDF3_VERSIONS",
@@ -133,7 +133,7 @@ class MdfException(Exception):
     pass
 
 
-def extract_cncomment_xml(comment: str) -> str:
+def extract_xml_comment(comment: str) -> str:
     """extract *TX* tag or otherwise the *common_properties* from a xml comment
 
     Parameters

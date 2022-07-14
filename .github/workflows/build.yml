@@ -1,19 +1,14 @@
 name: build
 
-on:
-  push:
-    # see: https://docs.github.com/en/actions/learn-github-actions/workflow-syntax-for-github-actions#filter-pattern-cheat-sheet
-    tags:
-      - "[0-9]+.[0-9]+.[0-9]+" # stable releases
-      - "[0-9]+.[0-9]+.[0-9]+.dev[0-9]+" # dev releases
+on: [push, pull_request]
 
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        os: [ubuntu-22.04, macos-latest, windows-latest]
+        python-version: ["3.8", "3.9", "3.10"]
 
     steps:
       - uses: actions/checkout@v2
@@ -25,22 +20,33 @@ jobs:
 
       - name: Install packages
         run: |
-            pip install build pyinstaller==4.5.1 numpy wheel 
+            pip install build pyinstaller==4.10 numpy wheel 
             pip install -r requirements_exe_build.txt
             python setup.py bdist_wheel
             pip install -e . --no-deps
             pip install cmerg
 
       - name: Build a source tarball
-        if: ${{ matrix.python-version == '3.9' && matrix.os == 'ubuntu-latest' }}
+        if: ${{ matrix.python-version == '3.9' && matrix.os == 'ubuntu-22.04' }}
         run: python -m build --sdist
 
       - name: Build a binary wheel
         run: python -m build --wheel
 
       - name: Build an executable
-        if: ${{ matrix.python-version == '3.7' }}
-        run: pyinstaller asammdf.spec --distpath dist/${RUNNER_OS} --onefile
+        shell: bash
+        if: ${{ matrix.python-version == '3.10' }}
+        run: |
+            pip install build pyinstaller==4.10 numpy wheel
+            pip install -r requirements_exe_build.txt
+            python setup.py bdist_wheel
+            pip install -e . --no-deps
+            pip install cmerg
+            if [ "$RUNNER_OS" == "Linux" ]; then
+                 sudo apt update
+                 sudo apt install libegl1
+            fi
+            pyinstaller asammdf.spec --distpath dist/${RUNNER_OS} --noconfirm --clean --onefile
 
       # see: https://docs.github.com/en/actions/advanced-guides/storing-workflow-data-as-artifacts
       - name: Archive dist artifacts

@@ -23,6 +23,23 @@ class ErrorDialog(Ui_ErrorDialog, QtWidgets.QDialog):
         self.setupUi(self)
 
         self.trace = QtWidgets.QTextEdit()
+
+        families = QtGui.QFontDatabase().families()
+        for family in (
+            "Consolas",
+            "Liberation Mono",
+            "DejaVu Sans Mono",
+            "Droid Sans Mono",
+            "Liberation Mono",
+            "Roboto Mono",
+            "Monaco",
+            "Courier",
+        ):
+            if family in families:
+                break
+
+        font = QtGui.QFont(family)
+        self.trace.setFont(font)
         self.layout.insertWidget(2, self.trace)
         self.trace.hide()
         self.trace.setText(trace)
