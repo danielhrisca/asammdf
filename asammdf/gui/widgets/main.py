@@ -87,6 +87,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         self.progress = None
 
+        self.files.currentChanged.connect(self.onFileTabChange)
         self.files.tabCloseRequested.connect(self.close_file)
         self.stackedWidget.currentChanged.connect(self.mode_changed)
 
@@ -768,6 +769,12 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.show()
         self.fullscreen = None
 
+    def onFileTabChange(self, idx): 
+        fileWidget = self.files.widget(idx)
+        if fileWidget:
+            fileWidget.update_all_channel_trees()
+        
+
     def sizeHint(self):
         return QtCore.QSize(1, 1)
 
@@ -1113,7 +1120,8 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         for i in range(count):
             self.files.widget(i).display_cg_name = state
-            self.files.widget(i).update_all_channel_trees()
+            if self.files.widget(i).isVisible():
+                self.files.widget(i).update_all_channel_trees()
 
         self.batch.display_cg_name = state
 
