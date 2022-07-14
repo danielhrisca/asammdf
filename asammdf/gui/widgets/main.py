@@ -769,11 +769,10 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         self.show()
         self.fullscreen = None
 
-    def onFileTabChange(self, idx): 
+    def onFileTabChange(self, idx):
         fileWidget = self.files.widget(idx)
         if fileWidget:
             fileWidget.update_all_channel_trees()
-        
 
     def sizeHint(self):
         return QtCore.QSize(1, 1)

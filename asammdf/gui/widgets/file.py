@@ -461,7 +461,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.raster_channel.setEnabled(False)
             self.raster_channel.setCurrentIndex(0)
             self.raster.setEnabled(True)
-    
+
     def update_all_channel_trees(self):
         widgetList = [self.channels_tree, self.filter_tree]
         for widget in widgetList:
@@ -559,7 +559,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         )
 
                         channel_group.setIcon(0, icon)
-                
+
                 if self.display_cg_name:
                     base_name = f"CG {i} {group.channel_group.acq_name}"
                 else:
@@ -568,7 +568,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     name = base_name + f" ({comment})"
                 else:
                     name = base_name
-                
+
                 channel_group.setText(0, name)
                 channel_group.setFlags(
                     channel_group.flags()
@@ -1964,7 +1964,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             base_name = f"CG {i} {group.channel_group.acq_name}"
                         else:
                             base_name = f"Channel group {i}"
-                            
+
                         if comment:
                             name = base_name + f" ({comment})"
                         else:
@@ -2126,7 +2126,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     comment = extract_xml_comment(channel_group.comment)
                 else:
                     comment = ""
-
 
                 if self.display_cg_name:
                     base_name = f"CG {i} {channel_group.acq_name}"
