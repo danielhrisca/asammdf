@@ -100,6 +100,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         subplots=False,
         subplots_link=False,
         ignore_value2text_conversions=False,
+        display_cg_name=False,
         line_interconnect="line",
         line_width=1,
         password=None,
@@ -125,6 +126,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         self.hide_missing_channels = hide_missing_channels
         self.hide_disabled_channels = hide_disabled_channels
+        self.display_cg_name = display_cg_name
 
         file_name = Path(file_name)
         self.subplots = subplots
@@ -460,15 +462,18 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.raster_channel.setCurrentIndex(0)
             self.raster.setEnabled(True)
 
+    def update_all_channel_trees(self):
+        widgetList = [self.channels_tree, self.filter_tree]
+        for widget in widgetList:
+            self._update_channel_tree(widget=widget)
+
     def _update_channel_tree(self, index=None, widget=None):
 
         if widget is None:
             widget = self.channels_tree
         if widget is self.channels_tree and self.channel_view.currentIndex() == -1:
             return
-        elif widget is self.filter_tree and (
-            self.filter_view.currentIndex() == -1 or not self._show_filter_tree
-        ):
+        elif widget is self.filter_tree and (self.filter_view.currentIndex() == -1):
             return
 
         view = self.channel_view if widget is self.channels_tree else self.filter_view
@@ -555,10 +560,16 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         channel_group.setIcon(0, icon)
 
-                if comment:
-                    channel_group.setText(0, f"Channel group {i} ({comment})")
+                if self.display_cg_name:
+                    base_name = f"CG {i} {group.channel_group.acq_name}"
                 else:
-                    channel_group.setText(0, f"Channel group {i}")
+                    base_name = f"Channel group {i}"
+                if comment:
+                    name = base_name + f" ({comment})"
+                else:
+                    name = base_name
+
+                channel_group.setText(0, name)
                 channel_group.setFlags(
                     channel_group.flags()
                     | QtCore.Qt.ItemIsAutoTristate
@@ -1949,10 +1960,18 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         channel_group = TreeItem(entry)
                         comment = extract_xml_comment(group.channel_group.comment)
 
-                        if comment:
-                            channel_group.setText(0, f"Channel group {i} ({comment})")
+                        if self.display_cg_name:
+                            base_name = f"CG {i} {group.channel_group.acq_name}"
                         else:
-                            channel_group.setText(0, f"Channel group {i}")
+                            base_name = f"Channel group {i}"
+
+                        if comment:
+                            name = base_name + f" ({comment})"
+                        else:
+                            name = base_name
+
+                        channel_group.setText(0, name)
+
                         channel_group.setFlags(
                             channel_group.flags()
                             | QtCore.Qt.ItemIsAutoTristate
@@ -2107,10 +2126,15 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     comment = extract_xml_comment(channel_group.comment)
                 else:
                     comment = ""
-                if comment:
-                    name = f"Channel group {i} ({comment})"
+
+                if self.display_cg_name:
+                    base_name = f"CG {i} {channel_group.acq_name}"
                 else:
-                    name = f"Channel group {i}"
+                    base_name = f"Channel group {i}"
+                if comment:
+                    name = base_name + f" ({comment})"
+                else:
+                    name = base_name
 
                 cycles = channel_group.cycles_nr
 
