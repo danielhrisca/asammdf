@@ -2492,11 +2492,11 @@ class WithMDIArea:
             all_timebase = []
 
         if self.mdf._fill_0_for_missing_computation_channels:
-            for channel in not_found_for_computed:
+            for channel_name in not_found_for_computed:
                 signal = Signal(
                     samples=np.zeros(len(all_timebase), dtype="f8"),
                     timestamps=all_timebase,
-                    name=channel,
+                    name=channel_name,
                 )
                 signal.color = "#000000"
                 signal.computed = False
