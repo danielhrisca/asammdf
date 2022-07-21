@@ -817,14 +817,13 @@ def debug_channel(
     print("write fragment size:", mdf._write_fragment_size, file=file)
     print()
 
-    parents, dtypes = mdf._prepare_record(group)
+    record = mdf._prepare_record(group)
     print("GROUP", "=" * 74, file=file)
     print("sorted:", group["sorted"], file=file)
     print("data location:", group["data_location"], file=file)
     print("data blocks:", group.data_blocks, file=file)
     print("dependencies", group["channel_dependencies"], file=file)
-    print("parents:", parents, file=file)
-    print("dtypes:", dtypes, file=file)
+    print("record:", record, file=file)
     print(file=file)
 
     cg = group["channel_group"]

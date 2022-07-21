@@ -1624,7 +1624,7 @@ class MDF4(MDF_Common):
 
     def _prepare_record(
         self, group: Group
-    ) -> tuple[dict[int, tuple[str, int]], dtype[Any]]:
+    ) -> list:
         """compute record
 
         Parameters

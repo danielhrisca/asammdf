@@ -3201,13 +3201,15 @@ class Plot(QtWidgets.QWidget):
 
                 _item_cache[item.uuid] = item
 
-                if item.exists and (
+                if item.uuid == self.info_uuid or item.exists and (
                     item.checkState(item.NameColumn) == QtCore.Qt.Checked
                     or item._is_visible
                 ):
                     entry = (item.origin_uuid, item.signal.name, item.uuid)
                     _visible_entries.add(entry)
                     _visible_items[entry] = item
+
+
 
         if self.plot.cursor1 is not None:
             self.cursor_moved()
