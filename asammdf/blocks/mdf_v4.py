@@ -10550,6 +10550,8 @@ class MDF4(MDF_Common):
                 bus_map = self.bus_logging_map["CAN"].setdefault(bus, {})
                 bus_map[int(msg_id)] = group_index
 
+            self._set_temporary_master(None)
+
         elif dbc is None:
             self._prepare_record(group)
             data = self._load_data(group, optimize_read=False)
