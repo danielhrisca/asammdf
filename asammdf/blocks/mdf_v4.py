@@ -1072,13 +1072,24 @@ class MDF4(MDF_Common):
                     if ca_block.storage != v4c.CA_STORAGE_TYPE_CN_TEMPLATE:
                         logger.warning("Only CN template arrays are supported")
                     ca_list = [ca_block]
+
                     while ca_block.composition_addr:
-                        ca_block = ChannelArrayBlock(
-                            address=ca_block.composition_addr,
-                            stream=stream,
-                            mapped=mapped,
-                        )
-                        ca_list.append(ca_block)
+                        stream.seek(ca_block.composition_addr)
+                        blk_id = stream.read(4)
+                        if blk_id == b"##CA":
+                            ca_block = ChannelArrayBlock(
+                                address=ca_block.composition_addr,
+                                stream=stream,
+                                mapped=mapped,
+                            )
+                            ca_list.append(ca_block)
+                        else:
+                            logger.warning(
+                                "skipping CN block; CN block within CA block"
+                                " is not implemented yet"
+                            )
+                            break
+
                     dependencies.append(ca_list)
 
                     channel.dtype_fmt = dtype(
