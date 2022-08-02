@@ -4404,11 +4404,14 @@ class _Plot(pg.PlotWidget):
                 QtCore.Qt.NoModifier,
                 QtCore.Qt.ControlModifier,
             ):
-                if modifier == QtCore.Qt.ControlModifier:
-                    increment = 20
-                else:
-                    increment = 1
-                if self.cursor1:
+
+                if self.region is None:
+
+                    if modifier == QtCore.Qt.ControlModifier:
+                        increment = 20
+                    else:
+                        increment = 1
+
                     prev_pos = pos = self.cursor1.value()
                     x = self.get_current_timebase()
                     dim = x.size
@@ -4440,6 +4443,42 @@ class _Plot(pg.PlotWidget):
                         )
 
                     self.cursor1.set_value(pos)
+
+                else:
+                    increment = 1
+                    start, stop = self.region.getRegion()
+
+                    if modifier == QtCore.Qt.ControlModifier:
+                        prev_pos = pos = stop
+                        second_pos = start
+                    else:
+                        prev_pos = pos = start
+                        second_pos = stop
+
+                    x = self.get_current_timebase()
+                    dim = x.size
+                    if dim:
+                        pos = np.searchsorted(x, pos)
+                        if key == QtCore.Qt.Key_Right:
+                            pos += increment
+                        else:
+                            pos -= increment
+                        pos = np.clip(pos, 0, dim - increment)
+                        pos = x[pos]
+                    else:
+                        if key == QtCore.Qt.Key_Right:
+                            pos += increment
+                        else:
+                            pos -= increment
+
+                    (left_side, right_side), _ = self.viewbox.viewRange()
+
+                    if pos >= right_side:
+                        self.viewbox.setXRange(left_side, pos, padding=0)
+                    elif pos <= left_side:
+                        self.viewbox.setXRange(pos, right_side, padding=0)
+
+                    self.region.setRegion(tuple(sorted((second_pos, pos))))
 
             elif (
                 key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right)
