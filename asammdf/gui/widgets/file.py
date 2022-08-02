@@ -1921,8 +1921,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             else:
                 widget.hide()
 
-        print(self.modify.isHidden(), self.channels_tab.isHidden(), self.sizeHint())
-
         if self.aspects.tabText(current_index) == "Modify && Export":
 
             if not self.raster_channel.count():
@@ -1994,14 +1992,14 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             version=self.mdf.version,
                         )
 
-                for w in self.mdi_area.subWindowList():
-                    widget = w.widget()
-                    if isinstance(widget, Plot):
-                        if widget.plot.region is not None:
-                            start, stop = widget.plot.region.getRegion()
-                            self.cut_start.setValue(start)
-                            self.cut_stop.setValue(stop)
-                            break
+            for w in self.mdi_area.subWindowList():
+                widget = w.widget()
+                if isinstance(widget, Plot):
+                    if widget.plot.region is not None:
+                        start, stop = widget.plot.region.getRegion()
+                        self.cut_start.setValue(start)
+                        self.cut_stop.setValue(stop)
+                        break
 
         elif self.aspects.tabText(current_index) == "Info":
             self.info.clear()

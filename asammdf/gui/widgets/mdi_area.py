@@ -2226,7 +2226,10 @@ class WithMDIArea:
                         events.append(event)
         else:
             events = []
-            origin = self.files.widget(0).mdf.start_time
+            if isinstance(self.files, QtWidgets.QMdiArea):
+                origin = self.files.subWindowList()[0].widget().mdf.start_time
+            else:
+                origin = self.files.widget(0).mdf.start_time
 
         if hasattr(self, "mdf"):
             mdf = self.mdf
@@ -3108,7 +3111,10 @@ class WithMDIArea:
                         events.append(event)
         else:
             events = []
-            origin = self.files.widget(0).mdf.start_time
+            if isinstance(self.files, QtWidgets.QMdiArea):
+                origin = self.files.subWindowList()[0].widget().mdf.start_time
+            else:
+                origin = self.files.widget(0).mdf.start_time
 
         if hasattr(self, "mdf"):
             mdf = self.mdf
@@ -3692,10 +3698,16 @@ class WithMDIArea:
 
     def file_by_uuid(self, uuid):
         try:
-            for file_index in range(self.files.count()):
-                if self.files.widget(file_index).uuid == uuid:
-                    return file_index, self.files.widget(file_index)
-            return None
+            if isinstance(self.files, QtWidgets.QMdiArea):
+                for file_index, file_window in enumerate(self.files.subWindowList()):
+                    if file_window.widget().uuid == uuid:
+                        return file_index, file_window.widget()
+                return None
+            else:
+                for file_index in range(self.files.count()):
+                    if self.files.widget(file_index).uuid == uuid:
+                        return file_index, self.files.widget(file_index)
+                return None
         except:
             if self.uuid == uuid:
                 return 0, self

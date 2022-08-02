@@ -501,9 +501,7 @@ class MDF3(MDF_Common):
         if not has_yielded:
             yield b"", 0, _count
 
-    def _prepare_record(
-        self, group: Group
-    ) -> list:
+    def _prepare_record(self, group: Group) -> list:
         """compute record list
 
         Parameters

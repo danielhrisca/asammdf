@@ -1622,9 +1622,7 @@ class MDF4(MDF_Common):
                 else:
                     yield b"", 0, 0, None
 
-    def _prepare_record(
-        self, group: Group
-    ) -> list:
+    def _prepare_record(self, group: Group) -> list:
         """compute record
 
         Parameters
