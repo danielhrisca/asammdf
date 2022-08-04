@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'file_widget.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.3.0
+## Created by: Qt User Interface Compiler version 6.3.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -210,16 +210,12 @@ class Ui_file_widget(object):
 
         self.horizontalLayout.addLayout(self.verticalLayout_6)
 
-        self.horizontalSpacer_3 = QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        self.horizontalLayout.addItem(self.horizontalSpacer_3)
-
         self.scrollArea = QScrollArea(self.modify)
         self.scrollArea.setObjectName(u"scrollArea")
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 213, 822))
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 323, 839))
         self.verticalLayout_4 = QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_4.setObjectName(u"verticalLayout_4")
         self.verticalLayout_3 = QVBoxLayout()
@@ -716,8 +712,6 @@ class Ui_file_widget(object):
 
         self.horizontalLayout.addWidget(self.scrollArea)
 
-        self.horizontalLayout.setStretch(0, 1)
-        self.horizontalLayout.setStretch(1, 1)
         icon7 = QIcon()
         icon7.addFile(u":/convert.png", QSize(), QIcon.Normal, QIcon.Off)
         self.aspects.addTab(self.modify, icon7, "")
@@ -1034,7 +1028,7 @@ class Ui_file_widget(object):
 
         self.retranslateUi(file_widget)
 
-        self.aspects.setCurrentIndex(2)
+        self.aspects.setCurrentIndex(1)
         self.output_options.setCurrentIndex(0)
         self.quoting.setCurrentIndex(1)
         self.tabWidget.setCurrentIndex(1)

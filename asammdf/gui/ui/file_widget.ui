@@ -50,7 +50,7 @@
       <enum>QTabWidget::West</enum>
      </property>
      <property name="currentIndex">
-      <number>2</number>
+      <number>1</number>
      </property>
      <property name="documentMode">
       <bool>false</bool>
@@ -233,7 +233,7 @@
       <attribute name="title">
        <string>Modify &amp;&amp; Export</string>
       </attribute>
-      <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,1,0,0">
+      <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0">
        <item>
         <layout class="QVBoxLayout" name="verticalLayout_2">
          <item>
@@ -367,19 +367,6 @@
         </layout>
        </item>
        <item>
-        <spacer name="horizontalSpacer_3">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>10</width>
-           <height>10</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item>
         <widget class="QScrollArea" name="scrollArea">
          <property name="widgetResizable">
           <bool>true</bool>
@@ -389,8 +376,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>213</width>
-            <height>822</height>
+            <width>323</width>
+            <height>839</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_4">

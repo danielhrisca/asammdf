@@ -2701,6 +2701,22 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             # then save it
             progress.setLabelText(f'Saving output file "{file_name}"')
 
+            handle_overwrite = Path(file_name) == self.mdf.name
+
+            if handle_overwrite:
+                dspf = self.to_config()
+
+                _password = self.mdf._password
+                self.mdf.close()
+
+                windows = list(self.mdi_area.subWindowList())
+                for window in windows:
+                    widget = window.widget()
+                    self.mdi_area.removeSubWindow(window)
+                    widget.setParent(None)
+                    widget.close()
+                    window.close()
+
             target = mdf.save
             kwargs = {
                 "dst": file_name,
@@ -2719,6 +2735,28 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             self.progress = None
             progress.cancel()
+
+            if handle_overwrite:
+
+                original_name = file_name
+
+                target = MDF
+                kwargs = {
+                    "name": file_name,
+                    "callback": self.update_progress,
+                    "password": _password,
+                    "use_display_names": True,
+                }
+
+                self.mdf = MDF(**kwargs)
+
+                self.mdf.original_name = original_name
+                self.mdf.uuid = self.uuid
+
+                self.aspects.setCurrentIndex(0)
+                self.load_channel_list(file_name=dspf)
+
+                self.aspects.setCurrentIndex(1)
 
         else:
             if progress is None:
