@@ -475,8 +475,9 @@ class MDF4(MDF_Common):
         stream.seek(0)
 
         cg_count, _ = count_channel_groups(stream)
+        progress_steps = cg_count + 2
         if self._callback:
-            self._callback(0, cg_count)
+            self._callback(0, progress_steps)
         current_cg_index = 0
 
         self.identification = FileIdentificationBlock(stream=stream, mapped=mapped)
@@ -608,7 +609,7 @@ class MDF4(MDF_Common):
 
                 current_cg_index += 1
                 if self._callback:
-                    self._callback(current_cg_index, cg_count)
+                    self._callback(current_cg_index, progress_steps)
 
                 if self._terminate:
                     self.close()
@@ -775,6 +776,8 @@ class MDF4(MDF_Common):
                         break
 
         self._sort()
+        if self._callback:
+            self._callback(cg_count+1, progress_steps)
 
         for grp in self.groups:
             channels = grp.channels
@@ -827,6 +830,9 @@ class MDF4(MDF_Common):
 
         self._interned_strings.clear()
         self._attachments_map.clear()
+
+        if self._callback:
+            self._callback(progress_steps, progress_steps)
 
         self.progress = cg_count, cg_count
 
