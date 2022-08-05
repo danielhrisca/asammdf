@@ -1028,10 +1028,10 @@ class Ui_file_widget(object):
 
         self.retranslateUi(file_widget)
 
-        self.aspects.setCurrentIndex(1)
+        self.aspects.setCurrentIndex(0)
         self.output_options.setCurrentIndex(0)
         self.quoting.setCurrentIndex(1)
-        self.tabWidget.setCurrentIndex(1)
+        self.tabWidget.setCurrentIndex(0)
         self.quoting_bus.setCurrentIndex(1)
 
 

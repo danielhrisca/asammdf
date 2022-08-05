@@ -1361,6 +1361,8 @@ class Plot(QtWidgets.QWidget):
     splitter_moved = QtCore.Signal(object, int)
     pattern_group_added = QtCore.Signal(object, object)
 
+    item_double_click_handling = "toggle"
+
     def __init__(
         self,
         signals,
@@ -1759,8 +1761,9 @@ class Plot(QtWidgets.QWidget):
         self.splitter.splitterMoved.connect(self.set_splitter)
         self.line_width = line_width
 
-        self.hide_selected_channel_value(hide=True)
+        self.hide_selected_channel_value(hide=False)
         self.toggle_focused_mode(focused=False)
+        self.toggle_region_values_display_mode(mode="value")
 
         self.show()
 
@@ -2245,13 +2248,20 @@ class Plot(QtWidgets.QWidget):
                     else:
                         item.setCheckState(item.NameColumn, QtCore.Qt.Checked)
             elif item.type() == item.Group:
-                if item.isDisabled():
-                    item.set_disabled(False)
-                    item.setIcon(item.NameColumn, QtGui.QIcon(":/open.png"))
-                else:
-                    item.set_disabled(True)
-                    item.setIcon(item.NameColumn, QtGui.QIcon(":/erase.png"))
-                self.plot.update()
+
+                if Plot.item_double_click_handling == "toggle":
+                    if self.expandsOnDoubleClick():
+                        self.setExpandsOnDoubleClick(False)
+                    if item.isDisabled():
+                        item.set_disabled(False)
+                        item.setIcon(item.NameColumn, QtGui.QIcon(":/open.png"))
+                    else:
+                        item.set_disabled(True)
+                        item.setIcon(item.NameColumn, QtGui.QIcon(":/erase.png"))
+                    self.plot.update()
+                elif Plot.item_double_click_handling == "expand/collapse":
+                    if not self.expandsOnDoubleClick():
+                        self.setExpandsOnDoubleClick(True)
 
     def channel_selection_reduced(self, deleted):
         self.plot.delete_channels(deleted)
@@ -3158,6 +3168,8 @@ class Plot(QtWidgets.QWidget):
             self.region_values_display_mode = (
                 "delta" if self.region_values_display_mode == "value" else "value"
             )
+        else:
+            self.region_values_display_mode = mode
 
         if self.region_values_display_mode == "value":
             self.delta_btn.setFlat(True)
@@ -3346,6 +3358,7 @@ class _Plot(pg.PlotWidget):
         )
 
         self.viewbox.menu.removeAction(self.viewbox.menu.viewAll)
+        self.scene_.contextMenu = []
         for ax in self.viewbox.menu.axes:
             self.viewbox.menu.removeAction(ax.menuAction())
         self.plot_item.setMenuEnabled(False, None)

@@ -576,6 +576,7 @@ class WithMDIArea:
             )
 
     def add_new_channels(self, names, widget, mime_data=None):
+
         if isinstance(widget, Plot):
             ignore_value2text_conversions = False
             current_count = len(widget.plot.signals)
@@ -831,15 +832,6 @@ class WithMDIArea:
                 sigs = signals
 
                 if computed:
-                    measured_signals = {sig.name: sig for sig in sigs.values()}
-                    if measured_signals:
-                        all_timebase = np.unique(
-                            np.concatenate(
-                                [sig.timestamps for sig in measured_signals.values()]
-                            )
-                        )
-                    else:
-                        all_timebase = []
 
                     required_channels = []
                     for ch in computed:
@@ -847,31 +839,14 @@ class WithMDIArea:
 
                     required_channels = set(required_channels)
 
+                    measured_signals = {sig.name: sig for sig in sigs.values()}
+
                     not_found_for_computed = [
                         channel
                         for channel in required_channels
                         if channel not in list(measured_signals)
                         and channel not in self.mdf
                     ]
-
-                    if self.mdf._fill_0_for_missing_computation_channels:
-                        for channel in not_found_for_computed:
-                            signal = Signal(
-                                samples=np.zeros(len(all_timebase), dtype="f8"),
-                                timestamps=all_timebase,
-                                name=channel,
-                            )
-                            signal.color = "#000000"
-                            signal.computed = False
-                            signal.computation = {}
-                            signal.unit = ""
-                            signal.group_index = -1
-                            signal.channel_index = -1
-                            signal.origin_uuid = self.uuid
-                            signal.comment = ""
-                            signal.uuid = os.urandom(6).hex()
-
-                            measured_signals[signal.name] = signal
 
                     required_channels = [
                         (None, *self.mdf.whereis(channel)[0])
@@ -892,6 +867,37 @@ class WithMDIArea:
                     required_channels = {
                         key: sig.physical() for key, sig in required_channels.items()
                     }
+
+                    if self.mdf._fill_0_for_missing_computation_channels:
+                        if required_channels:
+                            all_timebase = np.unique(
+                                np.concatenate(
+                                    [
+                                        sig.timestamps
+                                        for sig in required_channels.values()
+                                    ]
+                                )
+                            )
+                        else:
+                            all_timebase = []
+
+                        for channel in not_found_for_computed:
+                            signal = Signal(
+                                samples=np.zeros(len(all_timebase), dtype="f8"),
+                                timestamps=all_timebase,
+                                name=channel,
+                            )
+                            signal.color = "#000000"
+                            signal.computed = False
+                            signal.computation = {}
+                            signal.unit = ""
+                            signal.group_index = -1
+                            signal.channel_index = -1
+                            signal.origin_uuid = self.uuid
+                            signal.comment = ""
+                            signal.uuid = os.urandom(6).hex()
+
+                            required_channels[signal.name] = signal
 
                     computed_signals = {}
 
@@ -2320,6 +2326,17 @@ class WithMDIArea:
             if item.type() == item.Group:
                 if item.pattern:
                     plot.pattern_group_added.emit(plot, item)
+
+        if len(plot.plot.all_timebase):
+            start = plot.plot.all_timebase[0]
+            stop = plot.plot.all_timebase[-1]
+
+            if start == stop:
+                padding = 1
+            else:
+                padding = (stop - start) * 0.05
+
+            plot.plot.viewbox.setXRange(start - padding, stop + padding, padding=0)
 
         self.windows_modified.emit()
 
