@@ -777,7 +777,7 @@ class MDF4(MDF_Common):
 
         self._sort()
         if self._callback:
-            self._callback(cg_count+1, progress_steps)
+            self._callback(cg_count + 1, progress_steps)
 
         for grp in self.groups:
             channels = grp.channels
