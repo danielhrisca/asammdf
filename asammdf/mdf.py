@@ -262,7 +262,9 @@ class MDF:
                     do_close = True
 
                 else:
-                    raise MdfException(f"{type(name)} is not supported as input for the MDF class")
+                    raise MdfException(
+                        f"{type(name)} is not supported as input for the MDF class"
+                    )
 
             elif isinstance(name, zipfile.ZipFile):
 

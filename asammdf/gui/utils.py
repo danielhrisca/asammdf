@@ -878,5 +878,18 @@ def value_as_str(value, format, dtype=None, precision=3):
     return string
 
 
+def draw_color_icon(color):
+    color = QtGui.QColor(color)
+    pix = QtGui.QPixmap(64, 64)
+    painter = QtGui.QPainter(pix)
+    painter.setPen("black")
+    painter.drawRect(QtCore.QRect(0, 0, 63, 63))
+    painter.setPen(color)
+    painter.setBrush(color)
+    painter.drawRect(QtCore.QRect(1, 1, 62, 62))
+    painter.end()
+    return QtGui.QIcon(pix)
+
+
 if __name__ == "__main__":
     pass

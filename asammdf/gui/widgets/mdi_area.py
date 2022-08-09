@@ -3746,6 +3746,7 @@ class WithMDIArea:
     def set_cursor_options(
         self, cursor_circle, cursor_horizontal_line, cursor_line_width, cursor_color
     ):
+        cursor_color = QtGui.QColor(cursor_color)
         self.cursor_circle = cursor_circle
         self.cursor_horizontal_line = cursor_horizontal_line
         self.cursor_line_width = cursor_line_width

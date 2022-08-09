@@ -14,6 +14,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 from ...version import __version__ as libversion
 from ..dialogs.multi_search import MultiSearch
 from ..ui.main_window import Ui_PyMDFMainWindow
+from ..utils import draw_color_icon
 from .batch import BatchWidget
 from .file import FileWidget
 from .mdi_area import MdiAreaWidget, WithMDIArea
@@ -316,6 +317,44 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         submenu.addActions(theme_option.actions())
         submenu.setToolTipsVisible(True)
         menu.addMenu(submenu)
+
+        submenu = QtWidgets.QMenu("Cursor", self.menubar)
+
+        action = QtGui.QAction("Color")
+        action.triggered.connect(partial(self.edit_cursor_options, action=action))
+        color = self._settings.value("cursor_color", "white")
+        icon = draw_color_icon(color)
+        action.setIcon(icon)
+        submenu.addAction(action)
+
+        action = QtWidgets.QWidgetAction(submenu)
+        action.setText("Line width")
+        combo = QtWidgets.QComboBox()
+        combo.addItems([f"{size}pixels width" for size in range(1, 5)])
+        combo.currentIndexChanged.connect(
+            partial(self.edit_cursor_options, action=action)
+        )
+        action.setDefaultWidget(combo)
+
+        submenu.addAction(action)
+
+        action = QtGui.QAction("Show circle")
+        action.setCheckable(True)
+        action.toggled.connect(partial(self.edit_cursor_options, action=action))
+        action.setChecked(self._settings.value("show_cursor_circle", False, type=bool))
+        submenu.addAction(action)
+
+        action = QtGui.QAction("Show horizontal line")
+        action.setCheckable(True)
+        action.toggled.connect(partial(self.edit_cursor_options, action=action))
+        action.setChecked(
+            self._settings.value("show_cursor_horizontal_line", False, type=bool)
+        )
+        submenu.addAction(action)
+
+        menu.addMenu(submenu)
+
+        self.edit_cursor_options()
 
         # plot option menu
         plot_actions = QtGui.QActionGroup(self)
@@ -851,6 +890,46 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 elif mode == "tile horizontally":
                     widget.mdi_area.tile_horizontally()
 
+    def edit_cursor_options(self, checked=None, action=None):
+        if action:
+            if action.text() == "Color":
+
+                color = self._settings.value("cursor_color", "white")
+                color = QtWidgets.QColorDialog.getColor(color)
+                if not color.isValid():
+                    return
+
+                self._settings.setValue("cursor_color", color.name())
+
+                icon = draw_color_icon(color)
+                action.setIcon(icon)
+
+            elif action.text() == "Show circle":
+                self._settings.setValue("show_cursor_circle", action.isChecked())
+
+            elif action.text() == "Show horizontal line":
+                self._settings.setValue(
+                    "show_cursor_horizontal_line", action.isChecked()
+                )
+
+            elif action.text() == "Line width":
+                self._settings.setValue(
+                    "cursor_line_width", action.defaultWidget().currentIndex() + 1
+                )
+
+        cursor_circle = self._settings.value("show_cursor_circle", False, type=bool)
+        cursor_horizontal_line = self._settings.value(
+            "show_cursor_horizontal_line", False, type=bool
+        )
+        cursor_line_width = self._settings.value("cursor_line_width", 1)
+        cursor_color = self._settings.value("cursor_color", "white")
+
+        for i in range(self.files.count()):
+            file = self.files.widget(i)
+            file.set_cursor_options(
+                cursor_circle, cursor_horizontal_line, cursor_line_width, cursor_color
+            )
+
     def set_subplot_option(self, state):
         if isinstance(state, str):
             state = True if state == "true" else False
@@ -1173,6 +1252,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 None,
                 self,
             )
+
         except:
             raise
         else:
@@ -1182,6 +1262,8 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             self.files.setCurrentIndex(index)
             widget.open_new_file.connect(self._open_file)
             widget.full_screen_toggled.connect(self.toggle_fullscreen)
+
+            self.edit_cursor_options()
 
     def open_file(self, event):
         system = platform.system().lower()
