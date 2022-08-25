@@ -995,26 +995,27 @@ class WithMDIArea:
                 if source and source.bus_type == v4c.BUS_TYPE_CAN:
                     if "CAN_DataFrame" in names:
                         data = self.mdf.get("CAN_DataFrame", index, raw=True)
-                        items.append(data)
+                        items.append((data, names))
 
                     elif "CAN_RemoteFrame" in names:
                         data = self.mdf.get("CAN_RemoteFrame", index, raw=True)
-                        items.append(data)
+                        items.append((data, names))
 
                     elif "CAN_ErrorFrame" in names:
                         data = self.mdf.get("CAN_ErrorFrame", index, raw=True)
-                        items.append(data)
+                        items.append((data, names))
 
         if not len(items):
             return
 
-        df_index = np.sort(np.concatenate([item.timestamps for item in items]))
+        df_index = np.sort(np.concatenate([item.timestamps for (item, names) in items]))
         count = len(df_index)
 
         columns = {
             "timestamps": df_index,
             "Bus": np.full(count, "Unknown", dtype="O"),
             "ID": np.full(count, 0xFFFFFFFF, dtype="u4"),
+            "Direction": np.full(count, "", dtype="O"),
             "Name": np.full(count, "", dtype="O"),
             "Event Type": np.full(count, "CAN Frame", dtype="O"),
             "Details": np.full(count, "", dtype="O"),
@@ -1029,7 +1030,7 @@ class WithMDIArea:
             sys.intern(string)
 
         for _ in range(count):
-            item = items.pop()
+            item, names = items.pop()
 
             frame_map = None
             if item.attachment and item.attachment[0]:
@@ -1064,6 +1065,12 @@ class WithMDIArea:
                 )
                 columns["Data Bytes"][index] = vals
 
+                if "CAN_DataFrame.Dir" in names:
+                    columns["Direction"][index] = [
+                        "TX" if dir else "RX"
+                        for dir in item["CAN_DataFrame.Dir"].astype("u1").tolist()
+                    ]
+
                 vals = None
                 data_length = None
 
@@ -1084,6 +1091,12 @@ class WithMDIArea:
                 data_length = item["CAN_RemoteFrame.DataLength"].astype("u2").tolist()
                 columns["Data Length"][index] = data_length
                 columns["Event Type"][index] = "Remote Frame"
+
+                if "CAN_RemoteFrame.Dir" in names:
+                    columns["Direction"][index] = [
+                        "TX" if dir else "RX"
+                        for dir in item["CAN_RemoteFrame.Dir"].astype("u1").tolist()
+                    ]
 
                 vals = None
                 data_length = None
@@ -1120,6 +1133,12 @@ class WithMDIArea:
                     vals = [v4c.CAN_ERROR_TYPES.get(err, "Other error") for err in vals]
 
                     columns["Details"][index] = vals
+
+                if "CAN_ErrorFrame.Dir" in names:
+                    columns["Direction"][index] = [
+                        "TX" if dir else "RX"
+                        for dir in item["CAN_ErrorFrame.Dir"].astype("u1").tolist()
+                    ]
 
         signals = pd.DataFrame(columns)
 
@@ -1201,24 +1220,24 @@ class WithMDIArea:
                 if source and source.bus_type == v4c.BUS_TYPE_FLEXRAY:
                     if "FLX_Frame" in names:
                         data = self.mdf.get("FLX_Frame", index, raw=True)
-                        items.append(data)
+                        items.append((data, names))
 
                     elif "FLX_NullFrame" in names:
                         data = self.mdf.get("FLX_NullFrame", index, raw=True)
-                        items.append(data)
+                        items.append((data, names))
 
                     elif "FLX_StartCycle" in names:
                         data = self.mdf.get("FLX_StartCycle", index, raw=True)
-                        items.append(data)
+                        items.append((data, names))
 
                     elif "FLX_Status" in names:
                         data = self.mdf.get("FLX_Status", index, raw=True)
-                        items.append(data)
+                        items.append((data, names))
 
         if not len(items):
             return
 
-        df_index = np.sort(np.concatenate([item.timestamps for item in items]))
+        df_index = np.sort(np.concatenate([item.timestamps for (item, names) in items]))
         count = len(df_index)
 
         columns = {
@@ -1241,7 +1260,7 @@ class WithMDIArea:
         #     sys.intern(string)
 
         for _ in range(count):
-            item = items.pop()
+            item, names = items.pop()
 
             frame_map = None
 
@@ -1469,28 +1488,28 @@ class WithMDIArea:
                 if source and source.bus_type == v4c.BUS_TYPE_LIN:
                     if "LIN_Frame" in names:
                         data = self.mdf.get("LIN_Frame", index, raw=True)
-                        items.append(data)
+                        items.append((data, names))
 
                     elif "LIN_SyncError" in names:
                         data = self.mdf.get("LIN_SyncError", index, raw=True)
-                        items.append(data)
+                        items.append((data, names))
 
                     elif "LIN_TransmissionError" in names:
                         data = self.mdf.get("LIN_TransmissionError", index, raw=True)
-                        items.append(data)
+                        items.append((data, names))
 
                     elif "LIN_ChecksumError" in names:
                         data = self.mdf.get("LIN_ChecksumError", index, raw=True)
-                        items.append(data)
+                        items.append((data, names))
 
                     elif "LIN_ReceiveError" in names:
                         data = self.mdf.get("LIN_ReceiveError", index, raw=True)
-                        items.append(data)
+                        items.append((data, names))
 
         if not len(items):
             return
 
-        df_index = np.sort(np.concatenate([item.timestamps for item in items]))
+        df_index = np.sort(np.concatenate([item.timestamps for (item, names) in items]))
         count = len(df_index)
 
         columns = {
@@ -1508,7 +1527,7 @@ class WithMDIArea:
         count = len(items)
 
         for _ in range(count):
-            item = items.pop()
+            item, names = items.pop()
 
             frame_map = None
             if item.attachment and item.attachment[0]:

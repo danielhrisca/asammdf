@@ -1361,7 +1361,7 @@ class Plot(QtWidgets.QWidget):
     splitter_moved = QtCore.Signal(object, int)
     pattern_group_added = QtCore.Signal(object, object)
 
-    item_double_click_handling = "toggle"
+    item_double_click_handling = "enable/disable"
 
     def __init__(
         self,
@@ -2248,10 +2248,10 @@ class Plot(QtWidgets.QWidget):
                     else:
                         item.setCheckState(item.NameColumn, QtCore.Qt.Checked)
             elif item.type() == item.Group:
-
-                if Plot.item_double_click_handling == "toggle":
-                    if self.expandsOnDoubleClick():
-                        self.setExpandsOnDoubleClick(False)
+                print(Plot.item_double_click_handling)
+                if Plot.item_double_click_handling == "enable/disable":
+                    if self.channel_selection.expandsOnDoubleClick():
+                        self.channel_selection.setExpandsOnDoubleClick(False)
                     if item.isDisabled():
                         item.set_disabled(False)
                         item.setIcon(item.NameColumn, QtGui.QIcon(":/open.png"))
@@ -2260,8 +2260,7 @@ class Plot(QtWidgets.QWidget):
                         item.setIcon(item.NameColumn, QtGui.QIcon(":/erase.png"))
                     self.plot.update()
                 elif Plot.item_double_click_handling == "expand/collapse":
-                    if not self.expandsOnDoubleClick():
-                        self.setExpandsOnDoubleClick(True)
+                    item.setExpanded(not item.isExpanded())
 
     def channel_selection_reduced(self, deleted):
         self.plot.delete_channels(deleted)
