@@ -1671,15 +1671,10 @@ class MDF4(MDF_Common):
 
                 if ch_type not in v4c.VIRTUAL_TYPES and not dependency_list:
 
-                    if not new_ch.dtype_fmt:
-                        new_ch.dtype_fmt = dtype(
-                            get_fmt_v4(data_type, bit_count, ch_type)
-                        )
-
                     # adjust size to 1, 2, 4 or 8 bytes
                     size = bit_offset + bit_count
 
-                    byte_size, rem = size // 8, size % 8
+                    byte_size, rem = divmod(size, 8)
                     if rem:
                         byte_size += 1
                     bit_size = byte_size * 8
@@ -1694,6 +1689,11 @@ class MDF4(MDF_Common):
                             bit_offset += 32 - bit_size
                         elif size > 8:
                             bit_offset += 16 - bit_size
+
+                    if not new_ch.dtype_fmt:
+                        new_ch.dtype_fmt = dtype(
+                            get_fmt_v4(data_type, size, ch_type)
+                        )
 
                     if (
                         bit_offset

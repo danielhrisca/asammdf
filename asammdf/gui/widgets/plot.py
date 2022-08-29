@@ -3932,23 +3932,25 @@ class _Plot(pg.PlotWidget):
         else:
             handled = True
             if key == QtCore.Qt.Key_Y and modifier == QtCore.Qt.NoModifier:
-                if self.region is not None:
-                    if self.region_lock is not None:
-                        self.region_lock = None
-                        self.region.lines[0].pen.setStyle(QtCore.Qt.SolidLine)
-                        self.region.lines[1].pen.setStyle(QtCore.Qt.SolidLine)
-                        self.region.lines[0].setMovable(True)
-                        self.region.movable = True
-                    else:
-                        self.region_lock = self.region.getRegion()[0]
-                        self.region.lines[0].pen.setStyle(QtCore.Qt.DashDotDotLine)
-                        self.region.lines[0].setMovable(False)
-                        self.region.movable = False
+                if self.region is None:
+                    event_ = QtGui.QKeyEvent(
+                        QtCore.QEvent.KeyPress, QtCore.Qt.Key_R, QtCore.Qt.NoModifier
+                    )
+                    self.keyPressEvent(event_)
 
-                    self.update()
-
-                else:
+                if self.region_lock is not None:
                     self.region_lock = None
+                    self.region.lines[0].pen.setStyle(QtCore.Qt.SolidLine)
+                    self.region.lines[1].pen.setStyle(QtCore.Qt.SolidLine)
+                    self.region.lines[0].setMovable(True)
+                    self.region.movable = True
+                else:
+                    self.region_lock = self.region.getRegion()[0]
+                    self.region.lines[0].pen.setStyle(QtCore.Qt.DashDotDotLine)
+                    self.region.lines[0].setMovable(False)
+                    self.region.movable = False
+
+                self.update()
 
             elif key == QtCore.Qt.Key_X and modifier == QtCore.Qt.NoModifier:
                 if self.region is not None:
