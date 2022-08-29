@@ -428,8 +428,11 @@
                   <property name="decimals">
                    <number>6</number>
                   </property>
+                  <property name="minimum">
+                   <double>-9999999999999999635896294965248.000000000000000</double>
+                  </property>
                   <property name="maximum">
-                   <double>999999.999998999992386</double>
+                   <double>999999999999999983222784.000000000000000</double>
                   </property>
                  </widget>
                 </item>
@@ -448,8 +451,11 @@
                   <property name="decimals">
                    <number>6</number>
                   </property>
+                  <property name="minimum">
+                   <double>-9999999999999999635896294965248.000000000000000</double>
+                  </property>
                   <property name="maximum">
-                   <double>999999.999998999992386</double>
+                   <double>999999999999999983222784.000000000000000</double>
                   </property>
                  </widget>
                 </item>

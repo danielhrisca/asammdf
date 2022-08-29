@@ -237,7 +237,8 @@ class Ui_file_widget(object):
         self.cut_stop = QDoubleSpinBox(self.cut_group)
         self.cut_stop.setObjectName(u"cut_stop")
         self.cut_stop.setDecimals(6)
-        self.cut_stop.setMaximum(999999.999998999992386)
+        self.cut_stop.setMinimum(-9999999999999999635896294965248.000000000000000)
+        self.cut_stop.setMaximum(999999999999999983222784.000000000000000)
 
         self.gridLayout_19.addWidget(self.cut_stop, 1, 1, 1, 1)
 
@@ -249,7 +250,8 @@ class Ui_file_widget(object):
         self.cut_start = QDoubleSpinBox(self.cut_group)
         self.cut_start.setObjectName(u"cut_start")
         self.cut_start.setDecimals(6)
-        self.cut_start.setMaximum(999999.999998999992386)
+        self.cut_start.setMinimum(-9999999999999999635896294965248.000000000000000)
+        self.cut_start.setMaximum(999999999999999983222784.000000000000000)
 
         self.gridLayout_19.addWidget(self.cut_start, 0, 1, 1, 1)
 

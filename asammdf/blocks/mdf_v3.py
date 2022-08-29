@@ -3104,7 +3104,7 @@ class MDF3(MDF_Common):
 
         if vals.dtype.kind == "S":
             encoding = "latin-1"
-            vals = array([e.rsplit(b'\0')[0] for e in vals.tolist()])
+            vals = array([e.rsplit(b"\0")[0] for e in vals.tolist()])
 
         if samples_only:
             res = vals, None
