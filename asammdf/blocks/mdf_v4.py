@@ -1691,9 +1691,7 @@ class MDF4(MDF_Common):
                             bit_offset += 16 - bit_size
 
                     if not new_ch.dtype_fmt:
-                        new_ch.dtype_fmt = dtype(
-                            get_fmt_v4(data_type, size, ch_type)
-                        )
+                        new_ch.dtype_fmt = dtype(get_fmt_v4(data_type, size, ch_type))
 
                     if (
                         bit_offset
