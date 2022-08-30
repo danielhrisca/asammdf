@@ -1852,14 +1852,9 @@ def plausible_timestamps(
     """
 
     exps = np.log10(t)
-    idx = (
-        (~np.isnan(t))
-        & (~np.isinf(t))
-        & (t >= minimum)
-        & (t <= maximum)
-        & (exps >= exp_min)
-        & (exps <= exp_max)
-    )
+    idx = (~np.isnan(t)) & (~np.isinf(t)) & (t >= minimum) & (t <= maximum) & (
+        t == 0
+    ) | ((exps >= exp_min) & (exps <= exp_max))
     if not np.all(idx):
         all_ok = False
         return all_ok, idx
