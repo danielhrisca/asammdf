@@ -548,7 +548,7 @@ class WithMDIArea:
         self.cursor_circle = True
         self.cursor_horizontal_line = True
         self.cursor_line_width = 1
-        self.cursor_color = "#ffffff"
+        self.cursor_color = "#e69138"
 
     def add_pattern_group(self, plot, group):
 
