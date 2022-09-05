@@ -1143,7 +1143,7 @@ class WithMDIArea:
         signals = pd.DataFrame(columns)
 
         trace = CANBusTrace(
-            signals, start=self.mdf.header.start_time.timestamp(), ranges=ranges
+            signals, start=self.mdf.header.start_time, ranges=ranges
         )
 
         sub = MdiSubWindow(parent=self)
@@ -1359,7 +1359,7 @@ class WithMDIArea:
         signals = pd.DataFrame(columns)
 
         trace = FlexRayBusTrace(
-            signals, start=self.mdf.header.start_time.timestamp(), ranges=ranges
+            signals, start=self.mdf.header.start_time, ranges=ranges
         )
 
         sub = MdiSubWindow(parent=self)
@@ -1680,7 +1680,7 @@ class WithMDIArea:
         signals = pd.DataFrame(columns)
 
         trace = LINBusTrace(
-            signals, start=self.mdf.header.start_time.timestamp(), range=ranges
+            signals, start=self.mdf.header.start_time, range=ranges
         )
 
         sub = MdiSubWindow(parent=self)
