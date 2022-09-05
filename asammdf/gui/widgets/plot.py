@@ -3645,6 +3645,20 @@ class _Plot(pg.PlotWidget):
         painter.setClipRect(rect.x() + 5, rect.y(), rect.width() - 5, rect.height())
         painter.setClipping(True)
 
+    def clear_rect(self, rect):
+
+        paint = QtGui.QPainter()
+        paint.begin(self._pixmap)
+        paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
+        paint.setRenderHints(paint.RenderHint.Antialiasing, False)
+
+        color = self.backgroundBrush().color()
+        color = QtGui.QColor("red")
+        paint.setPen(color)
+        paint.setBrush(color)
+        paint.drawRect(rect)
+        paint.end()
+
     def _clicked(self, event):
         modifiers = QtWidgets.QApplication.keyboardModifiers()
 
@@ -3787,6 +3801,31 @@ class _Plot(pg.PlotWidget):
         if e.mimeData().hasFormat("application/octet-stream-asammdf"):
             e.accept()
         super().dragEnterEvent(e)
+
+    def draw_grids(self, paint, event_rect):
+        if self.y_axis.grid or self.x_axis.grid:
+
+            rect = self.viewbox.sceneBoundingRect()
+            y_delta = rect.y()
+            x_delta = rect.x()
+
+            if self.y_axis.grid:
+                for pen, p1, p2 in self.y_axis.tickSpecs:
+                    y_pos = p1.y() + y_delta
+                    paint.setPen(pen)
+                    paint.drawLine(
+                        QtCore.QPointF(0, y_pos),
+                        QtCore.QPointF(event_rect.x() + event_rect.width(), y_pos),
+                    )
+
+            if self.x_axis.grid:
+                for pen, p1, p2 in self.x_axis.tickSpecs:
+                    x_pos = p1.x() + x_delta
+                    paint.setPen(pen)
+                    paint.drawLine(
+                        QtCore.QPointF(x_pos, 0),
+                        QtCore.QPointF(x_pos, event_rect.y() + event_rect.height()),
+                    )
 
     def dropEvent(self, e):
         if e.source() is self.parent().channel_selection:
@@ -4812,29 +4851,7 @@ class _Plot(pg.PlotWidget):
 
         paint.drawPixmap(event_rect, self._pixmap, event_rect)
 
-        if self.y_axis.grid or self.x_axis.grid:
-
-            rect = self.viewbox.sceneBoundingRect()
-            y_delta = rect.y()
-            x_delta = rect.x()
-
-            if self.y_axis.grid:
-                for pen, p1, p2 in self.y_axis.tickSpecs:
-                    y_pos = p1.y() + y_delta
-                    paint.setPen(pen)
-                    paint.drawLine(
-                        QtCore.QPointF(0, y_pos),
-                        QtCore.QPointF(event_rect.x() + event_rect.width(), y_pos),
-                    )
-
-            if self.x_axis.grid:
-                for pen, p1, p2 in self.x_axis.tickSpecs:
-                    x_pos = p1.x() + x_delta
-                    paint.setPen(pen)
-                    paint.drawLine(
-                        QtCore.QPointF(x_pos, 0),
-                        QtCore.QPointF(x_pos, event_rect.y() + event_rect.height()),
-                    )
+        self.draw_grids(paint, event_rect)
 
         if self.cursor1 is not None and self.cursor1.isVisible():
             self.cursor1.paint(paint, plot=self, uuid=self.current_uuid)
