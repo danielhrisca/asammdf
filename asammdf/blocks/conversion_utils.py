@@ -5,7 +5,7 @@ asammdf utility functions for channel conversions
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Union
 
 from . import v2_v3_blocks as v3b
 from . import v2_v3_constants as v3c
@@ -392,3 +392,113 @@ def from_dict(conversion: dict[str, Any]) -> v4b.ChannelConversion:
         conversion = v4b.ChannelConversion(conversion_type=v4c.CONVERSION_TYPE_NON)
 
     return conversion
+
+
+def to_dict(conversion: ChannelConversionType) -> Union[dict, None]:
+    if not conversion:
+        return None
+
+    if isinstance(conversion, v3b.ChannelConversion):
+        conversion = conversion_transfer(conversion, version=4)
+
+    conversion_type = conversion.conversion_type
+
+    conversion_dict = {
+        "name": conversion.name,
+        "unit": conversion.unit,
+        "comment": conversion.comment,
+    }
+
+    if conversion_type == v4c.CONVERSION_TYPE_LIN:
+        conversion_dict["a"] = conversion.a
+        conversion_dict["b"] = conversion.b
+        conversion_dict["conversion_type"] = conversion_type
+
+    elif conversion_type == v4c.CONVERSION_TYPE_ALG:
+        conversion_dict["formula"] = conversion["formula"]
+        conversion_dict["conversion_type"] = conversion_type
+
+    elif conversion_type == v4c.CONVERSION_TYPE_RAT:
+        conversion_dict.update(
+
+            {
+                key: conversion[key]
+                for key in [f"P{i}" for i in range(1, 7)]
+            }
+        )
+        conversion_dict["conversion_type"] = conversion_type
+
+    elif conversion_type in (v4c.CONVERSION_TYPE_TAB, v4c.CONVERSION_TYPE_TABI):
+        params = conversion["val_param_nr"] // 2
+        conversion_dict.update({
+            key: conversion[key]
+            for key in [f"phys_{nr}" for nr in range(params)]
+        })
+        conversion_dict.update(
+            {
+                key: conversion[key]
+                for key in [f"raw_{nr}" for nr in range(params)]
+            }
+        )
+        conversion_dict["conversion_type"] = conversion_type
+
+    elif conversion_type == v4c.CONVERSION_TYPE_RTAB:
+        params = (conversion["val_param_nr"] -1) // 3
+        conversion_dict.update({
+            key: conversion[key]
+            for key in [f"lower_{nr}" for nr in range(params)]
+        })
+        conversion_dict.update(
+            {
+                key: conversion[key]
+                for key in [f"upper_{nr}" for nr in range(params)]
+            }
+        )
+        conversion_dict.update(
+            {
+                key: conversion[key]
+                for key in [f"phys_{nr}" for nr in range(params)]
+            }
+        )
+        conversion_dict["conversion_type"] = conversion_type
+        conversion_dict["default"] = conversion.default
+
+    elif conversion_type == v4c.CONVERSION_TYPE_TABX:
+        nr = conversion.ref_param_nr - 1
+
+        conversion_dict["conversion_type"] = conversion_type
+
+        for key, val in conversion.referenced_blocks.items():
+
+            if isinstance(val, str):
+                conversion_dict[key] = val
+            elif isinstance(val, v4b.ChannelConversion):
+                conversion_dict[key] = to_dict(val)
+            else:
+                conversion_dict[key] = val.decode("utf-8", errors="replace")
+
+        for i in range(nr):
+            conversion_dict[f'val_{i}'] = conversion[f'val_{i}']
+
+    elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
+        nr = conversion.ref_param_nr - 1
+
+        conversion_dict["conversion_type"] = conversion_type
+
+        for key, val in conversion.referenced_blocks.items():
+
+            if isinstance(val, str):
+                conversion_dict[key] = val
+            elif isinstance(val, v4b.ChannelConversion):
+                conversion_dict[key] = to_dict(val)
+            else:
+                conversion_dict[key] = val.decode("utf-8", errors="replace")
+
+        for i in range(nr):
+            conversion_dict[f'upper_{i}'] = conversion[f'upper_{i}']
+            conversion_dict[f'lower_{i}'] = conversion[f'lower_{i}']
+
+    else:
+        conversion_dict = None
+
+    return conversion_dict

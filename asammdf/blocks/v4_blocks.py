@@ -2361,6 +2361,7 @@ class ChannelConversion(_ChannelConversionBase):
 
     def __init__(self, **kwargs) -> None:
         self._cache = None
+        self.is_user_defined = False
 
         if "stream" in kwargs:
             stream = kwargs["stream"]

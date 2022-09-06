@@ -969,6 +969,8 @@ class ChannelConversion(_ChannelConversionBase):
     def __init__(self, **kwargs) -> None:
         super().__init__()
 
+        self.is_user_defined = False
+
         self.unit = self.formula = ""
 
         self.referenced_blocks = {}

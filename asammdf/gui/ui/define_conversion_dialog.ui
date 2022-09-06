@@ -1,0 +1,439 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ConversionDialog</class>
+ <widget class="QDialog" name="ConversionDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>937</width>
+    <height>501</height>
+   </rect>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>16777215</width>
+    <height>16777215</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>Define new channel</string>
+  </property>
+  <property name="windowIcon">
+   <iconset resource="resource.qrc">
+    <normaloff>:/plus.png</normaloff>:/plus.png</iconset>
+  </property>
+  <property name="sizeGripEnabled">
+   <bool>true</bool>
+  </property>
+  <layout class="QGridLayout" name="gridLayout" rowstretch="1,0,0,0,0,0" columnstretch="0,0,1,0,0,0,0">
+   <item row="1" column="0">
+    <widget class="QLabel" name="label_7">
+     <property name="text">
+      <string>Conversion name</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1" colspan="6">
+    <widget class="QPlainTextEdit" name="comment"/>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="label_8">
+     <property name="text">
+      <string>Conversion comment</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="3">
+    <widget class="QPushButton" name="remove_btn">
+     <property name="text">
+      <string>Remove conversion</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="0" colspan="7">
+    <widget class="QTabWidget" name="tabs">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="tab">
+      <attribute name="title">
+       <string>Linear</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_5" columnstretch="0,0,0">
+       <item row="2" column="0">
+        <widget class="QLabel" name="label_10">
+         <property name="text">
+          <string>Offset (b)</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QDoubleSpinBox" name="b"/>
+       </item>
+       <item row="0" column="0" colspan="2">
+        <widget class="QLabel" name="label_11">
+         <property name="text">
+          <string>Y = a * X + b</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="0">
+        <widget class="QLabel" name="label_9">
+         <property name="text">
+          <string>Factor (a)</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="2">
+        <spacer name="horizontalSpacer">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="1" column="1">
+        <widget class="QDoubleSpinBox" name="a">
+         <property name="minimumSize">
+          <size>
+           <width>100</width>
+           <height>0</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="0">
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_2">
+      <attribute name="title">
+       <string>Rational</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_6" columnstretch="0,0,0">
+       <item row="1" column="0">
+        <widget class="QLabel" name="label_3">
+         <property name="text">
+          <string>P1</string>
+         </property>
+        </widget>
+       </item>
+       <item row="7" column="0">
+        <spacer name="verticalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="3" column="1">
+        <widget class="QDoubleSpinBox" name="p3"/>
+       </item>
+       <item row="1" column="1">
+        <widget class="QDoubleSpinBox" name="p1">
+         <property name="minimumSize">
+          <size>
+           <width>100</width>
+           <height>0</height>
+          </size>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QDoubleSpinBox" name="p2"/>
+       </item>
+       <item row="2" column="0">
+        <widget class="QLabel" name="label_4">
+         <property name="text">
+          <string>P2</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="0">
+        <widget class="QLabel" name="label_15">
+         <property name="text">
+          <string>P6</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="label_13">
+         <property name="text">
+          <string>P4</string>
+         </property>
+        </widget>
+       </item>
+       <item row="6" column="1">
+        <widget class="QDoubleSpinBox" name="p6"/>
+       </item>
+       <item row="5" column="1">
+        <widget class="QDoubleSpinBox" name="p5"/>
+       </item>
+       <item row="3" column="0">
+        <widget class="QLabel" name="label_5">
+         <property name="text">
+          <string>P3</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QDoubleSpinBox" name="p4"/>
+       </item>
+       <item row="5" column="0">
+        <widget class="QLabel" name="label_14">
+         <property name="text">
+          <string>P5</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="2">
+        <spacer name="horizontalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="0" column="0" colspan="3">
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>Y = (P1 * X^2 + P2 * X +P3) / (P4 * X^2 + P5 * X + P6)</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_3">
+      <attribute name="title">
+       <string>Value to Text</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,0,0">
+       <item row="1" column="2">
+        <widget class="QPushButton" name="insert_btn">
+         <property name="text">
+          <string>Insert</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="0">
+        <widget class="QLabel" name="label_16">
+         <property name="text">
+          <string>Default</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="2">
+        <spacer name="verticalSpacer_3">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="5" column="1">
+        <widget class="QLineEdit" name="vtt_default"/>
+       </item>
+       <item row="1" column="0" rowspan="4" colspan="2">
+        <widget class="MinimalListWidget" name="vtt_list"/>
+       </item>
+       <item row="0" column="0" colspan="2">
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>X -&gt; Y (str) </string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="2">
+        <widget class="QPushButton" name="reset_btn">
+         <property name="text">
+          <string>Reset</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_4">
+      <attribute name="title">
+       <string>Value range to text</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_3">
+       <item row="2" column="2">
+        <spacer name="verticalSpacer_4">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>78</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="1" column="2">
+        <widget class="QPushButton" name="insert_vrtt_btn">
+         <property name="text">
+          <string>Insert</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="2">
+        <widget class="QPushButton" name="reset_vrtt_btn">
+         <property name="text">
+          <string>Reset</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="label_17">
+         <property name="text">
+          <string>Default</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QLineEdit" name="vrtt_default"/>
+       </item>
+       <item row="1" column="0" rowspan="3" colspan="2">
+        <widget class="MinimalListWidget" name="vrtt_list"/>
+       </item>
+       <item row="0" column="0" colspan="2">
+        <widget class="QLabel" name="label_12">
+         <property name="text">
+          <string>[ .. X .. )  -&gt; Y (str) </string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+   <item row="5" column="2">
+    <spacer name="horizontalSpacer_7">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>40</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="5" column="6">
+    <widget class="QPushButton" name="cancel_btn">
+     <property name="text">
+      <string>Cancel</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="0">
+    <widget class="QLabel" name="label_6">
+     <property name="text">
+      <string>Conversion unit</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1" colspan="6">
+    <widget class="QLineEdit" name="name">
+     <property name="inputMask">
+      <string/>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="placeholderText">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="1">
+    <spacer name="horizontalSpacer_3">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>40</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="5" column="5">
+    <widget class="QPushButton" name="apply_btn">
+     <property name="text">
+      <string>Apply</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="1">
+    <widget class="QLineEdit" name="unit">
+     <property name="placeholderText">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="4">
+    <spacer name="horizontalSpacer_4">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>40</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>MinimalListWidget</class>
+   <extends>QListWidget</extends>
+   <header>asammdf/gui/widgets/list.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources>
+  <include location="resource.qrc"/>
+ </resources>
+ <connections/>
+</ui>

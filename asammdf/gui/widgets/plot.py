@@ -28,6 +28,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 PLOT_BUFFER_SIZE = 4000
 
 from ...blocks.utils import target_byte_order
+from ...blocks.conversion_utils import to_dict
 from ..utils import FONT_SIZE, value_as_str
 
 try:
@@ -1707,6 +1708,7 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.color_changed.connect(self.plot.set_color)
         self.channel_selection.unit_changed.connect(self.plot.set_unit)
         self.channel_selection.name_changed.connect(self.plot.set_name)
+        self.channel_selection.conversion_changed.connect(self.plot.set_conversion)
 
         self.channel_selection.itemsDeleted.connect(self.channel_selection_reduced)
         self.channel_selection.group_activation_changed.connect(self.plot.update)
@@ -2142,18 +2144,8 @@ class Plot(QtWidgets.QWidget):
         channel["y_range"] = [float(e) for e in sig.y_range]
         channel["origin_uuid"] = str(sig.origin_uuid)
 
-        # TO DO: virtual channels with conversion rule
-
-        # if sig.computed and sig.conversion:
-        #     channel["user_defined_name"] = sig.name
-        #     channel["name"] = sig.computation["expression"]
-        #
-        #     channel["conversion"] = {}
-        #     for i in range(sig.conversion.val_param_nr):
-        #         channel["conversion"][f"text_{i}"] = sig.conversion.referenced_blocks[
-        #             f"text_{i}"
-        #         ].decode("utf-8")
-        #         channel["conversion"][f"val_{i}"] = sig.conversion[f"val_{i}"]
+        if sig.conversion and sig.conversion.is_user_defined:
+            channel["conversion"] = to_dict(sig.conversion)
 
         return channel
 
@@ -4943,6 +4935,30 @@ class _Plot(pg.PlotWidget):
         )
 
         self.set_current_uuid(self.current_uuid, True)
+        self.update()
+
+    def set_conversion(self, uuid, conversion):
+        sig, index = self.signal_by_uuid(uuid)
+
+        axis = self.axes[index]
+        if isinstance(axis, FormatedAxis):
+
+            if sig.conversion and hasattr(sig.conversion, "text_0"):
+                axis.text_conversion = sig.conversion
+            else:
+                axis.text_conversion = None
+
+            axis.picture = None
+
+        if uuid == self.current_uuid:
+            axis = self.y_axis
+            if sig.conversion and hasattr(sig.conversion, "text_0"):
+                axis.text_conversion = sig.conversion
+            else:
+                axis.text_conversion = None
+
+            axis.picture = None
+
         self.update()
 
     def set_current_uuid(self, uuid, force=False):
