@@ -986,7 +986,7 @@ class WithMDIArea:
 
                 if source and source.bus_type == v4c.BUS_TYPE_CAN:
                     if "CAN_DataFrame" in names:
-                        data = self.mdf.get("CAN_DataFrame", index, raw=True)
+                        data = self.mdf.get("CAN_DataFrame", index)  # , raw=True)
 
                     elif "CAN_RemoteFrame" in names:
                         data = self.mdf.get("CAN_RemoteFrame", index, raw=True)
@@ -1029,32 +1029,30 @@ class WithMDIArea:
 
                     if data.name == "CAN_DataFrame":
 
-                        index = np.searchsorted(df_index, data.timestamps)
-
                         vals = data["CAN_DataFrame.BusChannel"].astype("u1")
 
                         vals = [f"CAN {chn}" for chn in vals.tolist()]
-                        columns["Bus"][index] = vals
+                        columns["Bus"] = vals
 
                         vals = data["CAN_DataFrame.ID"].astype("u4") & 0x1FFFFFFF
-                        columns["ID"][index] = vals
+                        columns["ID"] = vals
                         if frame_map:
-                            columns["Name"][index] = [frame_map[_id] for _id in vals]
+                            columns["Name"] = [frame_map[_id] for _id in vals]
 
-                        columns["DLC"][index] = data["CAN_DataFrame.DLC"].astype("u1")
+                        columns["DLC"] = data["CAN_DataFrame.DLC"].astype("u1")
                         data_length = (
                             data["CAN_DataFrame.DataLength"].astype("u2").tolist()
                         )
-                        columns["Data Length"][index] = data_length
+                        columns["Data Length"] = data_length
 
                         vals = csv_bytearray2hex(
                             pd.Series(list(data["CAN_DataFrame.DataBytes"])),
                             data_length,
                         )
-                        columns["Data Bytes"][index] = vals
+                        columns["Data Bytes"] = vals
 
                         if "CAN_DataFrame.Dir" in names:
-                            columns["Direction"][index] = [
+                            columns["Direction"] = [
                                 "TX" if dir else "RX"
                                 for dir in data["CAN_DataFrame.Dir"]
                                 .astype("u1")
@@ -1066,26 +1064,24 @@ class WithMDIArea:
 
                     elif data.name == "CAN_RemoteFrame":
 
-                        index = np.searchsorted(df_index, data.timestamps)
-
                         vals = data["CAN_RemoteFrame.BusChannel"].astype("u1")
                         vals = [f"CAN {chn}" for chn in vals.tolist()]
-                        columns["Bus"][index] = vals
+                        columns["Bus"] = vals
 
                         vals = data["CAN_RemoteFrame.ID"].astype("u4") & 0x1FFFFFFF
-                        columns["ID"][index] = vals
+                        columns["ID"] = vals
                         if frame_map:
-                            columns["Name"][index] = [frame_map[_id] for _id in vals]
+                            columns["Name"] = [frame_map[_id] for _id in vals]
 
-                        columns["DLC"][index] = data["CAN_RemoteFrame.DLC"].astype("u1")
+                        columns["DLC"] = data["CAN_RemoteFrame.DLC"].astype("u1")
                         data_length = (
                             data["CAN_RemoteFrame.DataLength"].astype("u2").tolist()
                         )
-                        columns["Data Length"][index] = data_length
-                        columns["Event Type"][index] = "Remote Frame"
+                        columns["Data Length"] = data_length
+                        columns["Event Type"] = "Remote Frame"
 
                         if "CAN_RemoteFrame.Dir" in names:
-                            columns["Direction"][index] = [
+                            columns["Direction"] = [
                                 "TX" if dir else "RX"
                                 for dir in data["CAN_RemoteFrame.Dir"]
                                 .astype("u1")
@@ -1097,34 +1093,28 @@ class WithMDIArea:
 
                     elif data.name == "CAN_ErrorFrame":
 
-                        index = np.searchsorted(df_index, data.timestamps)
-
                         names = set(data.samples.dtype.names)
 
                         if "CAN_ErrorFrame.BusChannel" in names:
                             vals = data["CAN_ErrorFrame.BusChannel"].astype("u1")
                             vals = [f"CAN {chn}" for chn in vals.tolist()]
-                            columns["Bus"][index] = vals
+                            columns["Bus"] = vals
 
                         if "CAN_ErrorFrame.ID" in names:
                             vals = data["CAN_ErrorFrame.ID"].astype("u4") & 0x1FFFFFFF
-                            columns["ID"][index] = vals
+                            columns["ID"] = vals
                             if frame_map:
-                                columns["Name"][index] = [
-                                    frame_map[_id] for _id in vals
-                                ]
+                                columns["Name"] = [frame_map[_id] for _id in vals]
 
                         if "CAN_ErrorFrame.DLC" in names:
-                            columns["DLC"][index] = data["CAN_ErrorFrame.DLC"].astype(
-                                "u1"
-                            )
+                            columns["DLC"] = data["CAN_ErrorFrame.DLC"].astype("u1")
 
                         if "CAN_ErrorFrame.DataLength" in names:
-                            columns["Data Length"][index] = (
+                            columns["Data Length"] = (
                                 data["CAN_ErrorFrame.DataLength"].astype("u2").tolist()
                             )
 
-                        columns["Event Type"][index] = "Error Frame"
+                        columns["Event Type"] = "Error Frame"
 
                         if "CAN_ErrorFrame.ErrorType" in names:
                             vals = (
@@ -1135,22 +1125,22 @@ class WithMDIArea:
                                 for err in vals
                             ]
 
-                            columns["Details"][index] = vals
+                            columns["Details"] = vals
 
                         if "CAN_ErrorFrame.Dir" in names:
-                            columns["Direction"][index] = [
+                            columns["Direction"] = [
                                 "TX" if dir else "RX"
                                 for dir in data["CAN_ErrorFrame.Dir"]
                                 .astype("u1")
                                 .tolist()
                             ]
 
-                    dfs.append(pd.DataFrame(columns))
+                    dfs.append(pd.DataFrame(columns, index=df_index))
 
         if not dfs:
             return
         else:
-            signals = pd.concat(dfs).sort_values("timestamps")
+            signals = pd.concat(dfs).sort_index()
 
             index = pd.Index(range(len(signals)))
             signals.set_index(index, inplace=True)
@@ -1544,41 +1534,38 @@ class WithMDIArea:
 
                     if data.name == "LIN_Frame":
 
-                        index = np.searchsorted(df_index, data.timestamps)
-
                         vals = data["LIN_Frame.BusChannel"].astype("u1")
                         vals = [f"LIN {chn}" for chn in vals.tolist()]
-                        columns["Bus"][index] = vals
+                        columns["Bus"] = vals
 
                         vals = data["LIN_Frame.ID"].astype("u1") & 0x3F
-                        columns["ID"][index] = vals
+                        columns["ID"] = vals
                         if frame_map:
-                            columns["Name"][index] = [frame_map[_id] for _id in vals]
+                            columns["Name"] = [frame_map[_id] for _id in vals]
 
-                        columns["Received Byte Count"][index] = data[
+                        columns["Received Byte Count"] = data[
                             "LIN_Frame.ReceivedDataByteCount"
                         ].astype("u1")
                         data_length = data["LIN_Frame.DataLength"].astype("u1").tolist()
-                        columns["Data Length"][index] = data_length
+                        columns["Data Length"] = data_length
 
                         vals = csv_bytearray2hex(
                             pd.Series(list(data["LIN_Frame.DataBytes"])),
                             data_length,
                         )
-                        columns["Data Bytes"][index] = vals
+                        columns["Data Bytes"] = vals
 
                         vals = None
                         data_length = None
 
                     elif data.name == "LIN_SyncError":
 
-                        index = np.searchsorted(df_index, data.timestamps)
                         names = set(data.samples.dtype.names)
 
                         if "LIN_SyncError.BusChannel" in names:
                             vals = data["LIN_SyncError.BusChannel"].astype("u1")
                             vals = [f"LIN {chn}" for chn in vals.tolist()]
-                            columns["Bus"][index] = vals
+                            columns["Bus"] = vals
 
                         if "LIN_SyncError.BaudRate" in names:
                             vals = data["LIN_SyncError.BaudRate"]
@@ -1586,23 +1573,21 @@ class WithMDIArea:
                             for val in unique:
                                 sys.intern((f"Baudrate {val}"))
                             vals = [f"Baudrate {val}" for val in vals.tolist()]
-                            columns["Details"][index] = vals
+                            columns["Details"] = vals
 
-                        columns["Event Type"][index] = "Sync Error Frame"
+                        columns["Event Type"] = "Sync Error Frame"
 
                         vals = None
                         data_length = None
 
                     elif data.name == "LIN_TransmissionError":
 
-                        index = np.searchsorted(df_index, data.timestamps)
-
                         names = set(data.samples.dtype.names)
 
                         if "LIN_TransmissionError.BusChannel" in names:
                             vals = data["LIN_TransmissionError.BusChannel"].astype("u1")
                             vals = [f"LIN {chn}" for chn in vals.tolist()]
-                            columns["Bus"][index] = vals
+                            columns["Bus"] = vals
 
                         if "LIN_TransmissionError.BaudRate" in names:
                             vals = data["LIN_TransmissionError.BaudRate"]
@@ -1610,27 +1595,25 @@ class WithMDIArea:
                             for val in unique:
                                 sys.intern((f"Baudrate {val}"))
                             vals = [f"Baudrate {val}" for val in vals.tolist()]
-                            columns["Details"][index] = vals
+                            columns["Details"] = vals
 
                         vals = data["LIN_TransmissionError.ID"].astype("u1") & 0x3F
-                        columns["ID"][index] = vals
+                        columns["ID"] = vals
                         if frame_map:
-                            columns["Name"][index] = [frame_map[_id] for _id in vals]
+                            columns["Name"] = [frame_map[_id] for _id in vals]
 
-                        columns["Event Type"][index] = "Transmission Error Frame"
+                        columns["Event Type"] = "Transmission Error Frame"
 
                         vals = None
 
                     elif data.name == "LIN_ReceiveError":
-
-                        index = np.searchsorted(df_index, data.timestamps)
 
                         names = set(data.samples.dtype.names)
 
                         if "LIN_ReceiveError.BusChannel" in names:
                             vals = data["LIN_ReceiveError.BusChannel"].astype("u1")
                             vals = [f"LIN {chn}" for chn in vals.tolist()]
-                            columns["Bus"][index] = vals
+                            columns["Bus"] = vals
 
                         if "LIN_ReceiveError.BaudRate" in names:
                             vals = data["LIN_ReceiveError.BaudRate"]
@@ -1638,30 +1621,26 @@ class WithMDIArea:
                             for val in unique:
                                 sys.intern((f"Baudrate {val}"))
                             vals = [f"Baudrate {val}" for val in vals.tolist()]
-                            columns["Details"][index] = vals
+                            columns["Details"] = vals
 
                         if "LIN_ReceiveError.ID" in names:
                             vals = data["LIN_ReceiveError.ID"].astype("u1") & 0x3F
-                            columns["ID"][index] = vals
+                            columns["ID"] = vals
                             if frame_map:
-                                columns["Name"][index] = [
-                                    frame_map[_id] for _id in vals
-                                ]
+                                columns["Name"] = [frame_map[_id] for _id in vals]
 
-                        columns["Event Type"][index] = "Receive Error Frame"
+                        columns["Event Type"] = "Receive Error Frame"
 
                         vals = None
 
                     elif data.name == "LIN_ChecksumError":
-
-                        index = np.searchsorted(df_index, data.timestamps)
 
                         names = set(data.samples.dtype.names)
 
                         if "LIN_ChecksumError.BusChannel" in names:
                             vals = data["LIN_ChecksumError.BusChannel"].astype("u1")
                             vals = [f"LIN {chn}" for chn in vals.tolist()]
-                            columns["Bus"][index] = vals
+                            columns["Bus"] = vals
 
                         if "LIN_ChecksumError.Checksum" in names:
                             vals = data["LIN_ChecksumError.Checksum"]
@@ -1669,27 +1648,24 @@ class WithMDIArea:
                             for val in unique:
                                 sys.intern((f"Baudrate {val}"))
                             vals = [f"Checksum 0x{val:02X}" for val in vals.tolist()]
-                            columns["Details"][index] = vals
+                            columns["Details"] = vals
 
                         if "LIN_ChecksumError.ID" in names:
                             vals = data["LIN_ChecksumError.ID"].astype("u1") & 0x3F
-                            columns["ID"][index] = vals
+                            columns["ID"] = vals
                             if frame_map:
-                                columns["Name"][index] = [
-                                    frame_map[_id] for _id in vals
-                                ]
+                                columns["Name"] = [frame_map[_id] for _id in vals]
 
-                        columns["Event Type"][index] = "Checksum Error Frame"
+                        columns["Event Type"] = "Checksum Error Frame"
 
                         vals = None
 
-                    dfs.append(pd.DataFrame(columns))
+                    dfs.append(pd.DataFrame(columns, index=df_index))
 
         if not dfs:
             return
         else:
-            signals = pd.concat(dfs).sort_values("timestamps")
-
+            signals = pd.concat(dfs).sort_index()
             index = pd.Index(range(len(signals)))
             signals.set_index(index, inplace=True)
 

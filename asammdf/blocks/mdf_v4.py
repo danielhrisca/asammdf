@@ -6578,6 +6578,7 @@ class MDF4(MDF_Common):
                     record_offset=record_offset,
                     record_count=record_count,
                     master_is_required=master_is_required,
+                    raw=raw,
                 )
             else:
                 vals, timestamps, invalidation_bits, encoding = self._get_array(
@@ -6696,6 +6697,7 @@ class MDF4(MDF_Common):
         record_offset: int,
         record_count: int | None,
         master_is_required: bool,
+        raw: bool,
     ) -> tuple[NDArray[Any], NDArray[Any] | None, NDArray[Any] | None, None]:
         grp = group
         gp_nr = group_index
@@ -6769,7 +6771,7 @@ class MDF4(MDF_Common):
                         ignore_invalidation_bits=ignore_invalidation_bits,
                         record_offset=record_offset,
                         record_count=record_count,
-                        raw=True,
+                        raw=raw,
                     )[0]
                     channel_values[i].append(vals)
                 if master_is_required:
