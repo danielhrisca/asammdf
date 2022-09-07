@@ -668,16 +668,7 @@ class WithMDIArea:
                 signals = pd.concat(dfs, axis=1)
 
                 for name in signals.columns:
-                    if name.endswith(
-                        (
-                            "CAN_DataFrame.ID",
-                            "FLX_Frame.ID",
-                            "FlexRay_DataFrame.ID",
-                            "LIN_Frame.ID",
-                            "MOST_DataFrame.ID",
-                            "ETH_Frame.ID",
-                        )
-                    ):
+                    if name.endswith(".ID"):
                         signals[name] = signals[name].astype("<u4") & 0x1FFFFFFF
 
                 widget.add_new_channels(signals)
@@ -737,7 +728,7 @@ class WithMDIArea:
                             pd.Series(list(signal.samples))
                         )
 
-                    if signal.name.endswith("CAN_DataFrame.ID"):
+                    if signal.name.endswith(".ID"):
                         signal.samples = signal.samples.astype("<u4") & 0x1FFFFFFF
 
                 signals = natsorted(signals, key=lambda x: x.name)
@@ -826,7 +817,7 @@ class WithMDIArea:
                             pd.Series(list(signal.samples))
                         )
 
-                    if signal.name.endswith("CAN_DataFrame.ID"):
+                    if signal.name.endswith(".ID"):
                         signal.samples = signal.samples.astype("<u4") & 0x1FFFFFFF
 
                 sigs = signals
@@ -982,8 +973,9 @@ class WithMDIArea:
         if self.mdf.version < "4.00":
             return
 
-        items = []
         groups_count = len(self.mdf.groups)
+
+        dfs = []
 
         for index in range(groups_count):
             group = self.mdf.groups[index]
@@ -995,152 +987,175 @@ class WithMDIArea:
                 if source and source.bus_type == v4c.BUS_TYPE_CAN:
                     if "CAN_DataFrame" in names:
                         data = self.mdf.get("CAN_DataFrame", index, raw=True)
-                        items.append((data, names))
 
                     elif "CAN_RemoteFrame" in names:
                         data = self.mdf.get("CAN_RemoteFrame", index, raw=True)
-                        items.append((data, names))
 
                     elif "CAN_ErrorFrame" in names:
                         data = self.mdf.get("CAN_ErrorFrame", index, raw=True)
-                        items.append((data, names))
 
-        if not len(items):
+                    else:
+                        continue
+
+                    df_index = data.timestamps
+                    count = len(df_index)
+
+                    columns = {
+                        "timestamps": df_index,
+                        "Bus": np.full(count, "Unknown", dtype="O"),
+                        "ID": np.full(count, 0xFFFFFFFF, dtype="u4"),
+                        "Direction": np.full(count, "", dtype="O"),
+                        "Name": np.full(count, "", dtype="O"),
+                        "Event Type": np.full(count, "CAN Frame", dtype="O"),
+                        "Details": np.full(count, "", dtype="O"),
+                        "DLC": np.zeros(count, dtype="u1"),
+                        "Data Length": np.zeros(count, dtype="u1"),
+                        "Data Bytes": np.full(count, "", dtype="O"),
+                    }
+
+                    for string in v4c.CAN_ERROR_TYPES.values():
+                        sys.intern(string)
+
+                    frame_map = None
+                    if data.attachment and data.attachment[0]:
+                        dbc = load_can_database(data.attachment[1], data.attachment[0])
+                        if dbc:
+                            frame_map = {
+                                frame.arbitration_id.id: frame.name for frame in dbc
+                            }
+
+                            for name in frame_map.values():
+                                sys.intern(name)
+
+                    if data.name == "CAN_DataFrame":
+
+                        index = np.searchsorted(df_index, data.timestamps)
+
+                        vals = data["CAN_DataFrame.BusChannel"].astype("u1")
+
+                        vals = [f"CAN {chn}" for chn in vals.tolist()]
+                        columns["Bus"][index] = vals
+
+                        vals = data["CAN_DataFrame.ID"].astype("u4") & 0x1FFFFFFF
+                        columns["ID"][index] = vals
+                        if frame_map:
+                            columns["Name"][index] = [frame_map[_id] for _id in vals]
+
+                        columns["DLC"][index] = data["CAN_DataFrame.DLC"].astype("u1")
+                        data_length = (
+                            data["CAN_DataFrame.DataLength"].astype("u2").tolist()
+                        )
+                        columns["Data Length"][index] = data_length
+
+                        vals = csv_bytearray2hex(
+                            pd.Series(list(data["CAN_DataFrame.DataBytes"])),
+                            data_length,
+                        )
+                        columns["Data Bytes"][index] = vals
+
+                        if "CAN_DataFrame.Dir" in names:
+                            columns["Direction"][index] = [
+                                "TX" if dir else "RX"
+                                for dir in data["CAN_DataFrame.Dir"]
+                                .astype("u1")
+                                .tolist()
+                            ]
+
+                        vals = None
+                        data_length = None
+
+                    elif data.name == "CAN_RemoteFrame":
+
+                        index = np.searchsorted(df_index, data.timestamps)
+
+                        vals = data["CAN_RemoteFrame.BusChannel"].astype("u1")
+                        vals = [f"CAN {chn}" for chn in vals.tolist()]
+                        columns["Bus"][index] = vals
+
+                        vals = data["CAN_RemoteFrame.ID"].astype("u4") & 0x1FFFFFFF
+                        columns["ID"][index] = vals
+                        if frame_map:
+                            columns["Name"][index] = [frame_map[_id] for _id in vals]
+
+                        columns["DLC"][index] = data["CAN_RemoteFrame.DLC"].astype("u1")
+                        data_length = (
+                            data["CAN_RemoteFrame.DataLength"].astype("u2").tolist()
+                        )
+                        columns["Data Length"][index] = data_length
+                        columns["Event Type"][index] = "Remote Frame"
+
+                        if "CAN_RemoteFrame.Dir" in names:
+                            columns["Direction"][index] = [
+                                "TX" if dir else "RX"
+                                for dir in data["CAN_RemoteFrame.Dir"]
+                                .astype("u1")
+                                .tolist()
+                            ]
+
+                        vals = None
+                        data_length = None
+
+                    elif data.name == "CAN_ErrorFrame":
+
+                        index = np.searchsorted(df_index, data.timestamps)
+
+                        names = set(data.samples.dtype.names)
+
+                        if "CAN_ErrorFrame.BusChannel" in names:
+                            vals = data["CAN_ErrorFrame.BusChannel"].astype("u1")
+                            vals = [f"CAN {chn}" for chn in vals.tolist()]
+                            columns["Bus"][index] = vals
+
+                        if "CAN_ErrorFrame.ID" in names:
+                            vals = data["CAN_ErrorFrame.ID"].astype("u4") & 0x1FFFFFFF
+                            columns["ID"][index] = vals
+                            if frame_map:
+                                columns["Name"][index] = [
+                                    frame_map[_id] for _id in vals
+                                ]
+
+                        if "CAN_ErrorFrame.DLC" in names:
+                            columns["DLC"][index] = data["CAN_ErrorFrame.DLC"].astype(
+                                "u1"
+                            )
+
+                        if "CAN_ErrorFrame.DataLength" in names:
+                            columns["Data Length"][index] = (
+                                data["CAN_ErrorFrame.DataLength"].astype("u2").tolist()
+                            )
+
+                        columns["Event Type"][index] = "Error Frame"
+
+                        if "CAN_ErrorFrame.ErrorType" in names:
+                            vals = (
+                                data["CAN_ErrorFrame.ErrorType"].astype("u1").tolist()
+                            )
+                            vals = [
+                                v4c.CAN_ERROR_TYPES.get(err, "Other error")
+                                for err in vals
+                            ]
+
+                            columns["Details"][index] = vals
+
+                        if "CAN_ErrorFrame.Dir" in names:
+                            columns["Direction"][index] = [
+                                "TX" if dir else "RX"
+                                for dir in data["CAN_ErrorFrame.Dir"]
+                                .astype("u1")
+                                .tolist()
+                            ]
+
+                    dfs.append(pd.DataFrame(columns))
+
+        if not dfs:
             return
+        else:
+            signals = pd.concat(dfs).sort_values("timestamps")
 
-        df_index = np.sort(np.concatenate([item.timestamps for (item, names) in items]))
-        count = len(df_index)
+            index = pd.Index(range(len(signals)))
+            signals.set_index(index, inplace=True)
 
-        columns = {
-            "timestamps": df_index,
-            "Bus": np.full(count, "Unknown", dtype="O"),
-            "ID": np.full(count, 0xFFFFFFFF, dtype="u4"),
-            "Direction": np.full(count, "", dtype="O"),
-            "Name": np.full(count, "", dtype="O"),
-            "Event Type": np.full(count, "CAN Frame", dtype="O"),
-            "Details": np.full(count, "", dtype="O"),
-            "DLC": np.zeros(count, dtype="u1"),
-            "Data Length": np.zeros(count, dtype="u1"),
-            "Data Bytes": np.full(count, "", dtype="O"),
-        }
-
-        count = len(items)
-
-        for string in v4c.CAN_ERROR_TYPES.values():
-            sys.intern(string)
-
-        for _ in range(count):
-            item, names = items.pop()
-
-            frame_map = None
-            if item.attachment and item.attachment[0]:
-                dbc = load_can_database(item.attachment[1], item.attachment[0])
-                if dbc:
-                    frame_map = {frame.arbitration_id.id: frame.name for frame in dbc}
-
-                    for name in frame_map.values():
-                        sys.intern(name)
-
-            if item.name == "CAN_DataFrame":
-
-                index = np.searchsorted(df_index, item.timestamps)
-
-                vals = item["CAN_DataFrame.BusChannel"].astype("u1")
-
-                vals = [f"CAN {chn}" for chn in vals.tolist()]
-                columns["Bus"][index] = vals
-
-                vals = item["CAN_DataFrame.ID"].astype("u4") & 0x1FFFFFFF
-                columns["ID"][index] = vals
-                if frame_map:
-                    columns["Name"][index] = [frame_map[_id] for _id in vals]
-
-                columns["DLC"][index] = item["CAN_DataFrame.DLC"].astype("u1")
-                data_length = item["CAN_DataFrame.DataLength"].astype("u2").tolist()
-                columns["Data Length"][index] = data_length
-
-                vals = csv_bytearray2hex(
-                    pd.Series(list(item["CAN_DataFrame.DataBytes"])),
-                    data_length,
-                )
-                columns["Data Bytes"][index] = vals
-
-                if "CAN_DataFrame.Dir" in names:
-                    columns["Direction"][index] = [
-                        "TX" if dir else "RX"
-                        for dir in item["CAN_DataFrame.Dir"].astype("u1").tolist()
-                    ]
-
-                vals = None
-                data_length = None
-
-            elif item.name == "CAN_RemoteFrame":
-
-                index = np.searchsorted(df_index, item.timestamps)
-
-                vals = item["CAN_RemoteFrame.BusChannel"].astype("u1")
-                vals = [f"CAN {chn}" for chn in vals.tolist()]
-                columns["Bus"][index] = vals
-
-                vals = item["CAN_RemoteFrame.ID"].astype("u4") & 0x1FFFFFFF
-                columns["ID"][index] = vals
-                if frame_map:
-                    columns["Name"][index] = [frame_map[_id] for _id in vals]
-
-                columns["DLC"][index] = item["CAN_RemoteFrame.DLC"].astype("u1")
-                data_length = item["CAN_RemoteFrame.DataLength"].astype("u2").tolist()
-                columns["Data Length"][index] = data_length
-                columns["Event Type"][index] = "Remote Frame"
-
-                if "CAN_RemoteFrame.Dir" in names:
-                    columns["Direction"][index] = [
-                        "TX" if dir else "RX"
-                        for dir in item["CAN_RemoteFrame.Dir"].astype("u1").tolist()
-                    ]
-
-                vals = None
-                data_length = None
-
-            elif item.name == "CAN_ErrorFrame":
-
-                index = np.searchsorted(df_index, item.timestamps)
-
-                names = set(item.samples.dtype.names)
-
-                if "CAN_ErrorFrame.BusChannel" in names:
-                    vals = item["CAN_ErrorFrame.BusChannel"].astype("u1")
-                    vals = [f"CAN {chn}" for chn in vals.tolist()]
-                    columns["Bus"][index] = vals
-
-                if "CAN_ErrorFrame.ID" in names:
-                    vals = item["CAN_ErrorFrame.ID"].astype("u4") & 0x1FFFFFFF
-                    columns["ID"][index] = vals
-                    if frame_map:
-                        columns["Name"][index] = [frame_map[_id] for _id in vals]
-
-                if "CAN_ErrorFrame.DLC" in names:
-                    columns["DLC"][index] = item["CAN_ErrorFrame.DLC"].astype("u1")
-
-                if "CAN_ErrorFrame.DataLength" in names:
-                    columns["Data Length"][index] = (
-                        item["CAN_ErrorFrame.DataLength"].astype("u2").tolist()
-                    )
-
-                columns["Event Type"][index] = "Error Frame"
-
-                if "CAN_ErrorFrame.ErrorType" in names:
-                    vals = item["CAN_ErrorFrame.ErrorType"].astype("u1").tolist()
-                    vals = [v4c.CAN_ERROR_TYPES.get(err, "Other error") for err in vals]
-
-                    columns["Details"][index] = vals
-
-                if "CAN_ErrorFrame.Dir" in names:
-                    columns["Direction"][index] = [
-                        "TX" if dir else "RX"
-                        for dir in item["CAN_ErrorFrame.Dir"].astype("u1").tolist()
-                    ]
-
-        signals = pd.DataFrame(columns)
+        del dfs
 
         trace = CANBusTrace(signals, start=self.mdf.header.start_time, ranges=ranges)
 
@@ -1474,7 +1489,7 @@ class WithMDIArea:
         if self.mdf.version < "4.00":
             return
 
-        items = []
+        dfs = []
         groups_count = len(self.mdf.groups)
 
         for index in range(groups_count):
@@ -1487,195 +1502,198 @@ class WithMDIArea:
                 if source and source.bus_type == v4c.BUS_TYPE_LIN:
                     if "LIN_Frame" in names:
                         data = self.mdf.get("LIN_Frame", index, raw=True)
-                        items.append((data, names))
 
                     elif "LIN_SyncError" in names:
                         data = self.mdf.get("LIN_SyncError", index, raw=True)
-                        items.append((data, names))
 
                     elif "LIN_TransmissionError" in names:
                         data = self.mdf.get("LIN_TransmissionError", index, raw=True)
-                        items.append((data, names))
 
                     elif "LIN_ChecksumError" in names:
                         data = self.mdf.get("LIN_ChecksumError", index, raw=True)
-                        items.append((data, names))
 
                     elif "LIN_ReceiveError" in names:
                         data = self.mdf.get("LIN_ReceiveError", index, raw=True)
-                        items.append((data, names))
 
-        if not len(items):
+                    df_index = data.timestamps
+                    count = len(df_index)
+
+                    columns = {
+                        "timestamps": df_index,
+                        "Bus": np.full(count, "Unknown", dtype="O"),
+                        "ID": np.full(count, 0xFFFFFFFF, dtype="u4"),
+                        "Direction": np.full(count, "", dtype="O"),
+                        "Name": np.full(count, "", dtype="O"),
+                        "Event Type": np.full(count, "LIN Frame", dtype="O"),
+                        "Details": np.full(count, "", dtype="O"),
+                        "Received Byte Count": np.zeros(count, dtype="u1"),
+                        "Data Length": np.zeros(count, dtype="u1"),
+                        "Data Bytes": np.full(count, "", dtype="O"),
+                    }
+
+                    frame_map = None
+                    if data.attachment and data.attachment[0]:
+                        dbc = load_can_database(data.attachment[1], data.attachment[0])
+                        if dbc:
+                            frame_map = {
+                                frame.arbitration_id.id: frame.name for frame in dbc
+                            }
+
+                            for name in frame_map.values():
+                                sys.intern(name)
+
+                    if data.name == "LIN_Frame":
+
+                        index = np.searchsorted(df_index, data.timestamps)
+
+                        vals = data["LIN_Frame.BusChannel"].astype("u1")
+                        vals = [f"LIN {chn}" for chn in vals.tolist()]
+                        columns["Bus"][index] = vals
+
+                        vals = data["LIN_Frame.ID"].astype("u1") & 0x3F
+                        columns["ID"][index] = vals
+                        if frame_map:
+                            columns["Name"][index] = [frame_map[_id] for _id in vals]
+
+                        columns["Received Byte Count"][index] = data[
+                            "LIN_Frame.ReceivedDataByteCount"
+                        ].astype("u1")
+                        data_length = data["LIN_Frame.DataLength"].astype("u1").tolist()
+                        columns["Data Length"][index] = data_length
+
+                        vals = csv_bytearray2hex(
+                            pd.Series(list(data["LIN_Frame.DataBytes"])),
+                            data_length,
+                        )
+                        columns["Data Bytes"][index] = vals
+
+                        vals = None
+                        data_length = None
+
+                    elif data.name == "LIN_SyncError":
+
+                        index = np.searchsorted(df_index, data.timestamps)
+                        names = set(data.samples.dtype.names)
+
+                        if "LIN_SyncError.BusChannel" in names:
+                            vals = data["LIN_SyncError.BusChannel"].astype("u1")
+                            vals = [f"LIN {chn}" for chn in vals.tolist()]
+                            columns["Bus"][index] = vals
+
+                        if "LIN_SyncError.BaudRate" in names:
+                            vals = data["LIN_SyncError.BaudRate"]
+                            unique = np.unique(vals).tolist()
+                            for val in unique:
+                                sys.intern((f"Baudrate {val}"))
+                            vals = [f"Baudrate {val}" for val in vals.tolist()]
+                            columns["Details"][index] = vals
+
+                        columns["Event Type"][index] = "Sync Error Frame"
+
+                        vals = None
+                        data_length = None
+
+                    elif data.name == "LIN_TransmissionError":
+
+                        index = np.searchsorted(df_index, data.timestamps)
+
+                        names = set(data.samples.dtype.names)
+
+                        if "LIN_TransmissionError.BusChannel" in names:
+                            vals = data["LIN_TransmissionError.BusChannel"].astype("u1")
+                            vals = [f"LIN {chn}" for chn in vals.tolist()]
+                            columns["Bus"][index] = vals
+
+                        if "LIN_TransmissionError.BaudRate" in names:
+                            vals = data["LIN_TransmissionError.BaudRate"]
+                            unique = np.unique(vals).tolist()
+                            for val in unique:
+                                sys.intern((f"Baudrate {val}"))
+                            vals = [f"Baudrate {val}" for val in vals.tolist()]
+                            columns["Details"][index] = vals
+
+                        vals = data["LIN_TransmissionError.ID"].astype("u1") & 0x3F
+                        columns["ID"][index] = vals
+                        if frame_map:
+                            columns["Name"][index] = [frame_map[_id] for _id in vals]
+
+                        columns["Event Type"][index] = "Transmission Error Frame"
+
+                        vals = None
+
+                    elif data.name == "LIN_ReceiveError":
+
+                        index = np.searchsorted(df_index, data.timestamps)
+
+                        names = set(data.samples.dtype.names)
+
+                        if "LIN_ReceiveError.BusChannel" in names:
+                            vals = data["LIN_ReceiveError.BusChannel"].astype("u1")
+                            vals = [f"LIN {chn}" for chn in vals.tolist()]
+                            columns["Bus"][index] = vals
+
+                        if "LIN_ReceiveError.BaudRate" in names:
+                            vals = data["LIN_ReceiveError.BaudRate"]
+                            unique = np.unique(vals).tolist()
+                            for val in unique:
+                                sys.intern((f"Baudrate {val}"))
+                            vals = [f"Baudrate {val}" for val in vals.tolist()]
+                            columns["Details"][index] = vals
+
+                        if "LIN_ReceiveError.ID" in names:
+                            vals = data["LIN_ReceiveError.ID"].astype("u1") & 0x3F
+                            columns["ID"][index] = vals
+                            if frame_map:
+                                columns["Name"][index] = [
+                                    frame_map[_id] for _id in vals
+                                ]
+
+                        columns["Event Type"][index] = "Receive Error Frame"
+
+                        vals = None
+
+                    elif data.name == "LIN_ChecksumError":
+
+                        index = np.searchsorted(df_index, data.timestamps)
+
+                        names = set(data.samples.dtype.names)
+
+                        if "LIN_ChecksumError.BusChannel" in names:
+                            vals = data["LIN_ChecksumError.BusChannel"].astype("u1")
+                            vals = [f"LIN {chn}" for chn in vals.tolist()]
+                            columns["Bus"][index] = vals
+
+                        if "LIN_ChecksumError.Checksum" in names:
+                            vals = data["LIN_ChecksumError.Checksum"]
+                            unique = np.unique(vals).tolist()
+                            for val in unique:
+                                sys.intern((f"Baudrate {val}"))
+                            vals = [f"Checksum 0x{val:02X}" for val in vals.tolist()]
+                            columns["Details"][index] = vals
+
+                        if "LIN_ChecksumError.ID" in names:
+                            vals = data["LIN_ChecksumError.ID"].astype("u1") & 0x3F
+                            columns["ID"][index] = vals
+                            if frame_map:
+                                columns["Name"][index] = [
+                                    frame_map[_id] for _id in vals
+                                ]
+
+                        columns["Event Type"][index] = "Checksum Error Frame"
+
+                        vals = None
+
+                    dfs.append(pd.DataFrame(columns))
+
+        if not dfs:
             return
+        else:
+            signals = pd.concat(dfs).sort_values("timestamps")
 
-        df_index = np.sort(np.concatenate([item.timestamps for (item, names) in items]))
-        count = len(df_index)
+            index = pd.Index(range(len(signals)))
+            signals.set_index(index, inplace=True)
 
-        columns = {
-            "timestamps": df_index,
-            "Bus": np.full(count, "Unknown", dtype="O"),
-            "ID": np.full(count, 0xFFFFFFFF, dtype="u4"),
-            "Direction": np.full(count, "", dtype="O"),
-            "Name": np.full(count, "", dtype="O"),
-            "Event Type": np.full(count, "LIN Frame", dtype="O"),
-            "Details": np.full(count, "", dtype="O"),
-            "Received Byte Count": np.zeros(count, dtype="u1"),
-            "Data Length": np.zeros(count, dtype="u1"),
-            "Data Bytes": np.full(count, "", dtype="O"),
-        }
-
-        count = len(items)
-
-        for _ in range(count):
-            item, names = items.pop()
-
-            frame_map = None
-            if item.attachment and item.attachment[0]:
-                dbc = load_can_database(item.attachment[1], item.attachment[0])
-                if dbc:
-                    frame_map = {frame.arbitration_id.id: frame.name for frame in dbc}
-
-                    for name in frame_map.values():
-                        sys.intern(name)
-
-            if item.name == "LIN_Frame":
-
-                index = np.searchsorted(df_index, item.timestamps)
-
-                vals = item["LIN_Frame.BusChannel"].astype("u1")
-                vals = [f"LIN {chn}" for chn in vals.tolist()]
-                columns["Bus"][index] = vals
-
-                vals = item["LIN_Frame.ID"].astype("u1") & 0x3F
-                columns["ID"][index] = vals
-                if frame_map:
-                    columns["Name"][index] = [frame_map[_id] for _id in vals]
-
-                columns["Received Byte Count"][index] = item[
-                    "LIN_Frame.ReceivedDataByteCount"
-                ].astype("u1")
-                data_length = item["LIN_Frame.DataLength"].astype("u1").tolist()
-                columns["Data Length"][index] = data_length
-
-                vals = csv_bytearray2hex(
-                    pd.Series(list(item["LIN_Frame.DataBytes"])),
-                    data_length,
-                )
-                columns["Data Bytes"][index] = vals
-
-                vals = None
-                data_length = None
-
-            elif item.name == "LIN_SyncError":
-
-                index = np.searchsorted(df_index, item.timestamps)
-                names = set(item.samples.dtype.names)
-
-                if "LIN_SyncError.BusChannel" in names:
-                    vals = item["LIN_SyncError.BusChannel"].astype("u1")
-                    vals = [f"LIN {chn}" for chn in vals.tolist()]
-                    columns["Bus"][index] = vals
-
-                if "LIN_SyncError.BaudRate" in names:
-                    vals = item["LIN_SyncError.BaudRate"]
-                    unique = np.unique(vals).tolist()
-                    for val in unique:
-                        sys.intern((f"Baudrate {val}"))
-                    vals = [f"Baudrate {val}" for val in vals.tolist()]
-                    columns["Details"][index] = vals
-
-                columns["Event Type"][index] = "Sync Error Frame"
-
-                vals = None
-                data_length = None
-
-            elif item.name == "LIN_TransmissionError":
-
-                index = np.searchsorted(df_index, item.timestamps)
-
-                names = set(item.samples.dtype.names)
-
-                if "LIN_TransmissionError.BusChannel" in names:
-                    vals = item["LIN_TransmissionError.BusChannel"].astype("u1")
-                    vals = [f"LIN {chn}" for chn in vals.tolist()]
-                    columns["Bus"][index] = vals
-
-                if "LIN_TransmissionError.BaudRate" in names:
-                    vals = item["LIN_TransmissionError.BaudRate"]
-                    unique = np.unique(vals).tolist()
-                    for val in unique:
-                        sys.intern((f"Baudrate {val}"))
-                    vals = [f"Baudrate {val}" for val in vals.tolist()]
-                    columns["Details"][index] = vals
-
-                vals = item["LIN_TransmissionError.ID"].astype("u1") & 0x3F
-                columns["ID"][index] = vals
-                if frame_map:
-                    columns["Name"][index] = [frame_map[_id] for _id in vals]
-
-                columns["Event Type"][index] = "Transmission Error Frame"
-
-                vals = None
-
-            elif item.name == "LIN_ReceiveError":
-
-                index = np.searchsorted(df_index, item.timestamps)
-
-                names = set(item.samples.dtype.names)
-
-                if "LIN_ReceiveError.BusChannel" in names:
-                    vals = item["LIN_ReceiveError.BusChannel"].astype("u1")
-                    vals = [f"LIN {chn}" for chn in vals.tolist()]
-                    columns["Bus"][index] = vals
-
-                if "LIN_ReceiveError.BaudRate" in names:
-                    vals = item["LIN_ReceiveError.BaudRate"]
-                    unique = np.unique(vals).tolist()
-                    for val in unique:
-                        sys.intern((f"Baudrate {val}"))
-                    vals = [f"Baudrate {val}" for val in vals.tolist()]
-                    columns["Details"][index] = vals
-
-                if "LIN_ReceiveError.ID" in names:
-                    vals = item["LIN_ReceiveError.ID"].astype("u1") & 0x3F
-                    columns["ID"][index] = vals
-                    if frame_map:
-                        columns["Name"][index] = [frame_map[_id] for _id in vals]
-
-                columns["Event Type"][index] = "Receive Error Frame"
-
-                vals = None
-
-            elif item.name == "LIN_ChecksumError":
-
-                index = np.searchsorted(df_index, item.timestamps)
-
-                names = set(item.samples.dtype.names)
-
-                if "LIN_ChecksumError.BusChannel" in names:
-                    vals = item["LIN_ChecksumError.BusChannel"].astype("u1")
-                    vals = [f"LIN {chn}" for chn in vals.tolist()]
-                    columns["Bus"][index] = vals
-
-                if "LIN_ChecksumError.Checksum" in names:
-                    vals = item["LIN_ChecksumError.Checksum"]
-                    unique = np.unique(vals).tolist()
-                    for val in unique:
-                        sys.intern((f"Baudrate {val}"))
-                    vals = [f"Checksum 0x{val:02X}" for val in vals.tolist()]
-                    columns["Details"][index] = vals
-
-                if "LIN_ChecksumError.ID" in names:
-                    vals = item["LIN_ChecksumError.ID"].astype("u1") & 0x3F
-                    columns["ID"][index] = vals
-                    if frame_map:
-                        columns["Name"][index] = [frame_map[_id] for _id in vals]
-
-                columns["Event Type"][index] = "Checksum Error Frame"
-
-                vals = None
-
-        signals = pd.DataFrame(columns)
+        del dfs
 
         trace = LINBusTrace(signals, start=self.mdf.header.start_time, range=ranges)
 
@@ -1856,7 +1874,7 @@ class WithMDIArea:
                         pd.Series(list(signal.samples)), length
                     )
 
-                if signal.name.endswith("CAN_DataFrame.ID"):
+                if signal.name.endswith(".ID"):
                     signal.samples = signal.samples.astype("<u4") & 0x1FFFFFFF
 
             signals = natsorted(signals, key=lambda x: x.name)
@@ -2099,10 +2117,10 @@ class WithMDIArea:
                     else:
                         length = None
                     signal.samples = csv_bytearray2hex(
-                        pd.Series(list(signal.samples)), length
+                        pd.Series(list(signal.samples)), length.astype("u2")
                     )
 
-                if signal.name.endswith("CAN_DataFrame.ID"):
+                if signal.name.endswith(".ID"):
                     signal.samples = signal.samples.astype("<u4") & 0x1FFFFFFF
 
         for uuid, sig_ in not_found.items():
@@ -2441,14 +2459,7 @@ class WithMDIArea:
 
         for name in signals.columns:
             if name.endswith(
-                (
-                    "CAN_DataFrame.ID",
-                    "FLX_Frame.ID",
-                    "FlexRay_DataFrame.ID",
-                    "LIN_Frame.ID",
-                    "MOST_DataFrame.ID",
-                    "ETH_Frame.ID",
-                )
+                ".ID",
             ):
                 signals[name] = signals[name].astype("<u4") & 0x1FFFFFFF
 

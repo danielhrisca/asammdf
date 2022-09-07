@@ -50,7 +50,9 @@ class Tabular(TabularBase):
                 if col.dtype.kind == "O":
                     if name_.endswith("DataBytes"):
                         try:
-                            sizes = signals[name_.replace("DataBytes", "DataLength")]
+                            sizes = signals[
+                                name_.replace("DataBytes", "DataLength").astype("u2")
+                            ]
                         except:
                             sizes = None
                         dropped[name_] = pd.Series(
@@ -63,7 +65,9 @@ class Tabular(TabularBase):
 
                     elif name_.endswith("Data Bytes"):
                         try:
-                            sizes = signals[name_.replace("Data Bytes", "Data Length")]
+                            sizes = signals[
+                                name_.replace("Data Bytes", "Data Length").astype("u2")
+                            ]
                         except:
                             sizes = None
                         dropped[name_] = pd.Series(
