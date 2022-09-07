@@ -420,45 +420,30 @@ def to_dict(conversion: ChannelConversionType) -> Union[dict, None]:
 
     elif conversion_type == v4c.CONVERSION_TYPE_RAT:
         conversion_dict.update(
-
-            {
-                key: conversion[key]
-                for key in [f"P{i}" for i in range(1, 7)]
-            }
+            {key: conversion[key] for key in [f"P{i}" for i in range(1, 7)]}
         )
         conversion_dict["conversion_type"] = conversion_type
 
     elif conversion_type in (v4c.CONVERSION_TYPE_TAB, v4c.CONVERSION_TYPE_TABI):
         params = conversion["val_param_nr"] // 2
-        conversion_dict.update({
-            key: conversion[key]
-            for key in [f"phys_{nr}" for nr in range(params)]
-        })
         conversion_dict.update(
-            {
-                key: conversion[key]
-                for key in [f"raw_{nr}" for nr in range(params)]
-            }
+            {key: conversion[key] for key in [f"phys_{nr}" for nr in range(params)]}
+        )
+        conversion_dict.update(
+            {key: conversion[key] for key in [f"raw_{nr}" for nr in range(params)]}
         )
         conversion_dict["conversion_type"] = conversion_type
 
     elif conversion_type == v4c.CONVERSION_TYPE_RTAB:
-        params = (conversion["val_param_nr"] -1) // 3
-        conversion_dict.update({
-            key: conversion[key]
-            for key in [f"lower_{nr}" for nr in range(params)]
-        })
+        params = (conversion["val_param_nr"] - 1) // 3
         conversion_dict.update(
-            {
-                key: conversion[key]
-                for key in [f"upper_{nr}" for nr in range(params)]
-            }
+            {key: conversion[key] for key in [f"lower_{nr}" for nr in range(params)]}
         )
         conversion_dict.update(
-            {
-                key: conversion[key]
-                for key in [f"phys_{nr}" for nr in range(params)]
-            }
+            {key: conversion[key] for key in [f"upper_{nr}" for nr in range(params)]}
+        )
+        conversion_dict.update(
+            {key: conversion[key] for key in [f"phys_{nr}" for nr in range(params)]}
         )
         conversion_dict["conversion_type"] = conversion_type
         conversion_dict["default"] = conversion.default
@@ -478,7 +463,7 @@ def to_dict(conversion: ChannelConversionType) -> Union[dict, None]:
                 conversion_dict[key] = val.decode("utf-8", errors="replace")
 
         for i in range(nr):
-            conversion_dict[f'val_{i}'] = conversion[f'val_{i}']
+            conversion_dict[f"val_{i}"] = conversion[f"val_{i}"]
 
     elif conversion_type == v4c.CONVERSION_TYPE_RTABX:
         nr = conversion.ref_param_nr - 1
@@ -495,8 +480,8 @@ def to_dict(conversion: ChannelConversionType) -> Union[dict, None]:
                 conversion_dict[key] = val.decode("utf-8", errors="replace")
 
         for i in range(nr):
-            conversion_dict[f'upper_{i}'] = conversion[f'upper_{i}']
-            conversion_dict[f'lower_{i}'] = conversion[f'lower_{i}']
+            conversion_dict[f"upper_{i}"] = conversion[f"upper_{i}"]
+            conversion_dict[f"lower_{i}"] = conversion[f"lower_{i}"]
 
     else:
         conversion_dict = None

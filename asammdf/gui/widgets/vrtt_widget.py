@@ -7,7 +7,6 @@ from ..ui.vrtt_widget import Ui_VRTT_Widget
 
 
 class VRTTWidget(Ui_VRTT_Widget, QtWidgets.QWidget):
-
     def __init__(
         self,
         lower=0,

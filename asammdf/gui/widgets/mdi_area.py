@@ -1142,9 +1142,7 @@ class WithMDIArea:
 
         signals = pd.DataFrame(columns)
 
-        trace = CANBusTrace(
-            signals, start=self.mdf.header.start_time, ranges=ranges
-        )
+        trace = CANBusTrace(signals, start=self.mdf.header.start_time, ranges=ranges)
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(trace)
@@ -1679,9 +1677,7 @@ class WithMDIArea:
 
         signals = pd.DataFrame(columns)
 
-        trace = LINBusTrace(
-            signals, start=self.mdf.header.start_time, range=ranges
-        )
+        trace = LINBusTrace(signals, start=self.mdf.header.start_time, range=ranges)
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(trace)
@@ -3294,6 +3290,7 @@ class WithMDIArea:
             )
         )
         plot.plot._can_paint_global = True
+        plot.update()
         plot.channel_selection.refresh()
 
         return w, pattern_info

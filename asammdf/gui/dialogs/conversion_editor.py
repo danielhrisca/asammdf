@@ -1,14 +1,15 @@
 # -*- coding: utf-8 -*-
 
+import numpy as np
+from PySide6 import QtCore, QtWidgets
+
 from asammdf.blocks import v4_constants as v4c
 from asammdf.blocks.conversion_utils import from_dict
-import numpy as np
-from PySide6 import QtWidgets, QtCore
 
 from ..ui import resource_rc
 from ..ui.define_conversion_dialog import Ui_ConversionDialog
-from ..widgets.vtt_widget import VTTWidget
 from ..widgets.vrtt_widget import VRTTWidget
+from ..widgets.vtt_widget import VTTWidget
 
 
 # from https://stackoverflow.com/a/53936965/11009349
@@ -23,7 +24,16 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
-        for widget in (self.a, self.b, self.p1, self.p2, self.p3, self.p4, self.p5, self.p6):
+        for widget in (
+            self.a,
+            self.b,
+            self.p1,
+            self.p2,
+            self.p3,
+            self.p4,
+            self.p5,
+            self.p6,
+        ):
             widget.setMaximum(np.inf)
             widget.setMinimum(-np.inf)
 
@@ -36,23 +46,27 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
             if conversion["conversion_type"] == v4c.CONVERSION_TYPE_LIN:
                 self.tabs.setCurrentIndex(0)
 
-                self.a.setValue(conversion['a'])
-                self.b.setValue(conversion['b'])
+                self.a.setValue(conversion["a"])
+                self.b.setValue(conversion["b"])
 
             elif conversion["conversion_type"] == v4c.CONVERSION_TYPE_RAT:
                 self.tabs.setCurrentIndex(1)
 
-                self.p1.setValue(conversion['P1'])
-                self.p2.setValue(conversion['P2'])
-                self.p3.setValue(conversion['P3'])
-                self.p4.setValue(conversion['P4'])
-                self.p5.setValue(conversion['P5'])
-                self.p6.setValue(conversion['P6'])
+                self.p1.setValue(conversion["P1"])
+                self.p2.setValue(conversion["P2"])
+                self.p3.setValue(conversion["P3"])
+                self.p4.setValue(conversion["P4"])
+                self.p5.setValue(conversion["P5"])
+                self.p6.setValue(conversion["P6"])
 
             elif conversion["conversion_type"] == v4c.CONVERSION_TYPE_TABX:
                 self.tabs.setCurrentIndex(2)
 
-                self.vtt_default.setText(conversion.referenced_blocks["default_addr"].decode('utf-8', errors='replace'))
+                self.vtt_default.setText(
+                    conversion.referenced_blocks["default_addr"].decode(
+                        "utf-8", errors="replace"
+                    )
+                )
 
                 for i in range(conversion.ref_param_nr - 1):
                     widget = VTTWidget()
@@ -62,15 +76,23 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                     self.vtt_list.addItem(item)
                     self.vtt_list.setItemWidget(item, widget)
 
-                    widget.value.setValue(conversion[f'val_{i}'])
-                    widget.text.setText(conversion.referenced_blocks[f'text_{i}'].decode('utf-8', errors='replace'))
+                    widget.value.setValue(conversion[f"val_{i}"])
+                    widget.text.setText(
+                        conversion.referenced_blocks[f"text_{i}"].decode(
+                            "utf-8", errors="replace"
+                        )
+                    )
 
             elif conversion["conversion_type"] == v4c.CONVERSION_TYPE_RTABX:
                 self.tabs.setCurrentIndex(3)
 
                 print(conversion)
 
-                self.vrtt_default.setText(conversion.referenced_blocks["default_addr"].decode('utf-8', errors='replace'))
+                self.vrtt_default.setText(
+                    conversion.referenced_blocks["default_addr"].decode(
+                        "utf-8", errors="replace"
+                    )
+                )
 
                 for i in range(conversion.ref_param_nr - 1):
                     widget = VRTTWidget()
@@ -80,9 +102,13 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                     self.vrtt_list.addItem(item)
                     self.vrtt_list.setItemWidget(item, widget)
 
-                    widget.lower.setValue(conversion[f'lower_{i}'])
-                    widget.upper.setValue(conversion[f'upper_{i}'])
-                    widget.text.setText(conversion.referenced_blocks[f'text_{i}'].decode('utf-8', errors='replace'))
+                    widget.lower.setValue(conversion[f"lower_{i}"])
+                    widget.upper.setValue(conversion[f"upper_{i}"])
+                    widget.text.setText(
+                        conversion.referenced_blocks[f"text_{i}"].decode(
+                            "utf-8", errors="replace"
+                        )
+                    )
 
         self.insert_btn.clicked.connect(self.insert)
         self.insert_vrtt_btn.clicked.connect(self.insert_vrtt)
@@ -108,7 +134,7 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
             QtWidgets.QMessageBox.warning(
                 self,
                 "Invalid conversion name",
-                "The conversion name cannot be an empty string."
+                "The conversion name cannot be an empty string.",
             )
             return
 
@@ -117,7 +143,7 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                 QtWidgets.QMessageBox.warning(
                     self,
                     "Invalid conversion parameters",
-                    "The rational conversion parameters P4, P5 and P6 cannot all be 0."
+                    "The rational conversion parameters P4, P5 and P6 cannot all be 0.",
                 )
                 return
 
@@ -137,7 +163,7 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                     QtWidgets.QMessageBox.warning(
                         self,
                         "Invalid conversion parameters",
-                        f"The value-to-text conversion raw value {value} is defined multiple times."
+                        f"The value-to-text conversion raw value {value} is defined multiple times.",
                     )
                     return
                 else:
@@ -160,7 +186,7 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                     QtWidgets.QMessageBox.warning(
                         self,
                         "Invalid conversion parameters",
-                        f"The upper value must be greater or higher than the lower value. ({upper=} and {lower=}"
+                        f"The upper value must be greater or higher than the lower value. ({upper=} and {lower=}",
                     )
                     return
 
@@ -171,7 +197,7 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                             QtWidgets.QMessageBox.warning(
                                 self,
                                 "Invalid conversion parameters",
-                                f"The ranges cannot overlap; {x} overlaps with {y}"
+                                f"The ranges cannot overlap; {x} overlaps with {y}",
                             )
                             return
                         else:
@@ -220,7 +246,7 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                     "name": self.name.text().strip(),
                     "unit": self.unit.text().strip(),
                     "comment": self.comment.toPlainText().strip(),
-                    "default": self.vtt_default.text().strip().encode('utf-8'),
+                    "default": self.vtt_default.text().strip().encode("utf-8"),
                 }
 
                 cntr = 0
@@ -233,9 +259,9 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                     widget = self.vtt_list.itemWidget(item)
 
                     value = int(widget.value.value())
-                    text = widget.text.text().strip().encode('utf-8')
-                    conversion[f'val_{cntr}'] = value
-                    conversion[f'text_{cntr}'] = text
+                    text = widget.text.text().strip().encode("utf-8")
+                    conversion[f"val_{cntr}"] = value
+                    conversion[f"text_{cntr}"] = text
                     cntr += 1
 
             elif self.tabs.currentIndex() == 3:
@@ -243,7 +269,7 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                     "name": self.name.text().strip(),
                     "unit": self.unit.text().strip(),
                     "comment": self.comment.toPlainText().strip(),
-                    "default": self.vrtt_default.text().strip().encode('utf-8'),
+                    "default": self.vrtt_default.text().strip().encode("utf-8"),
                 }
 
                 cntr = 0
@@ -257,10 +283,10 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
 
                     lower = int(widget.lower.value())
                     upper = int(widget.upper.value())
-                    text = widget.text.text().strip().encode('utf-8')
-                    conversion[f'lower_{cntr}'] = lower
-                    conversion[f'upper_{cntr}'] = upper
-                    conversion[f'text_{cntr}'] = text
+                    text = widget.text.text().strip().encode("utf-8")
+                    conversion[f"lower_{cntr}"] = lower
+                    conversion[f"upper_{cntr}"] = upper
+                    conversion[f"text_{cntr}"] = text
                     cntr += 1
 
             conversion = from_dict(conversion)

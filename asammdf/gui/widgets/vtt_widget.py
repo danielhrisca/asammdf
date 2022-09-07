@@ -7,7 +7,6 @@ from ..ui.vtt_widget import Ui_VTT_Widget
 
 
 class VTTWidget(Ui_VTT_Widget, QtWidgets.QWidget):
-
     def __init__(
         self,
         value=0,

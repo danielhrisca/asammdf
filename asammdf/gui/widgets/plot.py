@@ -27,8 +27,8 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 PLOT_BUFFER_SIZE = 4000
 
+from ...blocks.conversion_utils import from_dict, to_dict
 from ...blocks.utils import target_byte_order
-from ...blocks.conversion_utils import to_dict
 from ..utils import FONT_SIZE, value_as_str
 
 try:
@@ -2035,6 +2035,11 @@ class Plot(QtWidgets.QWidget):
                     item.setCheckState(item.CommonAxisColumn, QtCore.Qt.Checked)
 
                 item.precision = description.get("precision", 3)
+
+                if description.get("conversion", None):
+                    conversion = from_dict(description["conversion"])
+                    conversion.is_user_defined = True
+                    item.set_conversion(conversion)
 
             if enforce_y_axis:
                 item.setCheckState(item.CommonAxisColumn, QtCore.Qt.Checked)
@@ -4938,6 +4943,7 @@ class _Plot(pg.PlotWidget):
         self.update()
 
     def set_conversion(self, uuid, conversion):
+        print("set conv")
         sig, index = self.signal_by_uuid(uuid)
 
         axis = self.axes[index]

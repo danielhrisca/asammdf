@@ -1002,15 +1002,16 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 conversion = None
                 channel_name = "selected items"
 
-            dlg = ConversionEditor(
-                channel_name, conversion, parent=self
-            )
+            dlg = ConversionEditor(channel_name, conversion, parent=self)
             dlg.exec_()
             if dlg.pressed_button in ("apply", "remove"):
                 conversion = dlg.conversion()
 
                 for item in selected_items:
-                    if item.type() in (ChannelsTreeItem.Channel, ChannelsTreeItem.Group):
+                    if item.type() in (
+                        ChannelsTreeItem.Channel,
+                        ChannelsTreeItem.Group,
+                    ):
                         item.set_conversion(conversion)
 
         elif action.text() == "Copy channel structure":
@@ -1819,7 +1820,9 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                         self.signal.phys_samples = samples
                 else:
                     self.signal.text_conversion = self.signal.conversion
-                    self.signal.phys_samples = self.signal.raw_samples = self.signal.samples
+                    self.signal.phys_samples = (
+                        self.signal.raw_samples
+                    ) = self.signal.samples
             else:
                 self.signal.phys_samples = self.signal.raw_samples = self.signal.samples
 
