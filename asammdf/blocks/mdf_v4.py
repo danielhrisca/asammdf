@@ -7598,11 +7598,11 @@ class MDF4(MDF_Common):
 
                     elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
                         encoding = "utf-8"
-                        vals = np.array([e.rsplit(b"\0")[0] for e in vals.tolist()])
+                        vals = np.array([e.rsplit(b"\0")[0] for e in vals.tolist()], dtype=vals.dtype)
 
                     elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
                         encoding = "latin-1"
-                        vals = np.array([e.rsplit(b"\0")[0] for e in vals.tolist()])
+                        vals = np.array([e.rsplit(b"\0")[0] for e in vals.tolist()], dtype=vals.dtype)
 
                     else:
                         raise MdfException(
