@@ -1008,6 +1008,9 @@ class WithMDIArea:
                         "Name": np.full(count, "", dtype="O"),
                         "Event Type": np.full(count, "CAN Frame", dtype="O"),
                         "Details": np.full(count, "", dtype="O"),
+                        "ESI": np.full(count, "", dtype="O"),
+                        "EDL": np.full(count, "Standard CAN", dtype="O"),
+                        "BRS": np.full(count, "", dtype="O"),
                         "DLC": np.zeros(count, dtype="u1"),
                         "Data Length": np.zeros(count, dtype="u1"),
                         "Data Bytes": np.full(count, "", dtype="O"),
@@ -1055,6 +1058,30 @@ class WithMDIArea:
                             columns["Direction"] = [
                                 "TX" if dir else "RX"
                                 for dir in data["CAN_DataFrame.Dir"]
+                                .astype("u1")
+                                .tolist()
+                            ]
+
+                        if "CAN_DataFrame.ESI" in names:
+                            columns["ESI"] = [
+                                "Error" if dir else "No error"
+                                for dir in data["CAN_DataFrame.ESI"]
+                                .astype("u1")
+                                .tolist()
+                            ]
+
+                        if "CAN_DataFrame.EDL" in names:
+                            columns["EDL"] = [
+                                "CAN FD" if dir else "Standard CAN"
+                                for dir in data["CAN_DataFrame.EDL"]
+                                .astype("u1")
+                                .tolist()
+                            ]
+
+                        if "CAN_DataFrame.BRS" in names:
+                            columns["BRS"] = [
+                                str(dir)
+                                for dir in data["CAN_DataFrame.BRS"]
                                 .astype("u1")
                                 .tolist()
                             ]
@@ -1555,6 +1582,12 @@ class WithMDIArea:
                         )
                         columns["Data Bytes"] = vals
 
+                        if "LIN_Frame.Dir" in names:
+                            columns["Direction"] = [
+                                "TX" if dir else "RX"
+                                for dir in data["LIN_Frame.Dir"].astype("u1").tolist()
+                            ]
+
                         vals = None
                         data_length = None
 
@@ -1603,6 +1636,7 @@ class WithMDIArea:
                             columns["Name"] = [frame_map[_id] for _id in vals]
 
                         columns["Event Type"] = "Transmission Error Frame"
+                        columns["Direction"] = ["TX"] * count
 
                         vals = None
 
@@ -1631,6 +1665,8 @@ class WithMDIArea:
 
                         columns["Event Type"] = "Receive Error Frame"
 
+                        columns["Direction"] = ["RX"] * count
+
                         vals = None
 
                     elif data.name == "LIN_ChecksumError":
@@ -1657,6 +1693,14 @@ class WithMDIArea:
                                 columns["Name"] = [frame_map[_id] for _id in vals]
 
                         columns["Event Type"] = "Checksum Error Frame"
+
+                        if "LIN_ChecksumError.Dir" in names:
+                            columns["Direction"] = [
+                                "TX" if dir else "RX"
+                                for dir in data["LIN_ChecksumError.Dir"]
+                                .astype("u1")
+                                .tolist()
+                            ]
 
                         vals = None
 
