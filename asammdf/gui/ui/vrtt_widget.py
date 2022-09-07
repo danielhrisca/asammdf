@@ -22,9 +22,10 @@ class Ui_VRTT_Widget(object):
     def setupUi(self, VRTT_Widget):
         if not VRTT_Widget.objectName():
             VRTT_Widget.setObjectName(u"VRTT_Widget")
-        VRTT_Widget.resize(400, 40)
+        VRTT_Widget.resize(400, 26)
         self.horizontalLayout = QHBoxLayout(VRTT_Widget)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.horizontalLayout.setContentsMargins(-1, 2, -1, 2)
         self.label = QLabel(VRTT_Widget)
         self.label.setObjectName(u"label")
 

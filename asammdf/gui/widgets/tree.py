@@ -1823,6 +1823,8 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                     self.signal.phys_samples = (
                         self.signal.raw_samples
                     ) = self.signal.samples
+
+                self.unit = conversion.unit
             else:
                 self.signal.phys_samples = self.signal.raw_samples = self.signal.samples
 

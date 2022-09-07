@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets, QtGui
 
 from asammdf.blocks import v4_constants as v4c
 from asammdf.blocks.conversion_utils import from_dict
@@ -43,14 +43,19 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
             self.unit.setText(conversion["unit"])
             self.comment.setPlainText(conversion["comment"])
 
+            original_conversion_color = QtGui.QColor("#62b2e2")
+            bar = self.tabs.tabBar()
+
             if conversion["conversion_type"] == v4c.CONVERSION_TYPE_LIN:
                 self.tabs.setCurrentIndex(0)
+                bar.setTabTextColor(0, original_conversion_color)
 
                 self.a.setValue(conversion["a"])
                 self.b.setValue(conversion["b"])
 
             elif conversion["conversion_type"] == v4c.CONVERSION_TYPE_RAT:
                 self.tabs.setCurrentIndex(1)
+                bar.setTabTextColor(1, original_conversion_color)
 
                 self.p1.setValue(conversion["P1"])
                 self.p2.setValue(conversion["P2"])
@@ -61,6 +66,7 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
 
             elif conversion["conversion_type"] == v4c.CONVERSION_TYPE_TABX:
                 self.tabs.setCurrentIndex(2)
+                bar.setTabTextColor(2, original_conversion_color)
 
                 self.vtt_default.setText(
                     conversion.referenced_blocks["default_addr"].decode(
@@ -85,8 +91,7 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
 
             elif conversion["conversion_type"] == v4c.CONVERSION_TYPE_RTABX:
                 self.tabs.setCurrentIndex(3)
-
-                print(conversion)
+                bar.setTabTextColor(3, original_conversion_color)
 
                 self.vrtt_default.setText(
                     conversion.referenced_blocks["default_addr"].decode(
@@ -119,7 +124,9 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
         self.cancel_btn.clicked.connect(self.cancel)
 
         self.vtt_list.setUniformItemSizes(True)
+        self.vtt_list.setAlternatingRowColors(False)
         self.vrtt_list.setUniformItemSizes(True)
+        self.vrtt_list.setAlternatingRowColors(False)
 
         self.setWindowTitle(f"Edit {channel_name} conversion")
 
@@ -129,14 +136,6 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
         self.setWindowFlag(QtCore.Qt.WindowMaximizeButtonHint, True)
 
     def apply(self, event):
-
-        if not self.name.text().strip():
-            QtWidgets.QMessageBox.warning(
-                self,
-                "Invalid conversion name",
-                "The conversion name cannot be an empty string.",
-            )
-            return
 
         if self.tabs.currentIndex() == 1:
             if (self.p4.value(), self.p5.value(), self.p6.value()) == (0, 0, 0):

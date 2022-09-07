@@ -22,9 +22,10 @@ class Ui_VTT_Widget(object):
     def setupUi(self, VTT_Widget):
         if not VTT_Widget.objectName():
             VTT_Widget.setObjectName(u"VTT_Widget")
-        VTT_Widget.resize(511, 40)
+        VTT_Widget.resize(511, 26)
         self.horizontalLayout = QHBoxLayout(VTT_Widget)
         self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.horizontalLayout.setContentsMargins(-1, 2, -1, 2)
         self.value = QDoubleSpinBox(VTT_Widget)
         self.value.setObjectName(u"value")
         self.value.setMinimumSize(QSize(100, 0))
