@@ -8291,7 +8291,9 @@ class MDF4(MDF_Common):
                         t = frombuffer(buffer, dtype=time_ch.dtype_fmt)
 
                 else:
-                    dtype_, byte_size, byte_offset, bti_count = group.record[time_ch_nr]
+                    dtype_, byte_size, byte_offset, bit_offset = group.record[
+                        time_ch_nr
+                    ]
 
                     if one_piece:
                         data_bytes = data[0]
@@ -8330,6 +8332,38 @@ class MDF4(MDF_Common):
                         )
 
                         t = frombuffer(buffer, dtype=dtype_)
+
+                    if not time_ch.standard_C_size:
+                        channel_dtype = time_ch.dtype_fmt
+                        bit_count = time_ch.bit_count
+                        data_type = time_ch.data_type
+
+                        size = byte_size
+
+                        if channel_dtype.byteorder == "|" and time_ch.data_type in (
+                            v4c.DATA_TYPE_SIGNED_MOTOROLA,
+                            v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                        ):
+                            view = f">u{t.itemsize}"
+                        else:
+                            view = f"{channel_dtype.byteorder}u{t.itemsize}"
+
+                        if dtype(view) != t.dtype:
+                            t = t.view(view)
+
+                        if bit_offset:
+                            t >>= bit_offset
+
+                        if bit_count != size * 8:
+                            if data_type in v4c.SIGNED_INT:
+                                t = as_non_byte_sized_signed_int(t, bit_count)
+                            else:
+                                mask = (1 << bit_count) - 1
+                                t &= mask
+                        elif data_type in v4c.SIGNED_INT:
+                            view = f"{channel_dtype.byteorder}i{t.itemsize}"
+                            if dtype(view) != t.dtype:
+                                t = t.view(view)
 
                 # get timestamps
                 if time_conv:
