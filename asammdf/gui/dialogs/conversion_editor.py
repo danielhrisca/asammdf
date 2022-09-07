@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from PySide6 import QtCore, QtWidgets, QtGui
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from asammdf.blocks import v4_constants as v4c
 from asammdf.blocks.conversion_utils import from_dict
@@ -37,14 +37,14 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
             widget.setMaximum(np.inf)
             widget.setMinimum(-np.inf)
 
+        original_conversion_color = QtGui.QColor("#62b2e2")
+        bar = self.tabs.tabBar()
+
         if conversion is not None:
 
             self.name.setText(conversion["name"])
             self.unit.setText(conversion["unit"])
             self.comment.setPlainText(conversion["comment"])
-
-            original_conversion_color = QtGui.QColor("#62b2e2")
-            bar = self.tabs.tabBar()
 
             if conversion["conversion_type"] == v4c.CONVERSION_TYPE_LIN:
                 self.tabs.setCurrentIndex(0)
@@ -115,11 +115,17 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                         )
                     )
 
+            elif conversion["conversion_type"] == v4c.CONVERSION_TYPE_NON:
+                self.tabs.setCurrentIndex(4)
+                bar.setTabTextColor(4, original_conversion_color)
+        else:
+            self.tabs.setCurrentIndex(4)
+            bar.setTabTextColor(4, original_conversion_color)
+
         self.insert_btn.clicked.connect(self.insert)
         self.insert_vrtt_btn.clicked.connect(self.insert_vrtt)
         self.reset_btn.clicked.connect(self.reset)
         self.reset_vrtt_btn.clicked.connect(self.reset_vrtt)
-        self.remove_btn.clicked.connect(self.remove)
         self.apply_btn.clicked.connect(self.apply)
         self.cancel_btn.clicked.connect(self.cancel)
 
@@ -209,14 +215,6 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
         if self.pressed_button in (None, "cancel"):
             conversion = None
 
-        elif self.pressed_button == "remove":
-            conversion = {
-                "name": self.name.text().strip(),
-                "unit": self.unit.text().strip(),
-                "comment": self.comment.toPlainText().strip(),
-            }
-            conversion = from_dict(conversion)
-            conversion.is_user_defined = True
         else:
             if self.tabs.currentIndex() == 0:
                 conversion = {
@@ -288,6 +286,13 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                     conversion[f"text_{cntr}"] = text
                     cntr += 1
 
+            elif self.tabs.currentIndex() == 4:
+                conversion = {
+                    "name": self.name.text().strip(),
+                    "unit": self.unit.text().strip(),
+                    "comment": self.comment.toPlainText().strip(),
+                }
+
             conversion = from_dict(conversion)
             conversion.is_user_defined = True
 
@@ -308,10 +313,6 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
         item.setSizeHint(widget.sizeHint())
         self.vrtt_list.addItem(item)
         self.vrtt_list.setItemWidget(item, widget)
-
-    def remove(self, event):
-        self.pressed_button = "remove"
-        self.close()
 
     def reset(self, event):
         self.vtt_list.clear()

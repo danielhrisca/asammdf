@@ -3104,7 +3104,9 @@ class MDF3(MDF_Common):
 
         if vals.dtype.kind == "S":
             encoding = "latin-1"
+            print('>>>>', vals)
             vals = array([e.rsplit(b"\0")[0] for e in vals.tolist()])
+            print('<<<<',vals)
 
         if samples_only:
             res = vals, None

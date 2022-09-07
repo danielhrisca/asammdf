@@ -26,7 +26,7 @@
   <property name="sizeGripEnabled">
    <bool>true</bool>
   </property>
-  <layout class="QGridLayout" name="gridLayout" rowstretch="1,0,0,0,0,0" columnstretch="0,0,1,0,0,0,0">
+  <layout class="QGridLayout" name="gridLayout" rowstretch="1,0,0,0,0,0" columnstretch="0,0,1,0,0">
    <item row="1" column="0">
     <widget class="QLabel" name="label_7">
      <property name="text">
@@ -34,7 +34,7 @@
      </property>
     </widget>
    </item>
-   <item row="3" column="1" colspan="6">
+   <item row="3" column="1" colspan="4">
     <widget class="QPlainTextEdit" name="comment"/>
    </item>
    <item row="3" column="0">
@@ -47,14 +47,7 @@
      </property>
     </widget>
    </item>
-   <item row="5" column="3">
-    <widget class="QPushButton" name="remove_btn">
-     <property name="text">
-      <string>Remove conversion</string>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="0" colspan="7">
+   <item row="0" column="0" colspan="5">
     <widget class="QTabWidget" name="tabs">
      <property name="currentIndex">
       <number>0</number>
@@ -341,10 +334,37 @@
        </item>
       </layout>
      </widget>
+     <widget class="QWidget" name="tab_5">
+      <attribute name="title">
+       <string>1:1</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="QLabel" name="label_18">
+         <property name="text">
+          <string>X -&gt; X</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_5">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>166</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
     </widget>
    </item>
    <item row="5" column="2">
-    <spacer name="horizontalSpacer_7">
+    <spacer name="horizontalSpacer_4">
      <property name="orientation">
       <enum>Qt::Horizontal</enum>
      </property>
@@ -356,7 +376,7 @@
      </property>
     </spacer>
    </item>
-   <item row="5" column="6">
+   <item row="5" column="4">
     <widget class="QPushButton" name="cancel_btn">
      <property name="text">
       <string>Cancel</string>
@@ -370,7 +390,7 @@
      </property>
     </widget>
    </item>
-   <item row="1" column="1" colspan="6">
+   <item row="1" column="1" colspan="4">
     <widget class="QLineEdit" name="name">
      <property name="inputMask">
       <string/>
@@ -396,7 +416,7 @@
      </property>
     </spacer>
    </item>
-   <item row="5" column="5">
+   <item row="5" column="3">
     <widget class="QPushButton" name="apply_btn">
      <property name="text">
       <string>Apply</string>
@@ -410,19 +430,6 @@
      </property>
     </widget>
    </item>
-   <item row="5" column="4">
-    <spacer name="horizontalSpacer_4">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>40</width>
-       <height>20</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
   </layout>
  </widget>
  <customwidgets>
@@ -432,6 +439,30 @@
    <header>asammdf/gui/widgets/list.h</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>tabs</tabstop>
+  <tabstop>name</tabstop>
+  <tabstop>comment</tabstop>
+  <tabstop>unit</tabstop>
+  <tabstop>cancel_btn</tabstop>
+  <tabstop>apply_btn</tabstop>
+  <tabstop>a</tabstop>
+  <tabstop>b</tabstop>
+  <tabstop>p1</tabstop>
+  <tabstop>p2</tabstop>
+  <tabstop>p3</tabstop>
+  <tabstop>p4</tabstop>
+  <tabstop>p5</tabstop>
+  <tabstop>p6</tabstop>
+  <tabstop>vtt_list</tabstop>
+  <tabstop>insert_btn</tabstop>
+  <tabstop>reset_btn</tabstop>
+  <tabstop>vrtt_list</tabstop>
+  <tabstop>insert_vrtt_btn</tabstop>
+  <tabstop>reset_vrtt_btn</tabstop>
+  <tabstop>vtt_default</tabstop>
+  <tabstop>vrtt_default</tabstop>
+ </tabstops>
  <resources>
   <include location="resource.qrc"/>
  </resources>

@@ -1004,7 +1004,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
             dlg = ConversionEditor(channel_name, conversion, parent=self)
             dlg.exec_()
-            if dlg.pressed_button in ("apply", "remove"):
+            if dlg.pressed_button == "apply":
                 conversion = dlg.conversion()
 
                 for item in selected_items:
