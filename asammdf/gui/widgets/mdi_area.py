@@ -1692,6 +1692,20 @@ class WithMDIArea:
                             if frame_map:
                                 columns["Name"] = [frame_map[_id] for _id in vals]
 
+                        if "LIN_ChecksumError.DataBytes" in names:
+                            data_length = (
+                                data["LIN_ChecksumError.DataLength"]
+                                .astype("u1")
+                                .tolist()
+                            )
+                            columns["Data Length"] = data_length
+
+                            vals = csv_bytearray2hex(
+                                pd.Series(list(data["LIN_ChecksumError.DataBytes"])),
+                                data_length,
+                            )
+                            columns["Data Bytes"] = vals
+
                         columns["Event Type"] = "Checksum Error Frame"
 
                         if "LIN_ChecksumError.Dir" in names:
