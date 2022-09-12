@@ -562,12 +562,17 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 if self.display_cg_name:
                     base_name = f"CG {i} {group.channel_group.acq_name}"
+                    if comment and group.channel_group.acq_name != comment:
+                        name = base_name + f" ({comment})"
+                    else:
+                        name = base_name
+
                 else:
                     base_name = f"Channel group {i}"
-                if comment:
-                    name = base_name + f" ({comment})"
-                else:
-                    name = base_name
+                    if comment:
+                        name = base_name + f" ({comment})"
+                    else:
+                        name = base_name
 
                 channel_group.setText(0, name)
                 channel_group.setFlags(
