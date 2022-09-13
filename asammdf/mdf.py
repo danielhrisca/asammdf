@@ -842,7 +842,7 @@ class MDF:
             if self._terminate:
                 return
 
-        out._transfer_metadata(self, message=f"Converted from <{self.name}>")
+        out._transfer_metadata(self, message=f"Converted from {self.name}")
         self.configure(copy_on_get=True)
         if self._callback:
             out._callback = out._mdf._callback = self._callback
