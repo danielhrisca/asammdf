@@ -16,6 +16,12 @@
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
     <widget class="QTabWidget" name="tabs">
+     <property name="font">
+      <font>
+       <family>Consolas</family>
+       <pointsize>8</pointsize>
+      </font>
+     </property>
      <property name="currentIndex">
       <number>0</number>
      </property>
@@ -43,8 +49,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>409</width>
-               <height>443</height>
+               <width>417</width>
+               <height>461</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout_3">
@@ -94,8 +100,8 @@
               <rect>
                <x>0</x>
                <y>0</y>
-               <width>408</width>
-               <height>443</height>
+               <width>417</width>
+               <height>461</height>
               </rect>
              </property>
              <layout class="QVBoxLayout" name="verticalLayout">
