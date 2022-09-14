@@ -2040,7 +2040,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             if file_stats is not None:
                 date_ = datetime.fromtimestamp(file_stats.st_ctime)
             else:
-                date_ = datetime.now()
+                date_ = datetime.now(datetime.timezone.utc)
             item = QtWidgets.QTreeWidgetItem()
             item.setText(0, "Created")
             item.setText(1, date_.strftime("%d-%b-%Y %H-%M-%S"))
@@ -2049,7 +2049,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             if file_stats is not None:
                 date_ = datetime.fromtimestamp(file_stats.st_mtime)
             else:
-                date_ = datetime.now()
+                date_ = datetime.now(datetime.timezone.utc)
             item = QtWidgets.QTreeWidgetItem()
             item.setText(0, "Last modified")
             item.setText(1, date_.strftime("%d-%b-%Y %H:%M:%S"))
