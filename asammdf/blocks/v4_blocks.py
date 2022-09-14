@@ -5518,8 +5518,7 @@ class HeaderBlock:
         if self.time_flags & v4c.FLAG_HD_LOCAL_TIME:
             tz = dateutil.tz.tzlocal()
         else:
-            tz = timezone.utc
-            timestamp += self.tz_offset * 60 + self.daylight_save_time * 60
+            tz = timezone(timedelta(minutes=self.tz_offset + self.daylight_save_time))
 
         try:
             timestamp = datetime.fromtimestamp(timestamp, tz)
@@ -5563,6 +5562,9 @@ class HeaderBlock:
             dst_offset_sign = "-" if dst_offset < 0 else "+"
 
             tz_information = f"[GMT{tz_offset_sign}{tz_offset:.2f} DST{dst_offset_sign}{dst_offset:.2f}h]"
+
+            start_time = f'local time = {self.start_time.strftime("%d-%b-%Y %H:%M:%S + %fu")} {tz_information}'
+
         else:
             tzinfo = self.start_time.tzinfo
 
@@ -5571,6 +5573,7 @@ class HeaderBlock:
                 dst = int(tzinfo.dst(self.start_time).total_seconds() / 3600)
             else:
                 dst = 0
+
             tz_offset = (
                 int(tzinfo.utcoffset(self.start_time).total_seconds() / 3600) - dst
             )
@@ -5582,7 +5585,8 @@ class HeaderBlock:
 
             tz_information = f"[assumed GMT{tz_offset_sign}{tz_offset:.2f} DST{dst_offset_sign}{dst_offset:.2f}h]"
 
-        start_time = f'local time = {self.start_time.strftime("%d-%b-%Y %H:%M:%S + %fu")} {tz_information}'
+            start_time = f'local time = {self.start_time.strftime("%d-%b-%Y %H:%M:%S + %fu")} {tz_information}'
+
         return start_time
 
     def to_blocks(self, address: int, blocks: list[Any]) -> int:
