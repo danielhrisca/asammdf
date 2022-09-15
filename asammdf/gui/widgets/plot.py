@@ -2245,7 +2245,7 @@ class Plot(QtWidgets.QWidget):
                     else:
                         item.setCheckState(item.NameColumn, QtCore.Qt.Checked)
             elif item.type() == item.Group:
-                print(Plot.item_double_click_handling)
+
                 if Plot.item_double_click_handling == "enable/disable":
                     if self.channel_selection.expandsOnDoubleClick():
                         self.channel_selection.setExpandsOnDoubleClick(False)
@@ -4957,7 +4957,6 @@ class _Plot(pg.PlotWidget):
         self.update()
 
     def set_conversion(self, uuid, conversion):
-        print("set conv")
         sig, index = self.signal_by_uuid(uuid)
 
         axis = self.axes[index]
