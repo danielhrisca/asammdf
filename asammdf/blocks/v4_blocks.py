@@ -5257,12 +5257,11 @@ class FileHistory:
 
         """
 
-        timestamp = self.abs_time / 10**9
+        timestamp = self.abs_time / 10 ** 9
         if self.time_flags & v4c.FLAG_HD_LOCAL_TIME:
             tz = dateutil.tz.tzlocal()
         else:
-            tz = timezone.utc
-            timestamp += self.tz_offset * 60 + self.daylight_save_time * 60
+            tz = timezone(timedelta(minutes=self.tz_offset + self.daylight_save_time))
 
         try:
             timestamp = datetime.fromtimestamp(timestamp, tz)
