@@ -5257,7 +5257,7 @@ class FileHistory:
 
         """
 
-        timestamp = self.abs_time / 10 ** 9
+        timestamp = self.abs_time / 10**9
         if self.time_flags & v4c.FLAG_HD_LOCAL_TIME:
             tz = dateutil.tz.tzlocal()
         else:
