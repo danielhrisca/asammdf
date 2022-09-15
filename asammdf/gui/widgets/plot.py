@@ -4138,6 +4138,7 @@ class _Plot(pg.PlotWidget):
                     self.region.setZValue(-10)
                     self.viewbox.addItem(self.region)
                     self.region.sigRegionChanged.connect(self.range_modified.emit)
+                    self.region.sigRegionChanged.connect(self.range_modified_handler)
                     self.region.sigRegionChangeFinished.connect(
                         self.range_modified_finished_handler
                     )
@@ -4498,12 +4499,17 @@ class _Plot(pg.PlotWidget):
                     increment = 1
                     start, stop = self.region.getRegion()
 
-                    if modifier == QtCore.Qt.ControlModifier:
-                        prev_pos = pos = stop
-                        second_pos = start
+                    if self.region_lock is None:
+
+                        if modifier == QtCore.Qt.ControlModifier:
+                            pos = stop
+                            second_pos = start
+                        else:
+                            pos = start
+                            second_pos = stop
                     else:
-                        prev_pos = pos = start
-                        second_pos = stop
+                        pos = start if stop == self.region_lock else stop
+                        second_pos = self.region_lock
 
                     x = self.get_current_timebase()
                     dim = x.size
@@ -4866,6 +4872,14 @@ class _Plot(pg.PlotWidget):
                 else:
                     self.region.lines[i].pen.setStyle(QtCore.Qt.SolidLine)
         self.range_modified_finished.emit(region)
+
+    def range_modified_handler(self, region):
+        if self.region_lock is not None:
+            for i in range(2):
+                if self.region.lines[i].value() == self.region_lock:
+                    self.region.lines[i].pen.setStyle(QtCore.Qt.DashDotDotLine)
+                else:
+                    self.region.lines[i].pen.setStyle(QtCore.Qt.SolidLine)
 
     def scale_curve_to_pixmap(self, x, y, y_range, x_start, delta):
 
