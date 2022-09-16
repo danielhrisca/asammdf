@@ -776,8 +776,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                             item.set_value(item._value, update=True)
 
                         elif item.type() == item.Group:
-                            item.set_ranges(dlg.result)
+                            item.set_ranges(copy_ranges(dlg.result))
                             item.update_child_values()
+
+            self.refresh()
 
         elif (
             modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier)
@@ -1933,15 +1935,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 )
             self.ranges.append(range_info)
 
-        self.resolved_ranges = None
-
-    # @timeit
-    # def setBackground(self, col, c):
-    #     super().setBackground(col, c)
-
-    # @timeit
-    # def setForeground(self, col, c):
-    #     super().setForeground(col, c)
+        self.reset_resolved_ranges()
 
     def set_value(self, value=None, update=False, force=False):
         update_text = (value != self._value) or force

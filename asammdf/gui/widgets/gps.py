@@ -62,9 +62,11 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
         self.map = L.map(self.mapWidget)
         self.map.setView([50.1364092, 8.5991296], zoom)
 
-        L.tileLayer("https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png").addTo(
-            self.map
-        )
+        # L.tileLayer("https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png").addTo(
+        #     self.map
+        # )
+
+        L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png").addTo(self.map)
 
         if len(timebase):
             line = L.polyline(

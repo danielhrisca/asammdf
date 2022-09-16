@@ -4521,6 +4521,9 @@ class MDF:
 
             .. versionadded:: 5.7.0
 
+            .. deprecated:: 7.2.0
+                this argument is no longer used and will be removed in the future
+
         ignore_value2text_conversion (True): bool
             ignore value to text conversions
 
@@ -4561,6 +4564,11 @@ class MDF:
                 "The argument `ignore_invalid_signals` from the method `extract_bus_logging` is no longer used and will be removed in the future"
             )
 
+        if consolidated_j1939 is not None:
+            warn(
+                "The argument `consolidated_j1939` from the method `extract_bus_logging` is no longer used and will be removed in the future"
+            )
+
         if version is None:
             version = self.version
         else:
@@ -4583,7 +4591,6 @@ class MDF:
             out = self._extract_can_logging(
                 out,
                 database_files["CAN"],
-                consolidated_j1939,
                 ignore_value2text_conversion,
                 prefix,
             )
@@ -4602,7 +4609,6 @@ class MDF:
         self,
         output_file: MDF,
         dbc_files: Iterable[DbcFileType],
-        consolidated_j1939: bool = True,
         ignore_value2text_conversion: bool = True,
         prefix: str = "",
     ) -> MDF:
@@ -4932,6 +4938,20 @@ class MDF:
             "found_ids": found_ids,
             "unknown_ids": unknown_ids,
         }
+
+        to_keep = []
+        all_channels = []
+
+        for i, group in enumerate(out.groups):
+            for j, channel in enumerate(group.channels[1:], 1):
+                if not max_flags[i][j]:
+                    to_keep.append((None, i, j))
+                all_channels.append((None, i, j))
+
+        if to_keep != all_channels:
+            tmp = out.filter(to_keep, out.version)
+            out.close()
+            out = tmp
 
         if self._callback:
             self._callback(100, 100)

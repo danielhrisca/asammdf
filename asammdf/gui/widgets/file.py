@@ -1551,8 +1551,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "database_files": database_files,
                 "version": version,
                 "prefix": self.prefix.text().strip(),
-                "consolidated_j1939": self.consolidated_j1939.checkState()
-                == QtCore.Qt.Checked,
             }
 
             mdf = run_thread_with_progress(
@@ -1712,8 +1710,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "database_files": database_files,
                 "version": version,
                 "prefix": self.prefix.text().strip(),
-                "consolidated_j1939": self.consolidated_j1939.checkState()
-                == QtCore.Qt.Checked,
             }
 
             mdf = run_thread_with_progress(
