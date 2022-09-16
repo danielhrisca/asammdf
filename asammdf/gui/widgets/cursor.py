@@ -23,7 +23,9 @@ class Cursor(pg.InfiniteLine):
         self.line_width = line_width
         self.color = color
 
-        self.setCursor(QtCore.Qt.SplitHCursor)
+        # disable mouse cursor until https://github.com/pyqtgraph/pyqtgraph/issues/2416 is fixed
+        # self.setCursor(QtCore.Qt.SplitHCursor)
+
         self.sigDragged.connect(self.update_mouse_cursor)
         self.sigPositionChangeFinished.connect(self.update_mouse_cursor)
 
@@ -71,6 +73,12 @@ class Cursor(pg.InfiniteLine):
 
             pen = self.pen
             pen.setWidth(self.line_width)
+
+            if self.mouseHovering:
+                pen.setStyle(QtCore.Qt.DashLine)
+            else:
+                pen.setStyle(QtCore.Qt.SolidLine)
+
             paint.setPen(pen)
 
             position = self.value()
@@ -153,6 +161,45 @@ class Cursor(pg.InfiniteLine):
                         delta=delta,
                     )
                     paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
+
+    def _computeBoundingRect(self):
+        # br = UIGraphicsItem.boundingRect(self)
+        vr = self.viewRect()  # bounds of containing ViewBox mapped to local coords.
+        if vr is None:
+            return QtCore.QRectF()
+
+        ## add a 6-pixel radius around the line for mouse interaction.
+
+        px = self.pixelLength(
+            direction=pg.Point(1, 0), ortho=True
+        )  ## get pixel length orthogonal to the line
+        if px is None:
+            px = 0
+        pw = max(self.pen.width() / 2, self.hoverPen.width() / 2)
+        w = max(6, self._maxMarkerSize + pw) + 1
+        w = w * px
+        br = QtCore.QRectF(vr)
+        br.setBottom(-w)
+        br.setTop(w)
+
+        length = br.width()
+        left = br.left() + length * self.span[0]
+        right = br.left() + length * self.span[1]
+        br.setLeft(left)
+        br.setRight(right)
+        br = br.normalized()
+
+        vs = self.getViewBox().size()
+
+        if self._bounds != br or self._lastViewSize != vs:
+            self._bounds = br
+            self._lastViewSize = vs
+            self.prepareGeometryChange()
+
+        self._endPoints = (left, right)
+        self._lastViewRect = vr
+
+        return self._bounds
 
 
 class Region(pg.LinearRegionItem):

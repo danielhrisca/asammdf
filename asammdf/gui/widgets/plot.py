@@ -19,10 +19,18 @@ import pyqtgraph.console.template_pyside6
 
 # imports for pyinstaller
 import pyqtgraph.functions as fn
-import pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyside6
-import pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyside6
-import pyqtgraph.GraphicsScene.exportDialogTemplate_pyside6
-import pyqtgraph.imageview.ImageViewTemplate_pyside6
+
+try:
+    import pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyside6
+    import pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyside6
+    import pyqtgraph.GraphicsScene.exportDialogTemplate_pyside6
+    import pyqtgraph.imageview.ImageViewTemplate_pyside6
+except ImportError:
+    import pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_generic
+    import pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_generic
+    import pyqtgraph.GraphicsScene.exportDialogTemplate_generic
+    import pyqtgraph.imageview.ImageViewTemplate_generic
+
 from PySide6 import QtCore, QtGui, QtWidgets
 
 PLOT_BUFFER_SIZE = 4000
