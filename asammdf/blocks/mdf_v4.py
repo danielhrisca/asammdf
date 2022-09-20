@@ -7573,6 +7573,7 @@ class MDF4(MDF_Common):
                 signal_data = b""
 
             if signal_data:
+
                 if data_type in (
                     v4c.DATA_TYPE_BYTEARRAY,
                     v4c.DATA_TYPE_UNSIGNED_INTEL,
