@@ -7,33 +7,6 @@ import sys
 asammdf_path = Path.cwd() / "asammdf" / "gui" / "asammdfgui.py"
 
 
-def _cmd_line_parser():
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-        "spec",
-        help="specfile",
-    )
-
-    parser.add_argument(
-        "--console",
-        action="store_true",
-        help="show console, default False",
-    )
-
-    parser.add_argument(
-        "--onefile",
-        action="store_true",
-        help="create single file, default False",
-    )
-
-    return parser
-
-
-parser = _cmd_line_parser()
-args, unknown = parser.parse_known_args(sys.argv[1:])
-
-
 block_cipher = None
 added_files = []
 
@@ -74,7 +47,7 @@ a = Analysis(
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
-    noarchive=not args.onefile,
+    noarchive=False,
 )
 
 if args.onefile:
@@ -91,7 +64,7 @@ if args.onefile:
         debug=False,
         strip=False,
         upx=True,
-        console=args.console,
+        console=False,
         icon="asammdf.ico",
     )
 else:
@@ -106,7 +79,7 @@ else:
         bootloader_ignore_signals=False,
         debug=False,
         strip=False,
-        console=args.console,
+        console=False,
         icon="asammdf.ico",
     )
 

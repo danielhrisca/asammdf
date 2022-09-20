@@ -20,4 +20,4 @@ cChardet==2.1.5
 chardet
 cryptography
 keyring
-pyinstaller==4.10
+pyinstaller==5.2

@@ -20,7 +20,7 @@ jobs:
 
       - name: Install packages
         run: |
-            pip install build pyinstaller==4.10 numpy wheel 
+            pip install build pyinstaller==5.2 numpy wheel 
             pip install -r requirements_exe_build.txt
             python setup.py bdist_wheel
             pip install -e . --no-deps
@@ -37,7 +37,7 @@ jobs:
         shell: bash
         if: ${{ matrix.python-version == '3.10' }}
         run: |
-            pip install build pyinstaller==4.10 numpy wheel
+            pip install build pyinstaller==5.2 numpy wheel
             pip install -r requirements_exe_build.txt
             python setup.py bdist_wheel
             pip install -e . --no-deps
@@ -46,7 +46,7 @@ jobs:
                  sudo apt update
                  sudo apt install libegl1
             fi
-            pyinstaller asammdf.spec --distpath dist/${RUNNER_OS} --noconfirm --clean --onefile
+            pyinstaller asammdf.spec --distpath dist/${RUNNER_OS} --noconfirm --clean
 
       # see: https://docs.github.com/en/actions/advanced-guides/storing-workflow-data-as-artifacts
       - name: Archive dist artifacts
