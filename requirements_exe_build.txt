@@ -8,7 +8,7 @@ isal; platform_machine == "x86_64" or platform_machine == "AMD64"
 lxml 
 natsort 
 psutil 
-PySide6==6.2.0
+PySide6==6.2.2
 pyqtgraph>=0.12.4
 pyqtlet2
 h5py 
