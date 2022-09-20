@@ -32,6 +32,7 @@ class Cursor(pg.InfiniteLine):
         self._cursor_override = False
         self.show_circle = show_circle
         self.show_horizontal_line = show_horizontal_line
+        self.locked = False
 
     @property
     def color(self):
@@ -74,10 +75,12 @@ class Cursor(pg.InfiniteLine):
             pen = self.pen
             pen.setWidth(self.line_width)
 
-            if self.mouseHovering:
+            if self.mouseHovering and self.movable:
                 pen.setStyle(QtCore.Qt.DashLine)
-            else:
+            elif not self.locked:
                 pen.setStyle(QtCore.Qt.SolidLine)
+            else:
+                pen.setStyle(QtCore.Qt.DashDotDotLine)
 
             paint.setPen(pen)
 

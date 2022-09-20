@@ -2956,31 +2956,54 @@ class Plot(QtWidgets.QWidget):
         if timebase.size:
             dim = len(timebase)
 
-            right = np.searchsorted(timebase, start, side="right")
-            if right == 0:
-                next_pos = timebase[0]
-            elif right == dim:
-                next_pos = timebase[-1]
-            else:
-                if start - timebase[right - 1] < timebase[right] - start:
-                    next_pos = timebase[right - 1]
-                else:
-                    next_pos = timebase[right]
-            start = next_pos
+            if self.plot.region_lock is None:
 
-            right = np.searchsorted(timebase, stop, side="right")
-            if right == 0:
-                next_pos = timebase[0]
-            elif right == dim:
-                next_pos = timebase[-1]
-            else:
-                if stop - timebase[right - 1] < timebase[right] - stop:
-                    next_pos = timebase[right - 1]
+                right = np.searchsorted(timebase, start, side="right")
+                if right == 0:
+                    next_pos = timebase[0]
+                elif right == dim:
+                    next_pos = timebase[-1]
                 else:
-                    next_pos = timebase[right]
-            stop = next_pos
+                    if start - timebase[right - 1] < timebase[right] - start:
+                        next_pos = timebase[right - 1]
+                    else:
+                        next_pos = timebase[right]
+                start = next_pos
 
-            self.plot.region.setRegion((start, stop))
+                right = np.searchsorted(timebase, stop, side="right")
+                if right == 0:
+                    next_pos = timebase[0]
+                elif right == dim:
+                    next_pos = timebase[-1]
+                else:
+                    if stop - timebase[right - 1] < timebase[right] - stop:
+                        next_pos = timebase[right - 1]
+                    else:
+                        next_pos = timebase[right]
+                stop = next_pos
+
+                self.plot.region.setRegion((start, stop))
+
+            else:
+
+                if start == self.plot.region_lock:
+                    pos = stop
+                else:
+                    pos = start
+
+                right = np.searchsorted(timebase, pos, side="right")
+                if right == 0:
+                    next_pos = timebase[0]
+                elif right == dim:
+                    next_pos = timebase[-1]
+                else:
+                    if pos - timebase[right - 1] < timebase[right] - pos:
+                        next_pos = timebase[right - 1]
+                    else:
+                        next_pos = timebase[right]
+                pos = next_pos
+
+                self.plot.region.setRegion((self.plot.region_lock, pos))
 
     def range_removed(self):
         self._prev_region = None
@@ -3984,14 +4007,13 @@ class _Plot(pg.PlotWidget):
 
                 if self.region_lock is not None:
                     self.region_lock = None
-                    self.region.lines[0].pen.setStyle(QtCore.Qt.SolidLine)
-                    self.region.lines[1].pen.setStyle(QtCore.Qt.SolidLine)
                     self.region.lines[0].setMovable(True)
+                    self.region.lines[0].locked = False
                     self.region.movable = True
                 else:
                     self.region_lock = self.region.getRegion()[0]
-                    self.region.lines[0].pen.setStyle(QtCore.Qt.DashDotDotLine)
                     self.region.lines[0].setMovable(False)
+                    self.region.lines[0].locked = True
                     self.region.movable = False
 
                 self.update()
@@ -4516,8 +4538,10 @@ class _Plot(pg.PlotWidget):
                             pos = start
                             second_pos = stop
                     else:
-                        pos = start if stop == self.region_lock else stop
-                        second_pos = self.region_lock
+                        if start != stop:
+                            pos = start if stop == self.region_lock else stop
+                        else:
+                            pos = self.region_lock
 
                     x = self.get_current_timebase()
                     dim = x.size
@@ -4542,7 +4566,10 @@ class _Plot(pg.PlotWidget):
                     elif pos <= left_side:
                         self.viewbox.setXRange(pos, right_side, padding=0)
 
-                    self.region.setRegion(tuple(sorted((second_pos, pos))))
+                    if self.region_lock is not None:
+                        self.region.setRegion((self.region_lock, pos))
+                    else:
+                        self.region.setRegion(tuple(sorted((second_pos, pos))))
 
             elif (
                 key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right)
