@@ -431,8 +431,8 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
     def closeEvent(self, event):
-        self.sigClosed.emit(self)
         super().closeEvent(event)
+        self.sigClosed.emit(self)
 
 
 class MdiAreaWidget(QtWidgets.QMdiArea):
