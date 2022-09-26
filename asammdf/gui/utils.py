@@ -182,7 +182,7 @@ def extract_mime_names(data):
     return names
 
 
-def load_dsp(file, background="#000000"):
+def load_dsp(file, background="#000000", flat=False):
     if isinstance(background, str):
         background = fn.mkColor(background)
 
@@ -396,21 +396,36 @@ def load_dsp(file, background="#000000"):
 
     info = {"selected_channels": [], "windows": []}
 
-    if channels:
+    if flat:
+        info = flatten_dsp(channels)
+    else:
+        if channels:
 
-        plot = {
-            "type": "Plot",
-            "title": "Display channels",
-            "maximized": True,
-            "configuration": {
-                "channels": channels,
-                "locked": True,
-            },
-        }
+            plot = {
+                "type": "Plot",
+                "title": "Display channels",
+                "maximized": True,
+                "configuration": {
+                    "channels": channels,
+                    "locked": True,
+                },
+            }
 
-        info["windows"].append(plot)
+            info["windows"].append(plot)
 
     return info
+
+
+def flatten_dsp(channels):
+    res = []
+
+    for item in channels:
+        if item["type"] == "group":
+            res.extend(flatten_dsp(item["channels"]))
+        else:
+            res.append(item["name"])
+
+    return res
 
 
 def load_lab(file):

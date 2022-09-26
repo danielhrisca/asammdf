@@ -33,6 +33,7 @@ from ..dialogs.window_selection_dialog import WindowSelectionDialog
 from ..ui import resource_rc
 from ..ui.file_widget import Ui_file_widget
 from ..utils import (
+    flatten_dsp,
     HelperChannel,
     load_dsp,
     load_lab,
@@ -247,19 +248,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             progress.setValue(37)
 
-            self.channel_view.currentIndexChanged.connect(
-                partial(self._update_channel_tree, widget=self.channels_tree)
-            )
-            self.filter_view.currentIndexChanged.connect(
-                partial(self._update_channel_tree, widget=self.filter_tree)
-            )
-            self.channel_view.currentTextChanged.connect(
-                partial(self._update_channel_tree, widget=self.channels_tree)
-            )
-            self.filter_view.currentTextChanged.connect(
-                partial(self._update_channel_tree, widget=self.filter_tree)
-            )
-
             self.channels_tree.setDragEnabled(True)
 
             self.mdi_area = MdiAreaWidget()
@@ -281,6 +269,19 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             self.filter_view.setCurrentText(
                 self._settings.value("filter_view", "Internal file structure")
+            )
+
+            self.channel_view.currentIndexChanged.connect(
+                partial(self._update_channel_tree, widget=self.channels_tree)
+            )
+            self.filter_view.currentIndexChanged.connect(
+                partial(self._update_channel_tree, widget=self.filter_tree)
+            )
+            self.channel_view.currentTextChanged.connect(
+                partial(self._update_channel_tree, widget=self.channels_tree)
+            )
+            self.filter_view.currentTextChanged.connect(
+                partial(self._update_channel_tree, widget=self.filter_tree)
             )
 
             progress.setValue(70)
@@ -1103,7 +1104,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 self,
                 "Select channel list file",
                 self.default_folder,
-                "Config file (*.cfg);;TXT files (*.txt);;Display files (*.dsp);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.lab *.txt)",
+                "Config file (*.cfg);;TXT files (*.txt);;Display files (*.dsp *.dspf);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.dspf *.lab *.txt)",
                 "CANape Lab file (*.lab)",
             )
 
@@ -1113,8 +1114,28 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 extension = file_name.suffix.lower()
                 if extension == ".dsp":
-                    info = load_dsp(file_name)
-                    channels = info.get("display", [])
+                    channels = load_dsp(file_name, flat=True)
+
+                elif extension == ".dspf":
+                    with open(file_name, "r") as infile:
+                        info = json.load(infile)
+
+                    channels = []
+                    for window in info["windows"]:
+
+                        if window["type"] == "Plot":
+                            channels.extend(
+                                flatten_dsp(window["configuration"]["channels"])
+                            )
+                        elif window["type"] == "Numeric":
+                            channels.extend(
+                                [
+                                    item["name"]
+                                    for item in window["configuration"]["channels"]
+                                ]
+                            )
+                        elif window["type"] == "Tabular":
+                            channels.extend(window["configuration"]["channels"])
 
                 elif extension == ".lab":
                     info = load_lab(file_name)
@@ -1935,6 +1956,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 self._show_filter_tree = True
 
                 widget = self.filter_tree
+
+                widget.clear()
 
                 if self.filter_view.currentText() == "Natural sort":
                     items = []
