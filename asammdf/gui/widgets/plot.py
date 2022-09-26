@@ -5185,6 +5185,8 @@ class _Plot(pg.PlotWidget):
                 if len(self._timebase_db[id_]) == 0:
                     del self._timebase_db[id_]
 
+                sig.trim(*sig.trim_info, force=True)
+
         self._compute_all_timebase()
 
         self.update()

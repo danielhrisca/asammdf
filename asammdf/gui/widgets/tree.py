@@ -846,6 +846,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         elif modifiers == QtCore.Qt.ShiftModifier and key in (
             QtCore.Qt.Key_Up,
             QtCore.Qt.Key_Down,
+            QtCore.Qt.Key_Left,
+            QtCore.Qt.Key_Right,
         ):
             event.ignore()
         else:

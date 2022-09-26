@@ -1567,7 +1567,10 @@ address: {hex(self.address)}
             if partial_conversion and len(idx):
                 X = values[idx]
                 new_values = np.zeros(len(values), dtype=np.float64)
-                new_values[idx] = evaluate(default)
+
+                a = float(default.split('*')[0])
+                b = float(default.split('X')[-1])
+                new_values[idx] = a * X + b
 
                 idx = np.argwhere(idx1 == idx2).flatten()
                 if len(idx):
