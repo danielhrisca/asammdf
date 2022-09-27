@@ -3425,7 +3425,6 @@ class ChannelConversion(_ChannelConversionBase):
                     ],
                 )
             else:
-
                 ret = np.full(values.size, None, "O")
 
                 idx1 = np.searchsorted(raw_vals, values, side="right") - 1
@@ -3478,10 +3477,10 @@ class ChannelConversion(_ChannelConversionBase):
                                 ret[idx_] = item.convert(values[idx_])
 
                 try:
-                    ret = ret.astype(bytes)
+                    ret = ret.astype("<f8")
                 except:
                     try:
-                        ret = ret.astype("<f8")
+                        ret = ret.astype(bytes)
                     except:
                         if not as_object:
                             ret = np.array(
