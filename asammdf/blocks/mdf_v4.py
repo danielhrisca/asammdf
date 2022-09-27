@@ -12,7 +12,7 @@ from functools import lru_cache
 from hashlib import md5
 from io import BufferedReader, BytesIO
 import logging
-from math import ceil
+from math import ceil, floor
 import mmap
 import os
 from pathlib import Path
@@ -159,6 +159,9 @@ COMMON_SHORT_u = v4c.COMMON_SHORT_u
 VALID_DATA_TYPES = v4c.VALID_DATA_TYPES
 
 EMPTY_TUPLE = tuple()
+
+# 100 extra steps for the sorting, 1 step after sorting and 1 step at finish
+SORT_STEPS = 102
 
 
 logger = logging.getLogger("asammdf")
@@ -475,8 +478,9 @@ class MDF4(MDF_Common):
         stream.seek(0)
 
         cg_count, _ = count_channel_groups(stream)
+        progress_steps = cg_count + SORT_STEPS
         if self._callback:
-            self._callback(0, cg_count)
+            self._callback(0, progress_steps)
         current_cg_index = 0
 
         self.identification = FileIdentificationBlock(stream=stream, mapped=mapped)
@@ -608,7 +612,7 @@ class MDF4(MDF_Common):
 
                 current_cg_index += 1
                 if self._callback:
-                    self._callback(current_cg_index, cg_count)
+                    self._callback(current_cg_index, progress_steps)
 
                 if self._terminate:
                     self.close()
@@ -774,7 +778,9 @@ class MDF4(MDF_Common):
                     else:
                         break
 
-        self._sort()
+        self._sort(current_progress_index=current_cg_index, max_progress_count=progress_steps)
+        if self._callback:
+            self._callback(progress_steps - 1, progress_steps)  # second to last step now
 
         for grp in self.groups:
             channels = grp.channels
@@ -827,6 +833,9 @@ class MDF4(MDF_Common):
 
         self._interned_strings.clear()
         self._attachments_map.clear()
+
+        if self._callback:
+            self._callback(progress_steps, progress_steps)  # last step, we've completely loaded the file for sure
 
         self.progress = cg_count, cg_count
 
@@ -10142,7 +10151,7 @@ class MDF4(MDF_Common):
             )
         self.identification.file_identification = b"MDF     "
 
-    def _sort(self, compress: bool = True) -> None:
+    def _sort(self, compress: bool = True, current_progress_index: int = 0, max_progress_count: int = 0) -> None:
         if self._file is None:
             return
 
@@ -10198,7 +10207,13 @@ class MDF4(MDF_Common):
                 raise MdfException(message)
 
             rem = b""
-            for info in group.get_data_blocks():
+            blocks = list(group.get_data_blocks())  # might be expensive ?
+            # most of the steps are for sorting, but the last 2 are after we've done sorting
+            # so remove the 2 steps that are not related to sorting from the count
+            step = float(SORT_STEPS - 2) / len(blocks) / len(common)
+            index = float(current_progress_index)
+            previous = index
+            for info in blocks:
                 dtblock_address, dtblock_raw_size, dtblock_size, block_type, param = (
                     info.address,
                     info.original_size,
@@ -10206,6 +10221,16 @@ class MDF4(MDF_Common):
                     info.block_type,
                     info.param,
                 )
+
+                index += step
+
+                # if we've been told to notify about progress
+                # and we've been given a max progress count (only way we can do progress updates)
+                # and there's a tick update (at least 1 integer between the last update and the current index)
+                # then we can notify about the callback progress
+                if self._callback and max_progress_count and floor(previous) < floor(index):
+                    self._callback(floor(index), max_progress_count)
+                    previous = index
 
                 seek(dtblock_address)
 
