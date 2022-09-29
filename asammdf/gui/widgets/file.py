@@ -263,10 +263,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.channel_view.setCurrentIndex(-1)
             self.filter_view.setCurrentIndex(-1)
 
-            self.channel_view.setCurrentText(
-                self._settings.value("channels_view", "Internal file structure")
-            )
-
             self.filter_view.setCurrentText(
                 self._settings.value("filter_view", "Internal file structure")
             )
@@ -282,6 +278,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             )
             self.filter_view.currentTextChanged.connect(
                 partial(self._update_channel_tree, widget=self.filter_tree)
+            )
+
+            self.channel_view.setCurrentText(
+                self._settings.value("channels_view", "Internal file structure")
             )
 
             progress.setValue(70)

@@ -1568,8 +1568,8 @@ address: {hex(self.address)}
                 X = values[idx]
                 new_values = np.zeros(len(values), dtype=np.float64)
 
-                a = float(default.split('*')[0])
-                b = float(default.split('X')[-1])
+                a = float(default.split("*")[0])
+                b = float(default.split("X")[-1])
                 new_values[idx] = a * X + b
 
                 idx = np.argwhere(idx1 == idx2).flatten()
