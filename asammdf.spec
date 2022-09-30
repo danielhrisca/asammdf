@@ -50,46 +50,29 @@ a = Analysis(
     noarchive=False,
 )
 
-if args.onefile:
-    pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
-    exe = EXE(
-        pyz,
-        a.scripts,
-        a.binaries,
-        a.zipfiles,
-        a.datas,
-        Tree(asammdf_path.parent),
-        name="asammdfgui",
-        debug=False,
-        strip=False,
-        upx=True,
-        console=False,
-        icon="asammdf.ico",
-    )
-else:
-    pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
-    exe = EXE(
-        pyz,
-        a.scripts,
-        [],
-        name="asammdfgui",
-        exclude_binaries=True,
-        bootloader_ignore_signals=False,
-        debug=False,
-        strip=False,
-        console=False,
-        icon="asammdf.ico",
-    )
+exe = EXE(
+	pyz,
+	a.scripts,
+	[],
+	name="asammdfgui",
+	exclude_binaries=True,
+	bootloader_ignore_signals=False,
+	debug=False,
+	strip=False,
+	console=False,
+	icon="asammdf.ico",
+)
 
-    coll = COLLECT(
-        exe,
-        a.binaries,
-        a.zipfiles,
-        a.datas,
-        Tree(asammdf_path.parent),
-        upx=False,
-        upx_exclude=[],
-        name="asammdfgui",
-    )
+coll = COLLECT(
+	exe,
+	a.binaries,
+	a.zipfiles,
+	a.datas,
+	Tree(asammdf_path.parent),
+	upx=False,
+	upx_exclude=[],
+	name="asammdfgui",
+)
