@@ -1650,12 +1650,18 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     "",
                     f"The following {bus} IDs were in the MDF log file, but not matched in the DBC:",
                 ]
-                for msg_id in sorted(call_info["unknown_ids"]):
-                    try:
-                        message.append(f"- 0x{msg_id:X}")
-                    except:
-                        pgn, sa = msg_id
-                        message.append(f"- PGN=0x{pgn:X} SA=0x{sa:X}")
+
+                unknown_standard_can = sorted(
+                    [e for e in call_info["unknown_ids"] if isinstance(e, int)]
+                )
+                unknown_j1939 = sorted(
+                    [e for e in call_info["unknown_ids"] if not isinstance(e, int)]
+                )
+                for msg_id in unknown_standard_can:
+                    message.append(f"- 0x{msg_id:X}")
+
+                for pgn, sa in unknown_j1939:
+                    message.append(f"- PGN=0x{pgn:X} SA=0x{sa:X}")
 
                 message.append("\n\n")
 

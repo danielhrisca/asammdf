@@ -4485,7 +4485,7 @@ class MDF:
         database_files: dict[BusType, Iterable[DbcFileType]],
         version: str | None = None,
         ignore_invalid_signals: bool | None = None,
-        consolidated_j1939: bool = True,
+        consolidated_j1939: bool | None = None,
         ignore_value2text_conversion: bool = True,
         prefix: str = "",
     ) -> MDF:
@@ -4508,7 +4508,7 @@ class MDF:
 
         version (None) : str
             output file version
-        ignore_invalid_signals (False) : bool
+        ignore_invalid_signals (None) : bool | None
             ignore signals that have all samples equal to their maximum value
 
             .. versionadded:: 5.7.0
@@ -4516,7 +4516,7 @@ class MDF:
             .. deprecated:: 7.0.2
                 this argument is no longer used and will be removed in the future
 
-        consolidated_j1939 (True) : bool
+        consolidated_j1939 (None) : bool | None
             handle PGNs from all the messages as a single instance
 
             .. versionadded:: 5.7.0
