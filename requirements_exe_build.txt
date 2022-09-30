@@ -9,7 +9,7 @@ lxml
 natsort 
 psutil 
 PySide6==6.2.2
-pyqtgraph>=0.12.4
+pyqtgraph==0.12.4
 pyqtlet2
 pyopengl
 h5py 
@@ -21,4 +21,4 @@ cChardet==2.1.5
 chardet
 cryptography
 keyring
-pyinstaller==5.2
+pyinstaller==4.10
