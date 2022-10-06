@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'file_widget.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.3.0
+## Created by: Qt User Interface Compiler version 6.3.2
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -31,7 +31,7 @@ class Ui_file_widget(object):
     def setupUi(self, file_widget):
         if not file_widget.objectName():
             file_widget.setObjectName(u"file_widget")
-        file_widget.resize(1034, 865)
+        file_widget.resize(1034, 622)
         sizePolicy = QSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -210,16 +210,12 @@ class Ui_file_widget(object):
 
         self.horizontalLayout.addLayout(self.verticalLayout_6)
 
-        self.horizontalSpacer_3 = QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        self.horizontalLayout.addItem(self.horizontalSpacer_3)
-
         self.scrollArea = QScrollArea(self.modify)
         self.scrollArea.setObjectName(u"scrollArea")
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 213, 822))
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 306, 619))
         self.verticalLayout_4 = QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_4.setObjectName(u"verticalLayout_4")
         self.verticalLayout_3 = QVBoxLayout()
@@ -241,7 +237,8 @@ class Ui_file_widget(object):
         self.cut_stop = QDoubleSpinBox(self.cut_group)
         self.cut_stop.setObjectName(u"cut_stop")
         self.cut_stop.setDecimals(6)
-        self.cut_stop.setMaximum(999999.999998999992386)
+        self.cut_stop.setMinimum(-9999999999999999635896294965248.000000000000000)
+        self.cut_stop.setMaximum(999999999999999983222784.000000000000000)
 
         self.gridLayout_19.addWidget(self.cut_stop, 1, 1, 1, 1)
 
@@ -253,7 +250,8 @@ class Ui_file_widget(object):
         self.cut_start = QDoubleSpinBox(self.cut_group)
         self.cut_start.setObjectName(u"cut_start")
         self.cut_start.setDecimals(6)
-        self.cut_start.setMaximum(999999.999998999992386)
+        self.cut_start.setMinimum(-9999999999999999635896294965248.000000000000000)
+        self.cut_start.setMaximum(999999999999999983222784.000000000000000)
 
         self.gridLayout_19.addWidget(self.cut_start, 0, 1, 1, 1)
 
@@ -716,8 +714,6 @@ class Ui_file_widget(object):
 
         self.horizontalLayout.addWidget(self.scrollArea)
 
-        self.horizontalLayout.setStretch(0, 1)
-        self.horizontalLayout.setStretch(1, 1)
         icon7 = QIcon()
         icon7.addFile(u":/convert.png", QSize(), QIcon.Normal, QIcon.Off)
         self.aspects.addTab(self.modify, icon7, "")
@@ -730,61 +726,144 @@ class Ui_file_widget(object):
         self.scrollArea_2.setWidgetResizable(True)
         self.scrollAreaWidgetContents_2 = QWidget()
         self.scrollAreaWidgetContents_2.setObjectName(u"scrollAreaWidgetContents_2")
-        self.scrollAreaWidgetContents_2.setGeometry(QRect(0, 0, 985, 839))
+        self.scrollAreaWidgetContents_2.setGeometry(QRect(0, 0, 985, 596))
         self.gridLayout_7 = QGridLayout(self.scrollAreaWidgetContents_2)
         self.gridLayout_7.setObjectName(u"gridLayout_7")
-        self.tabWidget = QTabWidget(self.scrollAreaWidgetContents_2)
-        self.tabWidget.setObjectName(u"tabWidget")
-        self.tab = QWidget()
-        self.tab.setObjectName(u"tab")
-        self.gridLayout_4 = QGridLayout(self.tab)
-        self.gridLayout_4.setSpacing(2)
-        self.gridLayout_4.setObjectName(u"gridLayout_4")
-        self.gridLayout_4.setContentsMargins(2, 2, 2, 2)
-        self.load_can_database_btn = QPushButton(self.tab)
-        self.load_can_database_btn.setObjectName(u"load_can_database_btn")
-        self.load_can_database_btn.setIcon(icon)
+        self.groupBox_3 = QGroupBox(self.scrollAreaWidgetContents_2)
+        self.groupBox_3.setObjectName(u"groupBox_3")
+        self.gridLayout_6 = QGridLayout(self.groupBox_3)
+        self.gridLayout_6.setSpacing(2)
+        self.gridLayout_6.setObjectName(u"gridLayout_6")
+        self.gridLayout_6.setContentsMargins(-1, 2, 2, 2)
+        self.time_from_zero_bus = QCheckBox(self.groupBox_3)
+        self.time_from_zero_bus.setObjectName(u"time_from_zero_bus")
 
-        self.gridLayout_4.addWidget(self.load_can_database_btn, 0, 0, 1, 1)
+        self.gridLayout_6.addWidget(self.time_from_zero_bus, 1, 0, 1, 3)
 
-        self.can_database_list = MinimalListWidget(self.tab)
-        self.can_database_list.setObjectName(u"can_database_list")
+        self.quotechar_bus = QLineEdit(self.groupBox_3)
+        self.quotechar_bus.setObjectName(u"quotechar_bus")
+        self.quotechar_bus.setMaxLength(1)
 
-        self.gridLayout_4.addWidget(self.can_database_list, 1, 0, 1, 1)
+        self.gridLayout_6.addWidget(self.quotechar_bus, 11, 2, 1, 1)
 
-        self.tabWidget.addTab(self.tab, "")
-        self.tab_2 = QWidget()
-        self.tab_2.setObjectName(u"tab_2")
-        self.verticalLayout_7 = QVBoxLayout(self.tab_2)
-        self.verticalLayout_7.setSpacing(2)
-        self.verticalLayout_7.setObjectName(u"verticalLayout_7")
-        self.verticalLayout_7.setContentsMargins(2, 2, 2, 2)
-        self.load_lin_database_btn = QPushButton(self.tab_2)
-        self.load_lin_database_btn.setObjectName(u"load_lin_database_btn")
-        self.load_lin_database_btn.setIcon(icon)
+        self.export_raster_bus = QDoubleSpinBox(self.groupBox_3)
+        self.export_raster_bus.setObjectName(u"export_raster_bus")
+        self.export_raster_bus.setDecimals(6)
 
-        self.verticalLayout_7.addWidget(self.load_lin_database_btn)
+        self.gridLayout_6.addWidget(self.export_raster_bus, 4, 2, 1, 1)
 
-        self.lin_database_list = MinimalListWidget(self.tab_2)
-        self.lin_database_list.setObjectName(u"lin_database_list")
+        self.add_units_bus = QCheckBox(self.groupBox_3)
+        self.add_units_bus.setObjectName(u"add_units_bus")
 
-        self.verticalLayout_7.addWidget(self.lin_database_list)
+        self.gridLayout_6.addWidget(self.add_units_bus, 3, 0, 1, 3)
 
-        self.tabWidget.addTab(self.tab_2, "")
+        self.single_time_base_bus = QCheckBox(self.groupBox_3)
+        self.single_time_base_bus.setObjectName(u"single_time_base_bus")
 
-        self.gridLayout_7.addWidget(self.tabWidget, 0, 0, 1, 2)
+        self.gridLayout_6.addWidget(self.single_time_base_bus, 0, 0, 1, 3)
+
+        self.bus_time_as_date = QCheckBox(self.groupBox_3)
+        self.bus_time_as_date.setObjectName(u"bus_time_as_date")
+
+        self.gridLayout_6.addWidget(self.bus_time_as_date, 2, 0, 1, 3)
+
+        self.doublequote_bus = QCheckBox(self.groupBox_3)
+        self.doublequote_bus.setObjectName(u"doublequote_bus")
+        self.doublequote_bus.setChecked(True)
+
+        self.gridLayout_6.addWidget(self.doublequote_bus, 7, 0, 1, 3)
+
+        self.label_8 = QLabel(self.groupBox_3)
+        self.label_8.setObjectName(u"label_8")
+
+        self.gridLayout_6.addWidget(self.label_8, 6, 0, 1, 1)
+
+        self.label_11 = QLabel(self.groupBox_3)
+        self.label_11.setObjectName(u"label_11")
+
+        self.gridLayout_6.addWidget(self.label_11, 10, 0, 1, 2)
+
+        self.label_23 = QLabel(self.groupBox_3)
+        self.label_23.setObjectName(u"label_23")
+
+        self.gridLayout_6.addWidget(self.label_23, 4, 0, 1, 1)
+
+        self.escapechar_bus = QLineEdit(self.groupBox_3)
+        self.escapechar_bus.setObjectName(u"escapechar_bus")
+        self.escapechar_bus.setMaxLength(1)
+
+        self.gridLayout_6.addWidget(self.escapechar_bus, 8, 2, 1, 1)
+
+        self.lineterminator_bus = QLineEdit(self.groupBox_3)
+        self.lineterminator_bus.setObjectName(u"lineterminator_bus")
+
+        self.gridLayout_6.addWidget(self.lineterminator_bus, 10, 2, 1, 1)
+
+        self.quoting_bus = QComboBox(self.groupBox_3)
+        self.quoting_bus.addItem("")
+        self.quoting_bus.addItem("")
+        self.quoting_bus.addItem("")
+        self.quoting_bus.addItem("")
+        self.quoting_bus.setObjectName(u"quoting_bus")
+
+        self.gridLayout_6.addWidget(self.quoting_bus, 12, 2, 1, 1)
+
+        self.label_10 = QLabel(self.groupBox_3)
+        self.label_10.setObjectName(u"label_10")
+
+        self.gridLayout_6.addWidget(self.label_10, 11, 0, 1, 1)
+
+        self.line_13 = QFrame(self.groupBox_3)
+        self.line_13.setObjectName(u"line_13")
+        self.line_13.setFrameShape(QFrame.HLine)
+        self.line_13.setFrameShadow(QFrame.Sunken)
+
+        self.gridLayout_6.addWidget(self.line_13, 13, 0, 1, 3)
+
+        self.delimiter_bus = QLineEdit(self.groupBox_3)
+        self.delimiter_bus.setObjectName(u"delimiter_bus")
+        self.delimiter_bus.setMaxLength(1)
+        self.delimiter_bus.setClearButtonEnabled(False)
+
+        self.gridLayout_6.addWidget(self.delimiter_bus, 6, 2, 1, 1)
+
+        self.label_25 = QLabel(self.groupBox_3)
+        self.label_25.setObjectName(u"label_25")
+
+        self.gridLayout_6.addWidget(self.label_25, 5, 0, 1, 2)
+
+        self.label_7 = QLabel(self.groupBox_3)
+        self.label_7.setObjectName(u"label_7")
+
+        self.gridLayout_6.addWidget(self.label_7, 12, 0, 1, 1)
+
+        self.label_9 = QLabel(self.groupBox_3)
+        self.label_9.setObjectName(u"label_9")
+
+        self.gridLayout_6.addWidget(self.label_9, 8, 0, 1, 1)
+
+        self.extract_bus_csv_btn = QPushButton(self.groupBox_3)
+        self.extract_bus_csv_btn.setObjectName(u"extract_bus_csv_btn")
+        icon8 = QIcon()
+        icon8.addFile(u":/csv.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.extract_bus_csv_btn.setIcon(icon8)
+
+        self.gridLayout_6.addWidget(self.extract_bus_csv_btn, 14, 2, 1, 1)
+
+        self.empty_channels_bus = QComboBox(self.groupBox_3)
+        self.empty_channels_bus.setObjectName(u"empty_channels_bus")
+
+        self.gridLayout_6.addWidget(self.empty_channels_bus, 5, 2, 1, 1)
+
+        self.gridLayout_6.setColumnStretch(0, 1)
+
+        self.gridLayout_7.addWidget(self.groupBox_3, 2, 1, 1, 1)
 
         self.output_info_bus = QTextEdit(self.scrollAreaWidgetContents_2)
         self.output_info_bus.setObjectName(u"output_info_bus")
         self.output_info_bus.setReadOnly(True)
 
-        self.gridLayout_7.addWidget(self.output_info_bus, 0, 2, 4, 1)
-
-        self.consolidated_j1939 = QCheckBox(self.scrollAreaWidgetContents_2)
-        self.consolidated_j1939.setObjectName(u"consolidated_j1939")
-        self.consolidated_j1939.setChecked(True)
-
-        self.gridLayout_7.addWidget(self.consolidated_j1939, 2, 0, 1, 2)
+        self.gridLayout_7.addWidget(self.output_info_bus, 0, 2, 3, 1)
 
         self.groupBox_2 = QGroupBox(self.scrollAreaWidgetContents_2)
         self.groupBox_2.setObjectName(u"groupBox_2")
@@ -827,9 +906,9 @@ class Ui_file_widget(object):
 
         self.extract_bus_btn = QPushButton(self.groupBox_2)
         self.extract_bus_btn.setObjectName(u"extract_bus_btn")
-        icon8 = QIcon()
-        icon8.addFile(u":/down.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.extract_bus_btn.setIcon(icon8)
+        icon9 = QIcon()
+        icon9.addFile(u":/down.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.extract_bus_btn.setIcon(icon9)
 
         self.gridLayout_5.addWidget(self.extract_bus_btn, 4, 1, 1, 2)
 
@@ -839,142 +918,48 @@ class Ui_file_widget(object):
         self.gridLayout_5.addWidget(self.label_24, 1, 0, 1, 1)
 
 
-        self.gridLayout_7.addWidget(self.groupBox_2, 3, 0, 1, 1)
+        self.gridLayout_7.addWidget(self.groupBox_2, 2, 0, 1, 1)
 
-        self.groupBox_3 = QGroupBox(self.scrollAreaWidgetContents_2)
-        self.groupBox_3.setObjectName(u"groupBox_3")
-        self.gridLayout_6 = QGridLayout(self.groupBox_3)
-        self.gridLayout_6.setSpacing(2)
-        self.gridLayout_6.setObjectName(u"gridLayout_6")
-        self.gridLayout_6.setContentsMargins(-1, 2, 2, 2)
-        self.quoting_bus = QComboBox(self.groupBox_3)
-        self.quoting_bus.addItem("")
-        self.quoting_bus.addItem("")
-        self.quoting_bus.addItem("")
-        self.quoting_bus.addItem("")
-        self.quoting_bus.setObjectName(u"quoting_bus")
+        self.tabWidget = QTabWidget(self.scrollAreaWidgetContents_2)
+        self.tabWidget.setObjectName(u"tabWidget")
+        self.tab = QWidget()
+        self.tab.setObjectName(u"tab")
+        self.gridLayout_4 = QGridLayout(self.tab)
+        self.gridLayout_4.setSpacing(2)
+        self.gridLayout_4.setObjectName(u"gridLayout_4")
+        self.gridLayout_4.setContentsMargins(2, 2, 2, 2)
+        self.load_can_database_btn = QPushButton(self.tab)
+        self.load_can_database_btn.setObjectName(u"load_can_database_btn")
+        self.load_can_database_btn.setIcon(icon)
 
-        self.gridLayout_6.addWidget(self.quoting_bus, 13, 3, 1, 1)
+        self.gridLayout_4.addWidget(self.load_can_database_btn, 0, 0, 1, 1)
 
-        self.label_7 = QLabel(self.groupBox_3)
-        self.label_7.setObjectName(u"label_7")
+        self.can_database_list = MinimalListWidget(self.tab)
+        self.can_database_list.setObjectName(u"can_database_list")
 
-        self.gridLayout_6.addWidget(self.label_7, 13, 0, 1, 1)
+        self.gridLayout_4.addWidget(self.can_database_list, 1, 0, 1, 1)
 
-        self.quotechar_bus = QLineEdit(self.groupBox_3)
-        self.quotechar_bus.setObjectName(u"quotechar_bus")
-        self.quotechar_bus.setMaxLength(1)
+        self.tabWidget.addTab(self.tab, "")
+        self.tab_2 = QWidget()
+        self.tab_2.setObjectName(u"tab_2")
+        self.verticalLayout_7 = QVBoxLayout(self.tab_2)
+        self.verticalLayout_7.setSpacing(2)
+        self.verticalLayout_7.setObjectName(u"verticalLayout_7")
+        self.verticalLayout_7.setContentsMargins(2, 2, 2, 2)
+        self.load_lin_database_btn = QPushButton(self.tab_2)
+        self.load_lin_database_btn.setObjectName(u"load_lin_database_btn")
+        self.load_lin_database_btn.setIcon(icon)
 
-        self.gridLayout_6.addWidget(self.quotechar_bus, 12, 3, 1, 1)
+        self.verticalLayout_7.addWidget(self.load_lin_database_btn)
 
-        self.label_8 = QLabel(self.groupBox_3)
-        self.label_8.setObjectName(u"label_8")
+        self.lin_database_list = MinimalListWidget(self.tab_2)
+        self.lin_database_list.setObjectName(u"lin_database_list")
 
-        self.gridLayout_6.addWidget(self.label_8, 7, 0, 1, 1)
+        self.verticalLayout_7.addWidget(self.lin_database_list)
 
-        self.label_23 = QLabel(self.groupBox_3)
-        self.label_23.setObjectName(u"label_23")
+        self.tabWidget.addTab(self.tab_2, "")
 
-        self.gridLayout_6.addWidget(self.label_23, 5, 0, 1, 1)
-
-        self.escapechar_bus = QLineEdit(self.groupBox_3)
-        self.escapechar_bus.setObjectName(u"escapechar_bus")
-        self.escapechar_bus.setMaxLength(1)
-
-        self.gridLayout_6.addWidget(self.escapechar_bus, 9, 3, 1, 1)
-
-        self.extract_bus_csv_btn = QPushButton(self.groupBox_3)
-        self.extract_bus_csv_btn.setObjectName(u"extract_bus_csv_btn")
-        icon9 = QIcon()
-        icon9.addFile(u":/csv.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.extract_bus_csv_btn.setIcon(icon9)
-
-        self.gridLayout_6.addWidget(self.extract_bus_csv_btn, 15, 3, 1, 1)
-
-        self.label_10 = QLabel(self.groupBox_3)
-        self.label_10.setObjectName(u"label_10")
-
-        self.gridLayout_6.addWidget(self.label_10, 12, 0, 1, 1)
-
-        self.single_time_base_bus = QCheckBox(self.groupBox_3)
-        self.single_time_base_bus.setObjectName(u"single_time_base_bus")
-
-        self.gridLayout_6.addWidget(self.single_time_base_bus, 0, 0, 1, 4)
-
-        self.export_raster_bus = QDoubleSpinBox(self.groupBox_3)
-        self.export_raster_bus.setObjectName(u"export_raster_bus")
-        self.export_raster_bus.setDecimals(6)
-
-        self.gridLayout_6.addWidget(self.export_raster_bus, 5, 3, 1, 1)
-
-        self.label_25 = QLabel(self.groupBox_3)
-        self.label_25.setObjectName(u"label_25")
-
-        self.gridLayout_6.addWidget(self.label_25, 6, 0, 1, 2)
-
-        self.line_13 = QFrame(self.groupBox_3)
-        self.line_13.setObjectName(u"line_13")
-        self.line_13.setFrameShape(QFrame.HLine)
-        self.line_13.setFrameShadow(QFrame.Sunken)
-
-        self.gridLayout_6.addWidget(self.line_13, 14, 0, 1, 4)
-
-        self.delimiter_bus = QLineEdit(self.groupBox_3)
-        self.delimiter_bus.setObjectName(u"delimiter_bus")
-        self.delimiter_bus.setMaxLength(1)
-        self.delimiter_bus.setClearButtonEnabled(False)
-
-        self.gridLayout_6.addWidget(self.delimiter_bus, 7, 3, 1, 1)
-
-        self.empty_channels_bus = QComboBox(self.groupBox_3)
-        self.empty_channels_bus.setObjectName(u"empty_channels_bus")
-
-        self.gridLayout_6.addWidget(self.empty_channels_bus, 6, 3, 1, 1)
-
-        self.label_9 = QLabel(self.groupBox_3)
-        self.label_9.setObjectName(u"label_9")
-
-        self.gridLayout_6.addWidget(self.label_9, 9, 0, 1, 1)
-
-        self.label_11 = QLabel(self.groupBox_3)
-        self.label_11.setObjectName(u"label_11")
-
-        self.gridLayout_6.addWidget(self.label_11, 11, 0, 1, 2)
-
-        self.lineterminator_bus = QLineEdit(self.groupBox_3)
-        self.lineterminator_bus.setObjectName(u"lineterminator_bus")
-
-        self.gridLayout_6.addWidget(self.lineterminator_bus, 11, 3, 1, 1)
-
-        self.add_units_bus = QCheckBox(self.groupBox_3)
-        self.add_units_bus.setObjectName(u"add_units_bus")
-
-        self.gridLayout_6.addWidget(self.add_units_bus, 4, 0, 1, 4)
-
-        self.time_from_zero_bus = QCheckBox(self.groupBox_3)
-        self.time_from_zero_bus.setObjectName(u"time_from_zero_bus")
-
-        self.gridLayout_6.addWidget(self.time_from_zero_bus, 1, 0, 1, 4)
-
-        self.bus_time_as_date = QCheckBox(self.groupBox_3)
-        self.bus_time_as_date.setObjectName(u"bus_time_as_date")
-
-        self.gridLayout_6.addWidget(self.bus_time_as_date, 2, 0, 1, 4)
-
-        self.ignore_invalid_signals_csv = QCheckBox(self.groupBox_3)
-        self.ignore_invalid_signals_csv.setObjectName(u"ignore_invalid_signals_csv")
-
-        self.gridLayout_6.addWidget(self.ignore_invalid_signals_csv, 3, 0, 1, 4)
-
-        self.doublequote_bus = QCheckBox(self.groupBox_3)
-        self.doublequote_bus.setObjectName(u"doublequote_bus")
-        self.doublequote_bus.setChecked(True)
-
-        self.gridLayout_6.addWidget(self.doublequote_bus, 8, 0, 1, 4)
-
-        self.gridLayout_6.setColumnStretch(0, 1)
-
-        self.gridLayout_7.addWidget(self.groupBox_3, 3, 1, 1, 1)
+        self.gridLayout_7.addWidget(self.tabWidget, 0, 0, 1, 2)
 
         self.horizontalLayout_3 = QHBoxLayout()
         self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
@@ -997,12 +982,11 @@ class Ui_file_widget(object):
 
         self.gridLayout_7.addLayout(self.horizontalLayout_3, 1, 0, 1, 2)
 
-        self.gridLayout_7.setColumnStretch(2, 1)
         self.scrollArea_2.setWidget(self.scrollAreaWidgetContents_2)
 
         self.verticalLayout_8.addWidget(self.scrollArea_2)
 
-        self.aspects.addTab(self.extract_bus_tab, icon8, "")
+        self.aspects.addTab(self.extract_bus_tab, icon9, "")
         self.info_tab = QWidget()
         self.info_tab.setObjectName(u"info_tab")
         self.gridLayout_9 = QGridLayout(self.info_tab)
@@ -1034,11 +1018,11 @@ class Ui_file_widget(object):
 
         self.retranslateUi(file_widget)
 
-        self.aspects.setCurrentIndex(2)
+        self.aspects.setCurrentIndex(0)
         self.output_options.setCurrentIndex(0)
         self.quoting.setCurrentIndex(1)
-        self.tabWidget.setCurrentIndex(1)
         self.quoting_bus.setCurrentIndex(1)
+        self.tabWidget.setCurrentIndex(0)
 
 
         QMetaObject.connectSlotsByName(file_widget)
@@ -1183,45 +1167,40 @@ class Ui_file_widget(object):
         self.add_units.setText(QCoreApplication.translate("file_widget", u"Add units", None))
         self.apply_btn.setText(QCoreApplication.translate("file_widget", u"Apply", None))
         self.aspects.setTabText(self.aspects.indexOf(self.modify), QCoreApplication.translate("file_widget", u"Modify && Export", None))
-        self.load_can_database_btn.setText(QCoreApplication.translate("file_widget", u"Load CAN database", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("file_widget", u"CAN", None))
-        self.load_lin_database_btn.setText(QCoreApplication.translate("file_widget", u"Load LIN database", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("file_widget", u"LIN", None))
-        self.consolidated_j1939.setText(QCoreApplication.translate("file_widget", u"Consolidated J1939 (single group for all messages with common PGN)", None))
-        self.groupBox_2.setTitle(QCoreApplication.translate("file_widget", u"MDF", None))
-        self.label__1.setText(QCoreApplication.translate("file_widget", u"Compression", None))
-        self.label_26.setText("")
-        self.extract_bus_btn.setText(QCoreApplication.translate("file_widget", u"Extract Bus signals", None))
-        self.label_24.setText(QCoreApplication.translate("file_widget", u"Version", None))
         self.groupBox_3.setTitle(QCoreApplication.translate("file_widget", u"CSV", None))
+        self.time_from_zero_bus.setText(QCoreApplication.translate("file_widget", u"Time from 0s", None))
+        self.quotechar_bus.setText(QCoreApplication.translate("file_widget", u"\"", None))
+        self.export_raster_bus.setSuffix(QCoreApplication.translate("file_widget", u"s", None))
+        self.add_units_bus.setText(QCoreApplication.translate("file_widget", u"Add units", None))
+        self.single_time_base_bus.setText(QCoreApplication.translate("file_widget", u"Single time base", None))
+        self.bus_time_as_date.setText(QCoreApplication.translate("file_widget", u"Time as date", None))
+        self.doublequote_bus.setText(QCoreApplication.translate("file_widget", u"Double quote", None))
+        self.label_8.setText(QCoreApplication.translate("file_widget", u"Delimiter", None))
+        self.label_11.setText(QCoreApplication.translate("file_widget", u"Line Terminator", None))
+        self.label_23.setText(QCoreApplication.translate("file_widget", u"Raster", None))
+        self.escapechar_bus.setInputMask("")
+        self.escapechar_bus.setPlaceholderText(QCoreApplication.translate("file_widget", u"None", None))
+        self.lineterminator_bus.setText(QCoreApplication.translate("file_widget", u"\\r\\n", None))
         self.quoting_bus.setItemText(0, QCoreApplication.translate("file_widget", u"ALL", None))
         self.quoting_bus.setItemText(1, QCoreApplication.translate("file_widget", u"MINIMAL", None))
         self.quoting_bus.setItemText(2, QCoreApplication.translate("file_widget", u"NONNUMERIC", None))
         self.quoting_bus.setItemText(3, QCoreApplication.translate("file_widget", u"NONE", None))
 
-        self.label_7.setText(QCoreApplication.translate("file_widget", u"Quoting", None))
-        self.quotechar_bus.setText(QCoreApplication.translate("file_widget", u"\"", None))
-        self.label_8.setText(QCoreApplication.translate("file_widget", u"Delimiter", None))
-        self.label_23.setText(QCoreApplication.translate("file_widget", u"Raster", None))
-        self.escapechar_bus.setInputMask("")
-        self.escapechar_bus.setPlaceholderText(QCoreApplication.translate("file_widget", u"None", None))
-        self.extract_bus_csv_btn.setText(QCoreApplication.translate("file_widget", u"Export to CSV         ", None))
         self.label_10.setText(QCoreApplication.translate("file_widget", u"Quote Char", None))
-        self.single_time_base_bus.setText(QCoreApplication.translate("file_widget", u"Single time base", None))
-        self.export_raster_bus.setSuffix(QCoreApplication.translate("file_widget", u"s", None))
-        self.label_25.setText(QCoreApplication.translate("file_widget", u"Empty channels", None))
         self.delimiter_bus.setText(QCoreApplication.translate("file_widget", u",", None))
+        self.label_25.setText(QCoreApplication.translate("file_widget", u"Empty channels", None))
+        self.label_7.setText(QCoreApplication.translate("file_widget", u"Quoting", None))
         self.label_9.setText(QCoreApplication.translate("file_widget", u"Escape Char", None))
-        self.label_11.setText(QCoreApplication.translate("file_widget", u"Line Terminator", None))
-        self.lineterminator_bus.setText(QCoreApplication.translate("file_widget", u"\\r\\n", None))
-        self.add_units_bus.setText(QCoreApplication.translate("file_widget", u"Add units", None))
-        self.time_from_zero_bus.setText(QCoreApplication.translate("file_widget", u"Time from 0s", None))
-        self.bus_time_as_date.setText(QCoreApplication.translate("file_widget", u"Time as date", None))
-#if QT_CONFIG(tooltip)
-        self.ignore_invalid_signals_csv.setToolTip(QCoreApplication.translate("file_widget", u"checks if all samples are eauql to the maximum teoretical signal value", None))
-#endif // QT_CONFIG(tooltip)
-        self.ignore_invalid_signals_csv.setText(QCoreApplication.translate("file_widget", u"Ignore invalid signals", None))
-        self.doublequote_bus.setText(QCoreApplication.translate("file_widget", u"Double quote", None))
+        self.extract_bus_csv_btn.setText(QCoreApplication.translate("file_widget", u"Export to CSV         ", None))
+        self.groupBox_2.setTitle(QCoreApplication.translate("file_widget", u"MDF", None))
+        self.label__1.setText(QCoreApplication.translate("file_widget", u"Compression", None))
+        self.label_26.setText("")
+        self.extract_bus_btn.setText(QCoreApplication.translate("file_widget", u"Extract Bus signals", None))
+        self.label_24.setText(QCoreApplication.translate("file_widget", u"Version", None))
+        self.load_can_database_btn.setText(QCoreApplication.translate("file_widget", u"Load CAN database", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), QCoreApplication.translate("file_widget", u"CAN", None))
+        self.load_lin_database_btn.setText(QCoreApplication.translate("file_widget", u"Load LIN database", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), QCoreApplication.translate("file_widget", u"LIN", None))
         self.label_12.setText(QCoreApplication.translate("file_widget", u"Prefix", None))
         self.aspects.setTabText(self.aspects.indexOf(self.extract_bus_tab), QCoreApplication.translate("file_widget", u"Bus Logging", None))
         ___qtreewidgetitem2 = self.info.headerItem()

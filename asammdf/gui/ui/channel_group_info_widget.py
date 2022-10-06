@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'channel_group_info_widget.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.2.3
+## Created by: Qt User Interface Compiler version 6.2.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -29,6 +29,10 @@ class Ui_ChannelGroupInfo(object):
         self.verticalLayout_2.setObjectName(u"verticalLayout_2")
         self.tabs = QTabWidget(ChannelGroupInfo)
         self.tabs.setObjectName(u"tabs")
+        font = QFont()
+        font.setFamilies([u"Consolas"])
+        font.setPointSize(8)
+        self.tabs.setFont(font)
         self.ta_widet = QWidget()
         self.ta_widet.setObjectName(u"ta_widet")
         self.horizontalLayout = QHBoxLayout(self.ta_widet)
@@ -43,7 +47,7 @@ class Ui_ChannelGroupInfo(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 409, 443))
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 417, 461))
         self.verticalLayout_3 = QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_3.setObjectName(u"verticalLayout_3")
         self.channel_group_label = QLabel(self.scrollAreaWidgetContents)
@@ -72,7 +76,7 @@ class Ui_ChannelGroupInfo(object):
         self.scrollArea_3.setWidgetResizable(True)
         self.scrollAreaWidgetContents_3 = QWidget()
         self.scrollAreaWidgetContents_3.setObjectName(u"scrollAreaWidgetContents_3")
-        self.scrollAreaWidgetContents_3.setGeometry(QRect(0, 0, 408, 443))
+        self.scrollAreaWidgetContents_3.setGeometry(QRect(0, 0, 417, 461))
         self.verticalLayout = QVBoxLayout(self.scrollAreaWidgetContents_3)
         self.verticalLayout.setObjectName(u"verticalLayout")
         self.source_label = QLabel(self.scrollAreaWidgetContents_3)

@@ -7,33 +7,6 @@ import sys
 asammdf_path = Path.cwd() / "asammdf" / "gui" / "asammdfgui.py"
 
 
-def _cmd_line_parser():
-    parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-        "spec",
-        help="specfile",
-    )
-
-    parser.add_argument(
-        "--console",
-        action="store_true",
-        help="show console, default False",
-    )
-
-    parser.add_argument(
-        "--onefile",
-        action="store_true",
-        help="create single file, default False",
-    )
-
-    return parser
-
-
-parser = _cmd_line_parser()
-args, unknown = parser.parse_known_args(sys.argv[1:])
-
-
 block_cipher = None
 added_files = []
 
@@ -74,49 +47,32 @@ a = Analysis(
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
-    noarchive=not args.onefile,
+    noarchive=False,
 )
 
-if args.onefile:
-    pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
-    exe = EXE(
-        pyz,
-        a.scripts,
-        a.binaries,
-        a.zipfiles,
-        a.datas,
-        Tree(asammdf_path.parent),
-        name="asammdfgui",
-        debug=False,
-        strip=False,
-        upx=True,
-        console=args.console,
-        icon="asammdf.ico",
-    )
-else:
-    pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
+pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)
 
-    exe = EXE(
-        pyz,
-        a.scripts,
-        [],
-        name="asammdfgui",
-        exclude_binaries=True,
-        bootloader_ignore_signals=False,
-        debug=False,
-        strip=False,
-        console=args.console,
-        icon="asammdf.ico",
-    )
+exe = EXE(
+	pyz,
+	a.scripts,
+	[],
+	name="asammdfgui",
+	exclude_binaries=True,
+	bootloader_ignore_signals=False,
+	debug=False,
+	strip=False,
+	console=False,
+	icon="asammdf.ico",
+)
 
-    coll = COLLECT(
-        exe,
-        a.binaries,
-        a.zipfiles,
-        a.datas,
-        Tree(asammdf_path.parent),
-        upx=False,
-        upx_exclude=[],
-        name="asammdfgui",
-    )
+coll = COLLECT(
+	exe,
+	a.binaries,
+	a.zipfiles,
+	a.datas,
+	Tree(asammdf_path.parent),
+	upx=False,
+	upx_exclude=[],
+	name="asammdfgui",
+)

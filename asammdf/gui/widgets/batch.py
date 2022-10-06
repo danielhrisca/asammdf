@@ -286,8 +286,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 "database_files": database_files,
                 "version": version,
                 "prefix": self.prefix.text().strip(),
-                "consolidated_j1939": self.consolidated_j1939.checkState()
-                == QtCore.Qt.Checked,
             }
 
             mdf_ = run_thread_with_progress(
@@ -329,14 +327,32 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 ]
                 for dbc_name, found_ids in call_info["found_ids"].items():
                     for msg_id, msg_name in sorted(found_ids):
-                        message.append(f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>")
+
+                        try:
+                            message.append(
+                                f"- 0x{msg_id:X} --> {msg_name} in <{dbc_name}>"
+                            )
+                        except:
+                            pgn, sa = msg_id
+                            message.append(
+                                f"- PGN=0x{pgn:X} SA=0x{sa:X} --> {msg_name} in <{dbc_name}>"
+                            )
 
                 message += [
                     "",
                     "The following Bus IDs were in the MDF log file, but not matched in the DBC:",
                 ]
-                for msg_id in sorted(call_info["unknown_ids"]):
+                unknown_standard_can = sorted(
+                    [e for e in call_info["unknown_ids"] if isinstance(e, int)]
+                )
+                unknown_j1939 = sorted(
+                    [e for e in call_info["unknown_ids"] if not isinstance(e, int)]
+                )
+                for msg_id in unknown_standard_can:
                     message.append(f"- 0x{msg_id:X}")
+
+                for pgn, sa in unknown_j1939:
+                    message.append(f"- PGN=0x{pgn:X} SA=0x{sa:X}")
 
             file_name = source_file.with_suffix(
                 ".bus_logging.mdf" if version < "4.00" else ".bus_logging.mf4"
@@ -456,8 +472,6 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 "database_files": database_files,
                 "version": version,
                 "prefix": self.prefix.text().strip(),
-                "consolidated_j1939": self.consolidated_j1939.checkState()
-                == QtCore.Qt.Checked,
             }
 
             mdf_ = run_thread_with_progress(

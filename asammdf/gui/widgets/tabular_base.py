@@ -407,7 +407,9 @@ class DataTableView(QtWidgets.QTableView):
         self.setHorizontalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
         self.setVerticalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
 
-        self.setFont(QtGui.QFont(MONOSPACE_FONT))
+        font = QtGui.QFont()
+        font.fromString(MONOSPACE_FONT)
+        self.setFont(font)
 
         self.setAcceptDrops(False)
         self.setDragDropMode(self.NoDragDrop)
@@ -625,6 +627,7 @@ class HeaderView(QtWidgets.QTableView):
         self.setHorizontalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
         self.setVerticalScrollMode(QtWidgets.QAbstractItemView.ScrollPerPixel)
         font = QtGui.QFont()
+        font.fromString(MONOSPACE_FONT)
         font.setBold(True)
         self.setFont(font)
 
@@ -644,9 +647,6 @@ class HeaderView(QtWidgets.QTableView):
             self.horizontalHeader().setSectionResizeMode(
                 QtWidgets.QHeaderView.ResizeMode.Stretch
             )
-            font = QtGui.QFont(MONOSPACE_FONT)
-            font.setBold(True)
-            self.setFont(font)
 
         # Set initial size
         self.resize(self.sizeHint())
@@ -1105,6 +1105,7 @@ class HeaderNamesView(QtWidgets.QTableView):
             )
 
         font = QtGui.QFont()
+        font.fromString(MONOSPACE_FONT)
         font.setBold(True)
         self.setFont(font)
         self.init_size()
@@ -1897,7 +1898,9 @@ class DataFrameViewer(QtWidgets.QWidget):
                 "Courier",
             ):
                 if family in families:
-                    MONOSPACE_FONT = family
+                    MONOSPACE_FONT = (
+                        f"{family},9,-1,5,400,0,0,0,0,0,0,0,0,0,0,1,Regular"
+                    )
                     break
 
         pgdf.dataframe_viewer = self

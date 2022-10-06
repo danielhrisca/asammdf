@@ -538,15 +538,10 @@ class MDF3(MDF_Common):
 
                 if not new_ch.component_addr:
 
-                    if not new_ch.dtype_fmt:
-                        new_ch.dtype_fmt = dtype(
-                            get_fmt_v3(data_type, bit_count, byte_order)
-                        )
-
                     # adjust size to 1, 2, 4 or 8 bytes
                     size = bit_offset + bit_count
 
-                    byte_size, rem = size // 8, size % 8
+                    byte_size, rem = divmod(size, 8)
                     if rem:
                         byte_size += 1
                     bit_size = byte_size * 8
@@ -561,6 +556,11 @@ class MDF3(MDF_Common):
                             bit_offset += 32 - bit_size
                         elif size > 8:
                             bit_offset += 16 - bit_size
+
+                    if not new_ch.dtype_fmt:
+                        new_ch.dtype_fmt = dtype(
+                            get_fmt_v3(data_type, size, byte_order)
+                        )
 
                     record.append(
                         (
@@ -3104,6 +3104,7 @@ class MDF3(MDF_Common):
 
         if vals.dtype.kind == "S":
             encoding = "latin-1"
+            vals = array([e.rsplit(b"\0")[0] for e in vals.tolist()], dtype=vals.dtype)
 
         if samples_only:
             res = vals, None

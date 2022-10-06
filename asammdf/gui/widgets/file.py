@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import partial
 import json
 import os
@@ -33,6 +33,7 @@ from ..dialogs.window_selection_dialog import WindowSelectionDialog
 from ..ui import resource_rc
 from ..ui.file_widget import Ui_file_widget
 from ..utils import (
+    flatten_dsp,
     HelperChannel,
     load_dsp,
     load_lab,
@@ -247,19 +248,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             progress.setValue(37)
 
-            self.channel_view.currentIndexChanged.connect(
-                partial(self._update_channel_tree, widget=self.channels_tree)
-            )
-            self.filter_view.currentIndexChanged.connect(
-                partial(self._update_channel_tree, widget=self.filter_tree)
-            )
-            self.channel_view.currentTextChanged.connect(
-                partial(self._update_channel_tree, widget=self.channels_tree)
-            )
-            self.filter_view.currentTextChanged.connect(
-                partial(self._update_channel_tree, widget=self.filter_tree)
-            )
-
             self.channels_tree.setDragEnabled(True)
 
             self.mdi_area = MdiAreaWidget()
@@ -275,12 +263,25 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.channel_view.setCurrentIndex(-1)
             self.filter_view.setCurrentIndex(-1)
 
-            self.channel_view.setCurrentText(
-                self._settings.value("channels_view", "Internal file structure")
-            )
-
             self.filter_view.setCurrentText(
                 self._settings.value("filter_view", "Internal file structure")
+            )
+
+            self.channel_view.currentIndexChanged.connect(
+                partial(self._update_channel_tree, widget=self.channels_tree)
+            )
+            self.filter_view.currentIndexChanged.connect(
+                partial(self._update_channel_tree, widget=self.filter_tree)
+            )
+            self.channel_view.currentTextChanged.connect(
+                partial(self._update_channel_tree, widget=self.channels_tree)
+            )
+            self.filter_view.currentTextChanged.connect(
+                partial(self._update_channel_tree, widget=self.filter_tree)
+            )
+
+            self.channel_view.setCurrentText(
+                self._settings.value("channels_view", "Internal file structure")
             )
 
             progress.setValue(70)
@@ -562,12 +563,17 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 if self.display_cg_name:
                     base_name = f"CG {i} {group.channel_group.acq_name}"
+                    if comment and group.channel_group.acq_name != comment:
+                        name = base_name + f" ({comment})"
+                    else:
+                        name = base_name
+
                 else:
                     base_name = f"Channel group {i}"
-                if comment:
-                    name = base_name + f" ({comment})"
-                else:
-                    name = base_name
+                    if comment:
+                        name = base_name + f" ({comment})"
+                    else:
+                        name = base_name
 
                 channel_group.setText(0, name)
                 channel_group.setFlags(
@@ -1098,7 +1104,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 self,
                 "Select channel list file",
                 self.default_folder,
-                "Config file (*.cfg);;TXT files (*.txt);;Display files (*.dsp);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.lab *.txt)",
+                "Config file (*.cfg);;TXT files (*.txt);;Display files (*.dsp *.dspf);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.dspf *.lab *.txt)",
                 "CANape Lab file (*.lab)",
             )
 
@@ -1108,8 +1114,28 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 extension = file_name.suffix.lower()
                 if extension == ".dsp":
-                    info = load_dsp(file_name)
-                    channels = info.get("display", [])
+                    channels = load_dsp(file_name, flat=True)
+
+                elif extension == ".dspf":
+                    with open(file_name, "r") as infile:
+                        info = json.load(infile)
+
+                    channels = []
+                    for window in info["windows"]:
+
+                        if window["type"] == "Plot":
+                            channels.extend(
+                                flatten_dsp(window["configuration"]["channels"])
+                            )
+                        elif window["type"] == "Numeric":
+                            channels.extend(
+                                [
+                                    item["name"]
+                                    for item in window["configuration"]["channels"]
+                                ]
+                            )
+                        elif window["type"] == "Tabular":
+                            channels.extend(window["configuration"]["channels"])
 
                 elif extension == ".lab":
                     info = load_lab(file_name)
@@ -1546,8 +1572,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "database_files": database_files,
                 "version": version,
                 "prefix": self.prefix.text().strip(),
-                "consolidated_j1939": self.consolidated_j1939.checkState()
-                == QtCore.Qt.Checked,
             }
 
             mdf = run_thread_with_progress(
@@ -1626,12 +1650,18 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     "",
                     f"The following {bus} IDs were in the MDF log file, but not matched in the DBC:",
                 ]
-                for msg_id in sorted(call_info["unknown_ids"]):
-                    try:
-                        message.append(f"- 0x{msg_id:X}")
-                    except:
-                        pgn, sa = msg_id
-                        message.append(f"- PGN=0x{pgn:X} SA=0x{sa:X}")
+
+                unknown_standard_can = sorted(
+                    [e for e in call_info["unknown_ids"] if isinstance(e, int)]
+                )
+                unknown_j1939 = sorted(
+                    [e for e in call_info["unknown_ids"] if not isinstance(e, int)]
+                )
+                for msg_id in unknown_standard_can:
+                    message.append(f"- 0x{msg_id:X}")
+
+                for pgn, sa in unknown_j1939:
+                    message.append(f"- PGN=0x{pgn:X} SA=0x{sa:X}")
 
                 message.append("\n\n")
 
@@ -1707,8 +1737,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "database_files": database_files,
                 "version": version,
                 "prefix": self.prefix.text().strip(),
-                "consolidated_j1939": self.consolidated_j1939.checkState()
-                == QtCore.Qt.Checked,
             }
 
             mdf = run_thread_with_progress(
@@ -1935,6 +1963,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                 widget = self.filter_tree
 
+                widget.clear()
+
                 if self.filter_view.currentText() == "Natural sort":
                     items = []
                     for i, group in enumerate(self.mdf.groups):
@@ -2035,7 +2065,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             if file_stats is not None:
                 date_ = datetime.fromtimestamp(file_stats.st_ctime)
             else:
-                date_ = datetime.now()
+                date_ = datetime.now(timezone.utc)
             item = QtWidgets.QTreeWidgetItem()
             item.setText(0, "Created")
             item.setText(1, date_.strftime("%d-%b-%Y %H-%M-%S"))
@@ -2044,7 +2074,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             if file_stats is not None:
                 date_ = datetime.fromtimestamp(file_stats.st_mtime)
             else:
-                date_ = datetime.now()
+                date_ = datetime.now(timezone.utc)
             item = QtWidgets.QTreeWidgetItem()
             item.setText(0, "Last modified")
             item.setText(1, date_.strftime("%d-%b-%Y %H:%M:%S"))
@@ -2701,6 +2731,22 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             # then save it
             progress.setLabelText(f'Saving output file "{file_name}"')
 
+            handle_overwrite = Path(file_name) == self.mdf.name
+
+            if handle_overwrite:
+                dspf = self.to_config()
+
+                _password = self.mdf._password
+                self.mdf.close()
+
+                windows = list(self.mdi_area.subWindowList())
+                for window in windows:
+                    widget = window.widget()
+                    self.mdi_area.removeSubWindow(window)
+                    widget.setParent(None)
+                    widget.close()
+                    window.close()
+
             target = mdf.save
             kwargs = {
                 "dst": file_name,
@@ -2719,6 +2765,28 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             self.progress = None
             progress.cancel()
+
+            if handle_overwrite:
+
+                original_name = file_name
+
+                target = MDF
+                kwargs = {
+                    "name": file_name,
+                    "callback": self.update_progress,
+                    "password": _password,
+                    "use_display_names": True,
+                }
+
+                self.mdf = MDF(**kwargs)
+
+                self.mdf.original_name = original_name
+                self.mdf.uuid = self.uuid
+
+                self.aspects.setCurrentIndex(0)
+                self.load_channel_list(file_name=dspf)
+
+                self.aspects.setCurrentIndex(1)
 
         else:
             if progress is None:

@@ -7,7 +7,7 @@ import numpy as np
 from PySide6 import QtCore, QtWidgets
 
 try:
-    from pyqtlet2 import L, MapWidget
+    from pyqtlet2 import L, leaflet, MapWidget
 except:
     print(format_exc())
     pass
@@ -56,15 +56,21 @@ class GPS(Ui_GPSDisplay, QtWidgets.QWidget):
         self.min_t.setText(f"{self._min:.6f}s")
         self.max_t.setText(f"{self._max:.6f}s")
 
+        leaflet.core.Evented.mapWidget = None
+
         self.mapWidget = MapWidget()
         self.map_layout.insertWidget(0, self.mapWidget)
         self.map_layout.setStretch(0, 1)
+
         self.map = L.map(self.mapWidget)
+
         self.map.setView([50.1364092, 8.5991296], zoom)
 
         L.tileLayer("https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png").addTo(
             self.map
         )
+
+        # L.tileLayer("https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png").addTo(self.map)
 
         if len(timebase):
             line = L.polyline(

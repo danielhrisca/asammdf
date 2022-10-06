@@ -18,8 +18,6 @@ class ChannelGroupInfoDialog(QtWidgets.QDialog):
 
         layout.addWidget(ChannelGroupInfoWidget(mdf, group, self))
 
-        self.setStyleSheet('font: 8pt "Consolas";}')
-
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/info.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
 

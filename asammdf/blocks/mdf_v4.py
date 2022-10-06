@@ -1674,15 +1674,10 @@ class MDF4(MDF_Common):
 
                 if ch_type not in v4c.VIRTUAL_TYPES and not dependency_list:
 
-                    if not new_ch.dtype_fmt:
-                        new_ch.dtype_fmt = dtype(
-                            get_fmt_v4(data_type, bit_count, ch_type)
-                        )
-
                     # adjust size to 1, 2, 4 or 8 bytes
                     size = bit_offset + bit_count
 
-                    byte_size, rem = size // 8, size % 8
+                    byte_size, rem = divmod(size, 8)
                     if rem:
                         byte_size += 1
                     bit_size = byte_size * 8
@@ -1697,6 +1692,9 @@ class MDF4(MDF_Common):
                             bit_offset += 32 - bit_size
                         elif size > 8:
                             bit_offset += 16 - bit_size
+
+                    if not new_ch.dtype_fmt:
+                        new_ch.dtype_fmt = dtype(get_fmt_v4(data_type, size, ch_type))
 
                     if (
                         bit_offset
@@ -6583,6 +6581,7 @@ class MDF4(MDF_Common):
                     record_offset=record_offset,
                     record_count=record_count,
                     master_is_required=master_is_required,
+                    raw=raw,
                 )
             else:
                 vals, timestamps, invalidation_bits, encoding = self._get_array(
@@ -6701,6 +6700,7 @@ class MDF4(MDF_Common):
         record_offset: int,
         record_count: int | None,
         master_is_required: bool,
+        raw: bool,
     ) -> tuple[NDArray[Any], NDArray[Any] | None, NDArray[Any] | None, None]:
         grp = group
         gp_nr = group_index
@@ -6774,7 +6774,7 @@ class MDF4(MDF_Common):
                         ignore_invalidation_bits=ignore_invalidation_bits,
                         record_offset=record_offset,
                         record_count=record_count,
-                        raw=True,
+                        raw=raw,
                     )[0]
                     channel_values[i].append(vals)
                 if master_is_required:
@@ -7576,6 +7576,7 @@ class MDF4(MDF_Common):
                 signal_data = b""
 
             if signal_data:
+
                 if data_type in (
                     v4c.DATA_TYPE_BYTEARRAY,
                     v4c.DATA_TYPE_UNSIGNED_INTEL,
@@ -7603,9 +7604,17 @@ class MDF4(MDF_Common):
 
                     elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
                         encoding = "utf-8"
+                        vals = np.array(
+                            [e.rsplit(b"\0")[0] for e in vals.tolist()],
+                            dtype=vals.dtype,
+                        )
 
                     elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
                         encoding = "latin-1"
+                        vals = np.array(
+                            [e.rsplit(b"\0")[0] for e in vals.tolist()],
+                            dtype=vals.dtype,
+                        )
 
                     else:
                         raise MdfException(
@@ -8288,7 +8297,9 @@ class MDF4(MDF_Common):
                         t = frombuffer(buffer, dtype=time_ch.dtype_fmt)
 
                 else:
-                    dtype_, byte_size, byte_offset, bti_count = group.record[time_ch_nr]
+                    dtype_, byte_size, byte_offset, bit_offset = group.record[
+                        time_ch_nr
+                    ]
 
                     if one_piece:
                         data_bytes = data[0]
@@ -8327,6 +8338,38 @@ class MDF4(MDF_Common):
                         )
 
                         t = frombuffer(buffer, dtype=dtype_)
+
+                    if not time_ch.standard_C_size:
+                        channel_dtype = time_ch.dtype_fmt
+                        bit_count = time_ch.bit_count
+                        data_type = time_ch.data_type
+
+                        size = byte_size
+
+                        if channel_dtype.byteorder == "|" and time_ch.data_type in (
+                            v4c.DATA_TYPE_SIGNED_MOTOROLA,
+                            v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                        ):
+                            view = f">u{t.itemsize}"
+                        else:
+                            view = f"{channel_dtype.byteorder}u{t.itemsize}"
+
+                        if dtype(view) != t.dtype:
+                            t = t.view(view)
+
+                        if bit_offset:
+                            t >>= bit_offset
+
+                        if bit_count != size * 8:
+                            if data_type in v4c.SIGNED_INT:
+                                t = as_non_byte_sized_signed_int(t, bit_count)
+                            else:
+                                mask = (1 << bit_count) - 1
+                                t &= mask
+                        elif data_type in v4c.SIGNED_INT:
+                            view = f"{channel_dtype.byteorder}i{t.itemsize}"
+                            if dtype(view) != t.dtype:
+                                t = t.view(view)
 
                 # get timestamps
                 if time_conv:

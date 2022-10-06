@@ -969,6 +969,8 @@ class ChannelConversion(_ChannelConversionBase):
     def __init__(self, **kwargs) -> None:
         super().__init__()
 
+        self.is_user_defined = False
+
         self.unit = self.formula = ""
 
         self.referenced_blocks = {}
@@ -1565,7 +1567,10 @@ address: {hex(self.address)}
             if partial_conversion and len(idx):
                 X = values[idx]
                 new_values = np.zeros(len(values), dtype=np.float64)
-                new_values[idx] = evaluate(default)
+
+                a = float(default.split("*")[0])
+                b = float(default.split("X")[-1])
+                new_values[idx] = a * X + b
 
                 idx = np.argwhere(idx1 == idx2).flatten()
                 if len(idx):
@@ -2964,15 +2969,18 @@ class HeaderBlock:
 
         if self.block_len > v23c.HEADER_COMMON_SIZE:
             if self.abs_time:
-                timestamp = self.abs_time / 10**9 + self.tz_offset * 3600
+                timestamp = self.abs_time / 10**9
+
+                tz = timezone(timedelta(hours=self.tz_offset))
+
                 try:
-                    timestamp = datetime.fromtimestamp(timestamp, timezone.utc)
+                    timestamp = datetime.fromtimestamp(timestamp, tz)
                 except OverflowError:
-                    timestamp = datetime.fromtimestamp(0, timezone.utc) + timedelta(
+                    timestamp = datetime.fromtimestamp(0, tz) + timedelta(
                         seconds=timestamp
                     )
                 except OSError:
-                    timestamp = datetime.now(timezone.utc)
+                    timestamp = datetime.now(tz)
             else:
                 timestamp = "{} {}".format(
                     self.date.decode("ascii"), self.time.decode("ascii")
@@ -3026,6 +3034,13 @@ class HeaderBlock:
         dst_offset_sign = "-" if dst_offset < 0 else "+"
 
         tz_information = f"[GMT{tz_offset_sign}{tz_offset:.2f} DST{dst_offset_sign}{dst_offset:.2f}h]"
+
+        if self.block_len > v23c.HEADER_COMMON_SIZE:
+            if self.abs_time:
+                tz_offset_sign = "-" if self.tz_offset < 0 else "+"
+                tz_information = (
+                    f"[GMT{tz_offset_sign}{abs(self.tz_offset):.2f} DST+{0:.2f}h]"
+                )
 
         start_time = f'local time = {self.start_time.strftime("%d-%b-%Y %H:%M:%S + %fu")} {tz_information}'
         return start_time

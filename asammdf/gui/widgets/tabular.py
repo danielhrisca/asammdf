@@ -3,6 +3,7 @@ import datetime
 import logging
 from traceback import format_exc
 
+import dateutil.tz
 import numpy as np
 import numpy.core.defchararray as npchar
 import pandas as pd
@@ -19,7 +20,7 @@ from .tabular_base import TabularBase, TabularTreeItem
 from .tabular_filter import TabularFilter
 
 logger = logging.getLogger("asammdf.gui")
-LOCAL_TIMEZONE = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
+LOCAL_TIMEZONE = dateutil.tz.tzlocal()
 
 
 class Tabular(TabularBase):
@@ -31,7 +32,7 @@ class Tabular(TabularBase):
         # super().__init__(*args, **kwargs)
 
         self.signals_descr = {}
-        self.start = start
+        self.start = start.astimezone(LOCAL_TIMEZONE)
         self.pattern = {}
         self.format = format
 
@@ -50,7 +51,9 @@ class Tabular(TabularBase):
                 if col.dtype.kind == "O":
                     if name_.endswith("DataBytes"):
                         try:
-                            sizes = signals[name_.replace("DataBytes", "DataLength")]
+                            sizes = signals[
+                                name_.replace("DataBytes", "DataLength")
+                            ].astype("u2")
                         except:
                             sizes = None
                         dropped[name_] = pd.Series(
@@ -63,7 +66,9 @@ class Tabular(TabularBase):
 
                     elif name_.endswith("Data Bytes"):
                         try:
-                            sizes = signals[name_.replace("Data Bytes", "Data Length")]
+                            sizes = signals[
+                                name_.replace("Data Bytes", "Data Length")
+                            ].astype("u2")
                         except:
                             sizes = None
                         dropped[name_] = pd.Series(

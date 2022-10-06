@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'channel_info_widget.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.2.3
+## Created by: Qt User Interface Compiler version 6.2.0
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -28,6 +28,10 @@ class Ui_ChannelInfo(object):
         self.horizontalLayout.setObjectName(u"horizontalLayout")
         self.groupBox = QGroupBox(ChannelInfo)
         self.groupBox.setObjectName(u"groupBox")
+        font = QFont()
+        font.setFamilies([u"Consolas"])
+        font.setPointSize(8)
+        self.groupBox.setFont(font)
         self.groupBox.setFlat(False)
         self.verticalLayout_4 = QVBoxLayout(self.groupBox)
         self.verticalLayout_4.setObjectName(u"verticalLayout_4")
@@ -58,6 +62,7 @@ class Ui_ChannelInfo(object):
 
         self.groupBox_2 = QGroupBox(ChannelInfo)
         self.groupBox_2.setObjectName(u"groupBox_2")
+        self.groupBox_2.setFont(font)
         self.verticalLayout_6 = QVBoxLayout(self.groupBox_2)
         self.verticalLayout_6.setObjectName(u"verticalLayout_6")
         self.scrollArea_2 = QScrollArea(self.groupBox_2)
@@ -87,6 +92,7 @@ class Ui_ChannelInfo(object):
 
         self.groupBox_3 = QGroupBox(ChannelInfo)
         self.groupBox_3.setObjectName(u"groupBox_3")
+        self.groupBox_3.setFont(font)
         self.verticalLayout_5 = QVBoxLayout(self.groupBox_3)
         self.verticalLayout_5.setObjectName(u"verticalLayout_5")
         self.scrollArea_3 = QScrollArea(self.groupBox_3)

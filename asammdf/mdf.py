@@ -261,6 +261,11 @@ class MDF:
 
                     do_close = True
 
+                else:
+                    raise MdfException(
+                        f"{type(name)} is not supported as input for the MDF class"
+                    )
+
             elif isinstance(name, zipfile.ZipFile):
 
                 archive = name
@@ -837,7 +842,7 @@ class MDF:
             if self._terminate:
                 return
 
-        out._transfer_metadata(self, message=f"Converted from <{self.name}>")
+        out._transfer_metadata(self, message=f"Converted from {self.name}")
         self.configure(copy_on_get=True)
         if self._callback:
             out._callback = out._mdf._callback = self._callback
@@ -1043,12 +1048,6 @@ class MDF:
                         )
                         for sig in signals
                     ]
-
-                else:
-                    for sig in signals:
-                        native = sig.samples.dtype.newbyteorder("=")
-                        if sig.samples.dtype != native:
-                            sig.samples = sig.samples.astype(native)
 
                 if time_from_zero:
                     master = master - delta
@@ -4486,7 +4485,7 @@ class MDF:
         database_files: dict[BusType, Iterable[DbcFileType]],
         version: str | None = None,
         ignore_invalid_signals: bool | None = None,
-        consolidated_j1939: bool = True,
+        consolidated_j1939: bool | None = None,
         ignore_value2text_conversion: bool = True,
         prefix: str = "",
     ) -> MDF:
@@ -4509,7 +4508,7 @@ class MDF:
 
         version (None) : str
             output file version
-        ignore_invalid_signals (False) : bool
+        ignore_invalid_signals (None) : bool | None
             ignore signals that have all samples equal to their maximum value
 
             .. versionadded:: 5.7.0
@@ -4517,10 +4516,13 @@ class MDF:
             .. deprecated:: 7.0.2
                 this argument is no longer used and will be removed in the future
 
-        consolidated_j1939 (True) : bool
+        consolidated_j1939 (None) : bool | None
             handle PGNs from all the messages as a single instance
 
             .. versionadded:: 5.7.0
+
+            .. deprecated:: 7.2.0
+                this argument is no longer used and will be removed in the future
 
         ignore_value2text_conversion (True): bool
             ignore value to text conversions
@@ -4562,6 +4564,11 @@ class MDF:
                 "The argument `ignore_invalid_signals` from the method `extract_bus_logging` is no longer used and will be removed in the future"
             )
 
+        if consolidated_j1939 is not None:
+            warn(
+                "The argument `consolidated_j1939` from the method `extract_bus_logging` is no longer used and will be removed in the future"
+            )
+
         if version is None:
             version = self.version
         else:
@@ -4584,7 +4591,6 @@ class MDF:
             out = self._extract_can_logging(
                 out,
                 database_files["CAN"],
-                consolidated_j1939,
                 ignore_value2text_conversion,
                 prefix,
             )
@@ -4603,7 +4609,6 @@ class MDF:
         self,
         output_file: MDF,
         dbc_files: Iterable[DbcFileType],
-        consolidated_j1939: bool = True,
         ignore_value2text_conversion: bool = True,
         prefix: str = "",
     ) -> MDF:
@@ -4933,6 +4938,20 @@ class MDF:
             "found_ids": found_ids,
             "unknown_ids": unknown_ids,
         }
+
+        to_keep = []
+        all_channels = []
+
+        for i, group in enumerate(out.groups):
+            for j, channel in enumerate(group.channels[1:], 1):
+                if not max_flags[i][j]:
+                    to_keep.append((None, i, j))
+                all_channels.append((None, i, j))
+
+        if to_keep != all_channels:
+            tmp = out.filter(to_keep, out.version)
+            out.close()
+            out = tmp
 
         if self._callback:
             self._callback(100, 100)

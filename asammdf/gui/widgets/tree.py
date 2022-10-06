@@ -6,11 +6,13 @@ import json
 import os
 from traceback import format_exc
 
+import numpy as np
 from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from .. import utils
 from ..dialogs.advanced_search import AdvancedSearch
+from ..dialogs.conversion_editor import ConversionEditor
 from ..dialogs.range_editor import RangeEditor
 from ..utils import (
     copy_ranges,
@@ -400,6 +402,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
     edit_computation = QtCore.Signal(object)
     pattern_group_added = QtCore.Signal(object)
     compute_fft_request = QtCore.Signal(str)
+    conversion_changed = QtCore.Signal(str, object)
     color_changed = QtCore.Signal(str, object)
     unit_changed = QtCore.Signal(str, str)
     name_changed = QtCore.Signal(str, str)
@@ -773,8 +776,10 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                             item.set_value(item._value, update=True)
 
                         elif item.type() == item.Group:
-                            item.set_ranges(dlg.result)
+                            item.set_ranges(copy_ranges(dlg.result))
                             item.update_child_values()
+
+            self.refresh()
 
         elif (
             modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier)
@@ -841,6 +846,8 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         elif modifiers == QtCore.Qt.ShiftModifier and key in (
             QtCore.Qt.Key_Up,
             QtCore.Qt.Key_Down,
+            QtCore.Qt.Key_Left,
+            QtCore.Qt.Key_Right,
         ):
             event.ignore()
         else:
@@ -912,6 +919,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addAction(self.tr("Set color [C]"))
         menu.addAction(self.tr("Set precision"))
         menu.addAction(self.tr("Set color ranges [Ctrl+R]"))
+        menu.addAction(self.tr("Set channel conversion"))
         menu.addAction(self.tr("Set unit"))
         menu.addSeparator()
 
@@ -980,6 +988,35 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 QtCore.Qt.ControlModifier,
             )
             self.keyPressEvent(event)
+
+        elif action.text() == "Set channel conversion":
+            selected_items = self.selectedItems()
+            if not selected_items:
+                return
+
+            if len(selected_items) == 1:
+                item = selected_items[0]
+                if item.type() == ChannelsTreeItem.Channel:
+                    conversion = item.signal.conversion
+                    channel_name = item.name
+                else:
+                    conversion = None
+                    channel_name = item.name
+            else:
+                conversion = None
+                channel_name = "selected items"
+
+            dlg = ConversionEditor(channel_name, conversion, parent=self)
+            dlg.exec_()
+            if dlg.pressed_button == "apply":
+                conversion = dlg.conversion()
+
+                for item in selected_items:
+                    if item.type() in (
+                        ChannelsTreeItem.Channel,
+                        ChannelsTreeItem.Group,
+                    ):
+                        item.set_conversion(conversion)
 
         elif action.text() == "Copy channel structure":
             selected_items = validate_drag_items(
@@ -1767,6 +1804,44 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             item = self.child(row)
             item.reset_resolved_ranges()
 
+    def set_conversion(self, conversion):
+        if self.type() == self.Channel:
+            self.signal.conversion = conversion
+
+            self.signal.text_conversion = None
+
+            if self.signal.conversion:
+                samples = self.signal.conversion.convert(self.signal.samples)
+                if samples.dtype.kind not in "SUV":
+                    nans = np.isnan(samples)
+                    if np.any(nans):
+                        self.signal.raw_samples = self.signal.samples[~nans]
+                        self.signal.phys_samples = samples[~nans]
+                        self.signal.timestamps = self.signal.timestamps[~nans]
+                        self.signal.samples = self.signal.samples[~nans]
+                    else:
+                        self.signal.raw_samples = self.signal.samples
+                        self.signal.phys_samples = samples
+                else:
+                    self.signal.text_conversion = self.signal.conversion
+                    self.signal.phys_samples = (
+                        self.signal.raw_samples
+                    ) = self.signal.samples
+
+                self.unit = conversion.unit
+            else:
+                self.signal.phys_samples = self.signal.raw_samples = self.signal.samples
+
+            tree = self.treeWidget()
+            if tree:
+                tree.conversion_changed.emit(self.uuid, conversion)
+
+        elif self.type() == self.Group:
+            count = self.childCount()
+            for i in range(count):
+                child = self.child(i)
+                child.set_conversion(conversion)
+
     def set_disabled(self, disabled):
         if self.type() == self.Channel:
             self.setDisabled(disabled)
@@ -1862,15 +1937,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
                 )
             self.ranges.append(range_info)
 
-        self.resolved_ranges = None
-
-    # @timeit
-    # def setBackground(self, col, c):
-    #     super().setBackground(col, c)
-
-    # @timeit
-    # def setForeground(self, col, c):
-    #     super().setForeground(col, c)
+        self.reset_resolved_ranges()
 
     def set_value(self, value=None, update=False, force=False):
         update_text = (value != self._value) or force

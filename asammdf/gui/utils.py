@@ -182,7 +182,7 @@ def extract_mime_names(data):
     return names
 
 
-def load_dsp(file, background="#000000"):
+def load_dsp(file, background="#000000", flat=False):
     if isinstance(background, str):
         background = fn.mkColor(background)
 
@@ -396,21 +396,36 @@ def load_dsp(file, background="#000000"):
 
     info = {"selected_channels": [], "windows": []}
 
-    if channels:
+    if flat:
+        info = flatten_dsp(channels)
+    else:
+        if channels:
 
-        plot = {
-            "type": "Plot",
-            "title": "Display channels",
-            "maximized": True,
-            "configuration": {
-                "channels": channels,
-                "locked": True,
-            },
-        }
+            plot = {
+                "type": "Plot",
+                "title": "Display channels",
+                "maximized": True,
+                "configuration": {
+                    "channels": channels,
+                    "locked": True,
+                },
+            }
 
-        info["windows"].append(plot)
+            info["windows"].append(plot)
 
     return info
+
+
+def flatten_dsp(channels):
+    res = []
+
+    for item in channels:
+        if item["type"] == "group":
+            res.extend(flatten_dsp(item["channels"]))
+        else:
+            res.append(item["name"])
+
+    return res
 
 
 def load_lab(file):
@@ -876,6 +891,19 @@ def value_as_str(value, format, dtype=None, precision=3):
         string = float_fmt.format(value)
 
     return string
+
+
+def draw_color_icon(color):
+    color = QtGui.QColor(color)
+    pix = QtGui.QPixmap(64, 64)
+    painter = QtGui.QPainter(pix)
+    painter.setPen("black")
+    painter.drawRect(QtCore.QRect(0, 0, 63, 63))
+    painter.setPen(color)
+    painter.setBrush(color)
+    painter.drawRect(QtCore.QRect(1, 1, 62, 62))
+    painter.end()
+    return QtGui.QIcon(pix)
 
 
 if __name__ == "__main__":

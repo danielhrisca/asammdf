@@ -19,14 +19,23 @@ import pyqtgraph.console.template_pyside6
 
 # imports for pyinstaller
 import pyqtgraph.functions as fn
-import pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyside6
-import pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyside6
-import pyqtgraph.GraphicsScene.exportDialogTemplate_pyside6
-import pyqtgraph.imageview.ImageViewTemplate_pyside6
+
+try:
+    import pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyside6
+    import pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyside6
+    import pyqtgraph.GraphicsScene.exportDialogTemplate_pyside6
+    import pyqtgraph.imageview.ImageViewTemplate_pyside6
+except ImportError:
+    import pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_generic
+    import pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_generic
+    import pyqtgraph.GraphicsScene.exportDialogTemplate_generic
+    import pyqtgraph.imageview.ImageViewTemplate_generic
+
 from PySide6 import QtCore, QtGui, QtWidgets
 
 PLOT_BUFFER_SIZE = 4000
 
+from ...blocks.conversion_utils import from_dict, to_dict
 from ...blocks.utils import target_byte_order
 from ..utils import FONT_SIZE, value_as_str
 
@@ -1361,6 +1370,8 @@ class Plot(QtWidgets.QWidget):
     splitter_moved = QtCore.Signal(object, int)
     pattern_group_added = QtCore.Signal(object, object)
 
+    item_double_click_handling = "enable/disable"
+
     def __init__(
         self,
         signals,
@@ -1705,6 +1716,7 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.color_changed.connect(self.plot.set_color)
         self.channel_selection.unit_changed.connect(self.plot.set_unit)
         self.channel_selection.name_changed.connect(self.plot.set_name)
+        self.channel_selection.conversion_changed.connect(self.plot.set_conversion)
 
         self.channel_selection.itemsDeleted.connect(self.channel_selection_reduced)
         self.channel_selection.group_activation_changed.connect(self.plot.update)
@@ -1759,8 +1771,9 @@ class Plot(QtWidgets.QWidget):
         self.splitter.splitterMoved.connect(self.set_splitter)
         self.line_width = line_width
 
-        self.hide_selected_channel_value(hide=True)
+        self.hide_selected_channel_value(hide=False)
         self.toggle_focused_mode(focused=False)
+        self.toggle_region_values_display_mode(mode="value")
 
         self.show()
 
@@ -2031,6 +2044,11 @@ class Plot(QtWidgets.QWidget):
 
                 item.precision = description.get("precision", 3)
 
+                if description.get("conversion", None):
+                    conversion = from_dict(description["conversion"])
+                    conversion.is_user_defined = True
+                    item.set_conversion(conversion)
+
             if enforce_y_axis:
                 item.setCheckState(item.CommonAxisColumn, QtCore.Qt.Checked)
 
@@ -2139,18 +2157,8 @@ class Plot(QtWidgets.QWidget):
         channel["y_range"] = [float(e) for e in sig.y_range]
         channel["origin_uuid"] = str(sig.origin_uuid)
 
-        # TO DO: virtual channels with conversion rule
-
-        # if sig.computed and sig.conversion:
-        #     channel["user_defined_name"] = sig.name
-        #     channel["name"] = sig.computation["expression"]
-        #
-        #     channel["conversion"] = {}
-        #     for i in range(sig.conversion.val_param_nr):
-        #         channel["conversion"][f"text_{i}"] = sig.conversion.referenced_blocks[
-        #             f"text_{i}"
-        #         ].decode("utf-8")
-        #         channel["conversion"][f"val_{i}"] = sig.conversion[f"val_{i}"]
+        if sig.conversion and sig.conversion.is_user_defined:
+            channel["conversion"] = to_dict(sig.conversion)
 
         return channel
 
@@ -2245,13 +2253,19 @@ class Plot(QtWidgets.QWidget):
                     else:
                         item.setCheckState(item.NameColumn, QtCore.Qt.Checked)
             elif item.type() == item.Group:
-                if item.isDisabled():
-                    item.set_disabled(False)
-                    item.setIcon(item.NameColumn, QtGui.QIcon(":/open.png"))
-                else:
-                    item.set_disabled(True)
-                    item.setIcon(item.NameColumn, QtGui.QIcon(":/erase.png"))
-                self.plot.update()
+
+                if Plot.item_double_click_handling == "enable/disable":
+                    if self.channel_selection.expandsOnDoubleClick():
+                        self.channel_selection.setExpandsOnDoubleClick(False)
+                    if item.isDisabled():
+                        item.set_disabled(False)
+                        item.setIcon(item.NameColumn, QtGui.QIcon(":/open.png"))
+                    else:
+                        item.set_disabled(True)
+                        item.setIcon(item.NameColumn, QtGui.QIcon(":/erase.png"))
+                    self.plot.update()
+                elif Plot.item_double_click_handling == "expand/collapse":
+                    item.setExpanded(not item.isExpanded())
 
     def channel_selection_reduced(self, deleted):
         self.plot.delete_channels(deleted)
@@ -2942,31 +2956,54 @@ class Plot(QtWidgets.QWidget):
         if timebase.size:
             dim = len(timebase)
 
-            right = np.searchsorted(timebase, start, side="right")
-            if right == 0:
-                next_pos = timebase[0]
-            elif right == dim:
-                next_pos = timebase[-1]
-            else:
-                if start - timebase[right - 1] < timebase[right] - start:
-                    next_pos = timebase[right - 1]
-                else:
-                    next_pos = timebase[right]
-            start = next_pos
+            if self.plot.region_lock is None:
 
-            right = np.searchsorted(timebase, stop, side="right")
-            if right == 0:
-                next_pos = timebase[0]
-            elif right == dim:
-                next_pos = timebase[-1]
-            else:
-                if stop - timebase[right - 1] < timebase[right] - stop:
-                    next_pos = timebase[right - 1]
+                right = np.searchsorted(timebase, start, side="right")
+                if right == 0:
+                    next_pos = timebase[0]
+                elif right == dim:
+                    next_pos = timebase[-1]
                 else:
-                    next_pos = timebase[right]
-            stop = next_pos
+                    if start - timebase[right - 1] < timebase[right] - start:
+                        next_pos = timebase[right - 1]
+                    else:
+                        next_pos = timebase[right]
+                start = next_pos
 
-            self.plot.region.setRegion((start, stop))
+                right = np.searchsorted(timebase, stop, side="right")
+                if right == 0:
+                    next_pos = timebase[0]
+                elif right == dim:
+                    next_pos = timebase[-1]
+                else:
+                    if stop - timebase[right - 1] < timebase[right] - stop:
+                        next_pos = timebase[right - 1]
+                    else:
+                        next_pos = timebase[right]
+                stop = next_pos
+
+                self.plot.region.setRegion((start, stop))
+
+            else:
+
+                if start == self.plot.region_lock:
+                    pos = stop
+                else:
+                    pos = start
+
+                right = np.searchsorted(timebase, pos, side="right")
+                if right == 0:
+                    next_pos = timebase[0]
+                elif right == dim:
+                    next_pos = timebase[-1]
+                else:
+                    if pos - timebase[right - 1] < timebase[right] - pos:
+                        next_pos = timebase[right - 1]
+                    else:
+                        next_pos = timebase[right]
+                pos = next_pos
+
+                self.plot.region.setRegion((self.plot.region_lock, pos))
 
     def range_removed(self):
         self._prev_region = None
@@ -3158,6 +3195,8 @@ class Plot(QtWidgets.QWidget):
             self.region_values_display_mode = (
                 "delta" if self.region_values_display_mode == "value" else "value"
             )
+        else:
+            self.region_values_display_mode = mode
 
         if self.region_values_display_mode == "value":
             self.delta_btn.setFlat(True)
@@ -3346,6 +3385,7 @@ class _Plot(pg.PlotWidget):
         )
 
         self.viewbox.menu.removeAction(self.viewbox.menu.viewAll)
+        self.scene_.contextMenu = []
         for ax in self.viewbox.menu.axes:
             self.viewbox.menu.removeAction(ax.menuAction())
         self.plot_item.setMenuEnabled(False, None)
@@ -3633,6 +3673,20 @@ class _Plot(pg.PlotWidget):
         painter.setClipRect(rect.x() + 5, rect.y(), rect.width() - 5, rect.height())
         painter.setClipping(True)
 
+    def clear_rect(self, rect):
+
+        paint = QtGui.QPainter()
+        paint.begin(self._pixmap)
+        paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
+        paint.setRenderHints(paint.RenderHint.Antialiasing, False)
+
+        color = self.backgroundBrush().color()
+        color = QtGui.QColor("red")
+        paint.setPen(color)
+        paint.setBrush(color)
+        paint.drawRect(rect)
+        paint.end()
+
     def _clicked(self, event):
         modifiers = QtWidgets.QApplication.keyboardModifiers()
 
@@ -3775,6 +3829,31 @@ class _Plot(pg.PlotWidget):
         if e.mimeData().hasFormat("application/octet-stream-asammdf"):
             e.accept()
         super().dragEnterEvent(e)
+
+    def draw_grids(self, paint, event_rect):
+        if self.y_axis.grid or self.x_axis.grid:
+
+            rect = self.viewbox.sceneBoundingRect()
+            y_delta = rect.y()
+            x_delta = rect.x()
+
+            if self.y_axis.grid:
+                for pen, p1, p2 in self.y_axis.tickSpecs:
+                    y_pos = p1.y() + y_delta
+                    paint.setPen(pen)
+                    paint.drawLine(
+                        QtCore.QPointF(0, y_pos),
+                        QtCore.QPointF(event_rect.x() + event_rect.width(), y_pos),
+                    )
+
+            if self.x_axis.grid:
+                for pen, p1, p2 in self.x_axis.tickSpecs:
+                    x_pos = p1.x() + x_delta
+                    paint.setPen(pen)
+                    paint.drawLine(
+                        QtCore.QPointF(x_pos, 0),
+                        QtCore.QPointF(x_pos, event_rect.y() + event_rect.height()),
+                    )
 
     def dropEvent(self, e):
         if e.source() is self.parent().channel_selection:
@@ -3920,23 +3999,24 @@ class _Plot(pg.PlotWidget):
         else:
             handled = True
             if key == QtCore.Qt.Key_Y and modifier == QtCore.Qt.NoModifier:
-                if self.region is not None:
-                    if self.region_lock is not None:
-                        self.region_lock = None
-                        self.region.lines[0].pen.setStyle(QtCore.Qt.SolidLine)
-                        self.region.lines[1].pen.setStyle(QtCore.Qt.SolidLine)
-                        self.region.lines[0].setMovable(True)
-                        self.region.movable = True
-                    else:
-                        self.region_lock = self.region.getRegion()[0]
-                        self.region.lines[0].pen.setStyle(QtCore.Qt.DashDotDotLine)
-                        self.region.lines[0].setMovable(False)
-                        self.region.movable = False
+                if self.region is None:
+                    event_ = QtGui.QKeyEvent(
+                        QtCore.QEvent.KeyPress, QtCore.Qt.Key_R, QtCore.Qt.NoModifier
+                    )
+                    self.keyPressEvent(event_)
 
-                    self.update()
-
-                else:
+                if self.region_lock is not None:
                     self.region_lock = None
+                    self.region.lines[0].setMovable(True)
+                    self.region.lines[0].locked = False
+                    self.region.movable = True
+                else:
+                    self.region_lock = self.region.getRegion()[0]
+                    self.region.lines[0].setMovable(False)
+                    self.region.lines[0].locked = True
+                    self.region.movable = False
+
+                self.update()
 
             elif key == QtCore.Qt.Key_X and modifier == QtCore.Qt.NoModifier:
                 if self.region is not None:
@@ -4088,6 +4168,7 @@ class _Plot(pg.PlotWidget):
                     self.region.setZValue(-10)
                     self.viewbox.addItem(self.region)
                     self.region.sigRegionChanged.connect(self.range_modified.emit)
+                    self.region.sigRegionChanged.connect(self.range_modified_handler)
                     self.region.sigRegionChangeFinished.connect(
                         self.range_modified_finished_handler
                     )
@@ -4448,12 +4529,19 @@ class _Plot(pg.PlotWidget):
                     increment = 1
                     start, stop = self.region.getRegion()
 
-                    if modifier == QtCore.Qt.ControlModifier:
-                        prev_pos = pos = stop
-                        second_pos = start
+                    if self.region_lock is None:
+
+                        if modifier == QtCore.Qt.ControlModifier:
+                            pos = stop
+                            second_pos = start
+                        else:
+                            pos = start
+                            second_pos = stop
                     else:
-                        prev_pos = pos = start
-                        second_pos = stop
+                        if start != stop:
+                            pos = start if stop == self.region_lock else stop
+                        else:
+                            pos = self.region_lock
 
                     x = self.get_current_timebase()
                     dim = x.size
@@ -4478,7 +4566,10 @@ class _Plot(pg.PlotWidget):
                     elif pos <= left_side:
                         self.viewbox.setXRange(pos, right_side, padding=0)
 
-                    self.region.setRegion(tuple(sorted((second_pos, pos))))
+                    if self.region_lock is not None:
+                        self.region.setRegion((self.region_lock, pos))
+                    else:
+                        self.region.setRegion(tuple(sorted((second_pos, pos))))
 
             elif (
                 key in (QtCore.Qt.Key_Left, QtCore.Qt.Key_Right)
@@ -4798,29 +4889,7 @@ class _Plot(pg.PlotWidget):
 
         paint.drawPixmap(event_rect, self._pixmap, event_rect)
 
-        if self.y_axis.grid or self.x_axis.grid:
-
-            rect = self.viewbox.sceneBoundingRect()
-            y_delta = rect.y()
-            x_delta = rect.x()
-
-            if self.y_axis.grid:
-                for pen, p1, p2 in self.y_axis.tickSpecs:
-                    y_pos = p1.y() + y_delta
-                    paint.setPen(pen)
-                    paint.drawLine(
-                        QtCore.QPointF(0, y_pos),
-                        QtCore.QPointF(event_rect.x() + event_rect.width(), y_pos),
-                    )
-
-            if self.x_axis.grid:
-                for pen, p1, p2 in self.x_axis.tickSpecs:
-                    x_pos = p1.x() + x_delta
-                    paint.setPen(pen)
-                    paint.drawLine(
-                        QtCore.QPointF(x_pos, 0),
-                        QtCore.QPointF(x_pos, event_rect.y() + event_rect.height()),
-                    )
+        self.draw_grids(paint, event_rect)
 
         if self.cursor1 is not None and self.cursor1.isVisible():
             self.cursor1.paint(paint, plot=self, uuid=self.current_uuid)
@@ -4838,6 +4907,14 @@ class _Plot(pg.PlotWidget):
                 else:
                     self.region.lines[i].pen.setStyle(QtCore.Qt.SolidLine)
         self.range_modified_finished.emit(region)
+
+    def range_modified_handler(self, region):
+        if self.region_lock is not None:
+            for i in range(2):
+                if self.region.lines[i].value() == self.region_lock:
+                    self.region.lines[i].pen.setStyle(QtCore.Qt.DashDotDotLine)
+                else:
+                    self.region.lines[i].pen.setStyle(QtCore.Qt.SolidLine)
 
     def scale_curve_to_pixmap(self, x, y, y_range, x_start, delta):
 
@@ -4912,6 +4989,30 @@ class _Plot(pg.PlotWidget):
         )
 
         self.set_current_uuid(self.current_uuid, True)
+        self.update()
+
+    def set_conversion(self, uuid, conversion):
+        sig, index = self.signal_by_uuid(uuid)
+
+        axis = self.axes[index]
+        if isinstance(axis, FormatedAxis):
+
+            if sig.conversion and hasattr(sig.conversion, "text_0"):
+                axis.text_conversion = sig.conversion
+            else:
+                axis.text_conversion = None
+
+            axis.picture = None
+
+        if uuid == self.current_uuid:
+            axis = self.y_axis
+            if sig.conversion and hasattr(sig.conversion, "text_0"):
+                axis.text_conversion = sig.conversion
+            else:
+                axis.text_conversion = None
+
+            axis.picture = None
+
         self.update()
 
     def set_current_uuid(self, uuid, force=False):
@@ -5083,6 +5184,8 @@ class _Plot(pg.PlotWidget):
                 self._timebase_db[id_].remove(sig.uuid)
                 if len(self._timebase_db[id_]) == 0:
                     del self._timebase_db[id_]
+
+                sig.trim(*sig.trim_info, force=True)
 
         self._compute_all_timebase()
 

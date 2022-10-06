@@ -44,9 +44,9 @@ jobs:
             pip install cmerg
             if [ "$RUNNER_OS" == "Linux" ]; then
                  sudo apt update
-                 sudo apt install libegl1
+                 sudo apt install libegl1 libopengl0
             fi
-            pyinstaller asammdf.spec --distpath dist/${RUNNER_OS} --noconfirm --clean --onefile
+            pyinstaller asammdf.spec --distpath dist/${RUNNER_OS} --noconfirm --clean
 
       # see: https://docs.github.com/en/actions/advanced-guides/storing-workflow-data-as-artifacts
       - name: Archive dist artifacts

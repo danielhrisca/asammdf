@@ -2,13 +2,14 @@
 import datetime
 import logging
 
+import dateutil.tz
 import pandas as pd
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from .tabular_base import TabularBase
 
 logger = logging.getLogger("asammdf.gui")
-LOCAL_TIMEZONE = datetime.datetime.now(datetime.timezone.utc).astimezone().tzinfo
+LOCAL_TIMEZONE = dateutil.tz.tzlocal()
 
 
 class FlexRayBusTrace(TabularBase):
@@ -41,7 +42,7 @@ class FlexRayBusTrace(TabularBase):
         super().__init__(signals, ranges)
 
         self.signals_descr = {name: 0 for name in signals.columns}
-        self.start = start
+        self.start = start.astimezone(LOCAL_TIMEZONE)
         self.pattern = {}
         self.format = format
         self.format_selection.setCurrentText(format)

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1034</width>
-    <height>865</height>
+    <height>622</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -50,7 +50,7 @@
       <enum>QTabWidget::West</enum>
      </property>
      <property name="currentIndex">
-      <number>2</number>
+      <number>0</number>
      </property>
      <property name="documentMode">
       <bool>false</bool>
@@ -233,7 +233,7 @@
       <attribute name="title">
        <string>Modify &amp;&amp; Export</string>
       </attribute>
-      <layout class="QHBoxLayout" name="horizontalLayout" stretch="1,1,0,0">
+      <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0">
        <item>
         <layout class="QVBoxLayout" name="verticalLayout_2">
          <item>
@@ -367,19 +367,6 @@
         </layout>
        </item>
        <item>
-        <spacer name="horizontalSpacer_3">
-         <property name="orientation">
-          <enum>Qt::Horizontal</enum>
-         </property>
-         <property name="sizeHint" stdset="0">
-          <size>
-           <width>10</width>
-           <height>10</height>
-          </size>
-         </property>
-        </spacer>
-       </item>
-       <item>
         <widget class="QScrollArea" name="scrollArea">
          <property name="widgetResizable">
           <bool>true</bool>
@@ -389,8 +376,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>213</width>
-            <height>822</height>
+            <width>306</width>
+            <height>619</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -441,8 +428,11 @@
                   <property name="decimals">
                    <number>6</number>
                   </property>
+                  <property name="minimum">
+                   <double>-9999999999999999635896294965248.000000000000000</double>
+                  </property>
                   <property name="maximum">
-                   <double>999999.999998999992386</double>
+                   <double>999999999999999983222784.000000000000000</double>
                   </property>
                  </widget>
                 </item>
@@ -461,8 +451,11 @@
                   <property name="decimals">
                    <number>6</number>
                   </property>
+                  <property name="minimum">
+                   <double>-9999999999999999635896294965248.000000000000000</double>
+                  </property>
                   <property name="maximum">
-                   <double>999999.999998999992386</double>
+                   <double>999999999999999983222784.000000000000000</double>
                   </property>
                  </widget>
                 </item>
@@ -1224,107 +1217,227 @@
             <x>0</x>
             <y>0</y>
             <width>985</width>
-            <height>839</height>
+            <height>596</height>
            </rect>
           </property>
-          <layout class="QGridLayout" name="gridLayout_7" columnstretch="0,0,1">
-           <item row="0" column="0" colspan="2">
-            <widget class="QTabWidget" name="tabWidget">
-             <property name="currentIndex">
-              <number>1</number>
+          <layout class="QGridLayout" name="gridLayout_7" columnstretch="0,0,0">
+           <item row="2" column="1">
+            <widget class="QGroupBox" name="groupBox_3">
+             <property name="title">
+              <string>CSV</string>
              </property>
-             <widget class="QWidget" name="tab">
-              <attribute name="title">
-               <string>CAN</string>
-              </attribute>
-              <layout class="QGridLayout" name="gridLayout_4">
-               <property name="leftMargin">
-                <number>2</number>
-               </property>
-               <property name="topMargin">
-                <number>2</number>
-               </property>
-               <property name="rightMargin">
-                <number>2</number>
-               </property>
-               <property name="bottomMargin">
-                <number>2</number>
-               </property>
-               <property name="spacing">
-                <number>2</number>
-               </property>
-               <item row="0" column="0">
-                <widget class="QPushButton" name="load_can_database_btn">
+             <layout class="QGridLayout" name="gridLayout_6" columnstretch="1,0,0">
+              <property name="topMargin">
+               <number>2</number>
+              </property>
+              <property name="rightMargin">
+               <number>2</number>
+              </property>
+              <property name="bottomMargin">
+               <number>2</number>
+              </property>
+              <property name="spacing">
+               <number>2</number>
+              </property>
+              <item row="1" column="0" colspan="3">
+               <widget class="QCheckBox" name="time_from_zero_bus">
+                <property name="text">
+                 <string>Time from 0s</string>
+                </property>
+               </widget>
+              </item>
+              <item row="11" column="2">
+               <widget class="QLineEdit" name="quotechar_bus">
+                <property name="text">
+                 <string>&quot;</string>
+                </property>
+                <property name="maxLength">
+                 <number>1</number>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="2">
+               <widget class="QDoubleSpinBox" name="export_raster_bus">
+                <property name="suffix">
+                 <string>s</string>
+                </property>
+                <property name="decimals">
+                 <number>6</number>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="0" colspan="3">
+               <widget class="QCheckBox" name="add_units_bus">
+                <property name="text">
+                 <string>Add units</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="0" colspan="3">
+               <widget class="QCheckBox" name="single_time_base_bus">
+                <property name="text">
+                 <string>Single time base</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="0" colspan="3">
+               <widget class="QCheckBox" name="bus_time_as_date">
+                <property name="text">
+                 <string>Time as date</string>
+                </property>
+               </widget>
+              </item>
+              <item row="7" column="0" colspan="3">
+               <widget class="QCheckBox" name="doublequote_bus">
+                <property name="text">
+                 <string>Double quote</string>
+                </property>
+                <property name="checked">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="0">
+               <widget class="QLabel" name="label_8">
+                <property name="text">
+                 <string>Delimiter</string>
+                </property>
+               </widget>
+              </item>
+              <item row="10" column="0" colspan="2">
+               <widget class="QLabel" name="label_11">
+                <property name="text">
+                 <string>Line Terminator</string>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="0">
+               <widget class="QLabel" name="label_23">
+                <property name="text">
+                 <string>Raster</string>
+                </property>
+               </widget>
+              </item>
+              <item row="8" column="2">
+               <widget class="QLineEdit" name="escapechar_bus">
+                <property name="inputMask">
+                 <string/>
+                </property>
+                <property name="maxLength">
+                 <number>1</number>
+                </property>
+                <property name="placeholderText">
+                 <string>None</string>
+                </property>
+               </widget>
+              </item>
+              <item row="10" column="2">
+               <widget class="QLineEdit" name="lineterminator_bus">
+                <property name="text">
+                 <string>\r\n</string>
+                </property>
+               </widget>
+              </item>
+              <item row="12" column="2">
+               <widget class="QComboBox" name="quoting_bus">
+                <property name="currentIndex">
+                 <number>1</number>
+                </property>
+                <item>
                  <property name="text">
-                  <string>Load CAN database</string>
+                  <string>ALL</string>
                  </property>
-                 <property name="icon">
-                  <iconset resource="resource.qrc">
-                   <normaloff>:/open.png</normaloff>:/open.png</iconset>
-                 </property>
-                </widget>
-               </item>
-               <item row="1" column="0">
-                <widget class="MinimalListWidget" name="can_database_list"/>
-               </item>
-              </layout>
-             </widget>
-             <widget class="QWidget" name="tab_2">
-              <attribute name="title">
-               <string>LIN</string>
-              </attribute>
-              <layout class="QVBoxLayout" name="verticalLayout_7">
-               <property name="spacing">
-                <number>2</number>
-               </property>
-               <property name="leftMargin">
-                <number>2</number>
-               </property>
-               <property name="topMargin">
-                <number>2</number>
-               </property>
-               <property name="rightMargin">
-                <number>2</number>
-               </property>
-               <property name="bottomMargin">
-                <number>2</number>
-               </property>
-               <item>
-                <widget class="QPushButton" name="load_lin_database_btn">
+                </item>
+                <item>
                  <property name="text">
-                  <string>Load LIN database</string>
+                  <string>MINIMAL</string>
                  </property>
-                 <property name="icon">
-                  <iconset resource="resource.qrc">
-                   <normaloff>:/open.png</normaloff>:/open.png</iconset>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>NONNUMERIC</string>
                  </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="MinimalListWidget" name="lin_database_list"/>
-               </item>
-              </layout>
-             </widget>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>NONE</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item row="11" column="0">
+               <widget class="QLabel" name="label_10">
+                <property name="text">
+                 <string>Quote Char</string>
+                </property>
+               </widget>
+              </item>
+              <item row="13" column="0" colspan="3">
+               <widget class="Line" name="line_13">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="2">
+               <widget class="QLineEdit" name="delimiter_bus">
+                <property name="text">
+                 <string>,</string>
+                </property>
+                <property name="maxLength">
+                 <number>1</number>
+                </property>
+                <property name="clearButtonEnabled">
+                 <bool>false</bool>
+                </property>
+               </widget>
+              </item>
+              <item row="5" column="0" colspan="2">
+               <widget class="QLabel" name="label_25">
+                <property name="text">
+                 <string>Empty channels</string>
+                </property>
+               </widget>
+              </item>
+              <item row="12" column="0">
+               <widget class="QLabel" name="label_7">
+                <property name="text">
+                 <string>Quoting</string>
+                </property>
+               </widget>
+              </item>
+              <item row="8" column="0">
+               <widget class="QLabel" name="label_9">
+                <property name="text">
+                 <string>Escape Char</string>
+                </property>
+               </widget>
+              </item>
+              <item row="14" column="2">
+               <widget class="QPushButton" name="extract_bus_csv_btn">
+                <property name="text">
+                 <string>Export to CSV         </string>
+                </property>
+                <property name="icon">
+                 <iconset resource="resource.qrc">
+                  <normaloff>:/csv.png</normaloff>:/csv.png</iconset>
+                </property>
+               </widget>
+              </item>
+              <item row="5" column="2">
+               <widget class="QComboBox" name="empty_channels_bus"/>
+              </item>
+             </layout>
             </widget>
            </item>
-           <item row="0" column="2" rowspan="4">
+           <item row="0" column="2" rowspan="3">
             <widget class="QTextEdit" name="output_info_bus">
              <property name="readOnly">
               <bool>true</bool>
              </property>
             </widget>
            </item>
-           <item row="2" column="0" colspan="2">
-            <widget class="QCheckBox" name="consolidated_j1939">
-             <property name="text">
-              <string>Consolidated J1939 (single group for all messages with common PGN)</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="0">
+           <item row="2" column="0">
             <widget class="QGroupBox" name="groupBox_2">
              <property name="title">
               <string>MDF</string>
@@ -1414,223 +1527,83 @@
              </layout>
             </widget>
            </item>
-           <item row="3" column="1">
-            <widget class="QGroupBox" name="groupBox_3">
-             <property name="title">
-              <string>CSV</string>
+           <item row="0" column="0" colspan="2">
+            <widget class="QTabWidget" name="tabWidget">
+             <property name="currentIndex">
+              <number>0</number>
              </property>
-             <layout class="QGridLayout" name="gridLayout_6" columnstretch="1,0,0,0">
-              <property name="topMargin">
-               <number>2</number>
-              </property>
-              <property name="rightMargin">
-               <number>2</number>
-              </property>
-              <property name="bottomMargin">
-               <number>2</number>
-              </property>
-              <property name="spacing">
-               <number>2</number>
-              </property>
-              <item row="13" column="3">
-               <widget class="QComboBox" name="quoting_bus">
-                <property name="currentIndex">
-                 <number>1</number>
-                </property>
-                <item>
+             <widget class="QWidget" name="tab">
+              <attribute name="title">
+               <string>CAN</string>
+              </attribute>
+              <layout class="QGridLayout" name="gridLayout_4">
+               <property name="leftMargin">
+                <number>2</number>
+               </property>
+               <property name="topMargin">
+                <number>2</number>
+               </property>
+               <property name="rightMargin">
+                <number>2</number>
+               </property>
+               <property name="bottomMargin">
+                <number>2</number>
+               </property>
+               <property name="spacing">
+                <number>2</number>
+               </property>
+               <item row="0" column="0">
+                <widget class="QPushButton" name="load_can_database_btn">
                  <property name="text">
-                  <string>ALL</string>
+                  <string>Load CAN database</string>
                  </property>
-                </item>
-                <item>
+                 <property name="icon">
+                  <iconset resource="resource.qrc">
+                   <normaloff>:/open.png</normaloff>:/open.png</iconset>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="MinimalListWidget" name="can_database_list"/>
+               </item>
+              </layout>
+             </widget>
+             <widget class="QWidget" name="tab_2">
+              <attribute name="title">
+               <string>LIN</string>
+              </attribute>
+              <layout class="QVBoxLayout" name="verticalLayout_7">
+               <property name="spacing">
+                <number>2</number>
+               </property>
+               <property name="leftMargin">
+                <number>2</number>
+               </property>
+               <property name="topMargin">
+                <number>2</number>
+               </property>
+               <property name="rightMargin">
+                <number>2</number>
+               </property>
+               <property name="bottomMargin">
+                <number>2</number>
+               </property>
+               <item>
+                <widget class="QPushButton" name="load_lin_database_btn">
                  <property name="text">
-                  <string>MINIMAL</string>
+                  <string>Load LIN database</string>
                  </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>NONNUMERIC</string>
+                 <property name="icon">
+                  <iconset resource="resource.qrc">
+                   <normaloff>:/open.png</normaloff>:/open.png</iconset>
                  </property>
-                </item>
-                <item>
-                 <property name="text">
-                  <string>NONE</string>
-                 </property>
-                </item>
-               </widget>
-              </item>
-              <item row="13" column="0">
-               <widget class="QLabel" name="label_7">
-                <property name="text">
-                 <string>Quoting</string>
-                </property>
-               </widget>
-              </item>
-              <item row="12" column="3">
-               <widget class="QLineEdit" name="quotechar_bus">
-                <property name="text">
-                 <string>&quot;</string>
-                </property>
-                <property name="maxLength">
-                 <number>1</number>
-                </property>
-               </widget>
-              </item>
-              <item row="7" column="0">
-               <widget class="QLabel" name="label_8">
-                <property name="text">
-                 <string>Delimiter</string>
-                </property>
-               </widget>
-              </item>
-              <item row="5" column="0">
-               <widget class="QLabel" name="label_23">
-                <property name="text">
-                 <string>Raster</string>
-                </property>
-               </widget>
-              </item>
-              <item row="9" column="3">
-               <widget class="QLineEdit" name="escapechar_bus">
-                <property name="inputMask">
-                 <string/>
-                </property>
-                <property name="maxLength">
-                 <number>1</number>
-                </property>
-                <property name="placeholderText">
-                 <string>None</string>
-                </property>
-               </widget>
-              </item>
-              <item row="15" column="3">
-               <widget class="QPushButton" name="extract_bus_csv_btn">
-                <property name="text">
-                 <string>Export to CSV         </string>
-                </property>
-                <property name="icon">
-                 <iconset resource="resource.qrc">
-                  <normaloff>:/csv.png</normaloff>:/csv.png</iconset>
-                </property>
-               </widget>
-              </item>
-              <item row="12" column="0">
-               <widget class="QLabel" name="label_10">
-                <property name="text">
-                 <string>Quote Char</string>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="0" colspan="4">
-               <widget class="QCheckBox" name="single_time_base_bus">
-                <property name="text">
-                 <string>Single time base</string>
-                </property>
-               </widget>
-              </item>
-              <item row="5" column="3">
-               <widget class="QDoubleSpinBox" name="export_raster_bus">
-                <property name="suffix">
-                 <string>s</string>
-                </property>
-                <property name="decimals">
-                 <number>6</number>
-                </property>
-               </widget>
-              </item>
-              <item row="6" column="0" colspan="2">
-               <widget class="QLabel" name="label_25">
-                <property name="text">
-                 <string>Empty channels</string>
-                </property>
-               </widget>
-              </item>
-              <item row="14" column="0" colspan="4">
-               <widget class="Line" name="line_13">
-                <property name="orientation">
-                 <enum>Qt::Horizontal</enum>
-                </property>
-               </widget>
-              </item>
-              <item row="7" column="3">
-               <widget class="QLineEdit" name="delimiter_bus">
-                <property name="text">
-                 <string>,</string>
-                </property>
-                <property name="maxLength">
-                 <number>1</number>
-                </property>
-                <property name="clearButtonEnabled">
-                 <bool>false</bool>
-                </property>
-               </widget>
-              </item>
-              <item row="6" column="3">
-               <widget class="QComboBox" name="empty_channels_bus"/>
-              </item>
-              <item row="9" column="0">
-               <widget class="QLabel" name="label_9">
-                <property name="text">
-                 <string>Escape Char</string>
-                </property>
-               </widget>
-              </item>
-              <item row="11" column="0" colspan="2">
-               <widget class="QLabel" name="label_11">
-                <property name="text">
-                 <string>Line Terminator</string>
-                </property>
-               </widget>
-              </item>
-              <item row="11" column="3">
-               <widget class="QLineEdit" name="lineterminator_bus">
-                <property name="text">
-                 <string>\r\n</string>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="0" colspan="4">
-               <widget class="QCheckBox" name="add_units_bus">
-                <property name="text">
-                 <string>Add units</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="0" colspan="4">
-               <widget class="QCheckBox" name="time_from_zero_bus">
-                <property name="text">
-                 <string>Time from 0s</string>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="0" colspan="4">
-               <widget class="QCheckBox" name="bus_time_as_date">
-                <property name="text">
-                 <string>Time as date</string>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="0" colspan="4">
-               <widget class="QCheckBox" name="ignore_invalid_signals_csv">
-                <property name="toolTip">
-                 <string>checks if all samples are eauql to the maximum teoretical signal value</string>
-                </property>
-                <property name="text">
-                 <string>Ignore invalid signals</string>
-                </property>
-               </widget>
-              </item>
-              <item row="8" column="0" colspan="4">
-               <widget class="QCheckBox" name="doublequote_bus">
-                <property name="text">
-                 <string>Double quote</string>
-                </property>
-                <property name="checked">
-                 <bool>true</bool>
-                </property>
-               </widget>
-              </item>
-             </layout>
+                </widget>
+               </item>
+               <item>
+                <widget class="MinimalListWidget" name="lin_database_list"/>
+               </item>
+              </layout>
+             </widget>
             </widget>
            </item>
            <item row="1" column="0" colspan="2">
