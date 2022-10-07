@@ -6,6 +6,7 @@
 #include "numpy/ndarrayobject.h"
 #include <stdio.h>
 #include <stdbool.h>
+#include <time.h>
 
 #define PY_PRINTF(o) \
     PyObject_Print(o, stdout, 0); printf("\n");
@@ -72,22 +73,28 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
             for (unsigned char i=0; i<id_size; i++, buf++) {
                 rec_id += (*buf) << (i <<3);
             }  
-            
-            mlist = NULL;
-            for (item=head; item!=NULL; item=item->next)
-            {
-                if (item->info.id == rec_id)
-                {
-                    rec_size = item->info.size;
-                    mlist = item->info.mlist;
-                    break;
-                }
-            }
-            
-            if (!mlist) {
+
+            key = PyLong_FromUnsignedLong(rec_id);
+            value = PyDict_GetItem(record_size, key);
+
+            if (!value) {
                 rem = PyBytes_FromStringAndSize(NULL, 0);
+                Py_XDECREF(key);
                 return rem;
             }
+            else {
+                rec_size = PyLong_AsUnsignedLong(value);
+            }
+
+            mlist = PyDict_GetItem(partial_records, key);
+
+            if (!mlist) {
+                rem = PyBytes_FromStringAndSize(NULL, 0);
+                Py_XDECREF(key);
+                return rem;
+            }
+
+            Py_XDECREF(key);
             
             if (rec_size)
             {
