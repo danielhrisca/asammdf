@@ -778,9 +778,13 @@ class MDF4(MDF_Common):
                     else:
                         break
 
-        self._sort(current_progress_index=current_cg_index, max_progress_count=progress_steps)
+        self._sort(
+            current_progress_index=current_cg_index, max_progress_count=progress_steps
+        )
         if self._callback:
-            self._callback(progress_steps - 1, progress_steps)  # second to last step now
+            self._callback(
+                progress_steps - 1, progress_steps
+            )  # second to last step now
 
         for grp in self.groups:
             channels = grp.channels
@@ -835,7 +839,9 @@ class MDF4(MDF_Common):
         self._attachments_map.clear()
 
         if self._callback:
-            self._callback(progress_steps, progress_steps)  # last step, we've completely loaded the file for sure
+            self._callback(
+                progress_steps, progress_steps
+            )  # last step, we've completely loaded the file for sure
 
         self.progress = cg_count, cg_count
 
@@ -10194,7 +10200,12 @@ class MDF4(MDF_Common):
             )
         self.identification.file_identification = b"MDF     "
 
-    def _sort(self, compress: bool = True, current_progress_index: int = 0, max_progress_count: int = 0) -> None:
+    def _sort(
+        self,
+        compress: bool = True,
+        current_progress_index: int = 0,
+        max_progress_count: int = 0,
+    ) -> None:
         if self._file is None:
             return
 
@@ -10271,7 +10282,11 @@ class MDF4(MDF_Common):
                 # and we've been given a max progress count (only way we can do progress updates)
                 # and there's a tick update (at least 1 integer between the last update and the current index)
                 # then we can notify about the callback progress
-                if self._callback and max_progress_count and floor(previous) < floor(index):
+                if (
+                    self._callback
+                    and max_progress_count
+                    and floor(previous) < floor(index)
+                ):
                     self._callback(floor(index), max_progress_count)
                     previous = index
 
