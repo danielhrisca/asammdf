@@ -1045,75 +1045,67 @@ class TestMDF(unittest.TestCase):
                 timestamps=np.arange(1),
                 name=ch_name,
             )
-            for ch_name in ['foo', 'Bar', 'baz']
+            for ch_name in ["foo", "Bar", "baz"]
         ]
         mdf = MDF()
         mdf.append(sigs)
 
         # plain text matching
+        self.assertEqual(["foo"], mdf.search(pattern="foo"), msg="name match full")
         self.assertEqual(
-            ['foo'],
-            mdf.search(pattern='foo'),
-            msg='name match full'
-        )
-        self.assertEqual(
-            ['foo'],
-            mdf.search(pattern='oo', mode='plain'),
-            msg='name match part'
+            ["foo"], mdf.search(pattern="oo", mode="plain"), msg="name match part"
         )
         self.assertEqual(
             [],
-            mdf.search(pattern='FOO', mode=SearchMode.plain, case_insensitive=False),
-            msg='name match case-sensitive (no match)'
+            mdf.search(pattern="FOO", mode=SearchMode.plain, case_insensitive=False),
+            msg="name match case-sensitive (no match)",
         )
         self.assertEqual(
-            ['foo'],
-            mdf.search(pattern='FOO', mode=SearchMode.plain, case_insensitive=True),
-            msg='name match case-insensitive (match)'
+            ["foo"],
+            mdf.search(pattern="FOO", mode=SearchMode.plain, case_insensitive=True),
+            msg="name match case-insensitive (match)",
         )
 
         # regex matching
         self.assertEqual(
-            ['Bar'],
-            mdf.search(pattern='^Bar$', mode='regex'),
-            msg='regex match full'
+            ["Bar"], mdf.search(pattern="^Bar$", mode="regex"), msg="regex match full"
         )
         self.assertEqual(
-            ['baz'],
-            mdf.search(pattern='z$', mode=SearchMode.regex),
-            msg='regex match part'
+            ["baz"],
+            mdf.search(pattern="z$", mode=SearchMode.regex),
+            msg="regex match part",
         )
         self.assertEqual(
-            ['baz'],
-            mdf.search(pattern='b.*', mode=SearchMode.regex, case_insensitive=False),
-            msg='regex match case-sensitive'
+            ["baz"],
+            mdf.search(pattern="b.*", mode=SearchMode.regex, case_insensitive=False),
+            msg="regex match case-sensitive",
         )
         self.assertEqual(
-            ['Bar', 'baz'],
-            mdf.search(pattern='b.*', mode=SearchMode.regex, case_insensitive=True),
-            msg='regex match case-insensitive'
+            ["Bar", "baz"],
+            mdf.search(pattern="b.*", mode=SearchMode.regex, case_insensitive=True),
+            msg="regex match case-insensitive",
         )
 
         # wildcard matching
         self.assertEqual(
-            ['Bar'],
-            mdf.search(pattern='Bar', mode='wildcard'),
-            msg='wildcard match full'
+            ["Bar"],
+            mdf.search(pattern="Bar", mode="wildcard"),
+            msg="wildcard match full",
         )
         self.assertEqual(
-            ['foo'],
-            mdf.search(pattern='*oo', mode=SearchMode.wildcard),
-            msg='wildcard match part'
+            ["foo"],
+            mdf.search(pattern="*oo", mode=SearchMode.wildcard),
+            msg="wildcard match part",
         )
         self.assertEqual(
-            ['baz'],
-            mdf.search(pattern='b*', mode=SearchMode.wildcard, case_insensitive=False),
-            msg='wildcard match case-sensitive'
+            ["baz"],
+            mdf.search(pattern="b*", mode=SearchMode.wildcard, case_insensitive=False),
+            msg="wildcard match case-sensitive",
         )
         self.assertEqual(
-            ['Bar', 'baz'],
-            mdf.search(pattern='b*', mode=SearchMode.wildcard, case_insensitive=True),
-            msg='wildcard match case-insensitive'
+            ["Bar", "baz"],
+            mdf.search(pattern="b*", mode=SearchMode.wildcard, case_insensitive=True),
+            msg="wildcard match case-insensitive",
         )
 
 
