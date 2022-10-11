@@ -1856,6 +1856,7 @@ class WithMDIArea:
                 sig.computation = {}
                 sig.origin_uuid = uuid
                 sig.name = sig_[0] or sig.name
+                sig.ranges = []
 
                 if not hasattr(self, "mdf"):
                     # MainWindow => comparison plots
@@ -2759,14 +2760,13 @@ class WithMDIArea:
                 sig.origin_uuid = uuid
                 sig.computation = None
                 ranges = description["ranges"]
-                for channel_ranges in ranges:
-                    for range in channel_ranges:
-                        range["font_color"] = QtGui.QBrush(
-                            QtGui.QColor(range["font_color"])
-                        )
-                        range["background_color"] = QtGui.QBrush(
-                            QtGui.QColor(range["background_color"])
-                        )
+                for range in ranges:
+                    range["font_color"] = QtGui.QBrush(
+                        QtGui.QColor(range["font_color"])
+                    )
+                    range["background_color"] = QtGui.QBrush(
+                        QtGui.QColor(range["background_color"])
+                    )
                 sig.ranges = ranges
                 sig.format = description["format"]
 

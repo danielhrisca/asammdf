@@ -3673,20 +3673,6 @@ class _Plot(pg.PlotWidget):
         painter.setClipRect(rect.x() + 5, rect.y(), rect.width() - 5, rect.height())
         painter.setClipping(True)
 
-    def clear_rect(self, rect):
-
-        paint = QtGui.QPainter()
-        paint.begin(self._pixmap)
-        paint.setCompositionMode(QtGui.QPainter.CompositionMode_SourceOver)
-        paint.setRenderHints(paint.RenderHint.Antialiasing, False)
-
-        color = self.backgroundBrush().color()
-        color = QtGui.QColor("red")
-        paint.setPen(color)
-        paint.setBrush(color)
-        paint.drawRect(rect)
-        paint.end()
-
     def _clicked(self, event):
         modifiers = QtWidgets.QApplication.keyboardModifiers()
 

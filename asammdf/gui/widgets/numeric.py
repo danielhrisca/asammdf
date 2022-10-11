@@ -543,6 +543,7 @@ class TableModel(QtCore.QAbstractTableModel):
                 return icon
 
             elif col in (1, 2):
+
                 has_ranges = bool(self.view.ranges.get(signal.entry, False))
                 if has_ranges:
                     icon = utils.RANGE_INDICATOR_ICON
@@ -664,7 +665,17 @@ class TableView(QtWidgets.QTableView):
 
             if selected_items:
 
-                dlg = RangeEditor("<selected items>", "", [], parent=self, brush=True)
+                ranges = []
+
+                for row in selected_items:
+                    signal = self.backend.signals[row]
+                    if self.ranges[signal.entry]:
+                        ranges = self.ranges[signal.entry]
+                        break
+
+                dlg = RangeEditor(
+                    "<selected items>", "", ranges, parent=self, brush=True
+                )
                 dlg.exec_()
                 if dlg.pressed_button == "apply":
                     ranges = dlg.result
@@ -1230,7 +1241,7 @@ class Numeric(QtWidgets.QWidget):
                         )
                     )
 
-                    self.channels.dataView.ranges[entry] = []
+                    self.channels.dataView.ranges[entry] = sig.ranges
 
         else:
             others = []
@@ -1238,6 +1249,7 @@ class Numeric(QtWidgets.QWidget):
                 if sig is not None:
                     sig.computed = False
                     sig.computation = None
+                    ranges = sig.ranges
                     sig = PlotSignal(sig)
                     if sig.conversion:
                         sig.phys_samples = sig.conversion.convert(
@@ -1251,7 +1263,7 @@ class Numeric(QtWidgets.QWidget):
                         )
                     )
 
-                    self.channels.dataView.ranges[sig.entry] = []
+                    self.channels.dataView.ranges[sig.entry] = ranges
 
         self.channels.backend.update(others)
 
