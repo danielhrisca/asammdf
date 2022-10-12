@@ -192,6 +192,12 @@ def load_dsp(file, background="#000000", flat=False):
             if elem.tag == "CHANNEL":
                 channel_name = elem.get("name")
 
+                comment = elem.find("COMMENT")
+                if comment is not None:
+                    comment = elem.get("text")
+                else:
+                    comment = ""
+
                 color_ = int(elem.get("color"))
                 c = 0
                 for i in range(3):
@@ -236,6 +242,7 @@ def load_dsp(file, background="#000000", flat=False):
                         "color": f"#{c:06X}",
                         "common_axis": False,
                         "computed": False,
+                        "comment": comment,
                         "enabled": elem.get("on") == "1",
                         "fmt": "{}",
                         "individual_axis": False,

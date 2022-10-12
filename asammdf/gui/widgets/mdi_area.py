@@ -2720,6 +2720,7 @@ class WithMDIArea:
             for sig in signals:
                 sig.origin_uuid = uuid
                 sig.computation = None
+                sig.ranges = []
 
             try:
                 ranges = [
