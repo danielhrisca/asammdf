@@ -2573,6 +2573,9 @@ class Plot(QtWidgets.QWidget):
                     )
                 )
 
+                stats = self.plot.get_stats(self.info_uuid)
+                self.info.set_stats(stats)
+
         elif key == QtCore.Qt.Key_2 and modifiers == QtCore.Qt.NoModifier:
             self.focused_mode = not self.focused_mode
             if self.focused_mode:

@@ -3,6 +3,7 @@ from copy import deepcopy
 from functools import partial
 import itertools
 import os
+from pathlib import Path
 import re
 import sys
 from traceback import format_exc
@@ -438,6 +439,7 @@ class MdiSubWindow(QtWidgets.QMdiSubWindow):
 class MdiAreaWidget(QtWidgets.QMdiArea):
 
     add_window_request = QtCore.Signal(list)
+    open_file_request = QtCore.Signal(str)
 
     def __init__(self, *args, **kwargs):
 
@@ -477,6 +479,22 @@ class MdiAreaWidget(QtWidgets.QMdiArea):
                     window_type = dialog.selected_type()
 
                     self.add_window_request.emit([window_type, names])
+            else:
+                try:
+                    for path in e.mimeData().text().splitlines():
+                        path = Path(path.replace(r"file:///", ""))
+                        if path.suffix.lower() in (
+                            ".csv",
+                            ".zip",
+                            ".erg",
+                            ".dat",
+                            ".mdf",
+                            ".mf4",
+                            ".mf4z",
+                        ):
+                            self.open_file_request.emit(str(path))
+                except:
+                    print(format_exc())
 
     def tile_horizontally(self):
         sub_windows = self.subWindowList()
