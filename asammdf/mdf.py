@@ -5465,7 +5465,12 @@ class MDF:
             ]
         elif search_mode is SearchMode.wildcard:
             if case_insensitive:
-                channels = fnmatch.filter(self.channels_db, pattern)
+                pattern = pattern.casefold()
+                channels = [
+                    name
+                    for name in self.channels_db
+                    if fnmatch.fnmatch(name.casefold(), pattern)
+                ]
             else:
                 channels = [
                     name
