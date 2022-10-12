@@ -556,6 +556,7 @@ class TableModel(QtCore.QAbstractTableModel):
                         )
 
                         utils.NO_ERROR_ICON = QtGui.QIcon()
+                        utils.NO_ICON = QtGui.QIcon()
 
                         icon = utils.RANGE_INDICATOR_ICON
                 else:
@@ -569,6 +570,7 @@ class TableModel(QtCore.QAbstractTableModel):
                         )
 
                         utils.NO_ERROR_ICON = QtGui.QIcon()
+                        utils.NO_ICON = QtGui.QIcon()
 
                         icon = utils.NO_ERROR_ICON
 
@@ -1284,6 +1286,7 @@ class Numeric(QtWidgets.QWidget):
 
             numeric._timestamp = numeric._min
 
+            print(numeric.timestamp)
             numeric.timestamp.setRange(numeric._min, numeric._max)
             numeric.min_t.setText(f"{numeric._min:.9f}s")
             numeric.max_t.setText(f"{numeric._max:.9f}s")

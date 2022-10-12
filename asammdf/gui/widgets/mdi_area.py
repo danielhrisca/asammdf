@@ -711,7 +711,8 @@ class WithMDIArea:
                         sig.computation = {}
                         sig.origin_uuid = uuid
                         sig.name = sig_[0]
-                        sig.uuid = sig_uuid
+                        sig.uuid = sig_uuid["uuid"]
+                        sig.ranges = sig_uuid["ranges"]
 
                         if not hasattr(self, "mdf"):
                             # MainWindow => comparison plots
@@ -1835,6 +1836,10 @@ class WithMDIArea:
                 if entry["origin_uuid"] == uuid
             ]
 
+            uuids_signals_objs = [
+                entry for entry in signals_ if entry["origin_uuid"] == uuid
+            ]
+
             file_info = self.file_by_uuid(uuid)
             if not file_info:
                 continue
@@ -1849,14 +1854,17 @@ class WithMDIArea:
                 raw=True,
             )
 
-            for sig, sig_ in zip(selected_signals, uuids_signals):
+            for sig, sig_, sig_obj in zip(
+                selected_signals, uuids_signals, uuids_signals_objs
+            ):
                 sig.group_index = sig_[1]
                 sig.channel_index = sig_[2]
                 sig.computed = False
                 sig.computation = {}
                 sig.origin_uuid = uuid
                 sig.name = sig_[0] or sig.name
-                sig.ranges = []
+                sig.ranges = sig_obj["ranges"]
+                sig.uuid = sig_obj["uuid"]
 
                 if not hasattr(self, "mdf"):
                     # MainWindow => comparison plots
@@ -2052,6 +2060,8 @@ class WithMDIArea:
                 sig.uuid = sig_uuid
                 if "color" in sig_:
                     sig.color = sig_["color"]
+
+                sig.ranges = sig_["ranges"]
 
                 if not hasattr(self, "mdf"):
                     # MainWindow => comparison plots

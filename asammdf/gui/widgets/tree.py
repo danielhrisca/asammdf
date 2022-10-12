@@ -1903,6 +1903,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             )
 
             utils.NO_ICON = QtGui.QIcon()
+            utils.NO_ERROR_ICON = QtGui.QIcon()
 
         if ranges:
             self.setIcon(self.ValueColumn, utils.RANGE_INDICATOR_ICON)
