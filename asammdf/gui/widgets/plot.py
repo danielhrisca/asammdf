@@ -211,6 +211,7 @@ class PlotSignal(Signal):
             signal.stream_sync,
             invalidation_bits=signal.invalidation_bits,
             encoding=signal.encoding,
+            user_defined_comment=signal.user_defined_comment,
         )
 
         self._pos = np.empty(2 * PLOT_BUFFER_SIZE, dtype="i4")
@@ -1929,6 +1930,10 @@ class Plot(QtWidgets.QWidget):
             sig.format = description.get("format", "phys")
             sig.mode = description.get("mode", "phys")
 
+            if "comment" in description:
+                sig.comment = description["comment"]
+                sig.user_defined_comment = True
+
             item = ChannelsTreeItem(
                 ChannelsTreeItem.Channel,
                 signal=sig,
@@ -2153,6 +2158,9 @@ class Plot(QtWidgets.QWidget):
         channel["mode"] = widget.mode
         if sig.computed:
             channel["computation"] = sig.computation
+
+        if sig.user_defined_comment:
+            channel["comment"] = sig.comment
 
         channel["y_range"] = [float(e) for e in sig.y_range]
         channel["origin_uuid"] = str(sig.origin_uuid)

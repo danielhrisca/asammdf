@@ -798,6 +798,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier)
             and key == QtCore.Qt.Key_P
         ):
+
             info = QtWidgets.QApplication.instance().clipboard().text()
             selected_items = self.selectedItems()
             if not selected_items:
@@ -807,7 +808,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 info = json.loads(info)
                 info["color"] = fn.mkColor(info["color"])
             except:
-                pass
+                print(format_exc())
             else:
                 for item in selected_items:
                     try:
@@ -833,7 +834,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                         item.set_ranges(info["ranges"])
 
                     except:
-                        pass
+                        print(format_exc())
 
         elif modifiers == (
             QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier
@@ -920,6 +921,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addAction(self.tr("Set precision"))
         menu.addAction(self.tr("Set color ranges [Ctrl+R]"))
         menu.addAction(self.tr("Set channel conversion"))
+        menu.addAction(self.tr("Set channel comment"))
         menu.addAction(self.tr("Set unit"))
         menu.addSeparator()
 
@@ -1017,6 +1019,26 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                         ChannelsTreeItem.Group,
                     ):
                         item.set_conversion(conversion)
+
+        elif action.text() == "Set channel comment":
+            selected_items = self.selectedItems()
+            if not selected_items:
+                return
+
+            for item in selected_items:
+                if item.type() == ChannelsTreeItem.Channel:
+                    comment = item.comment
+
+            new_comment, ok = QtWidgets.QInputDialog.getMultiLineText(
+                self,
+                "Input new comment",
+                "New comment:",
+                comment,
+            )
+
+            if ok:
+                for item in selected_items:
+                    item.comment = new_comment
 
         elif action.text() == "Copy channel structure":
             selected_items = validate_drag_items(
@@ -1608,6 +1630,26 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             for row in range(count):
                 child = self.child(row)
                 child.color = value
+
+    @property
+    def comment(self):
+        type = self.type()
+        if type == self.Channel:
+            return self.signal.comment
+        else:
+            return ""
+
+    @comment.setter
+    def comment(self, value):
+        type = self.type()
+        if type == self.Channel:
+            self.signal.comment = value
+            self.signal.user_defined_comment = True
+
+            tooltip = (
+                getattr(self.signal, "tooltip", "") or f"{self.signal.name}\n{value}"
+            )
+            self.setToolTip(self.NameColumn, tooltip)
 
     def copy(self):
         type = self.type()

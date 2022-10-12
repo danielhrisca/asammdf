@@ -95,6 +95,7 @@ class Signal(object):
         encoding: str | None = None,
         group_index: int = -1,
         channel_index: int = -1,
+        user_defined_comment: bool = False,
     ) -> None:
 
         if samples is None or timestamps is None or not name:
@@ -134,6 +135,7 @@ class Signal(object):
             self.unit = unit
             self.name = name
             self.comment = comment
+            self.user_defined_comment = user_defined_comment
             self._plot_axis = None
             self.raw = raw
             self.master_metadata = master_metadata
@@ -186,6 +188,7 @@ class Signal(object):
 \tconversion={self.conversion}
 \tsource={self.source}
 \tcomment="{self.comment}"
+\tuser defined comment={self.user_defined_comment}
 \tmastermeta="{self.master_metadata}"
 \traw={self.raw}
 \tdisplay_names={self.display_names}
@@ -484,6 +487,7 @@ class Signal(object):
                 encoding=self.encoding,
                 group_index=self.group_index,
                 channel_index=self.channel_index,
+                user_defined_comment=self.user_defined_comment,
             )
 
         elif start is None and stop is None:
@@ -508,6 +512,7 @@ class Signal(object):
                 encoding=self.encoding,
                 group_index=self.group_index,
                 channel_index=self.channel_index,
+                user_defined_comment=self.user_defined_comment,
             )
 
         else:
@@ -531,6 +536,7 @@ class Signal(object):
                         encoding=self.encoding,
                         group_index=self.group_index,
                         channel_index=self.channel_index,
+                        user_defined_comment=self.user_defined_comment,
                     )
 
                 else:
@@ -589,6 +595,7 @@ class Signal(object):
                         encoding=self.encoding,
                         group_index=self.group_index,
                         channel_index=self.channel_index,
+                        user_defined_comment=self.user_defined_comment,
                     )
 
             elif stop is None:
@@ -611,6 +618,7 @@ class Signal(object):
                         encoding=self.encoding,
                         group_index=self.group_index,
                         channel_index=self.channel_index,
+                        user_defined_comment=self.user_defined_comment,
                     )
 
                 else:
@@ -668,6 +676,7 @@ class Signal(object):
                         encoding=self.encoding,
                         group_index=self.group_index,
                         channel_index=self.channel_index,
+                        user_defined_comment=self.user_defined_comment,
                     )
 
             else:
@@ -690,6 +699,7 @@ class Signal(object):
                         encoding=self.encoding,
                         group_index=self.group_index,
                         channel_index=self.channel_index,
+                        user_defined_comment=self.user_defined_comment,
                     )
                 else:
                     start = np.searchsorted(self.timestamps, start, side="left")
@@ -802,6 +812,7 @@ class Signal(object):
                         encoding=self.encoding,
                         group_index=self.group_index,
                         channel_index=self.channel_index,
+                        user_defined_comment=self.user_defined_comment,
                     )
 
         return result
@@ -863,6 +874,7 @@ class Signal(object):
                 encoding=self.encoding,
                 group_index=self.group_index,
                 channel_index=self.channel_index,
+                user_defined_comment=self.user_defined_comment,
             )
         else:
             result = self
@@ -931,11 +943,12 @@ class Signal(object):
                 encoding=self.encoding,
                 group_index=self.group_index,
                 channel_index=self.channel_index,
+                user_defined_comment=self.user_defined_comment,
             )
         else:
 
             # # we need to validate first otherwise we can get false invalid data
-            # # if the new timebase and the invaldiation bits are alligned in an
+            # # if the new timebase and the invalidation bits are aligned in an
             # # infavorable way
             #
             # if self.invalidation_bits is not None:
@@ -967,6 +980,7 @@ class Signal(object):
                     encoding=self.encoding,
                     group_index=self.group_index,
                     channel_index=self.channel_index,
+                    user_defined_comment=self.user_defined_comment,
                 )
 
             if len(signal.samples.shape) > 1:
@@ -1091,6 +1105,7 @@ class Signal(object):
                 encoding=self.encoding,
                 group_index=self.group_index,
                 channel_index=self.channel_index,
+                user_defined_comment=self.user_defined_comment,
             )
 
     def __apply_func(
@@ -1141,6 +1156,7 @@ class Signal(object):
             encoding=self.encoding,
             group_index=self.group_index,
             channel_index=self.channel_index,
+            user_defined_comment=self.user_defined_comment,
         )
 
     def __pos__(self) -> Signal:
@@ -1161,6 +1177,7 @@ class Signal(object):
             invalidation_bits=self.invalidation_bits,
             source=self.source,
             encoding=self.encoding,
+            user_defined_comment=self.user_defined_comment,
         )
 
     def __round__(self, n: int) -> Signal:
@@ -1178,6 +1195,7 @@ class Signal(object):
             invalidation_bits=self.invalidation_bits,
             source=self.source,
             encoding=self.encoding,
+            user_defined_comment=self.user_defined_comment,
         )
 
     def __sub__(self, other: Signal | NDArray[Any] | None) -> Signal:
@@ -1257,6 +1275,7 @@ class Signal(object):
             invalidation_bits=self.invalidation_bits,
             source=self.source,
             encoding=self.encoding,
+            user_defined_comment=self.user_defined_comment,
         )
 
     def __lshift__(self, other: Signal | NDArray[Any] | None) -> Signal:
@@ -1307,6 +1326,7 @@ class Signal(object):
             stream_sync=self.stream_sync,
             invalidation_bits=self.invalidation_bits,
             source=self.source,
+            user_defined_comment=self.user_defined_comment,
         )
 
     def __getitem__(self, val: int) -> Any:
@@ -1343,6 +1363,7 @@ class Signal(object):
             invalidation_bits=self.invalidation_bits,
             source=self.source,
             encoding=self.encoding,
+            user_defined_comment=self.user_defined_comment,
         )
 
     def physical(self) -> Signal:
@@ -1382,6 +1403,7 @@ class Signal(object):
             encoding=encoding,
             group_index=self.group_index,
             channel_index=self.channel_index,
+            user_defined_comment=self.user_defined_comment,
         )
 
     def validate(self, copy: bool = True) -> Signal:
@@ -1418,6 +1440,7 @@ class Signal(object):
                 encoding=self.encoding,
                 group_index=self.group_index,
                 channel_index=self.channel_index,
+                user_defined_comment=self.user_defined_comment,
             )
 
         if copy:
@@ -1447,6 +1470,7 @@ class Signal(object):
             encoding=self.encoding,
             group_index=self.group_index,
             channel_index=self.channel_index,
+            user_defined_comment=self.user_defined_comment,
         )
 
 

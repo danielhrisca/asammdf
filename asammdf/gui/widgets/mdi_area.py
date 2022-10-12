@@ -2814,6 +2814,7 @@ class WithMDIArea:
             for sig in not_found:
                 sig.origin_uuid = uuid
                 sig.group_index = 0
+                sig.ranges = []
 
             signals.extend(not_found)
 
