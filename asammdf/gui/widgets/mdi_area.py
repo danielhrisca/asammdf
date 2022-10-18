@@ -2774,7 +2774,7 @@ class WithMDIArea:
             ]
 
             if not signals_:
-                return
+                return None, False
 
             signals = self.mdf.select(
                 signals_,
@@ -2902,7 +2902,7 @@ class WithMDIArea:
         ]
 
         if len(signals_) != 2:
-            return
+            return None, False
 
         latitude, longitude = self.mdf.select(
             signals_,
@@ -3438,7 +3438,7 @@ class WithMDIArea:
                     )
 
             if not signals_:
-                return
+                return None, False
 
         signals = self.mdf.to_dataframe(
             channels=signals_,
@@ -3547,7 +3547,7 @@ class WithMDIArea:
 
     def _load_can_bus_trace_window(self, window_info):
         if self.mdf.version < "4.00":
-            return
+            return None, False
 
         ranges = window_info["configuration"].get("ranges", {})
         for channel_ranges in ranges.values():
@@ -3574,7 +3574,7 @@ class WithMDIArea:
 
     def _load_flexray_bus_trace_window(self, window_info):
         if self.mdf.version < "4.00":
-            return
+            return None, False
 
         ranges = window_info["configuration"].get("ranges", {})
         for channel_ranges in ranges.values():
@@ -3601,7 +3601,7 @@ class WithMDIArea:
 
     def _load_lin_bus_trace_window(self, window_info):
         if self.mdf.version < "4.00":
-            return
+            return None, False
 
         ranges = window_info["configuration"].get("ranges", {})
         for channel_ranges in ranges.values():

@@ -46,7 +46,7 @@ except:
             return {"encoding": encoding}
 
 
-from canmatrix.canmatrix import CanMatrix
+from canmatrix.canmatrix import CanMatrix, matrix_class
 import canmatrix.formats
 import numpy as np
 from numpy import arange, bool_, dtype, interp, where
@@ -1749,6 +1749,33 @@ def pandas_query_compatible(name: str) -> str:
 def load_can_database(
     path: StrPathType, contents: bytes | str | None = None, **kwargs
 ) -> CanMatrix | None:
+    """
+
+
+    Parameters
+    ----------
+    path : StrPathType
+        database path
+    contents: bytes | str | None = None
+        optional database content
+    kwargs : dict
+
+        fd : bool = False
+            if supplied, only buses with the same FD kind will be loaded
+
+        load_flat : bool = False
+            if supplied all the CAN messages found in multiple buses will be contained
+            in the CAN database object. By default the first bus will be returned
+
+        cluster_name : str
+            if supplied load just the clusters with this name
+
+    Returns
+    -------
+    db : canmatrix.CanMatrix | None
+        CAN database object or None
+
+    """
     path = Path(path)
     import_type = path.suffix.lstrip(".").lower()
     if contents is None:
@@ -1778,8 +1805,26 @@ def load_can_database(
             dbs = None
 
     if dbs:
-        first_bus = list(dbs)[0]
-        can_matrix = dbs[first_bus]
+        # filter only CAN clusters
+        dbs = {name: db for name, db in dbs.items() if db.type == matrix_class.CAN}
+
+    if dbs:
+
+        cluster_name = kwargs.get("cluster_name", None)
+        if cluster_name is not None:
+            dbs = {name: db for name, db in dbs.items() if name == cluster_name}
+
+        if "fd" in kwargs:
+            fd = kwargs["fd"]
+            dbs = {name: db for name, db in dbs.items() if db.contains_fd == fd}
+
+        if kwargs.get("load_flat", False):
+            can_matrix, *rest = list(dbs.values())
+            can_matrix.merge(rest)
+
+        else:
+            first_bus = list(dbs)[0]
+            can_matrix = dbs[first_bus]
     else:
         can_matrix = None
 
