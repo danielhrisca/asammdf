@@ -954,6 +954,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 if extension == ".dsp":
                     palette = self.palette()
                     info = load_dsp(file_name, palette.color(palette.Base).name())
+                    if info.get("has_virtual_channels", False):
+                        QtWidgets.QMessageBox.information(
+                            self,
+                            "DSP loading warning",
+                            "The DSP file contains virtual channels that are not supported.\n"
+                            'For tracking pupose, the virtual channels will appear as regular (no computation) cahnnels inside the group "Datalyser Virtual channels"',
+                        )
                     channels = info.get("display", [])
 
                 elif extension == ".lab":

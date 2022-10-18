@@ -391,6 +391,7 @@ def load_dsp(file, background="#000000", flat=False):
             "unit": "",
             "conversion": ch["vtab"],
             "user_defined_name": ch["name"],
+            "comment": f"Datalyser virtual channel: {ch['comment']}",
             "origin_uuid": "000000000000",
             "type": "channel",
         }
@@ -399,26 +400,40 @@ def load_dsp(file, background="#000000", flat=False):
         )
     ]
 
-    channels.extend(virtual_channels)
+    if virtual_channels:
+        channels.append(
+            {
+                "name": "Datalyser Virtual Channels",
+                "enabled": False,
+                "type": "group",
+                "channels": virtual_channels,
+                "pattern": None,
+                "origin_uuid": "000000000000",
+                "ranges": [],
+            }
+        )
 
-    info = {"selected_channels": [], "windows": []}
+    info = {
+        "selected_channels": [],
+        "windows": [],
+        "has_virtual_channels": bool(virtual_channels),
+    }
 
     if flat:
         info = flatten_dsp(channels)
     else:
-        if channels:
 
-            plot = {
-                "type": "Plot",
-                "title": "Display channels",
-                "maximized": True,
-                "configuration": {
-                    "channels": channels,
-                    "locked": True,
-                },
-            }
+        plot = {
+            "type": "Plot",
+            "title": "Display channels",
+            "maximized": True,
+            "configuration": {
+                "channels": channels,
+                "locked": True,
+            },
+        }
 
-            info["windows"].append(plot)
+        info["windows"].append(plot)
 
     return info
 

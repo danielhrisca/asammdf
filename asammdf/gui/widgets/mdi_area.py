@@ -2793,7 +2793,8 @@ class WithMDIArea:
             )
 
             for sig, sig_, description in zip(signals, signals_, found):
-                sig.group_index = sig_[2]
+                sig.group_index = sig_[1]
+                sig.channel_index = sig_[2]
                 sig.origin_uuid = uuid
                 sig.computation = None
                 ranges = description["ranges"]
