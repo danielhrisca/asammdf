@@ -21,6 +21,15 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
             | QtCore.Qt.WindowMinMaxButtonsHint
         )
 
+        for widget in (
+            self.apply_btn,
+            self.cancel_btn,
+            self.add_btn,
+            self.show_measurement_list_btn,
+        ):
+            widget.setDefault(False)
+            widget.setAutoDefault(False)
+
         self.result = set()
         self.channels_dbs = channels_dbs
         self.measurements = measurements
@@ -33,10 +42,10 @@ class MultiSearch(Ui_MultiSearchDialog, QtWidgets.QDialog):
         self.show_measurement_list_btn.clicked.connect(self.show_measurement_list)
 
         self.search_box.editingFinished.connect(self.search_text_changed)
+        self.search_box.setFocus()
         self.match_kind.currentTextChanged.connect(self.search_box.textChanged.emit)
 
         self.setWindowTitle("Search & select channels")
-        self.add_btn.setFocus()
 
     def search_text_changed(self):
         text = self.search_box.text().strip()

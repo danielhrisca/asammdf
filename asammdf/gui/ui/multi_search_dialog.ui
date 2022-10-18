@@ -109,6 +109,9 @@
    </item>
    <item row="5" column="1">
     <widget class="QPushButton" name="add_btn">
+     <property name="focusPolicy">
+      <enum>Qt::TabFocus</enum>
+     </property>
      <property name="text">
       <string/>
      </property>
@@ -157,13 +160,13 @@
  </customwidgets>
  <tabstops>
   <tabstop>search_box</tabstop>
+  <tabstop>match_kind</tabstop>
   <tabstop>matches</tabstop>
   <tabstop>add_btn</tabstop>
   <tabstop>selection</tabstop>
+  <tabstop>show_measurement_list_btn</tabstop>
   <tabstop>apply_btn</tabstop>
   <tabstop>cancel_btn</tabstop>
-  <tabstop>match_kind</tabstop>
-  <tabstop>show_measurement_list_btn</tabstop>
  </tabstops>
  <resources>
   <include location="resource.qrc"/>

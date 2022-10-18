@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'multi_search_dialog.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.2.3
+## Created by: Qt User Interface Compiler version 6.3.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -76,6 +76,7 @@ class Ui_MultiSearchDialog(object):
 
         self.add_btn = QPushButton(MultiSearchDialog)
         self.add_btn.setObjectName(u"add_btn")
+        self.add_btn.setFocusPolicy(Qt.TabFocus)
         icon = QIcon()
         icon.addFile(u":/left.png", QSize(), QIcon.Normal, QIcon.Off)
         self.add_btn.setIcon(icon)
@@ -106,13 +107,13 @@ class Ui_MultiSearchDialog(object):
         self.grid_layout.addWidget(self.matches, 5, 0, 2, 1)
 
         self.grid_layout.setColumnStretch(0, 1)
-        QWidget.setTabOrder(self.search_box, self.matches)
+        QWidget.setTabOrder(self.search_box, self.match_kind)
+        QWidget.setTabOrder(self.match_kind, self.matches)
         QWidget.setTabOrder(self.matches, self.add_btn)
         QWidget.setTabOrder(self.add_btn, self.selection)
-        QWidget.setTabOrder(self.selection, self.apply_btn)
+        QWidget.setTabOrder(self.selection, self.show_measurement_list_btn)
+        QWidget.setTabOrder(self.show_measurement_list_btn, self.apply_btn)
         QWidget.setTabOrder(self.apply_btn, self.cancel_btn)
-        QWidget.setTabOrder(self.cancel_btn, self.match_kind)
-        QWidget.setTabOrder(self.match_kind, self.show_measurement_list_btn)
 
         self.retranslateUi(MultiSearchDialog)
 

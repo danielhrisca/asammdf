@@ -627,7 +627,10 @@ class WithMDIArea:
             else:
                 mime_data = names
 
-                mime_data = substitude_mime_uuids(mime_data, self.uuid)
+                try:
+                    mime_data = substitude_mime_uuids(mime_data, self.uuid)
+                except:
+                    pass
 
                 entries = get_flatten_entries_from_mime(mime_data)
 
@@ -767,9 +770,15 @@ class WithMDIArea:
 
                     uuids_signals = []
 
+                    file_info = self.file_by_uuid(uuid)
+                    if not file_info:
+                        continue
+
+                    file_index, file = file_info
+
                     for entry in uuids_entries:
-                        if entry["name"] in self.mdf:
-                            entries = self.mdf.whereis(entry["name"])
+                        if entry["name"] in file.mdf:
+                            entries = file.mdf.whereis(entry["name"])
 
                             if (
                                 entry["group_index"],
@@ -781,12 +790,6 @@ class WithMDIArea:
                             uuids_signals.append(entry)
                         else:
                             not_found.append(entry)
-
-                    file_info = self.file_by_uuid(uuid)
-                    if not file_info:
-                        continue
-
-                    file_index, file = file_info
 
                     selected_signals = file.mdf.select(
                         [
@@ -855,19 +858,19 @@ class WithMDIArea:
                         channel
                         for channel in required_channels
                         if channel not in list(measured_signals)
-                        and channel not in self.mdf
+                        and channel not in file.mdf
                     ]
 
                     required_channels = [
-                        (None, *self.mdf.whereis(channel)[0])
+                        (None, *file.mdf.whereis(channel)[0])
                         for channel in required_channels
-                        if channel not in list(measured_signals) and channel in self.mdf
+                        if channel not in list(measured_signals) and channel in file.mdf
                     ]
                     required_channels = {
                         sig.name: sig
-                        for sig in self.mdf.select(
+                        for sig in file.mdf.select(
                             required_channels,
-                            ignore_value2text_conversions=self.ignore_value2text_conversions,
+                            ignore_value2text_conversions=file.ignore_value2text_conversions,
                             copy_master=False,
                         )
                     }
@@ -878,7 +881,7 @@ class WithMDIArea:
                         key: sig.physical() for key, sig in required_channels.items()
                     }
 
-                    if self.mdf._fill_0_for_missing_computation_channels:
+                    if file.mdf._fill_0_for_missing_computation_channels:
                         if required_channels:
                             all_timebase = np.unique(
                                 np.concatenate(
@@ -903,7 +906,7 @@ class WithMDIArea:
                             signal.unit = ""
                             signal.group_index = -1
                             signal.channel_index = -1
-                            signal.origin_uuid = self.uuid
+                            signal.origin_uuid = file.uuid
                             signal.comment = ""
                             signal.uuid = os.urandom(6).hex()
 
@@ -925,7 +928,7 @@ class WithMDIArea:
                         signal.computation = channel["computation"]
                         signal.group_index = -1
                         signal.channel_index = -1
-                        signal.origin_uuid = self.uuid
+                        signal.origin_uuid = file.uuid
                         signal.comment = channel["computation"].get(
                             "channel_comment", ""
                         )
@@ -955,11 +958,16 @@ class WithMDIArea:
                 if widget.channel_selection.selectedItems():
 
                     item = widget.channel_selection.selectedItems()[0]
-                    item_below = widget.channel_selection.itemBelow(item)
-                    if item_below is None or item_below.parent() != item.parent():
-                        destination = item.parent()
+                    if item.type() == item.Channel:
+                        item_below = widget.channel_selection.itemBelow(item)
+                        if item_below is None or item_below.parent() != item.parent():
+                            destination = item.parent()
+                        else:
+                            destination = item_below
+                    elif item.type() == item.Group:
+                        destination = item
                     else:
-                        destination = item_below
+                        destination = None
 
                 else:
                     destination = None

@@ -1871,8 +1871,6 @@ class Plot(QtWidgets.QWidget):
             )
             self.plot._can_trim = can_trim
 
-        print("DESTIN", destination)
-
         valid = {}
         invalid = []
         for uuid, channel in channels.items():

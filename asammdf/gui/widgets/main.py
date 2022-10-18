@@ -515,7 +515,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             )
         )
         action.setShortcut(
-            QtGui.QKeySequence(QtCore.Qt.Key_Left, QtCore.Qt.ShiftModifier)
+            QtGui.QKeySequence(QtCore.Qt.Key_Left | QtCore.Qt.ShiftModifier)
         )
         channel_shift_actions.addAction(action)
 
@@ -534,7 +534,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             )
         )
         action.setShortcut(
-            QtGui.QKeySequence(QtCore.Qt.Key_Right, QtCore.Qt.ShiftModifier)
+            QtGui.QKeySequence(QtCore.Qt.Key_Right | QtCore.Qt.ShiftModifier)
         )
         channel_shift_actions.addAction(action)
 
@@ -553,7 +553,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             )
         )
         action.setShortcut(
-            QtGui.QKeySequence(QtCore.Qt.Key_Up, QtCore.Qt.ShiftModifier)
+            QtGui.QKeySequence(QtCore.Qt.Key_Up | QtCore.Qt.ShiftModifier)
         )
         channel_shift_actions.addAction(action)
 
@@ -572,7 +572,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             )
         )
         action.setShortcut(
-            QtGui.QKeySequence(QtCore.Qt.Key_Down, QtCore.Qt.ShiftModifier)
+            QtGui.QKeySequence(QtCore.Qt.Key_Down | QtCore.Qt.ShiftModifier)
         )
         channel_shift_actions.addAction(action)
 
