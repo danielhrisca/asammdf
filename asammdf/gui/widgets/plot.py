@@ -1871,6 +1871,8 @@ class Plot(QtWidgets.QWidget):
             )
             self.plot._can_trim = can_trim
 
+        print("DESTIN", destination)
+
         valid = {}
         invalid = []
         for uuid, channel in channels.items():
@@ -3714,28 +3716,29 @@ class _Plot(pg.PlotWidget):
                     self.cursor1.setPos(pos)
                     self.cursor1.sigPositionChangeFinished.emit(self.cursor1)
 
-        delta = self.viewbox.sceneBoundingRect().x()
-        x_start = self.viewbox.viewRange()[0][0]
+        if modifiers == QtCore.Qt.ShiftModifier:
+            delta = self.viewbox.sceneBoundingRect().x()
+            x_start = self.viewbox.viewRange()[0][0]
 
-        candidates = []
-        for sig in self.signals:
-            if not sig.enable:
-                continue
+            candidates = []
+            for sig in self.signals:
+                if not sig.enable:
+                    continue
 
-            val, _1, _2 = sig.value_at_timestamp(x, numeric=True)
+                val, _1, _2 = sig.value_at_timestamp(x, numeric=True)
 
-            if val == "n.a.":
-                continue
+                if val == "n.a.":
+                    continue
 
-            x_val, y_val = self.scale_curve_to_pixmap(
-                x, val, y_range=sig.y_range, x_start=x_start, delta=delta
-            )
+                x_val, y_val = self.scale_curve_to_pixmap(
+                    x, val, y_range=sig.y_range, x_start=x_start, delta=delta
+                )
 
-            candidates.append((abs(y_val - y), sig.uuid))
+                candidates.append((abs(y_val - y), sig.uuid))
 
-        if candidates:
-            candidates.sort()
-            self.curve_clicked.emit(candidates[0][1])
+            if candidates:
+                candidates.sort()
+                self.curve_clicked.emit(candidates[0][1])
 
     def close(self):
         super().close()

@@ -1594,7 +1594,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         self.setTextAlignment(self.ValueColumn, QtCore.Qt.AlignRight)
 
     def __repr__(self):
-        return f"ChannelTreeItem(type={self.type()}, uuid={self.uuid}, origin_uuid={self.origin_uuid})"
+        return f"ChannelTreeItem(type={self.type()}, name={self.name}, uuid={self.uuid}, origin_uuid={self.origin_uuid})"
 
     @property
     def color(self):
