@@ -161,7 +161,7 @@ bin_ = bin
 HERE = Path(__file__).resolve().parent
 
 NOT_FOUND = 0xFFFFFFFF
-HONEYWELL_SECONDS_PER_PIXEL = 0.0022
+HONEYWELL_SECONDS_PER_CM = 0.1
 
 float64 = np.float64
 
@@ -4667,8 +4667,13 @@ class _Plot(pg.PlotWidget):
 
                 rect = self.viewbox.sceneBoundingRect()
                 width = rect.width() - 5
-                time_width = width * HONEYWELL_SECONDS_PER_PIXEL
 
+                dpi = QtWidgets.QApplication.primaryScreen().physicalDotsPerInchX()
+                dpc = dpi / 2.54
+
+                physical_viewbox_witdh = width / dpc  # cm
+                time_width = physical_viewbox_witdh * HONEYWELL_SECONDS_PER_CM
+                
                 if self.cursor1.isVisible():
                     mid = self.cursor1.value()
                 else:

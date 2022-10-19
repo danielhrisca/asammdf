@@ -140,7 +140,7 @@ F            Fit all                Y-axis fit all active channels on the screen
 Shift+F      Fit selected           Y-axis fit all active selected channels on the screen; unselected channels are not fitted
 G            Grid                   Toggle grid lines
 W            Home                   Whole signals XY-axis fit
-H            Honeywell              zomm in on the current cursor position using a constant zoom level of 0.0022s/pixel
+H            Honeywell              zomm in on the current cursor position using a constant zoom level of 0.1s/cm (real display width)
 I            Zoom-in                X-axis zoom-in [1]_
 O            Zoom-out               X-axis zoom-out [1]_
 X            Zoom to range          If the region is enabled, it will zoom to it
