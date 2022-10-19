@@ -139,7 +139,8 @@ C            Edit signal color      Opens a dialog to select the signal color [7
 F            Fit all                Y-axis fit all active channels on the screen, keeping the current X-axis range
 Shift+F      Fit selected           Y-axis fit all active selected channels on the screen; unselected channels are not fitted
 G            Grid                   Toggle grid lines
-H            Home                   XY-axis fit all active channels
+W            Home                   Whole signals XY-axis fit
+H            Honeywell              zomm in on the current cursor position using a constant zoom level of 0.0022s/pixel
 I            Zoom-in                X-axis zoom-in [1]_
 O            Zoom-out               X-axis zoom-out [1]_
 X            Zoom to range          If the region is enabled, it will zoom to it

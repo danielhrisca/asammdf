@@ -391,10 +391,17 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/home.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        action = QtGui.QAction(icon, "{: <20}\tH".format("Home"), menu)
+        icon.addPixmap(QtGui.QPixmap(":/axis.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtGui.QAction(icon, "{: <20}\tH".format("Honeywell"), menu)
         action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_H))
         action.setShortcut(QtCore.Qt.Key_H)
+        plot_actions.addAction(action)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/home.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        action = QtGui.QAction(icon, "{: <20}\tW".format("Home"), menu)
+        action.triggered.connect(partial(self.plot_action, key=QtCore.Qt.Key_W))
+        action.setShortcut(QtCore.Qt.Key_W)
         plot_actions.addAction(action)
 
         icon = QtGui.QIcon()

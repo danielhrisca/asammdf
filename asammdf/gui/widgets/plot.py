@@ -161,6 +161,7 @@ bin_ = bin
 HERE = Path(__file__).resolve().parent
 
 NOT_FOUND = 0xFFFFFFFF
+HONEYWELL_SECONDS_PER_PIXEL = 0.0022
 
 float64 = np.float64
 
@@ -1478,11 +1479,26 @@ class Plot(QtWidgets.QWidget):
             lambda: self.plot.keyPressEvent(
                 QtGui.QKeyEvent(
                     QtCore.QEvent.KeyPress,
+                    QtCore.Qt.Key_W,
+                    QtCore.Qt.NoModifier,
+                )
+            ),
+        )
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/axis.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        menu.addAction(
+            icon,
+            "Honeywell",
+            lambda: self.plot.keyPressEvent(
+                QtGui.QKeyEvent(
+                    QtCore.QEvent.KeyPress,
                     QtCore.Qt.Key_H,
                     QtCore.Qt.NoModifier,
                 )
             ),
         )
+
         icon = QtGui.QIcon()
         icon.addPixmap(QtGui.QPixmap(":/fit.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         menu.addAction(
@@ -1496,6 +1512,7 @@ class Plot(QtWidgets.QWidget):
                 )
             ),
         )
+
         icon = QtGui.QIcon()
         icon.addPixmap(
             QtGui.QPixmap(":/stack.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
@@ -3567,6 +3584,7 @@ class _Plot(pg.PlotWidget):
                 (QtCore.Qt.Key_PageUp, QtCore.Qt.ShiftModifier),
                 (QtCore.Qt.Key_PageDown, QtCore.Qt.ShiftModifier),
                 (QtCore.Qt.Key_H, QtCore.Qt.NoModifier),
+                (QtCore.Qt.Key_W, QtCore.Qt.NoModifier),
                 (QtCore.Qt.Key_Insert, QtCore.Qt.NoModifier),
             ]
         )
@@ -4635,6 +4653,44 @@ class _Plot(pg.PlotWidget):
 
             elif (
                 key == QtCore.Qt.Key_H
+                and modifier == QtCore.Qt.NoModifier
+                and not self.locked
+            ):
+                start_ts, stop_ts = self.viewbox.viewRange()[0]
+
+                if len(self.all_timebase):
+                    min_start_ts = np.amin(self.all_timebase)
+                    max_stop_ts = np.amax(self.all_timebase)
+                else:
+                    min_start_ts = start_ts
+                    max_stop_ts = stop_ts
+
+                rect = self.viewbox.sceneBoundingRect()
+                width = rect.width() - 5
+                time_width = width * HONEYWELL_SECONDS_PER_PIXEL
+
+                if self.cursor1.isVisible():
+                    mid = self.cursor1.value()
+                else:
+                    mid = self.region.getRegion()[0]
+
+                if mid - time_width / 2 < min_start_ts:
+                    start_ts = min_start_ts
+                    stop_ts = min_start_ts + time_width
+                elif mid + time_width / 2 > max_stop_ts:
+                    start_ts = max_stop_ts - time_width
+                    stop_ts = max_stop_ts
+                else:
+                    start_ts = mid - time_width / 2
+                    stop_ts = mid + time_width / 2
+
+                self.viewbox.setXRange(start_ts, stop_ts, padding=0)
+
+                if self.cursor1:
+                    self.cursor_moved.emit(self.cursor1)
+
+            elif (
+                key == QtCore.Qt.Key_W
                 and modifier == QtCore.Qt.NoModifier
                 and not self.locked
             ):
