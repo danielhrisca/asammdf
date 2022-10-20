@@ -4161,9 +4161,10 @@ class _Plot(pg.PlotWidget):
 
                 x_range, _ = self.viewbox.viewRange()
                 delta = x_range[1] - x_range[0]
-                step = delta * 0.05
                 if key == QtCore.Qt.Key_I:
-                    step = -step
+                    step = -delta * 0.25
+                else:
+                    step = delta * 0.5
                 if self.cursor1:
                     pos = self.cursor1.value()
                     x_range = pos - delta / 2, pos + delta / 2
@@ -4651,11 +4652,7 @@ class _Plot(pg.PlotWidget):
 
                 self.update()
 
-            elif (
-                key == QtCore.Qt.Key_H
-                and modifier == QtCore.Qt.NoModifier
-                and not self.locked
-            ):
+            elif key == QtCore.Qt.Key_H and modifier == QtCore.Qt.NoModifier:
                 start_ts, stop_ts = self.viewbox.viewRange()[0]
 
                 if len(self.all_timebase):
@@ -4673,7 +4670,7 @@ class _Plot(pg.PlotWidget):
 
                 physical_viewbox_witdh = width / dpc  # cm
                 time_width = physical_viewbox_witdh * HONEYWELL_SECONDS_PER_CM
-                
+
                 if self.cursor1.isVisible():
                     mid = self.cursor1.value()
                 else:
@@ -4694,21 +4691,13 @@ class _Plot(pg.PlotWidget):
                 if self.cursor1:
                     self.cursor_moved.emit(self.cursor1)
 
-            elif (
-                key == QtCore.Qt.Key_W
-                and modifier == QtCore.Qt.NoModifier
-                and not self.locked
-            ):
+            elif key == QtCore.Qt.Key_W and modifier == QtCore.Qt.NoModifier:
 
                 if len(self.all_timebase):
                     start_ts = np.amin(self.all_timebase)
                     stop_ts = np.amax(self.all_timebase)
 
                     self.viewbox.setXRange(start_ts, stop_ts)
-                    event_ = QtGui.QKeyEvent(
-                        QtCore.QEvent.KeyPress, QtCore.Qt.Key_F, QtCore.Qt.NoModifier
-                    )
-                    self.keyPressEvent(event_)
 
                     if self.cursor1:
                         self.cursor_moved.emit(self.cursor1)
