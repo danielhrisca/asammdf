@@ -146,6 +146,7 @@ def extract_signals_using_pattern(
     filter_value = pattern_info["filter_value"]
     filter_type = pattern_info["filter_type"]
     raw = pattern_info["raw"]
+    integer_format = pattern_info.get("integer_format", "phys")
 
     if match_type == "Wildcard":
         pattern = pattern.replace("*", "_WILDCARD_")
@@ -223,6 +224,7 @@ def extract_signals_using_pattern(
     for sig in signals:
         uuid = os.urandom(6).hex()
         sig.uuid = uuid
+        sig.format = integer_format
         output_signals[uuid] = sig
 
     return output_signals

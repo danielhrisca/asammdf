@@ -1944,7 +1944,8 @@ class Plot(QtWidgets.QWidget):
 
             description = descriptions.get(sig_uuid, {})
 
-            sig.format = description.get("format", "phys")
+            if description:
+                sig.format = description.get("format", "phys")
             sig.mode = description.get("mode", "phys")
 
             if "comment" in description:

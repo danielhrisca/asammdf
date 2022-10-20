@@ -106,6 +106,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             )
             self.name.setText(pattern["name"])
             self.ranges = pattern["ranges"]
+            self.integer_format.setCurrentText(pattern.get("integer_format", "phys"))
 
         self.setWindowTitle(window_title)
 
@@ -398,6 +399,7 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
             "raw": self.raw.checkState() == QtCore.Qt.Checked,
             "ranges": self.ranges,
             "name": self.name.text().strip(),
+            "integer_format": self.integer_format.currentText(),
         }
 
         if not self.result["pattern"]:
