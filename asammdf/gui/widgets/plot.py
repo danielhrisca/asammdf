@@ -2338,6 +2338,9 @@ class Plot(QtWidgets.QWidget):
     def close(self):
         self.closed = True
 
+        self.channel_selection.blockSignals(True)
+        self.plot.blockSignals(True)
+
         tree = self.channel_selection
         tree.plot = None
         iterator = QtWidgets.QTreeWidgetItemIterator(tree)
@@ -2615,7 +2618,10 @@ class Plot(QtWidgets.QWidget):
             and modifiers == QtCore.Qt.ControlModifier
         ):
 
-            selected_items = self.channel_selection.selectedItems() or self.channel_selection.invisibleRootItem()
+            selected_items = (
+                self.channel_selection.selectedItems()
+                or self.channel_selection.invisibleRootItem()
+            )
 
             if key == QtCore.Qt.Key_B:
                 fmt = "bin"

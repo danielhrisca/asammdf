@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>937</width>
-    <height>480</height>
+    <height>501</height>
    </rect>
   </property>
   <property name="maximumSize">
@@ -27,6 +27,93 @@
    <bool>true</bool>
   </property>
   <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,1,0,0">
+   <item row="3" column="0">
+    <widget class="QLabel" name="label_8">
+     <property name="text">
+      <string>Computed channel comment</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1" colspan="4">
+    <widget class="QPlainTextEdit" name="comment"/>
+   </item>
+   <item row="5" column="4">
+    <widget class="QPushButton" name="cancel_btn">
+     <property name="text">
+      <string>Cancel</string>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="1">
+    <widget class="QLineEdit" name="unit">
+     <property name="placeholderText">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="1">
+    <spacer name="horizontalSpacer_3">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>40</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="label_7">
+     <property name="text">
+      <string>Computed channel name</string>
+     </property>
+    </widget>
+   </item>
+   <item row="5" column="2">
+    <spacer name="horizontalSpacer_7">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>40</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="5" column="3">
+    <widget class="QPushButton" name="apply_btn">
+     <property name="text">
+      <string>Apply</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1" colspan="4">
+    <widget class="QLineEdit" name="name">
+     <property name="inputMask">
+      <string/>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+     <property name="placeholderText">
+      <string/>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="0">
+    <widget class="QLabel" name="label_6">
+     <property name="text">
+      <string>Computed channel unit</string>
+     </property>
+    </widget>
+   </item>
    <item row="0" column="0" colspan="5">
     <widget class="QTabWidget" name="tabs">
      <property name="currentIndex">
@@ -241,7 +328,7 @@
      </widget>
      <widget class="QWidget" name="tab_2">
       <attribute name="title">
-       <string>Function</string>
+       <string>Numpy function</string>
       </attribute>
       <layout class="QGridLayout" name="gridLayout_6" columnstretch="0,0,1,0">
        <item row="0" column="0">
@@ -372,93 +459,55 @@ p, li { white-space: pre-wrap; }
        </item>
       </layout>
      </widget>
-    </widget>
-   </item>
-   <item row="5" column="4">
-    <widget class="QPushButton" name="cancel_btn">
-     <property name="text">
-      <string>Cancel</string>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="0">
-    <widget class="QLabel" name="label_8">
-     <property name="text">
-      <string>Computed channel comment</string>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="1" colspan="4">
-    <widget class="QPlainTextEdit" name="comment"/>
-   </item>
-   <item row="5" column="3">
-    <widget class="QPushButton" name="apply_btn">
-     <property name="text">
-      <string>Apply</string>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="0">
-    <widget class="QLabel" name="label_7">
-     <property name="text">
-      <string>Computed channel name</string>
-     </property>
-    </widget>
-   </item>
-   <item row="5" column="2">
-    <spacer name="horizontalSpacer_7">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>40</width>
-       <height>20</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item row="5" column="1">
-    <spacer name="horizontalSpacer_3">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>40</width>
-       <height>20</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
-   <item row="1" column="1" colspan="4">
-    <widget class="QLineEdit" name="name">
-     <property name="inputMask">
-      <string/>
-     </property>
-     <property name="text">
-      <string/>
-     </property>
-     <property name="placeholderText">
-      <string/>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="0">
-    <widget class="QLabel" name="label_6">
-     <property name="text">
-      <string>Computed channel unit</string>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="1">
-    <widget class="QLineEdit" name="unit">
-     <property name="placeholderText">
-      <string/>
-     </property>
+     <widget class="QWidget" name="tab_4">
+      <attribute name="title">
+       <string>Python function</string>
+      </attribute>
+      <layout class="QGridLayout" name="gridLayout_7">
+       <item row="1" column="0" colspan="3">
+        <widget class="QPlainTextEdit" name="python_function">
+         <property name="placeholderText">
+          <string>The virtual channel definition is written as a Python function. The device signal names must be placed inside double curly braces: {{MAIN_CLOCK}}. Use the 'return' statement to return a value, otherwise 'None' will automatically be returned by the function.  Here is a minimalistic example:   if {{MAIN_CLOCK}} &gt; 5000:     return 0 else:     avg = ({{p_FL}} + {{p_FR}} + {{p_RL}} + {{p_RR}}) / 4          if avg &gt; 20.5 and {{VehicleSpeed}} &lt; 100:         return avg     else:         return avg + 9</string>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="0">
+        <widget class="QPushButton" name="python_function_search_btn">
+         <property name="text">
+          <string>Available channels</string>
+         </property>
+         <property name="icon">
+          <iconset resource="resource.qrc">
+           <normaloff>:/search.png</normaloff>:/search.png</iconset>
+         </property>
+        </widget>
+       </item>
+       <item row="0" column="2">
+        <spacer name="horizontalSpacer_6">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+       <item row="0" column="1">
+        <widget class="QPushButton" name="check_syntax_btn">
+         <property name="text">
+          <string>Check syntax</string>
+         </property>
+         <property name="icon">
+          <iconset resource="resource.qrc">
+           <normaloff>:/checkmark.png</normaloff>:/checkmark.png</iconset>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
     </widget>
    </item>
   </layout>

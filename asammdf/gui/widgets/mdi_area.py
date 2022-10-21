@@ -30,6 +30,7 @@ from ..utils import (
     copy_ranges,
     extract_mime_names,
     replace_computation_dependency,
+    VARIABLE,
 )
 from .can_bus_trace import CANBusTrace
 from .flexray_bus_trace import FlexRayBusTrace
@@ -326,6 +327,16 @@ def get_required_from_computed(channel):
                         for match in SIG_RE.finditer(expression_string)
                     ]
                 )
+            elif computation["type"] == "python_function":
+                definition = computation["definition"]
+
+                names.extend(
+                    [
+                        match.group("var").strip("}{")
+                        for match in VARIABLE.finditer(definition)
+                    ]
+                )
+
         else:
             names.append(channel["name"])
     else:
@@ -343,12 +354,24 @@ def get_required_from_computed(channel):
             names.extend(
                 [match.group("name") for match in SIG_RE.finditer(expression_string)]
             )
-        else:
+
+        elif channel["type"] == "function":
             op = channel["channel"]
             if isinstance(op, str):
                 names.append(op)
             else:
                 names.extend(get_required_from_computed(op))
+
+        elif channel["type"] == "python_function":
+            definition = channel["definition"]
+
+            names.extend(
+                [
+                    match.group("var").strip("}{")
+                    for match in VARIABLE.finditer(definition)
+                ]
+            )
+
     return names
 
 
@@ -883,18 +906,16 @@ class WithMDIArea:
                         key: sig.physical() for key, sig in required_channels.items()
                     }
 
-                    if file.mdf._fill_0_for_missing_computation_channels:
-                        if required_channels:
-                            all_timebase = np.unique(
-                                np.concatenate(
-                                    [
-                                        sig.timestamps
-                                        for sig in required_channels.values()
-                                    ]
-                                )
+                    if required_channels:
+                        all_timebase = np.unique(
+                            np.concatenate(
+                                [sig.timestamps for sig in required_channels.values()]
                             )
-                        else:
-                            all_timebase = []
+                        )
+                    else:
+                        all_timebase = []
+
+                    if file.mdf._fill_0_for_missing_computation_channels:
 
                         for channel in not_found_for_computed:
                             signal = Signal(

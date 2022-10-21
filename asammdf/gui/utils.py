@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
+from collections import defaultdict
 from datetime import datetime
 from functools import reduce
 from io import StringIO
 import json
+import os
 from pathlib import Path
 import re
+from textwrap import dedent, indent
 from threading import Thread
 from time import perf_counter, sleep
 import traceback
@@ -125,6 +128,7 @@ SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
 TERMINATED = object()
 
 FONT_SIZE = [6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72]
+VARIABLE = re.compile(r"(?P<var>\{\{[^}]+\}\})")
 
 
 def excepthook(exc_type, exc_value, tracebackobj):
@@ -551,9 +555,6 @@ class WorkerThread(Thread):
             self.error = traceback.format_exc()
 
 
-from .dialogs.define_channel import FUNCTIONS, MULTIPLE_ARGS_FUNCTIONS
-
-
 def compute_signal(description, measured_signals, all_timebase):
     type_ = description["type"]
 
@@ -642,7 +643,33 @@ def compute_signal(description, measured_signals, all_timebase):
                 samples=samples,
                 timestamps=common_timebase,
             )
+
+        elif type_ == "python_function":
+            func, *_ = generate_python_function(
+                definition=description["definition"], name=description["channel_name"]
+            )
+
+            names = [
+                match.group("var").strip("}{")
+                for match in VARIABLE.finditer(description["definition"])
+            ]
+            signals = [measured_signals[name] for name in names]
+            common_timebase = reduce(np.union1d, [sig.timestamps for sig in signals])
+            signals = [
+                sig.interp(common_timebase).samples.tolist()
+                for i, sig in enumerate(signals)
+            ]
+
+            samples = [func(*args) for args in zip(*signals)]
+
+            result = Signal(
+                name="_",
+                samples=samples,
+                timestamps=common_timebase,
+            )
+
     except:
+        print(format_exc())
         result = Signal(
             name="_",
             samples=[],
@@ -927,6 +954,47 @@ def draw_color_icon(color):
     painter.end()
     return QtGui.QIcon(pix)
 
+
+def generate_python_function(definition, name=""):
+    definition = definition.strip()
+    trace = None
+    if not definition:
+        trace = "The function definition must not be empty"
+    vars = defaultdict(list)
+
+    func_name = name or f"PythonFunction_{os.urandom(6).hex()}"
+
+    for match in VARIABLE.finditer(definition):
+        vars[match.group("var").strip("{}")] = match
+
+    count = len(vars)
+
+    for i, (name, matches) in enumerate(vars.items(), 1):
+        variable_re = re.compile(r"\{\{" + re.escape(name) + "\}\}")
+        definition = variable_re.sub(f"_v{i}_", definition)
+
+    args = ", ".join(f"_v{i+1}_=0" for i in range(count))
+
+    definition = indent(dedent(definition), "    ")
+
+    function_source = f"""def {func_name}({args}):
+{definition}
+"""
+
+    try:
+        exec(function_source)
+        func = locals()[func_name]
+    except:
+        trace = format_exc()
+        for i, var_name in enumerate(vars, 1):
+            trace = trace.replace(f"_v{i}_", f"{{{{{var_name}}}}}")
+            function_source = function_source.replace(f"_v{i}_", f"{{{{{var_name}}}}}")
+        func = None
+
+    return func, list(vars), func_name, trace, function_source
+
+
+from .dialogs.define_channel import FUNCTIONS, MULTIPLE_ARGS_FUNCTIONS
 
 if __name__ == "__main__":
     pass

@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'define_channel_dialog.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.3.0
+## Created by: Qt User Interface Compiler version 6.3.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -26,7 +26,7 @@ class Ui_ComputedChannel(object):
     def setupUi(self, ComputedChannel):
         if not ComputedChannel.objectName():
             ComputedChannel.setObjectName(u"ComputedChannel")
-        ComputedChannel.resize(937, 480)
+        ComputedChannel.resize(937, 501)
         ComputedChannel.setMaximumSize(QSize(16777215, 16777215))
         icon = QIcon()
         icon.addFile(u":/plus.png", QSize(), QIcon.Normal, QIcon.Off)
@@ -34,6 +34,55 @@ class Ui_ComputedChannel(object):
         ComputedChannel.setSizeGripEnabled(True)
         self.gridLayout = QGridLayout(ComputedChannel)
         self.gridLayout.setObjectName(u"gridLayout")
+        self.label_8 = QLabel(ComputedChannel)
+        self.label_8.setObjectName(u"label_8")
+        self.label_8.setAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignTop)
+
+        self.gridLayout.addWidget(self.label_8, 3, 0, 1, 1)
+
+        self.comment = QPlainTextEdit(ComputedChannel)
+        self.comment.setObjectName(u"comment")
+
+        self.gridLayout.addWidget(self.comment, 3, 1, 1, 4)
+
+        self.cancel_btn = QPushButton(ComputedChannel)
+        self.cancel_btn.setObjectName(u"cancel_btn")
+
+        self.gridLayout.addWidget(self.cancel_btn, 5, 4, 1, 1)
+
+        self.unit = QLineEdit(ComputedChannel)
+        self.unit.setObjectName(u"unit")
+
+        self.gridLayout.addWidget(self.unit, 4, 1, 1, 1)
+
+        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.gridLayout.addItem(self.horizontalSpacer_3, 5, 1, 1, 1)
+
+        self.label_7 = QLabel(ComputedChannel)
+        self.label_7.setObjectName(u"label_7")
+
+        self.gridLayout.addWidget(self.label_7, 1, 0, 1, 1)
+
+        self.horizontalSpacer_7 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.gridLayout.addItem(self.horizontalSpacer_7, 5, 2, 1, 1)
+
+        self.apply_btn = QPushButton(ComputedChannel)
+        self.apply_btn.setObjectName(u"apply_btn")
+
+        self.gridLayout.addWidget(self.apply_btn, 5, 3, 1, 1)
+
+        self.name = QLineEdit(ComputedChannel)
+        self.name.setObjectName(u"name")
+
+        self.gridLayout.addWidget(self.name, 1, 1, 1, 4)
+
+        self.label_6 = QLabel(ComputedChannel)
+        self.label_6.setObjectName(u"label_6")
+
+        self.gridLayout.addWidget(self.label_6, 4, 0, 1, 1)
+
         self.tabs = QTabWidget(ComputedChannel)
         self.tabs.setObjectName(u"tabs")
         self.tab = QWidget()
@@ -247,57 +296,36 @@ class Ui_ComputedChannel(object):
 
         self.gridLayout_2.setColumnStretch(1, 1)
         self.tabs.addTab(self.tab_3, "")
+        self.tab_4 = QWidget()
+        self.tab_4.setObjectName(u"tab_4")
+        self.gridLayout_7 = QGridLayout(self.tab_4)
+        self.gridLayout_7.setObjectName(u"gridLayout_7")
+        self.python_function = QPlainTextEdit(self.tab_4)
+        self.python_function.setObjectName(u"python_function")
+
+        self.gridLayout_7.addWidget(self.python_function, 1, 0, 1, 3)
+
+        self.python_function_search_btn = QPushButton(self.tab_4)
+        self.python_function_search_btn.setObjectName(u"python_function_search_btn")
+        self.python_function_search_btn.setIcon(icon1)
+
+        self.gridLayout_7.addWidget(self.python_function_search_btn, 0, 0, 1, 1)
+
+        self.horizontalSpacer_6 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.gridLayout_7.addItem(self.horizontalSpacer_6, 0, 2, 1, 1)
+
+        self.check_syntax_btn = QPushButton(self.tab_4)
+        self.check_syntax_btn.setObjectName(u"check_syntax_btn")
+        icon2 = QIcon()
+        icon2.addFile(u":/checkmark.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.check_syntax_btn.setIcon(icon2)
+
+        self.gridLayout_7.addWidget(self.check_syntax_btn, 0, 1, 1, 1)
+
+        self.tabs.addTab(self.tab_4, "")
 
         self.gridLayout.addWidget(self.tabs, 0, 0, 1, 5)
-
-        self.cancel_btn = QPushButton(ComputedChannel)
-        self.cancel_btn.setObjectName(u"cancel_btn")
-
-        self.gridLayout.addWidget(self.cancel_btn, 5, 4, 1, 1)
-
-        self.label_8 = QLabel(ComputedChannel)
-        self.label_8.setObjectName(u"label_8")
-        self.label_8.setAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignTop)
-
-        self.gridLayout.addWidget(self.label_8, 3, 0, 1, 1)
-
-        self.comment = QPlainTextEdit(ComputedChannel)
-        self.comment.setObjectName(u"comment")
-
-        self.gridLayout.addWidget(self.comment, 3, 1, 1, 4)
-
-        self.apply_btn = QPushButton(ComputedChannel)
-        self.apply_btn.setObjectName(u"apply_btn")
-
-        self.gridLayout.addWidget(self.apply_btn, 5, 3, 1, 1)
-
-        self.label_7 = QLabel(ComputedChannel)
-        self.label_7.setObjectName(u"label_7")
-
-        self.gridLayout.addWidget(self.label_7, 1, 0, 1, 1)
-
-        self.horizontalSpacer_7 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        self.gridLayout.addItem(self.horizontalSpacer_7, 5, 2, 1, 1)
-
-        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        self.gridLayout.addItem(self.horizontalSpacer_3, 5, 1, 1, 1)
-
-        self.name = QLineEdit(ComputedChannel)
-        self.name.setObjectName(u"name")
-
-        self.gridLayout.addWidget(self.name, 1, 1, 1, 4)
-
-        self.label_6 = QLabel(ComputedChannel)
-        self.label_6.setObjectName(u"label_6")
-
-        self.gridLayout.addWidget(self.label_6, 4, 0, 1, 1)
-
-        self.unit = QLineEdit(ComputedChannel)
-        self.unit.setObjectName(u"unit")
-
-        self.gridLayout.addWidget(self.unit, 4, 1, 1, 1)
 
         self.gridLayout.setColumnStretch(2, 1)
 
@@ -311,6 +339,15 @@ class Ui_ComputedChannel(object):
 
     def retranslateUi(self, ComputedChannel):
         ComputedChannel.setWindowTitle(QCoreApplication.translate("ComputedChannel", u"Define new channel", None))
+        self.label_8.setText(QCoreApplication.translate("ComputedChannel", u"Computed channel comment", None))
+        self.cancel_btn.setText(QCoreApplication.translate("ComputedChannel", u"Cancel", None))
+        self.unit.setPlaceholderText("")
+        self.label_7.setText(QCoreApplication.translate("ComputedChannel", u"Computed channel name", None))
+        self.apply_btn.setText(QCoreApplication.translate("ComputedChannel", u"Apply", None))
+        self.name.setInputMask("")
+        self.name.setText("")
+        self.name.setPlaceholderText("")
+        self.label_6.setText(QCoreApplication.translate("ComputedChannel", u"Computed channel unit", None))
         self.groupBox.setTitle(QCoreApplication.translate("ComputedChannel", u"First operand", None))
         self.operand1_as_signal.setText(QCoreApplication.translate("ComputedChannel", u"Signal", None))
         self.operand1_name.setPlaceholderText(QCoreApplication.translate("ComputedChannel", u"first operand name", None))
@@ -334,7 +371,7 @@ class Ui_ComputedChannel(object):
         self.function.setToolTip(QCoreApplication.translate("ComputedChannel", u"see numpy documentation", None))
 #endif // QT_CONFIG(tooltip)
         self.help.setPlaceholderText(QCoreApplication.translate("ComputedChannel", u"selected function help ", None))
-        self.tabs.setTabText(self.tabs.indexOf(self.tab_2), QCoreApplication.translate("ComputedChannel", u"Function", None))
+        self.tabs.setTabText(self.tabs.indexOf(self.tab_2), QCoreApplication.translate("ComputedChannel", u"Numpy function", None))
         self.label.setText(QCoreApplication.translate("ComputedChannel", u"<!DOCTYPE HTML PUBLIC \"-//W3C//DTD HTML 4.0//EN\" \"http://www.w3.org/TR/REC-html40/strict.dtd\">\n"
 "<html><head><meta name=\"qrichtext\" content=\"1\" /><style type=\"text/css\">\n"
 "p, li { white-space: pre-wrap; }\n"
@@ -346,14 +383,9 @@ class Ui_ComputedChannel(object):
         self.expression.setPlaceholderText(QCoreApplication.translate("ComputedChannel", u"enter your expression here. Example: ({{Sig1}} + {{Sig2}}) / ({{Sig3}} - {{Sig4}}) + 7.8", None))
         self.expression_search_btn.setText(QCoreApplication.translate("ComputedChannel", u"Available channels", None))
         self.tabs.setTabText(self.tabs.indexOf(self.tab_3), QCoreApplication.translate("ComputedChannel", u"Expression", None))
-        self.cancel_btn.setText(QCoreApplication.translate("ComputedChannel", u"Cancel", None))
-        self.label_8.setText(QCoreApplication.translate("ComputedChannel", u"Computed channel comment", None))
-        self.apply_btn.setText(QCoreApplication.translate("ComputedChannel", u"Apply", None))
-        self.label_7.setText(QCoreApplication.translate("ComputedChannel", u"Computed channel name", None))
-        self.name.setInputMask("")
-        self.name.setText("")
-        self.name.setPlaceholderText("")
-        self.label_6.setText(QCoreApplication.translate("ComputedChannel", u"Computed channel unit", None))
-        self.unit.setPlaceholderText("")
+        self.python_function.setPlaceholderText(QCoreApplication.translate("ComputedChannel", u"The virtual channel definition is written as a Python function. The device signal names must be placed inside double curly braces: {{MAIN_CLOCK}}. Use the 'return' statement to return a value, otherwise 'None' will automatically be returned by the function.  Here is a minimalistic example:   if {{MAIN_CLOCK}} > 5000:     return 0 else:     avg = ({{p_FL}} + {{p_FR}} + {{p_RL}} + {{p_RR}}) / 4          if avg > 20.5 and {{VehicleSpeed}} < 100:         return avg     else:         return avg + 9", None))
+        self.python_function_search_btn.setText(QCoreApplication.translate("ComputedChannel", u"Available channels", None))
+        self.check_syntax_btn.setText(QCoreApplication.translate("ComputedChannel", u"Check syntax", None))
+        self.tabs.setTabText(self.tabs.indexOf(self.tab_4), QCoreApplication.translate("ComputedChannel", u"Python function", None))
     # retranslateUi
 
