@@ -26,6 +26,7 @@ from ...signal import Signal
 from ..dialogs.channel_info import ChannelInfoDialog
 from ..dialogs.window_selection_dialog import WindowSelectionDialog
 from ..utils import (
+    computation_to_python_function,
     compute_signal,
     copy_ranges,
     extract_mime_names,
@@ -121,6 +122,10 @@ def build_mime_from_config(
             if item.get("computed", False):
                 group_index, channel_index = -1, -1
                 computed[uuid] = item
+                item["computation"] = computation_to_python_function(
+                    item["computation"]
+                )
+
             else:
 
                 occurrences = mdf.whereis(item["name"]) if mdf else None

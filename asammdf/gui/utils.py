@@ -383,8 +383,8 @@ def load_dsp(file, background="#000000", flat=False):
             "common_axis": False,
             "computed": True,
             "computation": {
-                "type": "expression",
-                "expression": "{{" + ch["parent"] + "}}",
+                "type": "python_function",
+                "expression": "return {{" + ch["parent"] + "}}",
             },
             "enabled": True,
             "fmt": "{}",
@@ -645,22 +645,21 @@ def compute_signal(description, measured_signals, all_timebase):
             )
 
         elif type_ == "python_function":
-            func, *_ = generate_python_function(
+            func, args_names, *_ = generate_python_function(
                 definition=description["definition"], name=description["channel_name"]
             )
 
-            names = [
-                match.group("var").strip("}{")
-                for match in VARIABLE.finditer(description["definition"])
-            ]
-            signals = [measured_signals[name] for name in names]
-            common_timebase = reduce(np.union1d, [sig.timestamps for sig in signals])
-            signals = [
-                sig.interp(common_timebase).samples.tolist()
-                for i, sig in enumerate(signals)
-            ]
+            signals = [measured_signals[name] for name in args_names]
 
-            samples = [func(*args) for args in zip(*signals)]
+            names = [f"_v{i}_" for i, n in enumerate(args_names, 1)]
+
+            common_timebase = reduce(np.union1d, [sig.timestamps for sig in signals])
+            signals = [sig.interp(common_timebase).samples.tolist() for sig in signals]
+
+            samples = [
+                func(**{arg_name: arg_val for arg_name, arg_val in zip(names, values)})
+                for values in zip(*signals)
+            ]
 
             result = Signal(
                 name="_",
@@ -677,6 +676,66 @@ def compute_signal(description, measured_signals, all_timebase):
         )
 
     return result
+
+
+def computation_to_python_function(description):
+    type_ = description["type"]
+
+    if type_ == "arithmetic":
+        op = description["op"]
+
+        operand1 = description["operand1"]
+        if isinstance(operand1, dict):
+            operand1 = "{{Operand1}}"
+        elif isinstance(operand1, str):
+            operand1 = f"{{{{{operand1}}}}}"
+
+        operand2 = description["operand2"]
+        if isinstance(operand2, dict):
+            operand2 = "{{Operand1}}"
+        elif isinstance(operand2, str):
+            operand2 = f"{{{{{operand2}}}}}"
+
+        new_description = {
+            "channel_comment": description["channel_comment"],
+            "channel_name": description["channel_name"],
+            "channel_unit": description["channel_unit"],
+            "definition": f"return {operand1} {op} {operand2}",
+            "type": "python_function",
+        }
+
+    elif type_ == "function":
+        channel = description["channel"]
+
+        if isinstance(channel, dict):
+            operand = "{{Operand}}"
+        elif isinstance(channel, str):
+            operand = f"{{{{{channel}}}}}"
+
+        args = ", ".join([operand] + [str(e) for e in description["args"]])
+        function = description["name"]
+
+        new_description = {
+            "channel_comment": description["channel_comment"],
+            "channel_name": description["channel_name"],
+            "channel_unit": description["channel_unit"],
+            "definition": f"return np.{function}( {args} )",
+            "type": "python_function",
+        }
+
+    elif type_ == "expression":
+        new_description = {
+            "channel_comment": description["channel_comment"],
+            "channel_name": description["channel_name"],
+            "channel_unit": description["channel_unit"],
+            "definition": f"return {description['expression']}",
+            "type": "python_function",
+        }
+
+    else:
+        new_description = description
+
+    return new_description
 
 
 def replace_computation_dependency(computation, old_name, new_name):
@@ -977,7 +1036,8 @@ def generate_python_function(definition, name=""):
 
     definition = indent(dedent(definition), "    ")
 
-    function_source = f"""def {func_name}({args}):
+    function_source = f"""
+def {func_name}({args}):
 {definition}
 """
 

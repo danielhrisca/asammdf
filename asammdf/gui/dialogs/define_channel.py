@@ -10,7 +10,7 @@ from PySide6 import QtWidgets
 
 from ..ui import resource_rc
 from ..ui.define_channel_dialog import Ui_ComputedChannel
-from ..utils import generate_python_function
+from ..utils import computation_to_python_function, generate_python_function
 from .advanced_search import AdvancedSearch
 from .error_dialog import ErrorDialog
 
@@ -165,6 +165,10 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
         self.function.currentIndexChanged.connect(self.function_changed)
 
+        self.tabs.setTabVisible(0, False)
+        self.tabs.setTabVisible(1, False)
+        self.tabs.setTabVisible(2, False)
+
         if computation is None:
 
             if name:
@@ -172,6 +176,8 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 self.function_channel.setText(name)
 
         else:
+
+            computation = computation_to_python_function(computation)
 
             self.name.setText(
                 computation.get("channel_name", computation.get("channel", ""))
