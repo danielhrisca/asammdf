@@ -506,6 +506,11 @@
            <string>hex</string>
           </property>
          </item>
+         <item>
+          <property name="text">
+           <string>ascii</string>
+          </property>
+         </item>
         </widget>
        </item>
       </layout>

@@ -257,6 +257,7 @@ class Ui_SearchDialog(object):
         self.integer_format.addItem("")
         self.integer_format.addItem("")
         self.integer_format.addItem("")
+        self.integer_format.addItem("")
         self.integer_format.setObjectName(u"integer_format")
 
         self.gridLayout_3.addWidget(self.integer_format, 7, 2, 1, 1)
@@ -349,6 +350,7 @@ class Ui_SearchDialog(object):
         self.integer_format.setItemText(0, QCoreApplication.translate("SearchDialog", u"phys", None))
         self.integer_format.setItemText(1, QCoreApplication.translate("SearchDialog", u"bin", None))
         self.integer_format.setItemText(2, QCoreApplication.translate("SearchDialog", u"hex", None))
+        self.integer_format.setItemText(3, QCoreApplication.translate("SearchDialog", u"ascii", None))
 
         self.tabs.setTabText(self.tabs.indexOf(self.tab_2), QCoreApplication.translate("SearchDialog", u"Pattern definition", None))
     # retranslateUi

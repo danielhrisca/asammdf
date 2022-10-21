@@ -2615,31 +2615,26 @@ class Plot(QtWidgets.QWidget):
             and modifiers == QtCore.Qt.ControlModifier
         ):
 
-            selected_items = self.channel_selection.selectedItems()
-            if not selected_items:
-                signals = [(sig, i) for i, sig in enumerate(self.plot.signals)]
+            selected_items = self.channel_selection.selectedItems() or self.channel_selection.invisibleRootItem()
 
+            if key == QtCore.Qt.Key_B:
+                fmt = "bin"
+            elif key == QtCore.Qt.Key_H:
+                fmt = "hex"
+            elif key == QtCore.Qt.Key_P:
+                fmt = "phys"
             else:
-                uuids = [
-                    item.uuid
-                    for item in selected_items
-                    if item.type() == ChannelsTreeItem.Channel
-                ]
+                fmt = "ascii"
 
-                signals = [self.plot.signal_by_uuid(uuid) for uuid in uuids]
+            for item in selected_items:
+                item_type = item.type()
+                if item_type == item.Info:
+                    continue
 
-            if signals:
+                elif item_type == item.Channel:
 
-                if key == QtCore.Qt.Key_B:
-                    fmt = "bin"
-                elif key == QtCore.Qt.Key_H:
-                    fmt = "hex"
-                elif key == QtCore.Qt.Key_P:
-                    fmt = "phys"
-                else:
-                    fmt = "ascii"
+                    signal, idx = self.plot.signal_by_uuid(item.uuid)
 
-                for signal, idx in signals:
                     if signal.plot_samples.dtype.kind in "ui":
                         signal.format = fmt
 
@@ -2660,6 +2655,13 @@ class Plot(QtWidgets.QWidget):
                             axis.format = fmt
                             axis.picture = None
                             axis.update()
+
+                elif item_type == item.Group:
+                    for i in range(item.childCount()):
+                        selected_items.append(item.child(i))
+
+                    if item.pattern:
+                        item.pattern["integer_format"] = fmt
 
             if self.info.isVisible():
                 stats = self.plot.get_stats(self.info_uuid)
