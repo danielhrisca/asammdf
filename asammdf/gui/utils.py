@@ -1021,7 +1021,7 @@ def generate_python_function(definition, name=""):
         trace = "The function definition must not be empty"
     vars = defaultdict(list)
 
-    func_name = name or f"PythonFunction_{os.urandom(6).hex()}"
+    func_name = f"PythonFunction_{os.urandom(6).hex()}"
 
     for match in VARIABLE.finditer(definition):
         vars[match.group("var").strip("{}")] = match

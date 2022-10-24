@@ -3639,6 +3639,8 @@ class _Plot(pg.PlotWidget):
         self.px = 1
         self.py = 1
 
+        self.last_click = perf_counter()
+
     def add_new_channels(self, channels, computed=False, descriptions=None):
         descriptions = descriptions or {}
 
@@ -3712,6 +3714,7 @@ class _Plot(pg.PlotWidget):
         painter.setClipping(True)
 
     def _clicked(self, event):
+
         modifiers = QtWidgets.QApplication.keyboardModifiers()
 
         pos = self.plot_item.vb.mapSceneToView(event.scenePos()).x()
@@ -3741,29 +3744,13 @@ class _Plot(pg.PlotWidget):
                     self.cursor1.setPos(pos)
                     self.cursor1.sigPositionChangeFinished.emit(self.cursor1)
 
+        now = perf_counter()
         if modifiers == QtCore.Qt.ShiftModifier:
-            delta = self.viewbox.sceneBoundingRect().x()
-            x_start = self.viewbox.viewRange()[0][0]
+            self.select_curve(x, y)
+        elif now - self.last_click < 0.3:
+            self.select_curve(x, y)
 
-            candidates = []
-            for sig in self.signals:
-                if not sig.enable:
-                    continue
-
-                val, _1, _2 = sig.value_at_timestamp(x, numeric=True)
-
-                if val == "n.a.":
-                    continue
-
-                x_val, y_val = self.scale_curve_to_pixmap(
-                    x, val, y_range=sig.y_range, x_start=x_start, delta=delta
-                )
-
-                candidates.append((abs(y_val - y), sig.uuid))
-
-            if candidates:
-                candidates.sort()
-                self.curve_clicked.emit(candidates[0][1])
+        self.last_click = perf_counter()
 
     def close(self):
         super().close()
@@ -5007,6 +4994,30 @@ class _Plot(pg.PlotWidget):
             y = (ys - y) / y_scale
 
         return x, y
+
+    def select_curve(self, x, y):
+        delta = self.viewbox.sceneBoundingRect().x()
+        x_start = self.viewbox.viewRange()[0][0]
+
+        candidates = []
+        for sig in self.signals:
+            if not sig.enable:
+                continue
+
+            val, _1, _2 = sig.value_at_timestamp(x, numeric=True)
+
+            if val == "n.a.":
+                continue
+
+            x_val, y_val = self.scale_curve_to_pixmap(
+                x, val, y_range=sig.y_range, x_start=x_start, delta=delta
+            )
+
+            candidates.append((abs(y_val - y), sig.uuid))
+
+        if candidates:
+            candidates.sort()
+            self.curve_clicked.emit(candidates[0][1])
 
     def set_color(self, uuid, color):
         sig, index = self.signal_by_uuid(uuid)
