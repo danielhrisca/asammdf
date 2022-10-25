@@ -161,6 +161,9 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         self.python_function_search_btn.clicked.connect(
             partial(self.search, text_widget=self.python_function)
         )
+        self.trigger_search_btn.clicked.connect(
+            partial(self.search, text_widget=self.trigger_channel)
+        )
         self.check_syntax_btn.clicked.connect(self.check_syntax)
 
         self.function.currentIndexChanged.connect(self.function_changed)
@@ -229,6 +232,17 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             elif computation["type"] == "python_function":
                 self.tabs.setCurrentIndex(3)
                 self.python_function.setPlainText(computation["definition"])
+
+                if computation["triggering"] == "triggering_on_all":
+                    self.triggering_on_all.setChecked(True)
+                elif computation["triggering"] == "triggering_on_channel":
+                    self.triggering_on_channel.setChecked(True)
+                    self.trigger_interval.setValue(
+                        float(computation["triggering_value"])
+                    )
+                elif computation["triggering"] == "triggering_on_interval":
+                    self.triggering_on_interval.setChecked(True)
+                    self.trigger_channel.setText(computation["triggering_value"])
 
         self.python_function.setPlaceholderText(
             """The channel definition is written as a Python function.
@@ -368,6 +382,16 @@ else:
         function = self.python_function.toPlainText().strip()
         name = self.name.text().strip() or f"PythonFunction_{os.urandom(6).hex()}"
 
+        if self.triggering_on_all.isChecked():
+            triggering = "triggering_on_all"
+            triggering_value = "all"
+        elif self.triggering_on_interval.isChecked():
+            triggering = "triggering_on_interval"
+            triggering_value = self.trigger_interval.value()
+        else:
+            triggering = "triggering_on_channel"
+            triggering_value = self.trigger_channel.text().strip()
+
         self.result = {
             "type": "channel",
             "common_axis": False,
@@ -393,6 +417,8 @@ else:
                 "channel_name": name,
                 "channel_unit": self.unit.text().strip(),
                 "channel_comment": self.comment.toPlainText().strip(),
+                "triggering": triggering,
+                "triggering_value": triggering_value,
             },
         }
 
@@ -576,3 +602,6 @@ else:
                     text_widget.insertPlainText("{{" + text + "}} ")
             elif text_widget is not None:
                 text_widget.setText(list(result)[0])
+
+            elif text_widget is self.trigger_channel:
+                self.trigger_channel.setText(list(result)[0])

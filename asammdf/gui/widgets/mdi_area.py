@@ -342,6 +342,13 @@ def get_required_from_computed(channel):
                     ]
                 )
 
+                triggering = computation.get("triggering", "triggering_on_all")
+
+                if triggering == "triggering_on_channel":
+                    triggering_channel = computation["triggering_value"]
+                    if triggering_channel:
+                        names.append(triggering_channel)
+
         else:
             names.append(channel["name"])
     else:

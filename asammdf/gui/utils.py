@@ -384,7 +384,10 @@ def load_dsp(file, background="#000000", flat=False):
             "computed": True,
             "computation": {
                 "type": "python_function",
-                "expression": "return {{" + ch["parent"] + "}}",
+                "definition": "return {{" + ch["parent"] + "}}",
+                "channel_comment": ch["comment"],
+                "channel_name": ch["name"],
+                "channel_unit": "",
             },
             "enabled": True,
             "fmt": "{}",
@@ -653,8 +656,47 @@ def compute_signal(description, measured_signals, all_timebase):
 
             names = [f"_v{i}_" for i, n in enumerate(args_names, 1)]
 
-            common_timebase = reduce(np.union1d, [sig.timestamps for sig in signals])
-            signals = [sig.interp(common_timebase).samples.tolist() for sig in signals]
+            triggering = description.get("triggering", "triggering_on_all")
+            if triggering == "triggering_on_all":
+                common_timebase = reduce(
+                    np.union1d, [sig.timestamps for sig in signals]
+                )
+                signals = [
+                    sig.interp(common_timebase).samples.tolist() for sig in signals
+                ]
+            elif triggering == "triggering_on_channel":
+                triggering_channel = description["triggering_value"]
+
+                if triggering_channel in measured_signals:
+                    common_timebase = measured_signals[triggering_channel].timestamps
+                else:
+                    common_timebase = np.array([])
+                signals = [
+                    sig.interp(common_timebase).samples.tolist() for sig in signals
+                ]
+            else:
+
+                step = float(description["triggering_value"])
+
+                common_timebase = []
+                for signal in signals:
+                    if len(signal):
+                        common_timebase.append(signal.timestamps[0])
+                        common_timebase.append(signal.timestamps[-1])
+
+                if common_timebase:
+                    common_timebase = np.unique(common_timebase)
+                    start = common_timebase[0]
+                    stop = common_timebase[-1]
+
+                    common_timebase = np.arange(start, stop, step)
+
+                else:
+                    common_timebase = np.array([])
+
+                signals = [
+                    sig.interp(common_timebase).samples.tolist() for sig in signals
+                ]
 
             samples = [
                 func(**{arg_name: arg_val for arg_name, arg_val in zip(names, values)})
@@ -702,6 +744,8 @@ def computation_to_python_function(description):
             "channel_unit": description["channel_unit"],
             "definition": f"return {operand1} {op} {operand2}",
             "type": "python_function",
+            "triggering": "triggering_on_all",
+            "triggering_value": "all",
         }
 
     elif type_ == "function":
@@ -721,6 +765,8 @@ def computation_to_python_function(description):
             "channel_unit": description["channel_unit"],
             "definition": f"return np.{function}( {args} )",
             "type": "python_function",
+            "triggering": "triggering_on_all",
+            "triggering_value": "all",
         }
 
     elif type_ == "expression":
@@ -730,6 +776,8 @@ def computation_to_python_function(description):
             "channel_unit": description["channel_unit"],
             "definition": f"return {description['expression']}",
             "type": "python_function",
+            "triggering": "triggering_on_all",
+            "triggering_value": "all",
         }
 
     else:
