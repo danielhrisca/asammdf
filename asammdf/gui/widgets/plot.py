@@ -15,7 +15,11 @@ import numpy as np
 import pyqtgraph as pg
 import pyqtgraph.canvas.CanvasTemplate_pyside6
 import pyqtgraph.canvas.TransformGuiTemplate_pyside6
-import pyqtgraph.console.template_pyside6
+
+try:
+    import pyqtgraph.console.template_pyside6
+except ImportError:
+    import pyqtgraph.console.template_generic
 
 # imports for pyinstaller
 import pyqtgraph.functions as fn
