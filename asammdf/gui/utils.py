@@ -388,6 +388,8 @@ def load_dsp(file, background="#000000", flat=False):
                 "channel_comment": ch["comment"],
                 "channel_name": ch["name"],
                 "channel_unit": "",
+                "triggering": "triggering_on_all",
+                "triggering_value": "all",
             },
             "enabled": True,
             "fmt": "{}",
