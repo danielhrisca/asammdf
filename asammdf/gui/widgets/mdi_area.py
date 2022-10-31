@@ -32,6 +32,7 @@ from ..utils import (
     extract_mime_names,
     replace_computation_dependency,
     VARIABLE,
+    VARIABLE_GET_DATA,
 )
 from .can_bus_trace import CANBusTrace
 from .flexray_bus_trace import FlexRayBusTrace
@@ -342,6 +343,13 @@ def get_required_from_computed(channel):
                     ]
                 )
 
+                names.extend(
+                    [
+                        match.group("var")
+                        for match in VARIABLE_GET_DATA.finditer(definition)
+                    ]
+                )
+
                 triggering = computation.get("triggering", "triggering_on_all")
 
                 if triggering == "triggering_on_channel":
@@ -382,6 +390,10 @@ def get_required_from_computed(channel):
                     match.group("var").strip("}{")
                     for match in VARIABLE.finditer(definition)
                 ]
+            )
+
+            names.extend(
+                [match.group("var") for match in VARIABLE_GET_DATA.finditer(definition)]
             )
 
     return names
@@ -954,7 +966,10 @@ class WithMDIArea:
                         computation = channel["computation"]
 
                         signal = compute_signal(
-                            computation, required_channels, all_timebase
+                            computation,
+                            required_channels,
+                            all_timebase,
+                            file.mdf._fill_0_for_missing_computation_channels,
                         )
                         signal.name = channel["name"]
                         signal.unit = channel["unit"]
@@ -2307,7 +2322,12 @@ class WithMDIArea:
             for channel in computed.values():
                 computation = channel["computation"]
 
-                signal = compute_signal(computation, required_channels, all_timebase)
+                signal = compute_signal(
+                    computation,
+                    required_channels,
+                    all_timebase,
+                    self.mdf._fill_0_for_missing_computation_channels,
+                )
                 signal.name = channel["name"]
                 signal.unit = channel["unit"]
                 signal.color = channel["color"]
@@ -2670,7 +2690,12 @@ class WithMDIArea:
 
         computation = channel["computation"]
 
-        signal = compute_signal(computation, required_channels, all_timebase)
+        signal = compute_signal(
+            computation,
+            required_channels,
+            all_timebase,
+            self.mdf._fill_0_for_missing_computation_channels,
+        )
         signal.name = channel["name"]
         signal.unit = channel["unit"]
         signal.color = channel["color"]
@@ -3180,7 +3205,12 @@ class WithMDIArea:
             for sig_uuid, channel in computed.items():
                 computation = channel["computation"]
 
-                signal = compute_signal(computation, required_channels, all_timebase)
+                signal = compute_signal(
+                    computation,
+                    required_channels,
+                    all_timebase,
+                    self.mdf._fill_0_for_missing_computation_channels,
+                )
                 signal.color = channel["color"]
                 signal.computed = True
                 signal.computation = channel["computation"]

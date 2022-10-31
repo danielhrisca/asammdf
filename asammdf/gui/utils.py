@@ -19,6 +19,7 @@ import numpy as np
 from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from ..blocks.options import FloatInterpolation, IntegerInterpolation
 from ..mdf import MDF, MDF2, MDF3, MDF4
 from ..signal import Signal
 from .dialogs.error_dialog import ErrorDialog
@@ -129,6 +130,7 @@ TERMINATED = object()
 
 FONT_SIZE = [6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72]
 VARIABLE = re.compile(r"(?P<var>\{\{[^}]+\}\})")
+VARIABLE_GET_DATA = re.compile(r"get_data\s*\(\s*\"(?P<var>[^\"]+)")
 
 
 def excepthook(exc_type, exc_value, tracebackobj):
@@ -560,7 +562,42 @@ class WorkerThread(Thread):
             self.error = traceback.format_exc()
 
 
-def compute_signal(description, measured_signals, all_timebase):
+def get_data_function(signals, fill_0_for_missing_computation_channels):
+    def get_data(name, t=0, interpolated=False):
+        if name in signals:
+            samples = (
+                signals[name]
+                .interp(
+                    [t],
+                    integer_interpolation_mode=IntegerInterpolation.REPEAT_PREVIOUS_SAMPLE
+                    if not interpolated
+                    else IntegerInterpolation.LINEAR_INTERPOLATION,
+                    float_interpolation_mode=FloatInterpolation.REPEAT_PREVIOUS_SAMPLE
+                    if not interpolated
+                    else FloatInterpolation.LINEAR_INTERPOLATION,
+                )
+                .samples
+            )
+            if len(samples):
+                return samples[0]
+            else:
+                return 0
+
+        elif fill_0_for_missing_computation_channels:
+            return 0
+
+        else:
+            raise Exception(f"{name} channel was not found")
+
+    return get_data
+
+
+def compute_signal(
+    description,
+    measured_signals,
+    all_timebase,
+    fill_0_for_missing_computation_channels=False,
+):
     type_ = description["type"]
 
     try:
@@ -650,19 +687,21 @@ def compute_signal(description, measured_signals, all_timebase):
             )
 
         elif type_ == "python_function":
-            func, args_names, *_ = generate_python_function(
+            func, args_names, get_data_args, *_ = generate_python_function(
                 definition=description["definition"], name=description["channel_name"]
             )
 
+            signals_pool = {name: measured_signals[name] for name in get_data_args}
             signals = [measured_signals[name] for name in args_names]
 
-            names = [f"_v{i}_" for i, n in enumerate(args_names, 1)]
+            names = [f"_v{i}_" for i, n in enumerate(args_names, 1)] + ["t"]
 
             triggering = description.get("triggering", "triggering_on_all")
             if triggering == "triggering_on_all":
-                common_timebase = reduce(
-                    np.union1d, [sig.timestamps for sig in signals]
-                )
+                timestamps = [sig.timestamps for sig in signals]
+                if not timestamps:
+                    timestamps = [sig.timestamps for sig in signals_pool.values()]
+                common_timebase = reduce(np.union1d, timestamps)
                 signals = [
                     sig.interp(common_timebase).samples.tolist() for sig in signals
                 ]
@@ -699,6 +738,13 @@ def compute_signal(description, measured_signals, all_timebase):
                 signals = [
                     sig.interp(common_timebase).samples.tolist() for sig in signals
                 ]
+
+            signals.append(common_timebase)
+
+            get_data = get_data_function(
+                signals_pool, fill_0_for_missing_computation_channels
+            )
+            func.__globals__["get_data"] = get_data
 
             samples = [
                 func(**{arg_name: arg_val for arg_name, arg_val in zip(names, values)})
@@ -1070,6 +1116,7 @@ def generate_python_function(definition, name=""):
     if not definition:
         trace = "The function definition must not be empty"
     vars = defaultdict(list)
+    get_data_vars = set()
 
     func_name = f"PythonFunction_{os.urandom(6).hex()}"
 
@@ -1082,7 +1129,10 @@ def generate_python_function(definition, name=""):
         variable_re = re.compile(r"\{\{" + re.escape(name) + "\}\}")
         definition = variable_re.sub(f"_v{i}_", definition)
 
-    args = ", ".join(f"_v{i+1}_=0" for i in range(count))
+    for match in VARIABLE_GET_DATA.finditer(definition):
+        get_data_vars.add(match.group("var"))
+
+    args = ", ".join([f"_v{i+1}_=0" for i in range(count)] + ["t=0"])
 
     definition = indent(dedent(definition), "    ")
 
@@ -1101,7 +1151,7 @@ def {func_name}({args}):
             function_source = function_source.replace(f"_v{i}_", f"{{{{{var_name}}}}}")
         func = None
 
-    return func, list(vars), func_name, trace, function_source
+    return func, list(vars), get_data_vars, func_name, trace, function_source
 
 
 from .dialogs.define_channel import FUNCTIONS, MULTIPLE_ARGS_FUNCTIONS

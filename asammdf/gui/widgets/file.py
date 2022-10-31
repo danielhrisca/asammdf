@@ -983,6 +983,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     with open(file_name, "r") as infile:
                         info = json.load(infile)
                     channels = info.get("selected_channels", [])
+                else:
+                    return
 
                 self.loaded_display_file = file_name
 

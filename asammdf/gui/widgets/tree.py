@@ -730,6 +730,22 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                         item.color = color
 
         elif modifiers == QtCore.Qt.ControlModifier and key == QtCore.Qt.Key_C:
+            selected_items = validate_drag_items(
+                self.invisibleRootItem(), self.selectedItems(), []
+            )
+            data = get_data(self.plot, selected_items, uuids_only=False)
+            data = substitude_mime_uuids(data, None, force=True)
+            QtWidgets.QApplication.instance().clipboard().setText(json.dumps(data))
+
+        elif modifiers == QtCore.Qt.ControlModifier and key == QtCore.Qt.Key_V:
+            try:
+                data = QtWidgets.QApplication.instance().clipboard().text()
+                data = json.loads(data)
+                self.add_channels_request.emit(data)
+            except:
+                pass
+
+        elif modifiers == QtCore.Qt.ControlModifier and key == QtCore.Qt.Key_N:
             selected_items = self.selectedItems()
             if not selected_items:
                 return
@@ -878,12 +894,12 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         menu.addSeparator()
 
         if item and item.type() == ChannelsTreeItem.Channel:
-            menu.addAction(self.tr("Copy name [Ctrl+C]"))
+            menu.addAction(self.tr("Copy name [Ctrl+N]"))
             menu.addAction(self.tr("Copy display properties [Ctrl+Shift+C]"))
             menu.addAction(self.tr("Paste display properties [Ctrl+Shift+P]"))
 
-        menu.addAction(self.tr("Copy channel structure"))
-        menu.addAction(self.tr("Paste channel structure"))
+        menu.addAction(self.tr("Copy channel structure [Ctrl+C]"))
+        menu.addAction(self.tr("Paste channel structure [Ctrl+V]"))
 
         if item and item.type() == ChannelsTreeItem.Channel:
             menu.addAction(self.tr("Rename channel"))
@@ -959,7 +975,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         if action is None:
             return
 
-        if action.text() == "Copy name [Ctrl+C]":
+        if action.text() == "Copy name [Ctrl+N]":
             event = QtGui.QKeyEvent(
                 QtCore.QEvent.KeyPress, QtCore.Qt.Key_C, QtCore.Qt.ControlModifier
             )
@@ -1040,21 +1056,21 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 for item in selected_items:
                     item.comment = new_comment
 
-        elif action.text() == "Copy channel structure":
-            selected_items = validate_drag_items(
-                self.invisibleRootItem(), self.selectedItems(), []
+        elif action.text() == "Copy channel structure [Ctrl+C]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.KeyPress,
+                QtCore.Qt.Key_C,
+                QtCore.Qt.ControlModifier,
             )
-            data = get_data(self.plot, selected_items, uuids_only=False)
-            data = substitude_mime_uuids(data, None, force=True)
-            QtWidgets.QApplication.instance().clipboard().setText(json.dumps(data))
+            self.keyPressEvent(event)
 
-        elif action.text() == "Paste channel structure":
-            try:
-                data = QtWidgets.QApplication.instance().clipboard().text()
-                data = json.loads(data)
-                self.add_channels_request.emit(data)
-            except:
-                pass
+        elif action.text() == "Paste channel structure [Ctrl+V]":
+            event = QtGui.QKeyEvent(
+                QtCore.QEvent.KeyPress,
+                QtCore.Qt.Key_V,
+                QtCore.Qt.ControlModifier,
+            )
+            self.keyPressEvent(event)
 
         elif action.text() == "Copy display properties [Ctrl+Shift+C]":
             event = QtGui.QKeyEvent(

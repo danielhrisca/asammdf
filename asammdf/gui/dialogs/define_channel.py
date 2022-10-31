@@ -10,7 +10,11 @@ from PySide6 import QtWidgets
 
 from ..ui import resource_rc
 from ..ui.define_channel_dialog import Ui_ComputedChannel
-from ..utils import computation_to_python_function, generate_python_function
+from ..utils import (
+    computation_to_python_function,
+    generate_python_function,
+    get_data_function,
+)
 from .advanced_search import AdvancedSearch
 from .error_dialog import ErrorDialog
 
@@ -177,6 +181,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             if name:
                 self.operand1_name.setText(name)
                 self.function_channel.setText(name)
+                self.python_function.insertPlainText("{{" + name + "}} ")
 
         else:
 
@@ -516,6 +521,7 @@ else:
         (
             func,
             arg_names,
+            get_data_args,
             func_name,
             trace,
             function_source,
@@ -525,6 +531,9 @@ else:
                 ch if ch in allowed_chars else "_" for ch in self.name.text().strip()
             ),
         )
+
+        get_data = get_data_function({}, True)
+        func.__globals__["get_data"] = get_data
 
         if trace is not None:
             ErrorDialog(
