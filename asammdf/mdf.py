@@ -1594,6 +1594,22 @@ class MDF:
                         units_row = [units[name] for name in names_row]
                         writer.writerow(units_row)
 
+                    for col in df:
+                        if df[col].dtype.kind == "S":
+                            for encoding, errors in (
+                                ("utf-8", "strict"),
+                                ("latin-1", "strict"),
+                                ("utf-8", "replace"),
+                                ("latin-1", "replace"),
+                            ):
+                                try:
+                                    df[col] = df[col] = df[col].str.decode(
+                                        encoding, errors
+                                    )
+                                    break
+                                except:
+                                    continue
+
                     if reduce_memory_usage:
                         vals = [df.index, *(df[name] for name in df)]
                     else:

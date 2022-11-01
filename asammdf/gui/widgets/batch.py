@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timedelta, timezone
+import json
 import os
 from pathlib import Path
 from tempfile import gettempdir
@@ -1813,7 +1814,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 self,
                 "Select channel list file",
                 "",
-                "Config file (*.cfg);;TXT files (*.txt);;Display files (*.dsp);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.lab *.txt)",
+                "Config file (*.cfg);;Display files (*.dsp *.dspf);;CANape Lab file (*.lab);;All file types (*.cfg *.dsp *.dspf *.lab)",
                 "CANape Lab file (*.lab)",
             )
 
@@ -1845,19 +1846,14 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                         else:
                             channels = list(info.values())[0]
 
-                elif extension == ".cfg":
+                elif extension in (".cfg", ".dspf"):
+
                     with open(file_name, "r") as infile:
                         info = json.load(infile)
+
                     channels = info.get("selected_channels", [])
-                elif extension == ".txt":
-                    try:
-                        with open(file_name, "r") as infile:
-                            info = json.load(infile)
-                        channels = info.get("selected_channels", [])
-                    except:
-                        with open(file_name, "r") as infile:
-                            channels = [line.strip() for line in infile.readlines()]
-                            channels = [name for name in channels if name]
+                else:
+                    channels = []
 
             else:
                 info = file_name

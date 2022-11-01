@@ -420,6 +420,7 @@ else:
                 "type": "python_function",
                 "definition": function,
                 "channel_name": name,
+                "function": name,
                 "channel_unit": self.unit.text().strip(),
                 "channel_comment": self.comment.toPlainText().strip(),
                 "triggering": triggering,

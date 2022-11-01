@@ -831,6 +831,8 @@ def computation_to_python_function(description):
     else:
         new_description = description
 
+    new_description["function"] = new_description["channel_name"]
+
     return new_description
 
 

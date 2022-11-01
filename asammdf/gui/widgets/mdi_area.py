@@ -297,7 +297,7 @@ def get_functions(data):
 
     for item in data:
         if item.get("type", "channel") == "group":
-            functions.extend(get_functions(item["channels"]))
+            functions.update(get_functions(item["channels"]))
         else:
             if item.get("computed", False):
                 computation = computation_to_python_function(item["computation"])
