@@ -47,7 +47,7 @@ from .database_item import DatabaseItem
 from .flexray_bus_trace import FlexRayBusTrace
 from .gps import GPS
 from .lin_bus_trace import LINBusTrace
-from .mdi_area import MdiAreaWidget, WithMDIArea
+from .mdi_area import get_functions, MdiAreaWidget, WithMDIArea
 from .numeric import Numeric
 from .plot import Plot
 from .tabular import Tabular
@@ -920,6 +920,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             windows.append(window_config)
 
         config["windows"] = windows
+        config["functions"] = self.functions
 
         return config
 
@@ -989,6 +990,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 self.loaded_display_file = file_name
 
             else:
+                extension = None
                 info = file_name
                 channels = info.get("selected_channels", [])
                 self.loaded_display_file = info.get("display_file_name", "")
@@ -1024,8 +1026,26 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         iterator += 1
 
-            windows = info.get("windows", [])
+            if extension == ".dspf":
+                modified_functions = set()
+                if "functions" in info:
+                    for name, definition in info["functions"].items():
+                        if name in self.functions:
+                            modified_functions.add(name)
+                        self.functions[name] = definition
+                else:
+                    for window in info["windows"]:
+                        if window["type"] == "Plot":
+                            for name, definition in get_functions(
+                                window["configuration"]["channels"]
+                            ).items():
+                                if name in self.functions:
+                                    modified_functions.add(name)
+                                self.functions[name] = definition
 
+                self.update_functions(modified_functions)
+
+            windows = info.get("windows", [])
             if windows:
                 count = len(windows)
 
@@ -2893,3 +2913,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
     def update_selected_filter_channels(self):
         self.selected_filter_channels.clear()
         self.selected_filter_channels.addItems(sorted(self._selected_filter))
+
+    def update_functions(self, modified_functions):
+        for func_name in modified_functions:
+            # TO DO: update all the plots here
+            pass

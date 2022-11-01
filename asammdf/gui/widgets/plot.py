@@ -3849,7 +3849,7 @@ class _Plot(pg.PlotWidget):
             y_delta = rect.y()
             x_delta = rect.x()
 
-            if self.y_axis.grid:
+            if self.y_axis.grid and self.y_axis.isVisible():
                 for pen, p1, p2 in self.y_axis.tickSpecs:
                     y_pos = p1.y() + y_delta
                     paint.setPen(pen)
@@ -3858,7 +3858,7 @@ class _Plot(pg.PlotWidget):
                         QtCore.QPointF(event_rect.x() + event_rect.width(), y_pos),
                     )
 
-            if self.x_axis.grid:
+            if self.x_axis.grid and self.x_axis.isVisible():
                 for pen, p1, p2 in self.x_axis.tickSpecs:
                     x_pos = p1.x() + x_delta
                     paint.setPen(pen)

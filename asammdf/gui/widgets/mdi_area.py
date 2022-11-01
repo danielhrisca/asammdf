@@ -292,6 +292,22 @@ def get_flatten_entries_from_mime(data, default_index=None):
     return entries
 
 
+def get_functions(data):
+    functions = {}
+
+    for item in data:
+        if item.get("type", "channel") == "group":
+            functions.extend(get_functions(item["channels"]))
+        else:
+            if item.get("computed", False):
+                computation = computation_to_python_function(item["computation"])
+                name = item["name"]
+
+                functions[name] = computation["definition"]
+
+    return functions
+
+
 def get_pattern_groups(data):
     groups = []
     for item in data:
@@ -616,6 +632,8 @@ class WithMDIArea:
         self.cursor_horizontal_line = True
         self.cursor_line_width = 1
         self.cursor_color = "#e69138"
+
+        self.functions = {}
 
     def add_pattern_group(self, plot, group):
 

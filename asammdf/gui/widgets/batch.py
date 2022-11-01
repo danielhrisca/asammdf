@@ -2,6 +2,7 @@
 from datetime import datetime, timedelta, timezone
 import os
 from pathlib import Path
+from tempfile import gettempdir
 
 from natsort import natsorted
 import psutil
@@ -799,56 +800,41 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
             progress.cancel()
 
+    def _as_mdf(self, file_name):
+        file_name = Path(file_name)
+        suffix = file_name.suffix.lower()
+
+        if suffix in (".erg", ".bsig", ".dl3"):
+            try:
+                from mfile import BSIG, DL3, ERG
+            except ImportError:
+                from cmerg import BSIG, ERG
+
+            if suffix == ".erg":
+                cls = ERG
+            elif suffix == ".bsig":
+                cls = BSIG
+            else:
+                cls = DL3
+
+            progress.setLabelText(
+                f"Converting file {i + 1} of {count} from {suffix} to .mf4"
+            )
+
+            mdf = cls(file_name).export_mdf()
+
+        elif suffix in (".mdf", ".mf4"):
+            mdf = MDF(file_name)
+
+        return mdf
+
     def _prepare_files(self, progress):
         count = self.files_list.count()
 
         files = [Path(self.files_list.item(row).text()) for row in range(count)]
 
         for i, file_name in enumerate(files):
-            if file_name.suffix.lower() == ".erg":
-                progress.setLabelText(
-                    f"Converting file {i+1} of {count} from erg to mdf"
-                )
-                try:
-                    from mfile import ERG
-
-                    files[i] = ERG(file_name).export_mdf()
-                except Exception as err:
-                    print(err)
-                    return
-            elif file_name.suffix.lower() == ".dl3":
-                progress.setLabelText(
-                    f"Converting file {i+1} of {count} from dl3 to mdf"
-                )
-                datalyser_active = any(
-                    proc.name() == "Datalyser3.exe" for proc in psutil.process_iter()
-                )
-                try:
-                    import win32com.client
-
-                    index = 0
-                    while True:
-                        mdf_name = file_name.with_suffix(f".{index}.mdf")
-                        if mdf_name.exists():
-                            index += 1
-                        else:
-                            break
-
-                    datalyser = win32com.client.Dispatch("Datalyser3.Datalyser3_COM")
-                    if not datalyser_active:
-                        try:
-                            datalyser.DCOM_set_datalyser_visibility(False)
-                        except:
-                            pass
-                    datalyser.DCOM_convert_file_mdf_dl3(file_name, str(mdf_name), 0)
-                    if not datalyser_active:
-                        datalyser.DCOM_TerminateDAS()
-                    files[i] = mdf_name
-                except Exception as err:
-                    print(err)
-                    return
-            elif file_name.suffix.lower() in (".mdf", ".mf4"):
-                files[i] = MDF(file_name)
+            files[i] = self._as_mdf(file_name)
 
         return files
 
@@ -928,10 +914,21 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.selected_filter_channels.addItems(sorted(self._selected_filter))
 
     def search(self, event=None):
-        if not self.files_list.count():
+        count = self.files_list.count()
+        if not count:
             return
 
-        with MDF(self.files_list.item(0).text()) as mdf:
+        source_files = [Path(self.files_list.item(row).text()) for row in range(count)]
+
+        for file_name in source_files:
+            if file_name.suffix.lower() in (".mdf", ".mf4"):
+                break
+        else:
+            file_name = source_files[0]
+
+        mdf = self._as_mdf(file_name)
+
+        try:
 
             widget = self.filter_tree
             view = self.filter_view
@@ -1008,6 +1005,10 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                             item.setCheckState(0, QtCore.Qt.Checked)
 
                         iterator += 1
+        except:
+            print(format_exc())
+        finally:
+            mdf.close()
 
     def _update_channel_tree(self, index=None):
         if self.filter_view.currentIndex() == -1:
@@ -1020,7 +1021,15 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
             return
         else:
             uuid = os.urandom(6).hex()
-            with MDF(source_files[0]) as mdf:
+
+            for file_name in source_files:
+                if file_name.suffix.lower() in (".mdf", ".mf4"):
+                    break
+            else:
+                file_name = source_files[0]
+
+            mdf = self._as_mdf(file_name)
+            try:
 
                 widget = self.filter_tree
                 view = self.filter_view
@@ -1116,6 +1125,10 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                     else:
                         items.sort(key=lambda x: x.name)
                     widget.addTopLevelItems(items)
+            except:
+                print(format_exc())
+            finally:
+                mdf.close()
 
     def _current_options(self):
         options = {
