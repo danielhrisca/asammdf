@@ -1043,7 +1043,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                     modified_functions.add(name)
                                 self.functions[name] = definition
 
-                self.update_functions(modified_functions)
+                # self.update_functions(modified_functions)
 
             windows = info.get("windows", [])
             if windows:
@@ -2913,8 +2913,3 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
     def update_selected_filter_channels(self):
         self.selected_filter_channels.clear()
         self.selected_filter_channels.addItems(sorted(self._selected_filter))
-
-    def update_functions(self, modified_functions):
-        for func_name in modified_functions:
-            # TO DO: update all the plots here
-            pass

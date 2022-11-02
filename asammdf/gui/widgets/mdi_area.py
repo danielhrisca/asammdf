@@ -2655,6 +2655,14 @@ class WithMDIArea:
 
         self.windows_modified.emit()
 
+    def change_functions(self, changed_functions):
+        for new_info, old_info in changed_functions:
+            pass
+
+    def delete_functions(self, deleted_functions):
+        for info in deleted_functions:
+            pass
+
     def edit_channel(self, channel, item, widget):
         required_channels = set(get_required_from_computed(channel))
 

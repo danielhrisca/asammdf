@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 from traceback import format_exc
+from copy import deepcopy
+import os
 
 from PySide6 import QtCore, QtWidgets
 
@@ -15,24 +17,66 @@ class FunctionsManagerDialog(QtWidgets.QDialog):
         *args,
         **kwargs,
     ):
+        definitions = definitions or {}
+        definitions = {
+            name: {
+                "definition": definition,
+                "uuid": os.urandom(6).hex(),
+            }
+            for name, definition in definitions.items()
+        }
+
+        self.original_definitions = {}
+        self.modified_definitions = {}
+
+        for name, info in definitions.items():
+            self.original_definitions[info["uuid"]] = {
+                "name": name,
+                "definition": info['definition']
+            }
 
         super().__init__(*args, **kwargs)
 
         self.setObjectName("FunctionsManagerDialog")
         self.resize(404, 294)
         self.setSizeGripEnabled(True)
+        self.setWindowFlags(QtCore.Qt.Window)
         self.verticalLayout = QtWidgets.QVBoxLayout(self)
-        self.widget = FunctionsManager(definitions, channels)
+        self.widget = FunctionsManager(deepcopy(definitions), channels)
 
         self.verticalLayout.addWidget(self.widget)
 
-        self.buttonBox = QtWidgets.QDialogButtonBox(self)
-        self.buttonBox.setOrientation(QtCore.Qt.Horizontal)
-        self.buttonBox.setStandardButtons(QtWidgets.QDialogButtonBox.Cancel | QtWidgets.QDialogButtonBox.Ok)
+        self.horLayout = QtWidgets.QHBoxLayout(self)
 
-        self.verticalLayout.addWidget(self.buttonBox)
+        spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        self.apply_btn = QtWidgets.QPushButton("Apply")
+        self.cancel_btn = QtWidgets.QPushButton("Cancel")
+        self.horLayout.addSpacerItem(spacer)
+        self.horLayout.addWidget(self.apply_btn)
+        self.horLayout.addWidget(self.cancel_btn)
 
-        self.buttonBox.accepted.connect(self.apply)
-        self.buttonBox.rejected.connect(self.dismiss)
+        self.verticalLayout.addLayout(self.horLayout)
+
+        self.apply_btn.clicked.connect(self.apply)
+        self.cancel_btn.clicked.connect(self.cancel)
+        self.pressed_button = "cancel"
 
         self.setWindowTitle("Functions Manager")
+
+    def apply(self, *args):
+        self.pressed_button = "apply"
+        self.modified_definitions = {}
+
+        self.widget.refresh_definitions()
+
+        for name, info in self.widget.definitions.items():
+            self.modified_definitions[info["uuid"]] = {
+                "name": name,
+                "definition": info['definition']
+            }
+
+        self.close()
+
+    def cancel(self, *args):
+        self.pressed_button = "cancel"
+        self.close()

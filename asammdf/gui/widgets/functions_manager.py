@@ -10,20 +10,19 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..ui.functions_manager import Ui_FunctionsManager
 from ..utils import ErrorDialog, generate_python_function
-from ..dialogs.advanced_search import AdvancedSearch
+from ..dialogs.simple_search import SimpleSearch
 
 
 class FunctionsManager(Ui_FunctionsManager, QtWidgets.QWidget):
 
-    def __init__(self, definitions=None, channels=None, *args, **kwargs):
+    def __init__(self, definitions, channels=None, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
-        self.uuid = os.urandom(6).hex()
         self.channels = channels or {}
 
-        self.definitions = definitions or {}
+        self.definitions = definitions
 
         self.function_definition.setPlaceholderText(
             """The virtual channel definition is written as a Python function.
@@ -73,6 +72,10 @@ else:
             self.functions_list.addItems(names)
             self.functions_list.setCurrentRow(0)
 
+        for button in (self.add_btn, self.check_syntax_btn, self.erase_btn, self.import_btn, self.export_btn, self.search_btn):
+            button.setDefault(False)
+            button.setAutoDefault(False)
+
     def add_definition(self):
         counter = 1
         while True:
@@ -84,7 +87,7 @@ else:
 
         self.definitions[name] = {
             "definition": "",
-            "name": name,
+            "uuid": os.urandom(6).hex(),
         }
 
         self.functions_list.clear()
@@ -134,8 +137,6 @@ else:
 
             row = names.index(new_name)
             self.functions_list.setCurrentRow(row)
-
-            self._modified()
 
     def check_syntax(self):
 
@@ -191,7 +192,6 @@ else:
             )
 
     def definitions_deleted(self, deleted):
-        print(deleted)
         count = self.functions_list.count()
         names = set(self.functions_list.item(row).text() for row in range(count))
 
@@ -207,11 +207,12 @@ else:
     def definition_selection_changed(self, current, previous):
 
         if previous:
+            previous_uuid = self.definitions[previous.text()]["uuid"]
             name = self.function_name.text()
 
             self.definitions[name] = {
                 "definition": self.function_definition.toPlainText(),
-                "name": name,
+                "uuid": previous_uuid,
             }
 
         if current:
@@ -219,8 +220,8 @@ else:
 
             definition = self.definitions[name]
             self.function_name.setText("")
-            self.function_definition.setPlainText(definition["definition"])
-            self.function_name.setText(definition["name"])
+            self.function_definition.setPlainText(definition['definition'])
+            self.function_name.setText(name)
 
     def erase_definitions(self):
         self.functions_list.clear()
@@ -228,11 +229,16 @@ else:
         self.function_name.setText("")
         self.function_definition.setPlainText("")
 
+    def refresh_definitions(self):
+        name = self.function_name.text().strip()
+
+        self.definitions[name]["definition"] = self.function_definition.toPlainText()
+
     def search(self):
-        dlg = AdvancedSearch(self.main_window.signal_pool, parent=self)
+        dlg = SimpleSearch(self.channels, parent=self)
         dlg.setModal(True)
         dlg.exec()
         result = dlg.result
         if result:
-            for (device_name, function_name, device_uuid) in result:
-                self.function_definition.appendPlainText(f" {{{{{function_name}}}}}")
+            for name in result:
+                self.function_definition.insertPlainText(f" {{{{{name}}}}}")

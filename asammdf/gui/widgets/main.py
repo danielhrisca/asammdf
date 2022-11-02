@@ -13,6 +13,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...version import __version__ as libversion
 from ..dialogs.multi_search import MultiSearch
+from ..dialogs.functions_manager import FunctionsManagerDialog
 from ..ui.main_window import Ui_PyMDFMainWindow
 from ..utils import draw_color_icon
 from .batch import BatchWidget
@@ -149,6 +150,23 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         menu = QtWidgets.QMenu("Mode", self.menubar)
         menu.addActions(mode_actions.actions())
         self.menubar.addMenu(menu)
+
+        menu = QtWidgets.QMenu("Settings", self.menubar)
+        self.menubar.addMenu(menu)
+
+        # managers
+        actions = QtGui.QActionGroup(self)
+
+        action = QtGui.QAction("{: <20}\tF6".format("Functions manager"), menu)
+        action.triggered.connect(self.functions_manager)
+        action.setShortcut("F6")
+        actions.addAction(action)
+
+        menu = QtWidgets.QMenu("Managers", self.menubar)
+        menu.addActions(actions.actions())
+        self.menubar.addMenu(menu)
+
+        # settings
 
         menu = QtWidgets.QMenu("Settings", self.menubar)
         self.menubar.addMenu(menu)
@@ -1558,3 +1576,47 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
             widget = self.files.currentWidget()
             if widget:
                 widget.save_channel_list()
+
+    def functions_manager(self):
+        if self.stackedWidget.currentIndex() == 0:
+            file = self.files.currentWidget()
+            if file:
+                channels = {}
+                mdf = file.mdf
+                for name, entries in mdf.channels_db.items():
+                    gp_index, ch_index = entries[0]
+                    comment = mdf.groups[gp_index].channels[ch_index].comment
+
+                    channels[name] = comment
+
+                dlg = FunctionsManagerDialog(file.functions, channels, parent=self)
+                dlg.setModal(True)
+                dlg.exec_()
+
+                if dlg.pressed_button == 'apply':
+                    original_definitions = dlg.original_definitions
+                    modified_definitions = dlg.modified_definitions
+
+                    new_definitions = [
+                        info
+                        for uuid, info in modified_definitions
+                        if uuid not in original_definitions
+                    ]
+
+                    changed_definitions = [
+                        (info, original_definitions[uuid])
+                        for uuid, info in modified_definitions
+                        if uuid in original_definitions and info != original_definitions[uuid]
+                    ]
+
+                    deleted_definitions = [
+                        info
+                        for uuid, info in original_definitions
+                        if uuid not in modified_definitions
+                    ]
+
+                    for info in new_definitions:
+                        file.functions[info['name']] = info["definition"]
+
+                    file.delete_functions(deleted_definitions)
+                    file.change_functions(changed_definitions)

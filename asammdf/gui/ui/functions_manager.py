@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (QApplication, QGridLayout, QGroupBox, QHBoxLayout
     QPushButton, QSizePolicy, QSpacerItem, QWidget)
 
 from asammdf.gui.widgets.list import MinimalListWidget
-import resource_rc
+from . import resource_rc
 
 class Ui_FunctionsManager(object):
     def setupUi(self, FunctionsManager):
