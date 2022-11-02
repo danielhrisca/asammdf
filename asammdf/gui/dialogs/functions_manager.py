@@ -14,6 +14,7 @@ class FunctionsManagerDialog(QtWidgets.QDialog):
         definitions,
         channels=None,
         selected_definition="",
+        prefix="",
         *args,
         **kwargs,
     ):
@@ -65,7 +66,10 @@ class FunctionsManagerDialog(QtWidgets.QDialog):
         self.cancel_btn.clicked.connect(self.cancel)
         self.pressed_button = "cancel"
 
-        self.setWindowTitle("Functions Manager")
+        if prefix:
+            self.setWindowTitle(f"{prefix} - Functions Manager")
+        else:
+            self.setWindowTitle("Functions Manager")
 
     def apply(self, *args):
         self.pressed_button = "apply"

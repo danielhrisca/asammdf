@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from functools import partial
+import json
 import os
+from pathlib import Path
 import string
 from traceback import format_exc
 
@@ -52,7 +54,7 @@ else:
         self.functions_list.minimal_menu = True
         self.functions_list.all_texts = True
         self.functions_list.placeholder_text = (
-            "Press the + button to add a new virtual channel"
+            "Press the + button to add a new function definition"
         )
         self.functions_list.user_editable = True
         self.functions_list.setAlternatingRowColors(True)
@@ -68,6 +70,8 @@ else:
         self.check_syntax_btn.clicked.connect(self.check_syntax)
         self.erase_btn.clicked.connect(self.erase_definitions)
         self.search_btn.clicked.connect(self.search)
+        self.export_btn.clicked.connect(self.export_definitions)
+        self.import_btn.clicked.connect(self.import_definitions)
 
         if self.definitions:
             self.functions_list.clear()
@@ -75,7 +79,7 @@ else:
             self.functions_list.addItems(names)
             if selected_definition in names:
                 self.functions_list.setCurrentRow(names.index(selected_definition))
-            else:
+            elif names:
                 self.functions_list.setCurrentRow(0)
 
         for button in (
@@ -138,10 +142,10 @@ else:
 
         else:
             item.setText(new_name)
-            del self.definitions[current_name]
+            info = self.definitions.pop(current_name)
             self.definitions[new_name] = {
                 "definition": self.function_definition.toPlainText(),
-                "name": new_name,
+                "uuid": info["uuid"],
             }
 
             self.functions_list.clear()
@@ -242,10 +246,61 @@ else:
         self.function_name.setText("")
         self.function_definition.setPlainText("")
 
+    def export_definitions(self, *args):
+        self.refresh_definitions()
+
+        file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self,
+            "Select functions definition export file",
+            "",
+            "Functions definition file (*.def)",
+        )
+
+        if file_name:
+
+            definitions = {
+                name: info["definition"] for name, info in self.definitions.items()
+            }
+            Path(file_name).write_text(json.dumps(definitions, indent=2))
+
+    def import_definitions(self, *args):
+        self.refresh_definitions()
+
+        file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self,
+            "Select functions definition file",
+            "",
+            "Functions definitions file (*.def)",
+            "Functions definitions file (*.def)",
+        )
+
+        if file_name:
+            file_name = Path(file_name)
+
+            with open(file_name, "r") as infile:
+                info = json.load(infile)
+
+            for name, definition in info.items():
+                if name in self.definitions:
+                    self.definitions[name]["definition"] = definition
+                else:
+                    self.definitions[name] = {
+                        "definition": definition,
+                        "uuid": os.urandom(6).hex(),
+                    }
+
+            self.functions_list.clear()
+            names = natsorted(self.definitions)
+            self.functions_list.addItems(names)
+            if names:
+                self.functions_list.setCurrentRow(0)
+
     def refresh_definitions(self):
         name = self.function_name.text().strip()
-
-        self.definitions[name]["definition"] = self.function_definition.toPlainText()
+        if name in self.definitions:
+            self.definitions[name][
+                "definition"
+            ] = self.function_definition.toPlainText()
 
     def search(self):
         dlg = SimpleSearch(self.channels, parent=self)

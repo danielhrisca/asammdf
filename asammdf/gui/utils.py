@@ -17,6 +17,7 @@ import lxml
 import natsort
 from numexpr import evaluate
 import numpy as np
+import pandas as pd
 from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 

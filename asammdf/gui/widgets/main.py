@@ -1599,20 +1599,20 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
                     new_definitions = [
                         info
-                        for uuid, info in modified_definitions
+                        for uuid, info in modified_definitions.items()
                         if uuid not in original_definitions
                     ]
 
                     changed_definitions = [
                         (info, original_definitions[uuid])
-                        for uuid, info in modified_definitions
+                        for uuid, info in modified_definitions.items()
                         if uuid in original_definitions
                         and info != original_definitions[uuid]
                     ]
 
                     deleted_definitions = [
                         info
-                        for uuid, info in original_definitions
+                        for uuid, info in original_definitions.items()
                         if uuid not in modified_definitions
                     ]
 
