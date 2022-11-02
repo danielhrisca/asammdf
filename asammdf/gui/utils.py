@@ -251,6 +251,7 @@ def load_dsp(file, background="#000000", flat=False):
                         "color": f"#{c:06X}",
                         "common_axis": False,
                         "computed": False,
+                        "flags": 0,
                         "comment": comment,
                         "enabled": elem.get("on") == "1",
                         "fmt": "{}",
@@ -411,6 +412,7 @@ def load_dsp(file, background="#000000", flat=False):
                 "triggering": "triggering_on_all",
                 "triggering_value": "all",
             },
+            "flags": int(Signal.Flags.computed | Signal.Flags.user_defined_conversion),
             "enabled": True,
             "fmt": "{}",
             "individual_axis": False,
@@ -622,91 +624,7 @@ def compute_signal(
 
     try:
 
-        if type_ == "arithmetic":
-            op = description["op"]
-
-            operand1 = description["operand1"]
-            if isinstance(operand1, dict):
-                operand1 = compute_signal(operand1, measured_signals, all_timebase)
-            elif isinstance(operand1, str):
-                operand1 = measured_signals[operand1]
-
-            operand2 = description["operand2"]
-            if isinstance(operand2, dict):
-                operand2 = compute_signal(operand2, measured_signals, all_timebase)
-            elif isinstance(operand2, str):
-                operand2 = measured_signals[operand2]
-
-            result = eval(f"operand1 {op} operand2")
-            if not hasattr(result, "name"):
-                result = Signal(
-                    name="_",
-                    samples=np.ones(len(all_timebase)) * result,
-                    timestamps=all_timebase,
-                )
-
-        elif type_ == "function":
-            function = description["name"]
-            args = description["args"]
-
-            channel = description["channel"]
-
-            if isinstance(channel, dict):
-                channel = compute_signal(channel, measured_signals, all_timebase)
-            else:
-                channel = measured_signals[channel]
-
-            func = getattr(np, function)
-
-            if function not in MULTIPLE_ARGS_FUNCTIONS:
-
-                samples = func(channel.samples)
-                if function == "diff":
-                    timestamps = channel.timestamps[1:]
-                else:
-                    timestamps = channel.timestamps
-
-            elif function == "round":
-                samples = func(channel.samples, *args)
-                timestamps = channel.timestamps
-            elif function == "clip":
-                samples = func(channel.samples, *args)
-                timestamps = channel.timestamps
-
-            result = Signal(samples=samples, timestamps=timestamps, name="_")
-
-        elif type_ == "expression":
-            expression_string = description["expression"]
-            expression_string = "".join(expression_string.splitlines())
-            names = [
-                match.group("name") for match in SIG_RE.finditer(expression_string)
-            ]
-            positions = [
-                (i, match.start(), match.end())
-                for i, match in enumerate(SIG_RE.finditer(expression_string))
-            ]
-            positions.reverse()
-
-            expression = expression_string
-            for idx, start, end in positions:
-                expression = expression[:start] + f"X_{idx}" + expression[end:]
-
-            signals = [measured_signals[name] for name in names]
-            common_timebase = reduce(np.union1d, [sig.timestamps for sig in signals])
-            signals = {
-                f"X_{i}": sig.interp(common_timebase).samples
-                for i, sig in enumerate(signals)
-            }
-
-            samples = evaluate(expression, local_dict=signals)
-
-            result = Signal(
-                name="_",
-                samples=samples,
-                timestamps=common_timebase,
-            )
-
-        elif type_ == "python_function":
+        if type_ == "python_function":
             func, args_names, get_data_args, *_ = generate_python_function(
                 definition=functions.get(
                     description["function"], description["definition"]
@@ -778,6 +696,7 @@ def compute_signal(
                 name="_",
                 samples=samples,
                 timestamps=common_timebase,
+                flags=Signal.Flags.computed,
             )
 
     except:
@@ -786,6 +705,7 @@ def compute_signal(
             name="_",
             samples=[],
             timestamps=[],
+            flags=Signal.Flags.computed,
         )
 
     return result

@@ -82,6 +82,7 @@ class Signal(object):
         user_defined_comment = 0x1
         user_defined_conversion = 0x2
         user_defined_unit = 0x4
+        user_defined_name = 0x8
         stream_sync = 0x10
         computed = 0x20
 

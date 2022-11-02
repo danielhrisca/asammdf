@@ -80,7 +80,7 @@ def get_origin_uuid(item):
 
 
 def build_mime_from_config(
-    items, mdf=None, origin_uuid=None, default_index=NOT_FOUND, top=True
+    items, mdf=None, origin_uuid=None, default_index=NOT_FOUND, top=True, has_flags=None
 ):
 
     if top:
@@ -105,7 +105,12 @@ def build_mime_from_config(
                     new_not_found,
                     new_computed,
                 ) = build_mime_from_config(
-                    item["channels"], mdf, origin_uuid, default_index, top=False
+                    item["channels"],
+                    mdf,
+                    origin_uuid,
+                    default_index,
+                    top=False,
+                    has_flags=has_flags,
                 )
                 descriptions.update(new_descriptions)
                 found.update(new_found)
@@ -120,7 +125,32 @@ def build_mime_from_config(
         else:
             descriptions[uuid] = item
 
-            if item.get("computed", False):
+            if has_flags is None:
+                has_flags = "flags" in item
+
+            if has_flags:
+                item["flags"] = Signal.Flags(item["flags"])
+                item_is_computed = item["flags"] & Signal.Flags.computed
+
+            else:
+                item_is_computed = item.get("computed", False)
+                flags = Signal.Flags.no_flags
+
+                if "comment" in item:
+                    flags |= Signal.Flags.user_defined_comment
+
+                if "conversion" in item:
+                    flags |= Signal.Flags.user_defined_conversion
+
+                if "user_defined_name" in item:
+                    flags |= Signal.Flags.user_defined_name
+
+                if item_is_computed:
+                    flags |= Signal.Flags.computed
+
+                item["flags"] = flags
+
+            if item_is_computed:
                 group_index, channel_index = -1, -1
                 computed[uuid] = item
                 item["computation"] = computation_to_python_function(
@@ -413,34 +443,6 @@ def get_required_from_computed(channel, functions):
             )
 
     return names
-
-
-def get_required_from_descriptions(channels, mdf):
-    required, found, not_found, computed = {}, {}, {}, {}
-    for channel in channels:
-        if channel.get("type", "channel") == "group":
-            (
-                new_required,
-                new_found,
-                new_not_found,
-                new_computed,
-            ) = get_required_from_descriptions(channel["channels"], mdf)
-            required.update(new_required)
-            found.update(new_found)
-            not_found.update(new_not_found)
-            computed.update(new_computed)
-        else:
-            if channel.get("computed", False):
-                computed[channel["uuid"]] = channel
-            name = channel["name"]
-            required.add(name)
-
-            if name in mdf:
-                found[name] = channel
-            elif not channel.get("computed", False):
-                not_found.add(name)
-
-    return required, found, not_found, computed
 
 
 def substitude_mime_uuids(mime, uuid=None, force=False):
@@ -1005,9 +1007,13 @@ class WithMDIArea:
                         )
                         signal.uuid = channel.get("uuid", os.urandom(6).hex())
 
-                        if "conversion" in channel:
+                        if channel["flags"] & Signal.Flags.user_defined_conversion:
                             signal.conversion = from_dict(channel["conversion"])
+                            signal.flags |= signal.Flags.user_defined_conversion
+
+                        if channel["flags"] & Signal.Flags.user_defined_name:
                             signal.name = channel["user_defined_name"]
+                            signal.flags |= signal.Flags.user_defined_name
 
                         computed_signals[signal.uuid] = signal
                     signals.update(computed_signals)
@@ -1023,6 +1029,14 @@ class WithMDIArea:
                     sig.group_index = NOT_FOUND
                     sig.channel_index = NOT_FOUND
                     sig.color = entry.get("color", None)
+
+                    if entry["flags"] & Signal.Flags.user_defined_conversion:
+                        signal.conversion = from_dict(entry["conversion"])
+                        signal.flags |= signal.Flags.user_defined_conversion
+
+                    if entry["flags"] & Signal.Flags.user_defined_name:
+                        signal.name = entry["user_defined_name"]
+                        signal.flags |= signal.Flags.user_defined_name
 
                     signals[sig.uuid] = sig
 
@@ -2277,6 +2291,14 @@ class WithMDIArea:
             if "color" in sig_:
                 sig.color = sig_["color"]
 
+            if sig_["flags"] & Signal.Flags.user_defined_conversion:
+                signal.conversion = from_dict(sig_["conversion"])
+                signal.flags |= signal.Flags.user_defined_conversion
+
+            if sig_["flags"] & Signal.Flags.user_defined_name:
+                signal.name = sig_["user_defined_name"]
+                signal.flags |= signal.Flags.user_defined_name
+
             signals[uuid] = sig
 
         if computed:
@@ -2361,9 +2383,13 @@ class WithMDIArea:
                 signal.comment = channel["computation"].get("channel_comment", "")
                 signal.uuid = channel.get("uuid", os.urandom(6).hex())
 
-                if "conversion" in channel:
+                if channel["flags"] & Signal.Flags.user_defined_conversion:
                     signal.conversion = from_dict(channel["conversion"])
+                    signal.flags |= signal.Flags.user_defined_conversion
+
+                if channel["flags"] & Signal.Flags.user_defined_name:
                     signal.name = channel["user_defined_name"]
+                    signal.flags |= signal.Flags.user_defined_name
 
                 computed_signals[signal.uuid] = signal
 
@@ -2739,9 +2765,13 @@ class WithMDIArea:
         signal.comment = channel["computation"].get("channel_comment", "")
         signal.uuid = channel.get("uuid", os.urandom(6).hex())
 
-        if "conversion" in channel:
+        if channel["flags"] & Signal.Flags.user_defined_conversion:
             signal.conversion = from_dict(channel["conversion"])
+            signal.flags |= signal.Flags.user_defined_conversion
+
+        if channel["flags"] & Signal.Flags.user_defined_name:
             signal.name = channel["user_defined_name"]
+            signal.flags |= signal.Flags.user_defined_name
 
         old_name = item.name
         new_name = signal.name
@@ -2755,8 +2785,12 @@ class WithMDIArea:
         item.signal.computation = signal.computation
 
         item.setToolTip(item.NameColumn, f"{signal.name}\n{signal.comment}")
-        item.name = new_name
-        item.unit = signal.unit
+
+        if old_name != new_name:
+            item.name = new_name
+
+        if item.unit != signal.unit:
+            item.unit = signal.unit
         widget.cursor_moved()
         widget.range_modified()
 
@@ -3256,9 +3290,13 @@ class WithMDIArea:
                 signal.origin_uuid = self.uuid
                 signal.uuid = sig_uuid
 
-                if "conversion" in channel:
+                if channel["flags"] & Signal.Flags.user_defined_conversion:
                     signal.conversion = from_dict(channel["conversion"])
+                    signal.flags |= signal.Flags.user_defined_conversion
+
+                if channel["flags"] & Signal.Flags.user_defined_name:
                     signal.name = channel["user_defined_name"]
+                    signal.flags |= signal.Flags.user_defined_name
 
                 plot_signals[sig_uuid] = signal
 
@@ -3281,6 +3319,14 @@ class WithMDIArea:
                 sig.group_index = NOT_FOUND
                 sig.channel_index = NOT_FOUND
                 sig.color = description["color"]
+
+                if descriptions["flags"] & Signal.Flags.user_defined_conversion:
+                    signal.conversion = from_dict(descriptions["conversion"])
+                    signal.flags |= signal.Flags.user_defined_conversion
+
+                if descriptions["flags"] & Signal.Flags.user_defined_name:
+                    signal.name = descriptions["user_defined_name"]
+                    signal.flags |= signal.Flags.user_defined_name
 
                 signals[uuid] = sig
 

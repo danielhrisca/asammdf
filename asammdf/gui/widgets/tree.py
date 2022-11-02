@@ -1827,7 +1827,11 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         if type == self.Group:
             self._name = text
         elif type == self.Channel:
-            self.signal.name = text
+
+            if text != self.signal.name:
+                self.signal.name = text
+                self.signal.flags |= Signal.Flags.user_defined_name
+
         else:
             self._name = text
         self.setText(self.NameColumn, self.name)
@@ -2110,7 +2114,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
     @unit.setter
     def unit(self, text):
-        if self.type() == self.Channel:
+        if self.type() == self.Channel and self.signal.unit != text:
             self.signal.unit = text
             self.signal.flags |= Signal.Flags.user_defined_unit
             self.setText(self.UnitColumn, text)
