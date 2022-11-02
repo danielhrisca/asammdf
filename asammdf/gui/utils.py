@@ -14,6 +14,7 @@ import traceback
 from traceback import format_exc
 
 import lxml
+import natsort
 from numexpr import evaluate
 import numpy as np
 from pyqtgraph import functions as fn
@@ -131,6 +132,7 @@ TERMINATED = object()
 FONT_SIZE = [6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72]
 VARIABLE = re.compile(r"(?P<var>\{\{[^}]+\}\})")
 VARIABLE_GET_DATA = re.compile(r"get_data\s*\(\s*\"(?P<var>[^\"]+)")
+C_FUNCTION = re.compile(r"\s+(?P<function>\S+)\s*\(\s*struct\s+DATA\s+\*data\s*\)")
 
 
 def excepthook(exc_type, exc_value, tracebackobj):
@@ -374,10 +376,25 @@ def load_dsp(file, background="#000000", flat=False):
 
         return channels
 
+    def parse_c_functions(display):
+        c_functions = set()
+
+        if display is None:
+            return c_functions
+
+        for item in display.findall("CALC_FUNC"):
+            string = item.text
+
+            for match in C_FUNCTION.finditer(string):
+                c_functions.add(match.group("function"))
+
+        return natsort.natsorted(c_functions)
+
     dsp = Path(file).read_bytes().replace(b"\0", b"")
     dsp = lxml.etree.fromstring(dsp)
 
     channels = parse_channels(dsp.find("DISPLAY_INFO"))
+    c_functions = parse_c_functions(dsp)
 
     virtual_channels = [
         {
@@ -428,6 +445,7 @@ def load_dsp(file, background="#000000", flat=False):
         "selected_channels": [],
         "windows": [],
         "has_virtual_channels": bool(virtual_channels),
+        "c_functions": c_functions,
     }
 
     if flat:
@@ -596,6 +614,7 @@ def compute_signal(
     description,
     measured_signals,
     all_timebase,
+    functions,
     fill_0_for_missing_computation_channels=False,
 ):
     type_ = description["type"]
@@ -688,7 +707,10 @@ def compute_signal(
 
         elif type_ == "python_function":
             func, args_names, get_data_args, *_ = generate_python_function(
-                definition=description["definition"], name=description["channel_name"]
+                definition=functions.get(
+                    description["function"], description["definition"]
+                ),
+                name=description["channel_name"],
             )
 
             signals_pool = {name: measured_signals[name] for name in get_data_args}
@@ -1155,8 +1177,6 @@ def {func_name}({args}):
 
     return func, list(vars), get_data_vars, func_name, trace, function_source
 
-
-from .dialogs.define_channel import FUNCTIONS, MULTIPLE_ARGS_FUNCTIONS
 
 if __name__ == "__main__":
     pass

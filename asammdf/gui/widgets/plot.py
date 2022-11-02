@@ -1391,10 +1391,12 @@ class Plot(QtWidgets.QWidget):
         cursor_line_width=1,
         cursor_color="#ffffff",
         region_values_display_mode="delta",
+        owner=None,
         *args,
         **kwargs,
     ):
         events = kwargs.pop("events", None)
+        self.owner = owner
         super().__init__(*args, **kwargs)
         self.closed = False
         self.line_interconnect = line_interconnect
@@ -2340,6 +2342,7 @@ class Plot(QtWidgets.QWidget):
 
         self.channel_selection.blockSignals(True)
         self.plot.blockSignals(True)
+        self.owner = None
 
         tree = self.channel_selection
         tree.plot = None
@@ -3988,12 +3991,23 @@ class _Plot(pg.PlotWidget):
     def insert_computation(self, name=""):
 
         computed_signals = {sig.name: sig for sig in self.signals if sig.computed}
+
+        functions = list(self.plot_parent.owner.functions)
+        if not functions:
+            QtWidgets.QMessageBox.warning(
+                self,
+                f"Cannot add computed channel",
+                f"There is no user defined function. Create new function using the Functions Manger (F6)",
+            )
+            return
+
         dlg = DefineChannel(
             mdf=self.mdf,
             name=name,
             computation=None,
             computed_signals=computed_signals,
             parent=self,
+            functions=functions,
         )
         dlg.setModal(True)
         dlg.exec_()

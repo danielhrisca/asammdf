@@ -12,8 +12,8 @@ import pyqtgraph as pg
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...version import __version__ as libversion
-from ..dialogs.multi_search import MultiSearch
 from ..dialogs.functions_manager import FunctionsManagerDialog
+from ..dialogs.multi_search import MultiSearch
 from ..ui.main_window import Ui_PyMDFMainWindow
 from ..utils import draw_color_icon
 from .batch import BatchWidget
@@ -1593,7 +1593,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                 dlg.setModal(True)
                 dlg.exec_()
 
-                if dlg.pressed_button == 'apply':
+                if dlg.pressed_button == "apply":
                     original_definitions = dlg.original_definitions
                     modified_definitions = dlg.modified_definitions
 
@@ -1606,7 +1606,8 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                     changed_definitions = [
                         (info, original_definitions[uuid])
                         for uuid, info in modified_definitions
-                        if uuid in original_definitions and info != original_definitions[uuid]
+                        if uuid in original_definitions
+                        and info != original_definitions[uuid]
                     ]
 
                     deleted_definitions = [
@@ -1616,7 +1617,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                     ]
 
                     for info in new_definitions:
-                        file.functions[info['name']] = info["definition"]
+                        file.functions[info["name"]] = info["definition"]
 
                     file.delete_functions(deleted_definitions)
                     file.change_functions(changed_definitions)

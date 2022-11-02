@@ -5,14 +5,15 @@ Created on Thu Feb 28 12:27:37 2019
 @author: uidn3651
 """
 
+from functools import partial
 import re
 import sys
-from functools import partial
 from traceback import format_exc
 
-from asammdf.gui.utils import excepthook
 from natsort import natsorted
 from PySide6 import QtCore, QtWidgets
+
+from asammdf.gui.utils import excepthook
 
 from ..ui.simple_search_dialog import Ui_SimpleSearchDialog
 

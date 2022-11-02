@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-from traceback import format_exc
 from copy import deepcopy
 import os
+from traceback import format_exc
 
 from PySide6 import QtCore, QtWidgets
 
@@ -9,11 +9,11 @@ from ..widgets.functions_manager import FunctionsManager
 
 
 class FunctionsManagerDialog(QtWidgets.QDialog):
-
     def __init__(
         self,
         definitions,
         channels=None,
+        selected_definition="",
         *args,
         **kwargs,
     ):
@@ -32,7 +32,7 @@ class FunctionsManagerDialog(QtWidgets.QDialog):
         for name, info in definitions.items():
             self.original_definitions[info["uuid"]] = {
                 "name": name,
-                "definition": info['definition']
+                "definition": info["definition"],
             }
 
         super().__init__(*args, **kwargs)
@@ -42,13 +42,17 @@ class FunctionsManagerDialog(QtWidgets.QDialog):
         self.setSizeGripEnabled(True)
         self.setWindowFlags(QtCore.Qt.Window)
         self.verticalLayout = QtWidgets.QVBoxLayout(self)
-        self.widget = FunctionsManager(deepcopy(definitions), channels)
+        self.widget = FunctionsManager(
+            deepcopy(definitions), channels, selected_definition
+        )
 
         self.verticalLayout.addWidget(self.widget)
 
         self.horLayout = QtWidgets.QHBoxLayout(self)
 
-        spacer = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
+        spacer = QtWidgets.QSpacerItem(
+            40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum
+        )
         self.apply_btn = QtWidgets.QPushButton("Apply")
         self.cancel_btn = QtWidgets.QPushButton("Cancel")
         self.horLayout.addSpacerItem(spacer)
@@ -72,7 +76,7 @@ class FunctionsManagerDialog(QtWidgets.QDialog):
         for name, info in self.widget.definitions.items():
             self.modified_definitions[info["uuid"]] = {
                 "name": name,
-                "definition": info['definition']
+                "definition": info["definition"],
             }
 
         self.close()

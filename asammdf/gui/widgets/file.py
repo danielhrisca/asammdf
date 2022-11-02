@@ -956,12 +956,25 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     palette = self.palette()
                     info = load_dsp(file_name, palette.color(palette.Base).name())
                     if info.get("has_virtual_channels", False):
-                        QtWidgets.QMessageBox.information(
-                            self,
-                            "DSP loading warning",
+                        message = (
                             "The DSP file contains virtual channels that are not supported.\n"
-                            'For tracking pupose, the virtual channels will appear as regular (no computation) cahnnels inside the group "Datalyser Virtual channels"',
+                            'For tracking purpose, the virtual channels will appear as regular (no computation) channels inside the group "Datalyser Virtual channels"'
                         )
+                        c_functions = info.get("c_functions", [])
+
+                        msg = QtWidgets.QMessageBox(
+                            QtWidgets.QMessageBox.Information,
+                            "DSP loading warning",
+                            message,
+                            parent=self,
+                        )
+                        if c_functions:
+                            msg.setInformativeText(
+                                'The user defined C function will NOT be available. Press "Show details" for the complete list'
+                            )
+                            msg.setDetailedText("\n".join(c_functions))
+
+                        msg.exec()
                     channels = info.get("display", [])
 
                 elif extension == ".lab":
@@ -1027,12 +1040,25 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         iterator += 1
 
             if extension == ".dspf":
-                modified_functions = set()
+
+                modified_functions = []
+
                 if "functions" in info:
                     for name, definition in info["functions"].items():
                         if name in self.functions:
-                            modified_functions.add(name)
-                        self.functions[name] = definition
+                            if self.functions[name] != definition:
+                                modified_functions.append(
+                                    (
+                                        {"name": name, "definition": definition},
+                                        {
+                                            "name": name,
+                                            "definition": self.functions[name],
+                                        },
+                                    )
+                                )
+                        else:
+                            self.functions[name] = definition
+
                 else:
                     for window in info["windows"]:
                         if window["type"] == "Plot":
@@ -1040,10 +1066,24 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                                 window["configuration"]["channels"]
                             ).items():
                                 if name in self.functions:
-                                    modified_functions.add(name)
-                                self.functions[name] = definition
+                                    if self.functions[name] != definition:
+                                        modified_functions.append(
+                                            (
+                                                {
+                                                    "name": name,
+                                                    "definition": definition,
+                                                },
+                                                {
+                                                    "name": name,
+                                                    "definition": self.functions[name],
+                                                },
+                                            )
+                                        )
+                                else:
+                                    self.functions[name] = definition
 
-                # self.update_functions(modified_functions)
+                if modified_functions:
+                    self.change_functions(modified_functions)
 
             windows = info.get("windows", [])
             if windows:

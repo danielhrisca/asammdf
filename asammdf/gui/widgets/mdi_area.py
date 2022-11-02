@@ -319,7 +319,7 @@ def get_pattern_groups(data):
     return groups
 
 
-def get_required_from_computed(channel):
+def get_required_from_computed(channel, functions):
     names = []
     if "computed" in channel:
         if channel["computed"]:
@@ -350,7 +350,7 @@ def get_required_from_computed(channel):
                     ]
                 )
             elif computation["type"] == "python_function":
-                definition = computation["definition"]
+                definition = functions.get(computation["function"], "")
 
                 names.extend(
                     [
@@ -915,7 +915,9 @@ class WithMDIArea:
 
                     required_channels = []
                     for ch in computed:
-                        required_channels.extend(get_required_from_computed(ch))
+                        required_channels.extend(
+                            get_required_from_computed(ch, self.functions)
+                        )
 
                     required_channels = set(required_channels)
 
@@ -987,6 +989,7 @@ class WithMDIArea:
                             computation,
                             required_channels,
                             all_timebase,
+                            self.functions,
                             file.mdf._fill_0_for_missing_computation_channels,
                         )
                         signal.name = channel["name"]
@@ -2290,7 +2293,7 @@ class WithMDIArea:
             required_channels = []
 
             for ch in computed.values():
-                required_channels.extend(get_required_from_computed(ch))
+                required_channels.extend(get_required_from_computed(ch, self.functions))
 
             required_channels = set(required_channels)
             required_channels_list = [
@@ -2344,6 +2347,7 @@ class WithMDIArea:
                     computation,
                     required_channels,
                     all_timebase,
+                    self.functions,
                     self.mdf._fill_0_for_missing_computation_channels,
                 )
                 signal.name = channel["name"]
@@ -2435,6 +2439,7 @@ class WithMDIArea:
             show_cursor_horizontal_line=self.cursor_horizontal_line,
             cursor_line_width=self.cursor_line_width,
             cursor_color=self.cursor_color,
+            owner=self,
         )
         plot.pattern_group_added.connect(self.add_pattern_group)
         plot.pattern = {}
@@ -2664,7 +2669,7 @@ class WithMDIArea:
             pass
 
     def edit_channel(self, channel, item, widget):
-        required_channels = set(get_required_from_computed(channel))
+        required_channels = set(get_required_from_computed(channel, self.functions))
 
         not_found_for_computed = [
             channel for channel in required_channels if channel not in self.mdf
@@ -2720,6 +2725,7 @@ class WithMDIArea:
             computation,
             required_channels,
             all_timebase,
+            self.functions,
             self.mdf._fill_0_for_missing_computation_channels,
         )
         signal.name = channel["name"]
@@ -2761,7 +2767,9 @@ class WithMDIArea:
                 continue
 
             if channel.computed:
-                required_channels = set(get_required_from_computed(channel.computation))
+                required_channels = set(
+                    get_required_from_computed(channel.computation, self.functions)
+                )
                 if old_name in required_channels:
                     item = widget.item_by_uuid
 
@@ -3179,7 +3187,7 @@ class WithMDIArea:
 
             required_channels = []
             for ch in computed.values():
-                required_channels.extend(get_required_from_computed(ch))
+                required_channels.extend(get_required_from_computed(ch, self.functions))
 
             required_channels = set(required_channels)
 
@@ -3235,6 +3243,7 @@ class WithMDIArea:
                     computation,
                     required_channels,
                     all_timebase,
+                    self.functions,
                     self.mdf._fill_0_for_missing_computation_channels,
                 )
                 signal.color = channel["color"]
@@ -3344,6 +3353,7 @@ class WithMDIArea:
             show_cursor_horizontal_line=self.cursor_horizontal_line,
             cursor_line_width=self.cursor_line_width,
             cursor_color=self.cursor_color,
+            owner=self,
         )
         plot.pattern_group_added.connect(self.add_pattern_group)
         plot.pattern = pattern_info

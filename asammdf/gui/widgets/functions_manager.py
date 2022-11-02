@@ -1,21 +1,22 @@
 # -*- coding: utf-8 -*-
+from functools import partial
 import os
 import string
-from functools import partial
 from traceback import format_exc
 
-import numpy as np
 from natsort import natsorted
+import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from ..dialogs.simple_search import SimpleSearch
 from ..ui.functions_manager import Ui_FunctionsManager
 from ..utils import ErrorDialog, generate_python_function
-from ..dialogs.simple_search import SimpleSearch
 
 
 class FunctionsManager(Ui_FunctionsManager, QtWidgets.QWidget):
-
-    def __init__(self, definitions, channels=None, *args, **kwargs):
+    def __init__(
+        self, definitions, channels=None, selected_definition="", *args, **kwargs
+    ):
 
         super().__init__(*args, **kwargs)
         self.setupUi(self)
@@ -56,7 +57,9 @@ else:
         self.functions_list.user_editable = True
         self.functions_list.setAlternatingRowColors(True)
 
-        self.functions_list.currentItemChanged.connect(self.definition_selection_changed)
+        self.functions_list.currentItemChanged.connect(
+            self.definition_selection_changed
+        )
         self.functions_list.itemsDeleted.connect(self.definitions_deleted)
 
         self.function_name.editingFinished.connect(self.function_name_edited)
@@ -70,9 +73,19 @@ else:
             self.functions_list.clear()
             names = natsorted(self.definitions)
             self.functions_list.addItems(names)
-            self.functions_list.setCurrentRow(0)
+            if selected_definition in names:
+                self.functions_list.setCurrentRow(names.index(selected_definition))
+            else:
+                self.functions_list.setCurrentRow(0)
 
-        for button in (self.add_btn, self.check_syntax_btn, self.erase_btn, self.import_btn, self.export_btn, self.search_btn):
+        for button in (
+            self.add_btn,
+            self.check_syntax_btn,
+            self.erase_btn,
+            self.import_btn,
+            self.export_btn,
+            self.search_btn,
+        ):
             button.setDefault(False)
             button.setAutoDefault(False)
 
@@ -220,7 +233,7 @@ else:
 
             definition = self.definitions[name]
             self.function_name.setText("")
-            self.function_definition.setPlainText(definition['definition'])
+            self.function_definition.setPlainText(definition["definition"])
             self.function_name.setText(name)
 
     def erase_definitions(self):
