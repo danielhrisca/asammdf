@@ -294,7 +294,6 @@ class ConversionEditor(Ui_ConversionDialog, QtWidgets.QDialog):
                 }
 
             conversion = from_dict(conversion)
-            conversion.is_user_defined = True
 
         return conversion
 

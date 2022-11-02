@@ -224,7 +224,7 @@ class ScaleDialog(Ui_ScaleDialog, QtWidgets.QDialog):
 
     def signal_selected(self, name):
         signal = self.signals[name].copy()
-        signal.computed = False
+        signal.flags &= ~signal.Flags.computed
         signal.computation = {}
 
         signal = PlotSignal(signal)

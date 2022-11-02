@@ -2900,7 +2900,7 @@ class MDF4(MDF_Common):
                     if sig_dtype.kind == "u" and signal.bit_count <= 4:
                         s_size = signal.bit_count
 
-                    if signal.stream_sync:
+                    if signal.flags & signal.Flags.stream_sync:
                         channel_type = v4c.CHANNEL_TYPE_SYNC
                         if signal.attachment:
                             at_data, at_name, hash_sum = signal.attachment
@@ -3852,7 +3852,7 @@ class MDF4(MDF_Common):
                 if sig_dtype.kind == "u" and signal.bit_count <= 4:
                     s_size = signal.bit_count
 
-                if signal.stream_sync:
+                if signal.flags & signal.Flags.stream_sync:
                     channel_type = v4c.CHANNEL_TYPE_SYNC
                     if signal.attachment:
                         at_data, at_name, hash_sum = signal.attachment
@@ -6665,7 +6665,10 @@ class MDF4(MDF_Common):
 
             master_metadata = self._master_channel_metadata.get(gp_nr, None)
 
-            stream_sync = channel_type == v4c.CHANNEL_TYPE_SYNC
+            if channel_type == v4c.CHANNEL_TYPE_SYNC:
+                flags = Signal.Flags.stream_sync
+            else:
+                flags = Signal.Flags.no_flags
 
             try:
                 res = Signal(
@@ -6681,7 +6684,7 @@ class MDF4(MDF_Common):
                     source=source,
                     display_names=channel.display_names,
                     bit_count=channel.bit_count,
-                    stream_sync=stream_sync,
+                    flags=flags,
                     invalidation_bits=invalidation_bits,
                     encoding=encoding,
                     group_index=gp_nr,

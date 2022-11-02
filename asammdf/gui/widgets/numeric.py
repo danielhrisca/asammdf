@@ -1249,7 +1249,7 @@ class Numeric(QtWidgets.QWidget):
             others = []
             for sig in channels:
                 if sig is not None:
-                    sig.computed = False
+                    sig.flags &= ~Signal.Flags.computed
                     sig.computation = None
                     ranges = sig.ranges
                     sig = PlotSignal(sig)

@@ -209,10 +209,9 @@ class PlotSignal(Signal):
             signal.attachment,
             signal.source,
             signal.bit_count,
-            signal.stream_sync,
             invalidation_bits=signal.invalidation_bits,
             encoding=signal.encoding,
-            user_defined_comment=signal.user_defined_comment,
+            flags=signal.flags,
         )
 
         self._pos = np.empty(2 * PLOT_BUFFER_SIZE, dtype="i4")
@@ -237,7 +236,6 @@ class PlotSignal(Signal):
         self.format = getattr(signal, "format", "phys")
 
         self.individual_axis = False
-        self.computed = signal.computed
         self.computation = signal.computation
 
         self.y_link = False
@@ -496,11 +494,10 @@ class PlotSignal(Signal):
 
         cut_sig.group_index = self.group_index
         cut_sig.channel_index = self.channel_index
-        cut_sig.computed = self.computed
         cut_sig.color = self.color
         cut_sig.computation = self.computation
         cut_sig.precision = self.precision
-        cut_sig.mdf_uuif = self.origin_uuid
+        cut_sig.mdf_uuid = self.origin_uuid
 
         return PlotSignal(cut_sig, duplication=self.duplication)
 
@@ -1952,7 +1949,7 @@ class Plot(QtWidgets.QWidget):
 
             if "comment" in description:
                 sig.comment = description["comment"]
-                sig.user_defined_comment = True
+                sig.flags |= Signal.Flags.user_defined_comment
 
             item = ChannelsTreeItem(
                 ChannelsTreeItem.Channel,
@@ -2071,7 +2068,7 @@ class Plot(QtWidgets.QWidget):
 
                 if description.get("conversion", None):
                     conversion = from_dict(description["conversion"])
-                    conversion.is_user_defined = True
+                    item.signal.flags |= Signal.Flags.user_defined_conversion
                     item.set_conversion(conversion)
 
             if enforce_y_axis:
@@ -2151,6 +2148,7 @@ class Plot(QtWidgets.QWidget):
 
         channel["name"] = sig.name
         channel["unit"] = sig.unit
+        channel["flags"] = int(sig.flags)
         channel["enabled"] = item.checkState(item.NameColumn) == QtCore.Qt.Checked
 
         if item.checkState(item.IndividualAxisColumn) == QtCore.Qt.Checked:
@@ -2165,7 +2163,7 @@ class Plot(QtWidgets.QWidget):
             item.checkState(item.CommonAxisColumn) == QtCore.Qt.Checked
         )
         channel["color"] = sig.color.name()
-        channel["computed"] = sig.computed
+        channel["computed"] = bool(sig.flags & Signal.Flags.computed)
         channel["ranges"] = copy_ranges(widget.ranges)
 
         for range_info in channel["ranges"]:
@@ -2176,16 +2174,19 @@ class Plot(QtWidgets.QWidget):
         channel["fmt"] = widget.fmt
         channel["format"] = widget.format
         channel["mode"] = widget.mode
-        if sig.computed:
+        if sig.flags & Signal.Flags.computed:
             channel["computation"] = sig.computation
 
-        if sig.user_defined_comment:
+        if sig.flags & Signal.Flags.user_defined_comment:
             channel["comment"] = sig.comment
+
+        if sig.flags & Signal.Flags.user_defined_unit:
+            channel["unit"] = sig.unit
 
         channel["y_range"] = [float(e) for e in sig.y_range]
         channel["origin_uuid"] = str(sig.origin_uuid)
 
-        if sig.conversion and sig.conversion.is_user_defined:
+        if sig.flags & Signal.Flags.user_defined_conversion:
             channel["conversion"] = to_dict(sig.conversion)
 
         return channel
@@ -3119,7 +3120,7 @@ class Plot(QtWidgets.QWidget):
     def _show_properties(self, uuid):
         for sig in self.plot.signals:
             if sig.uuid == uuid:
-                if sig.computed:
+                if sig.flags & Signal.Flags.computed:
                     try:
                         view = ComputedChannelInfoWindow(sig, self)
                         view.show()
@@ -3644,17 +3645,15 @@ class _Plot(pg.PlotWidget):
 
         self.last_click = perf_counter()
 
-    def add_new_channels(self, channels, computed=False, descriptions=None):
+    def add_new_channels(self, channels, descriptions=None):
         descriptions = descriptions or {}
 
         initial_index = len(self.signals)
         self._can_paint = False
 
         for sig in channels.values():
-            if not hasattr(sig, "computed"):
-                sig.computed = computed
-                if not computed:
-                    sig.computation = {}
+            if not sig.flags & Signal.Flags.computed:
+                sig.computation = {}
 
         if initial_index == 0:
             start_t, stop_t = 1, -1
@@ -3888,7 +3887,7 @@ class _Plot(pg.PlotWidget):
         computed_signals = {
             sig.name: sig
             for sig in self.signals
-            if sig.computed and sig.uuid != signal.uuid
+            if sig.flags & Signal.Flags.computed and sig.uuid != signal.uuid
         }
         dlg = DefineChannel(
             mdf=self.mdf,
@@ -3990,7 +3989,9 @@ class _Plot(pg.PlotWidget):
 
     def insert_computation(self, name=""):
 
-        computed_signals = {sig.name: sig for sig in self.signals if sig.computed}
+        computed_signals = {
+            sig.name: sig for sig in self.signals if sig.flags & Signal.Flags.computed
+        }
 
         functions = list(self.plot_parent.owner.functions)
         if not functions:

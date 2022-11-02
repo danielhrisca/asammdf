@@ -11,6 +11,7 @@ from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from .. import utils
+from ...signal import Signal
 from ..dialogs.advanced_search import AdvancedSearch
 from ..dialogs.conversion_editor import ConversionEditor
 from ..dialogs.range_editor import RangeEditor
@@ -949,7 +950,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 menu.addSeparator()
                 menu.addAction(self.tr("Insert computation using this channel"))
 
-                if item.signal.computed:
+                if item.signal.flags & Signal.Flags.computed:
                     menu.addAction(self.tr("Edit this computed channel"))
 
             try:
@@ -1592,7 +1593,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             self.setCheckState(self.CommonAxisColumn, QtCore.Qt.Unchecked)
             self.setCheckState(self.IndividualAxisColumn, QtCore.Qt.Unchecked)
 
-            if signal.computed:
+            if signal.flags & Signal.Flags.computed:
                 font = self.font(0)
                 font.setItalic(True)
                 for column in (self.NameColumn, self.ValueColumn, self.UnitColumn):
@@ -1660,7 +1661,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
         type = self.type()
         if type == self.Channel:
             self.signal.comment = value
-            self.signal.user_defined_comment = True
+            self.signal.flags |= Signal.Flags.user_defined_comment
 
             tooltip = (
                 getattr(self.signal, "tooltip", "") or f"{self.signal.name}\n{value}"
@@ -1865,6 +1866,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
     def set_conversion(self, conversion):
         if self.type() == self.Channel:
             self.signal.conversion = conversion
+            self.signal.flags |= Signal.Flags.user_defined_conversion
 
             self.signal.text_conversion = None
 
@@ -2110,6 +2112,7 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
     def unit(self, text):
         if self.type() == self.Channel:
             self.signal.unit = text
+            self.signal.flags |= Signal.Flags.user_defined_unit
             self.setText(self.UnitColumn, text)
             tree = self.treeWidget()
             if tree:

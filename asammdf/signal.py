@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from enum import IntFlag
 import logging
 from textwrap import fill
 from traceback import format_exc
@@ -67,14 +68,22 @@ class Signal(object):
         source information named tuple
     bit_count : int
         bit count; useful for integer channels
-    stream_sync : bool
-        the channel is a synchronisation for the attachment stream (mdf v4 only)
     invalidation_bits : numpy.array | None
         channel invalidation bits, default *None*
     encoding : str | None
         encoding for string signals; default *None*
+    flags : Signal.Flags
+        flags for user defined attributes and stream sync
 
     """
+
+    class Flags(IntFlag):
+        no_flags = 0x0
+        user_defined_comment = 0x1
+        user_defined_conversion = 0x2
+        user_defined_unit = 0x4
+        stream_sync = 0x10
+        computed = 0x20
 
     def __init__(
         self,
@@ -90,12 +99,11 @@ class Signal(object):
         attachment: tuple[bytes, str | None, str | None] | None = None,
         source: SourceType | None = None,
         bit_count: int | None = None,
-        stream_sync: bool = False,
         invalidation_bits: ArrayLike | None = None,
         encoding: str | None = None,
         group_index: int = -1,
         channel_index: int = -1,
-        user_defined_comment: bool = False,
+        flags: Flags = Flags.no_flags,
     ) -> None:
 
         if samples is None or timestamps is None or not name:
@@ -135,7 +143,7 @@ class Signal(object):
             self.unit = unit
             self.name = name
             self.comment = comment
-            self.user_defined_comment = user_defined_comment
+            self.flags = flags
             self._plot_axis = None
             self.raw = raw
             self.master_metadata = master_metadata
@@ -154,8 +162,6 @@ class Signal(object):
                 self.bit_count = samples.dtype.itemsize * 8
             else:
                 self.bit_count = bit_count
-
-            self.stream_sync = stream_sync
 
             if invalidation_bits is not None:
                 if not isinstance(invalidation_bits, np.ndarray):
@@ -188,7 +194,7 @@ class Signal(object):
 \tconversion={self.conversion}
 \tsource={self.source}
 \tcomment="{self.comment}"
-\tuser defined comment={self.user_defined_comment}
+\tflags="{self.flags}"
 \tmastermeta="{self.master_metadata}"
 \traw={self.raw}
 \tdisplay_names={self.display_names}
@@ -483,11 +489,10 @@ class Signal(object):
                 self.attachment,
                 self.source,
                 self.bit_count,
-                self.stream_sync,
                 encoding=self.encoding,
                 group_index=self.group_index,
                 channel_index=self.channel_index,
-                user_defined_comment=self.user_defined_comment,
+                flags=self.flags,
             )
 
         elif start is None and stop is None:
@@ -505,14 +510,13 @@ class Signal(object):
                 self.attachment,
                 self.source,
                 self.bit_count,
-                self.stream_sync,
                 invalidation_bits=self.invalidation_bits.copy()
                 if self.invalidation_bits is not None
                 else None,
                 encoding=self.encoding,
                 group_index=self.group_index,
                 channel_index=self.channel_index,
-                user_defined_comment=self.user_defined_comment,
+                flags=self.flags,
             )
 
         else:
@@ -532,11 +536,10 @@ class Signal(object):
                         self.attachment,
                         self.source,
                         self.bit_count,
-                        self.stream_sync,
                         encoding=self.encoding,
                         group_index=self.group_index,
                         channel_index=self.channel_index,
-                        user_defined_comment=self.user_defined_comment,
+                        flags=self.flags,
                     )
 
                 else:
@@ -590,12 +593,11 @@ class Signal(object):
                         self.attachment,
                         self.source,
                         self.bit_count,
-                        self.stream_sync,
                         invalidation_bits=invalidation_bits,
                         encoding=self.encoding,
                         group_index=self.group_index,
                         channel_index=self.channel_index,
-                        user_defined_comment=self.user_defined_comment,
+                        flags=self.flags,
                     )
 
             elif stop is None:
@@ -614,11 +616,10 @@ class Signal(object):
                         self.attachment,
                         self.source,
                         self.bit_count,
-                        self.stream_sync,
                         encoding=self.encoding,
                         group_index=self.group_index,
                         channel_index=self.channel_index,
-                        user_defined_comment=self.user_defined_comment,
+                        flags=self.flags,
                     )
 
                 else:
@@ -671,12 +672,11 @@ class Signal(object):
                         self.attachment,
                         self.source,
                         self.bit_count,
-                        self.stream_sync,
                         invalidation_bits=invalidation_bits,
                         encoding=self.encoding,
                         group_index=self.group_index,
                         channel_index=self.channel_index,
-                        user_defined_comment=self.user_defined_comment,
+                        flags=self.flags,
                     )
 
             else:
@@ -695,11 +695,10 @@ class Signal(object):
                         self.attachment,
                         self.source,
                         self.bit_count,
-                        self.stream_sync,
                         encoding=self.encoding,
                         group_index=self.group_index,
                         channel_index=self.channel_index,
-                        user_defined_comment=self.user_defined_comment,
+                        flags=self.flags,
                     )
                 else:
                     start = np.searchsorted(self.timestamps, start, side="left")
@@ -807,12 +806,11 @@ class Signal(object):
                         self.attachment,
                         self.source,
                         self.bit_count,
-                        self.stream_sync,
                         invalidation_bits=invalidation_bits,
                         encoding=self.encoding,
                         group_index=self.group_index,
                         channel_index=self.channel_index,
-                        user_defined_comment=self.user_defined_comment,
+                        flags=self.flags,
                     )
 
         return result
@@ -869,12 +867,11 @@ class Signal(object):
                 self.attachment,
                 self.source,
                 self.bit_count,
-                self.stream_sync,
                 invalidation_bits=invalidation_bits,
                 encoding=self.encoding,
                 group_index=self.group_index,
                 channel_index=self.channel_index,
-                user_defined_comment=self.user_defined_comment,
+                flags=self.flags,
             )
         else:
             result = self
@@ -938,12 +935,11 @@ class Signal(object):
                 master_metadata=self.master_metadata,
                 display_names=self.display_names,
                 attachment=self.attachment,
-                stream_sync=self.stream_sync,
                 invalidation_bits=None,
                 encoding=self.encoding,
                 group_index=self.group_index,
                 channel_index=self.channel_index,
-                user_defined_comment=self.user_defined_comment,
+                flags=self.flags,
             )
         else:
 
@@ -973,14 +969,13 @@ class Signal(object):
                     master_metadata=self.master_metadata,
                     display_names=self.display_names,
                     attachment=self.attachment,
-                    stream_sync=self.stream_sync,
                     invalidation_bits=None
                     if invalidation_bits is None
                     else np.array([], dtype=bool),
                     encoding=self.encoding,
                     group_index=self.group_index,
                     channel_index=self.channel_index,
-                    user_defined_comment=self.user_defined_comment,
+                    flags=self.flags,
                 )
 
             if len(signal.samples.shape) > 1:
@@ -1100,12 +1095,11 @@ class Signal(object):
                 master_metadata=self.master_metadata,
                 display_names=self.display_names,
                 attachment=self.attachment,
-                stream_sync=self.stream_sync,
                 invalidation_bits=invalidation_bits,
                 encoding=self.encoding,
                 group_index=self.group_index,
                 channel_index=self.channel_index,
-                user_defined_comment=self.user_defined_comment,
+                flags=self.flags,
             )
 
     def __apply_func(
@@ -1150,13 +1144,12 @@ class Signal(object):
             master_metadata=self.master_metadata,
             display_names=self.display_names,
             attachment=self.attachment,
-            stream_sync=self.stream_sync,
             invalidation_bits=self.invalidation_bits,
             source=self.source,
             encoding=self.encoding,
             group_index=self.group_index,
             channel_index=self.channel_index,
-            user_defined_comment=self.user_defined_comment,
+            flags=self.flags,
         )
 
     def __pos__(self) -> Signal:
@@ -1173,11 +1166,10 @@ class Signal(object):
             master_metadata=self.master_metadata,
             display_names=self.display_names,
             attachment=self.attachment,
-            stream_sync=self.stream_sync,
             invalidation_bits=self.invalidation_bits,
             source=self.source,
             encoding=self.encoding,
-            user_defined_comment=self.user_defined_comment,
+            flags=self.flags,
         )
 
     def __round__(self, n: int) -> Signal:
@@ -1191,11 +1183,10 @@ class Signal(object):
             master_metadata=self.master_metadata,
             display_names=self.display_names,
             attachment=self.attachment,
-            stream_sync=self.stream_sync,
             invalidation_bits=self.invalidation_bits,
             source=self.source,
             encoding=self.encoding,
-            user_defined_comment=self.user_defined_comment,
+            flags=self.flags,
         )
 
     def __sub__(self, other: Signal | NDArray[Any] | None) -> Signal:
@@ -1271,11 +1262,10 @@ class Signal(object):
             master_metadata=self.master_metadata,
             display_names=self.display_names,
             attachment=self.attachment,
-            stream_sync=self.stream_sync,
             invalidation_bits=self.invalidation_bits,
             source=self.source,
             encoding=self.encoding,
-            user_defined_comment=self.user_defined_comment,
+            flags=self.flags,
         )
 
     def __lshift__(self, other: Signal | NDArray[Any] | None) -> Signal:
@@ -1323,10 +1313,9 @@ class Signal(object):
             master_metadata=self.master_metadata,
             display_names=self.display_names,
             attachment=self.attachment,
-            stream_sync=self.stream_sync,
             invalidation_bits=self.invalidation_bits,
             source=self.source,
-            user_defined_comment=self.user_defined_comment,
+            flags=self.flags,
         )
 
     def __getitem__(self, val: int) -> Any:
@@ -1359,11 +1348,10 @@ class Signal(object):
             master_metadata=self.master_metadata,
             display_names=self.display_names,
             attachment=self.attachment,
-            stream_sync=self.stream_sync,
             invalidation_bits=self.invalidation_bits,
             source=self.source,
             encoding=self.encoding,
-            user_defined_comment=self.user_defined_comment,
+            flags=self.flags,
         )
 
     def physical(self) -> Signal:
@@ -1397,13 +1385,12 @@ class Signal(object):
             master_metadata=self.master_metadata,
             display_names=self.display_names,
             attachment=self.attachment,
-            stream_sync=self.stream_sync,
             invalidation_bits=self.invalidation_bits,
             source=self.source,
             encoding=encoding,
             group_index=self.group_index,
             channel_index=self.channel_index,
-            user_defined_comment=self.user_defined_comment,
+            flags=self.flags,
         )
 
     def validate(self, copy: bool = True) -> Signal:
@@ -1435,12 +1422,11 @@ class Signal(object):
                 self.attachment,
                 self.source,
                 self.bit_count,
-                self.stream_sync,
                 invalidation_bits=None,
                 encoding=self.encoding,
                 group_index=self.group_index,
                 channel_index=self.channel_index,
-                user_defined_comment=self.user_defined_comment,
+                flags=self.flags,
             )
 
         if copy:
@@ -1463,14 +1449,13 @@ class Signal(object):
             self.attachment,
             self.source,
             self.bit_count,
-            self.stream_sync,
             invalidation_bits=self.invalidation_bits.copy()
             if self.invalidation_bits is not None
             else None,
             encoding=self.encoding,
             group_index=self.group_index,
             channel_index=self.channel_index,
-            user_defined_comment=self.user_defined_comment,
+            flags=self.flags,
         )
 
 

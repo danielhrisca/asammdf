@@ -795,7 +795,7 @@ class WithMDIArea:
                     ):
                         sig.group_index = sig_[1]
                         sig.channel_index = sig_[2]
-                        sig.computed = False
+                        sig.flags &= ~sig.Flags.compute
                         sig.computation = {}
                         sig.origin_uuid = uuid
                         sig.name = sig_[0]
@@ -876,7 +876,7 @@ class WithMDIArea:
                     for sig, sig_ in zip(selected_signals, uuids_signals):
                         sig.group_index = sig_["group_index"]
                         sig.channel_index = sig_["channel_index"]
-                        sig.computed = False
+                        sig.flags &= ~sig.Flags.compute
                         sig.computation = {}
                         sig.origin_uuid = uuid
                         sig.name = sig_["name"]
@@ -968,7 +968,7 @@ class WithMDIArea:
                                 name=channel,
                             )
                             signal.color = "#000000"
-                            signal.computed = False
+                            signal.flags &= ~signal.Flags.compute
                             signal.computation = {}
                             signal.unit = ""
                             signal.group_index = -1
@@ -995,7 +995,7 @@ class WithMDIArea:
                         signal.name = channel["name"]
                         signal.unit = channel["unit"]
                         signal.color = channel["color"]
-                        signal.computed = True
+                        signal.flags |= signal.Flags.compute
                         signal.computation = channel["computation"]
                         signal.group_index = -1
                         signal.channel_index = -1
@@ -1956,7 +1956,7 @@ class WithMDIArea:
             ):
                 sig.group_index = sig_[1]
                 sig.channel_index = sig_[2]
-                sig.computed = False
+                sig.flags &= ~sig.Flags.compute
                 sig.computation = {}
                 sig.origin_uuid = uuid
                 sig.name = sig_[0] or sig.name
@@ -2150,7 +2150,7 @@ class WithMDIArea:
             for sig, (sig_uuid, sig_) in zip(selected_signals, uuids_signals.items()):
                 sig.group_index = sig_["group_index"]
                 sig.channel_index = sig_["channel_index"]
-                sig.computed = False
+                sig.flags &= ~sig.Flags.compute
                 sig.computation = {}
                 sig.origin_uuid = uuid
                 sig.name = sig_["name"] or sig.name
@@ -2204,7 +2204,7 @@ class WithMDIArea:
                         new_sig.samples = samples
                         new_sig.group_index = sig.group_index
                         new_sig.channel_index = sig.channel_index
-                        new_sig.computed = False
+                        new_sig.flags &= ~sig.Flags.compute
                         new_sig.computation = {}
                         new_sig.origin_uuid = sig.origin_uuid
                         new_sig.uuid = os.urandom(6).hex()
@@ -2236,7 +2236,7 @@ class WithMDIArea:
                             new_sig.samples = samples
                             new_sig.group_index = sig.group_index
                             new_sig.channel_index = sig.channel_index
-                            new_sig.computed = False
+                            new_sig.flags &= ~sig.Flags.compute
                             new_sig.computation = {}
                             new_sig.origin_uuid = sig.origin_uuid
                             new_sig.uuid = os.urandom(6).hex()
@@ -2268,7 +2268,7 @@ class WithMDIArea:
         for uuid, sig_ in not_found.items():
             sig = Signal([], [], name=sig_["name"])
             sig.uuid = uuid
-            sig.computed = False
+            sig.flags &= ~sig.Flags.compute
             sig.computation = {}
             sig.origin_uuid = sig_.get("origin_uuid", self.uuid)
             sig.origin_uuid = self.uuid
@@ -2316,7 +2316,7 @@ class WithMDIArea:
                         name=channel,
                     )
                     signal.color = "#000000"
-                    signal.computed = False
+                    signal.flags &= ~signal.Flags.compute
                     signal.computation = {}
                     signal.unit = ""
                     signal.group_index = -1
@@ -2353,7 +2353,7 @@ class WithMDIArea:
                 signal.name = channel["name"]
                 signal.unit = channel["unit"]
                 signal.color = channel["color"]
-                signal.computed = True
+                signal.flags |= signal.Flags.compute
                 signal.computation = channel["computation"]
                 signal.group_index = -1
                 signal.channel_index = -1
@@ -2704,7 +2704,7 @@ class WithMDIArea:
                     name=channel_name,
                 )
                 signal.color = "#000000"
-                signal.computed = False
+                signal.flags &= ~signal.Flags.compute
                 signal.computation = {}
                 signal.unit = ""
                 signal.group_index = -1
@@ -2731,7 +2731,7 @@ class WithMDIArea:
         signal.name = channel["name"]
         signal.unit = channel["unit"]
         signal.color = channel["color"]
-        signal.computed = True
+        signal.flags |= signal.Flags.compute
         signal.computation = channel["computation"]
         signal.group_index = -1
         signal.channel_index = -1
@@ -2766,7 +2766,7 @@ class WithMDIArea:
             if channel.uuid == uuid:
                 continue
 
-            if channel.computed:
+            if channel.flags & channel.Flags.computed:
                 required_channels = set(
                     get_required_from_computed(channel.computation, self.functions)
                 )
@@ -3105,7 +3105,7 @@ class WithMDIArea:
             ):
                 description = descriptions[sig_uuid]
 
-                signal.computed = False
+                signal.flags &= ~signal.Flags.compute
                 signal.computation = {}
                 signal.color = description["color"]
                 signal.group_index = entry[1]
@@ -3161,7 +3161,7 @@ class WithMDIArea:
                     signal.group_index, signal.channel_index = self.mdf.whereis(
                         sig_name
                     )[0]
-                    signal.computed = False
+                    signal.flags &= ~signal.Flags.compute
                     signal.computation = {}
                     signal.origin_uuid = self.uuid
                     signal.name = sig_name
@@ -3205,7 +3205,7 @@ class WithMDIArea:
                         name=channel,
                     )
                     signal.color = "#000000"
-                    signal.computed = False
+                    signal.flags &= ~signal.Flags.compute
                     signal.computation = {}
                     signal.unit = ""
                     signal.group_index = -1
@@ -3247,7 +3247,7 @@ class WithMDIArea:
                     self.mdf._fill_0_for_missing_computation_channels,
                 )
                 signal.color = channel["color"]
-                signal.computed = True
+                signal.flags |= signal.Flags.compute
                 signal.computation = channel["computation"]
                 signal.name = channel["name"]
                 signal.unit = channel["unit"]
