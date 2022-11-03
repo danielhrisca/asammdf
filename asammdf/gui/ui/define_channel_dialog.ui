@@ -250,21 +250,16 @@
         </property>
        </spacer>
       </item>
-      <item row="1" column="2">
-       <spacer name="horizontalSpacer_2">
-        <property name="orientation">
-         <enum>Qt::Horizontal</enum>
+      <item row="0" column="2">
+       <widget class="QPushButton" name="show_definition_btn">
+        <property name="text">
+         <string/>
         </property>
-        <property name="sizeType">
-         <enum>QSizePolicy::Fixed</enum>
+        <property name="icon">
+         <iconset resource="resource.qrc">
+          <normaloff>:/info.png</normaloff>:/info.png</iconset>
         </property>
-        <property name="sizeHint" stdset="0">
-         <size>
-          <width>20</width>
-          <height>20</height>
-         </size>
-        </property>
-       </spacer>
+       </widget>
       </item>
      </layout>
     </widget>

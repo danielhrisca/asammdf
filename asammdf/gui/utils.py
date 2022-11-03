@@ -134,7 +134,7 @@ FONT_SIZE = [6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72]
 VARIABLE = re.compile(r"(?P<var>\{\{[^}]+\}\})")
 VARIABLE_GET_DATA = re.compile(r"get_data\s*\(\s*\"(?P<var>[^\"]+)")
 C_FUNCTION = re.compile(r"\s+(?P<function>\S+)\s*\(\s*struct\s+DATA\s+\*data\s*\)")
-
+FUNC_NAME = re.compile(r'def\s+(?P<name>\S+)\s*\(')
 
 def excepthook(exc_type, exc_value, tracebackobj):
     """
@@ -631,7 +631,6 @@ def compute_signal(
                 definition=functions.get(
                     description["function"], description["definition"]
                 ),
-                function_name=description["function"],
             )
 
             signals = [measured_signals[name] for name in description['args'].values() if name]
@@ -1113,13 +1112,20 @@ def draw_color_icon(color):
     return QtGui.QIcon(pix)
 
 
-def generate_python_function(definition, function_name):
+def generate_python_function(definition):
     trace = None
+    func = None
+
     if not definition:
         trace = "The function definition must not be empty"
+        return func, trace
 
-    if not function_name:
+    match = FUNC_NAME.match(definition)
+    if match is None:
         trace = "The function name must not be empty"
+        return func, trace
+    else:
+        function_name = match.group('name')
 
     try:
         exec(definition)

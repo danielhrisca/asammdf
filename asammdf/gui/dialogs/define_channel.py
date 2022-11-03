@@ -54,6 +54,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
         self.apply_btn.clicked.connect(self.apply)
         self.cancel_btn.clicked.connect(self.cancel)
+        self.show_definition_btn.clicked.connect(self.show_definition)
 
         self.trigger_search_btn.clicked.connect(self.search)
 
@@ -148,6 +149,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         for widgets in self.arg_widgets:
             for widget in widgets:
                 self.arg_layout.removeWidget(widget)
+                widget.setParent(None)
 
         self.arg_widgets.clear()
 
@@ -208,3 +210,13 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
         if result:
             self.trigger_channel.setText(list(result)[0])
+
+    def show_definition(self, *args):
+        function = self.functions.currentText()
+        definition = self._functions[self.functions.currentText()]
+
+        QtWidgets.QMessageBox.information(
+            self,
+            f'{function} definition',
+            definition
+        )

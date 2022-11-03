@@ -157,9 +157,13 @@ class Ui_ComputedChannel(object):
 
         self.arg_layout.addItem(self.horizontalSpacer, 1, 1, 1, 1)
 
-        self.horizontalSpacer_2 = QSpacerItem(20, 20, QSizePolicy.Fixed, QSizePolicy.Minimum)
+        self.show_definition_btn = QPushButton(self.groupBox)
+        self.show_definition_btn.setObjectName(u"show_definition_btn")
+        icon2 = QIcon()
+        icon2.addFile(u":/info.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.show_definition_btn.setIcon(icon2)
 
-        self.arg_layout.addItem(self.horizontalSpacer_2, 1, 2, 1, 1)
+        self.arg_layout.addWidget(self.show_definition_btn, 0, 2, 1, 1)
 
         self.arg_layout.setColumnStretch(1, 1)
 
@@ -191,5 +195,6 @@ class Ui_ComputedChannel(object):
         self.groupBox.setTitle(QCoreApplication.translate("ComputedChannel", u"Function", None))
         self.label_9.setText(QCoreApplication.translate("ComputedChannel", u"Name", None))
         self.label.setText(QCoreApplication.translate("ComputedChannel", u"Arguments:", None))
+        self.show_definition_btn.setText("")
     # retranslateUi
 

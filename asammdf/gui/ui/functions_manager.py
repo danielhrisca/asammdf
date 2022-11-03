@@ -16,8 +16,8 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QGridLayout, QGroupBox, QHBoxLayout,
-    QLabel, QLineEdit, QListWidgetItem, QPlainTextEdit,
-    QPushButton, QSizePolicy, QSpacerItem, QWidget)
+    QListWidgetItem, QPlainTextEdit, QPushButton, QSizePolicy,
+    QSpacerItem, QWidget)
 
 from asammdf.gui.widgets.list import MinimalListWidget
 from . import resource_rc
@@ -26,7 +26,7 @@ class Ui_FunctionsManager(object):
     def setupUi(self, FunctionsManager):
         if not FunctionsManager.objectName():
             FunctionsManager.setObjectName(u"FunctionsManager")
-        FunctionsManager.resize(705, 703)
+        FunctionsManager.resize(707, 703)
         self.gridLayout_2 = QGridLayout(FunctionsManager)
         self.gridLayout_2.setObjectName(u"gridLayout_2")
         self.horizontalLayout_2 = QHBoxLayout()
@@ -79,6 +79,31 @@ class Ui_FunctionsManager(object):
         self.function_group.setObjectName(u"function_group")
         self.gridLayout = QGridLayout(self.function_group)
         self.gridLayout.setObjectName(u"gridLayout")
+        self.horizontalLayout_3 = QHBoxLayout()
+        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
+        self.check_syntax_btn = QPushButton(self.function_group)
+        self.check_syntax_btn.setObjectName(u"check_syntax_btn")
+        icon4 = QIcon()
+        icon4.addFile(u":/checkmark.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.check_syntax_btn.setIcon(icon4)
+
+        self.horizontalLayout_3.addWidget(self.check_syntax_btn)
+
+        self.store_btn = QPushButton(self.function_group)
+        self.store_btn.setObjectName(u"store_btn")
+        icon5 = QIcon()
+        icon5.addFile(u":/shift_down.png", QSize(), QIcon.Normal, QIcon.Off)
+        self.store_btn.setIcon(icon5)
+
+        self.horizontalLayout_3.addWidget(self.store_btn)
+
+        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.horizontalLayout_3.addItem(self.horizontalSpacer_2)
+
+
+        self.gridLayout.addLayout(self.horizontalLayout_3, 1, 0, 1, 2)
+
         self.function_definition = QPlainTextEdit(self.function_group)
         self.function_definition.setObjectName(u"function_definition")
         font = QFont()
@@ -87,42 +112,7 @@ class Ui_FunctionsManager(object):
         self.function_definition.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.function_definition.setLineWrapMode(QPlainTextEdit.NoWrap)
 
-        self.gridLayout.addWidget(self.function_definition, 1, 0, 1, 2)
-
-        self.horizontalLayout_3 = QHBoxLayout()
-        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
-        self.search_btn = QPushButton(self.function_group)
-        self.search_btn.setObjectName(u"search_btn")
-        icon4 = QIcon()
-        icon4.addFile(u":/search.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.search_btn.setIcon(icon4)
-
-        self.horizontalLayout_3.addWidget(self.search_btn)
-
-        self.check_syntax_btn = QPushButton(self.function_group)
-        self.check_syntax_btn.setObjectName(u"check_syntax_btn")
-        icon5 = QIcon()
-        icon5.addFile(u":/checkmark.png", QSize(), QIcon.Normal, QIcon.Off)
-        self.check_syntax_btn.setIcon(icon5)
-
-        self.horizontalLayout_3.addWidget(self.check_syntax_btn)
-
-        self.horizontalSpacer_2 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        self.horizontalLayout_3.addItem(self.horizontalSpacer_2)
-
-
-        self.gridLayout.addLayout(self.horizontalLayout_3, 2, 0, 1, 2)
-
-        self.label = QLabel(self.function_group)
-        self.label.setObjectName(u"label")
-
-        self.gridLayout.addWidget(self.label, 0, 0, 1, 1)
-
-        self.function_name = QLineEdit(self.function_group)
-        self.function_name.setObjectName(u"function_name")
-
-        self.gridLayout.addWidget(self.function_name, 0, 1, 1, 1)
+        self.gridLayout.addWidget(self.function_definition, 0, 0, 1, 2)
 
         self.gridLayout.setRowStretch(0, 1)
 
@@ -152,9 +142,8 @@ class Ui_FunctionsManager(object):
         self.import_btn.setText(QCoreApplication.translate("FunctionsManager", u"Load definitions", None))
         self.export_btn.setText(QCoreApplication.translate("FunctionsManager", u"Save definitions", None))
         self.function_group.setTitle(QCoreApplication.translate("FunctionsManager", u"Function definition", None))
-        self.function_definition.setPlaceholderText(QCoreApplication.translate("FunctionsManager", u"function code", None))
-        self.search_btn.setText(QCoreApplication.translate("FunctionsManager", u"Search channel", None))
         self.check_syntax_btn.setText(QCoreApplication.translate("FunctionsManager", u"Check syntax", None))
-        self.label.setText(QCoreApplication.translate("FunctionsManager", u"Name", None))
+        self.store_btn.setText(QCoreApplication.translate("FunctionsManager", u"Store function changes", None))
+        self.function_definition.setPlaceholderText(QCoreApplication.translate("FunctionsManager", u"function code", None))
     # retranslateUi
 

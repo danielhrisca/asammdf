@@ -1,18 +1,14 @@
 # -*- coding: utf-8 -*-
-from functools import partial
 import json
 import os
 from pathlib import Path
-import string
 from traceback import format_exc
 
 from natsort import natsorted
-import numpy as np
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ..dialogs.simple_search import SimpleSearch
 from ..ui.functions_manager import Ui_FunctionsManager
-from ..utils import ErrorDialog, generate_python_function
+from ..utils import ErrorDialog, generate_python_function, FUNC_NAME
 
 
 class FunctionsManager(Ui_FunctionsManager, QtWidgets.QWidget):
@@ -29,21 +25,21 @@ class FunctionsManager(Ui_FunctionsManager, QtWidgets.QWidget):
 
         self.function_definition.setPlaceholderText(
             """The virtual channel definition is written as a Python function.
-The device signal names must be placed inside double curly braces: {{MAIN_CLOCK}}.
 Use the 'return' statement to return a value, otherwise 'None' will automatically be returned by the function.
+The last function argument must be 't=0'.
 
 Here is a minimalistic example:
 
-
-if {{MAIN_CLOCK}} > 5000:
-    return 0
-else:
-    avg = ({{p_FL}} + {{p_FR}} + {{p_RL}} + {{p_RR}}) / 4
-    
-    if avg > 20.5 and {{VehicleSpeed}} < 100:
-        return avg
+def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0): 
+    if main_clock > 5000:
+        return 0
     else:
-        return avg + 9
+        avg = (p_FL + p_FR + p_RL + p_RR) / 4
+        
+        if avg > 20.5 and vehicle_speed < 100:
+            return avg
+        else:
+            return avg + 9
 """
         )
         self.function_definition.setTabStopDistance(
@@ -64,14 +60,12 @@ else:
         )
         self.functions_list.itemsDeleted.connect(self.definitions_deleted)
 
-        self.function_name.editingFinished.connect(self.function_name_edited)
-
         self.add_btn.clicked.connect(self.add_definition)
         self.check_syntax_btn.clicked.connect(self.check_syntax)
         self.erase_btn.clicked.connect(self.erase_definitions)
-        self.search_btn.clicked.connect(self.search)
         self.export_btn.clicked.connect(self.export_definitions)
         self.import_btn.clicked.connect(self.import_definitions)
+        self.store_btn.clicked.connect(self.store_definition)
 
         if self.definitions:
             self.functions_list.clear()
@@ -88,7 +82,6 @@ else:
             self.erase_btn,
             self.import_btn,
             self.export_btn,
-            self.search_btn,
         ):
             button.setDefault(False)
             button.setAutoDefault(False)
@@ -103,7 +96,7 @@ else:
                 break
 
         self.definitions[name] = {
-            "definition": "",
+            "definition": f"def {name}(t=0):\n    return 0",
             "uuid": os.urandom(6).hex(),
         }
 
@@ -114,64 +107,10 @@ else:
         row = names.index(name)
         self.functions_list.setCurrentRow(row)
 
-    def function_name_edited(self):
-        item = self.functions_list.currentItem()
-        if not item:
-            return
+    def check_syntax(self, silent=False):
 
-        current_name = item.text()
-        new_name = self.function_name.text().strip()
-
-        if not new_name:
-            QtWidgets.QMessageBox.information(
-                self,
-                "Invalid function name",
-                "The function name cannot be an empty string",
-            )
-            self.function_name.setText(current_name)
-
-        elif new_name != current_name and new_name in self.definitions:
-            QtWidgets.QMessageBox.information(
-                self,
-                "Invalid function name",
-                f'The name "{new_name}" is already given to another function.\n'
-                "The function names must be unique",
-            )
-
-            self.function_name.setText(current_name)
-
-        else:
-            item.setText(new_name)
-            info = self.definitions.pop(current_name)
-            self.definitions[new_name] = {
-                "definition": self.function_definition.toPlainText(),
-                "uuid": info["uuid"],
-            }
-
-            self.functions_list.clear()
-            names = natsorted(self.definitions)
-            self.functions_list.addItems(names)
-
-            row = names.index(new_name)
-            self.functions_list.setCurrentRow(row)
-
-    def check_syntax(self):
-
-        allowed_chars = string.ascii_letters + string.digits
-        (
-            func,
-            arg_names,
-            get_data_args,
-            func_name,
-            trace,
-            function_source,
-        ) = generate_python_function(
-            self.function_definition.toPlainText().replace("\t", "    "),
-            "".join(
-                ch if ch in allowed_chars else "_"
-                for ch in self.function_name.text().strip()
-            ),
-        )
+        function_source = self.function_definition.toPlainText().replace("\t", "    ")
+        func, trace = generate_python_function(function_source)
 
         if trace is not None:
             ErrorDialog(
@@ -180,7 +119,7 @@ else:
                 message="The syntax is not correct. The following error was found",
                 trace=f"{trace}\n\nin the function\n\n{function_source}",
             ).exec()
-            return
+            return False, None
 
         try:
             func()
@@ -188,11 +127,6 @@ else:
             pass
         except:
             trace = format_exc()
-            for i, var_name in enumerate(arg_names, 1):
-                trace = trace.replace(f"_v{i}_", f"{{{{{var_name}}}}}")
-                function_source = function_source.replace(
-                    f"_v{i}_", f"{{{{{var_name}}}}}"
-                )
 
             ErrorDialog(
                 self.logger,
@@ -201,12 +135,18 @@ else:
                 trace=f"{trace}\n\nin the function\n\n{function_source}",
             ).exec()
 
+            return False, None
+
         else:
-            QtWidgets.QMessageBox.information(
-                self,
-                "Function definition check",
-                "The function definition appears to be correct.",
-            )
+            if not silent:
+
+                QtWidgets.QMessageBox.information(
+                    self,
+                    "Function definition check",
+                    "The function definition appears to be correct.",
+                )
+
+        return True, func
 
     def definitions_deleted(self, deleted):
         count = self.functions_list.count()
@@ -218,32 +158,19 @@ else:
             del self.definitions[name]
 
         if not self.definitions:
-            self.function_name.setText("")
             self.function_definition.setPlainText("")
 
     def definition_selection_changed(self, current, previous):
-
-        if previous:
-            previous_uuid = self.definitions[previous.text()]["uuid"]
-            name = self.function_name.text()
-
-            self.definitions[name] = {
-                "definition": self.function_definition.toPlainText(),
-                "uuid": previous_uuid,
-            }
 
         if current:
             name = current.text()
 
             definition = self.definitions[name]
-            self.function_name.setText("")
             self.function_definition.setPlainText(definition["definition"])
-            self.function_name.setText(name)
 
     def erase_definitions(self):
         self.functions_list.clear()
         self.definitions = {}
-        self.function_name.setText("")
         self.function_definition.setPlainText("")
 
     def export_definitions(self, *args):
@@ -296,17 +223,41 @@ else:
                 self.functions_list.setCurrentRow(0)
 
     def refresh_definitions(self):
-        name = self.function_name.text().strip()
-        if name in self.definitions:
-            self.definitions[name][
-                "definition"
-            ] = self.function_definition.toPlainText()
+        function_source = self.function_definition.toPlainText().replace("\t", "    ")
+        func, trace = generate_python_function(function_source)
 
-    def search(self):
-        dlg = SimpleSearch(self.channels, parent=self)
-        dlg.setModal(True)
-        dlg.exec()
-        result = dlg.result
-        if result:
-            for name in result:
-                self.function_definition.insertPlainText(f" {{{{{name}}}}}")
+        if func is not None:
+
+            name = func.__name__
+            if name in self.definitions:
+                self.definitions[name][
+                    "definition"
+                ] = self.function_definition.toPlainText()
+
+    def store_definition(self, *args):
+        ok, func = self.check_syntax(silent=True)
+        if ok:
+            item = self.functions_list.currentItem()
+            name = func.__name__
+
+            if name != item.text() and name in self.definitions:
+                QtWidgets.QMessageBox.information(
+                    self,
+                    "Invalid function name",
+                    f'The name "{name}" is already given to another function.\n'
+                    "The function names must be unique",
+                )
+                return
+
+            info = self.definitions.pop(item.text())
+            info['definition'] = self.function_definition.toPlainText()
+            self.definitions[func.__name__] = info
+
+            self.functions_list.clear()
+            names = natsorted(self.definitions)
+            self.functions_list.addItems(names)
+
+            row = names.index(name)
+            self.functions_list.setCurrentRow(row)
+
+
