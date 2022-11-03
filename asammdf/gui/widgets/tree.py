@@ -978,7 +978,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
 
         if action.text() == "Copy name [Ctrl+N]":
             event = QtGui.QKeyEvent(
-                QtCore.QEvent.KeyPress, QtCore.Qt.Key_C, QtCore.Qt.ControlModifier
+                QtCore.QEvent.KeyPress, QtCore.Qt.Key_N, QtCore.Qt.ControlModifier
             )
             self.keyPressEvent(event)
 

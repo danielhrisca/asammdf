@@ -797,7 +797,7 @@ class WithMDIArea:
                     ):
                         sig.group_index = sig_[1]
                         sig.channel_index = sig_[2]
-                        sig.flags &= ~sig.Flags.compute
+                        sig.flags &= ~sig.Flags.computed
                         sig.computation = {}
                         sig.origin_uuid = uuid
                         sig.name = sig_[0]
@@ -878,7 +878,7 @@ class WithMDIArea:
                     for sig, sig_ in zip(selected_signals, uuids_signals):
                         sig.group_index = sig_["group_index"]
                         sig.channel_index = sig_["channel_index"]
-                        sig.flags &= ~sig.Flags.compute
+                        sig.flags &= ~sig.Flags.computed
                         sig.computation = {}
                         sig.origin_uuid = uuid
                         sig.name = sig_["name"]
@@ -970,7 +970,7 @@ class WithMDIArea:
                                 name=channel,
                             )
                             signal.color = "#000000"
-                            signal.flags &= ~signal.Flags.compute
+                            signal.flags &= ~signal.Flags.computed
                             signal.computation = {}
                             signal.unit = ""
                             signal.group_index = -1
@@ -997,7 +997,7 @@ class WithMDIArea:
                         signal.name = channel["name"]
                         signal.unit = channel["unit"]
                         signal.color = channel["color"]
-                        signal.flags |= signal.Flags.compute
+                        signal.flags |= signal.Flags.computed
                         signal.computation = channel["computation"]
                         signal.group_index = -1
                         signal.channel_index = -1
@@ -1970,7 +1970,7 @@ class WithMDIArea:
             ):
                 sig.group_index = sig_[1]
                 sig.channel_index = sig_[2]
-                sig.flags &= ~sig.Flags.compute
+                sig.flags &= ~sig.Flags.computed
                 sig.computation = {}
                 sig.origin_uuid = uuid
                 sig.name = sig_[0] or sig.name
@@ -2164,7 +2164,7 @@ class WithMDIArea:
             for sig, (sig_uuid, sig_) in zip(selected_signals, uuids_signals.items()):
                 sig.group_index = sig_["group_index"]
                 sig.channel_index = sig_["channel_index"]
-                sig.flags &= ~sig.Flags.compute
+                sig.flags &= ~sig.Flags.computed
                 sig.computation = {}
                 sig.origin_uuid = uuid
                 sig.name = sig_["name"] or sig.name
@@ -2218,7 +2218,7 @@ class WithMDIArea:
                         new_sig.samples = samples
                         new_sig.group_index = sig.group_index
                         new_sig.channel_index = sig.channel_index
-                        new_sig.flags &= ~sig.Flags.compute
+                        new_sig.flags &= ~sig.Flags.computed
                         new_sig.computation = {}
                         new_sig.origin_uuid = sig.origin_uuid
                         new_sig.uuid = os.urandom(6).hex()
@@ -2250,7 +2250,7 @@ class WithMDIArea:
                             new_sig.samples = samples
                             new_sig.group_index = sig.group_index
                             new_sig.channel_index = sig.channel_index
-                            new_sig.flags &= ~sig.Flags.compute
+                            new_sig.flags &= ~sig.Flags.computed
                             new_sig.computation = {}
                             new_sig.origin_uuid = sig.origin_uuid
                             new_sig.uuid = os.urandom(6).hex()
@@ -2282,7 +2282,7 @@ class WithMDIArea:
         for uuid, sig_ in not_found.items():
             sig = Signal([], [], name=sig_["name"])
             sig.uuid = uuid
-            sig.flags &= ~sig.Flags.compute
+            sig.flags &= ~sig.Flags.computed
             sig.computation = {}
             sig.origin_uuid = sig_.get("origin_uuid", self.uuid)
             sig.origin_uuid = self.uuid
@@ -2338,7 +2338,7 @@ class WithMDIArea:
                         name=channel,
                     )
                     signal.color = "#000000"
-                    signal.flags &= ~signal.Flags.compute
+                    signal.flags &= ~signal.Flags.computed
                     signal.computation = {}
                     signal.unit = ""
                     signal.group_index = -1
@@ -2375,7 +2375,7 @@ class WithMDIArea:
                 signal.name = channel["name"]
                 signal.unit = channel["unit"]
                 signal.color = channel["color"]
-                signal.flags |= signal.Flags.compute
+                signal.flags |= signal.Flags.computed
                 signal.computation = channel["computation"]
                 signal.group_index = -1
                 signal.channel_index = -1
@@ -2686,13 +2686,29 @@ class WithMDIArea:
 
         self.windows_modified.emit()
 
-    def change_functions(self, changed_functions):
-        for new_info, old_info in changed_functions:
-            pass
-
     def delete_functions(self, deleted_functions):
+        deleted = set()
         for info in deleted_functions:
-            pass
+            del self.functions[info["name"]]
+            deleted.add(info["name"])
+
+        for mdi in self.mdi_area.subWindowList():
+            wid = mdi.widget()
+            if isinstance(wid, Plot):
+                iterator = QtWidgets.QTreeWidgetItemIterator(wid.channel_selection)
+                while True:
+                    item = iterator.value()
+                    if item is None:
+                        break
+
+                    if item.type() == item.Channel:
+                        if item.signal.flags & item.signal.Flags.computed:
+                            if item.signal.computation["function"] in deleted:
+                                self.edit_channel(
+                                    wid.channel_item_to_config(item), item, wid
+                                )
+
+                    iterator += 1
 
     def edit_channel(self, channel, item, widget):
         required_channels = set(get_required_from_computed(channel, self.functions))
@@ -2730,7 +2746,7 @@ class WithMDIArea:
                     name=channel_name,
                 )
                 signal.color = "#000000"
-                signal.flags &= ~signal.Flags.compute
+                signal.flags &= ~signal.Flags.computed
                 signal.computation = {}
                 signal.unit = ""
                 signal.group_index = -1
@@ -2757,7 +2773,7 @@ class WithMDIArea:
         signal.name = channel["name"]
         signal.unit = channel["unit"]
         signal.color = channel["color"]
-        signal.flags |= signal.Flags.compute
+        signal.flags |= signal.Flags.computed
         signal.computation = channel["computation"]
         signal.group_index = -1
         signal.channel_index = -1
@@ -3139,7 +3155,7 @@ class WithMDIArea:
             ):
                 description = descriptions[sig_uuid]
 
-                signal.flags &= ~signal.Flags.compute
+                signal.flags &= ~signal.Flags.computed
                 signal.computation = {}
                 signal.color = description["color"]
                 signal.group_index = entry[1]
@@ -3195,7 +3211,7 @@ class WithMDIArea:
                     signal.group_index, signal.channel_index = self.mdf.whereis(
                         sig_name
                     )[0]
-                    signal.flags &= ~signal.Flags.compute
+                    signal.flags &= ~signal.Flags.computed
                     signal.computation = {}
                     signal.origin_uuid = self.uuid
                     signal.name = sig_name
@@ -3239,7 +3255,7 @@ class WithMDIArea:
                         name=channel,
                     )
                     signal.color = "#000000"
-                    signal.flags &= ~signal.Flags.compute
+                    signal.flags &= ~signal.Flags.computed
                     signal.computation = {}
                     signal.unit = ""
                     signal.group_index = -1
@@ -3281,7 +3297,7 @@ class WithMDIArea:
                     self.mdf._fill_0_for_missing_computation_channels,
                 )
                 signal.color = channel["color"]
-                signal.flags |= signal.Flags.compute
+                signal.flags |= signal.Flags.computed
                 signal.computation = channel["computation"]
                 signal.name = channel["name"]
                 signal.unit = channel["unit"]
@@ -3913,6 +3929,87 @@ class WithMDIArea:
                             )
 
             self._splitter_source = None
+
+    def update_functions(self, original_definitions, modified_definitions):
+
+        # new definitions
+        new_functions = [
+            info
+            for uuid, info in modified_definitions.items()
+            if uuid not in original_definitions
+        ]
+
+        for info in new_functions:
+            self.functions[info["name"]] = info["definition"]
+
+        new = set(info["name"] for info in new_functions)
+
+        # changed definitions
+        translation = {}
+        changed = set()
+
+        changed_functions = [
+            (info, original_definitions[uuid])
+            for uuid, info in modified_definitions.items()
+            if uuid in original_definitions and info != original_definitions[uuid]
+        ]
+
+        for new_info, old_info in changed_functions:
+            translation[old_info["name"]] = new_info["name"]
+            del self.functions[old_info["name"]]
+            self.functions[new_info["name"]] = new_info["definition"]
+            changed.add(old_info["name"])
+
+        # deleted definitions
+
+        deleted = set()
+
+        deleted_functions = [
+            info
+            for uuid, info in original_definitions.items()
+            if uuid not in modified_definitions
+        ]
+
+        for info in deleted_functions:
+            del self.functions[info["name"]]
+            deleted.add(info["name"])
+
+        # apply changes
+
+        for mdi in self.mdi_area.subWindowList():
+            wid = mdi.widget()
+            if isinstance(wid, Plot):
+                iterator = QtWidgets.QTreeWidgetItemIterator(wid.channel_selection)
+                while True:
+                    item = iterator.value()
+                    if item is None:
+                        break
+
+                    if item.type() == item.Channel:
+                        if item.signal.flags & item.signal.Flags.computed:
+                            function = item.signal.computation["function"]
+
+                            if function in new:
+                                self.edit_channel(
+                                    wid.channel_item_to_config(item), item, wid
+                                )
+
+                            elif function in changed:
+                                item.signal.computation["function"] = translation[
+                                    item.signal.computation["function"]
+                                ]
+                                self.edit_channel(
+                                    wid.channel_item_to_config(item), item, wid
+                                )
+                            elif function in deleted:
+
+                                self.edit_channel(
+                                    wid.channel_item_to_config(item), item, wid
+                                )
+
+                    iterator += 1
+
+        return bool(new or changed or deleted)
 
     def remove_cursor(self, widget):
         if not self.subplots_link:

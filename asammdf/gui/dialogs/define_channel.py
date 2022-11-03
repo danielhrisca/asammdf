@@ -1,20 +1,14 @@
 # -*- coding: utf-8 -*-
-from functools import partial
 import os
 import re
-import string
 from traceback import format_exc
 
-import numpy as np
 from PySide6 import QtWidgets
 
+from ...signal import Signal
 from ..ui import resource_rc
 from ..ui.define_channel_dialog import Ui_ComputedChannel
-from ..utils import (
-    computation_to_python_function,
-    generate_python_function,
-    get_data_function,
-)
+from ..utils import computation_to_python_function
 from .advanced_search import AdvancedSearch
 from .error_dialog import ErrorDialog
 
@@ -104,6 +98,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             "fmt": "{:.3f}",
             "format": "phys",
             "precision": 3,
+            "flags": Signal.Flags.no_flags,
             "ranges": [],
             "y_range": [0, 1],
             "unit": self.unit.text().strip(),

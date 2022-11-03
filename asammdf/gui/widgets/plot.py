@@ -3883,6 +3883,7 @@ class _Plot(pg.PlotWidget):
     def edit_computation(self, item):
 
         signal = item.signal
+        functions = list(self.plot_parent.owner.functions)
 
         computed_signals = {
             sig.name: sig
@@ -3894,6 +3895,7 @@ class _Plot(pg.PlotWidget):
             name=signal.name,
             computation=signal.computation,
             computed_signals=computed_signals,
+            functions=functions,
             parent=self,
         )
         dlg.setModal(True)

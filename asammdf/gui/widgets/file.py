@@ -1041,23 +1041,21 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
             if extension == ".dspf":
 
-                modified_functions = []
+                new_functions = {}
 
                 if "functions" in info:
                     for name, definition in info["functions"].items():
                         if name in self.functions:
                             if self.functions[name] != definition:
-                                modified_functions.append(
-                                    (
-                                        {"name": name, "definition": definition},
-                                        {
-                                            "name": name,
-                                            "definition": self.functions[name],
-                                        },
-                                    )
-                                )
+                                new_functions[os.urandom(6).hex()] = {
+                                    "name": name,
+                                    "definition": definition,
+                                }
                         else:
-                            self.functions[name] = definition
+                            new_functions[os.urandom(6).hex()] = {
+                                "name": name,
+                                "definition": definition,
+                            }
 
                 else:
                     for window in info["windows"]:
@@ -1067,23 +1065,18 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                             ).items():
                                 if name in self.functions:
                                     if self.functions[name] != definition:
-                                        modified_functions.append(
-                                            (
-                                                {
-                                                    "name": name,
-                                                    "definition": definition,
-                                                },
-                                                {
-                                                    "name": name,
-                                                    "definition": self.functions[name],
-                                                },
-                                            )
-                                        )
+                                        new_functions[os.urandom(6).hex()] = {
+                                            "name": name,
+                                            "definition": definition,
+                                        }
                                 else:
-                                    self.functions[name] = definition
+                                    new_functions[os.urandom(6).hex()] = {
+                                        "name": name,
+                                        "definition": definition,
+                                    }
 
-                if modified_functions:
-                    self.change_functions(modified_functions)
+                if new_functions:
+                    self.update_functions({}, new_functions)
 
             windows = info.get("windows", [])
             if windows:

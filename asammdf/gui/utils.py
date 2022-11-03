@@ -737,6 +737,7 @@ def computation_to_python_function(description):
             "type": "python_function",
             "triggering": "triggering_on_all",
             "triggering_value": "all",
+            "function": description["channel_name"],
         }
 
     elif type_ == "function":
@@ -758,6 +759,7 @@ def computation_to_python_function(description):
             "type": "python_function",
             "triggering": "triggering_on_all",
             "triggering_value": "all",
+            "function": description["channel_name"],
         }
 
     elif type_ == "expression":
@@ -769,12 +771,11 @@ def computation_to_python_function(description):
             "type": "python_function",
             "triggering": "triggering_on_all",
             "triggering_value": "all",
+            "function": description["channel_name"],
         }
 
     else:
         new_description = description
-
-    new_description["function"] = new_description["channel_name"]
 
     return new_description
 
