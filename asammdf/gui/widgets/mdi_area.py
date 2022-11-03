@@ -333,7 +333,7 @@ def get_functions(data):
                 computation = computation_to_python_function(item["computation"])
                 name = item["name"]
 
-                functions[name] = computation["definition"]
+                functions[computation["function"]] = computation["definition"]
 
     return functions
 
