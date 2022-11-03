@@ -114,10 +114,10 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
 
         if trace is not None:
             ErrorDialog(
-                self.logger,
                 title="Function definition check",
                 message="The syntax is not correct. The following error was found",
                 trace=f"{trace}\n\nin the function\n\n{function_source}",
+                parent=self,
             ).exec()
             return False, None
 
@@ -129,10 +129,10 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
             trace = format_exc()
 
             ErrorDialog(
-                self.logger,
                 title="Function definition check",
                 message="The syntax is not correct. The following error was found",
                 trace=f"{trace}\n\nin the function\n\n{function_source}",
+                parent=self,
             ).exec()
 
             return False, None

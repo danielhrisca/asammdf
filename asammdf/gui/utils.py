@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import inspect
 from collections import defaultdict
 from datetime import datetime
 from functools import reduce
@@ -1133,6 +1134,21 @@ def generate_python_function(definition):
     except:
         trace = format_exc()
         func = None
+
+    args = inspect.signature(func)
+    if 't' not in args.parameters:
+        trace = 'The last function argument must be "t=0"'
+        func = None
+
+    else:
+        t = args.parameters['t']
+        if t.default != 0:
+            trace = 'The last function argument must be "t=0"'
+            func = None
+        else:
+            if list(args.parameters)[-1] != 't':
+                trace = 'The last function argument must be "t=0"'
+                func = None
 
     return func, trace
 
