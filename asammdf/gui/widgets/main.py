@@ -1597,27 +1597,4 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                     original_definitions = dlg.original_definitions
                     modified_definitions = dlg.modified_definitions
 
-                    new_definitions = [
-                        info
-                        for uuid, info in modified_definitions.items()
-                        if uuid not in original_definitions
-                    ]
-
-                    changed_definitions = [
-                        (info, original_definitions[uuid])
-                        for uuid, info in modified_definitions.items()
-                        if uuid in original_definitions
-                        and info != original_definitions[uuid]
-                    ]
-
-                    deleted_definitions = [
-                        info
-                        for uuid, info in original_definitions.items()
-                        if uuid not in modified_definitions
-                    ]
-
-                    for info in new_definitions:
-                        file.functions[info["name"]] = info["definition"]
-
-                    file.delete_functions(deleted_definitions)
-                    file.change_functions(changed_definitions)
+                    file.update_functions(original_definitions, modified_definitions)

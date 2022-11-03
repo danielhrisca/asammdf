@@ -404,11 +404,13 @@ def load_dsp(file, background="#000000", flat=False):
             "common_axis": False,
             "computed": True,
             "computation": {
+                "args": {"arg1": ""},
                 "type": "python_function",
-                "definition": "return {{" + ch["parent"] + "}}",
+                "definition": f"def f_{ch['name']}(arg1=0):\n    return arg1",
                 "channel_comment": ch["comment"],
                 "channel_name": ch["name"],
                 "channel_unit": "",
+                "function_name": f"f_{ch['name']}",
                 "triggering": "triggering_on_all",
                 "triggering_value": "all",
             },
@@ -625,23 +627,20 @@ def compute_signal(
     try:
 
         if type_ == "python_function":
-            func, args_names, get_data_args, *_ = generate_python_function(
+            func, trace = generate_python_function(
                 definition=functions.get(
                     description["function"], description["definition"]
                 ),
-                name=description["channel_name"],
+                function_name=description["function"],
             )
 
-            signals_pool = {name: measured_signals[name] for name in get_data_args}
-            signals = [measured_signals[name] for name in args_names]
+            signals = [measured_signals[name] for name in description['args'].values() if name]
 
-            names = [f"_v{i}_" for i, n in enumerate(args_names, 1)] + ["t"]
+            names = list(description['args']) + ['t']
 
             triggering = description.get("triggering", "triggering_on_all")
             if triggering == "triggering_on_all":
                 timestamps = [sig.timestamps for sig in signals]
-                if not timestamps:
-                    timestamps = [sig.timestamps for sig in signals_pool.values()]
                 common_timebase = reduce(np.union1d, timestamps)
                 signals = [
                     sig.interp(common_timebase).samples.tolist() for sig in signals
@@ -682,11 +681,6 @@ def compute_signal(
 
             signals.append(common_timebase)
 
-            get_data = get_data_function(
-                signals_pool, fill_0_for_missing_computation_channels
-            )
-            func.__globals__["get_data"] = get_data
-
             samples = [
                 func(**{arg_name: arg_val for arg_name, arg_val in zip(names, values)})
                 for values in zip(*signals)
@@ -717,61 +711,124 @@ def computation_to_python_function(description):
     if type_ == "arithmetic":
         op = description["op"]
 
+        args = []
+        fargs = {}
+
         operand1 = description["operand1"]
         if isinstance(operand1, dict):
-            operand1 = "{{Operand1}}"
-        elif isinstance(operand1, str):
-            operand1 = f"{{{{{operand1}}}}}"
+            fargs["arg1"] = ''
+            args.append("arg1=0")
+            operand1 = "arg1"
 
-        operand2 = description["operand2"]
+        elif isinstance(operand1, str):
+            fargs["arg1"] = operand1
+            args.append("arg1=0")
+            operand1 = "arg1"
+
+        operand2 = description["operand1"]
         if isinstance(operand2, dict):
-            operand2 = "{{Operand1}}"
+            fargs["arg2"] = ''
+            args.append("arg2=0")
+            operand2 = "arg2"
         elif isinstance(operand2, str):
-            operand2 = f"{{{{{operand2}}}}}"
+            fargs["arg2"] = operand2
+            args.append("arg2=0")
+            operand2 = "arg2"
+
+        args.append('t=0')
+
+        function_name = f"Arithmetic_{os.urandom(6).hex()}"
+        args = ', '.join(args)
+        body = f'return {operand1} {op} {operand2}'
+
+        definition = f"def {function_name}({args}):\n    {body}"
 
         new_description = {
+            "args": fargs,
             "channel_comment": description["channel_comment"],
             "channel_name": description["channel_name"],
             "channel_unit": description["channel_unit"],
-            "definition": f"return {operand1} {op} {operand2}",
+            "definition": definition,
             "type": "python_function",
             "triggering": "triggering_on_all",
             "triggering_value": "all",
-            "function": description["channel_name"],
+            "function": function_name,
         }
 
     elif type_ == "function":
         channel = description["channel"]
 
-        if isinstance(channel, dict):
-            operand = "{{Operand}}"
-        elif isinstance(channel, str):
-            operand = f"{{{{{channel}}}}}"
+        args = []
+        fargs = {}
 
-        args = ", ".join([operand] + [str(e) for e in description["args"]])
-        function = description["name"]
+        if isinstance(channel, dict):
+            fargs['arg1'] = ""
+            operand = "arg1"
+            args.append('arg1=0')
+
+        elif isinstance(channel, str):
+            fargs['arg1'] = channel
+            operand = "arg1"
+            args.append('arg1=0')
+
+        args.append('t=0')
+
+        np_args = ", ".join([operand] + [str(e) for e in description["args"]])
+        np_function = description["name"]
+
+        function_name = f"Numpy_{os.urandom(6).hex()}"
+        args = ', '.join(args)
+        body = f'return np.{np_function}( {np_args} )'
+
+        definition = f"def {function_name}({args}):\n    {body}"
 
         new_description = {
+            "args": fargs,
             "channel_comment": description["channel_comment"],
             "channel_name": description["channel_name"],
             "channel_unit": description["channel_unit"],
-            "definition": f"return np.{function}( {args} )",
+            "definition": definition,
             "type": "python_function",
             "triggering": "triggering_on_all",
             "triggering_value": "all",
-            "function": description["channel_name"],
+            "function": function_name,
         }
 
     elif type_ == "expression":
+        exp = description['expression']
+
+        args = []
+        fargs = {}
+
+        translation = {}
+
+        for match in VARIABLE.finditer(exp):
+            name = match.group('var')
+            if name not in translation:
+                translation[name] = "arg1"
+                args.append("arg1=0")
+
+        args.append('t=0')
+
+        for name, arg in translation.items():
+            exp = exp.replace(name, arg)
+
+        function_name = f"Expression_{os.urandom(6).hex()}"
+        args = ', '.join(args)
+        body = f'return {exp}'
+
+        definition = f"def {function_name}({args}):\n    {body}"
+
         new_description = {
+            "args": fargs,
             "channel_comment": description["channel_comment"],
             "channel_name": description["channel_name"],
             "channel_unit": description["channel_unit"],
-            "definition": f"return {description['expression']}",
+            "definition": definition,
             "type": "python_function",
             "triggering": "triggering_on_all",
             "triggering_value": "all",
-            "function": description["channel_name"],
+            "function": function_name,
         }
 
     else:
@@ -1056,48 +1113,22 @@ def draw_color_icon(color):
     return QtGui.QIcon(pix)
 
 
-def generate_python_function(definition, name=""):
-    definition = definition.strip()
+def generate_python_function(definition, function_name):
     trace = None
     if not definition:
         trace = "The function definition must not be empty"
-    vars = defaultdict(list)
-    get_data_vars = set()
 
-    func_name = f"PythonFunction_{os.urandom(6).hex()}"
-
-    for match in VARIABLE.finditer(definition):
-        vars[match.group("var").strip("{}")] = match
-
-    count = len(vars)
-
-    for i, (name, matches) in enumerate(vars.items(), 1):
-        variable_re = re.compile(r"\{\{" + re.escape(name) + "\}\}")
-        definition = variable_re.sub(f"_v{i}_", definition)
-
-    for match in VARIABLE_GET_DATA.finditer(definition):
-        get_data_vars.add(match.group("var"))
-
-    args = ", ".join([f"_v{i+1}_=0" for i in range(count)] + ["t=0"])
-
-    definition = indent(dedent(definition), "    ")
-
-    function_source = f"""
-def {func_name}({args}):
-{definition}
-"""
+    if not function_name:
+        trace = "The function name must not be empty"
 
     try:
-        exec(function_source)
-        func = locals()[func_name]
+        exec(definition)
+        func = locals()[function_name]
     except:
         trace = format_exc()
-        for i, var_name in enumerate(vars, 1):
-            trace = trace.replace(f"_v{i}_", f"{{{{{var_name}}}}}")
-            function_source = function_source.replace(f"_v{i}_", f"{{{{{var_name}}}}}")
         func = None
 
-    return func, list(vars), get_data_vars, func_name, trace, function_source
+    return func, trace
 
 
 if __name__ == "__main__":

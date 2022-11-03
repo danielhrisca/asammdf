@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
+import inspect
 import os
 import re
+from functools import partial
 from traceback import format_exc
 
-from PySide6 import QtWidgets
+from PySide6 import QtWidgets, QtGui
 
 from ...signal import Signal
 from ..ui import resource_rc
@@ -19,11 +21,10 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
     def __init__(
         self,
         mdf,
-        name="",
         computation=None,
         computed_signals=None,
         origin_uuid=None,
-        functions=(),
+        functions=None,
         *args,
         **kwargs,
     ):
@@ -36,6 +37,8 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         self.computed_signals = computed_signals or {}
         self.origin_uuid = origin_uuid or (mdf.uuid if mdf else os.urandom(6).hex())
 
+        self.arg_widgets = []
+
         for widget in (
             self.apply_btn,
             self.cancel_btn,
@@ -43,8 +46,11 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             widget.setDefault(False)
             widget.setAutoDefault(False)
 
-        self.functions.addItems(sorted(functions))
+        self._functions = functions or {}
+
+        self.functions.addItems(sorted(self._functions))
         self.functions.setCurrentIndex(-1)
+        self.functions.currentTextChanged.connect(self.function_changed)
 
         self.apply_btn.clicked.connect(self.apply)
         self.cancel_btn.clicked.connect(self.cancel)
@@ -72,12 +78,15 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
             self.functions.setCurrentText(computation["function"])
 
+            for i, name in enumerate(computation["args"].values()):
+                self.arg_widgets[i][1].setText(name)
+
     def apply(self):
 
         if not self.functions.currentIndex() >= 0:
             return
 
-        name = self.name.text().strip() or f"PythonFunction_{os.urandom(6).hex()}"
+        name = self.name.text().strip() or f"Function_{os.urandom(6).hex()}"
 
         if self.triggering_on_all.isChecked():
             triggering = "triggering_on_all"
@@ -88,6 +97,10 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         else:
             triggering = "triggering_on_channel"
             triggering_value = self.trigger_channel.text().strip()
+
+        fargs = {}
+        for i, (label, line_edit, button) in enumerate(self.arg_widgets):
+            fargs[label.text()] = line_edit.text()
 
         self.result = {
             "type": "channel",
@@ -110,6 +123,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             "channel_index": -1,
             "name": name,
             "computation": {
+                "args": fargs,
                 "type": "python_function",
                 "definition": "",
                 "channel_name": name,
@@ -118,6 +132,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 "channel_comment": self.comment.toPlainText().strip(),
                 "triggering": triggering,
                 "triggering_value": triggering_value,
+
             },
         }
 
@@ -128,6 +143,53 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         self.result = None
         self.pressed_button = "cancel"
         self.close()
+
+    def function_changed(self, name):
+        for widgets in self.arg_widgets:
+            for widget in widgets:
+                self.arg_layout.removeWidget(widget)
+
+        self.arg_widgets.clear()
+
+        definition = self._functions[name]
+        exec(definition)
+        func = locals()[name]
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/search.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+
+        parameters = list(inspect.signature(func).parameters)[:-1]
+        for i, arg_name in enumerate(parameters, 2):
+            label = QtWidgets.QLabel(arg_name)
+            self.arg_layout.addWidget(label, i, 0)
+            line_edit = QtWidgets.QLineEdit()
+            self.arg_layout.addWidget(line_edit, i, 1)
+            button = QtWidgets.QPushButton("")
+            button.setIcon(icon)
+            button.clicked.connect(partial(self.search_argument, index=i-2))
+            self.arg_layout.addWidget(button, i, 2)
+
+            self.arg_widgets.append((label, line_edit, button))
+
+    def search_argument(self, *args, index=0):
+        dlg = AdvancedSearch(
+            self.mdf,
+            show_add_window=False,
+            show_apply=True,
+            apply_text="Select channel",
+            show_pattern=False,
+            parent=self,
+            return_names=True,
+            computed_signals=self.computed_signals,
+        )
+        dlg.setModal(True)
+        dlg.exec_()
+        result, pattern_window = dlg.result, dlg.pattern_window
+
+        if result:
+            self.arg_widgets[index][1].setText(list(result)[0])
 
     def search(self, *args, text_widget=None):
         dlg = AdvancedSearch(

@@ -380,21 +380,7 @@ def get_required_from_computed(channel, functions):
                     ]
                 )
             elif computation["type"] == "python_function":
-                definition = functions.get(computation["function"], "")
-
-                names.extend(
-                    [
-                        match.group("var").strip("}{")
-                        for match in VARIABLE.finditer(definition)
-                    ]
-                )
-
-                names.extend(
-                    [
-                        match.group("var")
-                        for match in VARIABLE_GET_DATA.finditer(definition)
-                    ]
-                )
+                names.extend([name for name in computation['args'].values() if name])
 
                 triggering = computation.get("triggering", "triggering_on_all")
 
@@ -429,18 +415,7 @@ def get_required_from_computed(channel, functions):
                 names.extend(get_required_from_computed(op))
 
         elif channel["type"] == "python_function":
-            definition = channel["definition"]
-
-            names.extend(
-                [
-                    match.group("var").strip("}{")
-                    for match in VARIABLE.finditer(definition)
-                ]
-            )
-
-            names.extend(
-                [match.group("var") for match in VARIABLE_GET_DATA.finditer(definition)]
-            )
+            names.extend([name for name in channel['args'].values() if name])
 
     return names
 

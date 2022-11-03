@@ -25,7 +25,7 @@ class Ui_ComputedChannel(object):
     def setupUi(self, ComputedChannel):
         if not ComputedChannel.objectName():
             ComputedChannel.setObjectName(u"ComputedChannel")
-        ComputedChannel.resize(638, 382)
+        ComputedChannel.resize(723, 517)
         ComputedChannel.setMaximumSize(QSize(16777215, 16777215))
         icon = QIcon()
         icon.addFile(u":/plus.png", QSize(), QIcon.Normal, QIcon.Off)
@@ -33,59 +33,15 @@ class Ui_ComputedChannel(object):
         ComputedChannel.setSizeGripEnabled(True)
         self.gridLayout = QGridLayout(ComputedChannel)
         self.gridLayout.setObjectName(u"gridLayout")
-        self.cancel_btn = QPushButton(ComputedChannel)
-        self.cancel_btn.setObjectName(u"cancel_btn")
-
-        self.gridLayout.addWidget(self.cancel_btn, 6, 4, 1, 1)
-
-        self.label_8 = QLabel(ComputedChannel)
-        self.label_8.setObjectName(u"label_8")
-        self.label_8.setAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignTop)
-
-        self.gridLayout.addWidget(self.label_8, 4, 0, 1, 1)
-
-        self.functions = QComboBox(ComputedChannel)
-        self.functions.setObjectName(u"functions")
-
-        self.gridLayout.addWidget(self.functions, 1, 1, 1, 4)
-
-        self.label_9 = QLabel(ComputedChannel)
-        self.label_9.setObjectName(u"label_9")
-
-        self.gridLayout.addWidget(self.label_9, 1, 0, 1, 1)
-
-        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        self.gridLayout.addItem(self.horizontalSpacer_3, 6, 1, 1, 1)
-
         self.comment = QPlainTextEdit(ComputedChannel)
         self.comment.setObjectName(u"comment")
 
-        self.gridLayout.addWidget(self.comment, 4, 1, 1, 4)
-
-        self.unit = QLineEdit(ComputedChannel)
-        self.unit.setObjectName(u"unit")
-
-        self.gridLayout.addWidget(self.unit, 5, 1, 1, 1)
-
-        self.label_7 = QLabel(ComputedChannel)
-        self.label_7.setObjectName(u"label_7")
-
-        self.gridLayout.addWidget(self.label_7, 2, 0, 1, 1)
+        self.gridLayout.addWidget(self.comment, 5, 1, 1, 4)
 
         self.apply_btn = QPushButton(ComputedChannel)
         self.apply_btn.setObjectName(u"apply_btn")
 
-        self.gridLayout.addWidget(self.apply_btn, 6, 3, 1, 1)
-
-        self.name = QLineEdit(ComputedChannel)
-        self.name.setObjectName(u"name")
-
-        self.gridLayout.addWidget(self.name, 2, 1, 1, 4)
-
-        self.horizontalSpacer_7 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        self.gridLayout.addItem(self.horizontalSpacer_7, 6, 2, 1, 1)
+        self.gridLayout.addWidget(self.apply_btn, 7, 3, 1, 1)
 
         self.groupBox_3 = QGroupBox(ComputedChannel)
         self.groupBox_3.setObjectName(u"groupBox_3")
@@ -137,10 +93,77 @@ class Ui_ComputedChannel(object):
 
         self.gridLayout.addWidget(self.groupBox_3, 0, 0, 1, 5)
 
+        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.gridLayout.addItem(self.horizontalSpacer_3, 7, 1, 1, 1)
+
+        self.cancel_btn = QPushButton(ComputedChannel)
+        self.cancel_btn.setObjectName(u"cancel_btn")
+
+        self.gridLayout.addWidget(self.cancel_btn, 7, 4, 1, 1)
+
         self.label_6 = QLabel(ComputedChannel)
         self.label_6.setObjectName(u"label_6")
 
-        self.gridLayout.addWidget(self.label_6, 5, 0, 1, 1)
+        self.gridLayout.addWidget(self.label_6, 6, 0, 1, 1)
+
+        self.label_8 = QLabel(ComputedChannel)
+        self.label_8.setObjectName(u"label_8")
+        self.label_8.setAlignment(Qt.AlignLeading|Qt.AlignLeft|Qt.AlignTop)
+
+        self.gridLayout.addWidget(self.label_8, 5, 0, 1, 1)
+
+        self.unit = QLineEdit(ComputedChannel)
+        self.unit.setObjectName(u"unit")
+
+        self.gridLayout.addWidget(self.unit, 6, 1, 1, 1)
+
+        self.label_7 = QLabel(ComputedChannel)
+        self.label_7.setObjectName(u"label_7")
+
+        self.gridLayout.addWidget(self.label_7, 3, 0, 1, 1)
+
+        self.name = QLineEdit(ComputedChannel)
+        self.name.setObjectName(u"name")
+
+        self.gridLayout.addWidget(self.name, 3, 1, 1, 4)
+
+        self.horizontalSpacer_7 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.gridLayout.addItem(self.horizontalSpacer_7, 7, 2, 1, 1)
+
+        self.groupBox = QGroupBox(ComputedChannel)
+        self.groupBox.setObjectName(u"groupBox")
+        self.arg_layout = QGridLayout(self.groupBox)
+        self.arg_layout.setObjectName(u"arg_layout")
+        self.arg_layout.setContentsMargins(0, 0, 0, 0)
+        self.label_9 = QLabel(self.groupBox)
+        self.label_9.setObjectName(u"label_9")
+        self.label_9.setMinimumSize(QSize(155, 0))
+
+        self.arg_layout.addWidget(self.label_9, 0, 0, 1, 1)
+
+        self.label = QLabel(self.groupBox)
+        self.label.setObjectName(u"label")
+
+        self.arg_layout.addWidget(self.label, 1, 0, 1, 1)
+
+        self.functions = QComboBox(self.groupBox)
+        self.functions.setObjectName(u"functions")
+
+        self.arg_layout.addWidget(self.functions, 0, 1, 1, 1)
+
+        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.arg_layout.addItem(self.horizontalSpacer, 1, 1, 1, 1)
+
+        self.horizontalSpacer_2 = QSpacerItem(20, 20, QSizePolicy.Fixed, QSizePolicy.Minimum)
+
+        self.arg_layout.addItem(self.horizontalSpacer_2, 1, 2, 1, 1)
+
+        self.arg_layout.setColumnStretch(1, 1)
+
+        self.gridLayout.addWidget(self.groupBox, 2, 0, 1, 5)
 
 
         self.retranslateUi(ComputedChannel)
@@ -150,21 +173,23 @@ class Ui_ComputedChannel(object):
 
     def retranslateUi(self, ComputedChannel):
         ComputedChannel.setWindowTitle(QCoreApplication.translate("ComputedChannel", u"Define new channel", None))
-        self.cancel_btn.setText(QCoreApplication.translate("ComputedChannel", u"Cancel", None))
-        self.label_8.setText(QCoreApplication.translate("ComputedChannel", u"Computed channel comment", None))
-        self.label_9.setText(QCoreApplication.translate("ComputedChannel", u"Function", None))
-        self.unit.setPlaceholderText("")
-        self.label_7.setText(QCoreApplication.translate("ComputedChannel", u"Computed channel name", None))
         self.apply_btn.setText(QCoreApplication.translate("ComputedChannel", u"Apply", None))
-        self.name.setInputMask("")
-        self.name.setText("")
-        self.name.setPlaceholderText("")
         self.groupBox_3.setTitle(QCoreApplication.translate("ComputedChannel", u"Triggering", None))
         self.trigger_interval.setSuffix(QCoreApplication.translate("ComputedChannel", u"s", None))
         self.triggering_on_channel.setText(QCoreApplication.translate("ComputedChannel", u"on channel", None))
         self.triggering_on_interval.setText(QCoreApplication.translate("ComputedChannel", u"time interval", None))
         self.trigger_search_btn.setText("")
         self.triggering_on_all.setText(QCoreApplication.translate("ComputedChannel", u"all channels timestamps", None))
+        self.cancel_btn.setText(QCoreApplication.translate("ComputedChannel", u"Cancel", None))
         self.label_6.setText(QCoreApplication.translate("ComputedChannel", u"Computed channel unit", None))
+        self.label_8.setText(QCoreApplication.translate("ComputedChannel", u"Computed channel comment", None))
+        self.unit.setPlaceholderText("")
+        self.label_7.setText(QCoreApplication.translate("ComputedChannel", u"Computed channel name", None))
+        self.name.setInputMask("")
+        self.name.setText("")
+        self.name.setPlaceholderText("")
+        self.groupBox.setTitle(QCoreApplication.translate("ComputedChannel", u"Function", None))
+        self.label_9.setText(QCoreApplication.translate("ComputedChannel", u"Name", None))
+        self.label.setText(QCoreApplication.translate("ComputedChannel", u"Arguments:", None))
     # retranslateUi
 

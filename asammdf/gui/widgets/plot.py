@@ -3883,7 +3883,7 @@ class _Plot(pg.PlotWidget):
     def edit_computation(self, item):
 
         signal = item.signal
-        functions = list(self.plot_parent.owner.functions)
+        functions = self.plot_parent.owner.functions
 
         computed_signals = {
             sig.name: sig
@@ -3892,7 +3892,6 @@ class _Plot(pg.PlotWidget):
         }
         dlg = DefineChannel(
             mdf=self.mdf,
-            name=signal.name,
             computation=signal.computation,
             computed_signals=computed_signals,
             functions=functions,
@@ -3995,7 +3994,7 @@ class _Plot(pg.PlotWidget):
             sig.name: sig for sig in self.signals if sig.flags & Signal.Flags.computed
         }
 
-        functions = list(self.plot_parent.owner.functions)
+        functions = self.plot_parent.owner.functions
         if not functions:
             QtWidgets.QMessageBox.warning(
                 self,
@@ -4006,11 +4005,10 @@ class _Plot(pg.PlotWidget):
 
         dlg = DefineChannel(
             mdf=self.mdf,
-            name=name,
             computation=None,
             computed_signals=computed_signals,
             parent=self,
-            functions=functions,
+            functions=self.plot_parent.owner.functions,
         )
         dlg.setModal(True)
         dlg.exec_()
