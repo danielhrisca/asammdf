@@ -3129,9 +3129,7 @@ class Plot(QtWidgets.QWidget):
                         raise
 
                 else:
-                    self.show_properties.emit(
-                        [sig.group_index, sig.channel_index, sig.origin_uuid]
-                    )
+                    self.show_properties.emit([sig.group_index, sig.channel_index, sig])
 
     def to_config(self):
         def item_to_config(tree, root):

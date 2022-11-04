@@ -3207,12 +3207,12 @@ class WithMDIArea:
                 sig.channel_index = NOT_FOUND
                 sig.color = description["color"]
 
-                if descriptions["flags"] & Signal.Flags.user_defined_conversion:
-                    signal.conversion = from_dict(descriptions["conversion"])
+                if description["flags"] & Signal.Flags.user_defined_conversion:
+                    signal.conversion = from_dict(description["conversion"])
                     signal.flags |= signal.Flags.user_defined_conversion
 
-                if descriptions["flags"] & Signal.Flags.user_defined_name:
-                    signal.name = descriptions["user_defined_name"]
+                if description["flags"] & Signal.Flags.user_defined_name:
+                    signal.name = description["user_defined_name"]
                     signal.flags |= signal.Flags.user_defined_name
 
                 signals[uuid] = sig
@@ -3948,13 +3948,21 @@ class WithMDIArea:
                 return None
 
     def _show_info(self, lst):
-        group_index, index, uuid = lst
+        group_index, index, sig = lst
+        uuid = sig.origin_uuid
         file_info = self.file_by_uuid(uuid)
         if file_info:
             _, file = file_info
-            channel = file.mdf.get_channel_metadata(group=group_index, index=index)
-            msg = ChannelInfoDialog(channel, self)
-            msg.show()
+            try:
+                channel = file.mdf.get_channel_metadata(group=group_index, index=index)
+                msg = ChannelInfoDialog(channel, self)
+                msg.show()
+            except MdfException:
+                QtWidgets.QMessageBox.warning(
+                    self,
+                    "Missing channel",
+                    f"The channel {sig.name} does not exit in the current measurement file.",
+                )
 
     def window_closed_handler(self, obj=None):
         self.windows_modified.emit()
