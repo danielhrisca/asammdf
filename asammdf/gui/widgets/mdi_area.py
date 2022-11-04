@@ -156,6 +156,7 @@ def build_mime_from_config(
                 item["computation"] = computation_to_python_function(
                     item["computation"]
                 )
+                item["computation"].pop("definition", None)
 
             else:
 
@@ -330,8 +331,9 @@ def get_functions(data):
             functions.update(get_functions(item["channels"]))
         else:
             if item.get("computed", False):
-                computation = computation_to_python_function(item["computation"])
-                name = item["name"]
+                computation = item["computation"] = computation_to_python_function(
+                    item["computation"]
+                )
 
                 functions[computation["function"]] = computation["definition"]
 
@@ -380,7 +382,7 @@ def get_required_from_computed(channel, functions):
                     ]
                 )
             elif computation["type"] == "python_function":
-                names.extend([name for name in computation['args'].values() if name])
+                names.extend([name for name in computation["args"].values() if name])
 
                 triggering = computation.get("triggering", "triggering_on_all")
 
@@ -415,7 +417,7 @@ def get_required_from_computed(channel, functions):
                 names.extend(get_required_from_computed(op))
 
         elif channel["type"] == "python_function":
-            names.extend([name for name in channel['args'].values() if name])
+            names.extend([name for name in channel["args"].values() if name])
 
     return names
 
@@ -701,10 +703,6 @@ class WithMDIArea:
                 ]
 
                 uuids = set(entry["origin_uuid"] for entry in entries)
-
-            # print(computed)
-            # print(names)
-            # print(signals_)
 
             if isinstance(widget, Tabular):
                 dfs = []
@@ -3977,7 +3975,6 @@ class WithMDIArea:
                                     wid.channel_item_to_config(item), item, wid
                                 )
                             elif function in deleted:
-
                                 self.edit_channel(
                                     wid.channel_item_to_config(item), item, wid
                                 )

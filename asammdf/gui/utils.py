@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-import inspect
 from collections import defaultdict
 from datetime import datetime
 from functools import reduce
+import inspect
 from io import StringIO
 import json
 import os
@@ -135,7 +135,8 @@ FONT_SIZE = [6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72]
 VARIABLE = re.compile(r"(?P<var>\{\{[^}]+\}\})")
 VARIABLE_GET_DATA = re.compile(r"get_data\s*\(\s*\"(?P<var>[^\"]+)")
 C_FUNCTION = re.compile(r"\s+(?P<function>\S+)\s*\(\s*struct\s+DATA\s+\*data\s*\)")
-FUNC_NAME = re.compile(r'def\s+(?P<name>\S+)\s*\(')
+FUNC_NAME = re.compile(r"def\s+(?P<name>\S+)\s*\(")
+
 
 def excepthook(exc_type, exc_value, tracebackobj):
     """
@@ -629,14 +630,14 @@ def compute_signal(
 
         if type_ == "python_function":
             func, trace = generate_python_function(
-                definition=functions.get(
-                    description["function"], description["definition"]
-                ),
+                definition=functions[description["function"]]
             )
 
-            signals = [measured_signals[name] for name in description['args'].values() if name]
+            signals = [
+                measured_signals[name] for name in description["args"].values() if name
+            ]
 
-            names = list(description['args']) + ['t']
+            names = list(description["args"]) + ["t"]
 
             triggering = description.get("triggering", "triggering_on_all")
             if triggering == "triggering_on_all":
@@ -716,30 +717,42 @@ def computation_to_python_function(description):
 
         operand1 = description["operand1"]
         if isinstance(operand1, dict):
-            fargs["arg1"] = ''
+            fargs["arg1"] = ""
             args.append("arg1=0")
             operand1 = "arg1"
 
         elif isinstance(operand1, str):
-            fargs["arg1"] = operand1
-            args.append("arg1=0")
-            operand1 = "arg1"
+            try:
+                operand1 = float(operand1)
+                if operand1.is_integer():
+                    operand1 = int(operand1)
+            except:
 
-        operand2 = description["operand1"]
+                fargs["arg1"] = operand1
+                args.append("arg1=0")
+                operand1 = "arg1"
+
+        operand2 = description["operand2"]
         if isinstance(operand2, dict):
-            fargs["arg2"] = ''
+            fargs["arg2"] = ""
             args.append("arg2=0")
             operand2 = "arg2"
         elif isinstance(operand2, str):
-            fargs["arg2"] = operand2
-            args.append("arg2=0")
-            operand2 = "arg2"
+            try:
+                operand2 = float(operand2)
+                if operand2.is_integer():
+                    operand2 = int(operand2)
+            except:
 
-        args.append('t=0')
+                fargs["arg2"] = operand2
+                args.append("arg2=0")
+                operand2 = "arg2"
+
+        args.append("t=0")
 
         function_name = f"Arithmetic_{os.urandom(6).hex()}"
-        args = ', '.join(args)
-        body = f'return {operand1} {op} {operand2}'
+        args = ", ".join(args)
+        body = f"return {operand1} {op} {operand2}"
 
         definition = f"def {function_name}({args}):\n    {body}"
 
@@ -762,23 +775,23 @@ def computation_to_python_function(description):
         fargs = {}
 
         if isinstance(channel, dict):
-            fargs['arg1'] = ""
+            fargs["arg1"] = ""
             operand = "arg1"
-            args.append('arg1=0')
+            args.append("arg1=0")
 
         elif isinstance(channel, str):
-            fargs['arg1'] = channel
+            fargs["arg1"] = channel
             operand = "arg1"
-            args.append('arg1=0')
+            args.append("arg1=0")
 
-        args.append('t=0')
+        args.append("t=0")
 
         np_args = ", ".join([operand] + [str(e) for e in description["args"]])
         np_function = description["name"]
 
         function_name = f"Numpy_{os.urandom(6).hex()}"
-        args = ', '.join(args)
-        body = f'return np.{np_function}( {np_args} )'
+        args = ", ".join(args)
+        body = f"return np.{np_function}( {np_args} )"
 
         definition = f"def {function_name}({args}):\n    {body}"
 
@@ -795,7 +808,7 @@ def computation_to_python_function(description):
         }
 
     elif type_ == "expression":
-        exp = description['expression']
+        exp = description["expression"]
 
         args = []
         fargs = {}
@@ -803,19 +816,21 @@ def computation_to_python_function(description):
         translation = {}
 
         for match in VARIABLE.finditer(exp):
-            name = match.group('var')
+            name = match.group("var")
             if name not in translation:
-                translation[name] = "arg1"
-                args.append("arg1=0")
+                arg = f"arg{len(translation)+1}"
+                translation[name] = arg
+                args.append(f"{arg}=0")
+                fargs[arg] = name.strip("}{")
 
-        args.append('t=0')
+        args.append("t=0")
 
         for name, arg in translation.items():
             exp = exp.replace(name, arg)
 
         function_name = f"Expression_{os.urandom(6).hex()}"
-        args = ', '.join(args)
-        body = f'return {exp}'
+        args = ", ".join(args)
+        body = f"return {exp}"
 
         definition = f"def {function_name}({args}):\n    {body}"
 
@@ -1126,7 +1141,7 @@ def generate_python_function(definition):
         trace = "The function name must not be empty"
         return func, trace
     else:
-        function_name = match.group('name')
+        function_name = match.group("name")
 
     try:
         exec(definition)
@@ -1136,17 +1151,17 @@ def generate_python_function(definition):
         func = None
 
     args = inspect.signature(func)
-    if 't' not in args.parameters:
+    if "t" not in args.parameters:
         trace = 'The last function argument must be "t=0"'
         func = None
 
     else:
-        t = args.parameters['t']
+        t = args.parameters["t"]
         if t.default != 0:
             trace = 'The last function argument must be "t=0"'
             func = None
         else:
-            if list(args.parameters)[-1] != 't':
+            if list(args.parameters)[-1] != "t":
                 trace = 'The last function argument must be "t=0"'
                 func = None
 

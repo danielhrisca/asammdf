@@ -1,18 +1,17 @@
 # -*- coding: utf-8 -*-
+from functools import partial
 import inspect
 import os
 import re
-from functools import partial
 from traceback import format_exc
 
-from PySide6 import QtWidgets, QtGui
+from PySide6 import QtGui, QtWidgets
 
 from ...signal import Signal
 from ..ui import resource_rc
 from ..ui.define_channel_dialog import Ui_ComputedChannel
 from ..utils import computation_to_python_function
 from .advanced_search import AdvancedSearch
-from .error_dialog import ErrorDialog
 
 SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
 
@@ -51,6 +50,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         self.functions.addItems(sorted(self._functions))
         self.functions.setCurrentIndex(-1)
         self.functions.currentTextChanged.connect(self.function_changed)
+        self.functions.currentIndexChanged.connect(self.function_changed)
 
         self.apply_btn.clicked.connect(self.apply)
         self.cancel_btn.clicked.connect(self.cancel)
@@ -58,6 +58,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
         self.trigger_search_btn.clicked.connect(self.search)
 
+        self.computation = computation
         if computation:
 
             computation = computation_to_python_function(computation)
@@ -77,10 +78,11 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 self.triggering_on_interval.setChecked(True)
                 self.trigger_channel.setText(computation["triggering_value"])
 
-            self.functions.setCurrentText(computation["function"])
+            if computation["function"] in self._functions:
+                self.functions.setCurrentText(computation["function"])
 
-            for i, name in enumerate(computation["args"].values()):
-                self.arg_widgets[i][1].setText(name)
+                for i, name in enumerate(computation["args"].values()):
+                    self.arg_widgets[i][1].setText(name)
 
     def apply(self):
 
@@ -133,7 +135,6 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 "channel_comment": self.comment.toPlainText().strip(),
                 "triggering": triggering,
                 "triggering_value": triggering_value,
-
             },
         }
 
@@ -145,7 +146,8 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         self.pressed_button = "cancel"
         self.close()
 
-    def function_changed(self, name):
+    def function_changed(self, *args):
+        name = self.functions.currentText()
         for widgets in self.arg_widgets:
             for widget in widgets:
                 self.arg_layout.removeWidget(widget)
@@ -170,7 +172,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             self.arg_layout.addWidget(line_edit, i, 1)
             button = QtWidgets.QPushButton("")
             button.setIcon(icon)
-            button.clicked.connect(partial(self.search_argument, index=i-2))
+            button.clicked.connect(partial(self.search_argument, index=i - 2))
             self.arg_layout.addWidget(button, i, 2)
 
             self.arg_widgets.append((label, line_edit, button))
@@ -213,10 +215,16 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
     def show_definition(self, *args):
         function = self.functions.currentText()
-        definition = self._functions[self.functions.currentText()]
+        if function:
+            definition = self._functions[self.functions.currentText()]
 
-        QtWidgets.QMessageBox.information(
-            self,
-            f'{function} definition',
-            definition
-        )
+            QtWidgets.QMessageBox.information(
+                self, f"{function} definition", definition
+            )
+        else:
+            function = self.computation["function"]
+            QtWidgets.QMessageBox.warning(
+                self,
+                f"{function} definition missing",
+                f"The function {function} was not found in the Functions manager",
+            )

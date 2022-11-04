@@ -14,7 +14,7 @@ import numpy as np
 from numpy import searchsorted
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from asammdf import MDF
+from asammdf import MDF, Signal
 from asammdf.gui import utils
 from asammdf.gui.dialogs.range_editor import RangeEditor
 from asammdf.gui.utils import (
@@ -1249,7 +1249,7 @@ class Numeric(QtWidgets.QWidget):
             others = []
             for sig in channels:
                 if sig is not None:
-                    sig.flags &= ~Signal.Flags.computed
+                    sig.flags &= ~sig.Flags.computed
                     sig.computation = None
                     ranges = sig.ranges
                     sig = PlotSignal(sig)

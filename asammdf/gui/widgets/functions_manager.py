@@ -8,7 +8,7 @@ from natsort import natsorted
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..ui.functions_manager import Ui_FunctionsManager
-from ..utils import ErrorDialog, generate_python_function, FUNC_NAME
+from ..utils import ErrorDialog, FUNC_NAME, generate_python_function
 
 
 class FunctionsManager(Ui_FunctionsManager, QtWidgets.QWidget):
@@ -250,7 +250,7 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
                 return
 
             info = self.definitions.pop(item.text())
-            info['definition'] = self.function_definition.toPlainText()
+            info["definition"] = self.function_definition.toPlainText()
             self.definitions[func.__name__] = info
 
             self.functions_list.clear()
@@ -259,5 +259,3 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
 
             row = names.index(name)
             self.functions_list.setCurrentRow(row)
-
-
