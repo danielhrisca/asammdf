@@ -351,7 +351,7 @@ def get_pattern_groups(data):
     return groups
 
 
-def get_required_from_computed(channel, functions):
+def get_required_from_computed(channel):
     names = []
     if "computed" in channel:
         if channel["computed"]:
@@ -382,7 +382,10 @@ def get_required_from_computed(channel, functions):
                     ]
                 )
             elif computation["type"] == "python_function":
-                names.extend([name for name in computation["args"].values() if name])
+                for alternative_names in computation["args"].values():
+                    for name in alternative_names:
+                        if name:
+                            names.append(name)
 
                 triggering = computation.get("triggering", "triggering_on_all")
 
@@ -417,7 +420,10 @@ def get_required_from_computed(channel, functions):
                 names.extend(get_required_from_computed(op))
 
         elif channel["type"] == "python_function":
-            names.extend([name for name in channel["args"].values() if name])
+            for alternative_names in channel["args"].values():
+                for name in alternative_names:
+                    if name:
+                        names.append(name)
 
     return names
 
@@ -891,24 +897,17 @@ class WithMDIArea:
                     required_channels = []
                     for ch in computed:
                         required_channels.extend(
-                            get_required_from_computed(ch, self.functions)
+                            get_required_from_computed(ch)
                         )
 
                     required_channels = set(required_channels)
 
                     measured_signals = {sig.name: sig for sig in sigs.values()}
 
-                    not_found_for_computed = [
-                        channel
-                        for channel in required_channels
-                        if channel not in list(measured_signals)
-                        and channel not in file.mdf
-                    ]
-
                     required_channels = [
                         (None, *file.mdf.whereis(channel)[0])
                         for channel in required_channels
-                        if channel not in list(measured_signals) and channel in file.mdf
+                        if channel not in measured_signals and channel in file.mdf
                     ]
                     required_channels = {
                         sig.name: sig
@@ -934,26 +933,6 @@ class WithMDIArea:
                     else:
                         all_timebase = []
 
-                    if file.mdf._fill_0_for_missing_computation_channels:
-
-                        for channel in not_found_for_computed:
-                            signal = Signal(
-                                samples=np.zeros(len(all_timebase), dtype="f8"),
-                                timestamps=all_timebase,
-                                name=channel,
-                            )
-                            signal.color = "#000000"
-                            signal.flags &= ~signal.Flags.computed
-                            signal.computation = {}
-                            signal.unit = ""
-                            signal.group_index = -1
-                            signal.channel_index = -1
-                            signal.origin_uuid = file.uuid
-                            signal.comment = ""
-                            signal.uuid = os.urandom(6).hex()
-
-                            required_channels[signal.name] = signal
-
                     computed_signals = {}
 
                     for channel in computed:
@@ -965,7 +944,6 @@ class WithMDIArea:
                             required_channels,
                             all_timebase,
                             self.functions,
-                            file.mdf._fill_0_for_missing_computation_channels,
                         )
                         signal.name = channel["name"]
                         signal.unit = channel["unit"]
@@ -2288,7 +2266,7 @@ class WithMDIArea:
             required_channels = []
 
             for ch in computed.values():
-                required_channels.extend(get_required_from_computed(ch, self.functions))
+                required_channels.extend(get_required_from_computed(ch))
 
             required_channels = set(required_channels)
             required_channels_list = [
@@ -2296,31 +2274,6 @@ class WithMDIArea:
                 for channel in required_channels
                 if channel in self.mdf
             ]
-
-            not_found_for_computed = [
-                channel
-                for channel in required_channels
-                if channel not in list(measured_signals) and channel not in self.mdf
-            ]
-
-            if self.mdf._fill_0_for_missing_computation_channels:
-                for channel in not_found_for_computed:
-                    signal = Signal(
-                        samples=np.zeros(len(all_timebase), dtype="f8"),
-                        timestamps=all_timebase,
-                        name=channel,
-                    )
-                    signal.color = "#000000"
-                    signal.flags &= ~signal.Flags.computed
-                    signal.computation = {}
-                    signal.unit = ""
-                    signal.group_index = -1
-                    signal.channel_index = -1
-                    signal.origin_uuid = self.uuid
-                    signal.comment = ""
-                    signal.uuid = os.urandom(6).hex()
-
-                    measured_signals[signal.name] = signal
 
             required_channels = {}
 
@@ -2343,7 +2296,6 @@ class WithMDIArea:
                     required_channels,
                     all_timebase,
                     self.functions,
-                    self.mdf._fill_0_for_missing_computation_channels,
                 )
                 signal.name = channel["name"]
                 signal.unit = channel["unit"]
@@ -2684,11 +2636,7 @@ class WithMDIArea:
                     iterator += 1
 
     def edit_channel(self, channel, item, widget):
-        required_channels = set(get_required_from_computed(channel, self.functions))
-
-        not_found_for_computed = [
-            channel for channel in required_channels if channel not in self.mdf
-        ]
+        required_channels = set(get_required_from_computed(channel))
 
         required_channels = [
             (None, *self.mdf.whereis(channel)[0])
@@ -2711,25 +2659,6 @@ class WithMDIArea:
         else:
             all_timebase = []
 
-        if self.mdf._fill_0_for_missing_computation_channels:
-            for channel_name in not_found_for_computed:
-                signal = Signal(
-                    samples=np.zeros(len(all_timebase), dtype="f8"),
-                    timestamps=all_timebase,
-                    name=channel_name,
-                )
-                signal.color = "#000000"
-                signal.flags &= ~signal.Flags.computed
-                signal.computation = {}
-                signal.unit = ""
-                signal.group_index = -1
-                signal.channel_index = -1
-                signal.origin_uuid = self.uuid
-                signal.comment = ""
-                signal.uuid = os.urandom(6).hex()
-
-                required_channels[signal.name] = signal
-
         required_channels = {
             key: sig.physical() for key, sig in required_channels.items()
         }
@@ -2741,7 +2670,6 @@ class WithMDIArea:
             required_channels,
             all_timebase,
             self.functions,
-            self.mdf._fill_0_for_missing_computation_channels,
         )
         signal.name = channel["name"]
         signal.unit = channel["unit"]
@@ -2791,7 +2719,7 @@ class WithMDIArea:
 
             if channel.flags & channel.Flags.computed:
                 required_channels = set(
-                    get_required_from_computed(channel.computation, self.functions)
+                    get_required_from_computed(channel.computation)
                 )
                 if old_name in required_channels:
                     item = widget.item_by_uuid
@@ -3210,34 +3138,9 @@ class WithMDIArea:
 
             required_channels = []
             for ch in computed.values():
-                required_channels.extend(get_required_from_computed(ch, self.functions))
+                required_channels.extend(get_required_from_computed(ch))
 
             required_channels = set(required_channels)
-
-            not_found_for_computed = [
-                channel
-                for channel in required_channels
-                if channel not in list(measured_signals) and channel not in self.mdf
-            ]
-
-            if self.mdf._fill_0_for_missing_computation_channels:
-                for channel in not_found_for_computed:
-                    signal = Signal(
-                        samples=np.zeros(len(all_timebase), dtype="f8"),
-                        timestamps=all_timebase,
-                        name=channel,
-                    )
-                    signal.color = "#000000"
-                    signal.flags &= ~signal.Flags.computed
-                    signal.computation = {}
-                    signal.unit = ""
-                    signal.group_index = -1
-                    signal.channel_index = -1
-                    signal.origin_uuid = self.uuid
-                    signal.comment = ""
-                    signal.uuid = os.urandom(6).hex()
-
-                    measured_signals[signal.name] = signal
 
             required_channels = [
                 (None, *self.mdf.whereis(channel)[0])
@@ -3267,7 +3170,6 @@ class WithMDIArea:
                     required_channels,
                     all_timebase,
                     self.functions,
-                    self.mdf._fill_0_for_missing_computation_channels,
                 )
                 signal.color = channel["color"]
                 signal.flags |= signal.Flags.computed

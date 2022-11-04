@@ -5,7 +5,7 @@ import os
 import re
 from traceback import format_exc
 
-from PySide6 import QtGui, QtWidgets
+from PySide6 import QtGui, QtWidgets, QtCore
 
 from ...signal import Signal
 from ..ui import resource_rc
@@ -30,6 +30,8 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         super().__init__(*args, **kwargs)
         self.setupUi(self)
 
+        self.setWindowFlags(QtCore.Qt.WindowMinMaxButtonsHint | self.windowFlags())
+
         self.mdf = mdf
         self.result = None
         self.pressed_button = None
@@ -37,6 +39,9 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         self.origin_uuid = origin_uuid or (mdf.uuid if mdf else os.urandom(6).hex())
 
         self.arg_widgets = []
+        spacer = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.arg_layout.addItem(spacer, len(self.arg_widgets) + 2, 0)
+        self.arg_widgets.append(spacer)
 
         for widget in (
             self.apply_btn,
@@ -81,8 +86,10 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             if computation["function"] in self._functions:
                 self.functions.setCurrentText(computation["function"])
 
-                for i, name in enumerate(computation["args"].values()):
-                    self.arg_widgets[i][1].setText(name)
+                for i, names in enumerate(computation["args"].values()):
+                    self.arg_widgets[i][1].insertPlainText('\n'.join(names))
+
+        self.showMaximized()
 
     def apply(self):
 
@@ -102,8 +109,14 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             triggering_value = self.trigger_channel.text().strip()
 
         fargs = {}
-        for i, (label, line_edit, button) in enumerate(self.arg_widgets):
-            fargs[label.text()] = line_edit.text()
+        for i, (label, text_edit, button) in enumerate(self.arg_widgets[:-1]):
+            names = text_edit.toPlainText().splitlines()
+            names = [
+                line.strip()
+                for line in names
+                if line.strip()
+            ]
+            fargs[label.text()] = names
 
         self.result = {
             "type": "channel",
@@ -148,10 +161,12 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
     def function_changed(self, *args):
         name = self.functions.currentText()
-        for widgets in self.arg_widgets:
+        for widgets in self.arg_widgets[:-1]:
             for widget in widgets:
                 self.arg_layout.removeWidget(widget)
                 widget.setParent(None)
+
+        self.arg_layout.removeItem(self.arg_widgets[-1])
 
         self.arg_widgets.clear()
 
@@ -168,14 +183,19 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         for i, arg_name in enumerate(parameters, 2):
             label = QtWidgets.QLabel(arg_name)
             self.arg_layout.addWidget(label, i, 0)
-            line_edit = QtWidgets.QLineEdit()
-            self.arg_layout.addWidget(line_edit, i, 1)
+            text_edit = QtWidgets.QTextEdit()
+            self.arg_layout.addWidget(text_edit, i, 1)
             button = QtWidgets.QPushButton("")
             button.setIcon(icon)
             button.clicked.connect(partial(self.search_argument, index=i - 2))
             self.arg_layout.addWidget(button, i, 2)
 
-            self.arg_widgets.append((label, line_edit, button))
+            self.arg_widgets.append((label, text_edit, button))
+
+        spacer = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+
+        self.arg_layout.addItem(spacer, len(self.arg_widgets)+2, 0)
+        self.arg_widgets.append(spacer)
 
     def search_argument(self, *args, index=0):
         dlg = AdvancedSearch(

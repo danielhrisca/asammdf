@@ -406,7 +406,7 @@ def load_dsp(file, background="#000000", flat=False):
             "common_axis": False,
             "computed": True,
             "computation": {
-                "args": {"arg1": ""},
+                "args": {"arg1": []},
                 "type": "python_function",
                 "definition": f"def f_{ch['name']}(arg1=0):\n    return arg1",
                 "channel_comment": ch["comment"],
@@ -622,7 +622,6 @@ def compute_signal(
     measured_signals,
     all_timebase,
     functions,
-    fill_0_for_missing_computation_channels=False,
 ):
     type_ = description["type"]
 
@@ -633,16 +632,22 @@ def compute_signal(
                 definition=functions[description["function"]]
             )
 
-            signals = [
-                measured_signals[name] for name in description["args"].values() if name
-            ]
+            signals = []
+            found_args = []
 
-            names = list(description["args"]) + ["t"]
+            for arg, alternative_names in description["args"].items():
+                for name in alternative_names:
+                    if name in measured_signals:
+                        signals.append(measured_signals[name])
+                        found_args.append(arg)
+                        break
+
+            names = found_args + ["t"]
 
             triggering = description.get("triggering", "triggering_on_all")
             if triggering == "triggering_on_all":
                 timestamps = [sig.timestamps for sig in signals]
-                common_timebase = reduce(np.union1d, timestamps)
+                common_timebase = reduce(np.union1d, timestamps or all_timebase)
                 signals = [
                     sig.interp(common_timebase).samples.tolist() for sig in signals
                 ]
@@ -665,6 +670,8 @@ def compute_signal(
                     if len(signal):
                         common_timebase.append(signal.timestamps[0])
                         common_timebase.append(signal.timestamps[-1])
+
+                common_timebase = common_timebase or all_timebase
 
                 if common_timebase:
                     common_timebase = np.unique(common_timebase)
@@ -717,7 +724,7 @@ def computation_to_python_function(description):
 
         operand1 = description["operand1"]
         if isinstance(operand1, dict):
-            fargs["arg1"] = ""
+            fargs["arg1"] = []
             args.append("arg1=0")
             operand1 = "arg1"
 
@@ -728,13 +735,13 @@ def computation_to_python_function(description):
                     operand1 = int(operand1)
             except:
 
-                fargs["arg1"] = operand1
+                fargs["arg1"] = [operand1]
                 args.append("arg1=0")
                 operand1 = "arg1"
 
         operand2 = description["operand2"]
         if isinstance(operand2, dict):
-            fargs["arg2"] = ""
+            fargs["arg2"] = []
             args.append("arg2=0")
             operand2 = "arg2"
         elif isinstance(operand2, str):
@@ -744,7 +751,7 @@ def computation_to_python_function(description):
                     operand2 = int(operand2)
             except:
 
-                fargs["arg2"] = operand2
+                fargs["arg2"] = [operand2]
                 args.append("arg2=0")
                 operand2 = "arg2"
 
@@ -775,12 +782,12 @@ def computation_to_python_function(description):
         fargs = {}
 
         if isinstance(channel, dict):
-            fargs["arg1"] = ""
+            fargs["arg1"] = []
             operand = "arg1"
             args.append("arg1=0")
 
         elif isinstance(channel, str):
-            fargs["arg1"] = channel
+            fargs["arg1"] = [channel]
             operand = "arg1"
             args.append("arg1=0")
 
@@ -821,7 +828,7 @@ def computation_to_python_function(description):
                 arg = f"arg{len(translation)+1}"
                 translation[name] = arg
                 args.append(f"{arg}=0")
-                fargs[arg] = name.strip("}{")
+                fargs[arg] = [name.strip("}{")]
 
         args.append("t=0")
 

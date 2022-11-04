@@ -16,16 +16,17 @@ from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
     QImage, QKeySequence, QLinearGradient, QPainter,
     QPalette, QPixmap, QRadialGradient, QTransform)
 from PySide6.QtWidgets import (QApplication, QComboBox, QDialog, QDoubleSpinBox,
-    QGridLayout, QGroupBox, QLabel, QLineEdit,
-    QPlainTextEdit, QPushButton, QRadioButton, QSizePolicy,
-    QSpacerItem, QWidget)
+    QFrame, QGridLayout, QGroupBox, QLabel,
+    QLineEdit, QPlainTextEdit, QPushButton, QRadioButton,
+    QScrollArea, QSizePolicy, QSpacerItem, QVBoxLayout,
+    QWidget)
 from . import resource_rc
 
 class Ui_ComputedChannel(object):
     def setupUi(self, ComputedChannel):
         if not ComputedChannel.objectName():
             ComputedChannel.setObjectName(u"ComputedChannel")
-        ComputedChannel.resize(723, 517)
+        ComputedChannel.resize(723, 552)
         ComputedChannel.setMaximumSize(QSize(16777215, 16777215))
         icon = QIcon()
         icon.addFile(u":/plus.png", QSize(), QIcon.Normal, QIcon.Off)
@@ -134,30 +135,22 @@ class Ui_ComputedChannel(object):
 
         self.groupBox = QGroupBox(ComputedChannel)
         self.groupBox.setObjectName(u"groupBox")
-        self.arg_layout = QGridLayout(self.groupBox)
+        self.verticalLayout = QVBoxLayout(self.groupBox)
+        self.verticalLayout.setSpacing(0)
+        self.verticalLayout.setObjectName(u"verticalLayout")
+        self.verticalLayout.setContentsMargins(0, 0, 0, 0)
+        self.scrollArea = QScrollArea(self.groupBox)
+        self.scrollArea.setObjectName(u"scrollArea")
+        self.scrollArea.setFrameShape(QFrame.NoFrame)
+        self.scrollArea.setLineWidth(0)
+        self.scrollArea.setWidgetResizable(True)
+        self.args_widget = QWidget()
+        self.args_widget.setObjectName(u"args_widget")
+        self.args_widget.setGeometry(QRect(0, 0, 703, 115))
+        self.arg_layout = QGridLayout(self.args_widget)
         self.arg_layout.setObjectName(u"arg_layout")
-        self.arg_layout.setContentsMargins(0, 0, 0, 0)
-        self.label_9 = QLabel(self.groupBox)
-        self.label_9.setObjectName(u"label_9")
-        self.label_9.setMinimumSize(QSize(155, 0))
-
-        self.arg_layout.addWidget(self.label_9, 0, 0, 1, 1)
-
-        self.label = QLabel(self.groupBox)
-        self.label.setObjectName(u"label")
-
-        self.arg_layout.addWidget(self.label, 1, 0, 1, 1)
-
-        self.functions = QComboBox(self.groupBox)
-        self.functions.setObjectName(u"functions")
-
-        self.arg_layout.addWidget(self.functions, 0, 1, 1, 1)
-
-        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        self.arg_layout.addItem(self.horizontalSpacer, 1, 1, 1, 1)
-
-        self.show_definition_btn = QPushButton(self.groupBox)
+        self.arg_layout.setContentsMargins(9, 9, 9, 9)
+        self.show_definition_btn = QPushButton(self.args_widget)
         self.show_definition_btn.setObjectName(u"show_definition_btn")
         icon2 = QIcon()
         icon2.addFile(u":/info.png", QSize(), QIcon.Normal, QIcon.Off)
@@ -165,10 +158,34 @@ class Ui_ComputedChannel(object):
 
         self.arg_layout.addWidget(self.show_definition_btn, 0, 2, 1, 1)
 
-        self.arg_layout.setColumnStretch(1, 1)
+        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.arg_layout.addItem(self.horizontalSpacer, 1, 1, 1, 1)
+
+        self.label_9 = QLabel(self.args_widget)
+        self.label_9.setObjectName(u"label_9")
+        self.label_9.setMinimumSize(QSize(155, 0))
+
+        self.arg_layout.addWidget(self.label_9, 0, 0, 1, 1)
+
+        self.functions = QComboBox(self.args_widget)
+        self.functions.setObjectName(u"functions")
+
+        self.arg_layout.addWidget(self.functions, 0, 1, 1, 1)
+
+        self.label = QLabel(self.args_widget)
+        self.label.setObjectName(u"label")
+
+        self.arg_layout.addWidget(self.label, 1, 0, 1, 1)
+
+        self.scrollArea.setWidget(self.args_widget)
+
+        self.verticalLayout.addWidget(self.scrollArea)
+
 
         self.gridLayout.addWidget(self.groupBox, 2, 0, 1, 5)
 
+        self.gridLayout.setRowStretch(2, 1)
 
         self.retranslateUi(ComputedChannel)
 
@@ -193,8 +210,8 @@ class Ui_ComputedChannel(object):
         self.name.setText("")
         self.name.setPlaceholderText("")
         self.groupBox.setTitle(QCoreApplication.translate("ComputedChannel", u"Function", None))
+        self.show_definition_btn.setText("")
         self.label_9.setText(QCoreApplication.translate("ComputedChannel", u"Name", None))
         self.label.setText(QCoreApplication.translate("ComputedChannel", u"Arguments:", None))
-        self.show_definition_btn.setText("")
     # retranslateUi
 
