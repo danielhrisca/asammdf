@@ -896,9 +896,7 @@ class WithMDIArea:
 
                     required_channels = []
                     for ch in computed:
-                        required_channels.extend(
-                            get_required_from_computed(ch)
-                        )
+                        required_channels.extend(get_required_from_computed(ch))
 
                     required_channels = set(required_channels)
 
@@ -2718,9 +2716,7 @@ class WithMDIArea:
                 continue
 
             if channel.flags & channel.Flags.computed:
-                required_channels = set(
-                    get_required_from_computed(channel.computation)
-                )
+                required_channels = set(get_required_from_computed(channel.computation))
                 if old_name in required_channels:
                     item = widget.item_by_uuid
 

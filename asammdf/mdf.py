@@ -742,9 +742,6 @@ class MDF:
             self._raise_on_multiple_occurrences = (
                 from_other._raise_on_multiple_occurrences
             )
-            self._fill_0_for_missing_computation_channels = (
-                from_other._fill_0_for_missing_computation_channels
-            )
 
         if read_fragment_size is not None:
             self._read_fragment_size = int(read_fragment_size)
@@ -776,11 +773,6 @@ class MDF:
 
         if raise_on_multiple_occurrences is not None:
             self._raise_on_multiple_occurrences = bool(raise_on_multiple_occurrences)
-
-        if fill_0_for_missing_computation_channels is not None:
-            self._fill_0_for_missing_computation_channels = bool(
-                fill_0_for_missing_computation_channels
-            )
 
     def convert(self, version: str) -> MDF:
         """convert *MDF* to other version

@@ -5,7 +5,7 @@ import os
 import re
 from traceback import format_exc
 
-from PySide6 import QtGui, QtWidgets, QtCore
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...signal import Signal
 from ..ui import resource_rc
@@ -39,7 +39,9 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         self.origin_uuid = origin_uuid or (mdf.uuid if mdf else os.urandom(6).hex())
 
         self.arg_widgets = []
-        spacer = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacer = QtWidgets.QSpacerItem(
+            20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
         self.arg_layout.addItem(spacer, len(self.arg_widgets) + 2, 0)
         self.arg_widgets.append(spacer)
 
@@ -87,7 +89,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
                 self.functions.setCurrentText(computation["function"])
 
                 for i, names in enumerate(computation["args"].values()):
-                    self.arg_widgets[i][1].insertPlainText('\n'.join(names))
+                    self.arg_widgets[i][1].insertPlainText("\n".join(names))
 
         self.showMaximized()
 
@@ -111,11 +113,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         fargs = {}
         for i, (label, text_edit, button) in enumerate(self.arg_widgets[:-1]):
             names = text_edit.toPlainText().splitlines()
-            names = [
-                line.strip()
-                for line in names
-                if line.strip()
-            ]
+            names = [line.strip() for line in names if line.strip()]
             fargs[label.text()] = names
 
         self.result = {
@@ -192,9 +190,11 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
             self.arg_widgets.append((label, text_edit, button))
 
-        spacer = QtWidgets.QSpacerItem(20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        spacer = QtWidgets.QSpacerItem(
+            20, 20, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding
+        )
 
-        self.arg_layout.addItem(spacer, len(self.arg_widgets)+2, 0)
+        self.arg_layout.addItem(spacer, len(self.arg_widgets) + 2, 0)
         self.arg_widgets.append(spacer)
 
     def search_argument(self, *args, index=0):
