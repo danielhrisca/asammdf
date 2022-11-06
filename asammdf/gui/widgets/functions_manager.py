@@ -12,6 +12,7 @@ from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..ui.functions_manager import Ui_FunctionsManager
 from ..utils import ErrorDialog, FUNC_NAME, generate_python_function
+from .python_highlighter import PythonHighlighter
 
 
 class FunctionsManager(Ui_FunctionsManager, QtWidgets.QWidget):
@@ -49,6 +50,8 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
             QtGui.QFontMetricsF(self.function_definition.font()).horizontalAdvance(" ")
             * 4
         )
+
+        highlight = PythonHighlighter(self.function_definition.document())
 
         self.functions_list.minimal_menu = True
         self.functions_list.all_texts = True

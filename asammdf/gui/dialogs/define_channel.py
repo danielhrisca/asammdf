@@ -11,6 +11,7 @@ from ...signal import Signal
 from ..ui import resource_rc
 from ..ui.define_channel_dialog import Ui_ComputedChannel
 from ..utils import computation_to_python_function
+from ..widgets.python_highlighter import PythonHighlighter
 from .advanced_search import AdvancedSearch
 
 SIG_RE = re.compile(r"\{\{(?!\}\})(?P<name>.*?)\}\}")
@@ -53,6 +54,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             widget.setAutoDefault(False)
 
         self._functions = functions or {}
+        self.info = None
 
         self.functions.addItems(sorted(self._functions))
         self.functions.setCurrentIndex(-1)
@@ -238,9 +240,26 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         if function:
             definition = self._functions[self.functions.currentText()]
 
-            QtWidgets.QMessageBox.information(
-                self, f"{function} definition", definition
+            # keep a reference otherwise the window gets closed
+            self.info = info = QtWidgets.QPlainTextEdit(definition)
+            PythonHighlighter(info.document())
+            info.setReadOnly(True)
+            info.setWindowFlags(QtCore.Qt.WindowMinMaxButtonsHint | info.windowFlags())
+            info.setWindowTitle(f"{function} definition")
+            info.setWindowModality(QtCore.Qt.ApplicationModal)
+
+            icon = QtGui.QIcon()
+            icon.addPixmap(
+                QtGui.QPixmap(":/info.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
             )
+            info.setWindowIcon(icon)
+
+            info.show()
+            rect = info.geometry()
+            rect.setWidth(600)
+            rect.setHeight(400)
+            info.setGeometry(rect)
+
         else:
             function = self.computation["function"]
             QtWidgets.QMessageBox.warning(

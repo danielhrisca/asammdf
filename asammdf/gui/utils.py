@@ -1156,6 +1156,8 @@ def generate_python_function(definition, in_globals=None):
     trace = None
     func = None
 
+    definition = definition.replace("\t", "    ")
+
     _globals = in_globals or {}
     _globals.update(
         {
