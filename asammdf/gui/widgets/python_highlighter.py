@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-"""PySide6 port of the code found here
+"""PySide6 QPlainTextEdit syntax highlight for Python source code.
+The original code if found here
 https://wiki.python.org/moin/PyQt/Python%20syntax%20highlighting
 """
 
