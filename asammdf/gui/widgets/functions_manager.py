@@ -110,7 +110,7 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
     def check_syntax(self, silent=False):
 
         function_source = self.function_definition.toPlainText().replace("\t", "    ")
-        func, trace = generate_python_function(function_source)
+        func, trace = generate_python_function(function_source, in_globals=globals())
 
         if trace is not None:
             ErrorDialog(
@@ -224,7 +224,7 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
 
     def refresh_definitions(self):
         function_source = self.function_definition.toPlainText().replace("\t", "    ")
-        func, trace = generate_python_function(function_source)
+        func, trace = generate_python_function(function_source, in_globals=globals)
 
         if func is not None:
 

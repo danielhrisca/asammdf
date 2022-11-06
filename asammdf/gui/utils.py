@@ -628,9 +628,21 @@ def compute_signal(
     try:
 
         if type_ == "python_function":
-            func, trace = generate_python_function(
-                definition=functions[description["function"]]
-            )
+
+            generated_functions = []
+            func, trace = None, f"{description['function']} not found in the user defined functions"
+
+            for function_name, definition in functions.items():
+                _func, _trace = generate_python_function(definition, globals())
+
+                if _func is not None:
+                    generated_functions.append(_func)
+
+                if function_name == description['function']:
+                    func, trace = _func, _trace
+
+            if func is None:
+                raise Exception(trace)
 
             signals = []
             found_args = []
@@ -1135,7 +1147,7 @@ def draw_color_icon(color):
     return QtGui.QIcon(pix)
 
 
-def generate_python_function(definition):
+def generate_python_function(definition, in_globals=None):
     trace = None
     func = None
 
@@ -1151,26 +1163,28 @@ def generate_python_function(definition):
         function_name = match.group("name")
 
     try:
-        exec(definition)
-        func = locals()[function_name]
+        exec(definition, in_locals)
+        func = (in_globals or globals())[function_name]
     except:
         trace = format_exc()
         func = None
 
-    args = inspect.signature(func)
-    if "t" not in args.parameters:
-        trace = 'The last function argument must be "t=0"'
-        func = None
+    if func is not None:
 
-    else:
-        t = args.parameters["t"]
-        if t.default != 0:
+        args = inspect.signature(func)
+        if "t" not in args.parameters:
             trace = 'The last function argument must be "t=0"'
             func = None
+
         else:
-            if list(args.parameters)[-1] != "t":
+            t = args.parameters["t"]
+            if t.default != 0:
                 trace = 'The last function argument must be "t=0"'
                 func = None
+            else:
+                if list(args.parameters)[-1] != "t":
+                    trace = 'The last function argument must be "t=0"'
+                    func = None
 
     return func, trace
 
