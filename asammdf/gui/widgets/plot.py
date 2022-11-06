@@ -310,6 +310,24 @@ class PlotSignal(Signal):
         self._avg_raw = None
         self._rms_raw = None
         self._std_raw = None
+
+        self._stats_available = False
+        self._compute_basic_stats()
+
+        self.mode = getattr(signal, "mode", "phys")
+        self.trim(*(trim_info or (None, None, 1900)))
+
+    @property
+    def avg(self):
+        if not self._stats_available:
+            self._compute_stats()
+        return self._avg if self._mode == "phys" else self._avg_raw
+
+    @avg.setter
+    def avg(self, avg):
+        self._avg = avg
+
+    def _compute_basic_stats(self):
         self._stats_available = False
 
         if len(self.phys_samples):
@@ -388,19 +406,6 @@ class PlotSignal(Signal):
                 self._avg_raw = "n.a."
                 self._rms_raw = "n.a."
                 self._std_raw = "n.a."
-
-        self.mode = getattr(signal, "mode", "phys")
-        self.trim(*(trim_info or (None, None, 1900)))
-
-    @property
-    def avg(self):
-        if not self._stats_available:
-            self._compute_stats()
-        return self._avg if self._mode == "phys" else self._avg_raw
-
-    @avg.setter
-    def avg(self, avg):
-        self._avg = avg
 
     def _compute_stats(self):
         if len(self.phys_samples):

@@ -2698,6 +2698,7 @@ class WithMDIArea:
         item.signal.timestamps = signal.timestamps
         item.signal.trim(force=True)
         item.signal.computation = signal.computation
+        item.signal._compute_basic_stats()
 
         item.setToolTip(item.NameColumn, f"{signal.name}\n{signal.comment}")
 
@@ -3860,22 +3861,14 @@ class WithMDIArea:
                         if item.signal.flags & item.signal.Flags.computed:
                             function = item.signal.computation["function"]
 
-                            if function in new:
-                                self.edit_channel(
-                                    wid.channel_item_to_config(item), item, wid
-                                )
-
-                            elif function in changed:
+                            if function in changed:
                                 item.signal.computation["function"] = translation[
                                     item.signal.computation["function"]
                                 ]
-                                self.edit_channel(
-                                    wid.channel_item_to_config(item), item, wid
-                                )
-                            elif function in deleted:
-                                self.edit_channel(
-                                    wid.channel_item_to_config(item), item, wid
-                                )
+
+                            self.edit_channel(
+                                wid.channel_item_to_config(item), item, wid
+                            )
 
                     iterator += 1
 

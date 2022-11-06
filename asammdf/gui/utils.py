@@ -5,6 +5,7 @@ from functools import reduce
 import inspect
 from io import StringIO
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -633,8 +634,14 @@ def compute_signal(
                 f"{description['function']} not found in the user defined functions",
             )
 
+            _globals = {
+                "math": math,
+                "np": np,
+                "pd": pd,
+            }
+
             for function_name, definition in functions.items():
-                _func, _trace = generate_python_function(definition, globals())
+                _func, _trace = generate_python_function(definition, _globals)
 
                 if function_name == description["function"]:
                     func, trace = _func, _trace
@@ -1149,6 +1156,15 @@ def generate_python_function(definition, in_globals=None):
     trace = None
     func = None
 
+    _globals = in_globals or {}
+    _globals.update(
+        {
+            "math": math,
+            "np": np,
+            "pd": pd,
+        }
+    )
+
     if not definition:
         trace = "The function definition must not be empty"
         return func, trace
@@ -1161,8 +1177,8 @@ def generate_python_function(definition, in_globals=None):
         function_name = match.group("name")
 
     try:
-        exec(definition, in_globals)
-        func = (in_globals or globals())[function_name]
+        exec(definition, _globals)
+        func = _globals[function_name]
     except:
         trace = format_exc()
         func = None

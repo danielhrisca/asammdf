@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 import json
+import math
 import os
 from pathlib import Path
 from traceback import format_exc
 
 from natsort import natsorted
+import numpy as np
+import pandas as pd
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..ui.functions_manager import Ui_FunctionsManager
@@ -109,8 +112,17 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
 
     def check_syntax(self, silent=False):
 
+        _globals = {
+            "math": math,
+            "np": np,
+            "pd": pd,
+        }
+
+        for info in self.definitions.values():
+            generate_python_function(info["definition"], in_globals=_globals)
+
         function_source = self.function_definition.toPlainText().replace("\t", "    ")
-        func, trace = generate_python_function(function_source, in_globals=globals())
+        func, trace = generate_python_function(function_source, in_globals=_globals)
 
         if trace is not None:
             ErrorDialog(
@@ -223,8 +235,17 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
                 self.functions_list.setCurrentRow(0)
 
     def refresh_definitions(self):
+        _globals = {
+            "math": math,
+            "np": np,
+            "pd": pd,
+        }
+
+        for info in self.definitions.values():
+            generate_python_function(info["definition"], in_globals=_globals)
+
         function_source = self.function_definition.toPlainText().replace("\t", "    ")
-        func, trace = generate_python_function(function_source, in_globals=globals)
+        func, trace = generate_python_function(function_source, in_globals=_globals)
 
         if func is not None:
 
