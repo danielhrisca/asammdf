@@ -626,19 +626,17 @@ def compute_signal(
     type_ = description["type"]
 
     try:
-
         if type_ == "python_function":
 
-            generated_functions = []
-            func, trace = None, f"{description['function']} not found in the user defined functions"
+            func, trace = (
+                None,
+                f"{description['function']} not found in the user defined functions",
+            )
 
             for function_name, definition in functions.items():
                 _func, _trace = generate_python_function(definition, globals())
 
-                if _func is not None:
-                    generated_functions.append(_func)
-
-                if function_name == description['function']:
+                if function_name == description["function"]:
                     func, trace = _func, _trace
 
             if func is None:
@@ -1163,7 +1161,7 @@ def generate_python_function(definition, in_globals=None):
         function_name = match.group("name")
 
     try:
-        exec(definition, in_locals)
+        exec(definition, in_globals)
         func = (in_globals or globals())[function_name]
     except:
         trace = format_exc()

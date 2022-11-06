@@ -1008,6 +1008,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 channels = info.get("selected_channels", [])
                 self.loaded_display_file = info.get("display_file_name", "")
 
+                self.functions.update(info.get("functions", {}))
+
             if channels:
                 iterator = QtWidgets.QTreeWidgetItemIterator(self.channels_tree)
 
