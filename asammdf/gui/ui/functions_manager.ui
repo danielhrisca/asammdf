@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>707</width>
+    <width>749</width>
     <height>703</height>
    </rect>
   </property>
@@ -162,6 +162,9 @@
         </property>
         <property name="lineWrapMode">
          <enum>QPlainTextEdit::NoWrap</enum>
+        </property>
+        <property name="tabStopDistance">
+         <double>140.000000000000000</double>
         </property>
         <property name="placeholderText">
          <string>function code</string>

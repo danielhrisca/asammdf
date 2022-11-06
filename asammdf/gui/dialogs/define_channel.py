@@ -244,9 +244,17 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             self.info = info = QtWidgets.QPlainTextEdit(definition)
             PythonHighlighter(info.document())
             info.setReadOnly(True)
+            info.setLineWrapMode(info.NoWrap)
             info.setWindowFlags(QtCore.Qt.WindowMinMaxButtonsHint | info.windowFlags())
             info.setWindowTitle(f"{function} definition")
             info.setWindowModality(QtCore.Qt.ApplicationModal)
+
+            p = info.palette()
+            for active in (QtGui.QPalette.Active, QtGui.QPalette.Inactive):
+                p.setColor(active, QtGui.QPalette.Base, QtGui.QColor("#131314"))
+                p.setColor(active, QtGui.QPalette.WindowText, QtGui.QColor("#ffffff"))
+                p.setColor(active, QtGui.QPalette.Text, QtGui.QColor("#ffffff"))
+            info.setPalette(p)
 
             icon = QtGui.QIcon()
             icon.addPixmap(

@@ -51,7 +51,14 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
             * 4
         )
 
-        highlight = PythonHighlighter(self.function_definition.document())
+        p = self.function_definition.palette()
+        for active in (QtGui.QPalette.Active, QtGui.QPalette.Inactive):
+            p.setColor(active, QtGui.QPalette.Base, QtGui.QColor("#131314"))
+            p.setColor(active, QtGui.QPalette.WindowText, QtGui.QColor("#ffffff"))
+            p.setColor(active, QtGui.QPalette.Text, QtGui.QColor("#ffffff"))
+        self.function_definition.setPalette(p)
+
+        PythonHighlighter(self.function_definition.document())
 
         self.functions_list.minimal_menu = True
         self.functions_list.all_texts = True

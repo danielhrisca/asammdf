@@ -13,8 +13,7 @@ from PySide6 import QtCore, QtGui
 
 def format(color, style=""):
     """Return a QTextCharFormat with the given attributes."""
-    _color = QtGui.QColor()
-    _color.setNamedColor(color)
+    _color = QtGui.QColor(color)
 
     _format = QtGui.QTextCharFormat()
     _format.setForeground(_color)
@@ -23,21 +22,23 @@ def format(color, style=""):
     if "italic" in style:
         _format.setFontItalic(True)
 
+    _format.setBackground(QtGui.QBrush(QtGui.QColor("#131314")))
+
     return _format
 
 
 # Syntax styles that can be shared by all languages
 STYLES = {
-    "keyword": format("orange"),
+    "keyword": format("#ec6529"),
     "operator": format("red"),
     "brace": format("darkGray"),
-    "defclass": format("orange", "bold"),
-    "string": format("green"),
-    "string2": format("green"),
-    "comment": format("lightBlue", "italic"),
-    "self": format("darkViolet", "italic"),
-    "numbers": format("blue"),
-    "builtins": format("darkOrange"),
+    "defclass": format("#ec8549", "bold"),
+    "string": format("#2f8f3d"),
+    "string2": format("#2f8f3d"),
+    "comment": format("#65c2e5", "italic"),
+    "self": format("#93548b", "italic"),
+    "numbers": format("#33ccff"),
+    "builtins": format("#567ac5"),
 }
 
 

@@ -26,7 +26,7 @@ class Ui_FunctionsManager(object):
     def setupUi(self, FunctionsManager):
         if not FunctionsManager.objectName():
             FunctionsManager.setObjectName(u"FunctionsManager")
-        FunctionsManager.resize(707, 703)
+        FunctionsManager.resize(749, 703)
         self.gridLayout_2 = QGridLayout(FunctionsManager)
         self.gridLayout_2.setObjectName(u"gridLayout_2")
         self.horizontalLayout_2 = QHBoxLayout()
@@ -111,6 +111,7 @@ class Ui_FunctionsManager(object):
         self.function_definition.setFont(font)
         self.function_definition.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         self.function_definition.setLineWrapMode(QPlainTextEdit.NoWrap)
+        self.function_definition.setTabStopDistance(140.000000000000000)
 
         self.gridLayout.addWidget(self.function_definition, 0, 0, 1, 2)
 
