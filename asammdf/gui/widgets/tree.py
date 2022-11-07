@@ -949,9 +949,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             if item.signal.flags & Signal.Flags.computed:
                 menu.addSeparator()
                 menu.addAction(self.tr("Edit this computed channel"))
-            else:
-                menu.addSeparator()
-                menu.addAction(self.tr("Insert computation using this channel"))
 
             try:
                 import scipy
@@ -1297,14 +1294,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                     self.show_properties.emit(item.uuid)
                 elif item.type() == ChannelsTreeItem.Group:
                     item.show_info()
-
-        elif action.text() == "Insert computation using this channel":
-            selected_items = self.selectedItems()
-            if len(selected_items) == 1:
-                item = selected_items[0]
-                if item.type() == ChannelsTreeItem.Channel:
-                    self.drop_target = item
-                    self.insert_computation.emit(item.name)
 
         elif action.text() == "Edit this computed channel":
             self.edit_computation.emit(item)

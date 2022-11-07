@@ -171,7 +171,7 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         self.arg_widgets.clear()
 
         definition = self._functions[name]
-        exec(definition)
+        exec(definition.replace("\t", "    "))
         func = locals()[name]
 
         icon = QtGui.QIcon()
