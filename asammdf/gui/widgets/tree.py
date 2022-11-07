@@ -1818,7 +1818,8 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
 
             if text != self.signal.name:
                 self.signal.name = text
-                self.signal.flags |= Signal.Flags.user_defined_name
+                if not self.signal.flags & Signal.Flags.computed:
+                    self.signal.flags |= Signal.Flags.user_defined_name
 
         else:
             self._name = text
