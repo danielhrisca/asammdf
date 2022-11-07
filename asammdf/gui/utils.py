@@ -401,40 +401,48 @@ def load_dsp(file, background="#000000", flat=False):
     channels = parse_channels(dsp.find("DISPLAY_INFO"))
     c_functions = parse_c_functions(dsp)
 
-    virtual_channels = [
-        {
-            "color": COLORS[i % len(COLORS)],
-            "common_axis": False,
-            "computed": True,
-            "computation": {
-                "args": {"arg1": []},
-                "type": "python_function",
-                "definition": f"def f_{ch['name']}(arg1=0):\n    return arg1",
-                "channel_comment": ch["comment"],
-                "channel_name": ch["name"],
-                "channel_unit": "",
-                "function_name": f"f_{ch['name']}",
-                "triggering": "triggering_on_all",
-                "triggering_value": "all",
-            },
-            "flags": int(Signal.Flags.computed | Signal.Flags.user_defined_conversion),
-            "enabled": True,
-            "fmt": "{}",
-            "individual_axis": False,
-            "name": ch["parent"],
-            "precision": 3,
-            "ranges": [],
-            "unit": "",
-            "conversion": ch["vtab"],
-            "user_defined_name": ch["name"],
-            "comment": f"Datalyser virtual channel: {ch['comment']}",
-            "origin_uuid": "000000000000",
-            "type": "channel",
-        }
-        for i, ch in enumerate(
-            parse_virtual_channels(dsp.find("VIRTUAL_CHANNEL")).values()
+    functions = {}
+    virtual_channels = []
+
+    for i, ch in enumerate(
+        parse_virtual_channels(dsp.find("VIRTUAL_CHANNEL")).values()
+    ):
+        virtual_channels.append(
+            {
+                "color": COLORS[i % len(COLORS)],
+                "common_axis": False,
+                "computed": True,
+                "computation": {
+                    "args": {"arg1": []},
+                    "type": "python_function",
+                    "channel_comment": ch["comment"],
+                    "channel_name": ch["name"],
+                    "channel_unit": "",
+                    "function": f"f_{ch['name']}",
+                    "triggering": "triggering_on_all",
+                    "triggering_value": "all",
+                },
+                "flags": int(
+                    Signal.Flags.computed | Signal.Flags.user_defined_conversion
+                ),
+                "enabled": True,
+                "fmt": "{}",
+                "individual_axis": False,
+                "name": ch["parent"],
+                "precision": 3,
+                "ranges": [],
+                "unit": "",
+                "conversion": ch["vtab"],
+                "user_defined_name": ch["name"],
+                "comment": f"Datalyser virtual channel: {ch['comment']}",
+                "origin_uuid": "000000000000",
+                "type": "channel",
+            }
         )
-    ]
+
+        functions[
+            f"f_{ch['name']}"
+        ] = f"def f_{ch['name']}(arg1=0, t=0):\n    return arg1"
 
     if virtual_channels:
         channels.append(
@@ -454,6 +462,7 @@ def load_dsp(file, background="#000000", flat=False):
         "windows": [],
         "has_virtual_channels": bool(virtual_channels),
         "c_functions": c_functions,
+        "functions": functions,
     }
 
     if flat:

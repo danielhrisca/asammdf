@@ -1041,7 +1041,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
                         iterator += 1
 
-            if extension == ".dspf":
+            if extension in (".dspf", ".dsp"):
 
                 new_functions = {}
 

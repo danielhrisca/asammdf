@@ -752,8 +752,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             else:
                 item = selected_items[0]
 
-            name = item.signal.name
-            QtWidgets.QApplication.instance().clipboard().setText(name)
+            QtWidgets.QApplication.instance().clipboard().setText(item.name)
 
         elif modifiers == QtCore.Qt.ControlModifier and key == QtCore.Qt.Key_R:
             selected_items = self.selectedItems()
