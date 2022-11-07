@@ -1193,14 +1193,22 @@ def generate_python_function(definition, in_globals=None):
             func = None
 
         else:
-            t = args.parameters["t"]
-            if t.default != 0:
-                trace = 'The last function argument must be "t=0"'
-                func = None
-            else:
-                if list(args.parameters)[-1] != "t":
-                    trace = 'The last function argument must be "t=0"'
-                    func = None
+            count = len(args.parameters)
+
+            for i, (arg_name, arg) in enumerate(args.parameters.items()):
+                if i == count - 1:
+                    if arg_name != "t":
+                        trace = 'The last function argument must be "t=0"'
+                        func = None
+
+                    elif arg.default != 0:
+                        trace = 'The last function argument must be "t=0"'
+                        func = None
+                else:
+                    if arg.default == inspect._empty:
+                        trace = f'All the arguments must have default values. The argument "{arg_name}" has no default value.'
+                        func = None
+                        break
 
     return func, trace
 

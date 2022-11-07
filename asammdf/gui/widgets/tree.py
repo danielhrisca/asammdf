@@ -438,7 +438,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
         self.hide_missing_channels = hide_missing_channels
         self.hide_disabled_channels = hide_disabled_channels
         self.can_delete_items = True
-        self.can_insert_computed_items = True
 
         self.setHeaderHidden(False)
         self.setColumnCount(5)
@@ -946,12 +945,13 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             menu.addSeparator()
             menu.addAction(self.tr("Relative time base shift"))
             menu.addAction(self.tr("Set time base start offset"))
-            if self.can_insert_computed_items:
+
+            if item.signal.flags & Signal.Flags.computed:
+                menu.addSeparator()
+                menu.addAction(self.tr("Edit this computed channel"))
+            else:
                 menu.addSeparator()
                 menu.addAction(self.tr("Insert computation using this channel"))
-
-                if item.signal.flags & Signal.Flags.computed:
-                    menu.addAction(self.tr("Edit this computed channel"))
 
             try:
                 import scipy
