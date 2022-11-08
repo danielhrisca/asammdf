@@ -80,7 +80,12 @@ def get_origin_uuid(item):
 
 
 def build_mime_from_config(
-    items, mdf=None, origin_uuid=None, default_index=NOT_FOUND, top=True, has_flags=None
+    items,
+    mdf=None,
+    computed_origin_uuid=os.urandom(6).hex(),
+    default_index=NOT_FOUND,
+    top=True,
+    has_flags=None,
 ):
 
     if top:
@@ -107,7 +112,7 @@ def build_mime_from_config(
                 ) = build_mime_from_config(
                     item["channels"],
                     mdf,
-                    origin_uuid,
+                    computed_origin_uuid,
                     default_index,
                     top=False,
                     has_flags=has_flags,
@@ -157,6 +162,7 @@ def build_mime_from_config(
                     item["computation"]
                 )
                 item["computation"].pop("definition", None)
+                item["origin_uuid"] = computed_origin_uuid
 
             else:
 

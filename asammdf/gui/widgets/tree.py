@@ -979,13 +979,19 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             self.keyPressEvent(event)
 
         elif action.text() == "Activate group":
-            item.set_disabled(False)
+            if item.isDisabled():
+                item.set_disabled(False)
+                item.setIcon(item.NameColumn, QtGui.QIcon(":/open.png"))
             self.group_activation_changed.emit()
 
         elif action.text() == "Deactivate groups":
             for item in self.selectedItems():
                 if item.type() == item.Group:
-                    item.set_disabled(True)
+                    if not item.isDisabled():
+                        item.set_disabled(True)
+                        item.setIcon(item.NameColumn, QtGui.QIcon(":/erase.png"))
+                    self.plot.plot.update()
+
             self.group_activation_changed.emit()
 
         elif action.text() == "Set color [C]":

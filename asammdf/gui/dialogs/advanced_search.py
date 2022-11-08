@@ -35,7 +35,6 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         show_search=True,
         window_title="Search & select channels",
         pattern=None,
-        computed_signals=None,
         *args,
         **kwargs,
     ):
@@ -44,7 +43,6 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
         self.setupUi(self)
 
         self.selection.all_texts = True
-        self.computed_signals = computed_signals or {}
 
         self.result = {}
         self.add_window_request = False
@@ -261,23 +259,6 @@ class AdvancedSearch(Ui_SearchDialog, QtWidgets.QDialog):
                                 info["names"].insert(0, name)
                             else:
                                 info["names"].append(name)
-
-                    # computed channels search
-                    comp_ch_index = -1
-                    for sig in self.computed_signals.values():
-                        if pattern.fullmatch(sig.name):
-                            entry = -1, comp_ch_index
-                            comp_ch_index -= 1
-
-                            matches[entry] = {
-                                "names": [sig.name],
-                                "comment": extract_xml_comment(sig.comment).strip(),
-                                "unit": sig.conversion
-                                and sig.conversion.unit
-                                or sig.unit,
-                                "source_name": "computed channel",
-                                "source_path": "",
-                            }
 
                 matches = [
                     (group_index, channel_index, info)

@@ -3888,21 +3888,19 @@ class _Plot(pg.PlotWidget):
         signal = item.signal
         functions = self.plot_parent.owner.functions
 
-        computed_signals = {
-            sig.name: sig
-            for sig in self.signals
-            if sig.flags & Signal.Flags.computed and sig.uuid != signal.uuid
-        }
+        mdf = self.mdf or self.plot_parent.owner.generate_mdf()
         dlg = DefineChannel(
-            mdf=self.mdf,
+            mdf=mdf,
             computation=signal.computation,
-            computed_signals=computed_signals,
             functions=functions,
             parent=self,
         )
         dlg.setModal(True)
         dlg.exec_()
         computed_channel = dlg.result
+
+        if self.mdf is None:
+            mdf.close()
 
         if computed_channel is not None:
             self.edit_channel_request.emit(computed_channel, item)
@@ -3993,10 +3991,6 @@ class _Plot(pg.PlotWidget):
 
     def insert_computation(self, name=""):
 
-        computed_signals = {
-            sig.name: sig for sig in self.signals if sig.flags & Signal.Flags.computed
-        }
-
         functions = self.plot_parent.owner.functions
         if not functions:
             QtWidgets.QMessageBox.warning(
@@ -4006,16 +4000,19 @@ class _Plot(pg.PlotWidget):
             )
             return
 
+        mdf = self.mdf or self.plot_parent.owner.generate_mdf()
         dlg = DefineChannel(
-            mdf=self.mdf,
+            mdf=mdf,
             computation=None,
-            computed_signals=computed_signals,
+            functions=functions,
             parent=self,
-            functions=self.plot_parent.owner.functions,
         )
         dlg.setModal(True)
         dlg.exec_()
         computed_channel = dlg.result
+
+        if self.mdf is None:
+            mdf.close()
 
         if computed_channel is not None:
             self.add_channels_request.emit([computed_channel])

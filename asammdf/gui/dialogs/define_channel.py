@@ -22,7 +22,6 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         self,
         mdf,
         computation=None,
-        computed_signals=None,
         origin_uuid=None,
         functions=None,
         *args,
@@ -36,7 +35,6 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         self.mdf = mdf
         self.result = None
         self.pressed_button = None
-        self.computed_signals = computed_signals or {}
         self.origin_uuid = origin_uuid or (mdf.uuid if mdf else os.urandom(6).hex())
 
         self.arg_widgets = []
@@ -80,12 +78,14 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
 
             if computation["triggering"] == "triggering_on_all":
                 self.triggering_on_all.setChecked(True)
+
             elif computation["triggering"] == "triggering_on_channel":
                 self.triggering_on_channel.setChecked(True)
-                self.trigger_interval.setValue(float(computation["triggering_value"]))
+                self.trigger_channel.setText(computation["triggering_value"])
+
             elif computation["triggering"] == "triggering_on_interval":
                 self.triggering_on_interval.setChecked(True)
-                self.trigger_channel.setText(computation["triggering_value"])
+                self.trigger_interval.setValue(float(computation["triggering_value"]))
 
             if computation["function"] in self._functions:
                 self.functions.setCurrentText(computation["function"])
@@ -208,7 +208,6 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             show_pattern=False,
             parent=self,
             return_names=True,
-            computed_signals=self.computed_signals,
         )
         dlg.setModal(True)
         dlg.exec_()
@@ -226,7 +225,6 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             show_pattern=False,
             parent=self,
             return_names=True,
-            computed_signals=self.computed_signals,
         )
         dlg.setModal(True)
         dlg.exec_()

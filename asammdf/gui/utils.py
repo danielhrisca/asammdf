@@ -880,7 +880,46 @@ def computation_to_python_function(description):
         }
 
     else:
-        new_description = description
+        if "args" not in description or "function" not in description:
+            exp = description["definition"]
+
+            args = []
+            fargs = {}
+
+            translation = {}
+
+            for match in VARIABLE.finditer(exp):
+                name = match.group("var")
+                if name not in translation:
+                    arg = f"arg{len(translation) + 1}"
+                    translation[name] = arg
+                    args.append(f"{arg}=0")
+                    fargs[arg] = [name.strip("}{")]
+
+            args.append("t=0")
+
+            for name, arg in translation.items():
+                exp = exp.replace(name, arg)
+
+            function_name = description["channel_name"]
+            args = ", ".join(args)
+            body = indent(exp, "    ", lambda line: True)
+
+            definition = f"def {function_name}({args}):\n    {body}"
+
+            new_description = {
+                "args": fargs,
+                "channel_comment": description["channel_comment"],
+                "channel_name": description["channel_name"],
+                "channel_unit": description["channel_unit"],
+                "definition": definition,
+                "type": "python_function",
+                "triggering": "triggering_on_all",
+                "triggering_value": "all",
+                "function": function_name,
+            }
+        else:
+            new_description = description
 
     return new_description
 
