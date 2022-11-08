@@ -214,7 +214,8 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
         result, pattern_window = dlg.result, dlg.pattern_window
 
         if result:
-            self.arg_widgets[index][1].setText(list(result)[0])
+            lines = [self.arg_widgets[index][1].toPlainText(), *list(result)]
+            self.arg_widgets[index][1].setText("\n".join(lines))
 
     def search(self, *args, text_widget=None):
         dlg = AdvancedSearch(

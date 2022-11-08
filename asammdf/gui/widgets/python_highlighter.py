@@ -30,8 +30,9 @@ def format(color, style=""):
 # Syntax styles that can be shared by all languages
 STYLES = {
     "keyword": format("#ec6529"),
-    "operator": format("red"),
-    "brace": format("darkGray"),
+    "operator": format("#ff0000"),
+    "brace": format("#ff0000"),
+    "defclassname": format("#9e5fdd", "bold"),
     "defclass": format("#ec8549", "bold"),
     "string": format("#2f8f3d"),
     "string2": format("#2f8f3d"),
@@ -104,14 +105,12 @@ class PythonHighlighter(QtGui.QSyntaxHighlighter):
 
         # Keyword, operator, and brace rules
         rules += [
-            (r"\b%s\b" % w, 0, STYLES["keyword"]) for w in PythonHighlighter.keywords
+            (rf"\b{w}\b", 0, STYLES["keyword"]) for w in PythonHighlighter.keywords
         ]
-        # rules += [
-        #     (r"%s" % o, 0, STYLES["operator"]) for o in PythonHighlighter.operators
-        # ]
-        # rules += [(r"%s" % b, 0, STYLES["brace"]) for b in PythonHighlighter.braces]
+        rules += [(o, 0, STYLES["operator"]) for o in PythonHighlighter.operators]
+        rules += [(b, 0, STYLES["brace"]) for b in PythonHighlighter.braces]
         rules += [
-            (r"%s" % b, 0, STYLES["builtins"]) for b in PythonHighlighter.builtins
+            (rf"\b{b}\b", 0, STYLES["builtins"]) for b in PythonHighlighter.builtins
         ]
 
         # All other rules
@@ -119,13 +118,17 @@ class PythonHighlighter(QtGui.QSyntaxHighlighter):
             # 'self'
             (r"\bself\b", 0, STYLES["self"]),
             # 'def' followed by an identifier
-            (r"\bdef\b\s*(\w+)", 1, STYLES["defclass"]),
+            (r"\bdef\b\s*(\w+)", 0, STYLES["defclassname"]),
+            (r"\bdef\b", 0, STYLES["defclass"]),
             # 'class' followed by an identifier
-            (r"\bclass\b\s*(\w+)", 1, STYLES["defclass"]),
+            (r"\bclass\b\s*(\w+)", 0, STYLES["defclassname"]),
+            (r"\bclass\b", 0, STYLES["defclass"]),
             # Numeric literals
             (r"\b[+-]?[0-9]+\b", 0, STYLES["numbers"]),
             (r"\b[+-]?0[xX][0-9A-Fa-f]+\b", 0, STYLES["numbers"]),
-            (r"\b[+-]?[0-9]+(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?\b", 0, STYLES["numbers"]),
+            (r"\b[+-]?[0-9]+(\.[0-9]+)\b", 0, STYLES["numbers"]),
+            (r"\b[+-]?[0-9]+([eE][+-]?[0-9]+)\b", 0, STYLES["numbers"]),
+            (r"\b[+-]?[0-9]+(\.[0-9]+)([eE][+-]?[0-9]+)\b", 0, STYLES["numbers"]),
             # Double-quoted string, possibly containing escape sequences
             (r'"[^"\\]*(\\.[^"\\]*)*"', 0, STYLES["string"]),
             # Single-quoted string, possibly containing escape sequences
@@ -141,55 +144,18 @@ class PythonHighlighter(QtGui.QSyntaxHighlighter):
 
     def highlightBlock(self, text):
         """Apply syntax highlighting to the given block of text."""
+
         self.tripleQuoutesWithinStrings = []
         # Do other syntax formatting
         for expression, nth, format in self.rules:
-            match = expression.match(text, 0)
-            index = match.capturedStart()
-            if index >= 0:
-                # if there is a string we check
-                # if there are some triple quotes within the string
-                # they will be ignored if they are matched again
-                if expression.pattern() in [
-                    r'"[^"\\]*(\\.[^"\\]*)*"',
-                    r"'[^'\\]*(\\.[^'\\]*)*'",
-                ]:
-                    match = self.tri_single[0].match(text, index + 1)
-                    innerIndex = match.capturedStart()
+            iterator = expression.globalMatch(text)
 
-                    if innerIndex == -1:
-                        match = self.tri_single[0].match(text, index + 1)
-                        innerIndex = match.capturedStart()
-
-                    if innerIndex != -1:
-
-                        tripleQuoteIndexes = range(innerIndex, innerIndex + 3)
-                        self.tripleQuoutesWithinStrings.extend(tripleQuoteIndexes)
-
-            while index >= 0:
-                # skipping triple quotes within strings
-                if index in self.tripleQuoutesWithinStrings:
-                    index += 1
-                    match = expression.match(text, index)
-                    index = match.capturedStart()
-                    continue
-
-                # We actually want the index of the nth match
-                iterator = expression.globalMatch(text)
-                ith = 0
-
-                while iterator.hasNext():
-                    ith += 1
-                    match = iterator.next()
-
-                    if ith == nth:
-                        break
+            while iterator.hasNext():
+                match = iterator.next()
 
                 length = match.capturedEnd() - match.capturedStart()
-                self.setFormat(index, length, format)
-
-                match = expression.match(text, index + length)
                 index = match.capturedStart()
+                self.setFormat(index, length, format)
 
         self.setCurrentBlockState(0)
 
