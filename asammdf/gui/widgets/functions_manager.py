@@ -99,6 +99,8 @@ def MyAverage(main_clock=0, p_FL=0, p_FR=0, p_RL=0, p_RR=0, vehicle_speed=0, t=0
             button.setDefault(False)
             button.setAutoDefault(False)
 
+        self.showMaximized()
+
     def add_definition(self):
         counter = 1
         while True:

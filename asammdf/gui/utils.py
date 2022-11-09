@@ -1219,12 +1219,13 @@ def generate_python_function(definition, in_globals=None):
         trace = "The function definition must not be empty"
         return func, trace
 
-    match = FUNC_NAME.match(definition)
-    if match is None:
+    function_name = ""
+    for match in FUNC_NAME.finditer(definition):
+        function_name = match.group("name")
+
+    if not function_name:
         trace = "The function name must not be empty"
         return func, trace
-    else:
-        function_name = match.group("name")
 
     try:
         exec(definition, _globals)
