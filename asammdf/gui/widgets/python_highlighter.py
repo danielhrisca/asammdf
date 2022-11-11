@@ -47,7 +47,7 @@ class PythonHighlighter(QtGui.QSyntaxHighlighter):
     """Syntax highlighter for the Python language."""
 
     # Python keywords
-    keywords = keyword.kwlist + keyword.softkwlist
+    keywords = keyword.kwlist + getattr(keyword, "softkwlist", [])
 
     builtins = dir(builtins)
 
