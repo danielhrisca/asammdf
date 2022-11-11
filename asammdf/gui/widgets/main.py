@@ -151,9 +151,6 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         menu.addActions(mode_actions.actions())
         self.menubar.addMenu(menu)
 
-        menu = QtWidgets.QMenu("Settings", self.menubar)
-        self.menubar.addMenu(menu)
-
         # managers
         actions = QtGui.QActionGroup(self)
 
