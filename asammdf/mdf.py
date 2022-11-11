@@ -1528,7 +1528,7 @@ class MDF:
 
             fmtparams["quoting"] = quoting
 
-            escapechar = kwargs.get("escapechar", None)
+            escapechar = kwargs.get("escapechar", '"')
             if escapechar is not None:
                 escapechar = escapechar[0]
 
