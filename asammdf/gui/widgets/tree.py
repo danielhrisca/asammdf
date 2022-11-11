@@ -1891,6 +1891,8 @@ class ChannelsTreeItem(QtWidgets.QTreeWidgetItem):
             else:
                 self.signal.phys_samples = self.signal.raw_samples = self.signal.samples
 
+            self.set_value(update=True)
+
             tree = self.treeWidget()
             if tree:
                 tree.conversion_changed.emit(self.uuid, conversion)

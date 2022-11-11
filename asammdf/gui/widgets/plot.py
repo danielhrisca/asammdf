@@ -1375,6 +1375,7 @@ class Plot(QtWidgets.QWidget):
     pattern_group_added = QtCore.Signal(object, object)
 
     item_double_click_handling = "enable/disable"
+    dynamic_columns_width = True
 
     def __init__(
         self,
@@ -1998,6 +1999,8 @@ class Plot(QtWidgets.QWidget):
 
             self.info_uuid = sig_uuid
 
+        initial = self.channel_selection.topLevelItemCount() == 0
+
         if mime_data:
             destination = destination or self.channel_selection.drop_target
 
@@ -2083,17 +2086,23 @@ class Plot(QtWidgets.QWidget):
             self.channel_selection.update_channel_groups_count()
             self.channel_selection.refresh()
 
-        self.adjust_splitter()
+        self.adjust_splitter(initial=initial)
 
         self.current_uuid_changed(self.plot.current_uuid)
         self.plot._can_paint = True
         self.plot.update()
 
-    def adjust_splitter(self):
+    def adjust_splitter(self, initial=False):
         size = sum(self.splitter.sizes())
 
-        self.channel_selection.resizeColumnToContents(self.channel_selection.NameColumn)
-        self.channel_selection.resizeColumnToContents(self.channel_selection.UnitColumn)
+        if Plot.dynamic_columns_width or initial:
+
+            self.channel_selection.resizeColumnToContents(
+                self.channel_selection.NameColumn
+            )
+            self.channel_selection.resizeColumnToContents(
+                self.channel_selection.UnitColumn
+            )
 
         width = sum(
             self.channel_selection.columnWidth(col)
@@ -2627,9 +2636,8 @@ class Plot(QtWidgets.QWidget):
             and modifiers == QtCore.Qt.ControlModifier
         ):
 
-            selected_items = (
-                self.channel_selection.selectedItems()
-                or self.channel_selection.invisibleRootItem()
+            selected_items = self.channel_selection.selectedItems() or (
+                self.channel_selection.invisibleRootItem(),
             )
 
             if key == QtCore.Qt.Key_B:
