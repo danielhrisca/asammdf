@@ -4,6 +4,142 @@ import pyqtgraph as pg
 from PySide6 import QtCore, QtGui
 
 
+class Bookmark(pg.InfiniteLine):
+    def __init__(self, message="", color="#ffffff", **kwargs):
+
+        super().__init__(
+            movable=False,
+            label=message,
+            labelOpts={"movable": True},
+            **kwargs,
+        )
+
+        self.line_width = 2
+        self.color = color
+        self._visible = True
+        self.message = message
+
+        self.fill = pg.mkBrush("ff9b37")
+        self.border = pg.mkPen(
+            {
+                "color": color,
+                "width": 2,
+                "style": QtCore.Qt.DashLine,
+            }
+        )
+
+    @property
+    def color(self):
+        return self.pen.color().name()
+
+    @color.setter
+    def color(self, value):
+        color = pg.mkColor(value)
+        color.setAlpha(200)
+        self.pen = QtGui.QPen(color.name())
+        self.hoverPen = QtGui.QPen(color.name())
+        self.update()
+
+    @property
+    def line_width(self):
+        return self._line_width
+
+    @line_width.setter
+    def line_width(self, value):
+        self._line_width = value
+        self.update()
+
+    def set_value(self, value):
+        self.setPos(value)
+
+    def paint(self, paint, *args, plot=None, uuid=None):
+        if plot and self.visible:
+            paint.setRenderHint(paint.RenderHint.Antialiasing, False)
+
+            pen = self.pen
+            pen.setWidth(self.line_width)
+            pen.setStyle(QtCore.Qt.DashLine)
+
+            paint.setPen(pen)
+
+            position = self.value()
+
+            rect = plot.viewbox.sceneBoundingRect()
+            delta = rect.x()
+            height = rect.height()
+            width = rect.x() + rect.width()
+
+            x, y = plot.scale_curve_to_pixmap(
+                position,
+                0,
+                y_range=plot.viewbox.viewRange()[1],
+                x_start=plot.viewbox.viewRange()[0][0],
+                delta=delta,
+            )
+            paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
+
+            rect = self.label.textItem.sceneBoundingRect()
+
+            paint.setPen(self.border)
+            paint.setBrush(self.fill)
+            paint.setRenderHint(paint.RenderHint.Antialiasing, True)
+            paint.drawRect(rect)
+
+            paint.setPen(pg.mkPen("#000000"))
+
+            paint.drawText(rect, self.message)
+
+            self.label.paint(paint)
+
+    @property
+    def visible(self):
+        return self._visible
+
+    @visible.setter
+    def visible(self, value):
+        self._visible = bool(value)
+        self.label.setVisible(self._visible)
+
+    def _computeBoundingRect(self):
+        # br = UIGraphicsItem.boundingRect(self)
+        vr = self.viewRect()  # bounds of containing ViewBox mapped to local coords.
+        if vr is None:
+            return QtCore.QRectF()
+
+        ## add a 6-pixel radius around the line for mouse interaction.
+
+        px = self.pixelLength(
+            direction=pg.Point(1, 0), ortho=True
+        )  ## get pixel length orthogonal to the line
+        if px is None:
+            px = 0
+        pw = max(self.pen.width() / 2, self.hoverPen.width() / 2)
+        w = max(6, self._maxMarkerSize + pw) + 1
+        w = w * px
+        br = QtCore.QRectF(vr)
+        br.setBottom(-w)
+        br.setTop(w)
+
+        length = br.width()
+        left = br.left() + length * self.span[0]
+        right = br.left() + length * self.span[1]
+        br.setLeft(left)
+        br.setRight(right)
+        br = br.normalized()
+
+        vs = self.getViewBox().size()
+
+        if self._bounds != br or self._lastViewSize != vs:
+            self._bounds = br
+            self._lastViewSize = vs
+            self.prepareGeometryChange()
+
+        self._endPoints = (left, right)
+        self._lastViewRect = vr
+
+        return self._bounds
+
+
 class Cursor(pg.InfiniteLine):
     def __init__(
         self,

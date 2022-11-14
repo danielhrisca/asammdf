@@ -1400,6 +1400,27 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 )
             )
 
+    def setPalette(self, palette):
+        print(
+            "set palete",
+        )
+        super().setPalette(
+            palette, palette.brush(QtGui.QPalette.Window).color().red(), 0x80
+        )
+        background = palette.brush(QtGui.QPalette.Window).color().name()
+        if palette.brush(QtGui.QPalette.Window).color().red() < 0x80:
+            self._dark = True
+            self._font_size = self.font().pointSize()
+            self._background = background
+            self._style = SCROLLBAR_STYLE
+            self.setStyleSheet(
+                self._style.format(
+                    font_size=self._font_size, background=self._background
+                )
+            )
+        else:
+            self._dark = False
+
     def update_channel_groups_count(self):
         iterator = QtWidgets.QTreeWidgetItemIterator(self)
         while True:

@@ -268,9 +268,16 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             info.setGeometry(rect)
 
         else:
-            function = self.computation["function"]
-            QtWidgets.QMessageBox.warning(
-                self,
-                f"{function} definition missing",
-                f"The function {function} was not found in the Functions manager",
-            )
+            if self.computation:
+                function = self.computation["function"]
+                QtWidgets.QMessageBox.warning(
+                    self,
+                    f"{function} definition missing",
+                    f"The function {function} was not found in the Functions manager",
+                )
+            else:
+                QtWidgets.QMessageBox.warning(
+                    self,
+                    f"No function selected",
+                    f"Please select one of the fucntion defined in the Functions manager",
+                )

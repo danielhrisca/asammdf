@@ -760,11 +760,9 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
 
         icon = QtGui.QIcon()
         icon.addPixmap(
-            QtGui.QPixmap(":/comments.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+            QtGui.QPixmap(":/bookmark.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
         )
-        action = QtGui.QAction(
-            icon, "{: <20}\tCtrl+I".format("Insert cursor comment"), menu
-        )
+        action = QtGui.QAction(icon, "{: <20}\tCtrl+I".format("Insert bookmark"), menu)
         action.triggered.connect(
             partial(
                 self.plot_action,
@@ -776,7 +774,10 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         cursors_actions.addAction(action)
 
         icon = QtGui.QIcon()
-        action = QtGui.QAction("{: <20}\tAlt+I".format("Toggle trigger texts"), menu)
+        icon.addPixmap(
+            QtGui.QPixmap(":/bookmark.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        action = QtGui.QAction(icon, "{: <20}\tAlt+I".format("Toggle bookmarks"), menu)
         action.triggered.connect(
             partial(
                 self.plot_action, key=QtCore.Qt.Key_I, modifier=QtCore.Qt.AltModifier

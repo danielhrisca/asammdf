@@ -151,7 +151,7 @@ from ...signal import Signal
 from ..dialogs.define_channel import DefineChannel
 from ..utils import COLORS, copy_ranges, extract_mime_names
 from .channel_stats import ChannelStats
-from .cursor import Cursor, Region
+from .cursor import Bookmark, Cursor, Region
 from .dict_to_tree import ComputedChannelInfoWindow
 from .formated_axis import FormatedAxis
 from .tree import ChannelsTreeItem, ChannelsTreeWidget
@@ -1648,6 +1648,16 @@ class Plot(QtWidgets.QWidget):
         btn.setToolTip("Toggle region values display mode")
         hbox.addWidget(self.delta_btn)
 
+        self.bookmark_btn = btn = QtWidgets.QPushButton("")
+        btn.clicked.connect(self.toggle_bookmarks)
+        icon = QtGui.QIcon()
+        icon.addPixmap(
+            QtGui.QPixmap(":/bookmark.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+        )
+        btn.setIcon(icon)
+        btn.setToolTip("Toggle bookmarks")
+        hbox.addWidget(btn)
+
         hbox.addStretch()
 
         self.selected_channel_value = QtWidgets.QLabel("")
@@ -2792,43 +2802,29 @@ class Plot(QtWidgets.QWidget):
                     "",
                 )
                 if submit:
-                    line = pg.InfiniteLine(
+                    visible = True
+                    for bookmark in self.plot.bookmarks:
+                        visible = bookmark.visible
+                        break
+
+                    bookmark = Bookmark(
                         pos=position,
-                        label=f"t = {position}s\n\n{comment}",
-                        pen={
-                            "color": "#FF0000",
-                            "width": 2,
-                            "style": QtCore.Qt.DashLine,
-                        },
-                        labelOpts={
-                            "border": {
-                                "color": "#FF0000",
-                                "width": 2,
-                                "style": QtCore.Qt.DashLine,
-                            },
-                            "fill": "ff9b37",
-                            "color": "#000000",
-                            "movable": True,
-                        },
+                        message=f"t = {position}s\n\n{comment}",
+                        color="#FF0000",
                     )
-                    self.plot.plotItem.addItem(line, ignoreBounds=True)
+                    bookmark.visible = visible
+
+                    self.plot.bookmarks.append(bookmark)
+                    self.plot.viewbox.addItem(self.plot.bookmarks[-1])
+
+                    self.update()
 
         elif key == QtCore.Qt.Key_I and modifiers == QtCore.Qt.AltModifier:
-            visible = None
-            for item in self.plot.plotItem.items:
-                if not isinstance(item, pg.InfiniteLine) or item is self.plot.cursor1:
-                    continue
 
-                if visible is None:
-                    visible = item.label.isVisible()
+            for bookmark in self.plot.bookmarks:
+                bookmark.visible = not bookmark.visible
 
-                try:
-                    if visible:
-                        item.label.setVisible(False)
-                    else:
-                        item.label.setVisible(True)
-                except:
-                    pass
+            self.plot.update()
 
         elif key == QtCore.Qt.Key_G and modifiers == QtCore.Qt.ControlModifier:
             selected_items = [
@@ -3083,6 +3079,14 @@ class Plot(QtWidgets.QWidget):
 
         self.region_removed_signal.emit(self)
 
+    def toggle_bookmarks(self, event=None):
+        event = QtGui.QKeyEvent(
+            QtCore.QEvent.KeyPress,
+            QtCore.Qt.Key_I,
+            QtCore.Qt.AltModifier,
+        )
+        self.plot.keyPressEvent(event)
+
     def set_font_size(self, size):
         font = self.font()
         font.setPointSize(size)
@@ -3225,6 +3229,14 @@ class Plot(QtWidgets.QWidget):
 
         return config
 
+    def toggle_bookmarks(self, event=None):
+        event = QtGui.QKeyEvent(
+            QtCore.QEvent.KeyPress,
+            QtCore.Qt.Key_I,
+            QtCore.Qt.AltModifier,
+        )
+        self.keyPressEvent(event)
+
     def toggle_focused_mode(self, event=None, focused=None):
         if focused is not None:
             # invert so that the key press event will set the desider focused mode
@@ -3352,6 +3364,8 @@ class _Plot(pg.PlotWidget):
         super().__init__()
 
         self.lock = Lock()
+
+        self.bookmarks = []
 
         self.plot_parent = plot_parent
 
@@ -3619,6 +3633,7 @@ class _Plot(pg.PlotWidget):
         events = events or []
 
         for i, event_info in enumerate(events):
+
             color = COLORS[len(COLORS) - (i % len(COLORS)) - 1]
             if isinstance(event_info, (list, tuple)):
                 to_display = event_info
@@ -3630,22 +3645,13 @@ class _Plot(pg.PlotWidget):
                 description = f't = {event["value"]}s'
                 if event["description"]:
                     description += f'\n\n{event["description"]}'
-                line = pg.InfiniteLine(
+                bookmark = Bookmark(
                     pos=event["value"],
-                    label=f'{event["type"]}{label}\n{description}',
-                    pen={"color": color, "width": 2, "style": QtCore.Qt.DashLine},
-                    labelOpts={
-                        "border": {
-                            "color": color,
-                            "width": 2,
-                            "style": QtCore.Qt.DashLine,
-                        },
-                        "fill": "#000000",
-                        "color": color,
-                        "movable": True,
-                    },
+                    message=f'{event["type"]}{label}\n{description}',
+                    color=color,
                 )
-                self.plotItem.addItem(line, ignoreBounds=True)
+                self.bookmarks.append(bookmark)
+                self.viewbox.addItem(bookmark)
 
         self.viewbox.sigResized.connect(self.update_views)
         if signals:
@@ -4963,6 +4969,10 @@ class _Plot(pg.PlotWidget):
 
         if self.region is not None:
             self.region.paint(paint, plot=self, uuid=self.current_uuid)
+
+        for bookmark in self.bookmarks:
+            if bookmark.visible:
+                bookmark.paint(paint, plot=self, uuid=self.current_uuid)
 
         paint.end()
 
