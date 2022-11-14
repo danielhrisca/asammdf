@@ -2178,9 +2178,7 @@ class Plot(QtWidgets.QWidget):
 
         if item.checkState(item.IndividualAxisColumn) == QtCore.Qt.Checked:
             channel["individual_axis"] = True
-            channel["individual_axis_width"] = (
-                self.plot.get_axis(idx).boundingRect().width()
-            )
+            channel["individual_axis_width"] = self.plot.get_axis(idx).width()
         else:
             channel["individual_axis"] = False
 
@@ -3216,7 +3214,7 @@ class Plot(QtWidgets.QWidget):
                 0,
             ],
             "x_range": [float(e) for e in self.plot.viewbox.viewRange()[0]],
-            "y_axis_width": self.plot.y_axis.boundingRect().width(),
+            "y_axis_width": self.plot.y_axis.width(),
             "grid": [
                 self.plot.plotItem.ctrl.xGridCheck.isChecked(),
                 self.plot.plotItem.ctrl.yGridCheck.isChecked(),
