@@ -1749,7 +1749,7 @@ class Plot(QtWidgets.QWidget):
         self.channel_selection.color_changed.connect(self.plot.set_color)
         self.channel_selection.unit_changed.connect(self.plot.set_unit)
         self.channel_selection.name_changed.connect(self.plot.set_name)
-        self.channel_selection.conversion_changed.connect(self.plot.set_conversion)
+        self.channel_selection.conversion_changed.connect(self.set_conversion)
 
         self.channel_selection.itemsDeleted.connect(self.channel_selection_reduced)
         self.channel_selection.group_activation_changed.connect(self.plot.update)
@@ -3087,6 +3087,11 @@ class Plot(QtWidgets.QWidget):
             QtCore.Qt.AltModifier,
         )
         self.plot.keyPressEvent(event)
+
+    def set_conversion(self, uuid, conversion):
+
+        self.plot.set_conversion(uuid, conversion)
+        self.cursor_moved()
 
     def set_font_size(self, size):
         font = self.font()
@@ -5114,6 +5119,8 @@ class _Plot(pg.PlotWidget):
                 axis.text_conversion = None
 
             axis.picture = None
+
+        sig.trim(*sig.trim_info, force=True)
 
         self.update()
 
