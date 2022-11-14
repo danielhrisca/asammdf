@@ -1811,6 +1811,9 @@ class Plot(QtWidgets.QWidget):
         self.show()
 
     def add_new_channels(self, channels, mime_data=None, destination=None, update=True):
+
+        initial = self.channel_selection.topLevelItemCount() == 0
+
         def add_new_items(tree, root, items, items_pool):
             children = []
             groups = []
@@ -2008,8 +2011,6 @@ class Plot(QtWidgets.QWidget):
                 range["background_color"] = fn.mkColor(range["background_color"])
 
             self.info_uuid = sig_uuid
-
-        initial = self.channel_selection.topLevelItemCount() == 0
 
         if mime_data:
             destination = destination or self.channel_selection.drop_target
