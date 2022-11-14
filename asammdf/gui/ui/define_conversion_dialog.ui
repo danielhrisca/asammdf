@@ -65,7 +65,11 @@
         </widget>
        </item>
        <item row="2" column="1">
-        <widget class="QDoubleSpinBox" name="b"/>
+        <widget class="QDoubleSpinBox" name="b">
+         <property name="decimals">
+          <number>6</number>
+         </property>
+        </widget>
        </item>
        <item row="0" column="0" colspan="2">
         <widget class="QLabel" name="label_11">
@@ -101,6 +105,9 @@
            <width>100</width>
            <height>0</height>
           </size>
+         </property>
+         <property name="decimals">
+          <number>6</number>
          </property>
         </widget>
        </item>
@@ -145,7 +152,11 @@
         </spacer>
        </item>
        <item row="3" column="1">
-        <widget class="QDoubleSpinBox" name="p3"/>
+        <widget class="QDoubleSpinBox" name="p3">
+         <property name="decimals">
+          <number>6</number>
+         </property>
+        </widget>
        </item>
        <item row="1" column="1">
         <widget class="QDoubleSpinBox" name="p1">
@@ -155,10 +166,17 @@
            <height>0</height>
           </size>
          </property>
+         <property name="decimals">
+          <number>6</number>
+         </property>
         </widget>
        </item>
        <item row="2" column="1">
-        <widget class="QDoubleSpinBox" name="p2"/>
+        <widget class="QDoubleSpinBox" name="p2">
+         <property name="decimals">
+          <number>6</number>
+         </property>
+        </widget>
        </item>
        <item row="2" column="0">
         <widget class="QLabel" name="label_4">
@@ -182,10 +200,18 @@
         </widget>
        </item>
        <item row="6" column="1">
-        <widget class="QDoubleSpinBox" name="p6"/>
+        <widget class="QDoubleSpinBox" name="p6">
+         <property name="decimals">
+          <number>6</number>
+         </property>
+        </widget>
        </item>
        <item row="5" column="1">
-        <widget class="QDoubleSpinBox" name="p5"/>
+        <widget class="QDoubleSpinBox" name="p5">
+         <property name="decimals">
+          <number>6</number>
+         </property>
+        </widget>
        </item>
        <item row="3" column="0">
         <widget class="QLabel" name="label_5">
@@ -195,7 +221,11 @@
         </widget>
        </item>
        <item row="4" column="1">
-        <widget class="QDoubleSpinBox" name="p4"/>
+        <widget class="QDoubleSpinBox" name="p4">
+         <property name="decimals">
+          <number>6</number>
+         </property>
+        </widget>
        </item>
        <item row="5" column="0">
         <widget class="QLabel" name="label_14">
