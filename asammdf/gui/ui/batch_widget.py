@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'batch_widget.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.3.2
+## Created by: Qt User Interface Compiler version 6.3.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -31,7 +31,7 @@ class Ui_batch_widget(object):
     def setupUi(self, batch_widget):
         if not batch_widget.objectName():
             batch_widget.setObjectName(u"batch_widget")
-        batch_widget.resize(785, 722)
+        batch_widget.resize(1312, 718)
         self.gridLayout_9 = QGridLayout(batch_widget)
         self.gridLayout_9.setObjectName(u"gridLayout_9")
         self.splitter = QSplitter(batch_widget)
@@ -124,11 +124,19 @@ class Ui_batch_widget(object):
         self.aspects.addTab(self.concatenate_tab, icon, "")
         self.convert_tab = QWidget()
         self.convert_tab.setObjectName(u"convert_tab")
-        self.horizontalLayout_3 = QHBoxLayout(self.convert_tab)
-        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
+        self.verticalLayout_5 = QVBoxLayout(self.convert_tab)
+        self.verticalLayout_5.setObjectName(u"verticalLayout_5")
+        self.scrollArea_3 = QScrollArea(self.convert_tab)
+        self.scrollArea_3.setObjectName(u"scrollArea_3")
+        self.scrollArea_3.setWidgetResizable(True)
+        self.scrollAreaWidgetContents_3 = QWidget()
+        self.scrollAreaWidgetContents_3.setObjectName(u"scrollAreaWidgetContents_3")
+        self.scrollAreaWidgetContents_3.setGeometry(QRect(0, 0, 810, 674))
+        self.horizontalLayout_2 = QHBoxLayout(self.scrollAreaWidgetContents_3)
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
         self.verticalLayout_14 = QVBoxLayout()
         self.verticalLayout_14.setObjectName(u"verticalLayout_14")
-        self.filter_view = QComboBox(self.convert_tab)
+        self.filter_view = QComboBox(self.scrollAreaWidgetContents_3)
         self.filter_view.addItem("")
         self.filter_view.addItem("")
         self.filter_view.addItem("")
@@ -136,14 +144,14 @@ class Ui_batch_widget(object):
 
         self.verticalLayout_14.addWidget(self.filter_view)
 
-        self.filter_tree = TreeWidget(self.convert_tab)
+        self.filter_tree = TreeWidget(self.scrollAreaWidgetContents_3)
         self.filter_tree.setObjectName(u"filter_tree")
 
         self.verticalLayout_14.addWidget(self.filter_tree)
 
         self.horizontalLayout_5 = QHBoxLayout()
         self.horizontalLayout_5.setObjectName(u"horizontalLayout_5")
-        self.load_filter_list_btn = QPushButton(self.convert_tab)
+        self.load_filter_list_btn = QPushButton(self.scrollAreaWidgetContents_3)
         self.load_filter_list_btn.setObjectName(u"load_filter_list_btn")
         icon1 = QIcon()
         icon1.addFile(u":/open.png", QSize(), QIcon.Normal, QIcon.Off)
@@ -151,7 +159,7 @@ class Ui_batch_widget(object):
 
         self.horizontalLayout_5.addWidget(self.load_filter_list_btn)
 
-        self.save_filter_list_btn = QPushButton(self.convert_tab)
+        self.save_filter_list_btn = QPushButton(self.scrollAreaWidgetContents_3)
         self.save_filter_list_btn.setObjectName(u"save_filter_list_btn")
         icon2 = QIcon()
         icon2.addFile(u":/save.png", QSize(), QIcon.Normal, QIcon.Off)
@@ -159,7 +167,7 @@ class Ui_batch_widget(object):
 
         self.horizontalLayout_5.addWidget(self.save_filter_list_btn)
 
-        self.clear_filter_btn = QPushButton(self.convert_tab)
+        self.clear_filter_btn = QPushButton(self.scrollAreaWidgetContents_3)
         self.clear_filter_btn.setObjectName(u"clear_filter_btn")
         icon3 = QIcon()
         icon3.addFile(u":/erase.png", QSize(), QIcon.Normal, QIcon.Off)
@@ -167,7 +175,7 @@ class Ui_batch_widget(object):
 
         self.horizontalLayout_5.addWidget(self.clear_filter_btn)
 
-        self.advanced_serch_filter_btn = QPushButton(self.convert_tab)
+        self.advanced_serch_filter_btn = QPushButton(self.scrollAreaWidgetContents_3)
         self.advanced_serch_filter_btn.setObjectName(u"advanced_serch_filter_btn")
         icon4 = QIcon()
         icon4.addFile(u":/search.png", QSize(), QIcon.Normal, QIcon.Off)
@@ -183,16 +191,16 @@ class Ui_batch_widget(object):
         self.verticalLayout_14.addLayout(self.horizontalLayout_5)
 
 
-        self.horizontalLayout_3.addLayout(self.verticalLayout_14)
+        self.horizontalLayout_2.addLayout(self.verticalLayout_14)
 
         self.verticalLayout_13 = QVBoxLayout()
         self.verticalLayout_13.setObjectName(u"verticalLayout_13")
-        self.label_3 = QLabel(self.convert_tab)
+        self.label_3 = QLabel(self.scrollAreaWidgetContents_3)
         self.label_3.setObjectName(u"label_3")
 
         self.verticalLayout_13.addWidget(self.label_3)
 
-        self.selected_filter_channels = QListWidget(self.convert_tab)
+        self.selected_filter_channels = QListWidget(self.scrollAreaWidgetContents_3)
         self.selected_filter_channels.setObjectName(u"selected_filter_channels")
         self.selected_filter_channels.setViewMode(QListView.ListMode)
         self.selected_filter_channels.setUniformItemSizes(True)
@@ -201,25 +209,13 @@ class Ui_batch_widget(object):
         self.verticalLayout_13.addWidget(self.selected_filter_channels)
 
 
-        self.horizontalLayout_3.addLayout(self.verticalLayout_13)
+        self.horizontalLayout_2.addLayout(self.verticalLayout_13)
 
-        self.horizontalSpacer_4 = QSpacerItem(10, 10, QSizePolicy.Expanding, QSizePolicy.Minimum)
-
-        self.horizontalLayout_3.addItem(self.horizontalSpacer_4)
-
-        self.scrollArea_2 = QScrollArea(self.convert_tab)
-        self.scrollArea_2.setObjectName(u"scrollArea_2")
-        self.scrollArea_2.setWidgetResizable(True)
-        self.scrollAreaWidgetContents_2 = QWidget()
-        self.scrollAreaWidgetContents_2.setObjectName(u"scrollAreaWidgetContents_2")
-        self.scrollAreaWidgetContents_2.setGeometry(QRect(0, 0, 295, 678))
-        self.verticalLayout_5 = QVBoxLayout(self.scrollAreaWidgetContents_2)
-        self.verticalLayout_5.setObjectName(u"verticalLayout_5")
         self.verticalLayout_15 = QVBoxLayout()
         self.verticalLayout_15.setSpacing(2)
         self.verticalLayout_15.setObjectName(u"verticalLayout_15")
         self.verticalLayout_15.setContentsMargins(2, 2, 2, 2)
-        self.cut_group = QGroupBox(self.scrollAreaWidgetContents_2)
+        self.cut_group = QGroupBox(self.scrollAreaWidgetContents_3)
         self.cut_group.setObjectName(u"cut_group")
         self.cut_group.setCheckable(True)
         self.cut_group.setChecked(False)
@@ -264,7 +260,7 @@ class Ui_batch_widget(object):
 
         self.verticalLayout_15.addWidget(self.cut_group)
 
-        self.resample_group = QGroupBox(self.scrollAreaWidgetContents_2)
+        self.resample_group = QGroupBox(self.scrollAreaWidgetContents_3)
         self.resample_group.setObjectName(u"resample_group")
         self.resample_group.setCheckable(True)
         self.resample_group.setChecked(False)
@@ -314,7 +310,7 @@ class Ui_batch_widget(object):
 
         self.verticalLayout_15.addWidget(self.resample_group)
 
-        self.groupBox_11 = QGroupBox(self.scrollAreaWidgetContents_2)
+        self.groupBox_11 = QGroupBox(self.scrollAreaWidgetContents_3)
         self.groupBox_11.setObjectName(u"groupBox_11")
         self.verticalLayout_21 = QVBoxLayout(self.groupBox_11)
         self.verticalLayout_21.setSpacing(2)
@@ -696,7 +692,7 @@ class Ui_batch_widget(object):
 
         self.verticalLayout_15.addWidget(self.groupBox_11)
 
-        self.groupBox = QGroupBox(self.scrollAreaWidgetContents_2)
+        self.groupBox = QGroupBox(self.scrollAreaWidgetContents_3)
         self.groupBox.setObjectName(u"groupBox")
         self.gridLayout = QGridLayout(self.groupBox)
         self.gridLayout.setSpacing(2)
@@ -721,7 +717,7 @@ class Ui_batch_widget(object):
 
         self.verticalLayout_15.addItem(self.verticalSpacer_14)
 
-        self.apply_btn = QPushButton(self.scrollAreaWidgetContents_2)
+        self.apply_btn = QPushButton(self.scrollAreaWidgetContents_3)
         self.apply_btn.setObjectName(u"apply_btn")
         icon6 = QIcon()
         icon6.addFile(u":/checkmark.png", QSize(), QIcon.Normal, QIcon.Off)
@@ -731,14 +727,14 @@ class Ui_batch_widget(object):
 
         self.verticalLayout_15.setStretch(4, 1)
 
-        self.verticalLayout_5.addLayout(self.verticalLayout_15)
+        self.horizontalLayout_2.addLayout(self.verticalLayout_15)
 
-        self.scrollArea_2.setWidget(self.scrollAreaWidgetContents_2)
+        self.horizontalLayout_2.setStretch(0, 1)
+        self.horizontalLayout_2.setStretch(1, 1)
+        self.scrollArea_3.setWidget(self.scrollAreaWidgetContents_3)
 
-        self.horizontalLayout_3.addWidget(self.scrollArea_2)
+        self.verticalLayout_5.addWidget(self.scrollArea_3)
 
-        self.horizontalLayout_3.setStretch(0, 1)
-        self.horizontalLayout_3.setStretch(1, 1)
         icon7 = QIcon()
         icon7.addFile(u":/convert.png", QSize(), QIcon.Normal, QIcon.Off)
         self.aspects.addTab(self.convert_tab, icon7, "")
@@ -832,7 +828,7 @@ class Ui_batch_widget(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollAreaWidgetContents = QWidget()
         self.scrollAreaWidgetContents.setObjectName(u"scrollAreaWidgetContents")
-        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 582, 678))
+        self.scrollAreaWidgetContents.setGeometry(QRect(0, 0, 810, 674))
         self.gridLayout_3 = QGridLayout(self.scrollAreaWidgetContents)
         self.gridLayout_3.setObjectName(u"gridLayout_3")
         self.groupBox_3 = QGroupBox(self.scrollAreaWidgetContents)
@@ -1123,10 +1119,12 @@ class Ui_batch_widget(object):
 
         self.gridLayout_9.addLayout(self.list_layout, 1, 1, 1, 1)
 
+        self.gridLayout_9.setColumnStretch(0, 2)
+        self.gridLayout_9.setColumnStretch(1, 1)
 
         self.retranslateUi(batch_widget)
 
-        self.aspects.setCurrentIndex(0)
+        self.aspects.setCurrentIndex(1)
         self.output_options.setCurrentIndex(0)
         self.quoting.setCurrentIndex(1)
         self.quoting_bus.setCurrentIndex(1)

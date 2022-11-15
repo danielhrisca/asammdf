@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 from tempfile import gettempdir
+from traceback import format_exc
 
 from natsort import natsorted
 import psutil
@@ -102,11 +103,13 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self.sort_by_start_time_btn.clicked.connect(self.sort_by_start_time)
 
         self.filter_view.setCurrentIndex(-1)
-        self.filter_view.currentIndexChanged.connect(self._update_channel_tree)
-        self.filter_view.currentTextChanged.connect(self._update_channel_tree)
+        self.filter_view.currentIndexChanged.connect(self.update_channel_tree)
+        self.filter_view.currentTextChanged.connect(self.update_channel_tree)
         self.filter_view.setCurrentText(
             self._settings.value("filter_view", "Internal file structure")
         )
+
+        self.filter_tree.itemChanged.connect(self.filter_changed)
 
         self.load_can_database_btn.clicked.connect(self.load_can_database)
         self.load_lin_database_btn.clicked.connect(self.load_lin_database)
@@ -129,6 +132,15 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
 
         self.aspects.setCurrentIndex(0)
         self.setAcceptDrops(True)
+
+        self.files_list.model().rowsInserted.connect(self.update_channel_tree)
+        self.files_list.model().rowsRemoved.connect(self.update_channel_tree)
+
+        self.filter_tree.itemChanged.connect(self.filter_changed)
+        self._selected_filter = set()
+        self._filter_timer = QtCore.QTimer()
+        self._filter_timer.setSingleShot(True)
+        self._filter_timer.timeout.connect(self.update_selected_filter_channels)
 
     def set_raster_type(self, event):
         if self.raster_type_channel.isChecked():
@@ -910,7 +922,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 self._selected_filter.remove(name)
         self._filter_timer.start(10)
 
-    def update_selected_filter_channels(self):
+    def update_selected_filter_channels(self, *args):
         self.selected_filter_channels.clear()
         self.selected_filter_channels.addItems(sorted(self._selected_filter))
 
@@ -1011,7 +1023,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         finally:
             mdf.close()
 
-    def _update_channel_tree(self, index=None):
+    def update_channel_tree(self, *args):
         if self.filter_view.currentIndex() == -1:
             return
 

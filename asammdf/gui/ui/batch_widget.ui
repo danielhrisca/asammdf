@@ -6,14 +6,14 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>785</width>
-    <height>722</height>
+    <width>1312</width>
+    <height>718</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <layout class="QGridLayout" name="gridLayout_9">
+  <layout class="QGridLayout" name="gridLayout_9" columnstretch="2,1">
    <item row="1" column="0">
     <widget class="QSplitter" name="splitter">
      <property name="orientation">
@@ -24,7 +24,7 @@
        <enum>QTabWidget::West</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>1</number>
       </property>
       <property name="documentMode">
        <bool>false</bool>
@@ -156,167 +156,154 @@
        <attribute name="toolTip">
         <string>conv</string>
        </attribute>
-       <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="1,1,0,0">
+       <layout class="QVBoxLayout" name="verticalLayout_5">
         <item>
-         <layout class="QVBoxLayout" name="verticalLayout_14">
-          <item>
-           <widget class="QComboBox" name="filter_view">
-            <item>
-             <property name="text">
-              <string>Natural sort</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>Internal file structure</string>
-             </property>
-            </item>
-            <item>
-             <property name="text">
-              <string>Selected channels only</string>
-             </property>
-            </item>
-           </widget>
-          </item>
-          <item>
-           <widget class="TreeWidget" name="filter_tree">
-            <property name="toolTip">
-             <string>Double click channel to see extended information</string>
-            </property>
-            <column>
-             <property name="text">
-              <string>Channels</string>
-             </property>
-            </column>
-           </widget>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_5">
-            <item>
-             <widget class="QPushButton" name="load_filter_list_btn">
-              <property name="toolTip">
-               <string>Load channel selection list</string>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-              <property name="icon">
-               <iconset resource="resource.qrc">
-                <normaloff>:/open.png</normaloff>:/open.png</iconset>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="save_filter_list_btn">
-              <property name="toolTip">
-               <string>Save channel selection list</string>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-              <property name="icon">
-               <iconset resource="resource.qrc">
-                <normaloff>:/save.png</normaloff>:/save.png</iconset>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="clear_filter_btn">
-              <property name="toolTip">
-               <string>Clear selection</string>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-              <property name="icon">
-               <iconset resource="resource.qrc">
-                <normaloff>:/erase.png</normaloff>:/erase.png</iconset>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="advanced_serch_filter_btn">
-              <property name="toolTip">
-               <string>Search and select channels</string>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-              <property name="icon">
-               <iconset resource="resource.qrc">
-                <normaloff>:/search.png</normaloff>:/search.png</iconset>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <spacer name="horizontalSpacer_5">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>40</width>
-                <height>20</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-           </layout>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <layout class="QVBoxLayout" name="verticalLayout_13">
-          <item>
-           <widget class="QLabel" name="label_3">
-            <property name="text">
-             <string>All selected channels</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QListWidget" name="selected_filter_channels">
-            <property name="viewMode">
-             <enum>QListView::ListMode</enum>
-            </property>
-            <property name="uniformItemSizes">
-             <bool>true</bool>
-            </property>
-            <property name="sortingEnabled">
-             <bool>true</bool>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
-         <spacer name="horizontalSpacer_4">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>10</width>
-            <height>10</height>
-           </size>
-          </property>
-         </spacer>
-        </item>
-        <item>
-         <widget class="QScrollArea" name="scrollArea_2">
+         <widget class="QScrollArea" name="scrollArea_3">
           <property name="widgetResizable">
            <bool>true</bool>
           </property>
-          <widget class="QWidget" name="scrollAreaWidgetContents_2">
+          <widget class="QWidget" name="scrollAreaWidgetContents_3">
            <property name="geometry">
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>295</width>
-             <height>678</height>
+             <width>810</width>
+             <height>674</height>
             </rect>
            </property>
-           <layout class="QVBoxLayout" name="verticalLayout_5">
+           <layout class="QHBoxLayout" name="horizontalLayout_2" stretch="1,1,0">
+            <item>
+             <layout class="QVBoxLayout" name="verticalLayout_14">
+              <item>
+               <widget class="QComboBox" name="filter_view">
+                <item>
+                 <property name="text">
+                  <string>Natural sort</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Internal file structure</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Selected channels only</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item>
+               <widget class="TreeWidget" name="filter_tree">
+                <property name="toolTip">
+                 <string>Double click channel to see extended information</string>
+                </property>
+                <column>
+                 <property name="text">
+                  <string>Channels</string>
+                 </property>
+                </column>
+               </widget>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_5">
+                <item>
+                 <widget class="QPushButton" name="load_filter_list_btn">
+                  <property name="toolTip">
+                   <string>Load channel selection list</string>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                  <property name="icon">
+                   <iconset resource="resource.qrc">
+                    <normaloff>:/open.png</normaloff>:/open.png</iconset>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="save_filter_list_btn">
+                  <property name="toolTip">
+                   <string>Save channel selection list</string>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                  <property name="icon">
+                   <iconset resource="resource.qrc">
+                    <normaloff>:/save.png</normaloff>:/save.png</iconset>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="clear_filter_btn">
+                  <property name="toolTip">
+                   <string>Clear selection</string>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                  <property name="icon">
+                   <iconset resource="resource.qrc">
+                    <normaloff>:/erase.png</normaloff>:/erase.png</iconset>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="advanced_serch_filter_btn">
+                  <property name="toolTip">
+                   <string>Search and select channels</string>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                  <property name="icon">
+                   <iconset resource="resource.qrc">
+                    <normaloff>:/search.png</normaloff>:/search.png</iconset>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="horizontalSpacer_5">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QVBoxLayout" name="verticalLayout_13">
+              <item>
+               <widget class="QLabel" name="label_3">
+                <property name="text">
+                 <string>All selected channels</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QListWidget" name="selected_filter_channels">
+                <property name="viewMode">
+                 <enum>QListView::ListMode</enum>
+                </property>
+                <property name="uniformItemSizes">
+                 <bool>true</bool>
+                </property>
+                <property name="sortingEnabled">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
             <item>
              <layout class="QVBoxLayout" name="verticalLayout_15" stretch="0,0,0,0,1,0">
               <property name="spacing">
@@ -1325,8 +1312,8 @@
             <rect>
              <x>0</x>
              <y>0</y>
-             <width>582</width>
-             <height>678</height>
+             <width>810</width>
+             <height>674</height>
             </rect>
            </property>
            <layout class="QGridLayout" name="gridLayout_3" columnstretch="0,0,0">
