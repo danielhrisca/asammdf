@@ -1376,7 +1376,7 @@ class Plot(QtWidgets.QWidget):
 
     item_double_click_handling = "enable/disable"
     dynamic_columns_width = True
-    bookmarks_added = QtCore.Signal(list)
+    verify_bookmarks = QtCore.Signal(list)
 
     def __init__(
         self,
@@ -2402,12 +2402,10 @@ class Plot(QtWidgets.QWidget):
         self.plot.axes = None
         self.plot.plot_parent = None
 
-        new_bookmarks = [bookmark for bookmark in self.plot.bookmarks if bookmark.new]
-
+        bookmarks = self.plot.bookmarks
         self.plot.bookmarks = []
 
-        if new_bookmarks:
-            self.bookmarks_added.emit(new_bookmarks)
+        self.verify_bookmarks.emit(bookmarks)
 
         super().close()
 
@@ -2819,9 +2817,10 @@ class Plot(QtWidgets.QWidget):
                         pos=position,
                         message=comment,
                         color="#FF0000",
-                        new=True,
+                        tool=Bookmark.tool,
                     )
                     bookmark.visible = visible
+                    bookmark.edited = True
 
                     self.plot.bookmarks.append(bookmark)
                     self.plot.viewbox.addItem(self.plot.bookmarks[-1])
@@ -3661,7 +3660,7 @@ class _Plot(pg.PlotWidget):
                     message=event["description"],
                     title=f'{event["type"]}{label}',
                     color=color,
-                    new=False,
+                    tool=event["tool"],
                 )
                 self.bookmarks.append(bookmark)
                 self.viewbox.addItem(bookmark)
@@ -3759,35 +3758,69 @@ class _Plot(pg.PlotWidget):
         x = pos.x()
         y = event.scenePos().y()
 
-        if (QtCore.Qt.Key_C, int(QtCore.Qt.NoModifier)) not in self.disabled_keys:
+        for bookmark in self.bookmarks:
+            if not bookmark.visible:
+                continue
 
-            if self.region is not None:
-                start, stop = self.region.getRegion()
+            rect = bookmark.label.textItem.sceneBoundingRect()
+            if rect.contains(scene_pos):
+                if bookmark.editable:
 
-                if self.region_lock is not None:
-                    self.region.setRegion((self.region_lock, pos.x()))
-                else:
-                    if modifiers == QtCore.Qt.ControlModifier:
-                        self.region.setRegion((start, pos.x()))
+                    edit_rect = QtCore.QRectF(
+                        rect.x() + rect.width() - 35,
+                        rect.y() + 1,
+                        18,
+                        18,
+                    )
+
+                    if edit_rect.contains(scene_pos):
+
+                        comment, submit = QtWidgets.QInputDialog.getMultiLineText(
+                            self,
+                            "Edit bookmark comments",
+                            f"Enter new comments for cursor position {bookmark.value():.9f}s:",
+                            bookmark.message,
+                        )
+                        if submit:
+                            bookmark.message = comment
+                            bookmark.edited = True
+
+                    delete_rect = QtCore.QRectF(
+                        rect.x() + rect.width() - 18,
+                        rect.y() + 1,
+                        18,
+                        18,
+                    )
+                    if delete_rect.contains(scene_pos):
+                        bookmark.deleted = True
+                        bookmark.visible = False
+
+                break
+        else:
+
+            if (QtCore.Qt.Key_C, int(QtCore.Qt.NoModifier)) not in self.disabled_keys:
+
+                if self.region is not None:
+                    start, stop = self.region.getRegion()
+
+                    if self.region_lock is not None:
+                        self.region.setRegion((self.region_lock, pos.x()))
                     else:
-                        self.region.setRegion((pos.x(), stop))
+                        if modifiers == QtCore.Qt.ControlModifier:
+                            self.region.setRegion((start, pos.x()))
+                        else:
+                            self.region.setRegion((pos.x(), stop))
 
-            else:
-                if self.cursor1 is not None:
-                    self.cursor1.setPos(pos)
-                    self.cursor1.sigPositionChangeFinished.emit(self.cursor1)
+                else:
+                    if self.cursor1 is not None:
+                        self.cursor1.setPos(pos)
+                        self.cursor1.sigPositionChangeFinished.emit(self.cursor1)
 
-        now = perf_counter()
-        if modifiers == QtCore.Qt.ShiftModifier:
-            self.select_curve(x, y)
-        elif now - self.last_click < 0.3:
+            now = perf_counter()
+            if modifiers == QtCore.Qt.ShiftModifier:
+                self.select_curve(x, y)
+            elif now - self.last_click < 0.3:
 
-            for bookmark in self.bookmarks:
-                if bookmark.label.textItem.sceneBoundingRect().contains(scene_pos):
-                    print(bookmark.message)
-                    break
-
-            else:
                 self.select_curve(x, y)
 
         self.last_click = perf_counter()

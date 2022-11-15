@@ -21,6 +21,7 @@
     <file alias="cut.png">images/cut.png</file>
     <file alias="decrease-font.png">images/decrease-font.png</file>
     <file alias="down.png">images/down.png</file>
+    <file alias="edit.png">images/edit.png</file>
     <file alias="erase.png">images/erase.png</file>
     <file alias="error.png">images/error.png</file>
     <file alias="export.png">images/export.png</file>

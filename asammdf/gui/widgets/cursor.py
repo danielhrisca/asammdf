@@ -3,15 +3,19 @@
 import pyqtgraph as pg
 from PySide6 import QtCore, QtGui
 
+from ...blocks.utils import escape_xml_string
+
 
 class Bookmark(pg.InfiniteLine):
-    def __init__(self, message="", title="", color="#ffffff", new=False, **kwargs):
+    tool = "asammdf"
 
-        title = title or "Bookmark"
+    def __init__(self, message="", title="", color="#ffffff", tool="", **kwargs):
+
+        self.title = title or "Bookmark"
 
         super().__init__(
             movable=False,
-            label=f"{title}\nt = {kwargs['pos']}s\n\n{message}",
+            label="",
             labelOpts={"movable": True},
             **kwargs,
         )
@@ -19,9 +23,16 @@ class Bookmark(pg.InfiniteLine):
         self.line_width = 2
         self.color = color
         self._visible = True
+        self._message = ""
         self.message = message
-        self.title = title
-        self.new = new
+
+        if tool and tool == self.tool:
+            self.editable = True
+        else:
+            self.editable = False
+
+        self.edited = False
+        self.deleted = False
 
         self.fill = pg.mkBrush("ff9b37")
         self.border = pg.mkPen(
@@ -31,6 +42,9 @@ class Bookmark(pg.InfiniteLine):
                 "style": QtCore.Qt.DashLine,
             }
         )
+
+    def __hash__(self):
+        return hash((self.title, self.message))
 
     @property
     def color(self):
@@ -43,68 +57,6 @@ class Bookmark(pg.InfiniteLine):
         self.pen = QtGui.QPen(color.name())
         self.hoverPen = QtGui.QPen(color.name())
         self.update()
-
-    @property
-    def line_width(self):
-        return self._line_width
-
-    @line_width.setter
-    def line_width(self, value):
-        self._line_width = value
-        self.update()
-
-    def set_value(self, value):
-        self.setPos(value)
-
-    def paint(self, paint, *args, plot=None, uuid=None):
-        if plot and self.visible:
-            paint.setRenderHint(paint.RenderHint.Antialiasing, False)
-
-            pen = self.pen
-            pen.setWidth(self.line_width)
-            pen.setStyle(QtCore.Qt.DashLine)
-
-            paint.setPen(pen)
-
-            position = self.value()
-
-            rect = plot.viewbox.sceneBoundingRect()
-            delta = rect.x()
-            height = rect.height()
-            width = rect.x() + rect.width()
-
-            x, y = plot.scale_curve_to_pixmap(
-                position,
-                0,
-                y_range=plot.viewbox.viewRange()[1],
-                x_start=plot.viewbox.viewRange()[0][0],
-                delta=delta,
-            )
-            paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
-
-            rect = self.label.textItem.sceneBoundingRect()
-
-            paint.setPen(self.border)
-            paint.setBrush(self.fill)
-            paint.setRenderHint(paint.RenderHint.Antialiasing, True)
-            paint.drawRect(rect)
-
-            paint.setPen(pg.mkPen("#000000"))
-
-            message = f"{self.title}\nt = {self.value()}s\n\n{self.message}"
-
-            paint.drawText(rect, message)
-
-            self.label.paint(paint)
-
-    @property
-    def visible(self):
-        return self._visible
-
-    @visible.setter
-    def visible(self, value):
-        self._visible = bool(value)
-        self.label.setVisible(self._visible)
 
     def _computeBoundingRect(self):
         # br = UIGraphicsItem.boundingRect(self)
@@ -144,6 +96,113 @@ class Bookmark(pg.InfiniteLine):
         self._lastViewRect = vr
 
         return self._bounds
+
+    @property
+    def line_width(self):
+        return self._line_width
+
+    @line_width.setter
+    def line_width(self, value):
+        self._line_width = value
+        self.update()
+
+    @property
+    def message(self):
+        return self._message
+
+    @message.setter
+    def message(self, value):
+        self._message = value
+        self.label.setPlainText(f"{self.title}\nt = {self.value()}s\n\n{value}")
+
+    def paint(self, paint, *args, plot=None, uuid=None):
+        if plot and self.visible:
+            paint.setRenderHint(paint.RenderHint.Antialiasing, False)
+
+            pen = self.pen
+            pen.setWidth(self.line_width)
+            pen.setStyle(QtCore.Qt.DashLine)
+
+            paint.setPen(pen)
+
+            position = self.value()
+
+            rect = plot.viewbox.sceneBoundingRect()
+            delta = rect.x()
+            height = rect.height()
+            width = rect.x() + rect.width()
+
+            x, y = plot.scale_curve_to_pixmap(
+                position,
+                0,
+                y_range=plot.viewbox.viewRange()[1],
+                x_start=plot.viewbox.viewRange()[0][0],
+                delta=delta,
+            )
+            paint.drawLine(QtCore.QPointF(x, 0), QtCore.QPointF(x, height))
+
+            rect = self.label.textItem.sceneBoundingRect()
+
+            black_pen = pg.mkPen("#000000")
+
+            paint.setPen(self.border)
+            paint.setBrush(self.fill)
+            paint.setRenderHint(paint.RenderHint.Antialiasing, True)
+            paint.drawRect(rect)
+
+            paint.setPen(black_pen)
+
+            message = f"{self.title}\nt = {self.value()}s\n\n{self.message}"
+
+            paint.drawText(rect, message)
+
+            if self.editable:
+                paint.setPen(self.border)
+                paint.setBrush(self.fill)
+                paint.setRenderHint(paint.RenderHint.Antialiasing, True)
+
+                rect2 = QtCore.QRectF(
+                    rect.x() + rect.width() - 35,
+                    rect.y() + 1,
+                    18,
+                    18,
+                )
+                paint.drawRect(rect2)
+                rect2 = QtCore.QRectF(
+                    rect.x() + rect.width() - 18,
+                    rect.y() + 1,
+                    18,
+                    18,
+                )
+                paint.drawRect(rect2)
+
+                pix = QtGui.QPixmap(":/edit.png").scaled(16, 16)
+                paint.drawPixmap(
+                    QtCore.QPointF(rect.x() + rect.width() - 34, rect.y() + 1), pix
+                )
+
+                pix = QtGui.QPixmap(":/erase.png").scaled(16, 16)
+                paint.drawPixmap(
+                    QtCore.QPointF(rect.x() + rect.width() - 17, rect.y() + 1), pix
+                )
+
+    def set_value(self, value):
+        self.setPos(value)
+
+    @property
+    def visible(self):
+        return self._visible
+
+    @visible.setter
+    def visible(self, value):
+        self._visible = bool(value)
+        self.label.setVisible(self._visible)
+
+    def xml_comment(self):
+        return f"""<EVcomment>
+    <TX>{escape_xml_string(self.message)}</TX>
+    <tool>{Bookmark.tool}</tool>
+</EVcomment>"""
 
 
 class Cursor(pg.InfiniteLine):

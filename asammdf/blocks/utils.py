@@ -344,6 +344,7 @@ def sanitize_xml(text: str) -> str:
 
 
 def extract_display_names(comment: str) -> dict[str, str]:
+    comment = comment.replace(' xmlns="http://www.asam.net/mdf/v4"', "")
     display_names = {}
     if comment.startswith("<CN") and "<names>" in comment:
 
@@ -364,6 +365,7 @@ def extract_display_names(comment: str) -> dict[str, str]:
 
 def extract_encryption_information(comment: str) -> dict[str, str]:
     info = {}
+    comment = comment.replace(' xmlns="http://www.asam.net/mdf/v4"', "")
     if comment.startswith("<ATcomment") and "<encrypted>" in comment:
 
         try:
@@ -383,6 +385,22 @@ def extract_encryption_information(comment: str) -> dict[str, str]:
             pass
 
     return info
+
+
+def extract_ev_tool(comment: str) -> str:
+    tool = ""
+    comment = comment.replace(' xmlns="http://www.asam.net/mdf/v4"', "")
+    try:
+        comment = ET.fromstring(comment)
+        match = comment.find(".//tool")
+        if match is None:
+            tool = ""
+        else:
+            tool = match.text or ""
+    except:
+        pass
+
+    return tool
 
 
 @lru_cache(maxsize=1024)

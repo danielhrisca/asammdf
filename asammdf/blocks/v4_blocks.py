@@ -43,6 +43,7 @@ from .utils import (
     block_fields,
     escape_xml_string,
     extract_display_names,
+    extract_ev_tool,
     FLOAT64_u,
     get_text_v4,
     is_file_like,
@@ -4765,6 +4766,7 @@ class _EventBlockBase:
         "creator_index",
         "sync_base",
         "sync_factor",
+        "tool",
     )
 
 
@@ -4916,6 +4918,8 @@ class EventBlock(_EventBlockBase):
 
             if self.flags & v4c.FLAG_EV_GROUP_NAME:
                 self.group_name_addr = kwargs.get("group_name_addr", 0)
+
+        self.tool = extract_ev_tool(self.comment)
 
     def update_references(self, ch_map, cg_map):
         self.scopes.clear()

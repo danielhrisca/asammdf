@@ -631,131 +631,6 @@ class WithMDIArea:
 
         self.functions = {}
 
-    def add_bookmarks(self, bookmarks):
-        original_file_name = Path(self.mdf.original_name)
-
-        if original_file_name.suffix.lower() not in (".mf4", ".mf4z"):
-            return
-
-        result = QtWidgets.QMessageBox.question(
-            self,
-            "Save measurement bookmarks?",
-            "You have created new bookmarks.\n\n"
-            "Do you want to save them in the measurement file?\n"
-            "",
-        )
-
-        if result == QtWidgets.QMessageBox.No:
-            return
-
-        _password = self.mdf._password
-
-        uuid = self.mdf.uuid
-        dspf = self.to_config()
-
-        self.mdf.close()
-
-        windows = list(self.mdi_area.subWindowList())
-        for window in windows:
-            widget = window.widget()
-            self.mdi_area.removeSubWindow(window)
-            widget.setParent(None)
-            widget.close()
-            window.close()
-
-        suffix = original_file_name.suffix.lower()
-        if suffix == ".mf4z":
-            with ZipFile(original_file_name, allowZip64=True) as archive:
-                files = archive.namelist()
-                if len(files) != 1:
-                    return
-                fname = files[0]
-                if Path(fname).suffix.lower() not in (".mdf", ".dat", ".mf4"):
-                    return
-
-                tmpdir = gettempdir()
-                file_name = archive.extract(fname, tmpdir)
-                file_name = Path(tmpdir) / file_name
-        else:
-            file_name = original_file_name
-
-        with open(file_name, "r+b") as mdf:
-            try:
-                mdf.seek(0, 2)
-                address = mdf.tell()
-
-                blocks = []
-                events = []
-
-                alignment = address % 8
-                if alignment:
-                    offset = 8 - alignment
-                    blocks.append(b"\0" * offset)
-                    address += offset
-
-                for i, bookmark in enumerate(bookmarks):
-                    event = EventBlock(
-                        cause=v4c.EVENT_CAUSE_USER,
-                        range_type=v4c.EVENT_RANGE_TYPE_POINT,
-                        sync_type=v4c.EVENT_SYNC_TYPE_S,
-                        event_type=v4c.EVENT_TYPE_MARKER,
-                        flags=v4c.FLAG_EV_POST_PROCESSING,
-                    )
-                    event.value = bookmark.value()
-                    event.comment = bookmark.message
-
-                    events.append(event)
-                    address = event.to_blocks(address, blocks)
-
-                for i in range(len(events) - 1):
-                    events[i].next_ev_addr = events[i + 1].address
-
-                for block in blocks:
-                    mdf.write(bytes(block))
-
-                header = HeaderBlock(stream=mdf, address=0x40)
-                if header.first_event_addr:
-                    address = header.first_event_addr
-                    while address:
-                        event = EventBlock(stream=mdf, address=address)
-                        address = event.next_ev_addr
-
-                    event.next_ev_addr = events[0].address
-                    mdf.seek(event.address)
-                    mdf.write(bytes(event))
-
-                else:
-                    header.first_event_addr = events[0].address
-                    mdf.seek(header.address)
-                    mdf.write(bytes(header))
-
-            except:
-                print(format_exc())
-                return
-
-        if suffix == ".mf4z":
-            zipped_mf4 = ZipFile(original_file_name, "w", compression=ZIP_DEFLATED)
-            zipped_mf4.write(
-                str(file_name),
-                original_file_name.with_suffix(".mf4").name,
-                compresslevel=1,
-            )
-            zipped_mf4.close()
-            file_name.unlink()
-
-        self.mdf = MDF(
-            name=original_file_name,
-            callback=self.update_progress,
-            password=_password,
-            use_display_names=True,
-        )
-
-        self.mdf.original_name = file_name
-        self.mdf.uuid = uuid
-
-        self.aspects.setCurrentIndex(0)
-        self.load_channel_list(file_name=dspf)
-
     def add_pattern_group(self, plot, group):
 
         signals = extract_signals_using_pattern(
@@ -2482,6 +2357,7 @@ class WithMDIArea:
                             description = comment
                     event_info["description"] = description
                     event_info["index"] = pos
+                    event_info["tool"] = event.tool
 
                     if event.range_type == v4c.EVENT_RANGE_TYPE_POINT:
                         events.append(event_info)
@@ -2535,7 +2411,7 @@ class WithMDIArea:
             owner=self,
         )
         plot.pattern_group_added.connect(self.add_pattern_group)
-        plot.bookmarks_added.connect(self.add_bookmarks)
+        plot.verify_bookmarks.connect(self.verify_bookmarks)
         plot.pattern = {}
 
         sub = MdiSubWindow(parent=self)
@@ -3374,6 +3250,7 @@ class WithMDIArea:
                     event_info = {}
                     event_info["value"] = event.value
                     event_info["type"] = v4c.EVENT_TYPE_TO_STRING[event.event_type]
+                    event_info["tool"] = event.tool
                     if event.name:
                         description = event.name
                     else:
@@ -3443,7 +3320,7 @@ class WithMDIArea:
             owner=self,
         )
         plot.pattern_group_added.connect(self.add_pattern_group)
-        plot.bookmarks_added.connect(self.add_bookmarks)
+        plot.verify_bookmarks.connect(self.verify_bookmarks)
         plot.pattern = pattern_info
         plot.line_width = self.line_width
 
@@ -4110,6 +3987,153 @@ class WithMDIArea:
                     "Missing channel",
                     f"The channel {sig.name} does not exit in the current measurement file.",
                 )
+
+    def verify_bookmarks(self, bookmarks):
+        original_file_name = Path(self.mdf.original_name)
+
+        if original_file_name.suffix.lower() not in (".mf4", ".mf4z"):
+            return
+
+        last_bookmark_index = None
+
+        for i, bookmark in enumerate(bookmarks):
+            if bookmark.editable:
+                if last_bookmark_index is None:
+                    last_bookmark_index = i - 1
+
+                if bookmark.edited or bookmark.deleted:
+                    break
+
+        else:
+            return
+
+        result = QtWidgets.QMessageBox.question(
+            self,
+            "Save measurement bookmarks?",
+            "You have modified bookmarks.\n\n"
+            "Do you want to save the changes in the measurement file?\n"
+            "",
+        )
+
+        if result == QtWidgets.QMessageBox.No:
+            return
+
+        _password = self.mdf._password
+
+        uuid = self.mdf.uuid
+        dspf = self.to_config()
+
+        self.mdf.close()
+
+        windows = list(self.mdi_area.subWindowList())
+        for window in windows:
+            widget = window.widget()
+            self.mdi_area.removeSubWindow(window)
+            widget.setParent(None)
+            widget.close()
+            window.close()
+
+        suffix = original_file_name.suffix.lower()
+        if suffix == ".mf4z":
+            with ZipFile(original_file_name, allowZip64=True) as archive:
+                files = archive.namelist()
+                if len(files) != 1:
+                    return
+                fname = files[0]
+                if Path(fname).suffix.lower() not in (".mdf", ".dat", ".mf4"):
+                    return
+
+                tmpdir = gettempdir()
+                file_name = archive.extract(fname, tmpdir)
+                file_name = Path(tmpdir) / file_name
+        else:
+            file_name = original_file_name
+
+        with open(file_name, "r+b") as mdf:
+            try:
+                mdf.seek(0, 2)
+                address = mdf.tell()
+
+                blocks = []
+                events = []
+
+                alignment = address % 8
+                if alignment:
+                    offset = 8 - alignment
+                    blocks.append(b"\0" * offset)
+                    address += offset
+
+                for i, bookmark in enumerate(bookmarks[last_bookmark_index + 1 :]):
+                    if not bookmark.deleted:
+                        event = EventBlock(
+                            cause=v4c.EVENT_CAUSE_USER,
+                            range_type=v4c.EVENT_RANGE_TYPE_POINT,
+                            sync_type=v4c.EVENT_SYNC_TYPE_S,
+                            event_type=v4c.EVENT_TYPE_MARKER,
+                            flags=v4c.FLAG_EV_POST_PROCESSING,
+                        )
+                        event.value = bookmark.value()
+                        event.comment = bookmark.xml_comment()
+
+                        events.append(event)
+                        address = event.to_blocks(address, blocks)
+
+                for i in range(len(events) - 1):
+                    events[i].next_ev_addr = events[i + 1].address
+
+                for block in blocks:
+                    mdf.write(bytes(block))
+
+                header = HeaderBlock(stream=mdf, address=0x40)
+                if last_bookmark_index >= 0:
+                    address = header.first_event_addr
+                    for i in range(last_bookmark_index + 1):
+                        event = EventBlock(stream=mdf, address=address)
+                        address = event.next_ev_addr
+
+                    if events:
+                        event.next_ev_addr = events[0].address
+                    else:
+                        event.next_ev_addr = 0
+                    mdf.seek(event.address)
+                    mdf.write(bytes(event))
+
+                else:
+                    if events:
+                        header.first_event_addr = events[0].address
+                        mdf.seek(header.address)
+                        mdf.write(bytes(header))
+                    else:
+                        header.first_event_addr = 0
+                        mdf.seek(header.address)
+                        mdf.write(bytes(header))
+
+            except:
+                print(format_exc())
+                return
+
+        if suffix == ".mf4z":
+            zipped_mf4 = ZipFile(original_file_name, "w", compression=ZIP_DEFLATED)
+            zipped_mf4.write(
+                str(file_name),
+                original_file_name.with_suffix(".mf4").name,
+                compresslevel=1,
+            )
+            zipped_mf4.close()
+            file_name.unlink()
+
+        self.mdf = MDF(
+            name=original_file_name,
+            callback=self.update_progress,
+            password=_password,
+            use_display_names=True,
+        )
+
+        self.mdf.original_name = file_name
+        self.mdf.uuid = uuid
+
+        self.aspects.setCurrentIndex(0)
+        self.load_channel_list(file_name=dspf)
 
     def window_closed_handler(self, obj=None):
         self.windows_modified.emit()
