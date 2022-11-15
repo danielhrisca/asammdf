@@ -5,11 +5,13 @@ from PySide6 import QtCore, QtGui
 
 
 class Bookmark(pg.InfiniteLine):
-    def __init__(self, message="", color="#ffffff", **kwargs):
+    def __init__(self, message="", title="", color="#ffffff", new=False, **kwargs):
+
+        title = title or "Bookmark"
 
         super().__init__(
             movable=False,
-            label=message,
+            label=f"{title}\nt = {kwargs['pos']}s\n\n{message}",
             labelOpts={"movable": True},
             **kwargs,
         )
@@ -18,6 +20,8 @@ class Bookmark(pg.InfiniteLine):
         self.color = color
         self._visible = True
         self.message = message
+        self.title = title
+        self.new = new
 
         self.fill = pg.mkBrush("ff9b37")
         self.border = pg.mkPen(
@@ -87,7 +91,9 @@ class Bookmark(pg.InfiniteLine):
 
             paint.setPen(pg.mkPen("#000000"))
 
-            paint.drawText(rect, self.message)
+            message = f"{self.title}\nt = {self.value()}s\n\n{self.message}"
+
+            paint.drawText(rect, message)
 
             self.label.paint(paint)
 
@@ -148,7 +154,7 @@ class Cursor(pg.InfiniteLine):
         show_horizontal_line=True,
         line_width=1,
         color="#ffffff",
-        **kwargs
+        **kwargs,
     ):
 
         super().__init__(

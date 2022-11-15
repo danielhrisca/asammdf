@@ -265,7 +265,7 @@ EVENT_TYPE_TO_STRING = {
     EVENT_TYPE_START_RECORDING_TRIGGER: "Start recording trigger",
     EVENT_TYPE_STOP_RECORDING_TRIGGER: "Stop recording trigger",
     EVENT_TYPE_TRIGGER: "Trigger",
-    EVENT_TYPE_MARKER: "Marker",
+    EVENT_TYPE_MARKER: "Bookmark",
 }
 
 EVENT_SYNC_TYPE_S = 1

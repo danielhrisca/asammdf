@@ -1376,6 +1376,7 @@ class Plot(QtWidgets.QWidget):
 
     item_double_click_handling = "enable/disable"
     dynamic_columns_width = True
+    bookmarks_added = QtCore.Signal(list)
 
     def __init__(
         self,
@@ -2366,6 +2367,7 @@ class Plot(QtWidgets.QWidget):
 
         self.channel_selection.blockSignals(True)
         self.plot.blockSignals(True)
+        self.plot._can_paint_global = False
         self.owner = None
 
         tree = self.channel_selection
@@ -2399,6 +2401,13 @@ class Plot(QtWidgets.QWidget):
         self.plot._timebase_db.clear()
         self.plot.axes = None
         self.plot.plot_parent = None
+
+        new_bookmarks = [bookmark for bookmark in self.plot.bookmarks if bookmark.new]
+
+        self.plot.bookmarks = []
+
+        if new_bookmarks:
+            self.bookmarks_added.emit(new_bookmarks)
 
         super().close()
 
@@ -2808,8 +2817,9 @@ class Plot(QtWidgets.QWidget):
 
                     bookmark = Bookmark(
                         pos=position,
-                        message=f"t = {position}s\n\n{comment}",
+                        message=comment,
                         color="#FF0000",
+                        new=True,
                     )
                     bookmark.visible = visible
 
@@ -3646,13 +3656,12 @@ class _Plot(pg.PlotWidget):
                 to_display = [event_info]
                 labels = [""]
             for event, label in zip(to_display, labels):
-                description = f't = {event["value"]}s'
-                if event["description"]:
-                    description += f'\n\n{event["description"]}'
                 bookmark = Bookmark(
                     pos=event["value"],
-                    message=f'{event["type"]}{label}\n{description}',
+                    message=event["description"],
+                    title=f'{event["type"]}{label}',
                     color=color,
+                    new=False,
                 )
                 self.bookmarks.append(bookmark)
                 self.viewbox.addItem(bookmark)
@@ -3745,7 +3754,8 @@ class _Plot(pg.PlotWidget):
         if not start <= pos <= stop:
             return
 
-        pos = self.plot_item.vb.mapSceneToView(event.scenePos())
+        scene_pos = event.scenePos()
+        pos = self.plot_item.vb.mapSceneToView(scene_pos)
         x = pos.x()
         y = event.scenePos().y()
 
@@ -3771,11 +3781,19 @@ class _Plot(pg.PlotWidget):
         if modifiers == QtCore.Qt.ShiftModifier:
             self.select_curve(x, y)
         elif now - self.last_click < 0.3:
-            self.select_curve(x, y)
+
+            for bookmark in self.bookmarks:
+                if bookmark.label.textItem.sceneBoundingRect().contains(scene_pos):
+                    print(bookmark.message)
+                    break
+
+            else:
+                self.select_curve(x, y)
 
         self.last_click = perf_counter()
 
     def close(self):
+        self._can_paint_global = False
         super().close()
 
     def _compute_all_timebase(self):
