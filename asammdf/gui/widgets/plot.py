@@ -1376,7 +1376,7 @@ class Plot(QtWidgets.QWidget):
 
     item_double_click_handling = "enable/disable"
     dynamic_columns_width = True
-    verify_bookmarks = QtCore.Signal(list)
+    verify_bookmarks = QtCore.Signal(list, object)
 
     def __init__(
         self,
@@ -2405,7 +2405,7 @@ class Plot(QtWidgets.QWidget):
         bookmarks = self.plot.bookmarks
         self.plot.bookmarks = []
 
-        self.verify_bookmarks.emit(bookmarks)
+        self.verify_bookmarks.emit(bookmarks, self)
 
         super().close()
 
@@ -2832,6 +2832,7 @@ class Plot(QtWidgets.QWidget):
             for bookmark in self.plot.bookmarks:
                 bookmark.visible = not bookmark.visible
 
+            self.bookmark_btn.setFlat(not self.bookmark_btn.isFlat())
             self.plot.update()
 
         elif key == QtCore.Qt.Key_G and modifiers == QtCore.Qt.ControlModifier:

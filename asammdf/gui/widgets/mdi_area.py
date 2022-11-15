@@ -3988,7 +3988,7 @@ class WithMDIArea:
                     f"The channel {sig.name} does not exit in the current measurement file.",
                 )
 
-    def verify_bookmarks(self, bookmarks):
+    def verify_bookmarks(self, bookmarks, plot):
         original_file_name = Path(self.mdf.original_name)
 
         if original_file_name.suffix.lower() not in (".mf4", ".mf4z"):
@@ -4028,6 +4028,9 @@ class WithMDIArea:
         windows = list(self.mdi_area.subWindowList())
         for window in windows:
             widget = window.widget()
+            if widget is plot:
+                continue
+
             self.mdi_area.removeSubWindow(window)
             widget.setParent(None)
             widget.close()

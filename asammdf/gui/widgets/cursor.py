@@ -15,7 +15,7 @@ class Bookmark(pg.InfiniteLine):
 
         super().__init__(
             movable=False,
-            label="",
+            label=f"{self.title}\nt = {kwargs['pos']}s\n\n{message}",
             labelOpts={"movable": True},
             **kwargs,
         )
@@ -34,7 +34,7 @@ class Bookmark(pg.InfiniteLine):
         self.edited = False
         self.deleted = False
 
-        self.fill = pg.mkBrush("ff9b37")
+        self.fill = pg.mkBrush("61b2e2")
         self.border = pg.mkPen(
             {
                 "color": color,
@@ -154,11 +154,12 @@ class Bookmark(pg.InfiniteLine):
 
             message = f"{self.title}\nt = {self.value()}s\n\n{self.message}"
 
-            paint.drawText(rect, message)
+            delta = 5  # pixels
+            paint.drawText(rect.adjusted(delta, delta, -2 * delta, -2 * delta), message)
 
             if self.editable:
-                paint.setPen(self.border)
-                paint.setBrush(self.fill)
+                paint.setPen(black_pen)
+                paint.setBrush(QtGui.QBrush(QtGui.QColor("#000000")))
                 paint.setRenderHint(paint.RenderHint.Antialiasing, True)
 
                 rect2 = QtCore.QRectF(
