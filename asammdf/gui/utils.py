@@ -566,8 +566,22 @@ def run_thread_with_progress(
         return thr.output
 
 
+class ProgressDialog(QtWidgets.QProgressDialog):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def keyPressEvent(self, event):
+        if (
+            event.key() == QtCore.Qt.Key_Escape
+            and event.modifiers() == QtCore.Qt.NoModifier
+        ):
+            self.cancel()
+        else:
+            super().keyPressEvent(event)
+
+
 def setup_progress(parent, title, message, icon_name):
-    progress = QtWidgets.QProgressDialog(message, "", 0, 100, parent)
+    progress = ProgressDialog(message, "Cancel", 0, 100, parent)
 
     progress.setWindowModality(QtCore.Qt.ApplicationModal)
     progress.setCancelButton(None)
