@@ -563,7 +563,10 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         channel_group.setIcon(0, icon)
 
                 if self.display_cg_name:
-                    base_name = f"CG {i} {group.channel_group.acq_name}"
+                    if group.channel_group.acq_name:
+                        base_name = f"CG {i} {group.channel_group.acq_name}"
+                    else:
+                        base_name = f"CG {i}"
                     if comment and group.channel_group.acq_name != comment:
                         name = base_name + f" ({comment})"
                     else:
