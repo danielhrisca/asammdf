@@ -1199,7 +1199,7 @@ class Numeric(QtWidgets.QWidget):
             self._settings.setValue("numeric_format", format)
 
         if float_precision is None:
-            float_precision = self._settings.value("numeric_float_precision", -1)
+            float_precision = int(self._settings.value("numeric_float_precision", -1))
         self.float_precision.setCurrentIndex(float_precision + 1)
 
         if channels:

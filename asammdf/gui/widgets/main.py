@@ -944,7 +944,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         cursor_horizontal_line = self._settings.value(
             "show_cursor_horizontal_line", False, type=bool
         )
-        cursor_line_width = self._settings.value("cursor_line_width", 1)
+        cursor_line_width = int(self._settings.value("cursor_line_width", 1))
         cursor_color = self._settings.value("cursor_color", "#e69138")
 
         for i in range(self.files.count()):
