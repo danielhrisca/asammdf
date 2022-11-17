@@ -575,7 +575,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             event.key() == QtCore.Qt.Key_Escape
             and event.modifiers() == QtCore.Qt.NoModifier
         ):
-            self.cancel()
+            self.close()
         else:
             super().keyPressEvent(event)
 

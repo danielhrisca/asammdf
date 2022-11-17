@@ -1770,7 +1770,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
             self,
             "Select output filter list file",
-            self.default_folder,
+            "",
             "CANape Lab file (*.lab);;TXT files (*.txt);;All file types (*.lab *.txt)",
             "CANape Lab file (*.lab)",
         )

@@ -1414,6 +1414,12 @@ class Plot(QtWidgets.QWidget):
         self.info_uuid = None
 
         self._can_switch_mode = True
+        self._inhibit_timestamp_signals = False
+        self._inhibit_timestamp_signals_timer = QtCore.QTimer()
+        self._inhibit_timestamp_signals_timer.setSingleShot(True)
+        self._inhibit_timestamp_signals_timer.timeout.connect(
+            self._inhibit_timestamp_handler
+        )
         self.can_edit_ranges = True
 
         self.region_values_display_mode = region_values_display_mode
@@ -2489,7 +2495,8 @@ class Plot(QtWidgets.QWidget):
             stats = self.plot.get_stats(self.info_uuid)
             self.info.set_stats(stats)
 
-        self.cursor_moved_signal.emit(self, position)
+        if not self._inhibit_timestamp_signals:
+            self.cursor_moved_signal.emit(self, position)
 
     def cursor_move_finished(self, cursor=None):
         x = self.plot.get_current_timebase()
@@ -2610,6 +2617,9 @@ class Plot(QtWidgets.QWidget):
         new_size = FONT_SIZE[pos]
 
         self.set_font_size(new_size)
+
+    def _inhibit_timestamp_handler(self):
+        self._inhibit_timestamp_signals = False
 
     def item_by_uuid(self, uuid):
         return self._item_cache.get(uuid, None)
@@ -3145,6 +3155,8 @@ class Plot(QtWidgets.QWidget):
             )
             self.plot.keyPressEvent(event)
 
+        self._inhibit_timestamp_signals = True
+        self._inhibit_timestamp_signals_timer.start(50)
         self.plot.cursor1.setPos(stamp)
         self.cursor_move_finished()
 

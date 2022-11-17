@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 from copy import deepcopy
 from functools import partial
+import inspect
 import itertools
+import math
 import os
 from pathlib import Path
 import re
@@ -33,6 +35,7 @@ from ..utils import (
     compute_signal,
     copy_ranges,
     extract_mime_names,
+    generate_python_function,
     replace_computation_dependency,
     VARIABLE,
     VARIABLE_GET_DATA,
@@ -3893,9 +3896,30 @@ class WithMDIArea:
                             function = item.signal.computation["function"]
 
                             if function in changed:
-                                item.signal.computation["function"] = translation[
-                                    item.signal.computation["function"]
-                                ]
+                                try:
+                                    item.signal.computation["function"] = translation[
+                                        item.signal.computation["function"]
+                                    ]
+
+                                    func_name = item.signal.computation["function"]
+                                    definition = self.functions[func_name]
+                                    _globals = {}
+                                    exec(definition.replace("\t", "    "), _globals)
+                                    func = _globals[func_name]
+
+                                    parameters = list(
+                                        inspect.signature(func).parameters
+                                    )[:-1]
+                                    args = {name: [] for name in parameters}
+                                    for (arg_name, alternatives) in zip(
+                                        parameters,
+                                        item.signal.computation["args"].values(),
+                                    ):
+                                        args[arg_name] = alternatives
+
+                                    item.signal.computation["args"] = args
+                                except:
+                                    print(format_exc())
 
                             self.edit_channel(
                                 wid.channel_item_to_config(item), item, wid
