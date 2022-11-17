@@ -13,9 +13,16 @@ class Bookmark(pg.InfiniteLine):
 
         self.title = title or "Bookmark"
 
+        if message:
+            text = f"{self.title}\nt = {kwargs['pos']}s\n\n{message}\n "
+        else:
+            text = f"{self.title}\nt = {kwargs['pos']}s\n "
+
+        text = "\n".join([f"  {line}  " for line in text.splitlines()])
+
         super().__init__(
             movable=False,
-            label=f"{self.title}\nt = {kwargs['pos']}s\n\n{message}",
+            label=text,
             labelOpts={"movable": True},
             **kwargs,
         )
@@ -113,7 +120,13 @@ class Bookmark(pg.InfiniteLine):
     @message.setter
     def message(self, value):
         self._message = value
-        self.label.setPlainText(f"{self.title}\nt = {self.value()}s\n\n{value}")
+        if value:
+            text = f"{self.title}\nt = {self.value()}s\n\n{value}\n "
+        else:
+            text = f"{self.title}\nt = {self.value()}s\n "
+        text = "\n".join([f"  {line}  " for line in text.splitlines()])
+
+        self.label.setPlainText(text)
 
     def paint(self, paint, *args, plot=None, uuid=None):
         if plot and self.visible:
