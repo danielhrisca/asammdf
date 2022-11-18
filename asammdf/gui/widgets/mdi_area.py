@@ -3091,8 +3091,8 @@ class WithMDIArea:
                 plot_signals[sig_uuid] = signal
 
             matrix_components = []
-            for name in not_found:
-                name, indexes = parse_matrix_component(name)
+            for nf_name in not_found:
+                name, indexes = parse_matrix_component(nf_name)
                 if indexes and name in self.mdf:
                     matrix_components.append((name, indexes))
 
@@ -3121,8 +3121,13 @@ class WithMDIArea:
                     if samples.dtype.names:
                         samples = samples[sig_name]
 
+                    if len(samples.shape) <= len(indexes):
+                        # samples does not have enough dimensions
+                        continue
+
                     for idx in indexes:
                         samples = samples[:, idx]
+
                     signal.samples = samples
 
                     sig_uuid = not_found[sig_name]
