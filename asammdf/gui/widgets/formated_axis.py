@@ -385,12 +385,22 @@ class FormatedAxis(pg.AxisItem):
         self.rangeChanged.emit(self.uuid, (mn, mx))
 
     def wheelEvent(self, event):
+
         if self.locked:
             return
 
         lv = self.linkedView()
         if lv is None:
-            mid = sum(self.range) / 2
+
+            pos = event.pos()
+            rect = self.boundingRect()
+
+            y_pos_val = ((rect.height() + rect.y()) - pos.y()) / rect.height() * (
+                self.range[-1] - self.range[0]
+            ) + self.range[0]
+
+            ratio = abs((pos.y() - (rect.height() + rect.y())) / rect.height())
+
             delta = self.range[-1] - self.range[0]
 
             if event.delta() > 0:
@@ -398,7 +408,10 @@ class FormatedAxis(pg.AxisItem):
             else:
                 delta = 1.33 * delta
 
-            self.setRange(mid - delta / 2, mid + delta / 2)
+            start = y_pos_val - ratio * delta
+            end = y_pos_val + (1 - ratio) * delta
+
+            self.setRange(start, end)
 
             event.accept()
         else:

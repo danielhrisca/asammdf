@@ -3538,15 +3538,15 @@ class _Plot(pg.PlotWidget):
 
         def plot_item_wheel_event(event):
             if event is not None:
-                x = event.pos().x()
+                pos = event.pos()
 
-                if x <= self.y_axis.width():
+                if pos.x() <= self.y_axis.width():
                     self.y_axis.wheelEvent(event)
                 else:
                     for axis in self.axes:
                         if isinstance(axis, FormatedAxis) and axis.isVisible():
                             rect = axis.sceneBoundingRect()
-                            if rect.x() <= x <= rect.x() + rect.width():
+                            if rect.contains(pos):
                                 axis.wheelEvent(event)
                                 break
 
@@ -5389,6 +5389,7 @@ class _Plot(pg.PlotWidget):
 
     def set_y_range(self, uuid, y_range):
         update = False
+
         if uuid is None:
             # y axis was changed
             if self.current_uuid is None:
@@ -5406,7 +5407,8 @@ class _Plot(pg.PlotWidget):
             sig, idx = self.signal_by_uuid(uuid)
             if sig.y_range != y_range:
                 sig.y_range = y_range
-                self.y_axis.setRange(*y_range)
+                if uuid == self.current_uuid:
+                    self.y_axis.setRange(*y_range)
                 update = True
 
         if uuid in self.common_axis_items:
