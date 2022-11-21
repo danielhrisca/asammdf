@@ -3552,48 +3552,52 @@ class _Plot(pg.PlotWidget):
 
         def plot_item_mousePressEvent(event):
             if event is not None:
-                x = event.pos().x()
+                pos = event.pos()
 
-                if x <= self.y_axis.width():
-                    self.y_axis.mousePressEvent(event)
+                if pos.x() <= self.y_axis.width():
+                    if not self.locked:
+                        self.y_axis.mousePressEvent(event)
                 else:
                     for axis in self.axes:
                         if isinstance(axis, FormatedAxis) and axis.isVisible():
                             rect = axis.sceneBoundingRect()
-                            if rect.x() <= x <= rect.x() + rect.width():
-                                axis.mousePressEvent(event)
+                            if rect.contains(pos):
+                                if not self.locked:
+                                    axis.mousePressEvent(event)
                                 break
                     else:
                         self.plot_item._mousePressEvent(event)
 
         def plot_item_mouseMoveEvent(event):
             if event is not None:
-                x = event.pos().x()
+                pos = event.pos()
 
-                if x <= self.y_axis.width():
+                if pos.x() <= self.y_axis.width():
                     self.y_axis.mouseMoveEvent(event)
                 else:
                     for axis in self.axes:
                         if isinstance(axis, FormatedAxis) and axis.isVisible():
                             rect = axis.sceneBoundingRect()
-                            if rect.x() <= x <= rect.x() + rect.width():
-                                axis.mouseMoveEvent(event)
+                            if rect.contains(pos):
+                                if not self.locked:
+                                    axis.mouseMoveEvent(event)
                                 break
                     else:
                         self.plot_item._mouseMoveEvent(event)
 
         def plot_item_mouseReleaseEvent(event):
             if event is not None:
-                x = event.pos().x()
+                pos = event.pos()
 
-                if x <= self.y_axis.width():
+                if pos.x() <= self.y_axis.width():
                     self.y_axis.mouseReleaseEvent(event)
                 else:
                     for axis in self.axes:
                         if isinstance(axis, FormatedAxis) and axis.isVisible():
                             rect = axis.sceneBoundingRect()
-                            if rect.x() <= x <= rect.x() + rect.width():
-                                axis.mouseReleaseEvent(event)
+                            if rect.contains(pos):
+                                if not self.locked:
+                                    axis.mouseReleaseEvent(event)
                                 break
                     else:
                         self.plot_item._mouseReleaseEvent(event)

@@ -795,6 +795,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                             item.update_child_values()
 
             self.refresh()
+            self.plot.plot.update()
 
         elif (
             modifiers == (QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier)
