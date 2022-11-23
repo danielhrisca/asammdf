@@ -129,7 +129,6 @@ class DefineChannel(Ui_ComputedChannel, QtWidgets.QDialog):
             "precision": 3,
             "flags": Signal.Flags.no_flags,
             "ranges": [],
-            "y_range": [0, 1],
             "unit": self.unit.text().strip(),
             "computed": True,
             "color": f"#{os.urandom(3).hex()}",
