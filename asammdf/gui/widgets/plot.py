@@ -3702,14 +3702,16 @@ class _Plot(pg.PlotWidget):
                 sig.computation = {}
 
         if initial_index == 0:
-            start_t, stop_t = 1, -1
+            start_t, stop_t = np.inf, -np.inf
             for sig in channels.values():
                 if len(sig):
                     start_t = min(start_t, sig.timestamps[0])
                     stop_t = max(stop_t, sig.timestamps[-1])
 
-            if (start_t, stop_t) != (1, -1):
+            if (start_t, stop_t) != (np.inf, -np.inf):
                 self.viewbox.setXRange(start_t, stop_t, update=False)
+            else:
+                self.viewbox.setXRange(0, 10, update=False)
 
         (start, stop), _ = self.viewbox.viewRange()
 

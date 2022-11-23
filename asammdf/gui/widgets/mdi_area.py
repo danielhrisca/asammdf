@@ -4018,6 +4018,9 @@ class WithMDIArea:
                 )
 
     def verify_bookmarks(self, bookmarks, plot):
+        if not hasattr(self, "mdf"):
+            return
+
         original_file_name = Path(self.mdf.original_name)
 
         if original_file_name.suffix.lower() not in (".mf4", ".mf4z"):
