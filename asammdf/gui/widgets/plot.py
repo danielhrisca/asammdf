@@ -1794,15 +1794,15 @@ class Plot(QtWidgets.QWidget):
         self.keyboard_events = (
             set(
                 [
-                    (QtCore.Qt.Key_M, int(QtCore.Qt.NoModifier)),
-                    (QtCore.Qt.Key_C, int(QtCore.Qt.NoModifier)),
-                    (QtCore.Qt.Key_C, int(QtCore.Qt.ControlModifier)),
-                    (QtCore.Qt.Key_B, int(QtCore.Qt.ControlModifier)),
-                    (QtCore.Qt.Key_H, int(QtCore.Qt.ControlModifier)),
-                    (QtCore.Qt.Key_P, int(QtCore.Qt.ControlModifier)),
-                    (QtCore.Qt.Key_T, int(QtCore.Qt.ControlModifier)),
-                    (QtCore.Qt.Key_G, int(QtCore.Qt.ControlModifier)),
-                    (QtCore.Qt.Key_2, int(QtCore.Qt.NoModifier)),
+                    (QtCore.Qt.Key_M, QtCore.Qt.NoModifier),
+                    (QtCore.Qt.Key_C, QtCore.Qt.NoModifier),
+                    (QtCore.Qt.Key_C, QtCore.Qt.ControlModifier),
+                    (QtCore.Qt.Key_B, QtCore.Qt.ControlModifier),
+                    (QtCore.Qt.Key_H, QtCore.Qt.ControlModifier),
+                    (QtCore.Qt.Key_P, QtCore.Qt.ControlModifier),
+                    (QtCore.Qt.Key_T, QtCore.Qt.ControlModifier),
+                    (QtCore.Qt.Key_G, QtCore.Qt.ControlModifier),
+                    (QtCore.Qt.Key_2, QtCore.Qt.NoModifier),
                 ]
             )
             | self.plot.keyboard_events
@@ -2915,7 +2915,7 @@ class Plot(QtWidgets.QWidget):
         ):
             self.channel_selection.keyPressEvent(event)
 
-        elif (key, int(modifiers)) in self.plot.keyboard_events:
+        elif (key, modifiers) in self.plot.keyboard_events:
             try:
                 self.plot.keyPressEvent(event)
             except:
@@ -3656,9 +3656,7 @@ class _Plot(pg.PlotWidget):
                 (QtCore.Qt.Key_Insert, QtCore.Qt.NoModifier),
             ]
         )
-        self.keyboard_events = {
-            (key, int(modif)) for key, modif in self.keyboard_events
-        }
+        self.keyboard_events = {(key, modif) for key, modif in self.keyboard_events}
 
         events = events or []
 
@@ -3817,7 +3815,7 @@ class _Plot(pg.PlotWidget):
                 break
         else:
 
-            if (QtCore.Qt.Key_C, int(QtCore.Qt.NoModifier)) not in self.disabled_keys:
+            if (QtCore.Qt.Key_C, QtCore.Qt.NoModifier) not in self.disabled_keys:
 
                 if self.region is not None:
                     start, stop = self.region.getRegion()
@@ -4109,7 +4107,7 @@ class _Plot(pg.PlotWidget):
         key = event.key()
         modifier = event.modifiers()
 
-        if (key, int(modifier)) in self.disabled_keys:
+        if (key, modifier) in self.disabled_keys:
             super().keyPressEvent(event)
         else:
             handled = True
