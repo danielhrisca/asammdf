@@ -1794,15 +1794,15 @@ class Plot(QtWidgets.QWidget):
         self.keyboard_events = (
             set(
                 [
-                    (QtCore.Qt.Key_M, QtCore.Qt.NoModifier),
-                    (QtCore.Qt.Key_C, QtCore.Qt.NoModifier),
-                    (QtCore.Qt.Key_C, QtCore.Qt.ControlModifier),
-                    (QtCore.Qt.Key_B, QtCore.Qt.ControlModifier),
-                    (QtCore.Qt.Key_H, QtCore.Qt.ControlModifier),
-                    (QtCore.Qt.Key_P, QtCore.Qt.ControlModifier),
-                    (QtCore.Qt.Key_T, QtCore.Qt.ControlModifier),
-                    (QtCore.Qt.Key_G, QtCore.Qt.ControlModifier),
-                    (QtCore.Qt.Key_2, QtCore.Qt.NoModifier),
+                    QtCore.QKeyCombination(QtCore.Qt.Key_M, QtCore.Qt.NoModifier),
+                    QtCore.QKeyCombination(QtCore.Qt.Key_C, QtCore.Qt.NoModifier),
+                    QtCore.QKeyCombination(QtCore.Qt.Key_C, QtCore.Qt.ControlModifier),
+                    QtCore.QKeyCombination(QtCore.Qt.Key_B, QtCore.Qt.ControlModifier),
+                    QtCore.QKeyCombination(QtCore.Qt.Key_H, QtCore.Qt.ControlModifier),
+                    QtCore.QKeyCombination(QtCore.Qt.Key_P, QtCore.Qt.ControlModifier),
+                    QtCore.QKeyCombination(QtCore.Qt.Key_T, QtCore.Qt.ControlModifier),
+                    QtCore.QKeyCombination(QtCore.Qt.Key_G, QtCore.Qt.ControlModifier),
+                    QtCore.QKeyCombination(QtCore.Qt.Key_2, QtCore.Qt.NoModifier),
                 ]
             )
             | self.plot.keyboard_events
@@ -2915,7 +2915,7 @@ class Plot(QtWidgets.QWidget):
         ):
             self.channel_selection.keyPressEvent(event)
 
-        elif (key, modifiers) in self.plot.keyboard_events:
+        elif event.keyCombination() in self.plot.keyboard_events:
             try:
                 self.plot.keyPressEvent(event)
             except:
@@ -3630,33 +3630,32 @@ class _Plot(pg.PlotWidget):
 
         self.keyboard_events = set(
             [
-                (QtCore.Qt.Key_F, QtCore.Qt.NoModifier),
-                (QtCore.Qt.Key_F, QtCore.Qt.ShiftModifier),
-                (QtCore.Qt.Key_G, QtCore.Qt.NoModifier),
-                (QtCore.Qt.Key_I, QtCore.Qt.NoModifier),
-                (QtCore.Qt.Key_O, QtCore.Qt.NoModifier),
-                (QtCore.Qt.Key_X, QtCore.Qt.NoModifier),
-                (QtCore.Qt.Key_R, QtCore.Qt.NoModifier),
-                (QtCore.Qt.Key_S, QtCore.Qt.ControlModifier),
-                (QtCore.Qt.Key_S, QtCore.Qt.NoModifier),
-                (QtCore.Qt.Key_S, QtCore.Qt.ShiftModifier),
-                (QtCore.Qt.Key_Y, QtCore.Qt.NoModifier),
-                (QtCore.Qt.Key_Left, QtCore.Qt.NoModifier),
-                (QtCore.Qt.Key_Right, QtCore.Qt.NoModifier),
-                (QtCore.Qt.Key_Left, QtCore.Qt.ShiftModifier),
-                (QtCore.Qt.Key_Right, QtCore.Qt.ShiftModifier),
-                (QtCore.Qt.Key_Left, QtCore.Qt.ControlModifier),
-                (QtCore.Qt.Key_Right, QtCore.Qt.ControlModifier),
-                (QtCore.Qt.Key_Up, QtCore.Qt.ShiftModifier),
-                (QtCore.Qt.Key_Down, QtCore.Qt.ShiftModifier),
-                (QtCore.Qt.Key_PageUp, QtCore.Qt.ShiftModifier),
-                (QtCore.Qt.Key_PageDown, QtCore.Qt.ShiftModifier),
-                (QtCore.Qt.Key_H, QtCore.Qt.NoModifier),
-                (QtCore.Qt.Key_W, QtCore.Qt.NoModifier),
-                (QtCore.Qt.Key_Insert, QtCore.Qt.NoModifier),
+                QtCore.QKeyCombination(QtCore.Qt.Key_F, QtCore.Qt.NoModifier),
+                QtCore.QKeyCombination(QtCore.Qt.Key_F, QtCore.Qt.ShiftModifier),
+                QtCore.QKeyCombination(QtCore.Qt.Key_G, QtCore.Qt.NoModifier),
+                QtCore.QKeyCombination(QtCore.Qt.Key_I, QtCore.Qt.NoModifier),
+                QtCore.QKeyCombination(QtCore.Qt.Key_O, QtCore.Qt.NoModifier),
+                QtCore.QKeyCombination(QtCore.Qt.Key_X, QtCore.Qt.NoModifier),
+                QtCore.QKeyCombination(QtCore.Qt.Key_R, QtCore.Qt.NoModifier),
+                QtCore.QKeyCombination(QtCore.Qt.Key_S, QtCore.Qt.ControlModifier),
+                QtCore.QKeyCombination(QtCore.Qt.Key_S, QtCore.Qt.NoModifier),
+                QtCore.QKeyCombination(QtCore.Qt.Key_S, QtCore.Qt.ShiftModifier),
+                QtCore.QKeyCombination(QtCore.Qt.Key_Y, QtCore.Qt.NoModifier),
+                QtCore.QKeyCombination(QtCore.Qt.Key_Left, QtCore.Qt.NoModifier),
+                QtCore.QKeyCombination(QtCore.Qt.Key_Right, QtCore.Qt.NoModifier),
+                QtCore.QKeyCombination(QtCore.Qt.Key_Left, QtCore.Qt.ShiftModifier),
+                QtCore.QKeyCombination(QtCore.Qt.Key_Right, QtCore.Qt.ShiftModifier),
+                QtCore.QKeyCombination(QtCore.Qt.Key_Left, QtCore.Qt.ControlModifier),
+                QtCore.QKeyCombination(QtCore.Qt.Key_Right, QtCore.Qt.ControlModifier),
+                QtCore.QKeyCombination(QtCore.Qt.Key_Up, QtCore.Qt.ShiftModifier),
+                QtCore.QKeyCombination(QtCore.Qt.Key_Down, QtCore.Qt.ShiftModifier),
+                QtCore.QKeyCombination(QtCore.Qt.Key_PageUp, QtCore.Qt.ShiftModifier),
+                QtCore.QKeyCombination(QtCore.Qt.Key_PageDown, QtCore.Qt.ShiftModifier),
+                QtCore.QKeyCombination(QtCore.Qt.Key_H, QtCore.Qt.NoModifier),
+                QtCore.QKeyCombination(QtCore.Qt.Key_W, QtCore.Qt.NoModifier),
+                QtCore.QKeyCombination(QtCore.Qt.Key_Insert, QtCore.Qt.NoModifier),
             ]
         )
-        self.keyboard_events = {(key, modif) for key, modif in self.keyboard_events}
 
         events = events or []
 
@@ -3815,7 +3814,10 @@ class _Plot(pg.PlotWidget):
                 break
         else:
 
-            if (QtCore.Qt.Key_C, QtCore.Qt.NoModifier) not in self.disabled_keys:
+            if (
+                QtCore.QKeyCombination(QtCore.Qt.Key_C, QtCore.Qt.NoModifier)
+                not in self.disabled_keys
+            ):
 
                 if self.region is not None:
                     start, stop = self.region.getRegion()
@@ -4107,7 +4109,7 @@ class _Plot(pg.PlotWidget):
         key = event.key()
         modifier = event.modifiers()
 
-        if (key, modifier) in self.disabled_keys:
+        if event.keyCombination() in self.disabled_keys:
             super().keyPressEvent(event)
         else:
             handled = True
