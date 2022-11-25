@@ -3327,6 +3327,7 @@ class WithMDIArea:
             cursor_color=self.cursor_color,
             owner=self,
         )
+
         plot.pattern_group_added.connect(self.add_pattern_group)
         plot.verify_bookmarks.connect(self.verify_bookmarks)
         plot.pattern = pattern_info

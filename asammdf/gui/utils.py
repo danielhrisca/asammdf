@@ -687,10 +687,15 @@ def compute_signal(
             triggering = description.get("triggering", "triggering_on_all")
             if triggering == "triggering_on_all":
                 timestamps = [sig.timestamps for sig in signals]
-                common_timebase = reduce(np.union1d, timestamps or all_timebase)
+
+                if timestamps:
+                    common_timebase = reduce(np.union1d, timestamps)
+                else:
+                    common_timebase = all_timebase
                 signals = [
                     sig.interp(common_timebase).samples.tolist() for sig in signals
                 ]
+
             elif triggering == "triggering_on_channel":
                 triggering_channel = description["triggering_value"]
 
