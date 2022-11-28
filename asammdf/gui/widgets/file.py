@@ -204,6 +204,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         self.mdf = MDF()
                         self.mdf.append(df, units=units)
                         self.mdf.uuid = self.uuid
+                        self.mdf.original_name = file_name
                 except:
                     progress.cancel()
                     print(format_exc())
