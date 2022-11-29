@@ -1852,9 +1852,9 @@ class Plot(QtWidgets.QWidget):
             mode=self._settings.value("plot_region_values_display_mode", "value")
         )
 
-        if not self._settings.value("plot_bookmarks", False, type=bool):
-            self.toggle_bookmarks()
-
+        self.toggle_bookmarks(
+            hide=not self._settings.value("plot_bookmarks", False, type=bool)
+        )
         self.hide_axes(hide=self._settings.value("plot_hide_axes", False, type=bool))
         self.set_locked(locked=self._settings.value("plot_locked", False, type=bool))
 
@@ -2620,8 +2620,10 @@ class Plot(QtWidgets.QWidget):
                 super().dropEvent(e)
 
     def hide_axes(self, event=None, hide=None):
+
         if hide is None:
             hide = not self.hide_axes_btn.isFlat()
+            self._settings.setValue("plot_hide_axes", hide)
 
         if hide:
             self.plot.y_axis.hide()
@@ -2634,11 +2636,10 @@ class Plot(QtWidgets.QWidget):
             self.hide_axes_btn.setFlat(False)
             self.hide_axes_btn.setToolTip("Hide axes")
 
-        self._settings.setValue("plot_hide_axes", hide)
-
     def hide_selected_channel_value(self, event=None, hide=None):
         if hide is None:
             hide = not self.selected_channel_value_btn.isFlat()
+            self._settings.setValue("plot_hide_selected_channel_value", hide)
 
         if hide:
             self.selected_channel_value.hide()
@@ -2652,8 +2653,6 @@ class Plot(QtWidgets.QWidget):
             self.selected_channel_value_btn.setToolTip(
                 "Hide selected channel value panel"
             )
-
-        self._settings.setValue("plot_hide_selected_channel_value", hide)
 
     def increase_font(self):
         font = self.font()
@@ -2703,8 +2702,6 @@ class Plot(QtWidgets.QWidget):
             else:
                 self.focused_mode_btn.setFlat(True)
             self.channel_selection_changed(update=True)
-
-            self._settings.setValue("plot_focused_mode", self.focused_mode)
 
         elif (
             key in (QtCore.Qt.Key_B, QtCore.Qt.Key_H, QtCore.Qt.Key_P, QtCore.Qt.Key_T)
@@ -2895,7 +2892,6 @@ class Plot(QtWidgets.QWidget):
                 bookmark.visible = not bookmark.visible
 
             self.bookmark_btn.setFlat(not self.bookmark_btn.isFlat())
-            self._settings.setValue("plot_bookmarks", not self.bookmark_btn.isFlat())
             self.plot.update()
 
         elif key == QtCore.Qt.Key_G and modifiers == QtCore.Qt.ControlModifier:
@@ -3167,6 +3163,8 @@ class Plot(QtWidgets.QWidget):
     def set_locked(self, event=None, locked=None):
         if locked is None:
             locked = not self.locked
+            self._settings.setValue("plot_locked", locked)
+
         if locked:
             tooltip = "The Y axis is locked. Press to unlock"
             png = ":/locked.png"
@@ -3187,8 +3185,6 @@ class Plot(QtWidgets.QWidget):
         icon.addPixmap(QtGui.QPixmap(png), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.lock_btn.setToolTip(tooltip)
         self.lock_btn.setIcon(icon)
-
-        self._settings.setValue("plot_locked", locked)
 
     def set_splitter(self, pos, index):
         self.splitter_moved.emit(self, pos)
@@ -3296,29 +3292,42 @@ class Plot(QtWidgets.QWidget):
                 self.splitter.sizes()[0],
                 [self.channel_selection.columnWidth(i) for i in range(5)],
             ],
-            "hide_axes": not self.plot.y_axis.isVisible(),
-            "hide_selected_channel_value_panel": not self.selected_channel_value.isVisible(),
+            "hide_axes": self.hide_axes_btn.isFlat(),
+            "hide_selected_channel_value_panel": self.selected_channel_value_btn.isFlat(),
+            "focused_mode": not self.focused_mode_btn.isFlat(),
+            "delta_mode": "value" if self.delta_btn.isFlat() else "delta",
+            "hide_bookmarks": self.bookmark_btn.isFlat(),
         }
 
         return config
 
-    def toggle_bookmarks(self, event=None):
-        event = QtGui.QKeyEvent(
+    def toggle_bookmarks(self, *args, hide=None):
+
+        if hide is not None:
+            self.bookmark_btn.setFlat(not hide)
+
+        key_event = QtGui.QKeyEvent(
             QtCore.QEvent.KeyPress,
             QtCore.Qt.Key_I,
             QtCore.Qt.AltModifier,
         )
-        self.keyPressEvent(event)
+        self.keyPressEvent(key_event)
+
+        if hide is None:
+            self._settings.setValue("plot_bookmarks", not self.bookmark_btn.isFlat())
 
     def toggle_focused_mode(self, event=None, focused=None):
         if focused is not None:
             # invert so that the key press event will set the desider focused mode
             self.focused_mode = not focused
 
-        event = QtGui.QKeyEvent(
+        key_event = QtGui.QKeyEvent(
             QtCore.QEvent.KeyPress, QtCore.Qt.Key_2, QtCore.Qt.NoModifier
         )
-        self.keyPressEvent(event)
+        self.keyPressEvent(key_event)
+
+        if focused is None:
+            self._settings.setValue("plot_focused_mode", self.focused_mode)
 
         if not self.focused_mode:
             self.focused_mode_btn.setFlat(True)
@@ -3344,9 +3353,10 @@ class Plot(QtWidgets.QWidget):
                 "Switch to active region cursor value display mode"
             )
 
-        self._settings.setValue(
-            "plot_region_values_display_mode", self.region_values_display_mode
-        )
+        if mode is None:
+            self._settings.setValue(
+                "plot_region_values_display_mode", self.region_values_display_mode
+            )
 
         self.range_modified()
 

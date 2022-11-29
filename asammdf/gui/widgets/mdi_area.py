@@ -3438,16 +3438,23 @@ class WithMDIArea:
             for i, size in enumerate(sizes):
                 plot.channel_selection.setColumnWidth(i, size)
 
-        if "locked" in window_info["configuration"]:
-            plot.set_locked(locked=window_info["configuration"]["locked"])
-
+        plot.set_locked(locked=window_info["configuration"].get("locked", False))
         plot.hide_axes(hide=window_info["configuration"].get("hide_axes", False))
-
         plot.hide_selected_channel_value(
             hide=window_info["configuration"].get(
                 "hide_selected_channel_value_panel", True
             )
         )
+        plot.toggle_bookmarks(
+            hide=window_info["configuration"].get("hide_bookmarks", False)
+        )
+        plot.toggle_focused_mode(
+            focused=window_info["configuration"].get("focused_mode", False)
+        )
+        plot.toggle_region_values_display_mode(
+            mode=window_info["configuration"].get("delta_mode", "value")
+        )
+
         plot.plot._can_paint_global = True
         plot.update()
         plot.channel_selection.refresh()
