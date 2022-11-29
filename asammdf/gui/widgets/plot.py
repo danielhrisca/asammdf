@@ -1408,6 +1408,8 @@ class Plot(QtWidgets.QWidget):
         self.pattern = {}
         self.mdf = mdf
 
+        self._settings = QtCore.QSettings()
+
         self.x_name = "t" if x_axis == "time" else "f"
         self.x_unit = "s" if x_axis == "time" else "Hz"
 
@@ -1838,9 +1840,23 @@ class Plot(QtWidgets.QWidget):
         self.splitter.splitterMoved.connect(self.set_splitter)
         self.line_width = line_width
 
-        self.hide_selected_channel_value(hide=False)
-        self.toggle_focused_mode(focused=False)
-        self.toggle_region_values_display_mode(mode="value")
+        self.hide_selected_channel_value(
+            hide=self._settings.value(
+                "plot_hide_selected_channel_value", False, type=bool
+            )
+        )
+        self.toggle_focused_mode(
+            focused=self._settings.value("plot_focused_mode", False, type=bool)
+        )
+        self.toggle_region_values_display_mode(
+            mode=self._settings.value("plot_region_values_display_mode", "value")
+        )
+
+        if not self._settings.value("plot_bookmarks", False, type=bool):
+            self.toggle_bookmarks()
+
+        self.hide_axes(hide=self._settings.value("plot_hide_axes", False, type=bool))
+        self.set_locked(locked=self._settings.value("plot_locked", False, type=bool))
 
         self.show()
 
@@ -2618,6 +2634,8 @@ class Plot(QtWidgets.QWidget):
             self.hide_axes_btn.setFlat(False)
             self.hide_axes_btn.setToolTip("Hide axes")
 
+        self._settings.setValue("plot_hide_axes", hide)
+
     def hide_selected_channel_value(self, event=None, hide=None):
         if hide is None:
             hide = not self.selected_channel_value_btn.isFlat()
@@ -2634,6 +2652,8 @@ class Plot(QtWidgets.QWidget):
             self.selected_channel_value_btn.setToolTip(
                 "Hide selected channel value panel"
             )
+
+        self._settings.setValue("plot_hide_selected_channel_value", hide)
 
     def increase_font(self):
         font = self.font()
@@ -2683,6 +2703,8 @@ class Plot(QtWidgets.QWidget):
             else:
                 self.focused_mode_btn.setFlat(True)
             self.channel_selection_changed(update=True)
+
+            self._settings.setValue("plot_focused_mode", self.focused_mode)
 
         elif (
             key in (QtCore.Qt.Key_B, QtCore.Qt.Key_H, QtCore.Qt.Key_P, QtCore.Qt.Key_T)
@@ -2862,6 +2884,9 @@ class Plot(QtWidgets.QWidget):
                     self.plot.bookmarks.append(bookmark)
                     self.plot.viewbox.addItem(self.plot.bookmarks[-1])
 
+                    if not visible:
+                        self.toggle_bookmarks()
+
                     self.update()
 
         elif key == QtCore.Qt.Key_I and modifiers == QtCore.Qt.AltModifier:
@@ -2870,6 +2895,7 @@ class Plot(QtWidgets.QWidget):
                 bookmark.visible = not bookmark.visible
 
             self.bookmark_btn.setFlat(not self.bookmark_btn.isFlat())
+            self._settings.setValue("plot_bookmarks", not self.bookmark_btn.isFlat())
             self.plot.update()
 
         elif key == QtCore.Qt.Key_G and modifiers == QtCore.Qt.ControlModifier:
@@ -3125,14 +3151,6 @@ class Plot(QtWidgets.QWidget):
 
         self.region_removed_signal.emit(self)
 
-    def toggle_bookmarks(self, event=None):
-        event = QtGui.QKeyEvent(
-            QtCore.QEvent.KeyPress,
-            QtCore.Qt.Key_I,
-            QtCore.Qt.AltModifier,
-        )
-        self.plot.keyPressEvent(event)
-
     def set_conversion(self, uuid, conversion):
 
         self.plot.set_conversion(uuid, conversion)
@@ -3169,6 +3187,8 @@ class Plot(QtWidgets.QWidget):
         icon.addPixmap(QtGui.QPixmap(png), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.lock_btn.setToolTip(tooltip)
         self.lock_btn.setIcon(icon)
+
+        self._settings.setValue("plot_locked", locked)
 
     def set_splitter(self, pos, index):
         self.splitter_moved.emit(self, pos)
@@ -3323,6 +3343,10 @@ class Plot(QtWidgets.QWidget):
             self.delta_btn.setToolTip(
                 "Switch to active region cursor value display mode"
             )
+
+        self._settings.setValue(
+            "plot_region_values_display_mode", self.region_values_display_mode
+        )
 
         self.range_modified()
 
