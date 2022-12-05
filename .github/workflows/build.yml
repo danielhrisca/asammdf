@@ -20,7 +20,7 @@ jobs:
 
       - name: Install packages
         run: |
-            pip install build pyinstaller==4.10 numpy wheel 
+            pip install build pyinstaller==5.2 numpy wheel 
             pip install -r requirements_exe_build.txt
             python setup.py bdist_wheel
             pip install -e . --no-deps
@@ -37,7 +37,7 @@ jobs:
         shell: bash
         if: ${{ matrix.python-version == '3.10' }}
         run: |
-            pip install build pyinstaller==4.10 numpy wheel
+            pip install build pyinstaller==5.2 numpy wheel
             pip install -r requirements_exe_build.txt
             python setup.py bdist_wheel
             pip install -e . --no-deps
