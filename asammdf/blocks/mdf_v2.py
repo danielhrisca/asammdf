@@ -7,7 +7,7 @@ from io import BufferedReader, BytesIO
 
 from ..types import StrPathType
 from .mdf_v3 import MDF3
-from .utils import validate_version_argument
+from .utils import MdfException, validate_version_argument
 
 __all__ = ["MDF2"]
 
@@ -26,6 +26,11 @@ class MDF2(MDF3):
         **kwargs,
     ) -> None:
         version = validate_version_argument(version, hint=2)
+
+        if not kwargs.get("__internal__", False):
+            raise MdfException(
+                "Always use the MDF class; do not use the class MDF2 directly"
+            )
 
         super().__init__(name, version, **kwargs)
 

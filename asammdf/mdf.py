@@ -333,6 +333,7 @@ class MDF:
                 file_stream.close()
 
             kwargs["original_name"] = original_name
+            kwargs["__internal__"] = True
 
             if version in MDF3_VERSIONS:
                 self._mdf = MDF3(name, channels=channels, **kwargs)
@@ -346,6 +347,7 @@ class MDF:
 
         else:
             kwargs["original_name"] = None
+            kwargs["__internal__"] = True
             version = validate_version_argument(version)
             if version in MDF2_VERSIONS:
                 self._mdf = MDF3(version=version, **kwargs)

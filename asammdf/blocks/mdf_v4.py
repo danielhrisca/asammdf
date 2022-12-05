@@ -275,6 +275,11 @@ class MDF4(MDF_Common):
         **kwargs,
     ) -> None:
 
+        if not kwargs.get("__internal__", False):
+            raise MdfException(
+                "Always use the MDF class; do not use the class MDF4 directly"
+            )
+
         self._kwargs = kwargs
         self.original_name = kwargs["original_name"]
         self.groups = []

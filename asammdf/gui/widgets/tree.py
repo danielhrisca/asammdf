@@ -620,6 +620,7 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
                 show_add_window=False,
                 show_apply=True,
                 show_search=False,
+                show_pattern=True,
                 window_title="Add pattern based group",
                 parent=self,
             )
