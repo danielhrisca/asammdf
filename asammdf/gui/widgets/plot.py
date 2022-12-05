@@ -522,13 +522,15 @@ class PlotSignal(Signal):
             else:
                 self._pos = self._plot_samples = self._plot_timestamps = None
 
-    def get_stats(self, cursor=None, region=None, view_region=None):
+    def get_stats(self, cursor=None, region=None, view_region=None, precision=6):
         stats = {}
         sig = self
         x = sig.timestamps
         size = len(x)
 
-        float_fmt = f"{{:.{self.precision}f}}"
+        if precision == -1:
+            precision = 16
+
         format = sig.format
 
         if size:
@@ -558,7 +560,7 @@ class PlotSignal(Signal):
                     value, kind, _ = self.value_at_timestamp(position)
 
                     stats["cursor_value"] = value_as_str(
-                        value, format, self.plot_samples.dtype, self.precision
+                        value, format, self.plot_samples.dtype, precision
                     )
 
                 else:
@@ -567,20 +569,26 @@ class PlotSignal(Signal):
 
                 if region:
                     start, stop = region
-                    stats["selected_start"] = start
-                    stats["selected_stop"] = stop
-                    stats["selected_delta_t"] = stop - start
+                    stats["selected_start"] = value_as_str(
+                        start, format, np.dtype("f8"), precision
+                    )
+                    stats["selected_stop"] = value_as_str(
+                        stop, format, np.dtype("f8"), precision
+                    )
+                    stats["selected_delta_t"] = value_as_str(
+                        stop - start, format, np.dtype("f8"), precision
+                    )
 
                     value, kind, _ = self.value_at_timestamp(start)
 
                     stats["selected_left"] = value_as_str(
-                        value, format, self.plot_samples.dtype, self.precision
+                        value, format, self.plot_samples.dtype, precision
                     )
 
                     value, kind, _ = self.value_at_timestamp(stop)
 
                     stats["selected_right"] = value_as_str(
-                        value, format, self.plot_samples.dtype, self.precision
+                        value, format, self.plot_samples.dtype, precision
                     )
 
                 else:
@@ -612,44 +620,57 @@ class PlotSignal(Signal):
                     stats["overall_gradient"] = 0
                     stats["overall_integral"] = 0
                 else:
-                    stats["overall_gradient"] = float_fmt.format(
+                    stats["overall_gradient"] = value_as_str(
                         (float(sig.samples[-1]) - float(sig.samples[0]))
-                        / (sig.timestamps[-1] - sig.timestamps[0])
+                        / (sig.timestamps[-1] - sig.timestamps[0]),
+                        format,
+                        None,
+                        precision,
                     )
-                    stats["overall_integral"] = float_fmt.format(
-                        np.trapz(sig.samples, sig.timestamps)
+                    stats["overall_integral"] = value_as_str(
+                        np.trapz(sig.samples, sig.timestamps), format, None, precision
                     )
 
                 stats["overall_min"] = value_as_str(
-                    self.min, format, self.plot_samples.dtype, self.precision
+                    self.min, format, self.plot_samples.dtype, precision
                 )
                 stats["overall_max"] = value_as_str(
-                    self.max, format, self.plot_samples.dtype, self.precision
+                    self.max, format, self.plot_samples.dtype, precision
                 )
-                stats["overall_average"] = float_fmt.format(sig.avg)
-                stats["overall_rms"] = float_fmt.format(sig.rms)
-                stats["overall_std"] = float_fmt.format(sig.std)
-                stats["overall_start"] = sig.timestamps[0]
-                stats["overall_stop"] = sig.timestamps[-1]
+                stats["overall_average"] = value_as_str(
+                    sig.avg, format, None, precision
+                )
+                stats["overall_rms"] = value_as_str(sig.rms, format, None, precision)
+                stats["overall_std"] = value_as_str(sig.std, format, None, precision)
+                stats["overall_start"] = value_as_str(
+                    sig.timestamps[0], format, np.dtype("f8"), precision
+                )
+                stats["overall_stop"] = value_as_str(
+                    sig.timestamps[-1], format, np.dtype("f8"), precision
+                )
                 stats["overall_delta"] = value_as_str(
                     sig.samples[-1] - sig.samples[0],
                     format,
                     self.plot_samples.dtype,
-                    self.precision,
+                    precision,
                 )
-                stats["overall_delta_t"] = x[-1] - x[0]
+                stats["overall_delta_t"] = value_as_str(
+                    x[-1] - x[0], format, np.dtype("f8"), precision
+                )
                 stats["unit"] = sig.unit
                 stats["color"] = sig.color
                 stats["name"] = sig.name
 
                 if cursor is not None:
                     position = cursor
-                    stats["cursor_t"] = position
+                    stats["cursor_t"] = value_as_str(
+                        position, format, np.dtype("f8"), precision
+                    )
 
                     value, kind, _ = self.value_at_timestamp(position)
 
                     stats["cursor_value"] = value_as_str(
-                        value, format, self.plot_samples.dtype, self.precision
+                        value, format, self.plot_samples.dtype, precision
                     )
 
                 else:
@@ -660,9 +681,15 @@ class PlotSignal(Signal):
                     start, stop = region
 
                     new_stats = {}
-                    new_stats["selected_start"] = start
-                    new_stats["selected_stop"] = stop
-                    new_stats["selected_delta_t"] = stop - start
+                    new_stats["selected_start"] = value_as_str(
+                        start, format, np.dtype("f8"), precision
+                    )
+                    new_stats["selected_stop"] = value_as_str(
+                        stop, format, np.dtype("f8"), precision
+                    )
+                    new_stats["selected_delta_t"] = value_as_str(
+                        stop - start, format, np.dtype("f8"), precision
+                    )
 
                     cut = sig.cut(start, stop)
 
@@ -680,51 +707,59 @@ class PlotSignal(Signal):
                     if size:
 
                         new_stats["selected_left"] = value_as_str(
-                            samples[0], format, self.plot_samples.dtype, self.precision
+                            samples[0], format, self.plot_samples.dtype, precision
                         )
 
                         new_stats["selected_right"] = value_as_str(
-                            samples[-1], format, self.plot_samples.dtype, self.precision
+                            samples[-1], format, self.plot_samples.dtype, precision
                         )
 
                         new_stats["selected_min"] = value_as_str(
-                            np.nanmin(samples), format, samples.dtype, self.precision
+                            np.nanmin(samples), format, samples.dtype, precision
                         )
                         new_stats["selected_max"] = value_as_str(
-                            np.nanmax(samples), format, samples.dtype, self.precision
+                            np.nanmax(samples), format, samples.dtype, precision
                         )
-                        new_stats["selected_average"] = float_fmt.format(
-                            np.mean(samples)
+                        new_stats["selected_average"] = value_as_str(
+                            np.mean(samples), format, None, precision
                         )
-                        new_stats["selected_std"] = float_fmt.format(np.std(samples))
-                        new_stats["selected_rms"] = float_fmt.format(
-                            np.sqrt(np.mean(np.square(samples)))
+                        new_stats["selected_std"] = value_as_str(
+                            np.std(samples), format, None, precision
+                        )
+                        new_stats["selected_rms"] = value_as_str(
+                            np.sqrt(np.mean(np.square(samples))),
+                            format,
+                            None,
+                            precision,
                         )
                         if samples.dtype.kind in "ui":
                             new_stats["selected_delta"] = value_as_str(
                                 int(samples[-1]) - int(samples[0]),
                                 format,
                                 samples.dtype,
-                                self.precision,
+                                precision,
                             )
                         else:
                             new_stats["selected_delta"] = value_as_str(
                                 samples[-1] - samples[0],
                                 format,
                                 samples.dtype,
-                                self.precision,
+                                precision,
                             )
 
                         if size == 1:
                             new_stats["selected_gradient"] = 0
                             new_stats["selected_integral"] = 0
                         else:
-                            new_stats["selected_gradient"] = float_fmt.format(
+                            new_stats["selected_gradient"] = value_as_str(
                                 (float(samples[-1]) - float(samples[0]))
-                                / (timestamps[-1] - timestamps[0])
+                                / (timestamps[-1] - timestamps[0]),
+                                format,
+                                None,
+                                precision,
                             )
-                            new_stats["selected_integral"] = float_fmt.format(
-                                np.trapz(samples, timestamps)
+                            new_stats["selected_integral"] = value_as_str(
+                                np.trapz(samples, timestamps), format, None, precision
                             )
 
                     else:
@@ -762,9 +797,15 @@ class PlotSignal(Signal):
                 start, stop = view_region
 
                 new_stats = {}
-                new_stats["visible_start"] = start
-                new_stats["visible_stop"] = stop
-                new_stats["visible_delta_t"] = stop - start
+                new_stats["visible_start"] = value_as_str(
+                    start, format, np.dtype("f8"), precision
+                )
+                new_stats["visible_stop"] = value_as_str(
+                    stop, format, np.dtype("f8"), precision
+                )
+                new_stats["visible_delta_t"] = value_as_str(
+                    stop - start, format, np.dtype("f8"), precision
+                )
 
                 cut = sig.cut(start, stop)
 
@@ -783,41 +824,48 @@ class PlotSignal(Signal):
                     kind = samples.dtype.kind
 
                     new_stats["visible_min"] = value_as_str(
-                        np.nanmin(samples), format, samples.dtype, self.precision
+                        np.nanmin(samples), format, samples.dtype, precision
                     )
                     new_stats["visible_max"] = value_as_str(
-                        np.nanmax(samples), format, samples.dtype, self.precision
+                        np.nanmax(samples), format, samples.dtype, precision
                     )
-                    new_stats["visible_average"] = float_fmt.format(np.mean(samples))
-                    new_stats["visible_std"] = float_fmt.format(np.std(samples))
-                    new_stats["visible_rms"] = float_fmt.format(
-                        np.sqrt(np.mean(np.square(samples)))
+                    new_stats["visible_average"] = value_as_str(
+                        np.mean(samples), format, None, precision
+                    )
+                    new_stats["visible_std"] = value_as_str(
+                        np.std(samples), format, None, precision
+                    )
+                    new_stats["visible_rms"] = value_as_str(
+                        np.sqrt(np.mean(np.square(samples))), format, None, precision
                     )
                     if kind in "ui":
                         new_stats["visible_delta"] = value_as_str(
                             int(cut.samples[-1]) - int(cut.samples[0]),
                             format,
                             samples.dtype,
-                            self.precision,
+                            precision,
                         )
                     else:
                         new_stats["visible_delta"] = value_as_str(
                             cut.samples[-1] - cut.samples[0],
                             format,
                             samples.dtype,
-                            self.precision,
+                            precision,
                         )
 
                     if size == 1:
                         new_stats["visible_gradient"] = 0
                         new_stats["visible_integral"] = 0
                     else:
-                        new_stats["visible_gradient"] = float_fmt.format(
+                        new_stats["visible_gradient"] = value_as_str(
                             (float(samples[-1]) - float(samples[0]))
-                            / (timestamps[-1] - timestamps[0])
+                            / (timestamps[-1] - timestamps[0]),
+                            format,
+                            None,
+                            precision,
                         )
-                        new_stats["visible_integral"] = float_fmt.format(
-                            np.trapz(samples, timestamps)
+                        new_stats["visible_integral"] = value_as_str(
+                            np.trapz(samples, timestamps), format, None, precision
                         )
 
                 else:
@@ -853,7 +901,9 @@ class PlotSignal(Signal):
 
             if cursor is not None:
                 position = cursor
-                stats["cursor_t"] = position
+                stats["cursor_t"] = value_as_str(
+                    position, format, np.dtype("f8"), precision
+                )
 
                 stats["cursor_value"] = "n.a."
 
@@ -864,9 +914,15 @@ class PlotSignal(Signal):
             if region is not None:
                 start, stop = region
 
-                stats["selected_start"] = start
-                stats["selected_stop"] = stop
-                stats["selected_delta_t"] = stop - start
+                stats["selected_start"] = value_as_str(
+                    start, format, np.dtype("f8"), precision
+                )
+                stats["selected_stop"] = value_as_str(
+                    stop, format, np.dtype("f8"), precision
+                )
+                stats["selected_delta_t"] = value_as_str(
+                    stop - start, format, np.dtype("f8"), precision
+                )
 
                 stats["selected_min"] = "n.a."
                 stats["selected_max"] = "n.a."
@@ -896,9 +952,15 @@ class PlotSignal(Signal):
 
             start, stop = view_region
 
-            stats["visible_start"] = start
-            stats["visible_stop"] = stop
-            stats["visible_delta_t"] = stop - start
+            stats["visible_start"] = value_as_str(
+                start, format, np.dtype("f8"), precision
+            )
+            stats["visible_stop"] = value_as_str(
+                stop, format, np.dtype("f8"), precision
+            )
+            stats["visible_delta_t"] = value_as_str(
+                stop - start, format, np.dtype("f8"), precision
+            )
 
             stats["visible_min"] = "n.a."
             stats["visible_max"] = "n.a."
@@ -908,6 +970,9 @@ class PlotSignal(Signal):
             stats["visible_delta"] = "n.a."
             stats["visible_gradient"] = "n.a."
             stats["visible_integral"] = "n.a."
+
+        stats["region"] = region is not None
+        stats["color"] = self.color_name
 
         return stats
 
@@ -1713,6 +1778,7 @@ class Plot(QtWidgets.QWidget):
 
         self.info = ChannelStats(self.x_unit)
         self.info.hide()
+        self.info.precision_modified.connect(self.info_precision_modified)
         self.splitter.addWidget(self.info)
 
         self.splitter.setStretchFactor(0, 0)
@@ -1831,6 +1897,14 @@ class Plot(QtWidgets.QWidget):
                     QtCore.QKeyCombination(
                         QtCore.Qt.NoModifier,
                         QtCore.Qt.Key_2,
+                    ).toCombined(),
+                    QtCore.QKeyCombination(
+                        QtCore.Qt.NoModifier,
+                        QtCore.Qt.Key_BracketLeft,
+                    ).toCombined(),
+                    QtCore.QKeyCombination(
+                        QtCore.Qt.NoModifier,
+                        QtCore.Qt.Key_BracketRight,
                     ).toCombined(),
                 ]
             )
@@ -2664,6 +2738,12 @@ class Plot(QtWidgets.QWidget):
 
         self.set_font_size(new_size)
 
+    def info_precision_modified(self):
+        if not self.closed:
+            if self.info_uuid is not None:
+                stats = self.plot.get_stats(self.info_uuid)
+                self.info.set_stats(stats)
+
     def _inhibit_timestamp_handler(self):
         self._inhibit_timestamp_signals = False
 
@@ -2963,6 +3043,16 @@ class Plot(QtWidgets.QWidget):
             QtCore.Qt.ControlModifier | QtCore.Qt.ShiftModifier
         ):
             self.channel_selection.keyPressEvent(event)
+
+        elif (
+            key == QtCore.Qt.Key_BracketLeft and modifiers == QtCore.Qt.ControlModifier
+        ):
+            self.decrease_font()
+
+        elif (
+            key == QtCore.Qt.Key_BracketRight and modifiers == QtCore.Qt.ControlModifier
+        ):
+            self.increase_font()
 
         elif event.keyCombination().toCombined() in self.plot.keyboard_events:
             try:
@@ -3489,7 +3579,6 @@ class _Plot(pg.PlotWidget):
         self.xrange_changed.connect(self.xrange_changed_handle)
         self.with_dots = with_dots
 
-        self.info = None
         self.current_uuid = None
 
         self.standalone = kwargs.get("standalone", False)
@@ -4190,6 +4279,9 @@ class _Plot(pg.PlotWidget):
             cursor=self.cursor1.value() if self.cursor1 else None,
             region=self.region.getRegion() if self.region else None,
             view_region=self.viewbox.viewRange()[0],
+            precision=self._settings.value(
+                "stats_float_precision", sig.precision, type=int
+            ),
         )
 
     def get_timestamp_index(self, timestamp, timestamps):

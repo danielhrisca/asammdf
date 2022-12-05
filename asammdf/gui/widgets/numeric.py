@@ -1,20 +1,16 @@
 # -*- coding: utf-8 -*-
-from collections import namedtuple
-from copy import deepcopy
-from dataclasses import dataclass
+import bisect
 import json
 import os
 from pathlib import Path
 import re
-import sys
-from time import perf_counter
 
 from natsort import natsorted
 import numpy as np
 from numpy import searchsorted
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from asammdf import MDF, Signal
+from asammdf import MDF
 from asammdf.gui import utils
 from asammdf.gui.dialogs.range_editor import RangeEditor
 from asammdf.gui.utils import (
@@ -26,6 +22,7 @@ from asammdf.gui.utils import (
 from asammdf.gui.widgets.plot import PlotSignal
 
 from ..ui import resource_rc
+from ..utils import FONT_SIZE
 from .loader import load_ui
 
 HERE = Path(__file__).resolve().parent
@@ -967,7 +964,7 @@ class HeaderView(QtWidgets.QTableView):
     def sizeHint(self):
 
         width = self.table.sizeHint().width() + self.verticalHeader().width()
-        height = 24
+        height = 16 + self.font().pointSize() + 2 * self.frameWidth()
 
         return QtCore.QSize(width, height)
 
@@ -1021,23 +1018,12 @@ class NumericViewer(QtWidgets.QWidget):
         self.gridLayout.setColumnStretch(0, 1)
         self.gridLayout.setRowStretch(1, 1)
 
-        self.set_styles()
-
         self.columnHeader.setSizePolicy(
-            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.MinimumExpanding
+            QtWidgets.QSizePolicy.Maximum, QtWidgets.QSizePolicy.Maximum
         )
 
-        default_row_height = 24
-        self.dataView.verticalHeader().setDefaultSectionSize(default_row_height)
-        self.dataView.verticalHeader().setMinimumSectionSize(default_row_height)
-        self.dataView.verticalHeader().setMaximumSectionSize(default_row_height)
-        self.dataView.verticalHeader().sectionResizeMode(QtWidgets.QHeaderView.Fixed)
-        self.columnHeader.verticalHeader().setDefaultSectionSize(default_row_height)
-        self.columnHeader.verticalHeader().setMinimumSectionSize(default_row_height)
-        self.columnHeader.verticalHeader().setMaximumSectionSize(default_row_height)
-        self.columnHeader.verticalHeader().sectionResizeMode(
-            QtWidgets.QHeaderView.Fixed
-        )
+        self.default_row_height = 24
+        self.set_styles()
 
         for column_index in range(self.columnHeader.model().columnCount()):
             self.auto_size_column(column_index)
@@ -1054,12 +1040,22 @@ class NumericViewer(QtWidgets.QWidget):
         self.show()
 
     def set_styles(self):
-        return
-        for item in [
-            self.dataView,
-            self.columnHeader,
-        ]:
-            item.setContentsMargins(0, 0, 0, 0)
+        self.dataView.verticalHeader().setDefaultSectionSize(self.default_row_height)
+        self.dataView.verticalHeader().setMinimumSectionSize(self.default_row_height)
+        self.dataView.verticalHeader().setMaximumSectionSize(self.default_row_height)
+        self.dataView.verticalHeader().sectionResizeMode(QtWidgets.QHeaderView.Fixed)
+        self.columnHeader.verticalHeader().setDefaultSectionSize(
+            self.default_row_height
+        )
+        self.columnHeader.verticalHeader().setMinimumSectionSize(
+            self.default_row_height
+        )
+        self.columnHeader.verticalHeader().setMaximumSectionSize(
+            self.default_row_height
+        )
+        self.columnHeader.verticalHeader().sectionResizeMode(
+            QtWidgets.QHeaderView.Fixed
+        )
 
     def auto_size_header(self):
         s = 0
@@ -1121,15 +1117,6 @@ class NumericViewer(QtWidgets.QWidget):
         self.columnHeader.updateGeometry()
 
         return width
-
-    def auto_size_row(self, row_index):
-        height = 24
-
-        self.indexHeader.setRowHeight(row_index, height)
-        self.dataView.setRowHeight(row_index, height)
-
-        self.dataView.updateGeometry()
-        self.indexHeader.updateGeometry()
 
     def scroll_to_column(self, column=0):
         index = self.dataView.model().index(0, column)
@@ -1355,6 +1342,7 @@ class Numeric(QtWidgets.QWidget):
                 self.channels.columnHeader.horizontalHeader().sectionSize(i)
                 for i in range(self.channels.columnHeader.horizontalHeader().count())
             ],
+            "font_size": self.font().pointSize(),
         }
 
         return config
@@ -1573,11 +1561,11 @@ class Numeric(QtWidgets.QWidget):
 
     def keyPressEvent(self, event):
         key = event.key()
-        modifier = event.modifiers()
+        modifiers = event.modifiers()
 
         if (
             key in (QtCore.Qt.Key_H, QtCore.Qt.Key_B, QtCore.Qt.Key_P, QtCore.Qt.Key_T)
-            and modifier == QtCore.Qt.ControlModifier
+            and modifiers == QtCore.Qt.ControlModifier
         ):
 
             if key == QtCore.Qt.Key_H:
@@ -1591,21 +1579,21 @@ class Numeric(QtWidgets.QWidget):
             event.accept()
         elif (
             key == QtCore.Qt.Key_Right
-            and modifier == QtCore.Qt.NoModifier
+            and modifiers == QtCore.Qt.NoModifier
             and self.mode == "offline"
         ):
             self.timestamp_slider.setValue(self.timestamp_slider.value() + 1)
 
         elif (
             key == QtCore.Qt.Key_Left
-            and modifier == QtCore.Qt.NoModifier
+            and modifiers == QtCore.Qt.NoModifier
             and self.mode == "offline"
         ):
             self.timestamp_slider.setValue(self.timestamp_slider.value() - 1)
 
         elif (
             key == QtCore.Qt.Key_S
-            and modifier == QtCore.Qt.ControlModifier
+            and modifiers == QtCore.Qt.ControlModifier
             and self.mode == "offline"
         ):
             file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
@@ -1636,8 +1624,48 @@ class Numeric(QtWidgets.QWidget):
                                     sigs.append(signal)
                             mdf.append(sigs, common_timebase=True)
                         mdf.save(file_name, overwrite=True)
+
+        elif (
+            key == QtCore.Qt.Key_BracketLeft and modifiers == QtCore.Qt.ControlModifier
+        ):
+            self.decrease_font()
+
+        elif (
+            key == QtCore.Qt.Key_BracketRight and modifiers == QtCore.Qt.ControlModifier
+        ):
+            self.increase_font()
+
         else:
             self.channels.dataView.keyPressEvent(event)
 
     def close(self):
         super().close()
+
+    def decrease_font(self):
+        font = self.font()
+        size = font.pointSize()
+        pos = bisect.bisect_left(FONT_SIZE, size) - 1
+        if pos < 0:
+            pos = 0
+        new_size = FONT_SIZE[pos]
+
+        self.set_font_size(new_size)
+
+    def increase_font(self):
+        font = self.font()
+        size = font.pointSize()
+        pos = bisect.bisect_right(FONT_SIZE, size)
+        if pos == len(FONT_SIZE):
+            pos -= 1
+        new_size = FONT_SIZE[pos]
+
+        self.set_font_size(new_size)
+
+    def set_font_size(self, size):
+        self.hide()
+        font = self.font()
+        font.setPointSize(size)
+        self.setFont(font)
+        self.show()
+        self.channels.default_row_height = 12 + size
+        self.channels.set_styles()

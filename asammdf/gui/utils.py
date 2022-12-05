@@ -1170,7 +1170,7 @@ def value_as_hex(value, dtype):
 
 def value_as_str(value, format, dtype=None, precision=3):
 
-    float_fmt = f"{{:.{precision}f}}" if precision >= 0 else "{}"
+    float_fmt = f"{{:.0{precision}f}}" if precision >= 0 else "{}"
     if isinstance(value, (float, np.floating)):
         kind = "f"
 

@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
-from PySide6 import QtGui, QtWidgets
+from copy import deepcopy
+
+import numpy as np
+from PySide6 import QtCore, QtGui, QtWidgets
 
 from ..ui import resource_rc
 from ..ui.channel_stats import Ui_ChannelStats
@@ -8,8 +11,14 @@ MONOSPACE_FONT = None
 
 
 class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
+
+    precision_modified = QtCore.Signal()
+
     def __init__(self, xunit="s", *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self._settings = QtCore.QSettings()
+
         self.setupUi(self)
 
         global MONOSPACE_FONT
@@ -45,8 +54,24 @@ class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
             label = self.findChild(QtWidgets.QLabel, f"xunit{i}")
             label.setText(f" {self.xunit}")
 
+        self.precision.addItems(
+            ["Full float precision"] + [f"{i} float decimals" for i in range(16)]
+        )
+        self.precision.setCurrentIndex(
+            self._settings.value("stats_float_precision", 6, type=int) + 1
+        )
+
+        self.precision.currentIndexChanged.connect(self.set_float_precision)
+
     def set_stats(self, stats):
+
+        self._stats = deepcopy(stats)
+        precision = self._settings.value("stats_float_precision", 6, type=int)
+        fmt = f" {{:.{precision}f}}"
+
+        color = stats["color"]
         if stats:
+
             for name, value in stats.items():
 
                 if name == "unit":
@@ -65,10 +90,27 @@ class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
                     self.name.setText(self.name_template.format(self.color, self._name))
                 elif name == "color":
                     self.color = value
-                    self.name.setText(self.name_template.format(self.color, self._name))
+                    self.name.setText(self.name_template.format(color, self._name))
+
+                elif name in ("region", "color"):
+                    continue
                 else:
                     label = self.findChild(QtWidgets.QLabel, name)
-                    label.setText(str(value))
+
+                    if precision >= 0:
+                        if isinstance(value, (float, np.floating)):
+                            label.setText(fmt.format(value))
+                        else:
+                            label.setText(str(value))
+                    else:
+                        label.setText(str(value))
+
+            if stats["region"]:
+                self.cursor_group.setHidden(True)
+                self.region_group.setHidden(False)
+            else:
+                self.cursor_group.setHidden(False)
+                self.region_group.setHidden(True)
         else:
             self.clear()
 
@@ -96,3 +138,7 @@ class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
                     label = label.widget()
                     if label.objectName().startswith("unit"):
                         label.setText("")
+
+    def set_float_precision(self, index):
+        self._settings.setValue("stats_float_precision", index - 1)
+        self.precision_modified.emit()
