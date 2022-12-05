@@ -1509,6 +1509,7 @@ class Plot(QtWidgets.QWidget):
         widget.setLayout(vbox)
 
         self.focused_mode = False
+        self.show_bookmarks = True
 
         self.splitter = QtWidgets.QSplitter()
         self.splitter.addWidget(widget)
@@ -1776,7 +1777,10 @@ class Plot(QtWidgets.QWidget):
 
         self.splitter.addWidget(self.plot)
 
-        self.info = ChannelStats(self.x_unit)
+        self.info = ChannelStats(
+            self.x_unit,
+            precision=self._settings.value("stats_float_precision", 6, type=int),
+        )
         self.info.hide()
         self.info.precision_modified.connect(self.info_precision_modified)
         self.splitter.addWidget(self.info)
@@ -2968,10 +2972,15 @@ class Plot(QtWidgets.QWidget):
 
         elif key == QtCore.Qt.Key_I and modifiers == QtCore.Qt.AltModifier:
 
-            for bookmark in self.plot.bookmarks:
-                bookmark.visible = not bookmark.visible
+            self.show_bookmarks = not self.show_bookmarks
+            if self.show_bookmarks:
+                self.bookmark_btn.setFlat(False)
+            else:
+                self.bookmark_btn.setFlat(True)
 
-            self.bookmark_btn.setFlat(not self.bookmark_btn.isFlat())
+            for bookmark in self.plot.bookmarks:
+                bookmark.visible = self.show_bookmarks
+
             self.plot.update()
 
         elif key == QtCore.Qt.Key_G and modifiers == QtCore.Qt.ControlModifier:
@@ -3394,7 +3403,7 @@ class Plot(QtWidgets.QWidget):
     def toggle_bookmarks(self, *args, hide=None):
 
         if hide is not None:
-            self.bookmark_btn.setFlat(not hide)
+            self.show_bookmarks = hide
 
         key_event = QtGui.QKeyEvent(
             QtCore.QEvent.KeyPress,

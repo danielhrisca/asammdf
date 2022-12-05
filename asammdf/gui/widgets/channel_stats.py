@@ -14,7 +14,7 @@ class ChannelStats(Ui_ChannelStats, QtWidgets.QWidget):
 
     precision_modified = QtCore.Signal()
 
-    def __init__(self, xunit="s", *args, **kwargs):
+    def __init__(self, xunit="s", precision=6, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self._settings = QtCore.QSettings()
