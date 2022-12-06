@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, timezone
 from functools import partial
+from hashlib import sha1
 import json
 import os
 from pathlib import Path
@@ -116,7 +117,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         if "default_folder" in kwargs:
             kwargs.pop("default_folder")
 
-        self.loaded_display_file = ""
+        self.loaded_display_file = Path(""), b""
 
         self.line_width = line_width
 
@@ -942,7 +943,17 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             )
 
         if file_name:
-            Path(file_name).write_text(json.dumps(self.to_config(), indent=2))
+            file_name = Path(file_name)
+            file_name.write_text(json.dumps(self.to_config(), indent=2))
+
+            loaded_display_file, hash_sum = self.loaded_display_file
+            if (
+                file_name.samefile(loaded_display_file)
+                and file_name.suffix.lower() == ".dspf"
+            ):
+                worker = sha1()
+                worker.update(loaded_display_file.read_bytes())
+                self.loaded_display_file = loaded_display_file, worker.hexdigest()
 
     def load_channel_list(self, event=None, file_name=None):
         if file_name is None:
@@ -1007,13 +1018,15 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 else:
                     return
 
-                self.loaded_display_file = file_name
+                worker = sha1()
+                worker.update(file_name.read_bytes())
+                self.loaded_display_file = file_name, worker.hexdigest()
 
             else:
                 extension = None
                 info = file_name
                 channels = info.get("selected_channels", [])
-                self.loaded_display_file = info.get("display_file_name", "")
+                self.loaded_display_file = Path(info.get("display_file_name", "")), b""
 
                 self.functions.update(info.get("functions", {}))
 
@@ -1118,7 +1131,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 finally:
                     progress.cancel()
 
-            self.display_file_modified.emit(Path(self.loaded_display_file).name)
+            self.display_file_modified.emit(Path(self.loaded_display_file[0]).name)
 
     def save_filter_list(self):
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
