@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Feb 28 12:27:37 2019
-
-@author: uidn3651
-"""
 
 from functools import partial
 import re

@@ -1086,6 +1086,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 if new_functions:
                     self.update_functions({}, new_functions)
 
+            self.clear_windows()
+
             windows = info.get("windows", [])
             if windows:
                 count = len(windows)
@@ -1402,12 +1404,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.channels_tree.clear()
         self.filter_tree.clear()
 
-        for window in self.mdi_area.subWindowList():
-            widget = window.widget()
-            self.mdi_area.removeSubWindow(window)
-            widget.setParent(None)
-            window.close()
-            widget.close()
+        self.clear_windows()
 
         self.mdf = None
 
