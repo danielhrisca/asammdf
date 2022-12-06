@@ -113,6 +113,7 @@ setup(
         ],
         "encryption": ["cryptography", "keyring"],
         "symbolic_math": "numexpr3",
+        "filesystem": "fsspec",
     },
     # If there are data files included in your packages that need to be
     # installed, specify them here.  If using Python 2.6 or less, then these

@@ -90,6 +90,12 @@ from .types import (
 )
 from .version import __version__
 
+try:
+    import fsspec
+    FSSPEF_AVAILABLE = True
+except:
+    FSSPEF_AVAILABLE = False
+
 logger = logging.getLogger("asammdf")
 LOCAL_TIMEZONE = datetime.now(timezone.utc).astimezone().tzinfo
 
@@ -260,6 +266,11 @@ class MDF:
                     name = tmp_name
 
                     do_close = True
+
+                elif FSSPEF_AVAILABLE and isinstance(name, fsspec.spec.AbstractBufferedFile):
+                    original_name = "AzureFile"
+                    file_stream = name
+                    do_close = False
 
                 else:
                     raise MdfException(
