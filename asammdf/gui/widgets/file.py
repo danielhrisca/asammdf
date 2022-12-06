@@ -93,6 +93,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
     open_new_file = QtCore.Signal(str)
     full_screen_toggled = QtCore.Signal()
+    display_file_modified = QtCore.Signal(str)
 
     def __init__(
         self,
@@ -1116,6 +1117,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     print(format_exc())
                 finally:
                     progress.cancel()
+
+            self.display_file_modified.emit(Path(self.loaded_display_file).name)
 
     def save_filter_list(self):
         file_name, _ = QtWidgets.QFileDialog.getSaveFileName(
