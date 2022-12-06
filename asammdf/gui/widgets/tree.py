@@ -1403,9 +1403,6 @@ class ChannelsTreeWidget(QtWidgets.QTreeWidget):
             )
 
     def setPalette(self, palette):
-        print(
-            "set palete",
-        )
         super().setPalette(
             palette, palette.brush(QtGui.QPalette.Window).color().red(), 0x80
         )
