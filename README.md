@@ -185,6 +185,7 @@ other optional dependencies
 * chardet : to detect non-standard Unicode encodings 
 * pyqtlet2 : for the GPS window
 * isal : for faster zlib compression/decompression
+* fsspec : access files stored in the cloud
 
 # Benchmarks
 

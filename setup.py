@@ -100,7 +100,6 @@ setup(
             "fastparquet",
             "h5py",
             "hdf5storage>=0.1.17",
-            "scipy",
             "python-snappy",
         ],
         "gui": [
@@ -110,7 +109,6 @@ setup(
             "PySide6",
             "pyqtgraph>=0.12.4",
             "pyqtlet2>=0.8.0",
-            "scipy",
         ],
         "encryption": ["cryptography", "keyring"],
         "symbolic_math": "numexpr3",

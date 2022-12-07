@@ -1327,8 +1327,6 @@ class MDF:
         elif fmt not in ("csv",):
             raise MdfException(f"Export to {fmt} is not implemented")
 
-        name = ""
-
         if self._callback:
             self._callback(0, 100)
 
