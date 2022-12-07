@@ -289,6 +289,7 @@ def conversion_transfer(
 
 
 def from_dict(conversion: dict[str, Any]) -> v4b.ChannelConversion:
+    conversion = dict(conversion)
     if not conversion:
         conversion = None
 

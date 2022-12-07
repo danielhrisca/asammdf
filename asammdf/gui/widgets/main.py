@@ -28,6 +28,7 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         WithMDIArea.__init__(self)
         self.setupUi(self)
         self._settings = QtCore.QSettings()
+        self._settings.setValue("current_theme", self._settings.value("theme", "Light"))
         self._light_palette = self.palette()
 
         self.line_width = 1

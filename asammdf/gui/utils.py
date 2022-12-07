@@ -371,7 +371,10 @@ def load_dsp(file, background="#000000", flat=False):
                 conv = {}
                 for i, item in enumerate(vtab.findall("tab")):
                     conv[f"val_{i}"] = float(item.get("min"))
-                    conv[f"text_{i}"] = item.get("text")
+                    text = item.get("text")
+                    if isinstance(text, bytes):
+                        text = text.decode("utf-8", errors="replace")
+                    conv[f"text_{i}"] = text
 
                 virtual_channel["vtab"] = conv
 

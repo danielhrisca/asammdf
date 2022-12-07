@@ -2082,7 +2082,10 @@ class Plot(QtWidgets.QWidget):
 
         children = []
 
-        background_color = self.palette().color(QtGui.QPalette.Base)
+        if self._settings.value("current_theme") == "Dark":
+            background_color = QtGui.QColor(0, 0, 0)
+        else:
+            background_color = QtGui.QColor(255, 255, 255)
 
         new_items = {}
 

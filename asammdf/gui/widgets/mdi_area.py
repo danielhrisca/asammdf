@@ -994,12 +994,12 @@ class WithMDIArea:
                     sig.color = entry.get("color", None)
 
                     if entry["flags"] & Signal.Flags.user_defined_conversion:
-                        signal.conversion = from_dict(entry["conversion"])
-                        signal.flags |= signal.Flags.user_defined_conversion
+                        sig.conversion = from_dict(entry["conversion"])
+                        sig.flags |= Signal.Flags.user_defined_conversion
 
                     if entry["flags"] & Signal.Flags.user_defined_name:
-                        signal.name = entry["user_defined_name"]
-                        signal.flags |= signal.Flags.user_defined_name
+                        sig.name = entry["user_defined_name"]
+                        sig.flags |= Signal.Flags.user_defined_name
 
                     signals[sig.uuid] = sig
 
@@ -2255,12 +2255,12 @@ class WithMDIArea:
                 sig.color = sig_["color"]
 
             if sig_["flags"] & Signal.Flags.user_defined_conversion:
-                signal.conversion = from_dict(sig_["conversion"])
-                signal.flags |= signal.Flags.user_defined_conversion
+                sig.conversion = from_dict(sig_["conversion"])
+                sig.flags |= Signal.Flags.user_defined_conversion
 
             if sig_["flags"] & Signal.Flags.user_defined_name:
-                signal.name = sig_["user_defined_name"]
-                signal.flags |= signal.Flags.user_defined_name
+                sig.name = sig_["user_defined_name"]
+                sig.flags |= Signal.Flags.user_defined_name
 
             signals[uuid] = sig
 
@@ -2632,6 +2632,14 @@ class WithMDIArea:
         tabular.tree.auto_size_header()
 
         self.windows_modified.emit()
+
+    def clear_windows(self):
+        for window in self.mdi_area.subWindowList():
+            widget = window.widget()
+            self.mdi_area.removeSubWindow(window)
+            widget.setParent(None)
+            window.close()
+            widget.close()
 
     def delete_functions(self, deleted_functions):
         deleted = set()
@@ -3243,12 +3251,16 @@ class WithMDIArea:
                 sig.color = description["color"]
 
                 if description["flags"] & Signal.Flags.user_defined_conversion:
-                    signal.conversion = from_dict(description["conversion"])
-                    signal.flags |= signal.Flags.user_defined_conversion
+                    sig.conversion = from_dict(description["conversion"])
+                    sig.flags |= Signal.Flags.user_defined_conversion
 
                 if description["flags"] & Signal.Flags.user_defined_name:
-                    signal.name = description["user_defined_name"]
-                    signal.flags |= signal.Flags.user_defined_name
+                    sig.name = description["user_defined_name"]
+                    sig.flags |= Signal.Flags.user_defined_name
+
+                if description["flags"] & Signal.Flags.user_defined_unit:
+                    sig.unit = description.get("user_defined_unit", "")
+                    sig.flags |= Signal.Flags.user_defined_unit
 
                 signals[uuid] = sig
 
