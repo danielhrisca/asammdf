@@ -1319,7 +1319,7 @@ class MDF:
                 try:
                     from scipy.io import savemat
                 except ImportError:
-                    logger.warning("scipy not found; export to mat is unavailable")
+                    logger.warning("scipy not found; export to mat v4 and v5 is unavailable")
                     return
 
         elif fmt not in ("csv",):

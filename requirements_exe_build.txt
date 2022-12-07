@@ -14,7 +14,6 @@ pyqtlet2
 pyopengl
 h5py 
 fastparquet 
-scipy
 hdf5storage 
 snappy 
 cChardet==2.1.5 

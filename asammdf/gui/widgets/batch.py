@@ -1297,7 +1297,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 except ImportError:
                     QtWidgets.QMessageBox.critical(
                         self,
-                        "Export to mat unavailale",
+                        "Export to mat v7.3 unavailale",
                         "hdf5storage package not found; export to mat 7.3 is unavailable",
                     )
                     return
@@ -1307,7 +1307,7 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
                 except ImportError:
                     QtWidgets.QMessageBox.critical(
                         self,
-                        "Export to mat unavailale",
+                        "Export to mat v4 and v5 unavailale",
                         "scipy package not found; export to mat is unavailable",
                     )
                     return
