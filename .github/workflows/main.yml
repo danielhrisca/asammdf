@@ -24,7 +24,8 @@ jobs:
             pip install tox tox-gh-actions
             pip install build numpy wheel 
             python setup.py bdist_wheel
-
+            python setup.py sdist
+            
       # see: https://github.com/ymyzk/tox-gh-actions
       - name: Run tests
         run: tox
