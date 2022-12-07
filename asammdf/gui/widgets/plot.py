@@ -20,11 +20,11 @@ import pyqtgraph.canvas.TransformGuiTemplate_pyside6
 import pyqtgraph.functions as fn
 
 try:
+    import pyqtgraph.console.template_pyside6
     import pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_pyside6
     import pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_pyside6
     import pyqtgraph.GraphicsScene.exportDialogTemplate_pyside6
     import pyqtgraph.imageview.ImageViewTemplate_pyside6
-    import pyqtgraph.console.template_pyside6
 except ImportError:
     import pyqtgraph.graphicsItems.PlotItem.plotConfigTemplate_generic
     import pyqtgraph.graphicsItems.ViewBox.axisCtrlTemplate_generic

@@ -92,6 +92,7 @@ from .version import __version__
 
 try:
     import fsspec
+
     FSSPEF_AVAILABLE = True
 except:
     FSSPEF_AVAILABLE = False
@@ -267,7 +268,9 @@ class MDF:
 
                     do_close = True
 
-                elif FSSPEF_AVAILABLE and isinstance(name, fsspec.spec.AbstractBufferedFile):
+                elif FSSPEF_AVAILABLE and isinstance(
+                    name, fsspec.spec.AbstractBufferedFile
+                ):
                     original_name = "AzureFile"
                     file_stream = name
                     do_close = False
