@@ -23,6 +23,7 @@ Welcome to asammdf's documentation!
    examples
    benchmarks
    gui
+   functions_manager
 
 
 Indices and tables
