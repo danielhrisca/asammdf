@@ -41,7 +41,7 @@ class Bookmark(pg.InfiniteLine):
         self.edited = False
         self.deleted = False
 
-        self.fill = pg.mkBrush("61b2e2")
+        self.fill = pg.mkBrush("#61b2e2")
         self.border = pg.mkPen(
             {
                 "color": color,

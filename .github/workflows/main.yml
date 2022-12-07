@@ -19,8 +19,18 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install packages
-        run: pip install tox tox-gh-actions
+        run: |
+            pip install tox tox-gh-actions
+            pip install build numpy wheel 
+            python setup.py bdist_wheel
 
       # see: https://github.com/ymyzk/tox-gh-actions
       - name: Run tests
         run: tox
+        
+      - name: Archive dist artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: dist
+          path: dist/**
+          if-no-files-found: error
