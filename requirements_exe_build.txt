@@ -22,4 +22,4 @@ chardet
 cryptography
 keyring
 pyinstaller; sys_platform=="win32"
-pyinstaller==5.6; sys_platform=="linux"
+pyinstaller==4.10; sys_platform=="linux"
