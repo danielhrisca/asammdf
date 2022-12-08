@@ -6729,12 +6729,21 @@ class MDF4(MDF_Common):
         else:
             data = (data,)
 
+        groups = self.groups
+
         channel_invalidation_present = channel.flags & (
             v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT
         )
 
         _dtype = dtype(channel.dtype_fmt)
-        if _dtype.itemsize == channel.bit_count // 8:
+        conditions = [
+            _dtype.itemsize == channel.bit_count // 8,
+            all(
+                groups[dg_nr].channels[ch_nr].channel_type != v4c.CHANNEL_TYPE_VLSD
+                for (dg_nr, ch_nr) in dependency_list
+            )
+        ]
+        if all(conditions):
             fast_path = True
             channel_values = []
             timestamps = []
@@ -6813,13 +6822,39 @@ class MDF4(MDF_Common):
             total_size = sum(len(_) for _ in channel_values[0])
 
             if count > 1:
-                arrays = [
-                    concatenate(
-                        lst,
-                        out=empty((total_size,) + lst[0].shape[1:], dtype=lst[0].dtype),
-                    )
-                    for lst in channel_values
-                ]
+                arrays = []
+                for lst in channel_values:
+                    shape_len = len(lst[0].shape)
+
+                    # fix bytearray signals if the length changes between the chunks
+                    if shape_len == 2:
+                        shape = [total_size]
+                        vlsd_max_size = max(l.shape[1] for l in lst)
+                        shape.append(vlsd_max_size)
+
+                        max_vlsd_arrs = []
+                        for arr in lst:
+                            if arr.shape[1] < vlsd_max_size:
+                                arr = np.hstack((arr, np.zeros((arr.shape[0], vlsd_max_size-arr.shape[1]), dtype=arr.dtype)))
+                            max_vlsd_arrs.append(arr)
+
+                        arr = concatenate(
+                            max_vlsd_arrs,
+                            out=empty(shape, dtype=max_vlsd_arrs[0].dtype),
+                        )
+                        arrays.append(arr)
+                    elif shape_len == 1:
+                        arr = concatenate(
+                            lst,
+                            out=empty((total_size,), dtype=lst[0].dtype),
+                        )
+                        arrays.append(arr)
+
+                    else:
+                        arrays.append(concatenate(
+                                lst,
+                                out=empty((total_size,) + lst[0].shape[1:], dtype=lst[0].dtype),
+                            ))
             else:
                 arrays = [lst[0] for lst in channel_values]
             types = [
