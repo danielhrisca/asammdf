@@ -3032,8 +3032,6 @@ class WithMDIArea:
         elif window_info.get("minimized", False):
             w.showMinimized()
 
-        gps._update_values()
-
         menu = w.systemMenu()
 
         action = QtGui.QAction("Set title", menu)
