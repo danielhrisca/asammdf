@@ -6741,7 +6741,7 @@ class MDF4(MDF_Common):
             all(
                 groups[dg_nr].channels[ch_nr].channel_type != v4c.CHANNEL_TYPE_VLSD
                 for (dg_nr, ch_nr) in dependency_list
-            )
+            ),
         ]
         if all(conditions):
             fast_path = True
@@ -6835,7 +6835,18 @@ class MDF4(MDF_Common):
                         max_vlsd_arrs = []
                         for arr in lst:
                             if arr.shape[1] < vlsd_max_size:
-                                arr = np.hstack((arr, np.zeros((arr.shape[0], vlsd_max_size-arr.shape[1]), dtype=arr.dtype)))
+                                arr = np.hstack(
+                                    (
+                                        arr,
+                                        np.zeros(
+                                            (
+                                                arr.shape[0],
+                                                vlsd_max_size - arr.shape[1],
+                                            ),
+                                            dtype=arr.dtype,
+                                        ),
+                                    )
+                                )
                             max_vlsd_arrs.append(arr)
 
                         arr = concatenate(
@@ -6851,10 +6862,14 @@ class MDF4(MDF_Common):
                         arrays.append(arr)
 
                     else:
-                        arrays.append(concatenate(
+                        arrays.append(
+                            concatenate(
                                 lst,
-                                out=empty((total_size,) + lst[0].shape[1:], dtype=lst[0].dtype),
-                            ))
+                                out=empty(
+                                    (total_size,) + lst[0].shape[1:], dtype=lst[0].dtype
+                                ),
+                            )
+                        )
             else:
                 arrays = [lst[0] for lst in channel_values]
             types = [

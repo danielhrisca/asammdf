@@ -3217,6 +3217,38 @@ class MDF:
                     master[current_pos:next_pos] = sig
 
                     for signal, (sig, inval) in zip(signals, sigs[1:]):
+                        shape_len = len(signal.samples.shape)
+                        # fix for VLSD
+                        if shape_len == 2:
+                            vlsd_max_size = max(sig.shape[1], signal.samples.shape[1])
+
+                            if signal.samples.shape[1] < vlsd_max_size:
+                                signal.samples = np.hstack(
+                                    (
+                                        signal.samples,
+                                        np.zeros(
+                                            (
+                                                signal.samples.shape[0],
+                                                vlsd_max_size - signal.samples.shape[1],
+                                            ),
+                                            dtype=signal.samples.dtype,
+                                        ),
+                                    )
+                                )
+                            elif sig.shape[1] < vlsd_max_size:
+                                sig = np.hstack(
+                                    (
+                                        sig,
+                                        np.zeros(
+                                            (
+                                                sig.shape[0],
+                                                vlsd_max_size - sig.shape[1],
+                                            ),
+                                            dtype=sig.dtype,
+                                        ),
+                                    )
+                                )
+
                         signal.samples[current_pos:next_pos] = sig
                         if signal.invalidation_bits is not None:
                             signal.invalidation_bits[current_pos:next_pos] = inval
