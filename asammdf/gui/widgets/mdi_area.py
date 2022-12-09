@@ -2999,7 +2999,7 @@ class WithMDIArea:
             raw=False,
         )
 
-        gps = GPS(latitude, longitude, window_info["configuration"]["zoom"])
+        gps = GPS(latitude, longitude, zoom=window_info["configuration"]["zoom"])
 
         sub = MdiSubWindow(parent=self)
         sub.setWidget(gps)

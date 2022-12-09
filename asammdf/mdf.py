@@ -973,7 +973,7 @@ class MDF:
 
                 needs_cutting = True
 
-                # check if this fragement is within the cut interval or
+                # check if this fragmement is within the cut interval or
                 # if the cut interval has ended
                 if start is None and stop is None:
                     fragment_start = None
@@ -2196,27 +2196,20 @@ class MDF:
             callback(0, 100)
 
         mdf_nr = len(files)
+        use_display_names = kwargs.get("use_display_names", False)
 
         input_types = [isinstance(mdf, MDF) for mdf in files]
-        use_display_names = kwargs.get("use_display_names", False)
+        files = [
+            f if _type else MDF(f, use_display_names=use_display_names)
+            for f, _type in zip(files, input_types)
+        ]
 
         versions = []
         if sync:
             timestamps = []
             for file in files:
-                if isinstance(file, MDF):
-                    timestamps.append(file.header.start_time)
-                    versions.append(file.version)
-                else:
-                    if is_file_like(file):
-                        ts, version = get_measurement_timestamp_and_version(file)
-                        timestamps.append(ts)
-                        versions.append(version)
-                    else:
-                        with open(file, "rb") as mdf:
-                            ts, version = get_measurement_timestamp_and_version(mdf)
-                            timestamps.append(ts)
-                            versions.append(version)
+                timestamps.append(file.header.start_time)
+                versions.append(file.version)
 
             try:
                 oldest = min(timestamps)
@@ -2231,19 +2224,9 @@ class MDF:
 
         else:
             file = files[0]
-            if isinstance(file, MDF):
-                oldest = file.header.start_time
-                versions.append(file.version)
-            else:
-                if is_file_like(file):
-                    ts, version = get_measurement_timestamp_and_version(file)
-                    versions.append(version)
-                else:
-                    with open(file, "rb") as mdf:
-                        ts, version = get_measurement_timestamp_and_version(mdf)
-                        versions.append(version)
 
-                oldest = ts
+            oldest = file.header.start_time
+            versions.append(file.version)
 
             offsets = [0 for _ in files]
 
@@ -2254,18 +2237,10 @@ class MDF:
             origin_conversion = {}
             for i, mdf in enumerate(files):
                 origin_conversion[f"val_{i}"] = i
-                if isinstance(mdf, MDF):
-                    origin_conversion[f"text_{i}"] = str(mdf.name)
-                else:
-                    origin_conversion[f"text_{i}"] = str(mdf)
+                origin_conversion[f"text_{i}"] = str(mdf.name)
             origin_conversion = from_dict(origin_conversion)
 
         for mdf_index, (offset, mdf) in enumerate(zip(offsets, files)):
-            if not isinstance(mdf, MDF):
-                mdf = MDF(
-                    mdf,
-                    use_display_names=use_display_names,
-                )
 
             if mdf_index == 0:
                 version = validate_version_argument(version)
@@ -2392,6 +2367,38 @@ class MDF:
                 first_timestamp = None
                 original_first_timestamp = None
 
+                for w_file in files:
+                    w_file.determine_max_vlsd_sample_size.cache_clear()
+
+                if files[0].version >= "4.00":
+                    w_mdf = files[0]
+                    for _gp_idx, _gp in enumerate(w_mdf.groups):
+                        for _ch_idx, _ch in enumerate(_gp.channels):
+                            if _ch.channel_type == v4c.CHANNEL_TYPE_VLSD:
+                                key = _gp_idx, _ch.name
+                                max_size = w_mdf.determine_max_vlsd_sample_size(
+                                    _gp_idx, _ch_idx
+                                )
+                                for _mdf_index, _w_mdf in enumerate(files[1:]):
+                                    for _second_gp_idx, _second_ch_idx in w_mdf.whereis(
+                                        _ch.name
+                                    ):
+                                        if _second_gp_idx == _gp_idx:
+                                            max_size = max(
+                                                max_size,
+                                                _w_mdf.determine_max_vlsd_sample_size(
+                                                    _second_gp_idx, _second_ch_idx
+                                                ),
+                                            )
+                                            break
+                                    else:
+                                        raise MdfException(
+                                            f"internal structure of file {_mdf_index} is different; different channels"
+                                        )
+
+                                for _w_mdf in files:
+                                    _w_mdf.vlsd_max_length[key] = max_size
+
                 for idx, signals in enumerate(
                     mdf._yield_selected_signals(group_index, groups=included_channels)
                 ):
@@ -2501,17 +2508,19 @@ class MDF:
             if mdf_index == 0:
                 merged._transfer_metadata(mdf)
 
-            if not input_types[mdf_index]:
-                mdf.close()
-
-            if (mdf_index + 1) == mdf_nr and not isinstance(files[0], MDF):
-                first_mdf.close()
-
             if callback:
                 callback(i + 1 + mdf_index * groups_nr, groups_nr * mdf_nr)
 
             if MDF._terminate:
                 return
+
+        for _w_mdf in files:
+            _w_mdf.vlsd_max_length.clear()
+            _w_mdf.determine_max_vlsd_sample_size.cache_clear()
+
+        for mdf, input_type in zip(files, input_types):
+            if not input_type:
+                mdf.close()
 
         try:
             merged._process_bus_logging()
@@ -3217,37 +3226,6 @@ class MDF:
                     master[current_pos:next_pos] = sig
 
                     for signal, (sig, inval) in zip(signals, sigs[1:]):
-                        shape_len = len(signal.samples.shape)
-                        # fix for VLSD
-                        if shape_len == 2:
-                            vlsd_max_size = max(sig.shape[1], signal.samples.shape[1])
-
-                            if signal.samples.shape[1] < vlsd_max_size:
-                                signal.samples = np.hstack(
-                                    (
-                                        signal.samples,
-                                        np.zeros(
-                                            (
-                                                signal.samples.shape[0],
-                                                vlsd_max_size - signal.samples.shape[1],
-                                            ),
-                                            dtype=signal.samples.dtype,
-                                        ),
-                                    )
-                                )
-                            elif sig.shape[1] < vlsd_max_size:
-                                sig = np.hstack(
-                                    (
-                                        sig,
-                                        np.zeros(
-                                            (
-                                                sig.shape[0],
-                                                vlsd_max_size - sig.shape[1],
-                                            ),
-                                            dtype=sig.dtype,
-                                        ),
-                                    )
-                                )
 
                         signal.samples[current_pos:next_pos] = sig
                         if signal.invalidation_bits is not None:

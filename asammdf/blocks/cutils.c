@@ -38,8 +38,6 @@ static PyObject* sort_data_block(PyObject* self, PyObject* args)
     
     if (!PyArg_ParseTuple(args, "OOOK|O", &signal_data, &partial_records, &record_size, &id_size, &optional))
     {
-        snprintf(err_string, 1024, "sort_data_block was called with wrong parameters");
-        PyErr_SetString(PyExc_ValueError, err_string);
         return 0;
     }
     else
@@ -291,8 +289,6 @@ static PyObject* lengths(PyObject* self, PyObject* args)
 
     if(!PyArg_ParseTuple(args, "O", &lst))
     {
-        snprintf(err_string, 1024, "lengths was called with wrong parameters");
-        PyErr_SetString(PyExc_ValueError, err_string);
         return 0;
     }
     else
@@ -328,8 +324,6 @@ static PyObject* get_vlsd_offsets(PyObject* self, PyObject* args)
 
     if(!PyArg_ParseTuple(args, "O", &lst))
     {
-        snprintf(err_string, 1024, "get_vlsd_offsets was called with wrong parameters");
-        PyErr_SetString(PyExc_ValueError, err_string);
         return 0;
     }
     else
@@ -351,6 +345,41 @@ static PyObject* get_vlsd_offsets(PyObject* self, PyObject* args)
     result = PyTuple_Pack(2, values, PyLong_FromUnsignedLongLong(current_size));
 
     return result;
+}
+
+
+static PyObject* get_vlsd_max_sample_size(PyObject* self, PyObject* args)
+{
+    int i = 0;
+    Py_ssize_t count = 0;
+    PyObject* data, * offsets, * result;
+    npy_intp dim[1];
+    unsigned long long max_size = 0;
+    unsigned long vlsd_size = 0;
+    char* inptr=NULL;
+
+    unsigned long long current_size = 0, * offsets_array;
+
+
+    if (!PyArg_ParseTuple(args, "OOn", &data, &offsets, &count))
+    {
+        return 0;
+    }
+    else
+    {
+        offsets_array = (unsigned long long*)PyArray_GETPTR1(offsets, 0);
+        inptr = PyBytes_AsString(data);
+
+        for (i = 0; i < count; i++, offsets_array++)
+        {
+            memcpy(&vlsd_size, inptr + *offsets_array, 4);
+            if (vlsd_size > max_size) {
+                max_size = vlsd_size;
+            }
+        }
+    }
+
+    return PyLong_FromUnsignedLongLong(max_size);
 }
 
 
@@ -1226,6 +1255,7 @@ static PyMethodDef myMethods[] =
     { "extract", extract, METH_VARARGS, "extract VLSD samples from raw block" },
     { "lengths", lengths, METH_VARARGS, "lengths" },
     { "get_vlsd_offsets", get_vlsd_offsets, METH_VARARGS, "get_vlsd_offsets" },
+    { "get_vlsd_max_sample_size", get_vlsd_max_sample_size, METH_VARARGS, "get_vlsd_max_sample_size" },
     { "sort_data_block", sort_data_block, METH_VARARGS, "sort raw data group block" },
     { "positions", positions, METH_VARARGS, "positions" },
     { "get_channel_raw_bytes", get_channel_raw_bytes, METH_VARARGS, "get_channel_raw_bytes" },

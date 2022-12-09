@@ -173,6 +173,7 @@ from .cutils import (
     data_block_from_arrays,
     extract,
     get_channel_raw_bytes,
+    get_vlsd_max_sample_size,
     get_vlsd_offsets,
     lengths,
     sort_data_block,
@@ -349,6 +350,10 @@ class MDF4(MDF_Common):
 
         self.virtual_groups = {}  # master group 2 referencing groups
         self.virtual_groups_map = {}  # group index 2 master group
+
+        self.vlsd_max_length = (
+            {}
+        )  # hint about the maximum vlsd length for group_index, name pairs
 
         self._master = None
 
@@ -6789,6 +6794,7 @@ class MDF4(MDF_Common):
             count = 0
             for fragment in data:
                 for i, (dg_nr, ch_nr) in enumerate(dependency_list):
+
                     vals = self.get(
                         group=dg_nr,
                         index=ch_nr,
@@ -7264,6 +7270,7 @@ class MDF4(MDF_Common):
         record_offset: int,
         record_count: int | None,
         master_is_required: bool,
+        skip_vlsd: bool = False,
     ) -> tuple[NDArray[Any], NDArray[Any] | None, NDArray[Any] | None, str | None]:
         grp = group
         gp_nr = group_index
@@ -7629,7 +7636,7 @@ class MDF4(MDF_Common):
                     vals.invalidation_bits,
                 )
 
-        if channel_type == v4c.CHANNEL_TYPE_VLSD:
+        if channel_type == v4c.CHANNEL_TYPE_VLSD and not skip_vlsd:
             count_ = len(vals)
 
             if count_:
@@ -7638,6 +7645,10 @@ class MDF4(MDF_Common):
                 )
             else:
                 signal_data = b""
+
+            max_vlsd_size = self.determine_max_vlsd_sample_size(
+                group_index, channel_index
+            )
 
             if signal_data:
 
@@ -7649,6 +7660,19 @@ class MDF4(MDF_Common):
                     v4c.DATA_TYPE_MIME_STREAM,
                 ):
                     vals = extract(signal_data, 1, vals - vals[0])
+                    if vals.shape[1] < max_vlsd_size:
+                        vals = np.hstack(
+                            (
+                                vals,
+                                np.zeros(
+                                    (
+                                        vals.shape[0],
+                                        max_vlsd_size - vals.shape[1],
+                                    ),
+                                    dtype=vals.dtype,
+                                ),
+                            )
+                        )
                 else:
                     vals = extract(signal_data, 0, vals - vals[0])
 
@@ -7684,6 +7708,8 @@ class MDF4(MDF_Common):
                         raise MdfException(
                             f'wrong data type "{data_type}" for vlsd channel "{channel.name}"'
                         )
+
+                    vals = vals.astype(f"S{max_vlsd_size}")
             else:
                 if len(vals):
                     raise MdfException(
@@ -7691,7 +7717,7 @@ class MDF4(MDF_Common):
                     )
                 # no VLSD signal data samples
                 if data_type != v4c.DATA_TYPE_BYTEARRAY:
-                    vals = array([], dtype="S")
+                    vals = array([], dtype=f"S{max_vlsd_size}")
 
                     if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
                         encoding = "utf-16-be"
@@ -7709,11 +7735,9 @@ class MDF4(MDF_Common):
                         raise MdfException(
                             f'wrong data type "{data_type}" for vlsd channel "{channel.name}"'
                         )
+
                 else:
-                    vals = array(
-                        [],
-                        dtype=get_fmt_v4(data_type, bit_count, v4c.CHANNEL_TYPE_VALUE),
-                    )
+                    vals = array([], dtype=f"({max_vlsd_size},)u1")
 
         elif (
             v4c.DATA_TYPE_STRING_LATIN_1 <= data_type <= v4c.DATA_TYPE_STRING_UTF_16_BE
@@ -7912,6 +7936,43 @@ class MDF4(MDF_Common):
             return vals.view(get_fmt_v4(data_type, bit_count))
         else:
             return vals
+
+    @lru_cache(maxsize=1024 * 1024)
+    def determine_max_vlsd_sample_size(self, group, index):
+
+        group_index = group
+        channel_index = index
+        group = self.groups[group]
+        ch = group.channels[index]
+
+        if ch.channel_type != v4c.CHANNEL_TYPE_VLSD:
+            return None
+
+        if (group_index, ch.name) in self.vlsd_max_length:
+            return self.vlsd_max_length[(group_index, ch.name)]
+        else:
+
+            offsets, *_ = self._get_scalar(
+                ch,
+                group,
+                group_index,
+                channel_index,
+                group.channel_dependencies[channel_index],
+                raster=None,
+                data=None,
+                ignore_invalidation_bits=True,
+                record_offset=0,
+                record_count=None,
+                master_is_required=False,
+                skip_vlsd=True,
+            )
+            offsets = offsets.astype("u8")
+
+            data = self._load_signal_data(group, channel_index)
+
+            max_size = get_vlsd_max_sample_size(data, offsets, len(offsets))
+
+            return max_size
 
     def included_channels(
         self,
@@ -8136,6 +8197,8 @@ class MDF4(MDF_Common):
             else:
                 signals = [(_master, None)]
 
+            vlsd_max_sizes = []
+
             for fragment, (group_index, channels) in zip(fragments, groups.items()):
                 grp = self.groups[group_index]
                 if not grp.single_channel_dtype:
@@ -8143,29 +8206,30 @@ class MDF4(MDF_Common):
 
                 if idx == 0:
                     for channel_index in channels:
-                        signals.append(
-                            self.get(
-                                group=group_index,
-                                index=channel_index,
-                                data=fragment,
-                                raw=True,
-                                ignore_invalidation_bits=True,
-                                samples_only=False,
-                            )
+                        signal = self.get(
+                            group=group_index,
+                            index=channel_index,
+                            data=fragment,
+                            raw=True,
+                            ignore_invalidation_bits=True,
+                            samples_only=False,
                         )
+
+                        signals.append(signal)
+
                     pass
                 else:
                     for channel_index in channels:
-                        signals.append(
-                            self.get(
-                                group=group_index,
-                                index=channel_index,
-                                data=fragment,
-                                raw=True,
-                                ignore_invalidation_bits=True,
-                                samples_only=True,
-                            )
+                        signal, invalidation_bits = self.get(
+                            group=group_index,
+                            index=channel_index,
+                            data=fragment,
+                            raw=True,
+                            ignore_invalidation_bits=True,
+                            samples_only=True,
                         )
+
+                        signals.append((signal, invalidation_bits))
 
                 if version < "4.00":
                     if idx == 0:

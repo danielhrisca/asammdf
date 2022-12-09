@@ -7,6 +7,7 @@ from collections import defaultdict
 from collections.abc import Iterator, Sequence
 from copy import deepcopy
 from datetime import datetime
+from functools import lru_cache
 from io import BufferedReader, BytesIO
 from itertools import product
 import logging
@@ -236,6 +237,8 @@ class MDF3(MDF_Common):
 
         self.virtual_groups_map = {}
         self.virtual_groups = {}
+
+        self.vlsd_max_length = {}
 
         if name:
             if is_file_like(name):
@@ -3956,6 +3959,10 @@ class MDF3(MDF_Common):
 
     def reload_header(self):
         self.header = HeaderBlock(address=0x40, stream=self._file)
+
+    @lru_cache(maxsize=1024 * 1024)
+    def determine_max_vlsd_sample_size(self, group, index):
+        return 0
 
 
 if __name__ == "__main__":
