@@ -467,7 +467,7 @@ class TestMDF(unittest.TestCase):
     def test_cut(self):
         print("MDF cut big files tests")
         print("?????????????????????")
-        print(self.tempdir.name)
+        print(self.tempdir.name, self.tempdir.exists(), self.tempdir.is_dir())
         print("^^^^^^^^^^^^^^^^^^^^^^")
 
         t = np.arange(cycles, dtype=np.float64)
