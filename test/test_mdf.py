@@ -46,6 +46,10 @@ class TestMDF(unittest.TestCase):
         cls.tempdir = tempfile.TemporaryDirectory()
         cls.tempdir_array = tempfile.TemporaryDirectory()
 
+        print('?????????????????????')
+        print(cls.tempdir.name)
+        print('^^^^^^^^^^^^^^^^^^^^^^')
+
         ZipFile(r"test.zip").extractall(cls.tempdir_demo.name)
         Path("test.zip").unlink()
         for version in ("3.30", "4.10"):
