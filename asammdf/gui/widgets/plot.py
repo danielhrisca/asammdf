@@ -2033,7 +2033,7 @@ class Plot(QtWidgets.QWidget):
                 f"Channels with corrupted time stamps added to {title}",
                 f"The following channels do not have monotonous increasing time stamps:\n{errors}",
             )
-            self.plot._can_trim = can_trim
+            self.plot._can_trim = can_trim or True  # allow it for now
 
         valid = {}
         invalid = []

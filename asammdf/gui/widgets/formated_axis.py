@@ -390,6 +390,7 @@ class FormatedAxis(pg.AxisItem):
             return
 
         lv = self.linkedView()
+
         if lv is None:
 
             pos = event.pos()
