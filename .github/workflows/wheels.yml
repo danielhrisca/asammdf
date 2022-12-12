@@ -7,8 +7,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-22.04, macos-latest, windows-latest]
-        python-version: ["3.8", "3.9", "3.10"]
+        os: [macos-latest, windows-latest]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
 
     steps:
       - uses: actions/checkout@v3
@@ -21,9 +21,15 @@ jobs:
 
       - name: Install packages
         run: |
-            pip install tox tox-gh-actions
+            pip install build numpy wheel 
+            python setup.py bdist_wheel
+            python setup.py sdist
             
       # see: https://github.com/ymyzk/tox-gh-actions
-      - name: Run tests
-        run: tox
         
+      - name: Archive dist artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: dist
+          path: dist/**
+          if-no-files-found: error
