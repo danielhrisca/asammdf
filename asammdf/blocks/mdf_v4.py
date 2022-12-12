@@ -75,6 +75,13 @@ from numpy.typing import NDArray
 from pandas import DataFrame
 
 from . import v4_constants as v4c
+
+DataBlockEnum = v4c.DataBlockEnum
+FlagsCG = v4c.FlagsCG
+FlagsCN = v4c.FlagsCN
+FlagsUNFIN = v4c.FlagsUNFIN
+SIGNED_INT = v4c.SIGNED_INT
+
 from ..signal import Signal
 from ..types import (
     BusType,
@@ -147,8 +154,14 @@ try:
 except ImportError:
     pass
 
+DataEnum = v4c.DataEnum
+ConversionEnum = v4c.ConversionEnum
+ChannelEnum = v4c.ChannelEnum
+SourceEnum = v4c.SourceEnum
+SyncEnum = v4c.SyncEnum
 
-MASTER_CHANNELS = (v4c.CHANNEL_TYPE_MASTER, v4c.CHANNEL_TYPE_VIRTUAL_MASTER)
+
+MASTER_CHANNELS = (ChannelEnum.CHANNEL_TYPE_MASTER, ChannelEnum.CHANNEL_TYPE_VIRTUAL_MASTER)
 COMMON_SIZE = v4c.COMMON_SIZE
 COMMON_u = v4c.COMMON_u
 COMMON_uf = v4c.COMMON_uf
@@ -157,6 +170,8 @@ COMMON_SHORT_SIZE = v4c.COMMON_SHORT_SIZE
 COMMON_SHORT_uf = v4c.COMMON_SHORT_uf
 COMMON_SHORT_u = v4c.COMMON_SHORT_u
 VALID_DATA_TYPES = v4c.VALID_DATA_TYPES
+
+
 
 EMPTY_TUPLE = tuple()
 
@@ -585,11 +600,11 @@ class MDF4(MDF_Common):
 
                 grp.record_size = cg_size
 
-                if channel_group.flags & v4c.FLAG_CG_VLSD:
+                if channel_group.flags & FlagsCG.FLAG_CG_VLSD:
                     # VLDS flag
                     record_id = channel_group.record_id
                     cg_size[record_id] = 0
-                elif channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
+                elif channel_group.flags & FlagsCG.FLAG_CG_BUS_EVENT:
                     samples_size = channel_group.samples_byte_nr
                     inval_size = channel_group.invalidation_bytes_nr
                     record_id = channel_group.record_id
@@ -643,7 +658,7 @@ class MDF4(MDF_Common):
             for new_group in new_groups:
 
                 channel_group = new_group.channel_group
-                if channel_group.flags & v4c.FLAG_CG_REMOTE_MASTER:
+                if channel_group.flags & FlagsCG.FLAG_CG_REMOTE_MASTER:
                     block_type = b"##DV"
                     total_size += (
                         channel_group.samples_byte_nr * channel_group.cycles_nr
@@ -660,7 +675,7 @@ class MDF4(MDF_Common):
 
             if (
                 self.identification["unfinalized_standard_flags"]
-                & v4c.FLAG_UNFIN_UPDATE_CG_COUNTER
+                & FlagsUNFIN.FLAG_UNFIN_UPDATE_CG_COUNTER
             ):
                 total_size = int(10**12)
                 inval_total_size = int(10**12)
@@ -682,7 +697,7 @@ class MDF4(MDF_Common):
             )
 
             for grp in new_groups:
-                grp.data_location = v4c.LOCATION_ORIGINAL_FILE
+                grp.data_location = v4c.DataLocationEnum.LOCATION_ORIGINAL_FILE
                 grp.data_blocks_info_generator = data_blocks_info
                 grp.data_blocks = data_blocks
                 grp.uses_ld = uses_ld
@@ -698,7 +713,7 @@ class MDF4(MDF_Common):
 
             if (
                 self.version >= "4.20"
-                and grp.channel_group.flags & v4c.FLAG_CG_REMOTE_MASTER
+                and grp.channel_group.flags & FlagsCG.FLAG_CG_REMOTE_MASTER
             ):
                 grp.channel_group.cg_master_index = self._cg_map[
                     grp.channel_group.cg_master_addr
@@ -1014,7 +1029,7 @@ class MDF4(MDF_Common):
                 ch_addr = channel.next_ch_addr
                 continue
 
-            if channel.channel_type == v4c.CHANNEL_TYPE_SYNC:
+            if channel.channel_type == ChannelEnum.CHANNEL_TYPE_SYNC:
                 channel.attachment = self._attachments_map.get(
                     channel.data_block_addr,
                     None,
@@ -1198,16 +1213,16 @@ class MDF4(MDF_Common):
 
                         if not info.original_size:
                             continue
-                        if info.location == v4c.LOCATION_TEMPORARY_FILE:
+                        if info.location == v4c.DataLocationEnum.LOCATION_TEMPORARY_FILE:
                             stream = self._tempfile
                         else:
                             stream = self._file
 
                         stream.seek(address)
                         new_data = stream.read(compressed_size)
-                        if block_type == v4c.DZ_BLOCK_DEFLATE:
+                        if block_type == DataBlockEnum.DZ_BLOCK_DEFLATE:
                             new_data = decompress(new_data, bufsize=original_size)
-                        elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
+                        elif block_type == DataBlockEnum.DZ_BLOCK_TRANSPOSED:
                             new_data = decompress(new_data, bufsize=original_size)
                             cols = param
                             lines = original_size // cols
@@ -1215,7 +1230,7 @@ class MDF4(MDF_Common):
                             nd = frombuffer(new_data[: lines * cols], dtype=uint8)
                             nd = nd.reshape((cols, lines))
                             new_data = nd.T.ravel().tobytes() + new_data[lines * cols :]
-                        elif block_type == v4c.DZ_BLOCK_LZ:
+                        elif block_type == DataBlockEnum.DZ_BLOCK_LZ:
                             new_data = lz_decompress(new_data)
 
                         data.append(new_data)
@@ -1237,7 +1252,7 @@ class MDF4(MDF_Common):
 
                         if not info.original_size:
                             continue
-                        if info.location == v4c.LOCATION_TEMPORARY_FILE:
+                        if info.location == v4c.DataLocationEnum.LOCATION_TEMPORARY_FILE:
                             stream = self._tempfile
                         else:
                             stream = self._file
@@ -1248,9 +1263,9 @@ class MDF4(MDF_Common):
 
                         stream.seek(address)
                         new_data = stream.read(compressed_size)
-                        if block_type == v4c.DZ_BLOCK_DEFLATE:
+                        if block_type == DataBlockEnum.DZ_BLOCK_DEFLATE:
                             new_data = decompress(new_data, bufsize=original_size)
-                        elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
+                        elif block_type == DataBlockEnum.DZ_BLOCK_TRANSPOSED:
                             new_data = decompress(new_data, bufsize=original_size)
                             cols = param
                             lines = original_size // cols
@@ -1258,7 +1273,7 @@ class MDF4(MDF_Common):
                             nd = frombuffer(new_data[: lines * cols], dtype=uint8)
                             nd = nd.reshape((cols, lines))
                             new_data = nd.T.ravel().tobytes() + new_data[lines * cols :]
-                        elif block_type == v4c.DZ_BLOCK_LZ:
+                        elif block_type == DataBlockEnum.DZ_BLOCK_LZ:
                             new_data = lz_decompress(new_data)
 
                         if current_offset + original_size > end_offset:
@@ -1310,7 +1325,7 @@ class MDF4(MDF_Common):
         data_blocks_info_generator = group.data_blocks_info_generator
         channel_group = group.channel_group
 
-        if group.data_location == v4c.LOCATION_ORIGINAL_FILE:
+        if group.data_location == v4c.DataLocationEnum.LOCATION_ORIGINAL_FILE:
             stream = self._file
         else:
             stream = self._tempfile
@@ -1446,9 +1461,9 @@ class MDF4(MDF_Common):
                 seek(address)
                 new_data = read(compressed_size)
 
-                if block_type == v4c.DZ_BLOCK_DEFLATE:
+                if block_type == DataBlockEnum.DZ_BLOCK_DEFLATE:
                     new_data = decompress(new_data, bufsize=original_size)
-                elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
+                elif block_type == DataBlockEnum.DZ_BLOCK_TRANSPOSED:
                     new_data = decompress(new_data, bufsize=original_size)
                     cols = param
                     lines = original_size // cols
@@ -1456,7 +1471,7 @@ class MDF4(MDF_Common):
                     nd = frombuffer(new_data[: lines * cols], dtype=uint8)
                     nd = nd.reshape((cols, lines))
                     new_data = nd.T.ravel().tobytes() + new_data[lines * cols :]
-                elif block_type == v4c.DZ_BLOCK_LZ:
+                elif block_type == DataBlockEnum.DZ_BLOCK_LZ:
                     new_data = lz_decompress(new_data)
 
                 if block_limit is not None:
@@ -1474,12 +1489,12 @@ class MDF4(MDF_Common):
                     else:
                         seek(invalidation_info.address)
                         new_invalidation_data = read(invalidation_info.size)
-                        if invalidation_info.block_type == v4c.DZ_BLOCK_DEFLATE:
+                        if invalidation_info.block_type == DataBlockEnum.DZ_BLOCK_DEFLATE:
                             new_invalidation_data = decompress(
                                 new_invalidation_data,
                                 bufsize=invalidation_info.original_size,
                             )
-                        elif invalidation_info.block_type == v4c.DZ_BLOCK_TRANSPOSED:
+                        elif invalidation_info.block_type == DataBlockEnum.DZ_BLOCK_TRANSPOSED:
                             new_invalidation_data = decompress(
                                 new_invalidation_data,
                                 bufsize=invalidation_info.original_size,
@@ -1699,8 +1714,8 @@ class MDF4(MDF_Common):
                     bit_size = byte_size * 8
 
                     if data_type in (
-                        v4c.DATA_TYPE_SIGNED_MOTOROLA,
-                        v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                        DataEnum.DATA_TYPE_SIGNED_MOTOROLA,
+                        DataEnum.DATA_TYPE_UNSIGNED_MOTOROLA,
                     ):
                         if size > 32:
                             bit_offset += 64 - bit_size
@@ -1813,7 +1828,7 @@ class MDF4(MDF_Common):
                         total_size -= size
                         yield DataBlockInfo(
                             address=address + COMMON_SIZE,
-                            block_type=v4c.DT_BLOCK,
+                            block_type=DataBlockEnum.DT_BLOCK,
                             original_size=size,
                             compressed_size=size,
                             param=0,
@@ -1828,10 +1843,10 @@ class MDF4(MDF_Common):
 
                     if original_size:
                         if zip_type == v4c.FLAG_DZ_DEFLATE:
-                            block_type_ = v4c.DZ_BLOCK_DEFLATE
+                            block_type_ = DataBlockEnum.DZ_BLOCK_DEFLATE
                             param = 0
                         else:
-                            block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                            block_type_ = DataBlockEnum.DZ_BLOCK_TRANSPOSED
                         if total_size < original_size:
                             block_limit = total_size
                         else:
@@ -1865,7 +1880,7 @@ class MDF4(MDF_Common):
                                     total_size -= size
                                     yield DataBlockInfo(
                                         address=addr + COMMON_SIZE,
-                                        block_type=v4c.DT_BLOCK,
+                                        block_type=DataBlockEnum.DT_BLOCK,
                                         original_size=size,
                                         compressed_size=size,
                                         param=0,
@@ -1885,10 +1900,10 @@ class MDF4(MDF_Common):
 
                                 if original_size:
                                     if zip_type == v4c.FLAG_DZ_DEFLATE:
-                                        block_type_ = v4c.DZ_BLOCK_DEFLATE
+                                        block_type_ = DataBlockEnum.DZ_BLOCK_DEFLATE
                                         param = 0
                                     else:
-                                        block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                                        block_type_ = DataBlockEnum.DZ_BLOCK_TRANSPOSED
                                     if total_size < original_size:
                                         block_limit = total_size
                                     else:
@@ -1925,7 +1940,7 @@ class MDF4(MDF_Common):
                                     total_size -= size
                                     data_info = DataBlockInfo(
                                         address=addr + COMMON_SIZE,
-                                        block_type=v4c.DT_BLOCK,
+                                        block_type=DataBlockEnum.DT_BLOCK,
                                         original_size=size,
                                         compressed_size=size,
                                         param=0,
@@ -1945,10 +1960,10 @@ class MDF4(MDF_Common):
 
                                 if original_size:
                                     if zip_type == v4c.FLAG_DZ_DEFLATE:
-                                        block_type_ = v4c.DZ_BLOCK_DEFLATE
+                                        block_type_ = DataBlockEnum.DZ_BLOCK_DEFLATE
                                         param = 0
                                     else:
-                                        block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                                        block_type_ = DataBlockEnum.DZ_BLOCK_TRANSPOSED
                                     if total_size < original_size:
                                         block_limit = total_size
                                     else:
@@ -1980,7 +1995,7 @@ class MDF4(MDF_Common):
                                             data_info.invalidation_block = (
                                                 InvalidationBlockInfo(
                                                     address=inval_addr + COMMON_SIZE,
-                                                    block_type=v4c.DT_BLOCK,
+                                                    block_type=DataBlockEnum.DT_BLOCK,
                                                     original_size=size,
                                                     compressed_size=size,
                                                     param=0,
@@ -2000,10 +2015,10 @@ class MDF4(MDF_Common):
 
                                         if original_size:
                                             if zip_type == v4c.FLAG_DZ_DEFLATE:
-                                                block_type_ = v4c.DZ_BLOCK_DEFLATE
+                                                block_type_ = DataBlockEnum.DZ_BLOCK_DEFLATE
                                                 param = 0
                                             else:
-                                                block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                                                block_type_ = DataBlockEnum.DZ_BLOCK_TRANSPOSED
                                             if inval_total_size < original_size:
                                                 block_limit = inval_total_size
                                             else:
@@ -2024,7 +2039,7 @@ class MDF4(MDF_Common):
                                     data_info.invalidation_block = (
                                         InvalidationBlockInfo(
                                             address=0,
-                                            block_type=v4c.DT_BLOCK,
+                                            block_type=DataBlockEnum.DT_BLOCK,
                                             original_size=None,
                                             compressed_size=None,
                                             param=None,
@@ -2066,7 +2081,7 @@ class MDF4(MDF_Common):
                         total_size -= size
                         yield DataBlockInfo(
                             address=address + COMMON_SIZE,
-                            block_type=v4c.DT_BLOCK,
+                            block_type=DataBlockEnum.DT_BLOCK,
                             original_size=size,
                             compressed_size=size,
                             param=0,
@@ -2085,10 +2100,10 @@ class MDF4(MDF_Common):
 
                     if original_size:
                         if zip_type == v4c.FLAG_DZ_DEFLATE:
-                            block_type_ = v4c.DZ_BLOCK_DEFLATE
+                            block_type_ = DataBlockEnum.DZ_BLOCK_DEFLATE
                             param = 0
                         else:
-                            block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                            block_type_ = DataBlockEnum.DZ_BLOCK_TRANSPOSED
                         if total_size < original_size:
                             block_limit = total_size
                         else:
@@ -2127,7 +2142,7 @@ class MDF4(MDF_Common):
                                     total_size -= size
                                     yield DataBlockInfo(
                                         address=addr + COMMON_SIZE,
-                                        block_type=v4c.DT_BLOCK,
+                                        block_type=DataBlockEnum.DT_BLOCK,
                                         original_size=size,
                                         compressed_size=size,
                                         param=0,
@@ -2148,10 +2163,10 @@ class MDF4(MDF_Common):
 
                                 if original_size:
                                     if zip_type == v4c.FLAG_DZ_DEFLATE:
-                                        block_type_ = v4c.DZ_BLOCK_DEFLATE
+                                        block_type_ = DataBlockEnum.DZ_BLOCK_DEFLATE
                                         param = 0
                                     else:
-                                        block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                                        block_type_ = DataBlockEnum.DZ_BLOCK_TRANSPOSED
                                     if total_size < original_size:
                                         block_limit = total_size
                                     else:
@@ -2192,7 +2207,7 @@ class MDF4(MDF_Common):
                                     total_size -= size
                                     data_info = DataBlockInfo(
                                         address=addr + COMMON_SIZE,
-                                        block_type=v4c.DT_BLOCK,
+                                        block_type=DataBlockEnum.DT_BLOCK,
                                         original_size=size,
                                         compressed_size=size,
                                         param=0,
@@ -2213,10 +2228,10 @@ class MDF4(MDF_Common):
 
                                 if original_size:
                                     if zip_type == v4c.FLAG_DZ_DEFLATE:
-                                        block_type_ = v4c.DZ_BLOCK_DEFLATE
+                                        block_type_ = DataBlockEnum.DZ_BLOCK_DEFLATE
                                         param = 0
                                     else:
-                                        block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                                        block_type_ = DataBlockEnum.DZ_BLOCK_TRANSPOSED
                                     if total_size < original_size:
                                         block_limit = total_size
                                     else:
@@ -2249,7 +2264,7 @@ class MDF4(MDF_Common):
                                             data_info.invalidation_block = (
                                                 InvalidationBlockInfo(
                                                     address=inval_addr + COMMON_SIZE,
-                                                    block_type=v4c.DT_BLOCK,
+                                                    block_type=DataBlockEnum.DT_BLOCK,
                                                     original_size=size,
                                                     compressed_size=size,
                                                     param=0,
@@ -2271,10 +2286,10 @@ class MDF4(MDF_Common):
 
                                         if original_size:
                                             if zip_type == v4c.FLAG_DZ_DEFLATE:
-                                                block_type_ = v4c.DZ_BLOCK_DEFLATE
+                                                block_type_ = DataBlockEnum.DZ_BLOCK_DEFLATE
                                                 param = 0
                                             else:
-                                                block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                                                block_type_ = DataBlockEnum.DZ_BLOCK_TRANSPOSED
                                             if inval_total_size < original_size:
                                                 block_limit = inval_total_size
                                             else:
@@ -2295,7 +2310,7 @@ class MDF4(MDF_Common):
                                     data_info.invalidation_block = (
                                         InvalidationBlockInfo(
                                             address=0,
-                                            block_type=v4c.DT_BLOCK,
+                                            block_type=DataBlockEnum.DT_BLOCK,
                                             original_size=0,
                                             compressed_size=0,
                                             param=0,
@@ -2342,7 +2357,7 @@ class MDF4(MDF_Common):
                     address=address + COMMON_SIZE,
                     compressed_size=size,
                     original_size=size,
-                    block_type=v4c.DT_BLOCK,
+                    block_type=DataBlockEnum.DT_BLOCK,
                 )
 
         # or a DataZippedBlock
@@ -2357,10 +2372,10 @@ class MDF4(MDF_Common):
 
             if original_size:
                 if zip_type == v4c.FLAG_DZ_DEFLATE:
-                    block_type_ = v4c.DZ_BLOCK_DEFLATE
+                    block_type_ = DataBlockEnum.DZ_BLOCK_DEFLATE
                     param = 0
                 else:
-                    block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                    block_type_ = DataBlockEnum.DZ_BLOCK_TRANSPOSED
 
                 yield SignalDataBlockInfo(
                     address=address + v4c.DZ_COMMON_SIZE,
@@ -2391,7 +2406,7 @@ class MDF4(MDF_Common):
                                 address=addr + COMMON_SIZE,
                                 compressed_size=size,
                                 original_size=size,
-                                block_type=v4c.DT_BLOCK,
+                                block_type=DataBlockEnum.DT_BLOCK,
                             )
 
                     # or a DataZippedBlock
@@ -2406,10 +2421,10 @@ class MDF4(MDF_Common):
 
                         if original_size:
                             if zip_type == v4c.FLAG_DZ_DEFLATE:
-                                block_type_ = v4c.DZ_BLOCK_DEFLATE
+                                block_type_ = DataBlockEnum.DZ_BLOCK_DEFLATE
                                 param = 0
                             else:
-                                block_type_ = v4c.DZ_BLOCK_TRANSPOSED
+                                block_type_ = DataBlockEnum.DZ_BLOCK_TRANSPOSED
                             yield SignalDataBlockInfo(
                                 address=addr + v4c.DZ_COMMON_SIZE,
                                 block_type=block_type_,
@@ -2713,7 +2728,7 @@ class MDF4(MDF_Common):
             elif sync_type == 4:
                 time_unit = "index"
         else:
-            time_name, sync_type = "time", v4c.SYNC_TYPE_TIME
+            time_name, sync_type = "time", SyncType.SYNC_TYPE_TIME
             time_unit = "s"
 
         gp.channel_group.acq_source = source_block
@@ -2723,7 +2738,7 @@ class MDF4(MDF_Common):
             # time channel
             t_type, t_size = fmt_to_datatype_v4(t.dtype, t.shape)
             kwargs = {
-                "channel_type": v4c.CHANNEL_TYPE_MASTER,
+                "channel_type": ChannelEnum.CHANNEL_TYPE_MASTER,
                 "data_type": t_type,
                 "sync_type": sync_type,
                 "byte_offset": 0,
@@ -2793,7 +2808,7 @@ class MDF4(MDF_Common):
                 # compute additional byte offset for large records size
                 s_type, s_size = fmt_to_datatype_v4(sig_dtype, sig_shape)
 
-                if (s_type, s_size) == (v4c.DATA_TYPE_BYTEARRAY, 0):
+                if (s_type, s_size) == (DataEnum.DATA_TYPE_BYTEARRAY, 0):
                     offsets = arange(len(samples), dtype=uint64) * (sig_shape[1] + 4)
 
                     values = [
@@ -2812,7 +2827,7 @@ class MDF4(MDF_Common):
                             address=data_addr,
                             compressed_size=data_size,
                             original_size=data_size,
-                            location=v4c.LOCATION_TEMPORARY_FILE,
+                            location=v4c.DataLocationEnum.LOCATION_TEMPORARY_FILE,
                         )
                         gp_sdata.append(
                             (
@@ -2832,7 +2847,7 @@ class MDF4(MDF_Common):
 
                     byte_size = 8
                     kwargs = {
-                        "channel_type": v4c.CHANNEL_TYPE_VLSD,
+                        "channel_type": ChannelEnum.CHANNEL_TYPE_VLSD,
                         "bit_count": 64,
                         "byte_offset": offset,
                         "bit_offset": 0,
@@ -2844,7 +2859,7 @@ class MDF4(MDF_Common):
                     if invalidation_bytes_nr:
                         if signal.invalidation_bits is not None:
                             inval_bits.append(signal.invalidation_bits)
-                            kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                            kwargs["flags"] |= FlagsCN.FLAG_CN_INVALIDATION_PRESENT
                             kwargs["pos_invalidation_bit"] = inval_cntr
                             inval_cntr += 1
 
@@ -2911,7 +2926,7 @@ class MDF4(MDF_Common):
                         s_size = signal.bit_count
 
                     if signal.flags & signal.Flags.stream_sync:
-                        channel_type = v4c.CHANNEL_TYPE_SYNC
+                        channel_type = ChannelEnum.CHANNEL_TYPE_SYNC
                         if signal.attachment:
                             at_data, at_name, hash_sum = signal.attachment
                             attachment_index = self.attach(
@@ -2925,10 +2940,10 @@ class MDF4(MDF_Common):
                         else:
                             attachment = None
 
-                        sync_type = v4c.SYNC_TYPE_TIME
+                        sync_type = SyncType.SYNC_TYPE_TIME
                     else:
-                        channel_type = v4c.CHANNEL_TYPE_VALUE
-                        sync_type = v4c.SYNC_TYPE_NONE
+                        channel_type = ChannelEnum.CHANNEL_TYPE_VALUE
+                        sync_type = SyncType.SYNC_TYPE_NONE
 
                         if signal.attachment:
                             at_data, at_name, hash_sum = signal.attachment
@@ -2954,7 +2969,7 @@ class MDF4(MDF_Common):
 
                     if invalidation_bytes_nr and signal.invalidation_bits is not None:
                         inval_bits.append(signal.invalidation_bits)
-                        kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["flags"] = FlagsCN.FLAG_CN_INVALIDATION_PRESENT
                         kwargs["pos_invalidation_bit"] = inval_cntr
                         inval_cntr += 1
 
@@ -3035,7 +3050,7 @@ class MDF4(MDF_Common):
 
                     fields.append((vals, 6))
                     byte_size = 6
-                    s_type = v4c.DATA_TYPE_CANOPEN_TIME
+                    s_type = DataEnum.DATA_TYPE_CANOPEN_TIME
                     s_dtype = dtype("V6")
 
                 else:
@@ -3066,7 +3081,7 @@ class MDF4(MDF_Common):
 
                     fields.append((vals, 7))
                     byte_size = 7
-                    s_type = v4c.DATA_TYPE_CANOPEN_DATE
+                    s_type = DataEnum.DATA_TYPE_CANOPEN_DATE
                     s_dtype = dtype("V7")
 
                 s_size = byte_size * 8
@@ -3076,7 +3091,7 @@ class MDF4(MDF_Common):
 
                 # add channel block
                 kwargs = {
-                    "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                    "channel_type": ChannelEnum.CHANNEL_TYPE_VALUE,
                     "bit_count": s_size,
                     "byte_offset": offset,
                     "bit_offset": 0,
@@ -3085,7 +3100,7 @@ class MDF4(MDF_Common):
                 }
                 if invalidation_bytes_nr and signal.invalidation_bits is not None:
                     inval_bits.append(signal.invalidation_bits)
-                    kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                    kwargs["flags"] |= FlagsCN.FLAG_CN_INVALIDATION_PRESENT
                     kwargs["pos_invalidation_bit"] = inval_cntr
                     inval_cntr += 1
 
@@ -3207,7 +3222,7 @@ class MDF4(MDF_Common):
 
                 # add channel block
                 kwargs = {
-                    "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                    "channel_type": ChannelEnum.CHANNEL_TYPE_VALUE,
                     "bit_count": s_size,
                     "byte_offset": offset,
                     "bit_offset": 0,
@@ -3218,7 +3233,7 @@ class MDF4(MDF_Common):
                 if invalidation_bytes_nr:
                     if signal.invalidation_bits is not None:
                         inval_bits.append(signal.invalidation_bits)
-                        kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["flags"] |= FlagsCN.FLAG_CN_INVALIDATION_PRESENT
                         kwargs["pos_invalidation_bit"] = inval_cntr
                         inval_cntr += 1
 
@@ -3292,7 +3307,7 @@ class MDF4(MDF_Common):
                     s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
                     byte_size = s_size // 8 or 1
                     kwargs = {
-                        "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                        "channel_type": ChannelEnum.CHANNEL_TYPE_VALUE,
                         "bit_count": s_size,
                         "byte_offset": offset,
                         "bit_offset": 0,
@@ -3303,7 +3318,7 @@ class MDF4(MDF_Common):
                     if invalidation_bytes_nr:
                         if signal.invalidation_bits is not None:
                             inval_bits.append(signal.invalidation_bits)
-                            kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                            kwargs["flags"] |= FlagsCN.FLAG_CN_INVALIDATION_PRESENT
                             kwargs["pos_invalidation_bit"] = inval_cntr
                             inval_cntr += 1
 
@@ -3345,13 +3360,13 @@ class MDF4(MDF_Common):
                 sig_dtype = samples.dtype
 
                 if encoding == "utf-8":
-                    data_type = v4c.DATA_TYPE_STRING_UTF_8
+                    data_type = DataEnum.DATA_TYPE_STRING_UTF_8
                 elif encoding == "latin-1":
-                    data_type = v4c.DATA_TYPE_STRING_LATIN_1
+                    data_type = DataEnum.DATA_TYPE_STRING_LATIN_1
                 elif encoding == "utf-16-be":
-                    data_type = v4c.DATA_TYPE_STRING_UTF_16_BE
+                    data_type = DataEnum.DATA_TYPE_STRING_UTF_16_BE
                 elif encoding == "utf-16-le":
-                    data_type = v4c.DATA_TYPE_STRING_UTF_16_LE
+                    data_type = DataEnum.DATA_TYPE_STRING_UTF_16_LE
                 else:
                     raise MdfException(f'wrong encoding "{encoding}" for string signal')
 
@@ -3385,7 +3400,7 @@ class MDF4(MDF_Common):
                             address=data_addr,
                             compressed_size=data_size,
                             original_size=data_size,
-                            location=v4c.LOCATION_TEMPORARY_FILE,
+                            location=v4c.DataLocationEnum.LOCATION_TEMPORARY_FILE,
                         )
                         gp_sdata.append(
                             (
@@ -3425,7 +3440,7 @@ class MDF4(MDF_Common):
                             address=data_addr,
                             compressed_size=data_size,
                             original_size=data_size,
-                            location=v4c.LOCATION_TEMPORARY_FILE,
+                            location=v4c.DataLocationEnum.LOCATION_TEMPORARY_FILE,
                         )
                         gp_sdata.append(
                             (
@@ -3446,7 +3461,7 @@ class MDF4(MDF_Common):
                 # compute additional byte offset for large records size
                 byte_size = 8
                 kwargs = {
-                    "channel_type": v4c.CHANNEL_TYPE_VLSD,
+                    "channel_type": ChannelEnum.CHANNEL_TYPE_VLSD,
                     "bit_count": 64,
                     "byte_offset": offset,
                     "bit_offset": 0,
@@ -3458,7 +3473,7 @@ class MDF4(MDF_Common):
                 if invalidation_bytes_nr:
                     if signal.invalidation_bits is not None:
                         inval_bits.append(signal.invalidation_bits)
-                        kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["flags"] |= FlagsCN.FLAG_CN_INVALIDATION_PRESENT
                         kwargs["pos_invalidation_bit"] = inval_cntr
                         inval_cntr += 1
 
@@ -3577,7 +3592,7 @@ class MDF4(MDF_Common):
                     gp.data_blocks.append(
                         DataBlockInfo(
                             address=data_address,
-                            block_type=v4c.DZ_BLOCK_LZ,
+                            block_type=DataBlockEnum.DZ_BLOCK_LZ,
                             original_size=raw_size,
                             compressed_size=size,
                             param=0,
@@ -3599,7 +3614,7 @@ class MDF4(MDF_Common):
                 gp.data_blocks.append(
                     DataBlockInfo(
                         address=data_address,
-                        block_type=v4c.DZ_BLOCK_LZ,
+                        block_type=DataBlockEnum.DZ_BLOCK_LZ,
                         original_size=raw_size,
                         compressed_size=size,
                         param=0,
@@ -3617,14 +3632,14 @@ class MDF4(MDF_Common):
                     gp.data_blocks[-1].invalidation_block(
                         InvalidationBlockInfo(
                             address=addr,
-                            block_type=v4c.DZ_BLOCK_LZ,
+                            block_type=DataBlockEnum.DZ_BLOCK_LZ,
                             original_size=raw_size,
                             compressed_size=size,
                             param=None,
                         )
                     )
 
-        gp.data_location = v4c.LOCATION_TEMPORARY_FILE
+        gp.data_location = v4c.DataLocationEnum.LOCATION_TEMPORARY_FILE
 
         return dg_cntr
 
@@ -3694,14 +3709,14 @@ class MDF4(MDF_Common):
             elif sync_type == 4:
                 time_unit = "index"
         else:
-            time_name, sync_type = "time", v4c.SYNC_TYPE_TIME
+            time_name, sync_type = "time", SyncType.SYNC_TYPE_TIME
             time_unit = "s"
 
         gp.channel_group.acq_source = source_block
         # time channel
         t_type, t_size = fmt_to_datatype_v4(samples.dtype, samples.shape)
         kwargs = {
-            "channel_type": v4c.CHANNEL_TYPE_MASTER,
+            "channel_type": ChannelEnum.CHANNEL_TYPE_MASTER,
             "data_type": t_type,
             "sync_type": sync_type,
             "byte_offset": 0,
@@ -3766,7 +3781,7 @@ class MDF4(MDF_Common):
 
         if size:
             data_address = tell()
-            gp.data_location = v4c.LOCATION_TEMPORARY_FILE
+            gp.data_location = v4c.DataLocationEnum.LOCATION_TEMPORARY_FILE
             write(samples.tobytes())
 
             chunk = self._write_fragment_size // samples.itemsize
@@ -3778,7 +3793,7 @@ class MDF4(MDF_Common):
                     gp.data_blocks.append(
                         DataBlockInfo(
                             address=data_address,
-                            block_type=v4c.DT_BLOCK,
+                            block_type=DataBlockEnum.DT_BLOCK,
                             original_size=chunk,
                             compressed_size=chunk,
                             param=0,
@@ -3790,7 +3805,7 @@ class MDF4(MDF_Common):
                     gp.data_blocks.append(
                         DataBlockInfo(
                             address=data_address,
-                            block_type=v4c.DT_BLOCK,
+                            block_type=DataBlockEnum.DT_BLOCK,
                             original_size=size,
                             compressed_size=size,
                             param=0,
@@ -3798,7 +3813,7 @@ class MDF4(MDF_Common):
                     )
                     size = 0
         else:
-            gp.data_location = v4c.LOCATION_TEMPORARY_FILE
+            gp.data_location = v4c.DataLocationEnum.LOCATION_TEMPORARY_FILE
 
         for signal in signals:
             gp = Group(None)
@@ -3815,7 +3830,7 @@ class MDF4(MDF_Common):
             kwargs = {
                 "cycles_nr": cycles_nr,
                 "samples_byte_nr": 0,
-                "flags": v4c.FLAG_CG_REMOTE_MASTER,
+                "flags": FlagsCG.FLAG_CG_REMOTE_MASTER,
             }
             gp.channel_group = ChannelGroup(**kwargs)
             gp.channel_group.acq_name = acq_name
@@ -3863,7 +3878,7 @@ class MDF4(MDF_Common):
                     s_size = signal.bit_count
 
                 if signal.flags & signal.Flags.stream_sync:
-                    channel_type = v4c.CHANNEL_TYPE_SYNC
+                    channel_type = ChannelEnum.CHANNEL_TYPE_SYNC
                     if signal.attachment:
                         at_data, at_name, hash_sum = signal.attachment
                         attachment_addr = self.attach(
@@ -3873,11 +3888,11 @@ class MDF4(MDF_Common):
                     else:
                         data_block_addr = 0
 
-                    sync_type = v4c.SYNC_TYPE_TIME
+                    sync_type = SyncType.SYNC_TYPE_TIME
                 else:
-                    channel_type = v4c.CHANNEL_TYPE_VALUE
+                    channel_type = ChannelEnum.CHANNEL_TYPE_VALUE
                     data_block_addr = 0
-                    sync_type = v4c.SYNC_TYPE_NONE
+                    sync_type = SyncType.SYNC_TYPE_NONE
 
                 kwargs = {
                     "channel_type": channel_type,
@@ -3892,7 +3907,7 @@ class MDF4(MDF_Common):
 
                 if signal.invalidation_bits is not None:
                     invalidation_bits = signal.invalidation_bits
-                    kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                    kwargs["flags"] = FlagsCN.FLAG_CN_INVALIDATION_PRESENT
                     kwargs["pos_invalidation_bit"] = 0
                 else:
                     invalidation_bits = None
@@ -3965,7 +3980,7 @@ class MDF4(MDF_Common):
                     types.append((name, "V6"))
                     gp.single_channel_dtype = dtype("V6")
                     byte_size = 6
-                    s_type = v4c.DATA_TYPE_CANOPEN_TIME
+                    s_type = DataEnum.DATA_TYPE_CANOPEN_TIME
 
                 else:
                     record.append(
@@ -3995,7 +4010,7 @@ class MDF4(MDF_Common):
                     types.append((name, "V7"))
                     gp.single_channel_dtype = dtype("V7")
                     byte_size = 7
-                    s_type = v4c.DATA_TYPE_CANOPEN_DATE
+                    s_type = DataEnum.DATA_TYPE_CANOPEN_DATE
 
                 s_size = byte_size * 8
 
@@ -4004,7 +4019,7 @@ class MDF4(MDF_Common):
 
                 # add channel block
                 kwargs = {
-                    "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                    "channel_type": ChannelEnum.CHANNEL_TYPE_VALUE,
                     "bit_count": s_size,
                     "byte_offset": offset,
                     "bit_offset": 0,
@@ -4013,7 +4028,7 @@ class MDF4(MDF_Common):
                 }
                 if signal.invalidation_bits is not None:
                     invalidation_bits = signal.invalidation_bits
-                    kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                    kwargs["flags"] = FlagsCN.FLAG_CN_INVALIDATION_PRESENT
                     kwargs["pos_invalidation_bit"] = 0
                 else:
                     invalidation_bits = None
@@ -4157,7 +4172,7 @@ class MDF4(MDF_Common):
 
                 # add channel block
                 kwargs = {
-                    "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                    "channel_type": ChannelEnum.CHANNEL_TYPE_VALUE,
                     "bit_count": s_size,
                     "byte_offset": offset,
                     "bit_offset": 0,
@@ -4167,7 +4182,7 @@ class MDF4(MDF_Common):
 
                 if signal.invalidation_bits is not None:
                     invalidation_bits = signal.invalidation_bits
-                    kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                    kwargs["flags"] = FlagsCN.FLAG_CN_INVALIDATION_PRESENT
                     kwargs["pos_invalidation_bit"] = 0
                 else:
                     invalidation_bits = None
@@ -4243,7 +4258,7 @@ class MDF4(MDF_Common):
                     s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
                     byte_size = s_size // 8 or 1
                     kwargs = {
-                        "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                        "channel_type": ChannelEnum.CHANNEL_TYPE_VALUE,
                         "bit_count": s_size,
                         "byte_offset": offset,
                         "bit_offset": 0,
@@ -4253,7 +4268,7 @@ class MDF4(MDF_Common):
 
                     if signal.invalidation_bits is not None:
                         invalidation_bits = signal.invalidation_bits
-                        kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["flags"] = FlagsCN.FLAG_CN_INVALIDATION_PRESENT
                         kwargs["pos_invalidation_bit"] = 0
                     else:
                         invalidation_bits = None
@@ -4289,13 +4304,13 @@ class MDF4(MDF_Common):
                 sig_dtype = samples.dtype
 
                 if encoding == "utf-8":
-                    data_type = v4c.DATA_TYPE_STRING_UTF_8
+                    data_type = DataEnum.DATA_TYPE_STRING_UTF_8
                 elif encoding == "latin-1":
-                    data_type = v4c.DATA_TYPE_STRING_LATIN_1
+                    data_type = DataEnum.DATA_TYPE_STRING_LATIN_1
                 elif encoding == "utf-16-be":
-                    data_type = v4c.DATA_TYPE_STRING_UTF_16_BE
+                    data_type = DataEnum.DATA_TYPE_STRING_UTF_16_BE
                 elif encoding == "utf-16-le":
-                    data_type = v4c.DATA_TYPE_STRING_UTF_16_LE
+                    data_type = DataEnum.DATA_TYPE_STRING_UTF_16_LE
                 else:
                     raise MdfException(f'wrong encoding "{encoding}" for string signal')
 
@@ -4316,7 +4331,7 @@ class MDF4(MDF_Common):
                         address=data_addr,
                         compressed_size=data_size,
                         original_size=data_size,
-                        location=v4c.LOCATION_TEMPORARY_FILE,
+                        location=v4c.DataLocationEnum.LOCATION_TEMPORARY_FILE,
                     )
                     gp_sdata.append(
                         (
@@ -4337,7 +4352,7 @@ class MDF4(MDF_Common):
                 # compute additional byte offset for large records size
                 byte_size = 8
                 kwargs = {
-                    "channel_type": v4c.CHANNEL_TYPE_VLSD,
+                    "channel_type": ChannelEnum.CHANNEL_TYPE_VLSD,
                     "bit_count": 64,
                     "byte_offset": offset,
                     "bit_offset": 0,
@@ -4348,7 +4363,7 @@ class MDF4(MDF_Common):
 
                 if signal.invalidation_bits is not None:
                     invalidation_bits = signal.invalidation_bits
-                    kwargs["flags"] = v4c.FLAG_CN_INVALIDATION_PRESENT
+                    kwargs["flags"] = FlagsCN.FLAG_CN_INVALIDATION_PRESENT
                     kwargs["pos_invalidation_bit"] = 0
                 else:
                     invalidation_bits = None
@@ -4434,7 +4449,7 @@ class MDF4(MDF_Common):
                 gp.data_blocks.append(
                     DataBlockInfo(
                         address=data_address,
-                        block_type=v4c.DZ_BLOCK_LZ,
+                        block_type=DataBlockEnum.DZ_BLOCK_LZ,
                         original_size=raw_size,
                         compressed_size=size,
                         param=0,
@@ -4452,14 +4467,14 @@ class MDF4(MDF_Common):
                     gp.data_blocks[-1].invalidation_block(
                         InvalidationBlockInfo(
                             address=addr,
-                            block_type=v4c.DZ_BLOCK_LZ,
+                            block_type=DataBlockEnum.DZ_BLOCK_LZ,
                             original_size=raw_size,
                             compressed_size=size,
                             param=None,
                         )
                     )
 
-            gp.data_location = v4c.LOCATION_TEMPORARY_FILE
+            gp.data_location = v4c.DataLocationEnum.LOCATION_TEMPORARY_FILE
 
         return initial_dg_cntr
 
@@ -4483,7 +4498,7 @@ class MDF4(MDF_Common):
         t = df.index
         index_name = df.index.name
         time_name = index_name or "time"
-        sync_type = v4c.SYNC_TYPE_TIME
+        sync_type = SyncType.SYNC_TYPE_TIME
         time_unit = "s"
 
         dg_cntr = len(self.groups)
@@ -4529,7 +4544,7 @@ class MDF4(MDF_Common):
         # time channel
         t_type, t_size = fmt_to_datatype_v4(t.dtype, t.shape)
         kwargs = {
-            "channel_type": v4c.CHANNEL_TYPE_MASTER,
+            "channel_type": ChannelEnum.CHANNEL_TYPE_MASTER,
             "data_type": t_type,
             "sync_type": sync_type,
             "byte_offset": 0,
@@ -4597,9 +4612,9 @@ class MDF4(MDF_Common):
 
                 byte_size = s_size // 8 or 1
 
-                channel_type = v4c.CHANNEL_TYPE_VALUE
+                channel_type = ChannelEnum.CHANNEL_TYPE_VALUE
                 data_block_addr = 0
-                sync_type = v4c.SYNC_TYPE_NONE
+                sync_type = SyncType.SYNC_TYPE_NONE
 
                 kwargs = {
                     "channel_type": channel_type,
@@ -4658,7 +4673,7 @@ class MDF4(MDF_Common):
                         address=data_addr,
                         compressed_size=data_size,
                         original_size=data_size,
-                        location=v4c.LOCATION_TEMPORARY_FILE,
+                        location=v4c.DataLocationEnum.LOCATION_TEMPORARY_FILE,
                     )
                     gp_sdata.append(
                         (
@@ -4679,11 +4694,11 @@ class MDF4(MDF_Common):
                 # compute additional byte offset for large records size
                 byte_size = 8
                 kwargs = {
-                    "channel_type": v4c.CHANNEL_TYPE_VLSD,
+                    "channel_type": ChannelEnum.CHANNEL_TYPE_VLSD,
                     "bit_count": 64,
                     "byte_offset": offset,
                     "bit_offset": 0,
-                    "data_type": v4c.DATA_TYPE_STRING_UTF_8,
+                    "data_type": DataEnum.DATA_TYPE_STRING_UTF_8,
                     "min_raw_value": 0,
                     "max_raw_value": 0,
                     "lower_limit": 0,
@@ -4744,7 +4759,7 @@ class MDF4(MDF_Common):
         size = len(samples) * samples.itemsize
         if size:
             data_address = self._tempfile.tell()
-            gp.data_location = v4c.LOCATION_TEMPORARY_FILE
+            gp.data_location = v4c.DataLocationEnum.LOCATION_TEMPORARY_FILE
 
             samples.tofile(self._tempfile)
 
@@ -4753,14 +4768,14 @@ class MDF4(MDF_Common):
             gp.data_blocks.append(
                 DataBlockInfo(
                     address=data_address,
-                    block_type=v4c.DT_BLOCK,
+                    block_type=DataBlockEnum.DT_BLOCK,
                     original_size=size,
                     compressed_size=size,
                     param=0,
                 )
             )
         else:
-            gp.data_location = v4c.LOCATION_TEMPORARY_FILE
+            gp.data_location = v4c.DataLocationEnum.LOCATION_TEMPORARY_FILE
 
     def _append_structure_composition(
         self,
@@ -4820,24 +4835,24 @@ class MDF4(MDF_Common):
 
         # add channel block
         kwargs = {
-            "channel_type": v4c.CHANNEL_TYPE_VALUE,
+            "channel_type": ChannelEnum.CHANNEL_TYPE_VALUE,
             "bit_count": signal.samples.dtype.itemsize * 8,
             "byte_offset": offset,
             "bit_offset": 0,
-            "data_type": v4c.DATA_TYPE_BYTEARRAY,
+            "data_type": DataEnum.DATA_TYPE_BYTEARRAY,
             "precision": 0,
         }
 
         if attachment is not None:
             kwargs["attachment_addr"] = 0
 
-        source_bus = signal.source and signal.source.source_type == v4c.SOURCE_BUS
+        source_bus = signal.source and signal.source.source_type == SourceType.SOURCE_BUS
 
         if source_bus:
-            kwargs["flags"] = v4c.FLAG_CN_BUS_EVENT
-            flags_ = v4c.FLAG_CN_BUS_EVENT
+            kwargs["flags"] = FlagsCN.FLAG_CN_BUS_EVENT
+            flags_ = FlagsCN.FLAG_CN_BUS_EVENT
             grp.channel_group.flags |= (
-                v4c.FLAG_CG_BUS_EVENT | v4c.FLAG_CG_PLAIN_BUS_EVENT
+                FlagsCG.FLAG_CG_BUS_EVENT | FlagsCG.FLAG_CG_PLAIN_BUS_EVENT
             )
         else:
             kwargs["flags"] = 0
@@ -4845,7 +4860,7 @@ class MDF4(MDF_Common):
 
         if invalidation_bytes_nr and signal.invalidation_bits is not None:
             inval_bits.append(signal.invalidation_bits)
-            kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+            kwargs["flags"] |= FlagsCN.FLAG_CN_INVALIDATION_PRESENT
             kwargs["pos_invalidation_bit"] = inval_cntr
             inval_cntr += 1
 
@@ -4939,7 +4954,7 @@ class MDF4(MDF_Common):
 
                 # add channel block
                 kwargs = {
-                    "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                    "channel_type": ChannelEnum.CHANNEL_TYPE_VALUE,
                     "bit_count": s_size,
                     "byte_offset": offset,
                     "bit_offset": 0,
@@ -4950,7 +4965,7 @@ class MDF4(MDF_Common):
                 if invalidation_bytes_nr:
                     if signal.invalidation_bits is not None:
                         inval_bits.append(signal.invalidation_bits)
-                        kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["flags"] |= FlagsCN.FLAG_CN_INVALIDATION_PRESENT
                         kwargs["pos_invalidation_bit"] = inval_cntr
                         inval_cntr += 1
 
@@ -5052,7 +5067,7 @@ class MDF4(MDF_Common):
 
                 # add channel block
                 kwargs = {
-                    "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                    "channel_type": ChannelEnum.CHANNEL_TYPE_VALUE,
                     "bit_count": s_size,
                     "byte_offset": offset,
                     "bit_offset": 0,
@@ -5063,7 +5078,7 @@ class MDF4(MDF_Common):
                 if invalidation_bytes_nr:
                     if signal.invalidation_bits is not None:
                         inval_bits.append(signal.invalidation_bits)
-                        kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["flags"] |= FlagsCN.FLAG_CN_INVALIDATION_PRESENT
                         kwargs["pos_invalidation_bit"] = inval_cntr
                         inval_cntr += 1
 
@@ -5137,7 +5152,7 @@ class MDF4(MDF_Common):
                     s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
                     byte_size = s_size // 8 or 1
                     kwargs = {
-                        "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                        "channel_type": ChannelEnum.CHANNEL_TYPE_VALUE,
                         "bit_count": s_size,
                         "byte_offset": offset,
                         "bit_offset": 0,
@@ -5148,7 +5163,7 @@ class MDF4(MDF_Common):
                     if invalidation_bytes_nr:
                         if signal.invalidation_bits is not None:
                             inval_bits.append(signal.invalidation_bits)
-                            kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                            kwargs["flags"] |= FlagsCN.FLAG_CN_INVALIDATION_PRESENT
                             kwargs["pos_invalidation_bit"] = inval_cntr
                             inval_cntr += 1
 
@@ -5258,29 +5273,29 @@ class MDF4(MDF_Common):
 
         # add channel block
         kwargs = {
-            "channel_type": v4c.CHANNEL_TYPE_VALUE,
+            "channel_type": ChannelEnum.CHANNEL_TYPE_VALUE,
             "bit_count": signal.samples.dtype.itemsize * 8,
             "byte_offset": offset,
             "bit_offset": 0,
-            "data_type": v4c.DATA_TYPE_BYTEARRAY,
+            "data_type": DataEnum.DATA_TYPE_BYTEARRAY,
             "precision": 0,
         }
 
         if attachment is not None:
             kwargs["attachment_addr"] = 0
 
-        source_bus = signal.source and signal.source.source_type == v4c.SOURCE_BUS
+        source_bus = signal.source and signal.source.source_type == SourceType.SOURCE_BUS
 
         if source_bus:
-            kwargs["flags"] = v4c.FLAG_CN_BUS_EVENT
-            flags_ = v4c.FLAG_CN_BUS_EVENT
-            grp.channel_group.flags |= v4c.FLAG_CG_BUS_EVENT
+            kwargs["flags"] = FlagsCN.FLAG_CN_BUS_EVENT
+            flags_ = FlagsCN.FLAG_CN_BUS_EVENT
+            grp.channel_group.flags |= FlagsCG.FLAG_CG_BUS_EVENT
         else:
             kwargs["flags"] = 0
             flags_ = 0
 
         if signal.invalidation_bits is not None:
-            kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+            kwargs["flags"] |= FlagsCN.FLAG_CN_INVALIDATION_PRESENT
             kwargs["pos_invalidation_bit"] = 0
 
         ch = Channel(**kwargs)
@@ -5369,7 +5384,7 @@ class MDF4(MDF_Common):
 
                 # add channel block
                 kwargs = {
-                    "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                    "channel_type": ChannelEnum.CHANNEL_TYPE_VALUE,
                     "bit_count": s_size,
                     "byte_offset": offset,
                     "bit_offset": 0,
@@ -5378,7 +5393,7 @@ class MDF4(MDF_Common):
                 }
 
                 if signal.invalidation_bits is not None:
-                    kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                    kwargs["flags"] |= FlagsCN.FLAG_CN_INVALIDATION_PRESENT
                     kwargs["pos_invalidation_bit"] = 0
 
                 ch = Channel(**kwargs)
@@ -5483,7 +5498,7 @@ class MDF4(MDF_Common):
 
                 # add channel block
                 kwargs = {
-                    "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                    "channel_type": ChannelEnum.CHANNEL_TYPE_VALUE,
                     "bit_count": s_size,
                     "byte_offset": offset,
                     "bit_offset": 0,
@@ -5492,7 +5507,7 @@ class MDF4(MDF_Common):
                 }
 
                 if signal.invalidation_bits is not None:
-                    kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                    kwargs["flags"] |= FlagsCN.FLAG_CN_INVALIDATION_PRESENT
                     kwargs["pos_invalidation_bit"] = 0
 
                 ch = Channel(**kwargs)
@@ -5566,7 +5581,7 @@ class MDF4(MDF_Common):
                     s_type, s_size = fmt_to_datatype_v4(samples.dtype, ())
                     byte_size = s_size // 8 or 1
                     kwargs = {
-                        "channel_type": v4c.CHANNEL_TYPE_VALUE,
+                        "channel_type": ChannelEnum.CHANNEL_TYPE_VALUE,
                         "bit_count": s_size,
                         "byte_offset": offset,
                         "bit_offset": 0,
@@ -5575,7 +5590,7 @@ class MDF4(MDF_Common):
                     }
 
                     if signal.invalidation_bits is not None:
-                        kwargs["flags"] |= v4c.FLAG_CN_INVALIDATION_PRESENT
+                        kwargs["flags"] |= FlagsCN.FLAG_CN_INVALIDATION_PRESENT
                         kwargs["pos_invalidation_bit"] = 0
 
                     ch = Channel(**kwargs)
@@ -5761,7 +5776,7 @@ class MDF4(MDF_Common):
                     data = []
                     offsets = []
                     off = 0
-                    if gp.channels[i].data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
+                    if gp.channels[i].data_type == DataEnum.DATA_TYPE_STRING_UTF_16_LE:
                         for elem in signal:
                             offsets.append(off)
                             size = len(elem)
@@ -5790,7 +5805,7 @@ class MDF4(MDF_Common):
                             address=addr,
                             compressed_size=data_size,
                             original_size=data_size,
-                            location=v4c.LOCATION_TEMPORARY_FILE,
+                            location=v4c.DataLocationEnum.LOCATION_TEMPORARY_FILE,
                         )
                         gp.signal_data[i][0].append(info)
                         stream.write(b"".join(data))
@@ -5819,7 +5834,7 @@ class MDF4(MDF_Common):
                             address=addr,
                             compressed_size=block_size,
                             original_size=block_size,
-                            location=v4c.LOCATION_TEMPORARY_FILE,
+                            location=v4c.DataLocationEnum.LOCATION_TEMPORARY_FILE,
                         )
                         gp.signal_data[i][0].append(info)
                         values.tofile(stream)
@@ -5871,7 +5886,7 @@ class MDF4(MDF_Common):
                 gp.data_blocks.append(
                     DataBlockInfo(
                         address=addr,
-                        block_type=v4c.DZ_BLOCK_LZ,
+                        block_type=DataBlockEnum.DZ_BLOCK_LZ,
                         original_size=raw_size,
                         compressed_size=size,
                         param=0,
@@ -5891,7 +5906,7 @@ class MDF4(MDF_Common):
                 gp.data_blocks.append(
                     DataBlockInfo(
                         address=addr,
-                        block_type=v4c.DT_BLOCK_LZ,
+                        block_type=DataBlockEnum.DT_BLOCK_LZ,
                         original_size=raw_size,
                         compressed_size=size,
                         param=0,
@@ -5913,7 +5928,7 @@ class MDF4(MDF_Common):
                     gp.data_blocks[-1].invalidation_block(
                         InvalidationBlockInfo(
                             address=addr,
-                            block_type=v4c.DT_BLOCK_LZ,
+                            block_type=DataBlockEnum.DT_BLOCK_LZ,
                             original_size=raw_size,
                             compressed_size=size,
                             param=None,
@@ -6019,7 +6034,7 @@ class MDF4(MDF_Common):
                         address=addr,
                         compressed_size=block_size,
                         original_size=block_size,
-                        location=v4c.LOCATION_TEMPORARY_FILE,
+                        location=v4c.DataLocationEnum.LOCATION_TEMPORARY_FILE,
                     )
                     gp.signal_data[i][0].append(info)
                     write(values.tobytes())
@@ -6041,7 +6056,7 @@ class MDF4(MDF_Common):
                 gp.data_blocks.append(
                     DataBlockInfo(
                         address=addr,
-                        block_type=v4c.DZ_BLOCK_LZ,
+                        block_type=DataBlockEnum.DZ_BLOCK_LZ,
                         original_size=raw_size,
                         compressed_size=size,
                         param=0,
@@ -6061,7 +6076,7 @@ class MDF4(MDF_Common):
                     gp.data_blocks[-1].invalidation_block(
                         InvalidationBlockInfo(
                             address=addr,
-                            block_type=v4c.DZ_BLOCK_LZ,
+                            block_type=DataBlockEnum.DZ_BLOCK_LZ,
                             original_size=raw_size,
                             compressed_size=size,
                             param=None,
@@ -6675,7 +6690,7 @@ class MDF4(MDF_Common):
 
             master_metadata = self._master_channel_metadata.get(gp_nr, None)
 
-            if channel_type == v4c.CHANNEL_TYPE_SYNC:
+            if channel_type == ChannelEnum.CHANNEL_TYPE_SYNC:
                 flags = Signal.Flags.stream_sync
             else:
                 flags = Signal.Flags.no_flags
@@ -6737,14 +6752,14 @@ class MDF4(MDF_Common):
         groups = self.groups
 
         channel_invalidation_present = channel.flags & (
-            v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT
+            FlagsCN.FLAG_CN_ALL_INVALID | FlagsCN.FLAG_CN_INVALIDATION_PRESENT
         )
 
         _dtype = dtype(channel.dtype_fmt)
         conditions = [
             _dtype.itemsize == channel.bit_count // 8,
             all(
-                groups[dg_nr].channels[ch_nr].channel_type != v4c.CHANNEL_TYPE_VLSD
+                groups[dg_nr].channels[ch_nr].channel_type != ChannelEnum.CHANNEL_TYPE_VLSD
                 for (dg_nr, ch_nr) in dependency_list
             ),
         ]
@@ -6993,7 +7008,7 @@ class MDF4(MDF_Common):
         dtype_fmt = dtype(types)
 
         channel_invalidation_present = channel.flags & (
-            v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT
+            FlagsCN.FLAG_CN_ALL_INVALID | FlagsCN.FLAG_CN_INVALIDATION_PRESENT
         )
 
         channel_group = grp.channel_group
@@ -7286,7 +7301,7 @@ class MDF4(MDF_Common):
             one_piece = True
 
         channel_invalidation_present = channel.flags & (
-            v4c.FLAG_CN_ALL_INVALID | v4c.FLAG_CN_INVALIDATION_PRESENT
+            FlagsCN.FLAG_CN_ALL_INVALID | FlagsCN.FLAG_CN_INVALIDATION_PRESENT
         )
 
         data_type = channel.data_type
@@ -7299,8 +7314,8 @@ class MDF4(MDF_Common):
 
         # get channel values
         if channel_type in {
-            v4c.CHANNEL_TYPE_VIRTUAL,
-            v4c.CHANNEL_TYPE_VIRTUAL_MASTER,
+            ChannelEnum.CHANNEL_TYPE_VIRTUAL,
+            ChannelEnum.CHANNEL_TYPE_VIRTUAL_MASTER,
         }:
             if not channel.dtype_fmt:
                 channel.dtype_fmt = dtype(get_fmt_v4(data_type, 64))
@@ -7437,8 +7452,8 @@ class MDF4(MDF_Common):
                         size = byte_size
 
                         if channel_dtype.byteorder == "|" and data_type in (
-                            v4c.DATA_TYPE_SIGNED_MOTOROLA,
-                            v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                            DataEnum.DATA_TYPE_SIGNED_MOTOROLA,
+                            DataEnum.DATA_TYPE_UNSIGNED_MOTOROLA,
                         ):
                             view = f">u{vals.itemsize}"
                         else:
@@ -7451,12 +7466,12 @@ class MDF4(MDF_Common):
                             vals >>= bit_offset
 
                         if bit_count != size * 8:
-                            if data_type in v4c.SIGNED_INT:
+                            if data_type in SIGNED_INT:
                                 vals = as_non_byte_sized_signed_int(vals, bit_count)
                             else:
                                 mask = (1 << bit_count) - 1
                                 vals &= mask
-                        elif data_type in v4c.SIGNED_INT:
+                        elif data_type in SIGNED_INT:
                             view = f"{channel_dtype.byteorder}i{vals.itemsize}"
                             if dtype(view) != vals.dtype:
                                 vals = vals.view(view)
@@ -7560,8 +7575,8 @@ class MDF4(MDF_Common):
                         size = dtype_.itemsize
 
                         if channel_dtype.byteorder == "|" and data_type in (
-                            v4c.DATA_TYPE_SIGNED_MOTOROLA,
-                            v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                            DataEnum.DATA_TYPE_SIGNED_MOTOROLA,
+                            DataEnum.DATA_TYPE_UNSIGNED_MOTOROLA,
                         ):
                             view = f">u{vals.itemsize}"
                         else:
@@ -7574,12 +7589,12 @@ class MDF4(MDF_Common):
                             vals >>= bit_offset
 
                         if bit_count != size * 8:
-                            if data_type in v4c.SIGNED_INT:
+                            if data_type in SIGNED_INT:
                                 vals = as_non_byte_sized_signed_int(vals, bit_count)
                             else:
                                 mask = (1 << bit_count) - 1
                                 vals &= mask
-                        elif data_type in v4c.SIGNED_INT:
+                        elif data_type in SIGNED_INT:
                             view = f"{channel_dtype.byteorder}i{vals.itemsize}"
                             if dtype(view) != vals.dtype:
                                 vals = vals.view(view)
@@ -7636,7 +7651,7 @@ class MDF4(MDF_Common):
                     vals.invalidation_bits,
                 )
 
-        if channel_type == v4c.CHANNEL_TYPE_VLSD and not skip_vlsd:
+        if channel_type == ChannelEnum.CHANNEL_TYPE_VLSD and not skip_vlsd:
             count_ = len(vals)
 
             if count_:
@@ -7653,11 +7668,11 @@ class MDF4(MDF_Common):
             if signal_data:
 
                 if data_type in (
-                    v4c.DATA_TYPE_BYTEARRAY,
-                    v4c.DATA_TYPE_UNSIGNED_INTEL,
-                    v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
-                    v4c.DATA_TYPE_MIME_SAMPLE,
-                    v4c.DATA_TYPE_MIME_STREAM,
+                    DataEnum.DATA_TYPE_BYTEARRAY,
+                    DataEnum.DATA_TYPE_UNSIGNED_INTEL,
+                    DataEnum.DATA_TYPE_UNSIGNED_MOTOROLA,
+                    DataEnum.DATA_TYPE_MIME_SAMPLE,
+                    DataEnum.DATA_TYPE_MIME_STREAM,
                 ):
                     vals = extract(signal_data, 1, vals - vals[0])
                     if vals.shape[1] < max_vlsd_size:
@@ -7677,27 +7692,27 @@ class MDF4(MDF_Common):
                     vals = extract(signal_data, 0, vals - vals[0])
 
                 if data_type not in (
-                    v4c.DATA_TYPE_BYTEARRAY,
-                    v4c.DATA_TYPE_UNSIGNED_INTEL,
-                    v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
-                    v4c.DATA_TYPE_MIME_SAMPLE,
-                    v4c.DATA_TYPE_MIME_STREAM,
+                    DataEnum.DATA_TYPE_BYTEARRAY,
+                    DataEnum.DATA_TYPE_UNSIGNED_INTEL,
+                    DataEnum.DATA_TYPE_UNSIGNED_MOTOROLA,
+                    DataEnum.DATA_TYPE_MIME_SAMPLE,
+                    DataEnum.DATA_TYPE_MIME_STREAM,
                 ):
 
-                    if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
+                    if data_type == DataEnum.DATA_TYPE_STRING_UTF_16_BE:
                         encoding = "utf-16-be"
 
-                    elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
+                    elif data_type == DataEnum.DATA_TYPE_STRING_UTF_16_LE:
                         encoding = "utf-16-le"
 
-                    elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
+                    elif data_type == DataEnum.DATA_TYPE_STRING_UTF_8:
                         encoding = "utf-8"
                         vals = np.array(
                             [e.rsplit(b"\0")[0] for e in vals.tolist()],
                             dtype=vals.dtype,
                         )
 
-                    elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
+                    elif data_type == DataEnum.DATA_TYPE_STRING_LATIN_1:
                         encoding = "latin-1"
                         vals = np.array(
                             [e.rsplit(b"\0")[0] for e in vals.tolist()],
@@ -7716,19 +7731,19 @@ class MDF4(MDF_Common):
                         f'Wrong signal data block refence (0x{channel.data_block_addr:X}) for VLSD channel "{channel.name}"'
                     )
                 # no VLSD signal data samples
-                if data_type != v4c.DATA_TYPE_BYTEARRAY:
+                if data_type != DataEnum.DATA_TYPE_BYTEARRAY:
                     vals = array([], dtype=f"S{max_vlsd_size}")
 
-                    if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
+                    if data_type == DataEnum.DATA_TYPE_STRING_UTF_16_BE:
                         encoding = "utf-16-be"
 
-                    elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
+                    elif data_type == DataEnum.DATA_TYPE_STRING_UTF_16_LE:
                         encoding = "utf-16-le"
 
-                    elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
+                    elif data_type == DataEnum.DATA_TYPE_STRING_UTF_8:
                         encoding = "utf-8"
 
-                    elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
+                    elif data_type == DataEnum.DATA_TYPE_STRING_LATIN_1:
                         encoding = "latin-1"
 
                     else:
@@ -7740,20 +7755,20 @@ class MDF4(MDF_Common):
                     vals = array([], dtype=f"({max_vlsd_size},)u1")
 
         elif (
-            v4c.DATA_TYPE_STRING_LATIN_1 <= data_type <= v4c.DATA_TYPE_STRING_UTF_16_BE
+            DataEnum.DATA_TYPE_STRING_LATIN_1 <= data_type <= DataEnum.DATA_TYPE_STRING_UTF_16_BE
         ):
-            if channel_type in (v4c.CHANNEL_TYPE_VALUE, v4c.CHANNEL_TYPE_MLSD):
+            if channel_type in (ChannelEnum.CHANNEL_TYPE_VALUE, ChannelEnum.CHANNEL_TYPE_MLSD):
 
-                if data_type == v4c.DATA_TYPE_STRING_UTF_16_BE:
+                if data_type == DataEnum.DATA_TYPE_STRING_UTF_16_BE:
                     encoding = "utf-16-be"
 
-                elif data_type == v4c.DATA_TYPE_STRING_UTF_16_LE:
+                elif data_type == DataEnum.DATA_TYPE_STRING_UTF_16_LE:
                     encoding = "utf-16-le"
 
-                elif data_type == v4c.DATA_TYPE_STRING_UTF_8:
+                elif data_type == DataEnum.DATA_TYPE_STRING_UTF_8:
                     encoding = "utf-8"
 
-                elif data_type == v4c.DATA_TYPE_STRING_LATIN_1:
+                elif data_type == DataEnum.DATA_TYPE_STRING_LATIN_1:
                     encoding = "latin-1"
 
                 else:
@@ -7761,9 +7776,9 @@ class MDF4(MDF_Common):
                         f'wrong data type "{data_type}" for string channel'
                     )
 
-        elif data_type in (v4c.DATA_TYPE_CANOPEN_TIME, v4c.DATA_TYPE_CANOPEN_DATE):
+        elif data_type in (DataEnum.DATA_TYPE_CANOPEN_TIME, DataEnum.DATA_TYPE_CANOPEN_DATE):
             # CANopen date
-            if data_type == v4c.DATA_TYPE_CANOPEN_DATE:
+            if data_type == DataEnum.DATA_TYPE_CANOPEN_DATE:
 
                 types = dtype(
                     [
@@ -7807,7 +7822,7 @@ class MDF4(MDF_Common):
                 vals = fromarrays(arrays, names=names)
 
             # CANopen time
-            elif data_type == v4c.DATA_TYPE_CANOPEN_TIME:
+            elif data_type == DataEnum.DATA_TYPE_CANOPEN_TIME:
 
                 types = dtype([("ms", "<u4"), ("days", "<u2")])
                 vals = vals.view(types)
@@ -7818,9 +7833,9 @@ class MDF4(MDF_Common):
         self, data: bytes, group: Group, ch_nr: int
     ) -> NDArray[Any]:
         big_endian_types = (
-            v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
-            v4c.DATA_TYPE_REAL_MOTOROLA,
-            v4c.DATA_TYPE_SIGNED_MOTOROLA,
+            DataEnum.DATA_TYPE_UNSIGNED_MOTOROLA,
+            DataEnum.DATA_TYPE_REAL_MOTOROLA,
+            DataEnum.DATA_TYPE_SIGNED_MOTOROLA,
         )
 
         if group.uses_ld:
@@ -7930,7 +7945,7 @@ class MDF4(MDF_Common):
 
         data_type = channel.data_type
 
-        if data_type in v4c.SIGNED_INT:
+        if data_type in SIGNED_INT:
             return as_non_byte_sized_signed_int(vals, bit_count)
         elif data_type in v4c.FLOATS:
             return vals.view(get_fmt_v4(data_type, bit_count))
@@ -7945,7 +7960,7 @@ class MDF4(MDF_Common):
         group = self.groups[group]
         ch = group.channels[index]
 
-        if ch.channel_type != v4c.CHANNEL_TYPE_VLSD:
+        if ch.channel_type != ChannelEnum.CHANNEL_TYPE_VLSD:
             return None
 
         if (group_index, ch.name) in self.vlsd_max_length:
@@ -8341,7 +8356,7 @@ class MDF4(MDF_Common):
             return self._master
 
         group = self.groups[index]
-        if group.channel_group.flags & v4c.FLAG_CG_REMOTE_MASTER:
+        if group.channel_group.flags & FlagsCG.FLAG_CG_REMOTE_MASTER:
             if data is not None:
                 record_offset = data[1]
                 record_count = data[2]
@@ -8374,7 +8389,7 @@ class MDF4(MDF_Common):
                 t += offset
             else:
                 t = array([], dtype=float64)
-            metadata = ("timestamps", v4c.SYNC_TYPE_TIME)
+            metadata = ("timestamps", SyncType.SYNC_TYPE_TIME)
         else:
 
             time_ch = group.channels[time_ch_nr]
@@ -8383,7 +8398,7 @@ class MDF4(MDF_Common):
 
             metadata = (time_name, time_ch.sync_type)
 
-            if time_ch.channel_type == v4c.CHANNEL_TYPE_VIRTUAL_MASTER:
+            if time_ch.channel_type == ChannelEnum.CHANNEL_TYPE_VIRTUAL_MASTER:
                 time_a = time_conv["a"]
                 time_b = time_conv["b"]
                 t = arange(cycles_nr, dtype=float64)
@@ -8475,8 +8490,8 @@ class MDF4(MDF_Common):
                         size = byte_size
 
                         if channel_dtype.byteorder == "|" and time_ch.data_type in (
-                            v4c.DATA_TYPE_SIGNED_MOTOROLA,
-                            v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+                            DataEnum.DATA_TYPE_SIGNED_MOTOROLA,
+                            DataEnum.DATA_TYPE_UNSIGNED_MOTOROLA,
                         ):
                             view = f">u{t.itemsize}"
                         else:
@@ -8489,12 +8504,12 @@ class MDF4(MDF_Common):
                             t >>= bit_offset
 
                         if bit_count != size * 8:
-                            if data_type in v4c.SIGNED_INT:
+                            if data_type in SIGNED_INT:
                                 t = as_non_byte_sized_signed_int(t, bit_count)
                             else:
                                 mask = (1 << bit_count) - 1
                                 t &= mask
-                        elif data_type in v4c.SIGNED_INT:
+                        elif data_type in SIGNED_INT:
                             view = f"{channel_dtype.byteorder}i{t.itemsize}"
                             if dtype(view) != t.dtype:
                                 t = t.view(view)
@@ -9077,7 +9092,7 @@ class MDF4(MDF_Common):
             for j, channel in enumerate(gp.channels):
                 name = channel.name
 
-                ch_type = v4c.CHANNEL_TYPE_TO_DESCRIPTION[channel.channel_type]
+                ch_type = ChannelEnum.CHANNEL_TYPE_TO_DESCRIPTION[channel.channel_type]
                 inf[f"channel {j}"] = f'name="{name}" type={ch_type}'
 
         return info
@@ -9219,7 +9234,7 @@ class MDF4(MDF_Common):
             for gp_nr, gp in enumerate(self.groups):
                 original_data_addresses.append(gp.data_group.data_block_addr)
 
-                if gp.channel_group.flags & v4c.FLAG_CG_VLSD:
+                if gp.channel_group.flags & FlagsCG.FLAG_CG_VLSD:
                     continue
 
                 address = tell()
@@ -9522,7 +9537,7 @@ class MDF4(MDF_Common):
             gp_rec_ids = []
             valid_data_groups = []
             for gp in self.groups:
-                if gp.channel_group.flags & v4c.FLAG_CG_VLSD:
+                if gp.channel_group.flags & FlagsCG.FLAG_CG_VLSD:
                     continue
 
                 valid_data_groups.append(gp.data_group)
@@ -9553,7 +9568,7 @@ class MDF4(MDF_Common):
                         address, blocks, defined_texts, cc_map, si_map
                     )
 
-                    if channel.channel_type == v4c.CHANNEL_TYPE_SYNC:
+                    if channel.channel_type == ChannelEnum.CHANNEL_TYPE_SYNC:
                         if channel.attachment is not None:
                             channel.data_block_addr = self.attachments[
                                 channel.attachment
@@ -9692,7 +9707,7 @@ class MDF4(MDF_Common):
                     j -= 1
 
                 # channel group
-                if gp.channel_group.flags & v4c.FLAG_CG_VLSD:
+                if gp.channel_group.flags & FlagsCG.FLAG_CG_VLSD:
                     continue
 
                 gp.channel_group.first_sample_reduction_addr = 0
@@ -9902,7 +9917,7 @@ class MDF4(MDF_Common):
                             channel.attachment_addr = 0
 
                         if (
-                            channel.channel_type == v4c.CHANNEL_TYPE_SYNC
+                            channel.channel_type == ChannelEnum.CHANNEL_TYPE_SYNC
                             and channel.attachment is not None
                         ):
                             channel.data_block_addr = self.attachments[
@@ -10158,7 +10173,7 @@ class MDF4(MDF_Common):
         limit = stream.tell()
         mapped = self._mapped
 
-        if flags & v4c.FLAG_UNFIN_UPDATE_LAST_DL:
+        if flags & FlagsUNFIN.FLAG_UNFIN_UPDATE_LAST_DL:
             for dg_addr in block_groups[b"##DG\x00\x00"]:
                 group = DataGroup(address=dg_addr, stream=stream, mapped=mapped)
                 data_addr = group.data_block_addr
@@ -10264,9 +10279,9 @@ class MDF4(MDF_Common):
 
             self.identification[
                 "unfinalized_standard_flags"
-            ] -= v4c.FLAG_UNFIN_UPDATE_LAST_DL
+            ] -= FlagsUNFIN.FLAG_UNFIN_UPDATE_LAST_DL
 
-        if flags & v4c.FLAG_UNFIN_UPDATE_LAST_DT_LENGTH:
+        if flags & FlagsUNFIN.FLAG_UNFIN_UPDATE_LAST_DT_LENGTH:
             try:
                 for dg_addr in block_groups[b"##DG\x00\x00"]:
                     group = DataGroup(address=dg_addr, stream=stream, mapped=mapped)
@@ -10318,7 +10333,7 @@ class MDF4(MDF_Common):
                 raise
 
             self.identification.unfinalized_standard_flags -= (
-                v4c.FLAG_UNFIN_UPDATE_LAST_DT_LENGTH
+                FlagsUNFIN.FLAG_UNFIN_UPDATE_LAST_DT_LENGTH
             )
         self.identification.file_identification = b"MDF     "
 
@@ -10414,13 +10429,13 @@ class MDF4(MDF_Common):
 
                 seek(dtblock_address)
 
-                if block_type != v4c.DT_BLOCK:
+                if block_type != DataBlockEnum.DT_BLOCK:
                     partial_records = {id_: [] for _, id_ in groups}
                     new_data = read(dtblock_size)
 
-                    if block_type == v4c.DZ_BLOCK_DEFLATE:
+                    if block_type == DataBlockEnum.DZ_BLOCK_DEFLATE:
                         new_data = decompress(new_data, bufsize=dtblock_raw_size)
-                    elif block_type == v4c.DZ_BLOCK_TRANSPOSED:
+                    elif block_type == DataBlockEnum.DZ_BLOCK_TRANSPOSED:
                         new_data = decompress(new_data, bufsize=dtblock_raw_size)
                         cols = param
                         lines = dtblock_raw_size // cols
@@ -10472,8 +10487,8 @@ class MDF4(MDF_Common):
                                             address=tempfile_address,
                                             compressed_size=compressed_size,
                                             original_size=original_size,
-                                            block_type=v4c.DZ_BLOCK_LZ,
-                                            location=v4c.LOCATION_TEMPORARY_FILE,
+                                            block_type=DataBlockEnum.DZ_BLOCK_LZ,
+                                            location=v4c.DataLocationEnum.LOCATION_TEMPORARY_FILE,
                                         )
                                         self.groups[dg_cntr].signal_data[ch_cntr][
                                             0
@@ -10483,7 +10498,7 @@ class MDF4(MDF_Common):
 
                                         block_info = DataBlockInfo(
                                             address=tempfile_address,
-                                            block_type=v4c.DZ_BLOCK_LZ,
+                                            block_type=DataBlockEnum.DZ_BLOCK_LZ,
                                             compressed_size=compressed_size,
                                             original_size=original_size,
                                             param=0,
@@ -10499,8 +10514,8 @@ class MDF4(MDF_Common):
                                             address=tempfile_address,
                                             compressed_size=original_size,
                                             original_size=original_size,
-                                            block_type=v4c.DT_BLOCK,
-                                            location=v4c.LOCATION_TEMPORARY_FILE,
+                                            block_type=DataBlockEnum.DT_BLOCK,
+                                            location=v4c.DataLocationEnum.LOCATION_TEMPORARY_FILE,
                                         )
                                         self.groups[dg_cntr].signal_data[ch_cntr][
                                             0
@@ -10510,7 +10525,7 @@ class MDF4(MDF_Common):
 
                                         block_info = DataBlockInfo(
                                             address=tempfile_address,
-                                            block_type=v4c.DT_BLOCK,
+                                            block_type=DataBlockEnum.DT_BLOCK,
                                             compressed_size=original_size,
                                             original_size=original_size,
                                             param=0,
@@ -10569,8 +10584,8 @@ class MDF4(MDF_Common):
                                                 address=tempfile_address,
                                                 compressed_size=compressed_size,
                                                 original_size=original_size,
-                                                block_type=v4c.DZ_BLOCK_LZ,
-                                                location=v4c.LOCATION_TEMPORARY_FILE,
+                                                block_type=DataBlockEnum.DZ_BLOCK_LZ,
+                                                location=v4c.DataLocationEnum.LOCATION_TEMPORARY_FILE,
                                             )
                                             self.groups[dg_cntr].signal_data[ch_cntr][
                                                 0
@@ -10579,7 +10594,7 @@ class MDF4(MDF_Common):
                                         else:
                                             block_info = DataBlockInfo(
                                                 address=tempfile_address,
-                                                block_type=v4c.DZ_BLOCK_LZ,
+                                                block_type=DataBlockEnum.DZ_BLOCK_LZ,
                                                 compressed_size=compressed_size,
                                                 original_size=original_size,
                                                 param=None,
@@ -10596,8 +10611,8 @@ class MDF4(MDF_Common):
                                                 address=tempfile_address,
                                                 compressed_size=original_size,
                                                 original_size=original_size,
-                                                block_type=v4c.DT_BLOCK,
-                                                location=v4c.LOCATION_TEMPORARY_FILE,
+                                                block_type=DataBlockEnum.DT_BLOCK,
+                                                location=v4c.DataLocationEnum.LOCATION_TEMPORARY_FILE,
                                             )
                                             self.groups[dg_cntr].signal_data[ch_cntr][
                                                 0
@@ -10606,7 +10621,7 @@ class MDF4(MDF_Common):
                                         else:
                                             block_info = DataBlockInfo(
                                                 address=tempfile_address,
-                                                block_type=v4c.DT_BLOCK,
+                                                block_type=DataBlockEnum.DT_BLOCK,
                                                 compressed_size=original_size,
                                                 original_size=original_size,
                                                 param=None,
@@ -10619,21 +10634,21 @@ class MDF4(MDF_Common):
             # corresponding groups.
             for idx, rec_id in groups:
                 group = self.groups[idx]
-                group.data_location = v4c.LOCATION_TEMPORARY_FILE
+                group.data_location = v4c.DataLocationEnum.LOCATION_TEMPORARY_FILE
                 group.set_blocks_info(final_records[rec_id])
                 group.sorted = True
 
         for i, group in enumerate(self.groups):
-            if flags & v4c.FLAG_UNFIN_UPDATE_CG_COUNTER:
+            if flags & FlagsUNFIN.FLAG_UNFIN_UPDATE_CG_COUNTER:
 
                 channel_group = group.channel_group
 
-                if channel_group.flags & v4c.FLAG_CG_VLSD:
+                if channel_group.flags & FlagsCG.FLAG_CG_VLSD:
                     continue
 
                 if (
                     self.version >= "4.20"
-                    and channel_group.flags & v4c.FLAG_CG_REMOTE_MASTER
+                    and channel_group.flags & FlagsCG.FLAG_CG_REMOTE_MASTER
                 ):
                     index = channel_group.cg_master_index
                 else:
@@ -10656,24 +10671,24 @@ class MDF4(MDF_Common):
 
         if (
             self.identification["unfinalized_standard_flags"]
-            & v4c.FLAG_UNFIN_UPDATE_CG_COUNTER
+            & FlagsUNFIN.FLAG_UNFIN_UPDATE_CG_COUNTER
         ):
             self.identification[
                 "unfinalized_standard_flags"
-            ] -= v4c.FLAG_UNFIN_UPDATE_CG_COUNTER
+            ] -= FlagsUNFIN.FLAG_UNFIN_UPDATE_CG_COUNTER
         if (
             self.identification["unfinalized_standard_flags"]
-            & v4c.FLAG_UNFIN_UPDATE_VLSD_BYTES
+            & FlagsUNFIN.FLAG_UNFIN_UPDATE_VLSD_BYTES
         ):
             self.identification[
                 "unfinalized_standard_flags"
-            ] -= v4c.FLAG_UNFIN_UPDATE_VLSD_BYTES
+            ] -= FlagsUNFIN.FLAG_UNFIN_UPDATE_VLSD_BYTES
 
     def _process_bus_logging(self) -> None:
         groups_count = len(self.groups)
         for index in range(groups_count):
             group = self.groups[index]
-            if group.channel_group.flags & v4c.FLAG_CG_BUS_EVENT:
+            if group.channel_group.flags & FlagsCG.FLAG_CG_BUS_EVENT:
                 source = group.channel_group.acq_source
 
                 if (
@@ -10729,7 +10744,7 @@ class MDF4(MDF_Common):
                         dbc = self._dbc_cache[attachment_addr]
                 break
 
-        if not group.channel_group.flags & v4c.FLAG_CG_PLAIN_BUS_EVENT:
+        if not group.channel_group.flags & FlagsCG.FLAG_CG_PLAIN_BUS_EVENT:
             self._prepare_record(group)
             data = self._load_data(group, record_offset=0, record_count=1)
 

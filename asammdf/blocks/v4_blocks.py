@@ -38,6 +38,14 @@ except:
 import numpy as np
 
 from . import v4_constants as v4c
+
+FlagsAT = v4c.FlagAT
+FlagsCC = v4c.FlagsCC
+FlagsCG = v4c.FlagsCG
+FlagsCN = v4c.FlagsCN
+FlagsEV = v4c.FlagsEV
+
+
 from ..version import __version__
 from .utils import (
     block_fields,
@@ -234,11 +242,11 @@ class AttachmentBlock:
 
             md5_sum = md5(data).digest()
 
-            flags = v4c.FLAG_AT_MD5_VALID
+            flags = FlagsAT.FLAG_AT_MD5_VALID
             if embedded:
-                flags |= v4c.FLAG_AT_EMBEDDED
+                flags |= FlagsAT.FLAG_AT_EMBEDDED
                 if compression:
-                    flags |= v4c.FLAG_AT_COMPRESSED_EMBEDDED
+                    flags |= FlagsAT.FLAG_AT_COMPRESSED_EMBEDDED
                     data = compress(data, COMPRESSION_LEVEL)
                     embedded_size = len(data)
                 self.file_name = file_name.name
@@ -273,12 +281,12 @@ class AttachmentBlock:
         -------
         data : bytes
         """
-        if self.flags & v4c.FLAG_AT_EMBEDDED:
-            if self.flags & v4c.FLAG_AT_COMPRESSED_EMBEDDED:
+        if self.flags & FlagsAT.FLAG_AT_EMBEDDED:
+            if self.flags & FlagsAT.FLAG_AT_COMPRESSED_EMBEDDED:
                 data = decompress(self.embedded_data, bufsize=self.original_size)
             else:
                 data = self.embedded_data
-            if self.flags & v4c.FLAG_AT_MD5_VALID:
+            if self.flags & FlagsAT.FLAG_AT_MD5_VALID:
                 md5_worker = md5()
                 md5_worker.update(data)
                 md5_sum = md5_worker.digest()
@@ -615,7 +623,7 @@ class Channel:
                         params = list(params)
                         params[10] = 1
 
-                    if params[6] & v4c.FLAG_CN_DEFAULT_X:
+                    if params[6] & FlagsCN.FLAG_CN_DEFAULT_X:
                         (
                             self.default_X_dg_addr,
                             self.default_X_cg_addr,
@@ -840,7 +848,7 @@ class Channel:
                         self.block_len -= (params[10] - 1) * 8
                         params[10] = 1
 
-                    if params[6] & v4c.FLAG_CN_DEFAULT_X:
+                    if params[6] & FlagsCN.FLAG_CN_DEFAULT_X:
                         (
                             self.default_X_dg_addr,
                             self.default_X_cg_addr,
@@ -1033,9 +1041,9 @@ class Channel:
                 self.attachment_nr = 1
 
         # ignore MLSD signal data
-        if self.channel_type == v4c.CHANNEL_TYPE_MLSD:
+        if self.channel_type == v4c.ChannelEnum.CHANNEL_TYPE_MLSD:
             self.data_block_addr = 0
-            self.channel_type = v4c.CHANNEL_TYPE_VALUE
+            self.channel_type = v4c.ChannelEnum.CHANNEL_TYPE_VALUE
 
         if self.name in self.display_names:
             del self.display_names[self.name]
@@ -1246,7 +1254,7 @@ class Channel:
             if self.attachment_nr:
                 keys += ("attachment_addr",)
 
-            if self.flags & v4c.FLAG_CN_DEFAULT_X:
+            if self.flags & FlagsCN.FLAG_CN_DEFAULT_X:
                 keys += ("default_X_dg_addr", "default_X_cg_addr", "default_X_ch_addr")
             keys += (
                 "channel_type",
@@ -1296,7 +1304,7 @@ class Channel:
             if self.attachment_nr:
                 keys += ("attachment_addr",)
 
-            if self.flags & v4c.FLAG_CN_DEFAULT_X:
+            if self.flags & FlagsCN.FLAG_CN_DEFAULT_X:
                 keys += ("default_X_dg_addr", "default_X_cg_addr", "default_X_ch_addr")
             keys += (
                 "channel_type",
@@ -1345,14 +1353,14 @@ unit: {self.unit}
                 else:
                     lines.append(template.format(key, val))
             if key == "data_type":
-                lines[-1] += f" = {v4c.DATA_TYPE_TO_STRING[self.data_type]}"
+                lines[-1] += f" = {v4c.DataEnum(self.data_type)}"
             elif key == "channel_type":
-                lines[-1] += f" = {v4c.CHANNEL_TYPE_TO_STRING[self.channel_type]}"
+                lines[-1] += f" = {v4c.ChannelEnum(self.channel_type)}"
             elif key == "sync_type":
-                lines[-1] += f" = {v4c.SYNC_TYPE_TO_STRING[self.sync_type]}"
+                lines[-1] += f" = {v4c.SyncEnum(self.sync_type)}"
             elif key == "flags":
                 flags = []
-                for fl, string in v4c.FLAG_CN_TO_STRING.items():
+                for fl, string in FlagsCN.FLAG_CN_TO_STRING.items():
                     if self.flags & fl:
                         flags.append(string)
                 if flags:
@@ -2044,7 +2052,7 @@ class ChannelGroup:
             self.samples_byte_nr = kwargs.get("samples_byte_nr", 0)
             self.invalidation_bytes_nr = kwargs.get("invalidation_bytes_nr", 0)
 
-            if self.flags & v4c.FLAG_CG_REMOTE_MASTER:
+            if self.flags & FlagsCG.FLAG_CG_REMOTE_MASTER:
                 self.cg_master_addr = kwargs.get("cg_master_addr", 0)
                 self.block_len = v4c.CG_RM_BLOCK_SIZE
                 self.links_nr = 7
@@ -2108,7 +2116,7 @@ class ChannelGroup:
         return address
 
     def __bytes__(self) -> bytes:
-        if self.flags & v4c.FLAG_CG_REMOTE_MASTER:
+        if self.flags & FlagsCG.FLAG_CG_REMOTE_MASTER:
             result = v4c.CHANNEL_GROUP_RM_p(
                 self.id,
                 self.reserved0,
@@ -2204,7 +2212,7 @@ comment: {self.comment}
 
             if key == "flags":
                 flags = []
-                for fl, string in v4c.FLAG_CG_TO_STRING.items():
+                for fl, string in FlagsCG.FLAG_CG_TO_STRING.items():
                     if self.flags & fl:
                         flags.append(string)
                 if flags:
@@ -4647,7 +4655,7 @@ class DataList(_DataListBase):
                 stream.seek(address + self.links_nr * 8)
 
                 self.flags = stream.read(1)[0]
-                if self.flags & v4c.FLAG_DL_EQUAL_LENGHT:
+                if self.flags & FlagsDL.FLAG_DL_EQUAL_LENGHT:
                     (self.reserved1, self.data_block_nr, self.data_block_len) = unpack(
                         "<3sIQ", stream.read(15)
                     )
@@ -4685,7 +4693,7 @@ class DataList(_DataListBase):
                     self[f"data_block_addr{i}"] = addr
 
                 self.flags = stream.read(1)[0]
-                if self.flags & v4c.FLAG_DL_EQUAL_LENGHT:
+                if self.flags & FlagsDL.FLAG_DL_EQUAL_LENGHT:
                     (self.reserved1, self.data_block_nr, self.data_block_len) = unpack(
                         "<3sIQ", stream.read(15)
                     )
@@ -4715,7 +4723,7 @@ class DataList(_DataListBase):
             self.flags = kwargs.get("flags", 1)
             self.reserved1 = kwargs.get("reserved1", b"\0\0\0")
             self.data_block_nr = kwargs.get("data_block_nr", self.links_nr - 1)
-            if self.flags & v4c.FLAG_DL_EQUAL_LENGHT:
+            if self.flags & FlagsDL.FLAG_DL_EQUAL_LENGHT:
                 self.data_block_len = kwargs["data_block_len"]
             else:
                 for i, offset in enumerate(self.links_nr - 1):
@@ -4872,7 +4880,7 @@ class EventBlock(_EventBlockBase):
                 self.sync_factor,
             ) = params
 
-            if self.flags & v4c.FLAG_EV_GROUP_NAME:
+            if self.flags & FlagsEV.FLAG_EV_GROUP_NAME:
                 self.group_name_addr = links[-1]
 
             if self.id != b"##EV":
@@ -4908,7 +4916,7 @@ class EventBlock(_EventBlockBase):
             self.sync_type = kwargs.get("sync_type", v4c.EVENT_SYNC_TYPE_S)
             self.range_type = kwargs.get("range_type", v4c.EVENT_RANGE_TYPE_POINT)
             self.cause = kwargs.get("cause", v4c.EVENT_CAUSE_TOOL)
-            self.flags = kwargs.get("flags", v4c.FLAG_EV_POST_PROCESSING)
+            self.flags = kwargs.get("flags", FlagsEV.FLAG_EV_POST_PROCESSING)
             self.reserved1 = b"\x00\x00\x00"
             self.scope_nr = scopes
             self.attachment_nr = 0
@@ -4916,7 +4924,7 @@ class EventBlock(_EventBlockBase):
             self.sync_base = kwargs.get("sync_base", 1)
             self.sync_factor = kwargs.get("sync_factor", 1.0)
 
-            if self.flags & v4c.FLAG_EV_GROUP_NAME:
+            if self.flags & FlagsEV.FLAG_EV_GROUP_NAME:
                 self.group_name_addr = kwargs.get("group_name_addr", 0)
 
         self.tool = extract_ev_tool(self.comment)
@@ -4958,7 +4966,7 @@ class EventBlock(_EventBlockBase):
 
         keys += tuple(f"attachment_{i}_addr" for i in range(self.attachment_nr))
 
-        if self.flags & v4c.FLAG_EV_GROUP_NAME:
+        if self.flags & FlagsEV.FLAG_EV_GROUP_NAME:
             keys += ("group_name_addr",)
 
         keys += (
@@ -5018,7 +5026,7 @@ class EventBlock(_EventBlockBase):
         else:
             self.comment_addr = 0
 
-        if self.flags & v4c.FLAG_EV_GROUP_NAME:
+        if self.flags & FlagsEV.FLAG_EV_GROUP_NAME:
             text = self.group_name
             if text:
                 tx_block = TextBlock(text=text)

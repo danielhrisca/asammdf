@@ -64,6 +64,9 @@ from ..types import (
     StrPathType,
 )
 
+ChannelEnumV4 = v4c.ChannelEnum
+DataEnumV4 = v4c.DataEnum
+
 UINT8_u = Struct("<B").unpack
 UINT16_u = Struct("<H").unpack
 UINT32_p = Struct("<I").pack
@@ -491,7 +494,7 @@ def get_fmt_v3(
 
 @lru_cache(maxsize=1024)
 def get_fmt_v4(
-    data_type: int, size: int, channel_type: int = v4c.CHANNEL_TYPE_VALUE
+    data_type: int, size: int, channel_type: int = ChannelEnumV4.CHANNEL_TYPE_VALUE
 ) -> str:
     """convert mdf version 4 channel data type to numpy dtype format string
 
@@ -514,54 +517,54 @@ def get_fmt_v4(
         size = size // 8
 
         if data_type in (
-            v4c.DATA_TYPE_BYTEARRAY,
-            v4c.DATA_TYPE_MIME_STREAM,
-            v4c.DATA_TYPE_MIME_SAMPLE,
+            DataEnumV4.DATA_TYPE_BYTEARRAY,
+            DataEnumV4.DATA_TYPE_MIME_STREAM,
+            DataEnumV4.DATA_TYPE_MIME_SAMPLE,
         ):
-            if channel_type == v4c.CHANNEL_TYPE_VALUE:
+            if channel_type == ChannelEnumV4.CHANNEL_TYPE_VALUE:
                 fmt = f"({size},)u1"
             else:
                 fmt = f"<u{size}"
 
         elif data_type in v4c.STRING_TYPES:
-            if channel_type == v4c.CHANNEL_TYPE_VALUE:
+            if channel_type == ChannelEnumV4.CHANNEL_TYPE_VALUE:
                 fmt = f"S{size}"
             else:
                 fmt = f"<u{size}"
 
-        elif data_type == v4c.DATA_TYPE_CANOPEN_DATE:
+        elif data_type == DataEnumV4.DATA_TYPE_CANOPEN_DATE:
             fmt = "V7"
 
-        elif data_type == v4c.DATA_TYPE_CANOPEN_TIME:
+        elif data_type == DataEnumV4.DATA_TYPE_CANOPEN_TIME:
             fmt = "V6"
 
     elif channel_type in v4c.VIRTUAL_TYPES:
-        if data_type == v4c.DATA_TYPE_UNSIGNED_INTEL:
+        if data_type == DataEnumV4.DATA_TYPE_UNSIGNED_INTEL:
             fmt = "<u8"
 
-        elif data_type == v4c.DATA_TYPE_UNSIGNED_MOTOROLA:
+        elif data_type == DataEnumV4.DATA_TYPE_UNSIGNED_MOTOROLA:
             fmt = ">u8"
 
-        elif data_type == v4c.DATA_TYPE_SIGNED_INTEL:
+        elif data_type == DataEnumV4.DATA_TYPE_SIGNED_INTEL:
             fmt = "<i8"
 
-        elif data_type == v4c.DATA_TYPE_SIGNED_MOTOROLA:
+        elif data_type == DataEnumV4.DATA_TYPE_SIGNED_MOTOROLA:
             fmt = ">i8"
 
-        elif data_type == v4c.DATA_TYPE_REAL_INTEL:
+        elif data_type == DataEnumV4.DATA_TYPE_REAL_INTEL:
             fmt = "<f8"
 
-        elif data_type == v4c.DATA_TYPE_REAL_MOTOROLA:
+        elif data_type == DataEnumV4.DATA_TYPE_REAL_MOTOROLA:
             fmt = ">f8"
-        elif data_type == v4c.DATA_TYPE_COMPLEX_INTEL:
+        elif data_type == DataEnumV4.DATA_TYPE_COMPLEX_INTEL:
             fmt = "<c8"
-        elif data_type == v4c.DATA_TYPE_COMPLEX_MOTOROLA:
+        elif data_type == DataEnumV4.DATA_TYPE_COMPLEX_MOTOROLA:
             fmt = ">c8"
 
     else:
         if size > 64 and data_type in (
-            v4c.DATA_TYPE_UNSIGNED_INTEL,
-            v4c.DATA_TYPE_UNSIGNED_MOTOROLA,
+            DataEnumV4.DATA_TYPE_UNSIGNED_INTEL,
+            DataEnumV4.DATA_TYPE_UNSIGNED_MOTOROLA,
         ):
             fmt = f"({size // 8},)u1"
         else:
@@ -576,26 +579,26 @@ def get_fmt_v4(
             else:
                 size = size // 8
 
-            if data_type == v4c.DATA_TYPE_UNSIGNED_INTEL:
+            if data_type == DataEnumV4.DATA_TYPE_UNSIGNED_INTEL:
                 fmt = f"<u{size}"
 
-            elif data_type == v4c.DATA_TYPE_UNSIGNED_MOTOROLA:
+            elif data_type == DataEnumV4.DATA_TYPE_UNSIGNED_MOTOROLA:
                 fmt = f">u{size}"
 
-            elif data_type == v4c.DATA_TYPE_SIGNED_INTEL:
+            elif data_type == DataEnumV4.DATA_TYPE_SIGNED_INTEL:
                 fmt = f"<i{size}"
 
-            elif data_type == v4c.DATA_TYPE_SIGNED_MOTOROLA:
+            elif data_type == DataEnumV4.DATA_TYPE_SIGNED_MOTOROLA:
                 fmt = f">i{size}"
 
-            elif data_type == v4c.DATA_TYPE_REAL_INTEL:
+            elif data_type == DataEnumV4.DATA_TYPE_REAL_INTEL:
                 fmt = f"<f{size}"
 
-            elif data_type == v4c.DATA_TYPE_REAL_MOTOROLA:
+            elif data_type == DataEnumV4.DATA_TYPE_REAL_MOTOROLA:
                 fmt = f">f{size}"
-            elif data_type == v4c.DATA_TYPE_COMPLEX_INTEL:
+            elif data_type == DataEnumV4.DATA_TYPE_COMPLEX_INTEL:
                 fmt = f"<c{size}"
-            elif data_type == v4c.DATA_TYPE_COMPLEX_MOTOROLA:
+            elif data_type == DataEnumV4.DATA_TYPE_COMPLEX_MOTOROLA:
                 fmt = f">c{size}"
 
     return fmt
@@ -688,14 +691,14 @@ def info_to_datatype_v4(signed: bool, little_endian: bool) -> int:
 
     if signed:
         if little_endian:
-            datatype = v4c.DATA_TYPE_SIGNED_INTEL
+            datatype = DataEnumV4.DATA_TYPE_SIGNED_INTEL
         else:
-            datatype = v4c.DATA_TYPE_SIGNED_MOTOROLA
+            datatype = DataEnumV4.DATA_TYPE_SIGNED_MOTOROLA
     else:
         if little_endian:
-            datatype = v4c.DATA_TYPE_UNSIGNED_INTEL
+            datatype = DataEnumV4.DATA_TYPE_UNSIGNED_INTEL
         else:
-            datatype = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
+            datatype = DataEnumV4.DATA_TYPE_UNSIGNED_MOTOROLA
 
     return datatype
 
@@ -729,36 +732,36 @@ def fmt_to_datatype_v4(
     kind = fmt.kind
 
     if not array and len(shape) > 1 and size == 8 and kind == "u":
-        data_type = v4c.DATA_TYPE_BYTEARRAY
+        data_type = DataEnumV4.DATA_TYPE_BYTEARRAY
         for dim in shape[1:]:
             size *= dim
 
     else:
         if kind == "u":
             if byteorder == "<":
-                data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
+                data_type = DataEnumV4.DATA_TYPE_UNSIGNED_INTEL
             else:
-                data_type = v4c.DATA_TYPE_UNSIGNED_MOTOROLA
+                data_type = DataEnumV4.DATA_TYPE_UNSIGNED_MOTOROLA
         elif kind == "i":
             if byteorder == "<":
-                data_type = v4c.DATA_TYPE_SIGNED_INTEL
+                data_type = DataEnumV4.DATA_TYPE_SIGNED_INTEL
             else:
-                data_type = v4c.DATA_TYPE_SIGNED_MOTOROLA
+                data_type = DataEnumV4.DATA_TYPE_SIGNED_MOTOROLA
         elif kind == "f":
             if byteorder == "<":
-                data_type = v4c.DATA_TYPE_REAL_INTEL
+                data_type = DataEnumV4.DATA_TYPE_REAL_INTEL
             else:
-                data_type = v4c.DATA_TYPE_REAL_MOTOROLA
+                data_type = DataEnumV4.DATA_TYPE_REAL_MOTOROLA
         elif kind in "SV":
-            data_type = v4c.DATA_TYPE_STRING_LATIN_1
+            data_type = DataEnumV4.DATA_TYPE_STRING_LATIN_1
         elif kind == "b":
-            data_type = v4c.DATA_TYPE_UNSIGNED_INTEL
+            data_type = DataEnumV4.DATA_TYPE_UNSIGNED_INTEL
             size = 1
         elif kind == "c":
             if byteorder == "<":
-                data_type = v4c.DATA_TYPE_COMPLEX_INTEL
+                data_type = DataEnumV4.DATA_TYPE_COMPLEX_INTEL
             else:
-                data_type = v4c.DATA_TYPE_COMPLEX_MOTOROLA
+                data_type = DataEnumV4.DATA_TYPE_COMPLEX_MOTOROLA
         else:
             message = f"Unknown type: dtype={fmt}, shape={shape}"
             logger.exception(message)
@@ -1561,10 +1564,10 @@ class SignalDataBlockInfo:
         self,
         address: int,
         original_size: int,
-        block_type: int = v4c.DT_BLOCK,
+        block_type: int = v4c.DataBlockEnum.DT_BLOCK,
         param: int = 0,
         compressed_size: int | None = None,
-        location: int = v4c.LOCATION_ORIGINAL_FILE,
+        location: int = v4c.DataLocationEnum.LOCATION_ORIGINAL_FILE,
     ) -> None:
         self.address = address
         self.compressed_size = compressed_size or original_size
