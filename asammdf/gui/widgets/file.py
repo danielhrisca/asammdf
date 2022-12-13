@@ -566,11 +566,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         channel_group.setIcon(0, icon)
 
                 if self.display_cg_name:
-                    if group.channel_group.acq_name:
-                        base_name = f"CG {i} {group.channel_group.acq_name}"
+                    acq_name = getattr(group.channel_group, "acq_name", "")
+                    if acq_name:
+                        base_name = f"CG {i} {acq_name}"
                     else:
                         base_name = f"CG {i}"
-                    if comment and group.channel_group.acq_name != comment:
+                    if comment and acq_name != comment:
                         name = base_name + f" ({comment})"
                     else:
                         name = base_name
@@ -2072,12 +2073,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                         channel_group = TreeItem(entry)
                         comment = extract_xml_comment(group.channel_group.comment)
 
-                        if self.display_cg_name:
-                            base_name = f"CG {i} {group.channel_group.acq_name}"
+                        acq_name = getattr(group.channel_group, "acq_name", "")
+                        if acq_name:
+                            base_name = f"CG {i} {acq_name}"
                         else:
-                            base_name = f"Channel group {i}"
+                            base_name = f"CG {i}"
 
-                        if comment:
+                        if comment and acq_name != comment:
                             name = base_name + f" ({comment})"
                         else:
                             name = base_name
@@ -2239,11 +2241,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 else:
                     comment = ""
 
-                if self.display_cg_name:
-                    base_name = f"CG {i} {channel_group.acq_name}"
+                acq_name = getattr(group.channel_group, "acq_name", "")
+                if acq_name:
+                    base_name = f"CG {i} {acq_name}"
                 else:
-                    base_name = f"Channel group {i}"
-                if comment:
+                    base_name = f"CG {i}"
+                if comment and acq_name != comment:
                     name = base_name + f" ({comment})"
                 else:
                     name = base_name
