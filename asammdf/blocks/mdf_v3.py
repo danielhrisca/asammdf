@@ -180,6 +180,7 @@ class MDF3(MDF_Common):
             )
 
         self._kwargs = kwargs
+        self._password = kwargs.get("password", None)
         self.original_name = kwargs["original_name"]
         if channels is None:
             self.load_filter = set()
