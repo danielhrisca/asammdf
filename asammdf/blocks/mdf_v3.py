@@ -1666,6 +1666,20 @@ class MDF3(MDF_Common):
                 new_gp.trigger = None
 
             else:
+                new_dg_cntr = len(self.groups)
+                new_gp = Group(None)
+                new_gp.channels = new_gp_channels = []
+                new_gp.channel_dependencies = new_gp_dep = []
+                new_gp.signal_types = new_gp_sig_types = []
+                new_gp.record = new_record = []
+                self.groups.append(new_gp)
+
+                new_fields = []
+                new_types = []
+                new_ch_cntr = 0
+                new_offset = 0
+                new_field_names = UniqueDB()
+
                 names = signal.samples.dtype.names
                 name = signal.name
 
@@ -1695,7 +1709,7 @@ class MDF3(MDF_Common):
                 for i, dim in enumerate(shape[::-1]):
                     kargs[f"dim_{i}"] = dim
                 parent_dep = ChannelDependency(**kargs)
-                gp_dep.append(parent_dep)
+                new_gp_dep.append(parent_dep)
 
                 # source for channel
                 if signal.source:
@@ -1720,9 +1734,9 @@ class MDF3(MDF_Common):
 
                 s_type, s_size = fmt_to_datatype_v3(samples.dtype, (), True)
                 # compute additional byte offset for large records size
-                if offset > v23c.MAX_UINT16:
-                    additional_byte_offset = ceil((offset - v23c.MAX_UINT16) / 8)
-                    start_bit_offset = offset - additional_byte_offset * 8
+                if new_offset > v23c.MAX_UINT16:
+                    additional_byte_offset = ceil((new_offset - v23c.MAX_UINT16) / 8)
+                    start_bit_offset = new_offset - additional_byte_offset * 8
                 else:
                     start_bit_offset = offset
                     additional_byte_offset = 0
@@ -1746,18 +1760,18 @@ class MDF3(MDF_Common):
                 channel.comment = signal.comment
                 channel.display_names = signal.display_names
 
-                gp_channels.append(channel)
+                new_gp_channels.append(channel)
 
-                self.channels_db.add(name, (dg_cntr, ch_cntr))
+                self.channels_db.add(name, (new_dg_cntr, new_ch_cntr))
 
-                ch_cntr += 1
+                new_ch_cntr += 1
 
                 for i, (name, samples) in enumerate(
                     zip(component_names, component_samples)
                 ):
 
                     if i < sd_nr:
-                        dep_pair = dg_cntr, ch_cntr
+                        dep_pair = new_dg_cntr, new_ch_cntr
                         parent_dep.referenced_channels.append(dep_pair)
                         description = b"\0"
                     else:
@@ -1788,18 +1802,20 @@ class MDF3(MDF_Common):
                         source = ce_block
 
                     # compute additional byte offset for large records size
-                    if offset > v23c.MAX_UINT16:
-                        additional_byte_offset = ceil((offset - v23c.MAX_UINT16) / 8)
-                        start_bit_offset = offset - additional_byte_offset * 8
+                    if new_offset > v23c.MAX_UINT16:
+                        additional_byte_offset = ceil(
+                            (new_offset - v23c.MAX_UINT16) / 8
+                        )
+                        start_bit_offset = new_offset - additional_byte_offset * 8
                     else:
-                        start_bit_offset = offset
+                        start_bit_offset = new_offset
                         additional_byte_offset = 0
 
                     new_record.append(
                         (
                             samples.dtype,
                             samples.dtype.itemsize,
-                            offset // 8,
+                            new_offset // 8,
                             0,
                         )
                     )
@@ -1821,21 +1837,21 @@ class MDF3(MDF_Common):
                     channel = Channel(**kargs)
                     channel.name = name
                     channel.source = source
-                    gp_channels.append(channel)
+                    new_gp_channels.append(channel)
 
                     size = s_size
                     for dim in shape:
                         size *= dim
-                    offset += size
+                    new_offset += size
 
-                    self.channels_db.add(name, (dg_cntr, ch_cntr))
+                    self.channels_db.add(name, (new_dg_cntr, new_ch_cntr))
 
                     field_name = field_names.get_unique_name(name)
 
-                    fields.append(samples)
-                    types.append((field_name, samples.dtype, shape))
+                    new_fields.append(samples)
+                    new_types.append((field_name, samples.dtype, shape))
 
-                    gp_dep.append(None)
+                    new_gp_dep.append(None)
 
                     ch_cntr += 1
 
@@ -1864,7 +1880,7 @@ class MDF3(MDF_Common):
                     for i, dim in enumerate(shape[::-1]):
                         kargs["dim_{}".format(i)] = dim
                     parent_dep = ChannelDependency(**kargs)
-                    gp_dep.append(parent_dep)
+                    new_gp_dep.append(parent_dep)
 
                     # source for channel
                     if signal.source:
@@ -1889,11 +1905,13 @@ class MDF3(MDF_Common):
 
                     s_type, s_size = fmt_to_datatype_v3(samples.dtype, ())
                     # compute additional byte offset for large records size
-                    if offset > v23c.MAX_UINT16:
-                        additional_byte_offset = ceil((offset - v23c.MAX_UINT16) / 8)
-                        start_bit_offset = offset - additional_byte_offset * 8
+                    if new_offset > v23c.MAX_UINT16:
+                        additional_byte_offset = ceil(
+                            (new_offset - v23c.MAX_UINT16) / 8
+                        )
+                        start_bit_offset = new_offset - additional_byte_offset * 8
                     else:
-                        start_bit_offset = offset
+                        start_bit_offset = new_offset
                         additional_byte_offset = 0
 
                     kargs = {
@@ -1915,18 +1933,18 @@ class MDF3(MDF_Common):
                     channel.name = name
                     channel.comment = signal.comment
                     channel.source = source
-                    gp_channels.append(channel)
+                    new_gp_channels.append(channel)
 
-                    self.channels_db.add(name, (dg_cntr, ch_cntr))
+                    self.channels_db.add(name, (new_dg_cntr, new_ch_cntr))
 
-                    ch_cntr += 1
+                    new_ch_cntr += 1
 
                     for i, (name, samples) in enumerate(
                         zip(component_names, component_samples)
                     ):
 
                         if i < sd_nr:
-                            dep_pair = dg_cntr, ch_cntr
+                            dep_pair = new_dg_cntr, new_ch_cntr
                             parent_dep.referenced_channels.append(dep_pair)
                             description = b"\0"
                         else:
@@ -1958,13 +1976,13 @@ class MDF3(MDF_Common):
                             source = ce_block
 
                         # compute additional byte offset for large records size
-                        if offset > v23c.MAX_UINT16:
+                        if new_offset > v23c.MAX_UINT16:
                             additional_byte_offset = ceil(
-                                (offset - v23c.MAX_UINT16) / 8
+                                (new_offset - v23c.MAX_UINT16) / 8
                             )
-                            start_bit_offset = offset - additional_byte_offset * 8
+                            start_bit_offset = new_offset - additional_byte_offset * 8
                         else:
-                            start_bit_offset = offset
+                            start_bit_offset = new_offset
                             additional_byte_offset = 0
 
                         kargs = {
@@ -1985,7 +2003,7 @@ class MDF3(MDF_Common):
                             (
                                 samples.dtype,
                                 samples.dtype.itemsize,
-                                offset // 8,
+                                new_offset // 8,
                                 0,
                             )
                         )
@@ -1993,23 +2011,69 @@ class MDF3(MDF_Common):
                         channel = Channel(**kargs)
                         channel.name = name
                         channel.source = source
-                        gp_channels.append(channel)
+                        new_gp_channels.append(channel)
 
                         size = s_size
                         for dim in shape:
                             size *= dim
-                        offset += size
+                        new_offset += size
 
-                        self.channels_db.add(name, (dg_cntr, ch_cntr))
+                        self.channels_db.add(name, (new_dg_cntr, new_ch_cntr))
 
                         field_name = field_names.get_unique_name(name)
 
-                        fields.append(samples)
-                        types.append((field_name, samples.dtype, shape))
+                        new_fields.append(samples)
+                        new_types.append((field_name, samples.dtype, shape))
 
-                        gp_dep.append(None)
+                        new_gp_dep.append(None)
 
                         ch_cntr += 1
+
+                # channel group
+                kargs = {
+                    "cycles_nr": cycles_nr,
+                    "samples_byte_nr": new_offset // 8,
+                    "ch_nr": new_ch_cntr,
+                }
+                new_gp.channel_group = ChannelGroup(**kargs)
+                new_gp.channel_group.comment = "From mdf v4 channel array"
+
+                # data group
+                if self.version >= "3.20":
+                    block_len = v23c.DG_POST_320_BLOCK_SIZE
+                else:
+                    block_len = v23c.DG_PRE_320_BLOCK_SIZE
+                new_gp.data_group = DataGroup(block_len=block_len)
+
+                # data block
+                new_types = dtype(new_types)
+
+                new_gp.sorted = True
+
+                samples = fromarrays(new_fields, dtype=new_types)
+
+                block = samples.tobytes()
+
+                new_gp.data_location = v23c.LOCATION_TEMPORARY_FILE
+                if cycles_nr:
+                    data_address = tell()
+                    new_gp.data_group.data_block_addr = data_address
+                    self._tempfile.write(block)
+                    size = len(block)
+                    new_gp.data_blocks.append(
+                        DataBlockInfo(
+                            address=data_address,
+                            original_size=size,
+                            compressed_size=size,
+                            block_type=0,
+                            param=0,
+                        )
+                    )
+                else:
+                    new_gp.data_group.data_block_addr = 0
+
+                # data group trigger
+                new_gp.trigger = None
 
         # channel group
         kargs = {

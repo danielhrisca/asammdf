@@ -1779,21 +1779,21 @@ class MDF:
             filename = filename.with_suffix(".mat")
 
             if not single_time_base:
-                
+
                 def decompose(samples):
-                    
+
                     dct = {}
-                    
+
                     for name in samples.dtype.names:
                         vals = samples[name]
-                        
+
                         if vals.dtype.names:
                             dct.update(decompose(vals))
                         else:
                             dct[name] = vals
-                    
+
                     return dct
-                    
+
                 mdict = {}
 
                 master_name_template = "DGM{}_{}"
@@ -1856,14 +1856,14 @@ class MDF:
                                 matlab_compatible(name)
                                 for name in sig.samples.dtype.names
                             ]
-                            
+
                             sigs = decompose(sig.samples)
-                            
+
                             sigs = {
                                 channel_name_template.format(i, channel_name): _v
                                 for channel_name, _v in sigs.items()
                             }
-                            
+
                             mdict.update(sigs)
 
                         else:
