@@ -102,6 +102,7 @@ setup(
             "hdf5storage>=0.1.17",
             "python-snappy",
         ],
+        "export_matlab_v5": "scipy",
         "gui": [
             "lxml",
             "natsort",
