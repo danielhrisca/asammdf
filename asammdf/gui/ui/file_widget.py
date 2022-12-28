@@ -3,7 +3,7 @@
 ################################################################################
 ## Form generated from reading UI file 'file_widget.ui'
 ##
-## Created by: Qt User Interface Compiler version 6.3.2
+## Created by: Qt User Interface Compiler version 6.3.1
 ##
 ## WARNING! All changes made in this file will be lost when recompiling UI file!
 ################################################################################
@@ -934,28 +934,35 @@ class Ui_file_widget(object):
 
         self.gridLayout_4.addWidget(self.load_can_database_btn, 0, 0, 1, 1)
 
+        self.horizontalSpacer = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.gridLayout_4.addItem(self.horizontalSpacer, 0, 1, 1, 1)
+
         self.can_database_list = MinimalListWidget(self.tab)
         self.can_database_list.setObjectName(u"can_database_list")
 
-        self.gridLayout_4.addWidget(self.can_database_list, 1, 0, 1, 1)
+        self.gridLayout_4.addWidget(self.can_database_list, 1, 0, 1, 2)
 
         self.tabWidget.addTab(self.tab, "")
         self.tab_2 = QWidget()
         self.tab_2.setObjectName(u"tab_2")
-        self.verticalLayout_7 = QVBoxLayout(self.tab_2)
-        self.verticalLayout_7.setSpacing(2)
-        self.verticalLayout_7.setObjectName(u"verticalLayout_7")
-        self.verticalLayout_7.setContentsMargins(2, 2, 2, 2)
+        self.gridLayout_8 = QGridLayout(self.tab_2)
+        self.gridLayout_8.setObjectName(u"gridLayout_8")
+        self.gridLayout_8.setContentsMargins(2, 2, 2, 2)
         self.load_lin_database_btn = QPushButton(self.tab_2)
         self.load_lin_database_btn.setObjectName(u"load_lin_database_btn")
         self.load_lin_database_btn.setIcon(icon)
 
-        self.verticalLayout_7.addWidget(self.load_lin_database_btn)
+        self.gridLayout_8.addWidget(self.load_lin_database_btn, 0, 0, 1, 1)
+
+        self.horizontalSpacer_3 = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum)
+
+        self.gridLayout_8.addItem(self.horizontalSpacer_3, 0, 1, 1, 1)
 
         self.lin_database_list = MinimalListWidget(self.tab_2)
         self.lin_database_list.setObjectName(u"lin_database_list")
 
-        self.verticalLayout_7.addWidget(self.lin_database_list)
+        self.gridLayout_8.addWidget(self.lin_database_list, 1, 0, 1, 2)
 
         self.tabWidget.addTab(self.tab_2, "")
 

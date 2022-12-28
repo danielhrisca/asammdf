@@ -12,6 +12,7 @@ import pyqtgraph as pg
 from PySide6 import QtCore, QtGui, QtWidgets
 
 from ...version import __version__ as libversion
+from ..dialogs.bus_database_manager import BusDatabaseManagerDialog
 from ..dialogs.functions_manager import FunctionsManagerDialog
 from ..dialogs.multi_search import MultiSearch
 from ..ui.main_window import Ui_PyMDFMainWindow
@@ -158,6 +159,10 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
         action = QtGui.QAction("{: <20}\tF6".format("Functions manager"), menu)
         action.triggered.connect(self.functions_manager)
         action.setShortcut("F6")
+        actions.addAction(action)
+
+        action = QtGui.QAction("{: <20}".format("Bus database manager"), menu)
+        action.triggered.connect(self.bus_database_manager)
         actions.addAction(action)
 
         menu = QtWidgets.QMenu("Managers", self.menubar)
@@ -1589,3 +1594,12 @@ class MainWindow(WithMDIArea, Ui_PyMDFMainWindow, QtWidgets.QMainWindow):
                     modified_definitions = dlg.modified_definitions
 
                     file.update_functions(original_definitions, modified_definitions)
+
+    def bus_database_manager(self):
+
+        dlg = BusDatabaseManagerDialog(parent=self)
+        dlg.setModal(True)
+        dlg.exec_()
+
+        if dlg.pressed_button == "apply":
+            dlg.store()
