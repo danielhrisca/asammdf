@@ -4,7 +4,7 @@ from pathlib import Path
 import site
 import sys
 
-asammdf_path = Path.cwd() / "asammdf" / "gui" / "asammdfgui.py"
+asammdf_path = Path.cwd() / "src" / "asammdf" / "gui" / "asammdfgui.py"
 
 
 block_cipher = None
