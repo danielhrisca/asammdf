@@ -142,6 +142,38 @@ class BatchWidget(Ui_batch_widget, QtWidgets.QWidget):
         self._filter_timer.setSingleShot(True)
         self._filter_timer.timeout.connect(self.update_selected_filter_channels)
 
+        databases = {}
+
+        can_databases = self._settings.value("can_databases", [])
+        buses = can_databases[::2]
+        dbs = can_databases[1::2]
+
+        databases["CAN"] = [(bus, database) for bus, database in zip(buses, dbs)]
+
+        lin_databases = self._settings.value("lin_databases", [])
+        buses = lin_databases[::2]
+        dbs = lin_databases[1::2]
+
+        databases["LIN"] = [(bus, database) for bus, database in zip(buses, dbs)]
+
+        for bus, database in databases["CAN"]:
+            item = QtWidgets.QListWidgetItem()
+            widget = DatabaseItem(database, bus_type="CAN")
+            widget.bus.setCurrentText(bus)
+
+            self.can_database_list.addItem(item)
+            self.can_database_list.setItemWidget(item, widget)
+            item.setSizeHint(widget.sizeHint())
+
+        for bus, database in databases["LIN"]:
+            item = QtWidgets.QListWidgetItem()
+            widget = DatabaseItem(database, bus_type="LIN")
+            widget.bus.setCurrentText(bus)
+
+            self.lin_database_list.addItem(item)
+            self.lin_database_list.setItemWidget(item, widget)
+            item.setSizeHint(widget.sizeHint())
+
     def set_raster_type(self, event):
         if self.raster_type_channel.isChecked():
             self.raster_channel.setEnabled(True)

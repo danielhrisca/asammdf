@@ -58,6 +58,8 @@ class BusDatabaseManagerDialog(QtWidgets.QDialog):
 
         self.setWindowTitle("Bus Database Manager")
 
+        self.showMaximized()
+
     def apply(self, *args):
         self.pressed_button = "apply"
         self.close()
