@@ -466,17 +466,10 @@ class TestMDF(unittest.TestCase):
 
     def test_cut(self):
         print("MDF cut big files tests")
-        print("?????????????????????")
-        p = Path(self.tempdir.name)
-        print(self.tempdir.name, p.exists(), p.is_dir())
-        print("^^^^^^^^^^^^^^^^^^^^^^")
-
-        t = np.arange(cycles, dtype=np.float64)
 
         for input_file in Path(TestMDF.tempdir_general.name).iterdir():
             for whence in (0, 1):
                 for compression in range(3):
-                    print(input_file)
 
                     mdf = MDF(input_file)
 

@@ -406,7 +406,8 @@ class MDF:
             try:
                 self.close()
             except:
-                pass
+                print(format_exc())
+
         self._mdf = None
 
     def __del__(self) -> None:
@@ -2294,7 +2295,6 @@ class MDF:
                 last_timestamps = [None for gp in mdf.virtual_groups]
                 groups_nr = len(last_timestamps)
                 first_mdf = mdf
-                input_types[0] = True
 
             else:
                 if len(mdf.virtual_groups) != groups_nr:

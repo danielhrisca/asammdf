@@ -309,6 +309,8 @@ class MDF4(MDF_Common):
         self._dbc_cache = {}
         self._interned_strings = {}
 
+        self._closed = False
+
         self.temporary_folder = kwargs.get("temporary_folder", None)
 
         if channels is None:
@@ -404,11 +406,6 @@ class MDF4(MDF_Common):
                         )
                         self._from_filelike = False
                         self._read(mapped=True)
-
-                        # self._file.close()
-                        # x.close()
-                        #
-                        # self._file = open(self.name, "rb")
 
         else:
             self._from_filelike = False
@@ -6214,6 +6211,11 @@ class MDF4(MDF_Common):
         channels have been appended, then this must be called just before the
         object is not used anymore to clean-up the temporary file"""
 
+        if self._closed:
+            return
+        else:
+            self._closed = True
+
         self._parent = None
         if self._tempfile is not None:
             self._tempfile.close()
@@ -6224,6 +6226,7 @@ class MDF4(MDF_Common):
             self._mapped_file.close()
 
         if self._delete_on_close:
+
             try:
                 Path(self.name).unlink()
             except:
@@ -10001,9 +10004,6 @@ class MDF4(MDF_Common):
 
         if self._callback:
             self._callback(100, 100)
-
-        if self.name == Path("__new__.mf4"):
-            self.name = dst
 
         return dst
 

@@ -20,6 +20,7 @@ from tempfile import TemporaryFile
 import time
 from typing import Any, overload
 import xml.etree.ElementTree as ET
+from traceback import format_exc
 
 from numpy import (
     arange,
@@ -201,6 +202,7 @@ class MDF3(MDF_Common):
         self.version = version
 
         self._master_channel_metadata = {}
+        self._closed = False
 
         self._tempfile = TemporaryFile(dir=self.temporary_folder)
         self._tempfile.write(b"\0")
@@ -241,6 +243,9 @@ class MDF3(MDF_Common):
 
         self.vlsd_max_length = {}
 
+        self._delete_on_close = False
+        self._mapped_file = None
+
         if name:
             if is_file_like(name):
                 self._file = name
@@ -255,15 +260,12 @@ class MDF3(MDF_Common):
                     self._read(mapped=False)
                 else:
                     self.name = Path(name)
-                    x = open(self.name, "rb")
-                    self._file = mmap.mmap(x.fileno(), 0, access=mmap.ACCESS_READ)
+                    self._mapped_file = open(self.name, "rb")
+                    self._file = mmap.mmap(
+                        self._mapped_file.fileno(), 0, access=mmap.ACCESS_READ
+                    )
                     self._from_filelike = False
                     self._read(mapped=True)
-
-                    self._file.close()
-                    x.close()
-
-                    self._file = open(self.name, "rb")
         else:
             self._from_filelike = False
             version = validate_version_argument(version, hint=3)
@@ -2404,34 +2406,51 @@ class MDF3(MDF_Common):
         object is not used anymore to clean-up the temporary file
 
         """
+        try:
+            if self._closed:
+                return
+            else:
+                self._closed = True
 
-        self._parent = None
-        if self._tempfile is not None:
-            self._tempfile.close()
-        if self._file is not None and not self._from_filelike:
-            self._file.close()
+            self._parent = None
+            if self._tempfile is not None:
+                self._tempfile.close()
+            if self._file is not None and not self._from_filelike:
+                self._file.close()
 
-        if self.original_name is not None:
-            if Path(self.original_name).suffix.lower() in (
-                ".bz2",
-                ".gzip",
-                ".mf4z",
-                ".zip",
-            ):
+            if self._mapped_file is not None:
+                self._mapped_file.close()
+
+            if self._delete_on_close:
+
                 try:
-                    os.remove(self.name)
+                    Path(self.name).unlink()
                 except:
                     pass
 
-        self._call_back = None
-        self.groups.clear()
-        self.header = None
-        self.identification = None
-        self.channels_db.clear()
-        self.masters_db.clear()
-        self._master_channel_metadata.clear()
-        self._si_map.clear()
-        self._cc_map.clear()
+            if self.original_name is not None:
+                if Path(self.original_name).suffix.lower() in (
+                    ".bz2",
+                    ".gzip",
+                    ".mf4z",
+                    ".zip",
+                ):
+                    try:
+                        os.remove(self.name)
+                    except:
+                        pass
+
+            self._call_back = None
+            self.groups.clear()
+            self.header = None
+            self.identification = None
+            self.channels_db.clear()
+            self.masters_db.clear()
+            self._master_channel_metadata.clear()
+            self._si_map.clear()
+            self._cc_map.clear()
+        except:
+            print(format_exc())
 
     def extend(self, index: int, signals: list[tuple[NDArray[Any], None]]) -> None:
         """
@@ -3740,9 +3759,6 @@ class MDF3(MDF_Common):
 
         if self._callback:
             self._callback(100, 100)
-
-        if self.name == Path("__new__.mdf"):
-            self.name = dst
 
         return dst
 
