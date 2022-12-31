@@ -23,7 +23,7 @@ import sys
 # BASE_DIR = os.path.abspath("..")
 # sys.path.insert(0, BASE_DIR)
 
-with open(os.path.join("..", "asammdf", "version.py"), "r") as f:
+with open(os.path.join("..", "src", "asammdf", "version.py"), "r") as f:
     for line in f:
         if line.startswith("__version__"):
             asam_version = line.split("=")[-1].strip().strip("'")

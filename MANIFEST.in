@@ -1,5 +1,5 @@
 include LICENSE
 include requirements.txt
-recursive-include asammdf *.ui
-recursive-include asammdf *.c
-recursive-include asammdf *.qrc
+recursive-include src/asammdf *.ui
+recursive-include src/asammdf *.c
+recursive-include src/asammdf *.qrc
