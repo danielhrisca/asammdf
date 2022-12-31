@@ -18,9 +18,9 @@ from pathlib import Path
 import sys
 from tempfile import TemporaryFile
 import time
+from traceback import format_exc
 from typing import Any, overload
 import xml.etree.ElementTree as ET
-from traceback import format_exc
 
 from numpy import (
     arange,
