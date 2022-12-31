@@ -135,5 +135,4 @@ setup(
         "console_scripts": ["asammdf = asammdf.gui.asammdfgui:main [gui,export,decode]"]
     },
     ext_modules=_get_ext_modules(),
-    build_with_nuitka=True,
 )
