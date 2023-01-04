@@ -60,6 +60,7 @@ from .blocks.utils import (
     plausible_timestamps,
     randomized_string,
     SUPPORTED_VERSIONS,
+    TERMINATED,
     UINT16_u,
     UINT64_u,
     UniqueDB,
@@ -180,10 +181,6 @@ class MDF:
         .. versionchanged:: 6.3.0 make the default None
 
 
-    callback (\*\*kwargs) : function
-        keyword only argument: function to call to update the progress; the
-        function must accept two arguments (the current progress and maximum
-        progress value)
     use_display_names (\*\*kwargs) : bool
         keyword only argument: for MDF4 files parse the XML channel comment to
         search for the display name; XML parsing is quite expensive so setting
@@ -218,8 +215,6 @@ class MDF:
     >>> mdf = MDF(gzip.GzipFile('path/to/data.gzip', 'rb')) # MDF from gzip object
 
     """
-
-    _terminate = False
 
     def __init__(
         self,
@@ -791,7 +786,7 @@ class MDF:
         if raise_on_multiple_occurrences is not None:
             self._raise_on_multiple_occurrences = bool(raise_on_multiple_occurrences)
 
-    def convert(self, version: str) -> MDF:
+    def convert(self, version: str, qworker=None) -> MDF:
         """convert *MDF* to other version
 
         Parameters
@@ -816,8 +811,12 @@ class MDF:
 
         groups_nr = len(self.virtual_groups)
 
-        if self._callback:
-            self._callback(0, groups_nr)
+        if qworker is not None:
+            qworker.signals.setValue.emit(0)
+            qworker.signals.setMaximum.emit(groups_nr)
+
+            if qworker.stop:
+                return TERMINATED
 
         cg_nr = None
 
@@ -845,16 +844,15 @@ class MDF:
                 else:
                     out.extend(cg_nr, sigs)
 
-            if self._callback:
-                self._callback(i + 1, groups_nr)
+            if qworker is not None:
+                qworker.signals.setValue.emit(i + 1)
+                qworker.signals.setMaximum.emit(groups_nr)
 
-            if self._terminate:
-                return
+                if qworker.stop:
+                    return TERMINATED
 
         out._transfer_metadata(self, message=f"Converted from {self.name}")
         self.configure(copy_on_get=True)
-        if self._callback:
-            out._callback = out._mdf._callback = self._callback
 
         return out
 
@@ -866,6 +864,7 @@ class MDF:
         version: str | None = None,
         include_ends: bool = True,
         time_from_zero: bool = False,
+        qworker=None,
     ) -> MDF:
         """cut *MDF* file. *start* and *stop* limits are absolute values
         or values relative to the first timestamp depending on the *whence*
@@ -946,8 +945,9 @@ class MDF:
 
         groups_nr = len(self.virtual_groups)
 
-        if self._callback:
-            self._callback(0, groups_nr)
+        if qworker is not None:
+            qworker.signals.setValue.emit(0)
+            qworker.signals.setMaximum.emit(groups_nr)
 
         # walk through all groups and get all channels
         for i, (group_index, virtual_group) in enumerate(self.virtual_groups.items()):
@@ -1114,23 +1114,23 @@ class MDF:
                 )
                 MDF._transfer_channel_group_data(out.groups[cg_nr].channel_group, cg)
 
-            if self._callback:
-                self._callback(i + 1, groups_nr)
+            if qworker is not None:
+                qworker.signals.setValue.emit(i + 1)
 
-            if self._terminate:
-                return
+                if qworker.stop:
+                    return TERMINATED
 
         self.configure(copy_on_get=True)
 
         out._transfer_metadata(self, message=f"Cut from {start_} to {stop_}")
-        if self._callback:
-            out._callback = out._mdf._callback = self._callback
+
         return out
 
     def export(
         self,
         fmt: Literal["csv", "hdf5", "mat", "parquet"],
         filename: StrPathType | None = None,
+        qworker=None,
         **kwargs,
     ) -> None:
         r"""export *MDF* to other formats. The *MDF* file name is used is
@@ -1328,8 +1328,12 @@ class MDF:
         elif fmt not in ("csv",):
             raise MdfException(f"Export to {fmt} is not implemented")
 
-        if self._callback:
-            self._callback(0, 100)
+        if qworker is not None:
+            qworker.signals.setValue.emit(0)
+            qworker.signals.setMaximum.emit(100)
+
+            if qworker.stop:
+                return TERMINATED
 
         if single_time_base or fmt == "parquet":
             df = self.to_dataframe(
@@ -1347,9 +1351,15 @@ class MDF:
             used_names = UniqueDB()
 
             groups_nr = len(self.groups)
+            if qworker is not None:
+                qworker.signals.setMaximum.emit(groups_nr * 2)
+
+                if qworker.stop:
+                    return TERMINATED
+
             for i, grp in enumerate(self.groups):
-                if self._terminate:
-                    return
+                if qworker is not None and qworker.stop:
+                    return TERMINATED
 
                 for ch in grp.channels:
 
@@ -1373,8 +1383,11 @@ class MDF:
                     units[channel_name] = unit
                     comments[channel_name] = comment
 
-                if self._callback:
-                    self._callback(i + 1, groups_nr * 2)
+                if qworker is not None:
+                    qworker.signals.setValue.emit(i + 1)
+
+                    if qworker.stop:
+                        return TERMINATED
 
         if fmt == "hdf5":
             filename = filename.with_suffix(".hdf")
@@ -1395,6 +1408,13 @@ class MDF:
                     # that will hold the name of the master channel
 
                     count = len(df.columns)
+
+                    if qworker is not None:
+                        qworker.signals.setValue.emit(0)
+                        qworker.signals.setMaximum.emit(count * 2)
+
+                        if qworker.stop:
+                            return TERMINATED
 
                     for i, channel in enumerate(df):
                         samples = df[channel]
@@ -1420,8 +1440,11 @@ class MDF:
                         if comment:
                             dataset.attrs["comment"] = comment
 
-                        if self._callback:
-                            self._callback(i + 1 + count, count * 2)
+                        if qworker is not None:
+                            qworker.signals.setValue.emit(i + 1)
+
+                            if qworker.stop:
+                                return TERMINATED
 
             else:
                 with HDF5(str(filename), "w") as hdf:
@@ -1438,6 +1461,14 @@ class MDF:
                     # that will hold the name of the master channel
 
                     groups_nr = len(self.virtual_groups)
+
+                    if qworker is not None:
+                        qworker.signals.setValue.emit(0)
+                        qworker.signals.setMaximum.emit(groups_nr)
+
+                        if qworker.stop:
+                            return TERMINATED
+
                     for i, (group_index, virtual_group) in enumerate(
                         self.virtual_groups.items()
                     ):
@@ -1447,8 +1478,8 @@ class MDF:
                             continue
 
                         names = UniqueDB()
-                        if self._terminate:
-                            return
+                        if qworker is not None and qworker.stop:
+                            return TERMINATED
 
                         if len(virtual_group.groups) == 1:
                             comment = self.groups[
@@ -1529,8 +1560,11 @@ class MDF:
                             if comment:
                                 dataset.attrs["comment"] = comment
 
-                        if self._callback:
-                            self._callback(i + 1, groups_nr)
+                        if qworker is not None:
+                            qworker.signals.setValue.emit(i + 1)
+
+                            if qworker.stop:
+                                return TERMINATED
 
         elif fmt == "csv":
             fmtparams = {
@@ -1628,14 +1662,22 @@ class MDF:
                         ]
                     count = len(df.index)
 
-                    if self._terminate:
-                        return
+                    if qworker is not None:
+                        qworker.signals.setValue.emit(0)
+                        qworker.signals.setMaximum.emit(count)
+
+                        if qworker.stop:
+                            return TERMINATED
 
                     for i, row in enumerate(zip(*vals)):
                         writer.writerow(row)
 
-                        if self._callback:
-                            self._callback(i + 1 + count, count * 2)
+                        if qworker is not None:
+                            qworker.signals.setValue.emit(i + 1 + count)
+                            qworker.signals.setMaximum.emit(groups_nr)
+
+                            if qworker.stop:
+                                return TERMINATED
 
             else:
 
@@ -1644,12 +1686,19 @@ class MDF:
                 filename = filename.with_suffix(".csv")
 
                 gp_count = len(self.virtual_groups)
+
+                if qworker is not None:
+                    qworker.signals.setValue.emit(0)
+                    qworker.signals.setMaximum.emit(gp_count)
+
+                    if qworker.stop:
+                        return TERMINATED
+
                 for i, (group_index, virtual_group) in enumerate(
                     self.virtual_groups.items()
                 ):
-
-                    if self._terminate:
-                        return
+                    if qworker is not None and qworker.stop:
+                        return TERMINATED
 
                     message = f"Exporting group {i+1} of {gp_count}"
                     logger.info(message)
@@ -1772,8 +1821,12 @@ class MDF:
                         for i, row in enumerate(zip(*vals)):
                             writer.writerow(row)
 
-                    if self._callback:
-                        self._callback(i + 1, gp_count)
+                    if qworker is not None:
+                        qworker.signals.setValue.emit(i + 1)
+                        qworker.signals.setMaximum.emit(gp_count)
+
+                        if qworker.stop:
+                            return TERMINATED
 
         elif fmt == "mat":
 
@@ -1803,11 +1856,18 @@ class MDF:
 
                 groups_nr = len(self.virtual_groups)
 
+                if qworker is not None:
+                    qworker.signals.setValue.emit(0)
+                    qworker.signals.setMaximum.emit(groups_nr + 1)
+
+                    if qworker.stop:
+                        return TERMINATED
+
                 for i, (group_index, virtual_group) in enumerate(
                     self.virtual_groups.items()
                 ):
-                    if self._terminate:
-                        return
+                    if qworker is not None and qworker.stop:
+                        return TERMINATED
 
                     channels = self.included_channels(group_index)[group_index]
 
@@ -1871,14 +1931,24 @@ class MDF:
 
                             mdict[channel_name] = sig.samples
 
-                    if self._callback:
-                        self._callback(i + 1, groups_nr + 1)
+                    if qworker is not None:
+                        qworker.signals.setValue.emit(i + 1)
+
+                        if qworker.stop:
+                            return TERMINATED
 
             else:
                 used_names = UniqueDB()
                 mdict = {}
 
                 count = len(df.columns)
+
+                if qworker is not None:
+                    qworker.signals.setValue.emit(0)
+                    qworker.signals.setMaximum.emit(count + 2)
+
+                    if qworker.stop:
+                        return TERMINATED
 
                 for i, name in enumerate(df.columns):
                     channel_name = matlab_compatible(name)
@@ -1889,13 +1959,21 @@ class MDF:
                     if hasattr(mdict[channel_name].dtype, "categories"):
                         mdict[channel_name] = np.array(mdict[channel_name], dtype="S")
 
-                    if self._callback:
-                        self._callback(i + 1 + count, count * 2)
+                    if qworker is not None:
+                        qworker.signals.setValue.emit(i + 1 + count)
+
+                        if qworker.stop:
+                            return TERMINATED
 
                 mdict["timestamps"] = df.index.values
 
-            if self._callback:
-                self._callback(80, 100)
+            if qworker is not None:
+                qworker.signals.setValue.emit(0)
+                qworker.signals.setMaximum.emit(100)
+                qworker.signals.setValue.emit(80)
+
+                if qworker.stop:
+                    return TERMINATED
 
             if format == "7.3":
 
@@ -1917,8 +1995,12 @@ class MDF:
                     oned_as=oned_as,
                     do_compression=bool(compression),
                 )
-            if self._callback:
-                self._callback(100, 100)
+
+            if qworker is not None:
+                qworker.signals.setValue.emit(100)
+
+                if qworker.stop:
+                    return TERMINATED
 
         elif fmt == "parquet":
             filename = filename.with_suffix(".parquet")
@@ -1935,7 +2017,9 @@ class MDF:
             message.format(fmt)
             logger.warning(message)
 
-    def filter(self, channels: ChannelsType, version: str | None = None) -> MDF:
+    def filter(
+        self, channels: ChannelsType, version: str | None = None, qworker=None
+    ) -> MDF:
         """return new *MDF* object that contains only the channels listed in
         *channels* argument
 
@@ -2027,8 +2111,12 @@ class MDF:
 
         groups_nr = len(gps)
 
-        if self._callback:
-            self._callback(0, groups_nr)
+        if qworker is not None:
+            qworker.signals.setValue.emit(0)
+            qworker.signals.setMaximum.emit(groups_nr)
+
+            if qworker.stop:
+                return TERMINATED
 
         for i, (group_index, groups) in enumerate(gps.items()):
 
@@ -2058,17 +2146,16 @@ class MDF:
                 else:
                     mdf.extend(cg_nr, sigs)
 
-            if self._callback:
-                self._callback(i + 1, groups_nr)
+            if qworker is not None:
+                qworker.signals.setValue.emit(i + 1)
 
-            if self._terminate:
-                return
+                if qworker.stop:
+                    return TERMINATED
 
         self.configure(copy_on_get=True)
 
         mdf._transfer_metadata(self, message=f"Filtered from {self.name}")
-        if self._callback:
-            mdf._callback = mdf._mdf._callback = self._callback
+
         return mdf
 
     @overload
@@ -2153,6 +2240,7 @@ class MDF:
         sync: bool = True,
         add_samples_origin: bool = False,
         direct_timestamp_continuation: bool = False,
+        qworker=None,
         **kwargs,
     ) -> MDF:
         """concatenates several files. The files
@@ -2219,9 +2307,12 @@ class MDF:
         if not files:
             raise MdfException("No files given for merge")
 
-        callback = kwargs.get("callback", None)
-        if callback:
-            callback(0, 100)
+        if qworker is not None:
+            qworker.signals.setValue.emit(0)
+            qworker.signals.setMaximum.emit(100)
+
+            if qworker.stop:
+                return TERMINATED
 
         mdf_nr = len(files)
         use_display_names = kwargs.get("use_display_names", False)
@@ -2274,11 +2365,9 @@ class MDF:
                 version = validate_version_argument(version)
 
                 kwargs = dict(mdf._kwargs)
-                kwargs.pop("callback", None)
 
                 merged = MDF(
                     version=version,
-                    callback=callback,
                     **kwargs,
                 )
 
@@ -2295,6 +2384,13 @@ class MDF:
                 last_timestamps = [None for gp in mdf.virtual_groups]
                 groups_nr = len(last_timestamps)
                 first_mdf = mdf
+
+                if qworker is not None:
+                    qworker.signals.setValue.emit(0)
+                    qworker.signals.setMaximum.emit(groups_nr * mdf_nr)
+
+                    if qworker.stop:
+                        return TERMINATED
 
             else:
                 if len(mdf.virtual_groups) != groups_nr:
@@ -2535,11 +2631,11 @@ class MDF:
             if mdf_index == 0:
                 merged._transfer_metadata(mdf)
 
-            if callback:
-                callback(i + 1 + mdf_index * groups_nr, groups_nr * mdf_nr)
+            if qworker is not None:
+                qworker.signals.setValue.emit(i + 1 + mdf_index * groups_nr)
 
-            if MDF._terminate:
-                return
+                if qworker.stop:
+                    return TERMINATED
 
         for _w_mdf in files:
             _w_mdf.vlsd_max_length.clear()
@@ -2561,6 +2657,7 @@ class MDF:
         files: Sequence[MDF | InputType],
         version: str = "4.10",
         sync: bool = True,
+        qworker=None,
         **kwargs,
     ) -> MDF:
         """stack several files and return the stacked *MDF* object
@@ -2608,15 +2705,18 @@ class MDF:
 
         version = validate_version_argument(version)
 
-        callback = kwargs.get("callback", None)
         use_display_names = kwargs.get("use_display_names", False)
 
         files_nr = len(files)
 
         input_types = [isinstance(mdf, MDF) for mdf in files]
 
-        if callback:
-            callback(0, files_nr)
+        if qworker is not None:
+            qworker.signals.setValue.emit(0)
+            qworker.signals.setMaximum.emit(files_nr)
+
+            if qworker.stop:
+                return TERMINATED
 
         if sync:
             timestamps = []
@@ -2653,11 +2753,9 @@ class MDF:
                 version = validate_version_argument(version)
 
                 kwargs = dict(mdf._kwargs)
-                kwargs.pop("callback", None)
 
                 stacked = MDF(
                     version=version,
-                    callback=callback,
                     **kwargs,
                 )
 
@@ -2713,8 +2811,11 @@ class MDF:
                             f'stacked from channel group {i} of "{mdf.name.parent}"'
                         )
 
-            if callback:
-                callback(mdf_index, files_nr)
+            if qworker is not None:
+                qworker.signals.setValue.emitmdf_index
+
+                if qworker.stop:
+                    return TERMINATED
 
             mdf.configure(copy_on_get=True)
 
@@ -2724,8 +2825,8 @@ class MDF:
             if not input_types[mdf_index]:
                 mdf.close()
 
-            if MDF._terminate:
-                return
+            if qworker is not None and qworker.stop:
+                return TERMINATED
 
         try:
             stacked._process_bus_logging()
@@ -2862,6 +2963,7 @@ class MDF:
         raster: RasterType,
         version: str | None = None,
         time_from_zero: bool = False,
+        qworker=None,
     ) -> MDF:
         """resample all channels using the given raster. See *configure* to select
         the interpolation method for interger channels
@@ -3027,8 +3129,12 @@ class MDF:
 
         groups_nr = len(self.virtual_groups)
 
-        if self._callback:
-            self._callback(0, groups_nr)
+        if qworker is not None:
+            qworker.signals.setValue.emit(0)
+            qworker.signals.setMaximum.emit(groups_nr)
+
+            if qworker.stop:
+                return TERMINATED
 
         try:
             raster = float(raster)
@@ -3087,18 +3193,14 @@ class MDF:
             )
             MDF._transfer_channel_group_data(mdf.groups[dg_cntr].channel_group, cg)
 
-            if self._callback:
-                self._callback(i + 1, groups_nr)
+            if qworker is not None:
+                qworker.signals.setValue.emit(i + 1)
 
-            if self._terminate:
-                return
-
-        if self._callback:
-            self._callback(groups_nr, groups_nr)
+                if qworker.stop:
+                    return TERMINATED
 
         mdf._transfer_metadata(self, message=f"Resampled from {self.name}")
-        if self._callback:
-            mdf._callback = mdf._mdf._callback = self._callback
+
         return mdf
 
     def select(
@@ -3320,7 +3422,9 @@ class MDF:
         return signals
 
     @staticmethod
-    def scramble(name: StrPathType, skip_attachments: bool = False, **kwargs) -> Path:
+    def scramble(
+        name: StrPathType, skip_attachments: bool = False, qworker=None, **kwargs
+    ) -> Path:
         """scramble text blocks and keep original file structure
 
         Parameters
@@ -3344,9 +3448,12 @@ class MDF:
         mdf = MDF(name)
         texts = {}
 
-        callback = kwargs.get("callback", None)
-        if callback:
-            callback(0, 100)
+        if qworker is not None:
+            qworker.signals.setValue.emit(0)
+            qworker.signals.setMaximum.emit(100)
+
+            if qworker.stop:
+                return TERMINATED
 
         count = len(mdf.groups)
 
@@ -3477,8 +3584,11 @@ class MDF:
                                                 size = len(block)
                                                 texts[addr] = randomized_string(size)
 
-                    if callback:
-                        callback(int(idx / count * 66), 100)
+                    if qworker is not None:
+                        qworker.signals.setValue.emit(int(idx / count * 66))
+
+                        if qworker.stop:
+                            return TERMINATED
 
             except:
                 print(
@@ -3500,11 +3610,12 @@ class MDF:
                     mdf.seek(addr + 24)
                     mdf.write(bts)
                     if index % chunk == 0:
-                        if callback:
-                            callback(66 + idx, 100)
 
-            if callback:
-                callback(100, 100)
+                        if qworker is not None:
+                            qworker.signals.setValue.emit(66 + idx)
+
+                            if qworker.stop:
+                                return TERMINATED
 
         else:
             ChannelConversion = ChannelConversionV3
@@ -3580,8 +3691,12 @@ class MDF:
                                             stream.seek(addr + 2)
                                             size = UINT16_u(stream.read(2))[0] - 4
                                             texts[addr + 4] = randomized_string(size)
-                if callback:
-                    callback(int(idx / count * 66), 100)
+
+                if qworker is not None:
+                    qworker.signals.setValue.emit(int(idx / count * 66))
+
+                    if qworker.stop:
+                        return TERMINATED
 
             mdf.close()
 
@@ -3596,11 +3711,11 @@ class MDF:
                     mdf.seek(addr)
                     mdf.write(bts)
                     if chunk and index % chunk == 0:
-                        if callback:
-                            callback(66 + idx, 100)
+                        if qworker is not None:
+                            qworker.signals.setValue.emit(66 + idx)
 
-            if callback:
-                callback(100, 100)
+                            if qworker.stop:
+                                return TERMINATED
 
         return dst
 
@@ -3759,6 +3874,7 @@ class MDF:
         chunk_ram_size: int = 200 * 1024 * 1024,
         interpolate_outwards_with_nan: bool = False,
         numeric_1D_only: bool = False,
+        qworker=None,
     ) -> Iterator[pd.DataFrame]:
         """generator that yields pandas DataFrame's that should not exceed
         200MB of RAM
@@ -3911,6 +4027,13 @@ class MDF:
             used_names.get_unique_name("timestamps")
 
             groups_nr = len(self.virtual_groups)
+
+            if qworker is not None:
+                qworker.signals.setValue.emit(0)
+                qworker.signals.setMaximum.emit(groups_nr)
+
+                if qworker.stop:
+                    return TERMINATED
 
             for group_index, virtual_group in self.virtual_groups.items():
                 group_cycles = virtual_group.cycles_nr
@@ -4133,8 +4256,11 @@ class MDF:
                                 fastpath=True,
                             )
 
-                if self._callback:
-                    self._callback(group_index + 1, groups_nr)
+                if qworker is not None:
+                    qworker.signals.setValue.emit(group_index + 1)
+
+                    if qworker.stop:
+                        return TERMINATED
 
             strings, nonstrings = {}, {}
 
@@ -4177,6 +4303,7 @@ class MDF:
         only_basenames: bool = False,
         interpolate_outwards_with_nan: bool = False,
         numeric_1D_only: bool = False,
+        qworker=None,
     ) -> pd.DataFrame:
         """generate pandas DataFrame
 
@@ -4313,6 +4440,13 @@ class MDF:
         used_names.get_unique_name("timestamps")
 
         groups_nr = len(self.virtual_groups)
+
+        if qworker is not None:
+            qworker.signals.setValue.emit(0)
+            qworker.signals.setMaximum.emit(groups_nr)
+
+            if qworker.stop:
+                return TERMINATED
 
         for group_index, (virtual_group_index, virtual_group) in enumerate(
             self.virtual_groups.items()
@@ -4504,8 +4638,12 @@ class MDF:
                         sig.samples, index=sig_index, fastpath=True
                     )
 
-            if self._callback:
-                self._callback(group_index + 1, groups_nr)
+            if qworker is not None:
+                qworker.signals.setValue.emit(group_index + 1)
+                qworker.signals.setMaximum.emit(groups_nr)
+
+                if qworker.stop:
+                    return TERMINATED
 
         strings, nonstrings = {}, {}
 
@@ -4549,6 +4687,7 @@ class MDF:
         consolidated_j1939: bool | None = None,
         ignore_value2text_conversion: bool = True,
         prefix: str = "",
+        qworker=None,
     ) -> MDF:
         """extract all possible CAN signal using the provided databases.
 
@@ -4638,13 +4777,9 @@ class MDF:
         out = MDF(
             version=version,
             password=self._password,
-            callback=self._callback,
             use_display_names=True,
         )
         out.header.start_time = self.header.start_time
-
-        if self._callback:
-            out._callback = out._mdf._callback = self._callback
 
         self.last_call_info = {}
 
@@ -4654,6 +4789,7 @@ class MDF:
                 database_files["CAN"],
                 ignore_value2text_conversion,
                 prefix,
+                qworker=qworker,
             )
 
         if database_files.get("LIN", None):
@@ -4662,6 +4798,7 @@ class MDF:
                 database_files["LIN"],
                 ignore_value2text_conversion,
                 prefix,
+                qworker=qworker,
             )
 
         return out
@@ -4672,6 +4809,7 @@ class MDF:
         dbc_files: Iterable[DbcFileType],
         ignore_value2text_conversion: bool = True,
         prefix: str = "",
+        qworker=None,
     ) -> MDF:
 
         out = output_file
@@ -4703,6 +4841,13 @@ class MDF:
             and group.channel_group.acq_source.bus_type == v4c.BUS_TYPE_CAN
         )
         count *= len(valid_dbc_files)
+
+        if qworker is not None:
+            qworker.signals.setValue.emit(0)
+            qworker.signals.setMaximum.emit(count)
+
+            if qworker.stop:
+                return TERMINATED
 
         cntr = 0
 
@@ -4981,8 +5126,11 @@ class MDF:
                     self._set_temporary_master(None)
 
                 cntr += 1
-                if self._callback:
-                    self._callback(cntr, count)
+                if qworker is not None:
+                    qworker.signals.setValue.emit(cntr)
+
+                    if qworker.stop:
+                        return TERMINATED
 
             if current_not_found_ids:
                 not_found_ids[dbc_name] = list(current_not_found_ids)
@@ -5014,8 +5162,6 @@ class MDF:
             out.close()
             out = tmp
 
-        if self._callback:
-            self._callback(100, 100)
         if not out.groups:
             logger.warning(
                 f'No CAN signals could be extracted from "{self.name}". The'
@@ -5030,6 +5176,7 @@ class MDF:
         dbc_files: Iterable[DbcFileType],
         ignore_value2text_conversion: bool = True,
         prefix: str = "",
+        qworker=None,
     ) -> MDF:
 
         out = output_file
@@ -5061,6 +5208,13 @@ class MDF:
             and group.channel_group.acq_source.bus_type == v4c.BUS_TYPE_LIN
         )
         count *= len(valid_dbc_files)
+
+        if qworker is not None:
+            qworker.signals.setValue.emit(0)
+            qworker.signals.setMaximum.emit(count)
+
+            if qworker.stop:
+                return TERMINATED
 
         cntr = 0
 
@@ -5260,8 +5414,11 @@ class MDF:
                     self._set_temporary_master(None)
 
                 cntr += 1
-                if self._callback:
-                    self._callback(cntr, count)
+                if qworker is not None:
+                    qworker.signals.setValue.emit(cntr)
+
+                    if qworker.stop:
+                        return TERMINATED
 
             if current_not_found_ids:
                 not_found_ids[dbc_name] = list(current_not_found_ids)
@@ -5279,8 +5436,6 @@ class MDF:
             "unknown_ids": unknown_ids,
         }
 
-        if self._callback:
-            self._callback(100, 100)
         if not out.groups:
             logger.warning(
                 f'No LIN signals could be extracted from "{self.name}". The'
@@ -5313,6 +5468,7 @@ class MDF:
         exp_min: int = -15,
         exp_max: int = 15,
         version: str | None = None,
+        qworker=None,
     ) -> MDF:
         """convert *MDF* to other version
 
@@ -5351,8 +5507,12 @@ class MDF:
 
         groups_nr = len(self.virtual_groups)
 
-        if self._callback:
-            self._callback(0, groups_nr)
+        if qworker is not None:
+            qworker.signals.setValue.emit(0)
+            qworker.signals.setMaximum.emit(groups_nr)
+
+            if qworker.stop:
+                return TERMINATED
 
         cg_nr = None
 
@@ -5410,16 +5570,15 @@ class MDF:
 
                     out.extend(cg_nr, sigs)
 
-            if self._callback:
-                self._callback(i + 1, groups_nr)
+            if qworker is not None:
+                qworker.signals.setValue.emit(i + 1)
 
-            if self._terminate:
-                return
+                if qworker.stop:
+                    return TERMINATED
 
         out._transfer_metadata(self)
         self.configure(copy_on_get=True)
-        if self._callback:
-            out._callback = out._mdf._callback = self._callback
+
         return out
 
     def whereis(

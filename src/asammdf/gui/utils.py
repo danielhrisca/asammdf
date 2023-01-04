@@ -9,6 +9,7 @@ import math
 import os
 from pathlib import Path
 import re
+import sys
 from textwrap import dedent, indent
 from threading import Thread
 from time import perf_counter, sleep
@@ -22,6 +23,7 @@ import numpy as np
 import pandas as pd
 from pyqtgraph import functions as fn
 from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6.QtCore import QObject, QRunnable, QThreadPool, QTimer, Signal, Slot
 
 from ..blocks.options import FloatInterpolation, IntegerInterpolation
 from ..mdf import MDF, MDF2, MDF3, MDF4
@@ -569,9 +571,100 @@ def run_thread_with_progress(
         return thr.output
 
 
+class WorkerSignals(QtCore.QObject):
+    finished = QtCore.Signal()
+    error = QtCore.Signal(object)
+    result = QtCore.Signal(object)
+
+    # will forward to the progress dialog
+    setLabelText = QtCore.Signal(str)
+    setWindowTitle = QtCore.Signal(str)
+    setWindowIcon = QtCore.Signal(object)
+    setMinimum = QtCore.Signal(int)
+    setMaximum = QtCore.Signal(int)
+    setValue = QtCore.Signal(int)
+
+
+class Worker(QtCore.QRunnable):
+    def __init__(self, function, *args, **kwargs):
+        super().__init__()
+        self.function = function
+        self.args = args
+        self.kwargs = kwargs
+        self.signals = WorkerSignals()
+        self.stop = False
+
+        # Add the qrunner to the keyword arguments
+        kwargs["qworker"] = self
+
+    @QtCore.Slot()
+    def run(self):
+        try:
+            result = self.function(*self.args, **self.kwargs)
+        except Exception:
+            traceback.print_exc()
+            exctype, value = sys.exc_info()[:2]
+            self.signals.error.emit((exctype, value, traceback.format_exc()))
+        else:
+            self.signals.result.emit(result)
+        finally:
+            self.signals.finished.emit()
+
+
 class ProgressDialog(QtWidgets.QProgressDialog):
+    finished = QtCore.Signal()
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.threadpool = QThreadPool()
+        self.worker = None
+        self.error = None
+        self.result = None
+        self.thread_finished = True
+
+    def run_thread_with_progress(self, target, args, kwargs):
+        self.show()
+        self.result = None
+        self.error = None
+        self.thread_finished = False
+
+        self.worker = Worker(target, *args, **kwargs)
+        self.worker.signals.result.connect(self.receive_result)
+        self.worker.signals.finished.connect(self.thread_complete)
+        self.worker.signals.error.connect(self.receive_error)
+
+        self.worker.signals.setLabelText.connect(self.setLabelText)
+        self.worker.signals.setWindowIcon.connect(self.setWindowIcon)
+        self.worker.signals.setWindowTitle.connect(self.setWindowTitle)
+        self.worker.signals.setValue.connect(self.setValue)
+        self.worker.signals.setMinimum.connect(self.setMinimum)
+        self.worker.signals.setMaximum.connect(self.setMaximum)
+
+        self.canceled.connect(self._canceled)
+
+        self.threadpool.start(self.worker)
+
+    def _canceled(self):
+        self.close()
+
+    def receive_result(self, result):
+        self.result = result
+
+    def receive_error(self, error):
+        self.error = error
+
+    def thread_complete(self):
+        self.thread_finished = True
+        self.close()
+
+    def close(self):
+        while not self.thread_finished:
+            self.worker.stop = True
+            sleep(0.01)
+            QtCore.QCoreApplication.processEvents()
+            self.finished.emit()
+
+        super().close()
 
     def keyPressEvent(self, event):
         if (
@@ -583,7 +676,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
             super().keyPressEvent(event)
 
 
-def setup_progress(parent, title, message, icon_name):
+def setup_progress(parent, title="", message="", icon_name=""):
     progress = ProgressDialog(message, "Cancel", 0, 100, parent)
 
     progress.setWindowModality(QtCore.Qt.ApplicationModal)
@@ -596,6 +689,7 @@ def setup_progress(parent, title, message, icon_name):
     )
     progress.setWindowIcon(icon)
     progress.setMinimumWidth(600)
+
     progress.show()
 
     return progress

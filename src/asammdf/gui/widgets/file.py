@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import re
 from tempfile import gettempdir
+from time import sleep
 from traceback import format_exc
 
 from natsort import natsorted
@@ -116,6 +117,8 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         self.default_folder = kwargs.get("default_folder", "")
         if "default_folder" in kwargs:
             kwargs.pop("default_folder")
+
+        self._progress = None
 
         self.loaded_display_file = Path(""), b""
 
@@ -2539,18 +2542,55 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
     def apply_processing(self, event):
 
-        steps = 1
-        if self.cut_group.isChecked():
-            steps += 1
-        if self.resample_group.isChecked():
-            steps += 1
         needs_filter, channels = self._get_filtered_channels()
-        if needs_filter:
-            steps += 1
 
         opts = self._current_options()
 
         output_format = opts.output_format
+
+        if output_format == "HDF5":
+            try:
+                from h5py import File as HDF5
+            except ImportError:
+                QtWidgets.QMessageBox.critical(
+                    self,
+                    "Export to HDF5 unavailale",
+                    "h5py package not found; export to HDF5 is unavailable",
+                )
+                return
+
+        elif output_format == "MAT":
+            if opts.mat_format == "7.3":
+                try:
+                    from hdf5storage import savemat
+                except ImportError:
+                    QtWidgets.QMessageBox.critical(
+                        self,
+                        "Export to mat v7.3 unavailale",
+                        "hdf5storage package not found; export to mat 7.3 is unavailable",
+                    )
+                    return
+            else:
+                try:
+                    from scipy.io import savemat
+                except ImportError:
+                    QtWidgets.QMessageBox.critical(
+                        self,
+                        "Export to mat v4 and v5 unavailale",
+                        "scipy package not found; export to mat is unavailable",
+                    )
+                    return
+
+        elif output_format == "Parquet":
+            try:
+                from fastparquet import write as write_parquet
+            except ImportError:
+                QtWidgets.QMessageBox.critical(
+                    self,
+                    "Export to parquet unavailale",
+                    "fastparquet package not found; export to parquet is unavailable",
+                )
+                return
 
         if output_format == "MDF":
             version = opts.mdf_version
@@ -2591,88 +2631,62 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 filters[output_format],
             )
 
-        if file_name:
-            if output_format == "HDF5":
-                try:
-                    from h5py import File as HDF5
-                except ImportError:
-                    QtWidgets.QMessageBox.critical(
-                        self,
-                        "Export to HDF5 unavailale",
-                        "h5py package not found; export to HDF5 is unavailable",
-                    )
-                    return
-
-            elif output_format == "MAT":
-                if opts.mat_format == "7.3":
-                    try:
-                        from hdf5storage import savemat
-                    except ImportError:
-                        QtWidgets.QMessageBox.critical(
-                            self,
-                            "Export to mat v7.3 unavailale",
-                            "hdf5storage package not found; export to mat 7.3 is unavailable",
-                        )
-                        return
-                else:
-                    try:
-                        from scipy.io import savemat
-                    except ImportError:
-                        QtWidgets.QMessageBox.critical(
-                            self,
-                            "Export to mat v4 and v5 unavailale",
-                            "scipy package not found; export to mat is unavailable",
-                        )
-                        return
-
-            elif output_format == "Parquet":
-                try:
-                    from fastparquet import write as write_parquet
-                except ImportError:
-                    QtWidgets.QMessageBox.critical(
-                        self,
-                        "Export to parquet unavailale",
-                        "fastparquet package not found; export to parquet is unavailable",
-                    )
-                    return
-        else:
+        if not file_name:
             return
+
+        self._progress = setup_progress(parent=self)
+        self._progress.finished.connect(self._process_finished)
+
+        self._progress.run_thread_with_progress(
+            target=self.apply_processing_thread,
+            args=(),
+            kwargs={
+                "file_name": file_name,
+                "opts": opts,
+                "version": version,
+                "needs_filter": needs_filter,
+                "channels": channels,
+            },
+        )
+
+    def _process_finished(self):
+        print("FINISF", self._progress)
+        print("FINFINS", self._progress.error, self._progress.result)
+        self._progress = None
+
+    def apply_processing_thread(
+        self, file_name, opts, version, needs_filter, channels, qworker=None
+    ):
+
+        output_format = opts.output_format
 
         split_size = opts.mdf_split_size if output_format == "MDF" else 0
         self.mdf.configure(read_fragment_size=split_size)
 
         mdf = None
-        progress = None
         integer_interpolation = self.mdf._integer_interpolation
         float_interpolation = self.mdf._float_interpolation
 
         if needs_filter:
 
-            progress = setup_progress(
-                parent=self,
-                title="Filtering measurement",
-                message=f'Filtering selected channels from "{self.file_name}"',
-                icon_name="filter",
+            icon = QtGui.QIcon()
+            icon.addPixmap(
+                QtGui.QPixmap(":/filter.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+            )
+            qworker.signals.setWindowIcon.emit(icon)
+            qworker.signals.setWindowTitle.emit("Filtering measurement")
+            qworker.signals.setLabelText.emit(
+                f'Filtering selected channels from "{self.file_name}"'
             )
 
             # filtering self.mdf
-            target = self.mdf.filter
-            kwargs = {
-                "channels": channels,
-                "version": opts.mdf_version if output_format == "MDF" else "4.10",
-            }
-
-            result = run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=99,
-                offset=0,
-                progress=progress,
+            result = self.mdf.filter(
+                channels=channels,
+                version=opts.mdf_version if output_format == "MDF" else "4.10",
+                qworker=qworker,
             )
 
             if result is TERMINATED:
-                progress.cancel()
                 return
             else:
                 mdf = result
@@ -2686,45 +2700,28 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if opts.needs_cut:
 
-            if progress is None:
-                progress = setup_progress(
-                    parent=self,
-                    title="Cutting measurement",
-                    message=f"Cutting from {opts.cut_start}s to {opts.cut_stop}s",
-                    icon_name="cut",
-                )
-            else:
-                icon = QtGui.QIcon()
-                icon.addPixmap(
-                    QtGui.QPixmap(":/cut.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-                )
-                progress.setWindowIcon(icon)
-                progress.setWindowTitle("Cutting measurement")
-                progress.setLabelText(
-                    f"Cutting from {opts.cut_start}s to {opts.cut_stop}s"
-                )
+            icon = QtGui.QIcon()
+            icon.addPixmap(
+                QtGui.QPixmap(":/cut.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+            )
+            qworker.signals.setWindowIcon.emit(icon)
+            qworker.signals.setWindowTitle.emit("Cutting measurement")
+            qworker.signals.setLabelText.emit(
+                f"Cutting from {opts.cut_start}s to {opts.cut_stop}s"
+            )
 
             # cut self.mdf
             target = self.mdf.cut if mdf is None else mdf.cut
-            kwargs = {
-                "start": opts.cut_start,
-                "stop": opts.cut_stop,
-                "whence": opts.whence,
-                "version": opts.mdf_version if output_format == "MDF" else "4.10",
-                "time_from_zero": opts.cut_time_from_zero,
-            }
-
-            result = run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=99,
-                offset=0,
-                progress=progress,
+            result = target(
+                start=opts.cut_start,
+                stop=opts.cut_stop,
+                whence=opts.whence,
+                version=opts.mdf_version if output_format == "MDF" else "4.10",
+                time_from_zero=opts.cut_time_from_zero,
+                qworker=qworker,
             )
 
             if result is TERMINATED:
-                progress.cancel()
                 return
             else:
                 if mdf is None:
@@ -2749,41 +2746,25 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 raster = opts.raster
                 message = f"Resampling to {raster}s raster"
 
-            if progress is None:
-                progress = setup_progress(
-                    parent=self,
-                    title="Resampling measurement",
-                    message=message,
-                    icon_name="resample",
-                )
-            else:
-                icon = QtGui.QIcon()
-                icon.addPixmap(
-                    QtGui.QPixmap(":/resample.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-                )
-                progress.setWindowIcon(icon)
-                progress.setWindowTitle("Resampling measurement")
-                progress.setLabelText(message)
+            icon = QtGui.QIcon()
+            icon.addPixmap(
+                QtGui.QPixmap(":/resample.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+            )
+            qworker.signals.setWindowIcon.emit(icon)
+            qworker.signals.setWindowTitle.emit("Resampling measurement")
+            qworker.signals.setLabelText.emit(message)
 
             # resample self.mdf
             target = self.mdf.resample if mdf is None else mdf.resample
-            kwargs = {
-                "raster": raster,
-                "version": opts.mdf_version if output_format == "MDF" else "4.10",
-                "time_from_zero": opts.resample_time_from_zero,
-            }
 
-            result = run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=99,
-                offset=0,
-                progress=progress,
+            result = target(
+                raster=raster,
+                version=opts.mdf_version if output_format == "MDF" else "4.10",
+                time_from_zero=opts.resample_time_from_zero,
+                qworker=qworker,
             )
 
             if result is TERMINATED:
-                progress.cancel()
                 return
             else:
                 if mdf is None:
@@ -2801,41 +2782,23 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
 
         if output_format == "MDF":
             if mdf is None:
-                if progress is None:
-                    progress = setup_progress(
-                        parent=self,
-                        title="Converting measurement",
-                        message=f'Converting "{self.file_name}" from {self.mdf.version} to {version}',
-                        icon_name="convert",
-                    )
-                else:
-                    icon = QtGui.QIcon()
-                    icon.addPixmap(
-                        QtGui.QPixmap(":/convert.png"),
-                        QtGui.QIcon.Normal,
-                        QtGui.QIcon.Off,
-                    )
-                    progress.setWindowIcon(icon)
-                    progress.setWindowTitle("Converting measurement")
-                    progress.setLabelText(
-                        f'Converting "{self.file_name}" from {self.mdf.version} to {version}'
-                    )
+                icon = QtGui.QIcon()
+                icon.addPixmap(
+                    QtGui.QPixmap(":/convert.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+                )
+                qworker.signals.setWindowIcon.emit(icon)
+                qworker.signals.setWindowTitle.emit("Converting measurement")
+                qworker.signals.setLabelText.emit(
+                    f'Converting "{self.file_name}" from {self.mdf.version} to {version}'
+                )
 
                 # convert self.mdf
-                target = self.mdf.convert
-                kwargs = {"version": version}
-
-                result = run_thread_with_progress(
-                    self,
-                    target=target,
-                    kwargs=kwargs,
-                    factor=99,
-                    offset=0,
-                    progress=progress,
+                result = self.mdf.convert(
+                    version=version,
+                    qworker=qworker,
                 )
 
                 if result is TERMINATED:
-                    progress.cancel()
                     return
                 else:
                     mdf = result
@@ -2848,7 +2811,13 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             )
 
             # then save it
-            progress.setLabelText(f'Saving output file "{file_name}"')
+            icon = QtGui.QIcon()
+            icon.addPixmap(
+                QtGui.QPixmap(":/save.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+            )
+            qworker.signals.setWindowIcon.emit(icon)
+            qworker.signals.setWindowTitle.emit("Saving measurement")
+            qworker.signals.setLabelText.emit(f'Saving output file "{file_name}"')
 
             handle_overwrite = Path(file_name) == self.mdf.name
 
@@ -2866,65 +2835,47 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                     widget.close()
                     window.close()
 
-            target = mdf.save
-            kwargs = {
-                "dst": file_name,
-                "compression": opts.mdf_compression,
-                "overwrite": True,
-            }
-
-            run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=99,
-                offset=0,
-                progress=progress,
+            result = mdf.save(
+                dst=file_name,
+                compression=opts.mdf_compression,
+                overwrite=True,
+                qworker=qworker,
             )
 
-            self.progress = None
-            progress.cancel()
+            if result is TERMINATED:
+                return
 
             if handle_overwrite:
 
                 original_name = file_name
 
-                target = MDF
-                kwargs = {
-                    "name": file_name,
-                    "callback": self.update_progress,
-                    "password": _password,
-                    "use_display_names": True,
-                }
-
-                self.mdf = MDF(**kwargs)
+                self.mdf = MDF(
+                    name=file_name,
+                    password=_password,
+                    use_display_names=True,
+                )
 
                 self.mdf.original_name = original_name
                 self.mdf.uuid = self.uuid
 
                 self.aspects.setCurrentIndex(0)
+
+                # TO DO: may crash when modifying the GUI from this thread
                 self.load_channel_list(file_name=dspf)
 
                 self.aspects.setCurrentIndex(1)
 
         else:
-            if progress is None:
-                progress = setup_progress(
-                    parent=self,
-                    title="Export measurement",
-                    message=f"Exporting to {output_format}",
-                    icon_name="export",
-                )
-            else:
-                icon = QtGui.QIcon()
-                icon.addPixmap(
-                    QtGui.QPixmap(":/export.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
-                )
-                progress.setWindowIcon(icon)
-                progress.setWindowTitle("Export measurement")
-                progress.setLabelText(
-                    f"Exporting to {output_format} (be patient this might take a while)"
-                )
+
+            icon = QtGui.QIcon()
+            icon.addPixmap(
+                QtGui.QPixmap(":/export.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off
+            )
+            qworker.signals.setWindowIcon.emit(icon)
+            qworker.signals.setWindowTitle.emit("Export measurement")
+            qworker.signals.setLabelText.emit(
+                f"Exporting to {output_format} (be patient this might take a while)"
+            )
 
             delimiter = self.delimiter.text() or ","
             doublequote = self.doublequote.checkState() == QtCore.Qt.Checked
@@ -2961,17 +2912,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
                 "add_units": add_units,
             }
 
-            result = run_thread_with_progress(
-                self,
-                target=target,
-                kwargs=kwargs,
-                factor=99,
-                offset=0,
-                progress=progress,
-            )
-
-            self.progress = None
-            progress.cancel()
+            target(**kwargs)
 
     def raster_search(self, event):
         dlg = AdvancedSearch(

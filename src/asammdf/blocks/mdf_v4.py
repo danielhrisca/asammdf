@@ -113,6 +113,7 @@ from .utils import (
     MdfException,
     sanitize_xml,
     SignalDataBlockInfo,
+    TERMINATED,
     UINT8_uf,
     UINT16_uf,
     UINT32_p,
@@ -212,10 +213,6 @@ class MDF4(MDF_Common):
 
     kwargs :
 
-    callback : function
-        keyword only argument: function to call to update the progress; the
-        function must accept two arguments (the current progress and maximum
-        progress value)
     use_display_names (True) : bool
         keyword only argument: for MDF4 files parse the XML channel comment to
         search for the display name; XML parsing is quite expensive so setting
@@ -265,8 +262,6 @@ class MDF4(MDF_Common):
         mdf version
 
     """
-
-    _terminate = False
 
     def __init__(
         self,
@@ -363,8 +358,6 @@ class MDF4(MDF_Common):
 
         # make sure no appended block has the address 0
         self._tempfile.write(b"\0")
-
-        self._callback = kwargs.get("callback", None)
 
         self._delete_on_close = False
         self._mapped_file = None
@@ -486,8 +479,8 @@ class MDF4(MDF_Common):
 
         cg_count, _ = count_channel_groups(stream)
         progress_steps = cg_count + SORT_STEPS
-        if self._callback:
-            self._callback(0, progress_steps)
+        # if self._callback:
+        #     self._callback(0, progress_steps)
         current_cg_index = 0
 
         self.identification = FileIdentificationBlock(stream=stream, mapped=mapped)
@@ -618,12 +611,12 @@ class MDF4(MDF_Common):
                 dg_cntr += 1
 
                 current_cg_index += 1
-                if self._callback:
-                    self._callback(current_cg_index, progress_steps)
-
-                if self._terminate:
-                    self.close()
-                    return
+                # if self._callback:
+                #     self._callback(current_cg_index, progress_steps)
+                #
+                # if self._terminate:
+                #     self.close()
+                #     return
 
                 new_groups.append(grp)
 
@@ -788,10 +781,10 @@ class MDF4(MDF_Common):
         self._sort(
             current_progress_index=current_cg_index, max_progress_count=progress_steps
         )
-        if self._callback:
-            self._callback(
-                progress_steps - 1, progress_steps
-            )  # second to last step now
+        # if self._callback:
+        #     self._callback(
+        #         progress_steps - 1, progress_steps
+        #     )  # second to last step now
 
         for grp in self.groups:
             channels = grp.channels
@@ -845,10 +838,10 @@ class MDF4(MDF_Common):
         self._interned_strings.clear()
         self._attachments_map.clear()
 
-        if self._callback:
-            self._callback(
-                progress_steps, progress_steps
-            )  # last step, we've completely loaded the file for sure
+        # if self._callback:
+        #     self._callback(
+        #         progress_steps, progress_steps
+        #     )  # last step, we've completely loaded the file for sure
 
         self.progress = cg_count, cg_count
 
@@ -9107,6 +9100,7 @@ class MDF4(MDF_Common):
         dst: WritableBufferType | StrPathType,
         overwrite: bool = False,
         compression: CompressionType = 0,
+        qworker=None,
     ) -> Path:
         """Save MDF to *dst*. If overwrite is *True* then the destination file
         is overwritten, otherwise the file name is appended with '.<cntr>', were
@@ -9502,12 +9496,14 @@ class MDF4(MDF_Common):
                 else:
                     gp.data_group.data_block_addr = 0
 
-                if self._callback:
-                    self._callback(int(50 * (gp_nr + 1) / groups_nr), 100)
-                if self._terminate:
-                    dst_.close()
-                    self.close()
-                    return
+                if qworker is not None:
+                    qworker.signals.setValue.emit(int(50 * (gp_nr + 1) / groups_nr))
+
+                    if qworker.stop:
+                        dst_.close()
+                        self.close()
+
+                        return TERMINATED
 
             address = tell()
 
@@ -9713,12 +9709,14 @@ class MDF4(MDF_Common):
 
                 cg_map[i] = gp.channel_group.address
 
-                if self._callback:
-                    self._callback(int(50 * (i + 1) / groups_nr) + 25, 100)
-                if self._terminate:
-                    dst_.close()
-                    self.close()
-                    return
+                if qworker is not None:
+                    qworker.signals.setValue.emit(int(50 * (i + 1) / groups_nr) + 25)
+
+                    if qworker.stop:
+                        dst_.close()
+                        self.close()
+
+                        return TERMINATED
 
             for gp in self.groups:
                 for dep_list in gp.channel_dependencies:
@@ -9860,10 +9858,10 @@ class MDF4(MDF_Common):
 
                 self.header.first_event_addr = self.events[0].address
 
-            if self._terminate:
+            if qworker is not None and qworker.stop:
                 dst_.close()
                 self.close()
-                return
+                return TERMINATED
 
             # attachments
             at_map = {}
@@ -9912,14 +9910,16 @@ class MDF4(MDF_Common):
                                 channel.attachment
                             ].address
 
-            if self._callback:
+            if qworker is not None:
                 blocks_nr = len(blocks)
                 threshold = blocks_nr / 25
                 count = 1
                 for i, block in enumerate(blocks):
                     write(bytes(block))
                     if i >= threshold:
-                        self._callback(75 + count, 100)
+
+                        qworker.signals.setValue.emit(75 + count)
+
                         count += 1
                         threshold += blocks_nr / 25
             else:
@@ -10001,9 +10001,6 @@ class MDF4(MDF_Common):
             self._tempfile = TemporaryFile(dir=self.temporary_folder)
             self._file = open(self.name, "rb")
             self._read()
-
-        if self._callback:
-            self._callback(100, 100)
 
         return dst
 
@@ -10404,13 +10401,14 @@ class MDF4(MDF_Common):
                 # and we've been given a max progress count (only way we can do progress updates)
                 # and there's a tick update (at least 1 integer between the last update and the current index)
                 # then we can notify about the callback progress
-                if (
-                    self._callback
-                    and max_progress_count
-                    and floor(previous) < floor(index)
-                ):
-                    self._callback(floor(index), max_progress_count)
-                    previous = index
+
+                # if (
+                #     self._callback
+                #     and max_progress_count
+                #     and floor(previous) < floor(index)
+                # ):
+                #     self._callback(floor(index), max_progress_count)
+                #     previous = index
 
                 seek(dtblock_address)
 

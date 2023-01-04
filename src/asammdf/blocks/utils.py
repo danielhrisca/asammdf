@@ -22,6 +22,7 @@ import xml.etree.ElementTree as ET
 
 from typing_extensions import Literal, TypedDict
 
+TERMINATED = object()
 target_byte_order = "<=" if sys.byteorder == "little" else ">="
 
 try:

@@ -15,7 +15,6 @@ from ...blocks.utils import (
     csv_int2hex,
     pandas_query_compatible,
 )
-from ..utils import run_thread_with_progress
 from .tabular_base import TabularBase, TabularTreeItem
 from .tabular_filter import TabularFilter
 
