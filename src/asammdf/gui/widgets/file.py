@@ -16,7 +16,7 @@ import psutil
 import pyqtgraph as pg
 from PySide6 import QtCore, QtGui, QtWidgets
 
-from ...blocks.utils import extract_xml_comment
+from ...blocks.utils import extract_xml_comment, TERMINATED
 from ...blocks.v4_constants import (
     BUS_TYPE_CAN,
     BUS_TYPE_ETHERNET,
@@ -41,7 +41,6 @@ from ..utils import (
     load_lab,
     run_thread_with_progress,
     setup_progress,
-    TERMINATED,
 )
 from .attachment import Attachment
 from .can_bus_trace import CANBusTrace
@@ -251,6 +250,7 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             self.channels_db_items = channels_db_items
 
             progress.setLabelText("Loading graphical elements")
+            QtWidgets.QApplication.processEvents()
 
             progress.setValue(37)
 
@@ -292,10 +292,12 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
             )
 
             progress.setValue(70)
+            QtWidgets.QApplication.processEvents()
 
             self.raster_type_channel.toggled.connect(self.set_raster_type)
 
             progress.setValue(90)
+            QtWidgets.QApplication.processEvents()
 
             self.output_options.setCurrentIndex(0)
 
@@ -2650,8 +2652,6 @@ class FileWidget(WithMDIArea, Ui_file_widget, QtWidgets.QWidget):
         )
 
     def _process_finished(self):
-        print("FINISF", self._progress)
-        print("FINFINS", self._progress.error, self._progress.result)
         self._progress = None
 
     def apply_processing_thread(

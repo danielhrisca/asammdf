@@ -362,12 +362,14 @@ class MDF4(MDF_Common):
         self._delete_on_close = False
         self._mapped_file = None
 
+        progress = kwargs.get("progress", None)
+
         if name:
             if is_file_like(name):
                 self._file = name
                 self.name = self.original_name = Path("From_FileLike.mf4")
                 self._from_filelike = True
-                self._read(mapped=False)
+                self._read(mapped=False, progress=progress)
             else:
 
                 with open(name, "rb") as stream:
@@ -383,14 +385,14 @@ class MDF4(MDF_Common):
                     self._file = open(self.name, "rb+")
                     self._from_filelike = False
                     self._delete_on_close = True
-                    self._read(mapped=False)
+                    self._read(mapped=False, progress=progress)
                 else:
 
                     if sys.maxsize < 2**32:
                         self.name = Path(name)
                         self._file = open(self.name, "rb")
                         self._from_filelike = False
-                        self._read(mapped=False)
+                        self._read(mapped=False, progress=progress)
                     else:
                         self.name = Path(name)
                         self._mapped_file = open(self.name, "rb")
@@ -398,7 +400,7 @@ class MDF4(MDF_Common):
                             self._mapped_file.fileno(), 0, access=mmap.ACCESS_READ
                         )
                         self._from_filelike = False
-                        self._read(mapped=True)
+                        self._read(mapped=True, progress=progress)
 
         else:
             self._from_filelike = False
@@ -467,7 +469,7 @@ class MDF4(MDF_Common):
 
         return flags
 
-    def _read(self, mapped: bool = False) -> None:
+    def _read(self, mapped: bool = False, progress=None) -> None:
 
         stream = self._file
         self._mapped = mapped
@@ -479,8 +481,10 @@ class MDF4(MDF_Common):
 
         cg_count, _ = count_channel_groups(stream)
         progress_steps = cg_count + SORT_STEPS
-        # if self._callback:
-        #     self._callback(0, progress_steps)
+
+        if progress is not None:
+            if callable(progress):
+                progress(0, progress_steps)
         current_cg_index = 0
 
         self.identification = FileIdentificationBlock(stream=stream, mapped=mapped)
@@ -611,12 +615,9 @@ class MDF4(MDF_Common):
                 dg_cntr += 1
 
                 current_cg_index += 1
-                # if self._callback:
-                #     self._callback(current_cg_index, progress_steps)
-                #
-                # if self._terminate:
-                #     self.close()
-                #     return
+                if progress is not None:
+                    if callable(progress):
+                        progress(current_cg_index, progress_steps)
 
                 new_groups.append(grp)
 
@@ -779,12 +780,13 @@ class MDF4(MDF_Common):
                         break
 
         self._sort(
-            current_progress_index=current_cg_index, max_progress_count=progress_steps
+            current_progress_index=current_cg_index,
+            max_progress_count=progress_steps,
+            progres=progress,
         )
-        # if self._callback:
-        #     self._callback(
-        #         progress_steps - 1, progress_steps
-        #     )  # second to last step now
+        if progress is not None:
+            if callable(progress):
+                progress(progress_steps - 1, progress_steps)  # second to last step now
 
         for grp in self.groups:
             channels = grp.channels
@@ -838,10 +840,11 @@ class MDF4(MDF_Common):
         self._interned_strings.clear()
         self._attachments_map.clear()
 
-        # if self._callback:
-        #     self._callback(
-        #         progress_steps, progress_steps
-        #     )  # last step, we've completely loaded the file for sure
+        if progress is not None:
+            if callable(progress):
+                progress(
+                    progress_steps, progress_steps
+                )  # last step, we've completely loaded the file for sure
 
         self.progress = cg_count, cg_count
 
@@ -10324,6 +10327,7 @@ class MDF4(MDF_Common):
         compress: bool = True,
         current_progress_index: int = 0,
         max_progress_count: int = 0,
+        progress=None,
     ) -> None:
         if self._file is None:
             return
@@ -10402,13 +10406,13 @@ class MDF4(MDF_Common):
                 # and there's a tick update (at least 1 integer between the last update and the current index)
                 # then we can notify about the callback progress
 
-                # if (
-                #     self._callback
-                #     and max_progress_count
-                #     and floor(previous) < floor(index)
-                # ):
-                #     self._callback(floor(index), max_progress_count)
-                #     previous = index
+                if (
+                    callable(progress)
+                    and max_progress_count
+                    and floor(previous) < floor(index)
+                ):
+                    progress(floor(index), max_progress_count)
+                    previous = index
 
                 seek(dtblock_address)
 

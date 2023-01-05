@@ -601,6 +601,7 @@ class Worker(QtCore.QRunnable):
     def run(self):
         try:
             result = self.function(*self.args, **self.kwargs)
+            print("worker result", result)
         except Exception:
             traceback.print_exc()
             exctype, value = sys.exc_info()[:2]
@@ -645,6 +646,7 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.threadpool.start(self.worker)
 
     def _canceled(self):
+        print("canceled")
         self.close()
 
     def receive_result(self, result):
@@ -654,17 +656,15 @@ class ProgressDialog(QtWidgets.QProgressDialog):
         self.error = error
 
     def thread_complete(self):
+        self.finished.emit()
         self.thread_finished = True
-        self.close()
+        super().close()
 
     def close(self):
         while not self.thread_finished:
             self.worker.stop = True
             sleep(0.01)
             QtCore.QCoreApplication.processEvents()
-            self.finished.emit()
-
-        super().close()
 
     def keyPressEvent(self, event):
         if (
